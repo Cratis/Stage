@@ -1,0 +1,19 @@
+{
+    "config": {
+        // MD013 — Line length is disabled because technical documentation legitimately contains
+        // long URLs, command-line examples, and table cell content that cannot be meaningfully
+        // wrapped to 80 characters without destroying readability.
+        "MD013": false,
+
+        // MD060 — Table column style is disabled because the pipe alignment rules are purely
+        // cosmetic and conflict with how Markdown tables are typically written in editors.
+        "MD060": false,
+
+        // MD024 — Allow duplicate heading text when the headings appear under different parent
+        // sections. This is needed for recurring sub-headings like "Routing rules" or
+        // "Configure the Pulumi stack" that appear under separate top-level sections.
+        "MD024": {
+            "siblings_only": true
+        }
+    }
+}

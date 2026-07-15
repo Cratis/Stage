@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cratis.io/schemas/stage/event-model.schema.json",
+  "title": "Cratis Stage Event Model",
+  "description": "The shared, JSON-friendly intermediate format for a Cratis event model. Every generation source (Prologue extraction, AI generation, and JSON file import) produces this format, which is applied onto an event model by the shared importer. Property names are PascalCase; deserialization is case-insensitive.",
+  "type": "object",
+  "required": ["Name", "Collections"],
+  "properties": {
+    "Id": { "type": "string", "format": "uuid", "description": "The event model identifier. Ignored on import into an existing event model." },
+    "Name": { "type": "string", "description": "The event model name." },
+    "Collections": {
+      "type": "array",
+      "description": "The module collections. Each collection becomes a grouping of modules on the canvas.",
+      "items": { "$ref": "#/$defs/ModuleCollection" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ModuleCollection": {
+      "type": "object",
+      "required": ["Modules"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "EventModelId": { "type": "string", "format": "uuid" },
+        "Modules": { "type": "array", "items": { "$ref": "#/$defs/Module" } }
+      },
+      "additionalProperties": false
+    },
+    "Module": {
+      "type": "object",
+      "required": ["Name", "Features"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "EventModelId": { "type": "string", "format": "uuid" },
+        "CollectionId": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Features": { "type": "array", "items": { "$ref": "#/$defs/Feature" } }
+      },
+      "additionalProperties": false
+    },
+    "Feature": {
+      "type": "object",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "ParentFeatureId": { "type": ["string", "null"], "format": "uuid", "description": "The parent feature, when this is a nested sub-feature." },
+        "SubFeatures": { "type": "array", "items": { "$ref": "#/$defs/Feature" } },
+        "Slices": { "type": "array", "items": { "$ref": "#/$defs/Slice" } }
+      },
+      "additionalProperties": false
+    },
+    "SliceType": {
+      "type": "string",
+      "description": "StateChange accepts a command and appends events; StateView projects events into a read model; Automation reacts and performs side effects; Translator reacts and appends follow-up events.",
+      "enum": ["StateChange", "StateView", "Automation", "Translator"]
+    },
+    "Slice": {
+      "type": "object",
+      "required": ["Name", "SliceType"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "SliceType": { "$ref": "#/$defs/SliceType" },
+        "Events": { "type": "array", "items": { "$ref": "#/$defs/EventDefinition" } },
+        "Command": { "oneOf": [{ "$ref": "#/$defs/CommandDefinition" }, { "type": "null" }] },
+        "ReadModel": { "oneOf": [{ "$ref": "#/$defs/ReadModelDefinition" }, { "type": "null" }] },
+        "Specifications": { "type": "array", "items": { "$ref": "#/$defs/Specification" } }
+      },
+      "additionalProperties": false
+    },
+    "EventDefinition": {
+      "type": "object",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "SourceEventId": { "type": "string", "description": "Empty when the event is owned by this slice; otherwise the id of the event this one references (a State Change slice's event referenced by a consumer slice)." },
+        "Schema": { "type": "string", "description": "The event payload as a JSON Schema string." },
+        "UniqueEventTypeConstraint": { "oneOf": [{ "$ref": "#/$defs/UniqueEventTypeConstraint" }, { "type": "null" }] },
+        "UniqueConstraint": { "oneOf": [{ "$ref": "#/$defs/UniqueConstraint" }, { "type": "null" }] }
+      },
+      "additionalProperties": false
+    },
+    "CommandDefinition": {
+      "type": "object",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Schema": { "type": "string", "description": "The command payload as a JSON Schema string." },
+        "StateSchema": { "type": "string", "description": "The command's state (DCB) schema as a JSON Schema string." },
+        "Rules": { "type": "array", "items": { "$ref": "#/$defs/CommandPropertyRules" } },
+        "LogicDescription": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "CommandPropertyRules": {
+      "type": "object",
+      "description": "Validation rules for a single command property.",
+      "properties": {
+        "Property": { "type": "string" },
+        "Rules": { "type": "array", "items": { "$ref": "#/$defs/RuleDefinition" } }
+      }
+    },
+    "RuleDefinition": {
+      "type": "object",
+      "description": "A single validation rule. Discriminated by 'kind' (e.g. notEmpty, minLength, maxLength, emailAddress, matches, greaterThan).",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["notEmpty", "notNull", "minLength", "maxLength", "length", "emailAddress", "phone", "url", "matches", "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual"]
+        },
+        "ErrorMessage": { "type": ["string", "null"] }
+      }
+    },
+    "ReadModelDefinition": {
+      "type": "object",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Schema": { "type": "string", "description": "The read model as a JSON Schema string." },
+        "Projection": { "oneOf": [{ "$ref": "#/$defs/ProjectionDefinition" }, { "type": "null" }] }
+      },
+      "additionalProperties": false
+    },
+    "ProjectionDefinition": {
+      "type": "object",
+      "description": "How the read model is projected from events. Dictionary values are keyed by event type / property path.",
+      "properties": {
+        "IsActive": { "type": "boolean" },
+        "IsRewindable": { "type": "boolean" },
+        "InitialModelState": { "type": "string" },
+        "From": { "type": "object", "additionalProperties": true },
+        "Join": { "type": "object", "additionalProperties": true },
+        "Children": { "type": "object", "additionalProperties": true },
+        "FromDerivatives": { "type": "array", "items": { "type": "object" } },
+        "FromEvery": { "type": ["object", "null"] },
+        "FromEventProperty": { "type": ["object", "null"] },
+        "RemovedWith": { "type": "object", "additionalProperties": true },
+        "RemovedWithJoin": { "type": "object", "additionalProperties": true },
+        "Tags": { "type": "array", "items": { "type": "string" } },
+        "AutoMap": { "type": "string", "enum": ["Enabled", "Disabled"] }
+      }
+    },
+    "UniqueConstraint": {
+      "type": "object",
+      "required": ["Name"],
+      "properties": {
+        "Name": { "type": "string" },
+        "Message": { "type": "string" },
+        "IgnoreCasing": { "type": "boolean" },
+        "EventsWithProperties": { "type": "array", "items": { "type": "object" } },
+        "RemovedWith": { "type": ["string", "null"] }
+      }
+    },
+    "UniqueEventTypeConstraint": {
+      "type": "object",
+      "required": ["Name"],
+      "properties": {
+        "Name": { "type": "string" },
+        "Message": { "type": "string" },
+        "EventType": { "type": "string" },
+        "RemovedWith": { "type": ["string", "null"] }
+      }
+    },
+    "Specification": {
+      "type": "object",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Given": { "type": "array", "items": { "$ref": "#/$defs/SpecificationGivenEvent" } },
+        "When": { "oneOf": [{ "$ref": "#/$defs/SpecificationCommand" }, { "type": "null" }] },
+        "ThenEvents": { "type": "array", "items": { "$ref": "#/$defs/SpecificationThenEvent" } },
+        "ThenErrors": { "type": "array", "items": { "$ref": "#/$defs/SpecificationError" } }
+      },
+      "additionalProperties": false
+    },
+    "SpecificationGivenEvent": {
+      "type": "object",
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "EventId": { "type": "string", "format": "uuid" },
+        "Values": { "type": "string", "description": "The event values as a JSON string." }
+      }
+    },
+    "SpecificationCommand": {
+      "type": "object",
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "CommandId": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Values": { "type": "string", "description": "The command values as a JSON string." }
+      }
+    },
+    "SpecificationThenEvent": {
+      "type": "object",
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "EventId": { "type": "string", "format": "uuid" },
+        "Values": { "type": "string" }
+      }
+    },
+    "SpecificationError": {
+      "type": "object",
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" }
+      }
+    }
+  }
+}

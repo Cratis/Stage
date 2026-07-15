@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.Contracts</AssemblyName>
+        <RootNamespace>Cratis.Stage.Contracts</RootNamespace>
+        <IsPackable>true</IsPackable>
+        <Description>The Cratis Stage contract — the event model intermediate format, specification run results and their serialization.</Description>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- JSON Schema describing the event model intermediate format, embedded so it ships with the assembly. -->
+        <EmbeddedResource Include="EventModel.schema.json" />
+    </ItemGroup>
+</Project>

@@ -8,6 +8,7 @@
         <NoWarn>$(NoWarn);CS7022</NoWarn>
         <UserSecretsId>f1e2d3c4-b5a6-4789-9012-3456789abcde</UserSecretsId>
         <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces>
+        <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
     </PropertyGroup>
 
     <ItemGroup>

@@ -1,0 +1,6 @@
+[
+    {
+        "name": "Core",
+        "path": "${workspaceFolder}/Source/Core",
+        "outputPath": "${workspaceFolder}/Source/Core/bin/Debug/net10.0/Studio.dll"
+    }]

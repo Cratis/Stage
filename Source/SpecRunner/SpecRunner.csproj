@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <OutputType>Exe</OutputType>
+        <AssemblyName>Cratis.Stage.SpecRunner</AssemblyName>
+        <RootNamespace>Cratis.Stage.SpecRunner</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Stage/Stage.csproj" />
+    </ItemGroup>
+</Project>

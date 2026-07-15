@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <OutputType>Exe</OutputType>
+        <AssemblyName>Cratis.Stage.Host</AssemblyName>
+        <RootNamespace>Cratis.Stage.Host</RootNamespace>
+
+        <NoWarn>$(NoWarn);CS7022</NoWarn>
+        <UserSecretsId>f1e2d3c4-b5a6-4789-9012-3456789abcde</UserSecretsId>
+        <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Cratis" />
+        <PackageReference Include="Cratis.Arc.MongoDB" />
+        <PackageReference Include="Scalar.AspNetCore" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Stage/Stage.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Remove="package.json" />
+        <None Remove="package.json" />
+    </ItemGroup>
+</Project>

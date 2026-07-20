@@ -23,7 +23,11 @@ public static class StageChronicleDefinitions
 {
     const string EventSourceIdExpression = "$eventSourceId";
     const uint FirstGeneration = 1;
-    const string MongoSinkTypeId = "22202c41-2be1-4547-9c00-f0b1f797fd75";
+
+    // The in-memory projection sink registered by the Chronicle kernel — sibling of the MongoDB sink id
+    // ("22202c41-...") the engine previously used. Read models are projected into the kernel's in-memory store so
+    // the whole Stage runs without any database.
+    const string InMemorySinkTypeId = "8a23995d-da0b-4c4c-818b-f97992f26bbf";
 
     /// <summary>
     /// Builds the Chronicle read-model and projection definitions for every read model in the model that has a
@@ -63,7 +67,7 @@ public static class StageChronicleDefinitions
             Type = new() { Identifier = readModelIdentifier, Generation = FirstGeneration },
             ContainerName = ModelNaming.ToIdentifier(readModel.Name),
             DisplayName = readModel.Name,
-            Sink = new ChronicleSinks.SinkDefinition { ConfigurationId = Guid.Empty, TypeId = MongoSinkTypeId },
+            Sink = new ChronicleSinks.SinkDefinition { ConfigurationId = Guid.Empty, TypeId = InMemorySinkTypeId },
             Schema = readModel.Schema,
             Indexes = [],
             ObserverType = ChronicleReadModels.ReadModelObserverType.Projection,

@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Arc;
-using Cratis.Arc.MongoDB;
 using Cratis.Chronicle;
 using Cratis.Chronicle.AspNetCore;
 using Cratis.Json;
@@ -42,8 +41,10 @@ public static class CratisServiceConfiguration
                     options.JsonSerializerOptions.Converters.Add(converter);
                 }
             },
-            configureArcBuilder: arcBuilder =>
-                arcBuilder.WithMongoDB(configureMongoDB: mongoDBBuilder => mongoDBBuilder.WithCamelCaseNamingPolicy(pluralizeReadModels: true)),
+
+            // The Stage runs fully in-memory: the Chronicle kernel uses in-memory storage and its projections
+            // persist to the kernel's in-memory sink, so no MongoDB-backed Arc read-model store is configured here.
+            configureArcBuilder: _ => { },
             configureChronicleOptions: options =>
             {
                 options.EventStore = eventStore;

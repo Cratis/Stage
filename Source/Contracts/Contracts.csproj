@@ -9,4 +9,8 @@
         <!-- JSON Schema describing the event model intermediate format, embedded so it ships with the assembly. -->
         <EmbeddedResource Include="EventModel.schema.json" />
     </ItemGroup>
+    <ItemGroup>
+        <!-- The Screenplay language compiler — the event model input is authored as .play source. -->
+        <PackageReference Include="Cratis.Screenplay" />
+    </ItemGroup>
 </Project>

@@ -18,11 +18,11 @@ try
 catch (MissingArgument exception)
 {
     await Console.Error.WriteLineAsync(exception.Message);
-    await Console.Error.WriteLineAsync("Usage: Cratis.Stage.SpecRunner --model <model.json> --output <results.json> [--slice <guid>] [--spec <guid>]");
+    await Console.Error.WriteLineAsync("Usage: Cratis.Stage.SpecRunner --model <play-directory> --output <results.json> [--slice <guid>] [--spec <guid>]");
     return 2;
 }
 
-var model = await EventModelLoader.LoadAsync(arguments.ModelPath);
+var model = await EventModelLoader.LoadFromDirectoryAsync(arguments.ModelPath);
 
 var runner = new SpecificationRunner();
 var results = runner.Run(model, arguments.SliceId, arguments.SpecificationId);

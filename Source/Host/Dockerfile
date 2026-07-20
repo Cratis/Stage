@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
-# Stage image — a fully self-contained play sandbox bundling MongoDB, the Chronicle kernel and the
-# Stage in one container. The Stage connects to Chronicle and MongoDB over localhost, so every play
-# session is completely isolated with its own database and event store.
+# Stage image — a fully self-contained play sandbox bundling the Chronicle kernel and the Stage in one
+# container. Storage is fully in-memory (no database is bundled), so every play session is completely
+# isolated and disposable.
 
 ARG VERSION=0.0.0-dev
 ARG COMMIT=dev
@@ -18,7 +18,7 @@ WORKDIR /src
 
 # Copy project files and restore
 COPY Directory.Build.props Directory.Packages.props global.json .editorconfig .globalconfig ./
-COPY Source/Directory.Build.props ./Source/
+COPY Source/Directory.Build.props Source/Directory.Build.targets ./Source/
 COPY Source/Contracts/Contracts.csproj ./Source/Contracts/
 COPY Source/Stage/Stage.csproj ./Source/Stage/
 COPY Source/Host/Host.csproj ./Source/Host/
@@ -42,28 +42,27 @@ RUN dotnet publish ./Source/Host/Host.csproj \
 ####################################
 # Stage 2: Runtime
 ####################################
-# The Chronicle base image is the kernel (Cratis.Chronicle.Server in /app). We add MongoDB on top so the
-# container is self-contained — no external database or kernel is required to run a play session.
+# The Chronicle base image is the kernel (Cratis.Chronicle.Server in /app). Storage is fully in-memory, so no
+# database is required to run a play session — the container is self-contained on its own.
 FROM cratis/chronicle:latest-development
 
-# Install MongoDB (server + shell). The base image is Ubuntu 24.04 (noble); pull the MongoDB 8.0 packages
-# so each play session runs its own isolated, in-container database with replica-set transaction support.
+# The Chronicle base image bundles MongoDB (its default storage backend, an ~800MB install). The Stage runs
+# fully in-memory, so purge it to keep the image database-free. The purge is guarded so it is a no-op on
+# base-image variants that ship without MongoDB. (The base image already provides curl and netcat, which the
+# entrypoint uses to wait for the Chronicle gRPC endpoint.)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates \
-    && curl -fsSL https://pgp.mongodb.com/server-8.0.asc -o /usr/share/keyrings/mongodb-server-8.0.asc \
-    && echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.asc ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" > /etc/apt/sources.list.d/mongodb-org-8.0.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends mongodb-org-server mongodb-mongosh \
-    && rm -rf /var/lib/apt/lists/*
+    && (apt-get purge -y 'mongodb-org*' || true) \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /data/db /data/configdb
 
 WORKDIR /stage
 
 # Copy the built Stage application
 COPY --from=builder /app/out ./
 
-# Create directories for the event model JSON and the MongoDB data. /eventmodel is plain so the model can be
+# Create the directory the Screenplay .play files are provided in. /eventmodel is plain so the model can be
 # injected through the container archive API as well as bind-mounted.
-RUN mkdir -p /eventmodel /data/db
+RUN mkdir -p /eventmodel
 
 # Copy Stage-specific configuration
 COPY Source/Host/appsettings.Docker.json /stage/appsettings.Docker.json

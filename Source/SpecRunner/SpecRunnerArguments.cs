@@ -6,7 +6,7 @@ namespace Cratis.Stage.SpecRunner;
 /// <summary>
 /// Represents the parsed command-line arguments for the specification runner.
 /// </summary>
-/// <param name="ModelPath">The path to the serialized event model JSON file.</param>
+/// <param name="ModelPath">The path to the directory of Screenplay <c>.play</c> files that make up the event model.</param>
 /// <param name="OutputPath">The path the result JSON file is written to.</param>
 /// <param name="SliceId">An optional slice identifier to limit the run to a single slice.</param>
 /// <param name="SpecificationId">An optional specification identifier to limit the run to a single specification.</param>

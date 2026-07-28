@@ -87,19 +87,7 @@ async Task Because() => _error = await Catch.Exception(_sut.DoSomething);
 
 ## Assertion extension methods
 
-**Never use xUnit's `Assert.*`.** Even though xUnit provides test execution, all assertions in a Cratis spec go through the [Cratis.Specifications](https://github.com/cratis/specifications) fluent extension methods — `Assert.Equal(...)`, `Assert.True(...)`, `Assert.Single(...)`, `Assert.Empty(...)`, etc. must never appear in a spec file. This holds in both profiles and for every spec surface (`Specification` base and the `*Scenario` family alike).
-
 From `Cratis.Specifications`: `.ShouldEqual(expected)`, `.ShouldBeTrue()`, `.ShouldBeFalse()`, `.ShouldBeNull()`, `.ShouldNotBeNull()`, `.ShouldBeEmpty()`, `.ShouldNotBeEmpty()`, `.ShouldContain(item)`, `.ShouldNotContain(item)`, `.ShouldContainOnly(items)`, `.ShouldBeOfExactType<T>()`, `.ShouldBeGreaterThan(n)`, `.ShouldBeLessThan(n)`.
-
-`Assert.Single(x)` has no direct fluent equivalent — use LINQ's `.Single()` to extract the item, then assert on its properties with `.ShouldEqual(...)`:
-
-```csharp
-// ❌ var tenant = Assert.Single(_result); Assert.Equal("tenant-a", tenant.Id);
-
-// ✅
-var tenant = _result.Single();
-tenant.Id.ShouldEqual("tenant-a");
-```
 
 ## Conventions
 

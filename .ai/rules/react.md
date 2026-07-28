@@ -132,42 +132,6 @@ const result = await command.execute();
 
 Inside dialogs, use `CommandDialog` + CommandForm fields rather than driving the command by hand — see [dialogs.md](./dialogs.md).
 
-### `CommandForm` outside a dialog
-
-A page section or inline component that edits and submits a single command (e.g. a profile form, a settings panel) should bind directly to `CommandForm` from `@cratis/arc.react/commands` instead of a field-per-`useState` plus a hand-built `.execute()` call. This eliminates the manual state-syncing `useEffect`, the manual command-property assignment, and gets field-level validation display for free. Reach for it whenever the form's fields map 1:1 onto a command's properties; keep plain `useState` for state that is not a command property (a step index, a collapsed/expanded flag, an edit-mode toggle).
-
-```tsx
-import { CommandForm, useCommandFormContext } from '@cratis/arc.react/commands';
-import { InputTextField, TextAreaField } from '@cratis/components/CommandForm';
-import { Button } from 'primereact/button';
-
-export const PersonalInformationForm = () => {
-    const [profileResult] = GetMyProfile.use({ profileId });
-
-    return (
-        <CommandForm<UpdatePersonalInformation>
-            command={UpdatePersonalInformation}
-            currentValues={{
-                profileId,
-                firstName: profileResult.data?.firstName ?? '',
-                lastName: profileResult.data?.lastName ?? '',
-            }}
-        >
-            <InputTextField<UpdatePersonalInformation> value={c => c.firstName} title="First name" />
-            <InputTextField<UpdatePersonalInformation> value={c => c.lastName} title="Last name" />
-            <Button type="submit" label="Save" />
-        </CommandForm>
-    );
-};
-```
-
-- **Fields are children, not a render prop.** `InputTextField`, `TextAreaField`, `NumberField`, `DropdownField`, `CheckboxField`, `CalendarField`, and the rest of the `@cratis/components/CommandForm` catalog (see [dialogs.md](./dialogs.md)) go directly inside `<CommandForm>`; a plain `<button type="submit">`/`<Button type="submit">` anywhere inside triggers the form's native submit, which runs the command.
-- **`initialValues` vs `currentValues`.** `initialValues` is a static baseline applied once on mount. `currentValues` is the reactive overlay — use it whenever the starting values come from an async source (a query result that arrives after mount, like `GetMyProfile` above); the form updates as the source updates.
-- **Outcome callbacks**, all optional: `onSuccess(response)`, `onFailed(commandResult)`, `onException(messages, stackTrace)`, `onUnauthorized()`, `onValidationFailure(validationResults)`. There is no `isExecuting` — track a local busy flag yourself if the UI needs one.
-- **Gate the submit button on validity** by reading `useCommandFormContext<TCommand>().isValid` from a small child component — context is only available inside `<CommandForm>`, so the button that needs it can't live in the parent scope: `const SaveButton = () => { const { isValid } = useCommandFormContext<UpdatePersonalInformation>(); return <Button type="submit" label="Save" disabled={!isValid} />; };`
-- **Resetting a write-only form after submit** (e.g. a credentials form that never redisplays what was saved): remount `CommandForm` by changing its `key` in `onSuccess` rather than manually clearing state — `<CommandForm key={formResetKey} ... onSuccess={() => setFormResetKey(v => v + 1)}>`.
-- Don't reach for `CommandForm` when the component mixes multiple unrelated commands with complex conditional flow, or when most of the state isn't command data — a multi-step wizard with branching steps is still better served by `StepperCommandDialog`/`CommandStepper` or manual state.
-
 ### Read `CommandResult` by the granular flag — not just `isSuccess`
 
 | Flag | Meaning | UX response |

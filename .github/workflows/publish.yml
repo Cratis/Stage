@@ -30,6 +30,8 @@ on:
       - "**"
     paths:
       - "Source/**"
+      # Changes to the publish pipeline itself should be exercised by a release.
+      - ".github/workflows/publish.yml"
 
 jobs:
   release:

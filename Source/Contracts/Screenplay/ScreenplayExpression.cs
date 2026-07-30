@@ -12,8 +12,8 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// <summary>
 /// Converts Screenplay <see cref="ExpressionSyntax"/> and <see cref="KeySyntax"/> nodes into the Chronicle-compatible
 /// projection expression strings Stage's <c>ProjectionDefinition</c> carries (for example <c>$eventSourceId</c>,
-/// <c>$eventContext(occurred)</c>, <c>$value("global")</c>). Mirrors Chronicle's own projection syntax visitor so the
-/// engine interprets the translated expressions identically.
+/// <c>$eventContext(occurred)</c>, <c>$value("global")</c>). Targets the expressions the projection engine's
+/// resolvers support — which is narrower than what Chronicle's own definition-language visitor emits.
 /// </summary>
 public static class ScreenplayExpression
 {
@@ -28,7 +28,10 @@ public static class ScreenplayExpression
             PathExpressionSyntax path => path.Path,
             EventContextExpressionSyntax eventContext => $"$eventContext({eventContext.Path})",
             EventSourceIdExpressionSyntax => "$eventSourceId",
-            CausedByExpressionSyntax causedBy => causedBy.Property is null ? "$causedBy" : $"$causedBy({causedBy.Property})",
+
+            // Chronicle's projection engine has no resolver for the $causedBy token — but the identity that
+            // caused an event lives on the event context, so $causedBy translates to an event context path.
+            CausedByExpressionSyntax causedBy => causedBy.Property is null ? "$eventContext(causedBy)" : $"$eventContext(causedBy.{causedBy.Property})",
             LiteralExpressionSyntax literal => FormatLiteral(literal.Value),
             TemplateExpressionSyntax template => FormatTemplate(template),
             RawExpressionSyntax raw => raw.Text,
@@ -62,7 +65,10 @@ public static class ScreenplayExpression
         {
             null => null,
             ExpressionKeySyntax expressionKey => ToKeyExpression(expressionKey.Expression),
-            CompositeKeySyntax composite => $"$composite({composite.Type}, {string.Join(", ", composite.Parts.Select(part => $"{part.Property}={ToKeyExpression(part.Expression)}"))})",
+
+            // The engine's $composite(...) grammar is strictly comma-separated property=expression pairs — the
+            // Screenplay-declared key type name has no slot in it and must not be emitted.
+            CompositeKeySyntax composite => $"$composite({string.Join(", ", composite.Parts.Select(part => $"{part.Property}={ToKeyExpression(part.Expression)}"))})",
             _ => null
         };
 

@@ -52,6 +52,7 @@ flowchart LR
     Model -->|"cratis/stage"| Host["▶️ Stage host"]
     Model -->|"cratis/stage-specrunner"| Spec["🧪 spec runner"]
     Host --> Api["🌐 live HTTP API<br/>Arc + Chronicle · Scalar/OpenAPI · :9090"]
+    Host --> Workbench["🔍 Chronicle Workbench<br/>events · observers · read models · :35000"]
     Spec --> Results["📋 results.json"]
 ```
 
@@ -65,21 +66,24 @@ application, materialized from JSON.
 |---|---|---|
 | `Source/Contracts` | `Cratis.Stage.Contracts` (NuGet) | The event model intermediate format (with its embedded JSON schema), specification run results, and the serialization for both (`EventModelFile`, `SpecificationRunResultsFile`, `StageJson`). |
 | `Source/Stage` | `Cratis.Stage` (NuGet) | The engine — synthesizes commands, queries, validators, read models, and projections from a deserialized `EventModel` at runtime. |
-| `Source/Host` | `cratis/stage` (Docker) | Self-contained play sandbox: MongoDB + Chronicle kernel + the Stage engine in one container. Mount a model at `/eventmodel`, get a live API on port `9090`. |
-| `Source/SpecRunner` | `cratis/stage-specrunner` (Docker) | Run-to-completion job that loads an event model from the mounted `/model` folder, runs its specifications, and writes `results.json` to the mounted `/output` folder. |
+| `Source/Host` | `cratis/stage` (Docker) | Self-contained play sandbox: in-memory Chronicle kernel + the Stage engine in one container. Mount a model at `/eventmodel`, get a live API on port `9090` and the Chronicle Workbench on port `35000`. |
+| `Source/SpecRunner` | `cratis/stage-specrunner` (Docker) | Run-to-completion job that compiles the Screenplay files in the mounted `/model` folder, runs their specifications, and writes `results.json` to the mounted `/output` folder. |
 
 ## 🎟️ Consuming
 
 ```text
-Studio / CLI ──(event-model.json)──▶ cratis/stage            ⇒ live HTTP API (port 9090)
+Studio / CLI ──(event-model.json)──▶ cratis/stage            ⇒ live HTTP API (9090) + Workbench (35000)
 Studio / CLI ──(event-model.json)──▶ cratis/stage-specrunner ⇒ results.json
 ```
+
+Full documentation — what is inside the images, how they boot, and every URL a play session exposes — lives in
+[Documentation](Documentation/index.md).
 
 - The **host** takes the model file path as its first argument (the container entrypoint finds it in
   `/eventmodel`). Deployment configuration is supplied through a dedicated `cratis-stage.json` file (path
   overridable with the `STAGE_CONFIG` environment variable) instead of `appsettings.json`.
-- The **spec runner** takes `--model <file>` and `--output <file>`, with optional `--slice <guid>` /
-  `--spec <guid>` filters; the container defaults to `/model/event-model.json` and `/output/results.json`.
+- The **spec runner** takes `--model <folder>` and `--output <file>`, with optional `--slice <guid>` /
+  `--spec <guid>` filters; the container defaults to `/model` and `/output/results.json`.
 
 ## 🚀 Building
 

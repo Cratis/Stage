@@ -39,7 +39,8 @@ echo "Using event model from Screenplay .play files under /eventmodel"
 echo "Starting Stage..."
 echo "  Stage API           http://localhost:9090"
 echo "  API reference       http://localhost:9090/scalar/v1"
-echo "  Chronicle Workbench https://localhost:35000 (development credentials: admin / ChangeMeNow!)"
+echo "  Chronicle Workbench https://localhost:35000 — HTTPS only; plain http returns an empty response"
+echo "                      sign in with the development credentials admin / ChangeMeNow!"
 cd /stage
 export ASPNETCORE_ENVIRONMENT=Docker
 exec dotnet Cratis.Stage.Host.dll /eventmodel

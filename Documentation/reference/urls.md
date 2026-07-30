@@ -137,7 +137,10 @@ event types, event streams, observers, projections and read models:
 https://localhost:35000
 ```
 
-- **HTTPS, with a development certificate.** The kernel generates a self-signed certificate when none is
+- **HTTPS only — the `https://` matters.** The port multiplexes HTTP/1.1 and HTTP/2 through ALPN, which requires
+  TLS, so there is no plaintext mode: `http://localhost:35000` returns nothing at all (`ERR_EMPTY_RESPONSE` in a
+  browser, `curl: (52) Empty reply from server`).
+- **The certificate is a development one.** The kernel generates a self-signed certificate when none is
   configured, so accept the browser warning once (and use `curl -k` from the command line).
 - **Sign in with the base image's development credentials** — user `admin`, password `ChangeMeNow!`.
 - **Find the session by its generated name.** Each session gets a Docker-style event store name

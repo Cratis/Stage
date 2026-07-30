@@ -64,10 +64,14 @@ you will see in the log line the host prints and in the Workbench.
 Those two are all a caller needs. The kernel's remaining ports (Orleans clustering on `11111` and `30000`) are
 internal to the container and can be ignored.
 
-:::note
-The kernel generates a self-signed development certificate for `35000` when none is configured, so a browser
-will warn about the certificate the first time you open the Workbench, and command-line clients need
-`curl -k` (or the equivalent) to talk to it.
+:::caution
+**Port `35000` is HTTPS only — reach it as `https://localhost:35000`.** Kestrel can only serve HTTP/1.1 and
+HTTP/2 on a single port over TLS, where ALPN negotiates the protocol per connection, so the kernel has no
+plaintext mode for this port. A plain `http://` request to it gets no reply at all — `ERR_EMPTY_RESPONSE` in a
+browser, `curl: (52) Empty reply from server` on the command line.
+
+The certificate is a self-signed development one the kernel generates when none is configured, so a browser
+warns the first time you open the Workbench, and command-line clients need `curl -k` (or the equivalent).
 :::
 
 ## Mounting the model

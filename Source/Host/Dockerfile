@@ -2,46 +2,11 @@
 # Stage image — a fully self-contained play sandbox bundling the Chronicle kernel and the Stage in one
 # container. Storage is fully in-memory (no database is bundled), so every play session is completely
 # isolated and disposable.
+#
+# The Stage app is a framework-dependent publish, built on the host (see .github/workflows/publish.yml or
+# dockerize.sh) and only copied in here — its output is portable IL, so compiling it under QEMU emulation for
+# the arm64 leg of a multi-arch image build would just waste time for no benefit.
 
-ARG VERSION=0.0.0-dev
-ARG COMMIT=dev
-
-####################################
-# Stage 1: Build Stage
-####################################
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS builder
-
-ARG VERSION
-ARG COMMIT
-
-WORKDIR /src
-
-# Copy project files and restore
-COPY Directory.Build.props Directory.Packages.props global.json .editorconfig .globalconfig ./
-COPY Source/Directory.Build.props Source/Directory.Build.targets ./Source/
-COPY Source/Contracts/Contracts.csproj ./Source/Contracts/
-COPY Source/Stage/Stage.csproj ./Source/Stage/
-COPY Source/Host/Host.csproj ./Source/Host/
-
-RUN dotnet restore ./Source/Host/Host.csproj -p:Configuration=Release
-
-# Copy source files and build
-COPY README.md ./
-COPY Source/Contracts/ ./Source/Contracts/
-COPY Source/Stage/ ./Source/Stage/
-COPY Source/Host/ ./Source/Host/
-
-RUN dotnet publish ./Source/Host/Host.csproj \
-    -c Release \
-    -p:Version=${VERSION} \
-    -p:SourceRevisionId=${COMMIT} \
-    -p:EnableSourceControlManagerQueries=false \
-    -p:EnableSourceLink=false \
-    -o /app/out
-
-####################################
-# Stage 2: Runtime
-####################################
 # The Chronicle base image is the kernel (Cratis.Chronicle.Server in /app). Storage is fully in-memory, so no
 # database is required to run a play session — the container is self-contained on its own.
 FROM cratis/chronicle:latest-development
@@ -57,8 +22,8 @@ RUN apt-get update \
 
 WORKDIR /stage
 
-# Copy the built Stage application
-COPY --from=builder /app/out ./
+# Copy the prebuilt Stage application
+COPY Source/Host/out ./
 
 # Create the directory the Screenplay .play files are provided in. /eventmodel is plain so the model can be
 # injected through the container archive API as well as bind-mounted.

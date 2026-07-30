@@ -30,6 +30,10 @@ on:
       - "**"
     paths:
       - "Source/**"
+      # A package-version-only bump still flows into every build under Source/, so it can warrant a release
+      # even though no file under Source/ itself changed.
+      - "Directory.Build.props"
+      - "Directory.Packages.props"
       # Changes to the publish pipeline itself should be exercised by a release.
       - ".github/workflows/publish.yml"
 
@@ -86,21 +90,95 @@ jobs:
       - name: Push NuGet packages
         run: dotnet nuget push --skip-duplicate '${{ env.NUGET_OUTPUT }}/*.nupkg' --timeout 900 --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
 
-  publish-docker-images:
+  # Host and SpecRunner are plain framework-dependent publishes (no -r, no --self-contained, no
+  # PublishReadyToRun), so the output is portable IL that runs unmodified on both amd64 and arm64 - one build
+  # is enough. Building here on the host runner (rather than inside the Docker build) means the Docker step
+  # never has to compile .NET under QEMU emulation for the arm64 leg of the multi-arch push.
+  build-host:
     if: needs.release.outputs.publish == 'true'
     runs-on: ubuntu-latest
     needs: [release]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish Host
+        run: |
+          dotnet publish ./Source/Host/Host.csproj \
+            -c Release \
+            -p:Version=${{ needs.release.outputs.version }} \
+            -p:SourceRevisionId=${{ github.sha }} \
+            -p:EnableSourceControlManagerQueries=false \
+            -p:EnableSourceLink=false \
+            -o ./Artifacts/Host
+
+      - name: Upload Host output
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-build
+          path: ./Artifacts/Host
+
+  build-specrunner:
+    if: needs.release.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    needs: [release]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish SpecRunner
+        run: |
+          dotnet publish ./Source/SpecRunner/SpecRunner.csproj \
+            -c Release \
+            -p:Version=${{ needs.release.outputs.version }} \
+            -p:SourceRevisionId=${{ github.sha }} \
+            -p:EnableSourceControlManagerQueries=false \
+            -p:EnableSourceLink=false \
+            -o ./Artifacts/SpecRunner
+
+      - name: Upload SpecRunner output
+        uses: actions/upload-artifact@v4
+        with:
+          name: specrunner-build
+          path: ./Artifacts/SpecRunner
+
+  publish-docker-images:
+    if: needs.release.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    needs: [release, build-host, build-specrunner]
     strategy:
       matrix:
         include:
           - image: cratis/stage
             dockerfile: Source/Host/Dockerfile
+            artifact: host-build
+            artifact-path: Source/Host/out
           - image: cratis/stage-specrunner
             dockerfile: Source/SpecRunner/Dockerfile
+            artifact: specrunner-build
+            artifact-path: Source/SpecRunner/out
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download build output
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact-path }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -123,9 +201,6 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VERSION=${{ needs.release.outputs.version }}
-            COMMIT=${{ github.sha }}
           tags: |
             ${{ matrix.image }}:${{ needs.release.outputs.version }}
             ${{ matrix.image }}:latest

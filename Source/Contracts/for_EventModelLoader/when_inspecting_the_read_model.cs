@@ -30,6 +30,9 @@ public class when_inspecting_the_read_model : given.a_compiled_invoicing_model
     [Fact] void should_default_a_missing_key_to_null() => Projection.From["InvoiceStatusChanged"].Key.ShouldBeNull();
     [Fact] void should_quote_a_literal_string_mapping() => Expression("InvoiceRegistered", "status").ShouldEqual("\"draft\"");
     [Fact] void should_keep_a_path_mapping() => Expression("InvoiceStatusChanged", "status").ShouldEqual("status");
+    [Fact] void should_map_event_context_to_the_context_expression() => Expression("InvoiceRegistered", "registeredAt").ShouldEqual("$eventContext(occurred)");
+    [Fact] void should_map_caused_by_to_the_context_identity_path() => Expression("InvoiceRegistered", "registeredBy").ShouldEqual("$eventContext(causedBy.name)");
+    [Fact] void should_map_caused_by_subject_to_the_context_identity_path() => Expression("InvoiceRegistered", "registeredFor").ShouldEqual("$eventContext(causedBy.subject)");
     [Fact] void should_default_automap_to_enabled() => Projection.AutoMap.ShouldEqual(ProjectionAutoMap.Enabled);
 
     ProjectionDefinition Projection => _readModel.Projection!;

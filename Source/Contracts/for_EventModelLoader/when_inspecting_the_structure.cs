@@ -17,7 +17,7 @@ public class when_inspecting_the_structure : given.a_compiled_invoicing_model
     [Fact] void should_have_the_one_feature() => Module.Features.Count.ShouldEqual(1);
     [Fact] void should_name_the_feature() => Feature.Name.ShouldEqual("InvoiceManagement");
     [Fact] void should_have_a_top_level_feature() => Feature.ParentFeatureId.ShouldBeNull();
-    [Fact] void should_have_the_three_slices() => Feature.Slices.Count.ShouldEqual(3);
+    [Fact] void should_have_the_four_slices() => Feature.Slices.Count.ShouldEqual(4);
     [Fact] void should_map_the_state_change_slice() => Slice("RegisterInvoice").SliceType.ShouldEqual(SliceType.StateChange);
     [Fact] void should_map_the_state_view_slice() => Slice("InvoiceList").SliceType.ShouldEqual(SliceType.StateView);
     [Fact] void should_map_the_automation_slice() => Slice("NotifyOnRegistered").SliceType.ShouldEqual(SliceType.Automation);

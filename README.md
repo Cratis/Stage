@@ -89,11 +89,11 @@ dotnet test                 # run the specs
 dotnet build -c Release     # Release — warnings are errors
 ```
 
-Container images are built from the repository root:
+Both Dockerfiles expect a prebuilt, framework-dependent `dotnet publish` output rather than compiling inside
+the Docker build — `./dockerize.sh` publishes both apps and builds both images from the repository root:
 
 ```shell
-docker build -f Source/Host/Dockerfile -t cratis/stage .
-docker build -f Source/SpecRunner/Dockerfile -t cratis/stage-specrunner .
+./dockerize.sh
 ```
 
 ## ✅ Quality gates

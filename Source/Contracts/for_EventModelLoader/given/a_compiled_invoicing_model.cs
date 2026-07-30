@@ -71,8 +71,22 @@ public class a_compiled_invoicing_model : Specification
                   invoiceNumber = invoiceNumber
                   status        = "draft"
                   lineCount     = 0
+                  registeredAt  = $eventContext.occurred
+                  registeredBy  = $causedBy.name
+                  registeredFor = $causedBy.subject
                 from InvoiceStatusChanged
                   status = status
+
+            slice StateView InvoiceLineReport
+
+              query ListLineItems => InvoiceLineReportReadModel[]
+
+              projection InvoiceLineReport => InvoiceLineReportReadModel
+                from InvoiceLineItemAdded
+                  key InvoiceLineKey
+                    invoiceId  = invoiceId
+                    lineNumber = lineNumber
+                  quantity = quantity
 
             slice Automation NotifyOnRegistered
 

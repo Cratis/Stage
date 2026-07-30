@@ -17,7 +17,7 @@ WORKDIR /src
 
 # Copy project files and restore
 COPY Directory.Build.props Directory.Packages.props global.json .editorconfig .globalconfig ./
-COPY Source/Directory.Build.props ./Source/
+COPY Source/Directory.Build.props Source/Directory.Build.targets ./Source/
 COPY Source/Contracts/Contracts.csproj ./Source/Contracts/
 COPY Source/Stage/Stage.csproj ./Source/Stage/
 COPY Source/SpecRunner/SpecRunner.csproj ./Source/SpecRunner/

@@ -9,9 +9,13 @@ set -e
 # isolated and disposable.
 
 # 1. Start the Chronicle kernel (Cratis.Chronicle.Server lives in /app in the base image) with in-memory storage.
-#    It is run from /app so its relative paths resolve correctly.
+#    It is run from /app so its relative paths resolve correctly. The Workbench (and the API it depends on) is
+#    turned on explicitly rather than relying on the base image's chronicle.json, so a play session can always be
+#    inspected in the Workbench on port 35000 — the same port the kernel serves gRPC on.
 echo "Starting Chronicle (in-memory storage)..."
 export Cratis__Chronicle__Storage__Type=InMemory
+export Cratis__Chronicle__Features__Api=true
+export Cratis__Chronicle__Features__Workbench=true
 ( cd /app && exec ./Cratis.Chronicle.Server ) &
 
 echo "Waiting for Chronicle to be ready..."
@@ -30,8 +34,12 @@ fi
 echo "Using event model from Screenplay .play files under /eventmodel"
 
 # 3. Start the Stage. It connects to the in-container Chronicle (localhost:35000) using the defaults in
-#    appsettings.Docker.json and reads the event model from the mounted /eventmodel directory.
+#    appsettings.Docker.json and reads the event model from the mounted /eventmodel directory. The URLs below are
+#    container-internal ports — substitute whatever host ports they were published on.
 echo "Starting Stage..."
+echo "  Stage API           http://localhost:9090"
+echo "  API reference       http://localhost:9090/scalar/v1"
+echo "  Chronicle Workbench https://localhost:35000 (development credentials: admin / ChangeMeNow!)"
 cd /stage
 export ASPNETCORE_ENVIRONMENT=Docker
 exec dotnet Cratis.Stage.Host.dll /eventmodel

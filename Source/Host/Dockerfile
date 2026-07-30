@@ -34,8 +34,10 @@ COPY Source/Host/appsettings.Docker.json /stage/appsettings.Docker.json
 COPY Source/Host/entrypoint-stage.sh /stage/entrypoint-stage.sh
 RUN chmod +x /stage/entrypoint-stage.sh
 
-# Expose additional port for Stage API (Chronicle uses 8080, 11111, 30000, 35000)
-EXPOSE 9090
+# 9090 is the Stage API. 35000 is the Chronicle kernel's single HTTP endpoint — gRPC (HTTP/2) plus the Chronicle
+# Workbench, its API and OAuth (HTTP/1.1, TLS) — so a play session can be inspected in the Workbench. Those two are
+# all a caller needs; the kernel's remaining ports (Orleans clustering) stay internal.
+EXPOSE 9090 35000
 
 # Override the entrypoint to run both Chronicle and Stage
 ENTRYPOINT ["/usr/bin/tini", "--", "/bin/bash", "/stage/entrypoint-stage.sh"]

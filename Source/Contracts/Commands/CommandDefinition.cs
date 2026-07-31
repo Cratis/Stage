@@ -14,10 +14,12 @@ namespace Cratis.Stage.Contracts.Commands;
 /// <param name="StateSchema">The JSON schema describing the command's state input (for state-view backed decisions).</param>
 /// <param name="Rules">The validation rules defined for the command's properties.</param>
 /// <param name="LogicDescription">The natural-language description of the command's logic.</param>
+/// <param name="Produces">The events the command appends, in declaration order.</param>
 public record CommandDefinition(
     Guid Id,
     string Name,
     string Schema,
     string StateSchema,
     IReadOnlyList<CommandPropertyRules> Rules,
-    string LogicDescription);
+    string LogicDescription,
+    IReadOnlyList<ProducedEvent> Produces);

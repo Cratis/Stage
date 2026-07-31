@@ -10,6 +10,9 @@ internal static partial class StageRuntimeRegistrarLogging
     [LoggerMessage(LogLevel.Information, "Registered {ReadModelCount} read model(s) and their projections for event store '{EventStore}'")]
     internal static partial void Registered(ILogger logger, int readModelCount, string eventStore);
 
+    [LoggerMessage(LogLevel.Information, "Registered {EventTypeCount} event type(s) for event store '{EventStore}'")]
+    internal static partial void RegisteredEventTypes(ILogger logger, int eventTypeCount, string eventStore);
+
     [LoggerMessage(LogLevel.Information, "Event model '{Model}' has no read models with projections to register")]
     internal static partial void NoReadModels(ILogger logger, string model);
 

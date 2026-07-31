@@ -28,6 +28,8 @@ public class and_every_value_source_is_used : given.a_command_payload
                     new ProducedEventProperty("source", ProducedValueKind.Environment, EnvironmentVariable),
                     new ProducedEventProperty("label", ProducedValueKind.Template, "${invoiceNumber} (${currency})"),
                     new ProducedEventProperty("missing", ProducedValueKind.CommandProperty, "notOnThePayload"),
+                    new ProducedEventProperty("unknownIdentityValue", ProducedValueKind.Identity, "notAnIdentityPath"),
+                    new ProducedEventProperty("unsetVariable", ProducedValueKind.Environment, "CRATIS_STAGE_SPEC_NOT_SET"),
                 ],
                 ["audit"])
         ],
@@ -46,7 +48,13 @@ public class and_every_value_source_is_used : given.a_command_payload
     [Fact] void should_write_the_identity_value() => Value("registeredBy").ShouldEqual("Some One");
     [Fact] void should_write_the_environment_variable() => Value("source").ShouldEqual("invoicing-service");
     [Fact] void should_interpolate_a_template() => Value("label").ShouldEqual("INV-000001 (USD)");
-    [Fact] void should_leave_out_a_property_with_no_value() => _events[0].Content.ContainsKey("missing").ShouldBeFalse();
+    [Fact] void should_leave_out_a_property_the_caller_did_not_send() => _events[0].Content.ContainsKey("missing").ShouldBeFalse();
+
+    // The model declares these on the event, so the event's schema requires them - writing an empty value keeps the
+    // append schema-valid where omitting the property would have it rejected.
+    [Fact] void should_write_an_empty_value_for_an_unresolved_identity_path() => Value("unknownIdentityValue").ShouldEqual(string.Empty);
+
+    [Fact] void should_write_an_empty_value_for_an_unset_environment_variable() => Value("unsetVariable").ShouldEqual(string.Empty);
 
     string? Value(string property) => _events[0].Content[property]!.GetValue<string>();
 }

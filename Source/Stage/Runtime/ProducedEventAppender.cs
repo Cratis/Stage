@@ -44,20 +44,32 @@ public sealed class ProducedEventAppender(IChronicleClient client, StageEventSto
             CausedBy = CausedBy(identity),
             Events =
             [
-                .. events.Select(@event => new ChronicleEvents.EventToAppend
-                {
-                    EventSourceId = eventSourceId,
-                    EventType = new ChronicleEvents.EventType { Id = @event.EventType, Generation = FirstGeneration },
-                    Content = @event.Content.ToJsonString(),
-                    Tags = @event.Tags,
-                })
+                .. events.Select(@event => ToAppend(eventSourceId, @event))
             ],
         });
 
         if (response.ConstraintViolations.Count > 0)
         {
-            ProducedEventAppenderLogging.ConstraintViolations(logger, eventSourceId, response.ConstraintViolations.Count);
+            ProducedEventAppenderLogging.ConstraintViolations(
+                logger,
+                eventSourceId,
+                string.Join("; ", response.ConstraintViolations.Select(violation => $"{violation.ConstraintName}: {violation.Message}")));
         }
+    }
+
+    static ChronicleEvents.EventToAppend ToAppend(string eventSourceId, ProducedEventPayload @event)
+    {
+        // protobuf-net rejects a read-only underlying collection for a repeated field, and an array reports itself
+        // as read-only - so the tags have to go over the wire as a List.
+        List<string> tags = [.. @event.Tags];
+
+        return new()
+        {
+            EventSourceId = eventSourceId,
+            EventType = new ChronicleEvents.EventType { Id = @event.EventType, Generation = FirstGeneration },
+            Content = @event.Content.ToJsonString(),
+            Tags = tags,
+        };
     }
 
     // The kernel requires a causing identity on every append. An anonymous caller is genuinely unknown rather than

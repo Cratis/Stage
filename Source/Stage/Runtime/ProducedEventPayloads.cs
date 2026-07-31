@@ -68,8 +68,12 @@ public static class ProducedEventPayloads
                 : null,
             ProducedValueKind.Literal => CommandPayloadValues.Parse(property.Expression),
             ProducedValueKind.Occurred => JsonValue.Create(occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)),
-            ProducedValueKind.Identity => identity.TryGetValue(property.Expression, out var value) ? JsonValue.Create(value) : null,
-            ProducedValueKind.Environment => Environment.GetEnvironmentVariable(property.Expression) is { } variable ? JsonValue.Create(variable) : null,
+
+            // The model declares these properties on the event, and the event's schema requires them unless they
+            // were modeled optional - so an unresolved identity value or environment variable is an empty string
+            // rather than an absent property, which the kernel would reject at append time.
+            ProducedValueKind.Identity => JsonValue.Create(identity.TryGetValue(property.Expression, out var value) ? value : string.Empty),
+            ProducedValueKind.Environment => JsonValue.Create(Environment.GetEnvironmentVariable(property.Expression) ?? string.Empty),
             ProducedValueKind.Template => JsonValue.Create(Interpolate(property.Expression, command)),
             _ => null
         };

@@ -7,8 +7,8 @@ namespace Cratis.Stage.Runtime;
 
 internal static partial class ProducedEventAppenderLogging
 {
-    [LoggerMessage(LogLevel.Warning, "Appending events for event source '{EventSourceId}' hit {Count} constraint violation(s)")]
-    internal static partial void ConstraintViolations(ILogger logger, string eventSourceId, int count);
+    [LoggerMessage(LogLevel.Warning, "Appending events for event source '{EventSourceId}' was rejected: {Violations}")]
+    internal static partial void ConstraintViolations(ILogger logger, string eventSourceId, string violations);
 
     [LoggerMessage(LogLevel.Error, "Failed to append the events produced by command '{Command}'")]
     internal static partial void AppendFailed(ILogger logger, string command, Exception exception);

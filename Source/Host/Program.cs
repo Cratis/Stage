@@ -37,6 +37,10 @@ builder.AddStageCratis(eventStore, programIdentifier: $"Cratis Stage ({eventStor
 
 builder.Services.AddSingleton(model);
 builder.Services.AddSingleton<DynamicTypeFactory>();
+builder.Services.AddSingleton<StageEventStoreName>(eventStore);
+builder.Services.AddSingleton<IAppendProducedEvents, ProducedEventAppender>();
+builder.Services.AddSingleton<IProvideStageIdentity, StageIdentity>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 
 // Add OpenAPI and Scalar — filter out framework infrastructure operations so only the engine's own

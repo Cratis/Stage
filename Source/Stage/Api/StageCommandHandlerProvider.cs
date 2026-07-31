@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Cratis.Arc.Commands;
 using Cratis.Stage.Contracts;
+using Cratis.Stage.Runtime;
 
 namespace Cratis.Stage.Api;
 
@@ -22,11 +23,19 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
     /// </summary>
     /// <param name="models">The event model the engine runs, when one is registered.</param>
     /// <param name="typeFactories">The factory used to emit a runtime type per command, when one is registered.</param>
-    public StageCommandHandlerProvider(IEnumerable<EventModel> models, IEnumerable<DynamicTypeFactory> typeFactories)
+    /// <param name="appenders">The system appending the events a command produces, when one is registered.</param>
+    /// <param name="identities">The system resolving the identity behind a command, when one is registered.</param>
+    public StageCommandHandlerProvider(
+        IEnumerable<EventModel> models,
+        IEnumerable<DynamicTypeFactory> typeFactories,
+        IEnumerable<IAppendProducedEvents> appenders,
+        IEnumerable<IProvideStageIdentity> identities)
     {
         var model = models.FirstOrDefault();
         var typeFactory = typeFactories.FirstOrDefault();
-        if (model is null || typeFactory is null)
+        var appender = appenders.FirstOrDefault();
+        var identity = identities.FirstOrDefault();
+        if (model is null || typeFactory is null || appender is null || identity is null)
         {
             return;
         }
@@ -39,7 +48,7 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
             }
 
             var commandType = typeFactory.CreateCommandType(located.TypeNamespace, ModelNaming.ToIdentifier(command.Name));
-            _handlers.Add(new StageCommandHandler(commandType, located.Location));
+            _handlers.Add(new StageCommandHandler(commandType, located.Location, command, appender, identity));
         }
     }
 

@@ -27,5 +27,6 @@ public static class CommandConverter
             schema.ForProperties(command.Properties),
             SchemaSynthesizer.EmptyObjectSchema,
             ValidationRuleConverter.Convert(command.Validations),
-            string.Empty);
+            string.Empty,
+            ProducesConverter.Convert(command.Produces));
 }

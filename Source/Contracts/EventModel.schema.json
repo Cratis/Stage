@@ -91,7 +91,45 @@
         "Schema": { "type": "string", "description": "The command payload as a JSON Schema string." },
         "StateSchema": { "type": "string", "description": "The command's state (DCB) schema as a JSON Schema string." },
         "Rules": { "type": "array", "items": { "$ref": "#/$defs/CommandPropertyRules" } },
-        "LogicDescription": { "type": "string" }
+        "LogicDescription": { "type": "string" },
+        "Produces": { "type": "array", "description": "The events the command appends, in declaration order.", "items": { "$ref": "#/$defs/ProducedEvent" } }
+      },
+      "additionalProperties": false
+    },
+    "ProducedEvent": {
+      "type": "object",
+      "description": "An event the command appends - the modeled 'produces' declaration.",
+      "required": ["Event"],
+      "properties": {
+        "Event": { "type": "string", "description": "The name of the event type to append." },
+        "When": { "oneOf": [{ "$ref": "#/$defs/ProducedEventCondition" }, { "type": "null" }], "description": "The condition guarding the production; null when the event is always produced." },
+        "Properties": { "type": "array", "items": { "$ref": "#/$defs/ProducedEventProperty" } },
+        "Tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "ProducedEventProperty": {
+      "type": "object",
+      "description": "How one property of a produced event gets its value.",
+      "required": ["Property"],
+      "properties": {
+        "Property": { "type": "string", "description": "The name of the property on the event payload." },
+        "Kind": { "type": "string", "enum": ["CommandProperty", "Literal", "Occurred", "Identity", "Environment", "Template", "Unsupported"] },
+        "Expression": { "type": "string", "description": "The source, interpreted according to Kind - a command property name, JSON literal text, an identity path, an environment variable name or a template." }
+      },
+      "additionalProperties": false
+    },
+    "ProducedEventCondition": {
+      "type": "object",
+      "description": "The condition guarding a produced event. Discriminated by 'kind': 'comparison' compares a command property against a constant, 'logical' combines two conditions.",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["comparison", "logical"] },
+        "Property": { "type": "string", "description": "Comparison only - the command property being compared." },
+        "Operator": { "type": "string", "description": "The comparison or logical operator." },
+        "Value": { "type": "string", "description": "Comparison only - the constant compared against, as JSON text." },
+        "Left": { "$ref": "#/$defs/ProducedEventCondition" },
+        "Right": { "$ref": "#/$defs/ProducedEventCondition" }
       },
       "additionalProperties": false
     },

@@ -24,10 +24,11 @@ public static class StageChronicleDefinitions
     const string EventSourceIdExpression = "$eventSourceId";
     const uint FirstGeneration = 1;
 
-    // The in-memory projection sink registered by the Chronicle kernel — sibling of the MongoDB sink id
-    // ("22202c41-...") the engine previously used. Read models are projected into the kernel's in-memory store so
-    // the whole Stage runs without any database.
-    const string InMemorySinkTypeId = "8a23995d-da0b-4c4c-818b-f97992f26bbf";
+    // The in-memory projection sink registered by the Chronicle kernel. Sink types are identified by the well-known
+    // names in Chronicle's WellKnownSinkTypes, not by a GUID — the kernel rejects an unknown id at the point a
+    // projection tries to write, which surfaces as a failed observer partition rather than a registration error.
+    // Read models are projected into the kernel's in-memory store so the whole Stage runs without any database.
+    const string InMemorySinkTypeId = "InMemory";
 
     /// <summary>
     /// Builds the Chronicle read-model and projection definitions for every read model in the model that has a
@@ -60,6 +61,29 @@ public static class StageChronicleDefinitions
 
         return (readModels, projections);
     }
+
+    /// <summary>
+    /// Builds the Chronicle event type registrations for every event declared in the model. The event name is the
+    /// event type identifier — the same identity the projections and the appended events use.
+    /// </summary>
+    /// <param name="model">The event model being run.</param>
+    /// <returns>The event type registrations, one per distinct event name.</returns>
+    public static IList<ChronicleEvents.EventTypeRegistration> BuildEventTypes(EventModel model) =>
+    [
+        .. StageModelWalker.Slices(model)
+            .SelectMany(located => located.Slice.Events)
+
+            // A slice can reference an event another slice owns, so the same name shows up more than once.
+            .DistinctBy(@event => @event.Name, StringComparer.Ordinal)
+            .Select(@event => new ChronicleEvents.EventTypeRegistration
+            {
+                Type = EventType(@event.Name),
+                Schema = @event.Schema,
+                Owner = ChronicleEvents.EventTypeOwner.Client,
+                Source = ChronicleEvents.EventTypeSource.Code,
+                Generations = [new ChronicleEvents.EventTypeGenerationDefinition { Generation = FirstGeneration, Schema = @event.Schema }],
+            })
+    ];
 
     static ChronicleReadModels.ReadModelDefinition BuildReadModel(ReadModelDefinition readModel, string readModelIdentifier, string projectionIdentifier) =>
         new()

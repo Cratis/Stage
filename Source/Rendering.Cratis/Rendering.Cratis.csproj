@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.Rendering.Cratis</AssemblyName>
+        <RootNamespace>Cratis.Stage.Rendering.Cratis</RootNamespace>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <IsPackable>true</IsPackable>
+        <Description>The Cratis Stage Cratis renderer — generates a Cratis Arc + Chronicle vertical-slice application from a compiled Screenplay application.</Description>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Cratis.Screenplay" />
+        <PackageReference Include="Cratis.Templates" />
+        <PackageReference Include="Microsoft.TemplateEngine.Abstractions" />
+        <PackageReference Include="Microsoft.TemplateEngine.Edge" />
+        <PackageReference Include="Microsoft.TemplateEngine.Orchestrator.RunnableProjects" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="../Contracts/Contracts.csproj" />
+    </ItemGroup>
+</Project>

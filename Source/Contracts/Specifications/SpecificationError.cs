@@ -7,7 +7,7 @@ namespace Cratis.Stage.Contracts.Specifications;
 /// Represents an expected error in the Then step of a specification.
 /// </summary>
 /// <param name="Id">The unique identifier of the specification item.</param>
-/// <param name="Name">The name of the expected error.</param>
+/// <param name="Name">The name of the expected error, or <see langword="null"/> when the specification does not name a reason.</param>
 public record SpecificationError(
     Guid Id,
-    string Name);
+    string? Name);

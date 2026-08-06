@@ -13,6 +13,21 @@
         <PackageReference Include="Microsoft.TemplateEngine.Edge" />
         <PackageReference Include="Microsoft.TemplateEngine.Orchestrator.RunnableProjects" />
     </ItemGroup>
+    <!--
+        Specs compile the rendered output in memory against the real Cratis assemblies — asserting on generated
+        strings is what let a whole class of non-compiling output ship unnoticed. These are private assets: the
+        renderer itself does not depend on Cratis at runtime, only its specs do.
+    -->
+    <ItemGroup>
+        <!--
+            Analyzers are excluded deliberately: Cratis' type-discovery source generator would bake a registration
+            into this assembly that binds the Cratis runtime at startup, which the renderer — a text generator —
+            has no reason to do.
+        -->
+        <PackageReference Include="Cratis" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.MongoDB" ExcludeAssets="analyzers" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />
+    </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="../Contracts/Contracts.csproj" />
     </ItemGroup>

@@ -17,7 +17,8 @@ public class when_rendering_a_plain_concept : concepts
 
     [Fact] void should_place_the_file_under_common() => _file.RelativePath.ShouldEqual(Path.Combine("Common", "Money.cs"));
     [Fact] void should_derive_from_concept_as() => _file.Content.ShouldContain("public record Money(decimal Value) : ConceptAs<decimal>(Value)");
-    [Fact] void should_declare_a_not_set_sentinel() => _file.Content.ShouldContain("public static readonly Money NotSet = new(0);");
+    [Fact] void should_declare_a_not_set_sentinel_typed_to_the_primitive() =>
+        _file.Content.ShouldContain("public static readonly Money NotSet = new(0m);");
     [Fact] void should_declare_a_conversion_to_the_primitive() => _file.Content.ShouldContain("public static implicit operator decimal(Money value) => value.Value;");
     [Fact] void should_declare_a_conversion_from_the_primitive() => _file.Content.ShouldContain("public static implicit operator Money(decimal value) => new(value);");
     [Fact] void should_not_emit_a_validator() => _file.Content.ShouldNotContain("MoneyValidator");

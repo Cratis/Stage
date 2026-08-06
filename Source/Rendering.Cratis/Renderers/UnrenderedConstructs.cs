@@ -24,18 +24,31 @@ public static class UnrenderedConstructs
     /// </summary>
     /// <param name="builder">The <see cref="CSharpCodeBuilder"/> to emit the in-file notes to.</param>
     /// <param name="slice">The <see cref="SliceSyntax"/> being rendered.</param>
+    /// <param name="rendered">What the calling renderer emits; everything beyond it is reported.</param>
     /// <param name="diagnostics">Collects what could not be rendered faithfully.</param>
-    public static void Report(CSharpCodeBuilder builder, SliceSyntax slice, ICollection<string> diagnostics)
+    public static void Report(CSharpCodeBuilder builder, SliceSyntax slice, RenderedConstructs rendered, ICollection<string> diagnostics)
     {
-        foreach (var (count, keyword, consequence) in Families(slice).Where(family => family.Count > 0))
+        foreach (var (count, keyword, consequence) in Families(slice, rendered).Where(family => family.Count > 0))
         {
             builder.Line($"// TODO: {count} {keyword} declaration(s) not rendered — {consequence}");
             diagnostics.Add($"Slice '{slice.Name}' declares {count} {keyword} declaration(s) with no rendered equivalent — {consequence}");
         }
     }
 
-    static IEnumerable<(int Count, string Keyword, string Consequence)> Families(SliceSyntax slice)
+    static IEnumerable<(int Count, string Keyword, string Consequence)> Families(SliceSyntax slice, RenderedConstructs rendered)
     {
+        yield return (
+            slice.Commands.Count() - (rendered.HasFlag(RenderedConstructs.Command) ? 1 : 0),
+            "command",
+            "neither its input, the events it produces nor its authorization is rendered.");
+        yield return (
+            slice.Projection is not null && !rendered.HasFlag(RenderedConstructs.ReadModel) ? 1 : 0,
+            "projection",
+            "no read model is rendered for it.");
+        yield return (
+            rendered.HasFlag(RenderedConstructs.Reactors) ? 0 : slice.Reactors.Count(),
+            "reactor",
+            "nothing reacts to the events in the rendered application.");
         yield return (
             slice.Queries.Count(),
             "query",

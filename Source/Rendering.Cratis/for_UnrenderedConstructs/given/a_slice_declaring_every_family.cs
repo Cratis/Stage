@@ -4,13 +4,14 @@
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Captures;
+using Cratis.Screenplay.Syntax.Projections;
 using Cratis.Screenplay.Syntax.Specifications;
 using Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.for_UnrenderedConstructs.given;
 
 /// <summary>
-/// A slice declaring one of every construct family no renderer emits anything for.
+/// A slice declaring one of every construct family, rendered by a renderer that emits none of them.
 /// </summary>
 public class a_slice_declaring_every_family : Specification
 {
@@ -43,15 +44,25 @@ public class a_slice_declaring_every_family : Specification
             [],
             SourceLocation.Start);
 
+        var command = new CommandSyntax("RegisterInvoice", [], null, [], [], null, SourceLocation.Start);
+
+        var projection = new ProjectionSyntax(
+            "InvoiceSummary", "InvoiceSummary", null, AutoMapMode.Enabled, null, [], SourceLocation.Start);
+
+        var reactor = new ReactorSyntax(
+            "InvoiceNotifications",
+            [new ReactorTriggerSyntax("InvoiceRegistered", null, null, SourceLocation.Start)],
+            SourceLocation.Start);
+
         _slice = new SliceSyntax(
             SliceType.StateView,
             "Summary",
             [],
-            [],
+            [command],
             [query],
-            null,
+            projection,
             [capture],
-            [],
+            [reactor],
             [screen],
             [constraint],
             [specification],

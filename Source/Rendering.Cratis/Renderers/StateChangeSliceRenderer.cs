@@ -27,7 +27,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
         var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
 
-        UnrenderedConstructs.Report(builder, slice.Slice, diagnostics);
+        UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.Command, diagnostics);
 
         var command = slice.Slice.Commands.FirstOrDefault();
         if (command is not null)

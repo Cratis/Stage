@@ -34,7 +34,7 @@ public class StateViewSliceRenderer : ISliceRenderer
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
         var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
 
-        UnrenderedConstructs.Report(builder, slice.Slice, diagnostics);
+        UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.ReadModel, diagnostics);
 
         foreach (var @event in slice.Slice.Events)
         {

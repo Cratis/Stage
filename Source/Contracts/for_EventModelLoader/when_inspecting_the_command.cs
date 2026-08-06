@@ -24,6 +24,7 @@ public class when_inspecting_the_command : given.a_compiled_invoicing_model
     }
 
     [Fact] void should_name_the_command() => _command.Name.ShouldEqual("RegisterInvoice");
+    [Fact] void should_carry_the_identifying_property() => _command.Identifier.ShouldEqual("invoiceId");
     [Fact] void should_produce_an_empty_state_schema() => _command.StateSchema.ShouldEqual(SchemaSynthesizerEmptyObject);
     [Fact] void should_synthesize_a_uuid_property_for_the_id() => TypeOf("invoiceId").ShouldEqual("string");
     [Fact] void should_synthesize_a_string_property() => TypeOf("invoiceNumber").ShouldEqual("string");

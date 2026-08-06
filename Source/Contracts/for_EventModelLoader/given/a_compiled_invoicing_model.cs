@@ -26,7 +26,7 @@ public class a_compiled_invoicing_model : Specification
             slice StateChange RegisterInvoice
 
               command RegisterInvoice
-                invoiceId      InvoiceId
+                invoiceId      InvoiceId identifier
                 invoiceNumber  InvoiceNumber
                 amount         Money
                 quantity       Quantity

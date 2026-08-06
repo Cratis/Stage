@@ -14,6 +14,11 @@ on:
       - "**"
     paths:
       - "Source/**"
+      - "*.props"
+      - "*.targets"
+      - "*.slnx"
+      - "global.json"
+      - ".github/workflows/dotnet-build.yml"
 
 jobs:
   build:
@@ -28,5 +33,11 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      # The specs live inline beside the code and are stripped from Release builds, where the test SDK is not
+      # referenced either - so a Release test run discovers nothing at all. Debug runs the specs; Release is the
+      # zero-warning compile gate.
       - name: Build & run tests
-        run: dotnet test --configuration Release
+        run: dotnet test --configuration Debug
+
+      - name: Build Release
+        run: dotnet build --configuration Release

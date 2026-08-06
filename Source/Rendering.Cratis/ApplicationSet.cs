@@ -21,6 +21,7 @@ public class ApplicationSet
     {
         Applications = applications;
         Concepts = BuildLookup(applications.SelectMany(application => application.Concepts), concept => concept.Name);
+        Policies = BuildLookup(applications.SelectMany(application => application.Policies), policy => policy.Name);
         Types = BuildLookup(applications.SelectMany(application => application.Types ?? []), type => type.Name);
         Slices = [.. applications.SelectMany(application => application.Locate())];
         ImportedNames = new HashSet<string>(
@@ -45,6 +46,12 @@ public class ApplicationSet
     /// Gets every composite type declared across the applications, keyed by name.
     /// </summary>
     public IReadOnlyDictionary<string, TypeSyntax> Types { get; }
+
+    /// <summary>
+    /// Gets every policy declared across the applications, keyed by name. An <c>authorize</c> names policies rather
+    /// than roles, so every rendered authorization attribute resolves through this.
+    /// </summary>
+    public IReadOnlyDictionary<string, PolicySyntax> Policies { get; }
 
     /// <summary>
     /// Gets every slice declared across the applications, located by its module/feature path.

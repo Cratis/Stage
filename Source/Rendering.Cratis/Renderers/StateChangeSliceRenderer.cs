@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Stage.Rendering.Cratis.Authorization;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -12,10 +13,10 @@ using Cratis.Stage.Rendering.Cratis.Validation;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Renders a <see cref="SliceType.StateChange"/> slice: the <c>[Command]</c> record, its paired
-/// <c>CommandValidator&lt;T&gt;</c> when the command declares validation, and the <c>[EventType]</c> records it
-/// can produce. Everything else the slice declares is reported through <see cref="UnrenderedConstructs"/> rather
-/// than silently dropped.
+/// Renders a <see cref="SliceType.StateChange"/> slice: the <c>[Command]</c> record, the authorization attribute
+/// its <c>authorize</c> declares, its paired <c>CommandValidator&lt;T&gt;</c> when the command declares
+/// validation, and the <c>[EventType]</c> records it can produce. Everything else the slice declares is reported
+/// through <see cref="UnrenderedConstructs"/> rather than silently dropped.
 /// </summary>
 public class StateChangeSliceRenderer : ISliceRenderer
 {
@@ -58,8 +59,9 @@ public class StateChangeSliceRenderer : ISliceRenderer
         var typeName = Identifiers.ToPascalCase(command.Name);
         var parameters = string.Join(", ", command.Properties.Select(property => RenderParameter(property, command.Name, applicationSet, diagnostics)));
         var requiresContext = RequiresContext(command);
+        var authorization = AuthorizationRenderer.Render(command.Authorize, applicationSet, $"Command '{command.Name}'", diagnostics);
 
-        builder.Using("Cratis.Arc.Commands.ModelBound");
+        builder.Using("Cratis.Arc.Commands.ModelBound").Using(AuthorizationRenderer.Namespace);
         if (requiresContext || command.Handler?.Code is not null)
         {
             builder.Using("Cratis.Arc.Commands");
@@ -70,7 +72,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
             builder.Using("Cratis.Chronicle.Keys");
         }
 
-        builder.BlankLine().Attribute("Command").OpenBlock($"public record {typeName}({parameters})");
+        builder.BlankLine().Attribute("Command").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
 
         CommandValidatorRenderer.Render(builder, command, typeName, applicationSet, diagnostics);
         RenderHandle(builder, command, requiresContext, applicationSet, diagnostics);

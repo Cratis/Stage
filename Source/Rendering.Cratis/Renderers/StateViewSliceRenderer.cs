@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Stage.Rendering.Cratis.Authorization;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Types;
@@ -17,6 +18,13 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// diagnostics and called out in the file rather than silently dropped, as is everything else the slice declares
 /// that nothing renders (see <see cref="UnrenderedConstructs"/>).
 /// </summary>
+/// <remarks>
+/// The slice's declared <c>query</c> blocks are not rendered — the read model gets a fixed all/by-id pair
+/// instead — so the authorization those queries declare would have nowhere to land and the read surface would be
+/// open to everyone. The read model therefore carries the <b>union</b> of what its declared queries permit: every
+/// caller the document lets read this model through some query can still read it, and nobody else can. That the
+/// declared queries themselves are missing is reported separately.
+/// </remarks>
 public class StateViewSliceRenderer : ISliceRenderer
 {
     /// <inheritdoc/>
@@ -37,7 +45,7 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         if (slice.Slice.Projection is { } projection)
         {
-            RenderReadModel(builder, projection, applicationSet, referenced, diagnostics);
+            RenderReadModel(builder, projection, slice.Slice.Queries, applicationSet, referenced, diagnostics);
         }
 
         foreach (var @namespace in ReferencedNamespaces.Resolve(referenced, applicationSet, rootNamespace, ownNamespace))
@@ -52,6 +60,7 @@ public class StateViewSliceRenderer : ISliceRenderer
     static void RenderReadModel(
         CSharpCodeBuilder builder,
         ProjectionSyntax projection,
+        IEnumerable<QuerySyntax> queries,
         ApplicationSet applicationSet,
         List<string> referenced,
         List<string> diagnostics)
@@ -62,7 +71,8 @@ public class StateViewSliceRenderer : ISliceRenderer
         var properties = InferProperties(fromBlocks, events, applicationSet, diagnostics);
         var keyProperty = ProjectionKey.Resolve(projection, fromBlocks, properties, events, applicationSet, diagnostics);
 
-        builder.Using("Cratis.Arc.Queries.ModelBound")
+        builder.Using(AuthorizationRenderer.Namespace)
+            .Using("Cratis.Arc.Queries.ModelBound")
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels")
@@ -92,8 +102,11 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         ReportUnrenderedBlocks(builder, projection, typeName, diagnostics);
 
+        var authorization = AuthorizationRenderer.Render(
+            queries.Select(query => query.Authorize), applicationSet, $"Read model '{typeName}'", diagnostics);
+
         var parameters = string.Join(", ", properties.Select(property => RenderParameter(property, keyProperty)));
-        builder.Attribute("ReadModel").OpenBlock($"public record {typeName}({parameters})");
+        builder.Attribute("ReadModel").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
 
         var keyType = keyProperty is null ? "Guid" : properties.First(property => property.Name == keyProperty).Type.ToTypeSyntax();
         var idParameterName = keyProperty is null ? "id" : Identifiers.ToCamelCase(keyProperty);

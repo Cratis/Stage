@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Expressions;
@@ -36,10 +37,10 @@ public static class ExpressionRenderer
         PathExpressionSyntax path => RenderPath(path.Path),
         SourceItemExpressionSyntax sourceItem => RenderPath(sourceItem.Path),
         ContextExpressionSyntax context => RenderContextPath(context.Path),
-        EnvironmentExpressionSyntax environment => $"Environment.GetEnvironmentVariable(\"{Escape(environment.Name)}\")",
+        EnvironmentExpressionSyntax environment => $"Environment.GetEnvironmentVariable({CSharpCodeBuilder.StringLiteral(environment.Name)})",
         SecretExpressionSyntax secret =>
-            $"Environment.GetEnvironmentVariable(\"{Escape(secret.Name)}\") /* TODO: resolve '{secret.Name}' from secrets, not environment */",
-        StringsExpressionSyntax strings => $"\"{Escape(strings.Key)}\" /* TODO: resolve localized string */",
+            $"Environment.GetEnvironmentVariable({CSharpCodeBuilder.StringLiteral(secret.Name)}) /* TODO: resolve '{secret.Name}' from secrets, not environment */",
+        StringsExpressionSyntax strings => $"{CSharpCodeBuilder.StringLiteral(strings.Key)} /* TODO: resolve localized string */",
         RawExpressionSyntax raw => raw.Text,
         EventSourceIdExpressionSyntax => "context.EventSourceId",
         EventContextExpressionSyntax eventContext => RenderContextPath(eventContext.Path),
@@ -79,12 +80,12 @@ public static class ExpressionRenderer
     {
         null => "null",
         bool boolean => boolean ? "true" : "false",
-        string text => $"\"{Escape(text)}\"",
+        string text => CSharpCodeBuilder.StringLiteral(text),
         double number => number.ToString(CultureInfo.InvariantCulture),
         decimal number => number.ToString(CultureInfo.InvariantCulture),
         int number => number.ToString(CultureInfo.InvariantCulture),
         long number => number.ToString(CultureInfo.InvariantCulture),
-        _ => $"\"{Escape(value.ToString() ?? string.Empty)}\"",
+        _ => CSharpCodeBuilder.StringLiteral(value.ToString() ?? string.Empty),
     };
 
     static string RenderPath(string path) => string.Join('.', path.Split('.').Select(Identifiers.ToPascalCase));
@@ -122,8 +123,6 @@ public static class ExpressionRenderer
 
     static string Operator(LogicalOperator @operator) => @operator == LogicalOperator.Or ? "||" : "&&";
 
-    static string Escape(string text) => text.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
-
     static string EscapeInterpolated(string text) =>
-        Escape(text).Replace("{", "{{", StringComparison.Ordinal).Replace("}", "}}", StringComparison.Ordinal);
+        CSharpCodeBuilder.Escape(text).Replace("{", "{{", StringComparison.Ordinal).Replace("}", "}}", StringComparison.Ordinal);
 }

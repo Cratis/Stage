@@ -29,6 +29,7 @@ public static class ExpressionRenderer
     /// </summary>
     /// <param name="expression">The expression to render.</param>
     /// <returns>The rendered C# expression text.</returns>
+    /// <exception cref="UnsupportedExpression">Thrown when the expression has no C# rendering.</exception>
     public static string Render(ExpressionSyntax expression) => expression switch
     {
         LiteralExpressionSyntax literal => RenderLiteral(literal.Value),
@@ -46,20 +47,33 @@ public static class ExpressionRenderer
             ? "context.CausedBy"
             : $"context.CausedBy.{Identifiers.ToPascalCase(causedBy.Property)}",
         TemplateExpressionSyntax template => RenderTemplate(template),
-        _ => "null /* TODO: unsupported expression */",
+        _ => throw new UnsupportedExpression(expression),
     };
 
     /// <summary>
     /// Renders a condition as a C# boolean expression.
     /// </summary>
     /// <param name="condition">The condition to render.</param>
+    /// <param name="enumTypeOf">
+    /// Resolves the enum type name of a path being compared, when it has one. A string literal compared against an
+    /// enum-typed value has to be rendered as the enum member — the literal is what the Screenplay author wrote,
+    /// but the two types have no comparison operator between them.
+    /// </param>
     /// <returns>The rendered C# boolean expression text.</returns>
-    public static string Render(ConditionSyntax condition) => condition switch
+    /// <exception cref="UnsupportedCondition">Thrown when the condition has no C# rendering.</exception>
+    public static string Render(ConditionSyntax condition, Func<string, string?>? enumTypeOf = null) => condition switch
     {
-        ComparisonConditionSyntax comparison => $"{RenderPath(comparison.Left)} {Operator(comparison.Operator)} {Render(comparison.Right)}",
-        LogicalConditionSyntax logical => $"({Render(logical.Left)}) {Operator(logical.Operator)} ({Render(logical.Right)})",
-        _ => "true /* TODO: unsupported condition */",
+        ComparisonConditionSyntax comparison =>
+            $"{RenderPath(comparison.Left)} {Operator(comparison.Operator)} {RenderComparand(comparison, enumTypeOf)}",
+        LogicalConditionSyntax logical =>
+            $"({Render(logical.Left, enumTypeOf)}) {Operator(logical.Operator)} ({Render(logical.Right, enumTypeOf)})",
+        _ => throw new UnsupportedCondition(condition),
     };
+
+    static string RenderComparand(ComparisonConditionSyntax comparison, Func<string, string?>? enumTypeOf) =>
+        comparison.Right is LiteralExpressionSyntax { Value: string text } && enumTypeOf?.Invoke(comparison.Left) is { } enumName
+            ? $"{enumName}.{Identifiers.ToPascalCase(text)}"
+            : Render(comparison.Right);
 
     static string RenderLiteral(object? value) => value switch
     {

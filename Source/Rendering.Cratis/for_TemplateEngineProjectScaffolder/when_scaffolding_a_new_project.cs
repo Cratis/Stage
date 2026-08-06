@@ -23,13 +23,26 @@ public class when_scaffolding_a_new_project : Specification
     async Task Because()
     {
         var writer = new StringWriter();
-        _result = await _scaffolder.EnsureScaffolded(_target, writer);
+        _result = await _scaffolder.EnsureScaffolded(_target, "AcmeBilling", writer);
         _output = writer.ToString();
     }
 
     [Fact] void should_scaffold() => _result.ShouldBeTrue();
     [Fact] void should_report_progress() => _output.ShouldContain("Scaffolding complete.");
-    [Fact] void should_generate_a_project_file() => _target.EnumerateFiles("*.csproj").Any().ShouldBeTrue();
+    [Fact] void should_generate_a_project_file_named_after_the_project() =>
+        File.Exists(Path.Combine(_target.FullName, "AcmeBilling.csproj")).ShouldBeTrue();
+    [Fact] void should_substitute_the_target_framework() =>
+        File.ReadAllText(Path.Combine(_target.FullName, "AcmeBilling.csproj")).ShouldNotContain("TARGET_FRAMEWORK");
+    [Fact] void should_substitute_the_root_namespace() =>
+        File.ReadAllText(Path.Combine(_target.FullName, "AcmeBilling.csproj")).ShouldContain("<RootNamespace>AcmeBilling</RootNamespace>");
+    [Fact] void should_substitute_the_project_guid_in_the_solution() =>
+        File.ReadAllText(Path.Combine(_target.FullName, "AcmeBilling.sln")).ShouldNotContain("PROJECT_GUID");
+    [Fact] void should_reference_the_generated_project_from_the_solution() =>
+        File.ReadAllText(Path.Combine(_target.FullName, "AcmeBilling.sln")).ShouldContain("AcmeBilling.csproj");
+    [Fact] void should_remove_the_sample_slice() =>
+        Directory.Exists(Path.Combine(_target.FullName, "SomeModule")).ShouldBeFalse();
+    [Fact] void should_remove_the_sample_slice_from_the_composition() =>
+        File.ReadAllText(Path.Combine(_target.FullName, "App.tsx")).ShouldNotContain("SomeFeature");
 
     void Destroy()
     {

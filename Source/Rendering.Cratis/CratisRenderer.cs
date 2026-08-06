@@ -46,10 +46,10 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
     {
         await output.WriteLineAsync($"Rendering {applications.Count} application(s) to '{targetDirectory.FullName}'...");
 
-        await scaffolder.EnsureScaffolded(targetDirectory, output);
+        var rootNamespace = Identifiers.ToPascalCase(targetDirectory.Name);
+        await scaffolder.EnsureScaffolded(targetDirectory, rootNamespace, output);
 
         var applicationSet = new ApplicationSet(applications);
-        var rootNamespace = Identifiers.ToPascalCase(targetDirectory.Name);
 
         foreach (var concept in applicationSet.Concepts.Values)
         {
@@ -66,7 +66,87 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
             await RenderSlice(slice, applicationSet, rootNamespace, targetDirectory, output, error);
         }
 
+        await ReportUnrenderableReferences(applicationSet, error);
+
         await output.WriteLineAsync("Rendering complete.");
+    }
+
+    /// <summary>
+    /// Renders a single module — every slice under it, and nothing else.
+    /// </summary>
+    /// <param name="module">The <see cref="ModuleSyntax"/> to render.</param>
+    /// <param name="context">The <see cref="ApplicationSet"/> giving the surrounding concepts, types and placements the slices resolve against.</param>
+    /// <param name="targetDirectory">The directory to render into.</param>
+    /// <param name="output">The <see cref="TextWriter"/> progress is reported to.</param>
+    /// <param name="error">The <see cref="TextWriter"/> rendering problems are reported to.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public Task Render(ModuleSyntax module, ApplicationSet context, DirectoryInfo targetDirectory, TextWriter output, TextWriter error) =>
+        RenderLocated([.. module.Locate()], context, targetDirectory, output, error);
+
+    /// <summary>
+    /// Renders a single feature — every slice under it, and nothing else.
+    /// </summary>
+    /// <param name="feature">The <see cref="FeatureSyntax"/> to render.</param>
+    /// <param name="context">The <see cref="ApplicationSet"/> giving the surrounding concepts, types and placements the slices resolve against.</param>
+    /// <param name="targetDirectory">The directory to render into.</param>
+    /// <param name="output">The <see cref="TextWriter"/> progress is reported to.</param>
+    /// <param name="error">The <see cref="TextWriter"/> rendering problems are reported to.</param>
+    /// <param name="module">The module the feature belongs to; omitted, the feature is rendered directly in the target directory.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public Task Render(
+        FeatureSyntax feature, ApplicationSet context, DirectoryInfo targetDirectory, TextWriter output, TextWriter error, string? module = null) =>
+        RenderLocated([.. feature.Locate(Path(module))], context, targetDirectory, output, error);
+
+    /// <summary>
+    /// Renders a single slice, and nothing else.
+    /// </summary>
+    /// <param name="slice">The <see cref="SliceSyntax"/> to render.</param>
+    /// <param name="context">The <see cref="ApplicationSet"/> giving the surrounding concepts, types and placements the slice resolves against.</param>
+    /// <param name="targetDirectory">The directory to render into.</param>
+    /// <param name="output">The <see cref="TextWriter"/> progress is reported to.</param>
+    /// <param name="error">The <see cref="TextWriter"/> rendering problems are reported to.</param>
+    /// <param name="module">The module the slice belongs to; omitted, that level is left out of the folder and namespace.</param>
+    /// <param name="feature">The feature the slice belongs to; omitted, that level is left out of the folder and namespace.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public Task Render(
+        SliceSyntax slice,
+        ApplicationSet context,
+        DirectoryInfo targetDirectory,
+        TextWriter output,
+        TextWriter error,
+        string? module = null,
+        string? feature = null) =>
+        RenderLocated([new LocatedSlice(slice, Path(module, feature))], context, targetDirectory, output, error);
+
+    static IReadOnlyList<string> Path(params string?[] segments) => [.. segments.Where(segment => !string.IsNullOrWhiteSpace(segment))!];
+
+    /// <summary>
+    /// Reports every name a slice references that nothing in the rendered output declares. An <c>import</c> names
+    /// a construct owned by another domain — the rendered application has no source for it, and a reference to it
+    /// will not compile until that domain's contracts are referenced.
+    /// </summary>
+    /// <param name="applicationSet">The <see cref="ApplicationSet"/> that was rendered.</param>
+    /// <param name="error">The <see cref="TextWriter"/> rendering problems are reported to.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    static async Task ReportUnrenderableReferences(ApplicationSet applicationSet, TextWriter error)
+    {
+        foreach (var name in applicationSet.ImportedNames.Where(name => !applicationSet.DeclarationPlacements.ContainsKey(name)).Order(StringComparer.Ordinal))
+        {
+            await error.WriteLineAsync(
+                $"'{name}' is imported from another domain and is not declared here — references to it are rendered but will not compile until its contracts are referenced.");
+        }
+    }
+
+    async Task RenderLocated(
+        IReadOnlyList<LocatedSlice> slices, ApplicationSet context, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
+    {
+        var rootNamespace = Identifiers.ToPascalCase(targetDirectory.Name);
+        await scaffolder.EnsureScaffolded(targetDirectory, rootNamespace, output);
+
+        foreach (var slice in slices)
+        {
+            await RenderSlice(slice, context, rootNamespace, targetDirectory, output, error);
+        }
     }
 
     async Task RenderSlice(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
@@ -82,8 +162,7 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
         try
         {
             await output.WriteLineAsync($"Rendering slice '{slicePath}'...");
-            var file = renderer.Render(slice, applicationSet, rootNamespace);
-            await WriteFile(file, targetDirectory, output, error);
+            await WriteFile(renderer.Render(slice, applicationSet, rootNamespace), targetDirectory, output, error);
         }
         catch (Exception exception)
         {
@@ -95,6 +174,11 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
     {
         try
         {
+            foreach (var diagnostic in file.Diagnostics)
+            {
+                await error.WriteLineAsync($"{file.RelativePath}: {diagnostic}");
+            }
+
             await codeOutput.Write(file, targetDirectory, output);
         }
         catch (Exception exception)

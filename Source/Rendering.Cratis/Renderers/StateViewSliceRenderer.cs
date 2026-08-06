@@ -14,7 +14,8 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// <c>[ReadModel]</c> record inferred from its <see cref="ProjectionSyntax"/>'s mappings, using model-bound
 /// projection attributes for the blocks this renderer understands. Constructs it can't express as attributes
 /// (composite keys, <c>join</c>, <c>children</c>, <c>nested</c>, <c>every</c>/<c>all</c>) are reported as
-/// diagnostics and called out in the file rather than silently dropped.
+/// diagnostics and called out in the file rather than silently dropped, as is everything else the slice declares
+/// that nothing renders (see <see cref="UnrenderedConstructs"/>).
 /// </summary>
 public class StateViewSliceRenderer : ISliceRenderer
 {
@@ -24,6 +25,8 @@ public class StateViewSliceRenderer : ISliceRenderer
         var diagnostics = new List<string>();
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
         var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
+
+        UnrenderedConstructs.Report(builder, slice.Slice, diagnostics);
 
         foreach (var @event in slice.Slice.Events)
         {

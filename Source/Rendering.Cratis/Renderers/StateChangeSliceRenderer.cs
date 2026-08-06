@@ -14,7 +14,8 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// <summary>
 /// Renders a <see cref="SliceType.StateChange"/> slice: the <c>[Command]</c> record, its paired
 /// <c>CommandValidator&lt;T&gt;</c> when the command declares validation, and the <c>[EventType]</c> records it
-/// can produce.
+/// can produce. Everything else the slice declares is reported through <see cref="UnrenderedConstructs"/> rather
+/// than silently dropped.
 /// </summary>
 public class StateChangeSliceRenderer : ISliceRenderer
 {
@@ -24,6 +25,8 @@ public class StateChangeSliceRenderer : ISliceRenderer
         var diagnostics = new List<string>();
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
         var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
+
+        UnrenderedConstructs.Report(builder, slice.Slice, diagnostics);
 
         var command = slice.Slice.Commands.FirstOrDefault();
         if (command is not null)

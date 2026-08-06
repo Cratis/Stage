@@ -1,0 +1,64 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+
+namespace Cratis.Stage.Rendering.Cratis.Renderers;
+
+/// <summary>
+/// Reports the construct families a slice declares that no renderer emits anything for — the same treatment the
+/// projection blocks with no model-bound equivalent already get: a <c>TODO</c> in the emitted file and a
+/// diagnostic on it.
+/// </summary>
+/// <remarks>
+/// A construct that renders to nothing and says nothing is indistinguishable from one that was never declared.
+/// The rendered application then looks complete while whole families of behavior — who may read what, which
+/// values must stay unique, the entire user interface — are simply missing. Every family listed here is a
+/// promise the Screenplay document makes that the rendered output does not keep, so each one says so.
+/// </remarks>
+public static class UnrenderedConstructs
+{
+    /// <summary>
+    /// Reports every construct family the slice declares that the rendered file has no equivalent for.
+    /// </summary>
+    /// <param name="builder">The <see cref="CSharpCodeBuilder"/> to emit the in-file notes to.</param>
+    /// <param name="slice">The <see cref="SliceSyntax"/> being rendered.</param>
+    /// <param name="diagnostics">Collects what could not be rendered faithfully.</param>
+    public static void Report(CSharpCodeBuilder builder, SliceSyntax slice, ICollection<string> diagnostics)
+    {
+        foreach (var (count, keyword, consequence) in Families(slice).Where(family => family.Count > 0))
+        {
+            builder.Line($"// TODO: {count} {keyword} declaration(s) not rendered — {consequence}");
+            diagnostics.Add($"Slice '{slice.Name}' declares {count} {keyword} declaration(s) with no rendered equivalent — {consequence}");
+        }
+    }
+
+    static IEnumerable<(int Count, string Keyword, string Consequence)> Families(SliceSyntax slice)
+    {
+        yield return (
+            slice.Queries.Count(),
+            "query",
+            "the read model carries the fixed all/by-id pair instead, guarded by the union of the declared queries' authorization.");
+        yield return (
+            slice.Queries.Count(query => query.Performer is not null),
+            "query performer",
+            "the query logic is not rendered.");
+        yield return (
+            slice.Constraints.Count(),
+            "constraint",
+            "uniqueness is not enforced in the rendered application.");
+        yield return (
+            slice.Screens.Count(),
+            "screen",
+            "the rendered application has no user interface.");
+        yield return (
+            slice.Captures.Count(),
+            "capture",
+            "no ingestion of the captured source is rendered.");
+        yield return (
+            slice.Specifications.Count(),
+            "specification",
+            "no specs are rendered for the generated application.");
+    }
+}

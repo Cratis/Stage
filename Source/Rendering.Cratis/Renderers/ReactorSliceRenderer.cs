@@ -34,6 +34,8 @@ public class ReactorSliceRenderer : ISliceRenderer
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Reactors");
 
+        UnrenderedConstructs.Report(builder, slice.Slice, diagnostics);
+
         foreach (var @event in slice.Slice.Events)
         {
             EventRenderer.Render(builder, @event, applicationSet, diagnostics);

@@ -67,6 +67,7 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
         }
 
         await ReportUnrenderableReferences(applicationSet, error);
+        await ReportUnrenderedDeclarations(applicationSet, error);
 
         await output.WriteLineAsync("Rendering complete.");
     }
@@ -134,6 +135,38 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
         {
             await error.WriteLineAsync(
                 $"'{name}' is imported from another domain and is not declared here — references to it are rendered but will not compile until its contracts are referenced.");
+        }
+    }
+
+    /// <summary>
+    /// Reports the application-wide declarations nothing renders. A <c>persona</c> is what binds a caller to the
+    /// policies they hold and <c>authentication</c> is what establishes who the caller is — without them the
+    /// authorization the commands and read models now carry has nothing to evaluate against, so their absence is
+    /// as load-bearing as a missing slice.
+    /// </summary>
+    /// <param name="applicationSet">The <see cref="ApplicationSet"/> that was rendered.</param>
+    /// <param name="error">The <see cref="TextWriter"/> rendering problems are reported to.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    static async Task ReportUnrenderedDeclarations(ApplicationSet applicationSet, TextWriter error)
+    {
+        var personas = applicationSet.Applications.Sum(application => application.Personas?.Count() ?? 0);
+        if (personas > 0)
+        {
+            await error.WriteLineAsync(
+                $"{personas} persona declaration(s) are not rendered — nothing maps a caller to the policies they hold.");
+        }
+
+        var seeds = applicationSet.Applications.Count(application => application.Seeds?.Any() == true);
+        if (seeds > 0)
+        {
+            await error.WriteLineAsync($"{seeds} seed declaration(s) are not rendered — the application starts with no seeded data.");
+        }
+
+        var providers = applicationSet.Applications.Sum(application => application.Authentication?.Providers.Count() ?? 0);
+        if (providers > 0)
+        {
+            await error.WriteLineAsync(
+                $"{providers} authentication provider(s) are not rendered — the application authenticates nobody, so every authorization requirement rejects.");
         }
     }
 

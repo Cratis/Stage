@@ -8,10 +8,11 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Renders an <see cref="SliceType.Automation"/> or <see cref="SliceType.Translate"/> slice: one <c>IReactor</c>
-/// class per declared <see cref="ReactorSyntax"/>, with one method per <see cref="ReactorTriggerSyntax"/>. Both
-/// slice types render identically — Screenplay expresses their behavior the same way, as reactors reacting to
-/// events — so this single renderer is registered for both.
+/// Renders an <see cref="SliceType.Automation"/> or <see cref="SliceType.Translate"/> slice: the
+/// <c>[EventType]</c> records the slice declares, plus one <c>IReactor</c> class per declared
+/// <see cref="ReactorSyntax"/>, with one method per <see cref="ReactorTriggerSyntax"/>. Both slice types render
+/// identically — Screenplay expresses their behavior the same way, as reactors reacting to events — so this
+/// single renderer is registered for both.
 /// </summary>
 /// <remarks>
 /// A trigger with an inline <c>csharp</c> block is embedded verbatim, preceded by a positional deconstruction of
@@ -25,20 +26,36 @@ public class ReactorSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        var diagnostics = new List<string>();
+        var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
         var builder = new CSharpCodeBuilder()
-            .Namespace(SliceNaming.Namespace(rootNamespace, slice.FullPath))
+            .Namespace(ownNamespace)
             .Using("System")
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Reactors");
+
+        foreach (var @event in slice.Slice.Events)
+        {
+            EventRenderer.Render(builder, @event, applicationSet, diagnostics);
+        }
 
         foreach (var reactor in slice.Slice.Reactors)
         {
             RenderReactor(builder, reactor, slice.Slice);
         }
 
+        foreach (var @namespace in ReferencedNamespaces.Resolve(ReferencedNames(slice.Slice), applicationSet, rootNamespace, ownNamespace))
+        {
+            builder.Using(@namespace);
+        }
+
         var path = new List<string>(SliceNaming.FolderPath(slice.FullPath)) { SliceNaming.FileName(slice.Slice.Name) };
-        return new RenderedFile(Path.Combine([.. path]), builder.ToString());
+        return new RenderedFile(Path.Combine([.. path]), builder.ToString()) { Diagnostics = diagnostics };
     }
+
+    static IEnumerable<string> ReferencedNames(SliceSyntax slice) =>
+        EventRenderer.ReferencedNames(slice.Events)
+            .Concat(slice.Reactors.SelectMany(reactor => reactor.Triggers).Select(trigger => trigger.Event));
 
     static void RenderReactor(CSharpCodeBuilder builder, ReactorSyntax reactor, SliceSyntax slice)
     {

@@ -34,5 +34,5 @@ public static class Declarations
         slice.Slice.Events.Select(@event => @event.Name)
             .Concat(slice.Slice.Commands.Select(command => command.Name))
             .Concat(slice.Slice.Reactors.Select(reactor => reactor.Name))
-            .Concat(slice.Slice.Projection is { } projection ? [projection.ReadModel ?? projection.Name] : []);
+            .Concat(slice.Slice.Projections.Select(projection => projection.ReadModel ?? projection.Name));
 }

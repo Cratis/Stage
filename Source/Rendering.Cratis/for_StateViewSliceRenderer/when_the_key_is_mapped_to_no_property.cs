@@ -36,7 +36,7 @@ public class when_the_key_is_mapped_to_no_property : Specification
         var projection = new ProjectionSyntax("InvoiceTotals", "InvoiceTotals", null, AutoMapMode.Enabled, null, [from], SourceLocation.Start);
 
         var slice = new SliceSyntax(
-            SliceType.StateView, "Totals", [invoiceRegistered], [], [], projection, [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateView, "Totals", [invoiceRegistered], [], [], [projection], [], [], [], [], [], SourceLocation.Start);
 
         var feature = new FeatureSyntax("Invoices", [], [slice], SourceLocation.Start);
         var module = new ModuleSyntax("Billing", [], [feature], SourceLocation.Start);

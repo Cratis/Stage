@@ -23,7 +23,7 @@ public class when_computing_concept_placements : Specification
             SourceLocation.Start);
 
     static SliceSyntax SliceWith(string name, CommandSyntax command) =>
-        new(SliceType.StateChange, name, [], [command], [], null, [], [], [], [], [], SourceLocation.Start);
+        new(SliceType.StateChange, name, [], [command], [], [], [], [], [], [], [], SourceLocation.Start);
 
     void Establish()
     {

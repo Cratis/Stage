@@ -41,7 +41,7 @@ public class a_multi_slice_application : Specification
         var invoiceRegisteredEvent = new EventSyntax("InvoiceRegistered", [nameProperty], SourceLocation.Start);
 
         var registerSlice = new SliceSyntax(
-            SliceType.StateChange, "RegisterInvoice", [invoiceRegisteredEvent], [command], [], null, [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateChange, "RegisterInvoice", [invoiceRegisteredEvent], [command], [], [], [], [], [], [], [], SourceLocation.Start);
 
         var summaryFrom = new FromSyntax(
             [new EventSpecSyntax("InvoiceRegistered", null, SourceLocation.Start)],
@@ -54,7 +54,7 @@ public class a_multi_slice_application : Specification
             "InvoiceSummary", "InvoiceSummary", null, AutoMapMode.Enabled, null, [summaryFrom], SourceLocation.Start);
 
         var summarySlice = new SliceSyntax(
-            SliceType.StateView, "InvoiceSummary", [], [], [], summaryProjection, [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateView, "InvoiceSummary", [], [], [], [summaryProjection], [], [], [], [], [], SourceLocation.Start);
 
         var feature = new FeatureSyntax("Invoices", [], [registerSlice, summarySlice], SourceLocation.Start);
         var module = new ModuleSyntax("Billing", [], [feature], SourceLocation.Start);

@@ -46,6 +46,18 @@ public static class TypeResolver
             return new ResolvedType(Identifiers.ToPascalCase(composite.Name), type.IsCollection, type.IsOptional, ResolvedTypeKind.Composite);
         }
 
-        return new ResolvedType("object", type.IsCollection, type.IsOptional, ResolvedTypeKind.Unresolved);
+        return new ResolvedType("object", type.IsCollection, type.IsOptional, ResolvedTypeKind.Unresolved, type.Name);
     }
+
+    /// <summary>
+    /// Describes an unresolved type for a rendering diagnostic. The renderer still emits an untyped placeholder so
+    /// the generated file compiles — this is what says the emitted type is a placeholder, not the authored one.
+    /// </summary>
+    /// <param name="type">The <see cref="ResolvedType"/> to describe.</param>
+    /// <param name="usage">Where the type was used, for the diagnostic text.</param>
+    /// <returns>The diagnostic, or <see langword="null"/> when the type resolved.</returns>
+    public static string? DescribeIfUnresolved(ResolvedType type, string usage) =>
+        type.Kind == ResolvedTypeKind.Unresolved
+            ? $"'{type.SourceName}' ({usage}) is not declared as a concept or type — rendered as 'object'."
+            : null;
 }

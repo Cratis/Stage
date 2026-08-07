@@ -27,7 +27,10 @@ public class when_rendering_a_projection : a_projection_slice
         _file.Content.ShouldContain("[Key] [SetFrom<InvoiceRegistered>(nameof(InvoiceRegistered.InvoiceNumber))] string InvoiceNumber");
     [Fact] void should_emit_an_increment_attribute() => _file.Content.ShouldContain("[Increment<InvoiceRegistered>] int TotalCount");
     [Fact] void should_emit_a_decrement_attribute() => _file.Content.ShouldContain("[Decrement<InvoiceSent>] int DraftCount");
-    [Fact] void should_flag_the_unsupported_join_block() => _file.Content.ShouldContain("TODO: 1 join/children/nested block(s) not yet rendered");
+    [Fact] void should_flag_the_unsupported_join_block() => _file.Content.ShouldContain("TODO: 1 join block(s) not yet rendered");
+    [Fact] void should_report_the_unsupported_join_block_as_a_diagnostic() =>
+        _file.Diagnostics.ShouldContain("Projection 'InvoiceSummary' declares 1 join block(s) with no model-bound equivalent — they are not rendered.");
+    [Fact] void should_declare_the_events_the_slice_owns() => _file.Content.ShouldContain("public record InvoiceRegistered(");
     [Fact] void should_emit_the_all_query_method() =>
         _file.Content.ShouldContain("public static IQueryable<InvoiceSummary> AllInvoiceSummaries(IMongoCollection<InvoiceSummary> collection) => collection.AsQueryable();");
     [Fact] void should_emit_the_by_id_query_method() =>

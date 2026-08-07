@@ -20,7 +20,7 @@ public static class ConceptRenderer
         ["Guid"] = "Guid.Empty",
         ["string"] = "string.Empty",
         ["int"] = "0",
-        ["decimal"] = "0",
+        ["decimal"] = "0m",
         ["bool"] = "false",
         ["DateOnly"] = "DateOnly.MinValue",
         ["DateTimeOffset"] = "DateTimeOffset.MinValue",
@@ -39,7 +39,7 @@ public static class ConceptRenderer
         var typeName = Identifiers.ToPascalCase(concept.Name);
         var placement = applicationSet.ConceptPlacements.GetValueOrDefault(concept.Name, []);
         var folderSegments = placement.Count == 0 ? ["Common"] : SliceNaming.FolderPath(placement);
-        var @namespace = placement.Count == 0 ? $"{rootNamespace}.Common" : SliceNaming.Namespace(rootNamespace, placement);
+        var @namespace = ReferencedNamespaces.ForPlacement(rootNamespace, placement);
 
         var builder = new CSharpCodeBuilder().Namespace(@namespace);
 
@@ -122,7 +122,7 @@ public static class ConceptRenderer
 
         foreach (var rule in rules)
         {
-            RenderRule(builder, rule, ruleMethods);
+            RenderRule(builder, rule, ruleMethods, clrType == "string");
         }
 
         var codeBlockIndex = 0;
@@ -144,12 +144,20 @@ public static class ConceptRenderer
         builder.EndBlock();
     }
 
-    static void RenderRule(CSharpCodeBuilder builder, ValidationRuleSyntax rule, List<(string Name, string Code)> ruleMethods)
+    static void RenderRule(CSharpCodeBuilder builder, ValidationRuleSyntax rule, List<(string Name, string Code)> ruleMethods, bool subjectIsText)
     {
+        // A concept validator has exactly one value in scope — the concept's own. A rule value that is anything but
+        // a literal names something outside that scope, and rendering it would emit an identifier bound to nothing.
+        if (rule.Value is not null and not LiteralExpressionSyntax)
+        {
+            builder.Line($"// TODO: validation rule '{rule.Rule}' on '{rule.Property}' compares against a value outside the concept's scope");
+            return;
+        }
+
         var value = rule.Value is null ? string.Empty : ExpressionRenderer.Render(rule.Value);
         var call = rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
             ? RenderCustomRule(rule, ruleMethods)
-            : ValidationRuleRenderer.RenderCall(rule.Rule, value);
+            : ValidationRuleRenderer.RenderCall(rule.Rule, value, subjectIsText);
 
         if (call is null)
         {

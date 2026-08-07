@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Stage.Rendering.Cratis.Authorization;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -12,44 +13,55 @@ using Cratis.Stage.Rendering.Cratis.Validation;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Renders a <see cref="SliceType.StateChange"/> slice: the <c>[Command]</c> record, its paired
-/// <c>CommandValidator&lt;T&gt;</c> when the command declares validation, and the <c>[EventType]</c> records it
-/// can produce.
+/// Renders a <see cref="SliceType.StateChange"/> slice: the <c>[Command]</c> record, the authorization attribute
+/// its <c>authorize</c> declares, its paired <c>CommandValidator&lt;T&gt;</c> when the command declares
+/// validation, and the <c>[EventType]</c> records it can produce. Everything else the slice declares is reported
+/// through <see cref="UnrenderedConstructs"/> rather than silently dropped.
 /// </summary>
 public class StateChangeSliceRenderer : ISliceRenderer
 {
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(rootNamespace, slice.FullPath));
+        var diagnostics = new List<string>();
+        var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
+        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
 
-        foreach (var @using in ConceptUsings(slice, applicationSet, rootNamespace))
-        {
-            builder.Using(@using);
-        }
+        UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.Command, diagnostics);
 
         var command = slice.Slice.Commands.FirstOrDefault();
         if (command is not null)
         {
-            RenderCommand(builder, slice.Slice, command, applicationSet);
+            RenderCommand(builder, command, applicationSet, diagnostics);
         }
 
         foreach (var @event in slice.Slice.Events)
         {
-            RenderEvent(builder, @event, applicationSet);
+            EventRenderer.Render(builder, @event, applicationSet, diagnostics);
+        }
+
+        foreach (var @namespace in ReferencedNamespaces.Resolve(ReferencedNames(slice.Slice), applicationSet, rootNamespace, ownNamespace))
+        {
+            builder.Using(@namespace);
         }
 
         var path = new List<string>(SliceNaming.FolderPath(slice.FullPath)) { SliceNaming.FileName(slice.Slice.Name) };
-        return new RenderedFile(Path.Combine([.. path]), builder.ToString());
+        return new RenderedFile(Path.Combine([.. path]), builder.ToString()) { Diagnostics = diagnostics };
     }
 
-    static void RenderCommand(CSharpCodeBuilder builder, SliceSyntax slice, CommandSyntax command, ApplicationSet applicationSet)
+    static IEnumerable<string> ReferencedNames(SliceSyntax slice) =>
+        slice.Commands.SelectMany(command => command.Properties).Select(property => property.Type.Name)
+            .Concat(EventRenderer.ReferencedNames(slice.Events))
+            .Concat(slice.Commands.SelectMany(command => command.Produces).Select(produces => produces.Event));
+
+    static void RenderCommand(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics)
     {
         var typeName = Identifiers.ToPascalCase(command.Name);
-        var parameters = string.Join(", ", command.Properties.Select(property => RenderParameter(property, applicationSet, isCommand: true)));
+        var parameters = string.Join(", ", command.Properties.Select(property => RenderParameter(property, command.Name, applicationSet, diagnostics)));
         var requiresContext = RequiresContext(command);
+        var authorization = AuthorizationRenderer.Render(command.Authorize, applicationSet, $"Command '{command.Name}'", diagnostics);
 
-        builder.Using("Cratis.Arc.Commands.ModelBound");
+        builder.Using("Cratis.Arc.Commands.ModelBound").Using(AuthorizationRenderer.Namespace);
         if (requiresContext || command.Handler?.Code is not null)
         {
             builder.Using("Cratis.Arc.Commands");
@@ -60,80 +72,15 @@ public class StateChangeSliceRenderer : ISliceRenderer
             builder.Using("Cratis.Chronicle.Keys");
         }
 
-        builder.BlankLine().Attribute("Command").OpenBlock($"public record {typeName}({parameters})");
+        builder.BlankLine().Attribute("Command").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
 
-        RenderValidator(builder, command, typeName, applicationSet);
-        RenderHandle(builder, slice, command, requiresContext);
-
-        builder.EndBlock();
-    }
-
-    static void RenderValidator(CSharpCodeBuilder builder, CommandSyntax command, string typeName, ApplicationSet applicationSet)
-    {
-        var rules = command.Validations.OfType<DeclarativeValidateSyntax>().SelectMany(validate => validate.Rules).ToArray();
-        if (rules.Length == 0)
-        {
-            return;
-        }
-
-        var validatorName = $"{typeName}Validator";
-        var ruleMethods = new List<(string Name, string ParameterType, string PropertyName, string Code)>();
-
-        builder.BlankLine().OpenBlock($"public class {validatorName} : CommandValidator<{typeName}>").OpenBlock($"public {validatorName}()");
-
-        foreach (var rule in rules)
-        {
-            RenderRule(builder, rule, command, applicationSet, ruleMethods);
-        }
-
-        builder.EndBlock();
-
-        foreach (var method in ruleMethods)
-        {
-            builder.BlankLine().OpenBlock($"static bool {method.Name}({method.ParameterType} {method.PropertyName})").Raw(method.Code).EndBlock();
-        }
+        CommandValidatorRenderer.Render(builder, command, typeName, applicationSet, diagnostics);
+        RenderHandle(builder, command, requiresContext, applicationSet, diagnostics);
 
         builder.EndBlock();
     }
 
-    static void RenderRule(
-        CSharpCodeBuilder builder,
-        ValidationRuleSyntax rule,
-        CommandSyntax command,
-        ApplicationSet applicationSet,
-        List<(string Name, string ParameterType, string PropertyName, string Code)> ruleMethods)
-    {
-        var property = Identifiers.ToPascalCase(rule.Property);
-        var value = rule.Value is null ? string.Empty : ExpressionRenderer.Render(rule.Value);
-        var call = rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
-            ? RenderCustomRule(rule, property, command, applicationSet, ruleMethods)
-            : ValidationRuleRenderer.RenderCall(rule.Rule, value);
-
-        if (call is null)
-        {
-            builder.Line($"// TODO: unsupported validation rule '{rule.Rule}' on '{rule.Property}'");
-            return;
-        }
-
-        builder.Line($"RuleFor(_ => _.{property}){call}{ValidationRuleRenderer.RenderMessage(rule)};");
-    }
-
-    static string RenderCustomRule(
-        ValidationRuleSyntax rule,
-        string property,
-        CommandSyntax command,
-        ApplicationSet applicationSet,
-        List<(string Name, string ParameterType, string PropertyName, string Code)> ruleMethods)
-    {
-        var commandProperty = command.Properties.FirstOrDefault(candidate => string.Equals(candidate.Name, rule.Property, StringComparison.OrdinalIgnoreCase));
-        var parameterType = commandProperty is null ? "string" : TypeResolver.Resolve(commandProperty.Type, applicationSet).ToTypeSyntax();
-
-        var methodName = $"Satisfy{property}Rule{ruleMethods.Count(method => method.Name.StartsWith($"Satisfy{property}Rule", StringComparison.Ordinal)) + 1}";
-        ruleMethods.Add((methodName, parameterType, property, rule.Code!.Code));
-        return $".Must({methodName})";
-    }
-
-    static void RenderHandle(CSharpCodeBuilder builder, SliceSyntax slice, CommandSyntax command, bool requiresContext)
+    static void RenderHandle(CSharpCodeBuilder builder, CommandSyntax command, bool requiresContext, ApplicationSet applicationSet, ICollection<string> diagnostics)
     {
         var contextParameter = requiresContext ? "CommandContext context" : string.Empty;
 
@@ -156,7 +103,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
             var eventTypeName = Identifiers.ToPascalCase(produces[0].Event);
             builder.BlankLine().ExpressionMember(
                 $"public {eventTypeName} Handle({contextParameter})",
-                $"new({RenderEventArguments(slice, produces[0])})");
+                $"new({RenderEventArguments(produces[0], command, applicationSet, diagnostics)})");
             return;
         }
 
@@ -165,11 +112,11 @@ public class StateChangeSliceRenderer : ISliceRenderer
         foreach (var produced in produces)
         {
             var eventTypeName = Identifiers.ToPascalCase(produced.Event);
-            var arguments = RenderEventArguments(slice, produced);
+            var arguments = RenderEventArguments(produced, command, applicationSet, diagnostics);
 
             if (produced.When is not null)
             {
-                builder.OpenBlock($"if ({ExpressionRenderer.Render(produced.When)})")
+                builder.OpenBlock($"if ({ExpressionRenderer.Render(produced.When, path => EnumTypeOfCommandProperty(path, command, applicationSet))})")
                     .Line($"events.Add(new {eventTypeName}({arguments}));")
                     .EndBlock();
             }
@@ -182,62 +129,107 @@ public class StateChangeSliceRenderer : ISliceRenderer
         builder.Line("return events;").EndBlock();
     }
 
-    static string RenderEventArguments(SliceSyntax slice, ProducesSyntax produces)
+    /// <summary>
+    /// Renders the constructor arguments for a produced event. The argument list follows the <b>event's</b>
+    /// declared property order — which is why the event is looked up across the whole application set rather than
+    /// only the producing slice: a command routinely produces an event another slice declares, and falling back to
+    /// the mapping order then constructs it with the wrong number of arguments.
+    /// </summary>
+    /// <param name="produces">The <c>produces</c> declaration to render arguments for.</param>
+    /// <param name="command">The command producing the event — the scope a mapping source has to resolve against.</param>
+    /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve the event and its property types against.</param>
+    /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
+    /// <returns>The rendered argument list.</returns>
+    static string RenderEventArguments(
+        ProducesSyntax produces, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics)
     {
-        var targetEvent = slice.Events.FirstOrDefault(candidate => candidate.Name == produces.Event);
-        var propertyOrder = targetEvent?.Properties.Select(property => property.Name) ?? produces.Mappings.Select(mapping => mapping.Property);
+        var targetEvent = applicationSet.Events.GetValueOrDefault(produces.Event);
+        if (targetEvent is null)
+        {
+            diagnostics.Add($"Event '{produces.Event}' is not declared in this application — constructed from the mapped values only.");
+        }
+
+        var properties = targetEvent?.Properties.ToArray();
+        var propertyOrder = properties?.Select(property => property.Name) ?? produces.Mappings.Select(mapping => mapping.Property);
 
         var arguments = propertyOrder.Select(propertyName =>
         {
             var mapping = produces.Mappings.FirstOrDefault(candidate => string.Equals(candidate.Property, propertyName, StringComparison.OrdinalIgnoreCase));
-            return mapping is not null ? ExpressionRenderer.Render(mapping.Source) : "default!";
+            if (mapping is null)
+            {
+                return "default!";
+            }
+
+            var declared = properties?.FirstOrDefault(property => string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase));
+            return RenderEventArgument(mapping, declared, command, applicationSet, diagnostics);
         });
 
         return string.Join(", ", arguments);
     }
 
-    static void RenderEvent(CSharpCodeBuilder builder, EventSyntax @event, ApplicationSet applicationSet)
+    /// <summary>
+    /// Renders one event constructor argument. A string literal assigned to a property typed as an enum concept is
+    /// rendered as the enum member rather than the literal — the literal is what the Screenplay author wrote, but it
+    /// is not assignable to the type the event declares. A source path the command does not carry is rendered as a
+    /// missing value and reported, rather than as an identifier bound to nothing.
+    /// </summary>
+    /// <param name="mapping">The property mapping to render.</param>
+    /// <param name="declared">The declared event property, when the event is known.</param>
+    /// <param name="command">The command producing the event.</param>
+    /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve the property type against.</param>
+    /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
+    /// <returns>The rendered argument.</returns>
+    static string RenderEventArgument(
+        PropertyMappingSyntax mapping,
+        PropertySyntax? declared,
+        CommandSyntax command,
+        ApplicationSet applicationSet,
+        ICollection<string> diagnostics)
     {
-        var typeName = Identifiers.ToPascalCase(@event.Name);
-        var parameters = string.Join(", ", @event.Properties.Select(property => RenderParameter(property, applicationSet, isCommand: false)));
-
-        builder.BlankLine().Using("Cratis.Chronicle.Events").Summary($"Emitted when {Identifiers.ToWords(@event.Name)}.");
-        foreach (var property in @event.Properties)
+        if (declared is not null && mapping.Source is LiteralExpressionSyntax { Value: string text })
         {
-            builder.Line($"/// <param name=\"{Identifiers.ToPascalCase(property.Name)}\">The {Identifiers.ToWords(property.Name)}.</param>");
-        }
-
-        builder.Attribute("EventType").Line($"public record {typeName}({parameters});");
-    }
-
-    static string RenderParameter(PropertySyntax property, ApplicationSet applicationSet, bool isCommand)
-    {
-        var resolved = TypeResolver.Resolve(property.Type, applicationSet);
-        var prefix = isCommand && property.IsIdentifier && resolved.Kind != ResolvedTypeKind.Concept ? "[Key] " : string.Empty;
-        return $"{prefix}{resolved.ToTypeSyntax()} {Identifiers.ToPascalCase(property.Name)}";
-    }
-
-    static IReadOnlyList<string> ConceptUsings(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
-    {
-        var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
-        var namespaces = new HashSet<string>(StringComparer.Ordinal);
-
-        var referencedNames = slice.Slice.Commands.SelectMany(command => command.Properties)
-            .Concat(slice.Slice.Events.SelectMany(@event => @event.Properties))
-            .Select(property => property.Type.Name)
-            .Where(name => applicationSet.Concepts.ContainsKey(name) || applicationSet.Types.ContainsKey(name));
-
-        foreach (var name in referencedNames)
-        {
-            var placement = applicationSet.ConceptPlacements.GetValueOrDefault(name, []);
-            var @namespace = placement.Count == 0 ? $"{rootNamespace}.Common" : SliceNaming.Namespace(rootNamespace, placement);
-            if (!string.Equals(@namespace, ownNamespace, StringComparison.Ordinal))
+            var resolved = TypeResolver.Resolve(declared.Type, applicationSet);
+            if (resolved.Kind == ResolvedTypeKind.Enum)
             {
-                namespaces.Add(@namespace);
+                return $"{resolved.ClrTypeName}.{Identifiers.ToPascalCase(text)}";
             }
         }
 
-        return [.. namespaces];
+        if (mapping.Source is PathExpressionSyntax path && CommandProperty(path.Path, command) is null)
+        {
+            diagnostics.Add($"'{mapping.Property}' is mapped from '{path.Path}', which command '{command.Name}' does not carry — rendered as a missing value.");
+            return "default!";
+        }
+
+        return ExpressionRenderer.Render(mapping.Source);
+    }
+
+    static PropertySyntax? CommandProperty(string name, CommandSyntax command) =>
+        command.Properties.FirstOrDefault(candidate => string.Equals(candidate.Name, name.Split('.')[0], StringComparison.OrdinalIgnoreCase));
+
+    static string? EnumTypeOfCommandProperty(string path, CommandSyntax command, ApplicationSet applicationSet)
+    {
+        var property = CommandProperty(path, command);
+        if (property is null)
+        {
+            return null;
+        }
+
+        var resolved = TypeResolver.Resolve(property.Type, applicationSet);
+        return resolved.Kind == ResolvedTypeKind.Enum ? resolved.ClrTypeName : null;
+    }
+
+    static string RenderParameter(PropertySyntax property, string commandName, ApplicationSet applicationSet, ICollection<string> diagnostics)
+    {
+        var resolved = TypeResolver.Resolve(property.Type, applicationSet);
+        var diagnostic = TypeResolver.DescribeIfUnresolved(resolved, $"property '{property.Name}' of command '{commandName}'");
+        if (diagnostic is not null)
+        {
+            diagnostics.Add(diagnostic);
+        }
+
+        var prefix = property.IsIdentifier && resolved.Kind != ResolvedTypeKind.Concept ? "[Key] " : string.Empty;
+        return $"{prefix}{resolved.ToTypeSyntax()} {Identifiers.ToPascalCase(property.Name)}";
     }
 
     static bool RequiresContext(CommandSyntax command) => command.Produces.Any(produces =>

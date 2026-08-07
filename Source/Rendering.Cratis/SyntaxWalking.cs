@@ -33,4 +33,36 @@ public static class SyntaxWalking
     /// <returns>Every slice in the application.</returns>
     public static IEnumerable<SliceSyntax> AllSlices(this ApplicationSyntax application) =>
         application.Modules.SelectMany(module => module.AllFeatures()).SelectMany(feature => feature.Slices);
+
+    /// <summary>
+    /// Locates every slice in an application, each paired with the module/feature path leading to it.
+    /// </summary>
+    /// <param name="application">The application to locate slices in.</param>
+    /// <returns>Every slice in the application, located.</returns>
+    public static IEnumerable<LocatedSlice> Locate(this ApplicationSyntax application) =>
+        application.Modules.SelectMany(Locate);
+
+    /// <summary>
+    /// Locates every slice in a module, each paired with the module/feature path leading to it.
+    /// </summary>
+    /// <param name="module">The module to locate slices in.</param>
+    /// <returns>Every slice in the module, located.</returns>
+    public static IEnumerable<LocatedSlice> Locate(this ModuleSyntax module) => Locate(module.Features, [module.Name]);
+
+    /// <summary>
+    /// Locates every slice in a feature and its sub-features, each paired with the path leading to it.
+    /// </summary>
+    /// <param name="feature">The feature to locate slices in.</param>
+    /// <param name="path">The path leading to the feature — empty renders it directly in the target directory.</param>
+    /// <returns>Every slice in the feature, located.</returns>
+    public static IEnumerable<LocatedSlice> Locate(this FeatureSyntax feature, IReadOnlyList<string> path) => Locate([feature], path);
+
+    static IEnumerable<LocatedSlice> Locate(IEnumerable<FeatureSyntax> features, IReadOnlyList<string> path) =>
+        features.SelectMany(feature =>
+        {
+            IReadOnlyList<string> featurePath = [.. path, feature.Name];
+            return feature.Slices
+                .Select(slice => new LocatedSlice(slice, featurePath))
+                .Concat(Locate(feature.Features, featurePath));
+        });
 }

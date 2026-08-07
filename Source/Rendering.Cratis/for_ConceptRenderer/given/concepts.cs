@@ -70,7 +70,7 @@ public class concepts : Specification
             [],
             [command],
             [],
-            null,
+            [],
             [],
             [],
             [],

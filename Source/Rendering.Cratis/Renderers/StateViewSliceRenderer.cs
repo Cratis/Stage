@@ -43,7 +43,11 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         var referenced = new List<string>(EventRenderer.ReferencedNames(slice.Slice.Events));
 
-        if (slice.Slice.Projection is { } projection)
+        // A slice may declare several projections. Only the first is rendered — the read model carries a fixed
+        // all/by-id pair with no way to say which projection a query belongs to, so rendering the rest would
+        // guard each of them with the same union of every query's authorization. The ones left out are reported
+        // by UnrenderedConstructs rather than dropped in silence.
+        if (slice.Slice.Projections.FirstOrDefault() is { } projection)
         {
             RenderReadModel(builder, projection, slice.Slice.Queries, applicationSet, referenced, diagnostics);
         }

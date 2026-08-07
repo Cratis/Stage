@@ -12,20 +12,29 @@ namespace Cratis.Stage.Rendering.Cratis.Authorization;
 /// </summary>
 /// <remarks>
 /// <para>
-/// An <c>authorize</c> names <c>policy</c> declarations, optionally several as alternatives (<c>or</c>), so the
-/// declaration is a disjunction: a caller satisfying any one of them is authorized. Arc's <c>[Roles]</c> has the
-/// same shape — it grants on <b>any one</b> of the roles it lists — so a disjunction of role policies renders as a
-/// single <c>[Roles]</c> carrying their union, and <c>require authenticated</c> renders as a bare
-/// <c>[Authorize]</c>. An alternative that only requires authentication subsumes every role alternative beside it,
-/// which is why it collapses the whole declaration to <c>[Authorize]</c>. No <c>authorize</c> at all renders as
-/// <c>[AllowAnonymous]</c>, stating the absence rather than leaving it to be inferred.
+/// Every referenced policy is reduced to the roles it happens to require, and those roles are unioned into a
+/// single <c>[Roles]</c>. <c>require authenticated</c> renders as a bare <c>[Authorize]</c>, and an alternative
+/// satisfied by authentication alone subsumes the roles beside it. No <c>authorize</c> at all renders as
+/// <c>[AllowAnonymous]</c>, stating the absence rather than leaving it to be inferred. A policy declared nowhere,
+/// a policy whose requirement is authored code, and a <c>claim</c> requirement have no attribute equivalent; each
+/// falls back to requiring an authenticated caller and says so.
 /// </para>
 /// <para>
-/// What an attribute cannot express is reported rather than approximated silently: a policy declared nowhere, a
-/// policy whose requirement is authored code, a <c>claim</c> requirement, and — importantly — a <b>conjunction</b>
-/// of requirements, because <c>[Roles]</c> means any-of and Arc evaluates no other attribute member (its
-/// <c>Policy</c> property is carried but never read). Those fall back to requiring an authenticated caller, which
-/// is weaker than declared but never anonymous, and each one says so.
+/// <b>This is known to be wrong, and is preserved here deliberately</b> — see
+/// <see href="https://github.com/Cratis/Stage/issues/20">Cratis/Stage#20</see>. Policies and roles are not the
+/// same shape: a role says <i>which callers are allowed</i>, so a set of roles is naturally an <b>any-of</b>;
+/// a policy is a <i>demand</i>, so a set of policies is naturally an <b>all-of</b>. Reducing a policy to its
+/// roles erases that distinction, and the union then grants on any one of them. So <c>authorize A B</c> — which
+/// the document means as <i>both</i> — renders as <c>[Roles("A", "B")]</c>, which Arc evaluates as <i>either</i>.
+/// The rendered application is more permissive than the document it came from.
+/// </para>
+/// <para>
+/// The fix is to render policies <i>as policies</i> rather than as the roles behind them, which this renderer
+/// cannot do yet: Arc carries <c>AuthorizeAttribute.Policy</c> but never evaluates it
+/// (<see href="https://github.com/Cratis/Arc/issues/2464">Cratis/Arc#2464</see>), so a policy-named attribute
+/// would admit any authenticated caller. Until that lands there is no attribute that expresses a conjunction —
+/// <c>[Roles]</c> is any-of, only the first <c>AuthorizeAttribute</c> is read, and <c>RolesAttribute</c> cannot
+/// be applied twice — so this pass keeps the existing behavior rather than substituting a different wrong one.
 /// </para>
 /// </remarks>
 public static class AuthorizationRenderer
@@ -59,13 +68,19 @@ public static class AuthorizationRenderer
         IEnumerable<AuthorizeSyntax?> authorizations, ApplicationSet applicationSet, string subject, ICollection<string> diagnostics)
     {
         var declared = authorizations.ToArray();
-        if (declared.Length == 0 || declared.Any(authorize => authorize?.Policies.Any() != true))
+        if (declared.Length == 0 || declared.Any(authorize => authorize?.References().Any() != true))
         {
             return "AllowAnonymous";
         }
 
+        // References() flattens the requirement tree to the policies it names, discarding how they combine —
+        // the same flat list the removed Policies property gave, so the rendering below is unchanged. That is
+        // the defect in Cratis/Stage#20, not an oversight in absorbing the tree: reading Requirement instead
+        // would tell us an 'and' from an 'or', but no Arc attribute can express the difference until
+        // Cratis/Arc#2464 makes a named policy actually evaluate. Kept as-is so the fix is one deliberate
+        // change against a spec that already documents the wrong answer.
         var required = declared
-            .SelectMany(authorize => authorize!.Policies)
+            .SelectMany(authorize => authorize!.References())
             .Select(reference => RolesRequiredBy(reference, applicationSet, subject, diagnostics))
             .ToArray();
 

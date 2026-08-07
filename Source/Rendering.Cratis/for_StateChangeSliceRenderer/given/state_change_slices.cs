@@ -41,7 +41,7 @@ public class state_change_slices : Specification
             SourceLocation.Start);
 
         var registerSlice = new SliceSyntax(
-            SliceType.StateChange, "RegisterInvoice", [invoiceRegisteredEvent], [registerCommand], [], null, [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateChange, "RegisterInvoice", [invoiceRegisteredEvent], [registerCommand], [], [], [], [], [], [], [], SourceLocation.Start);
 
         // ProcessBatch: imperative handler.
         var handlerCode = new CodeBlockSyntax(
@@ -52,7 +52,7 @@ public class state_change_slices : Specification
         var processCommand = new CommandSyntax(
             "ProcessBatch", [batchIdProperty], null, [], [], new HandlerSyntax(null, handlerCode, SourceLocation.Start), SourceLocation.Start);
         var processSlice = new SliceSyntax(
-            SliceType.StateChange, "ProcessBatch", [], [processCommand], [], null, [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateChange, "ProcessBatch", [], [processCommand], [], [], [], [], [], [], [], SourceLocation.Start);
 
         // CancelInvoice: identifier with no declared concept (raw Uuid) + multiple conditional produces.
         var cancelIdentifier = new PropertySyntax(
@@ -80,7 +80,7 @@ public class state_change_slices : Specification
             SourceLocation.Start);
 
         var cancelSlice = new SliceSyntax(
-            SliceType.StateChange, "CancelInvoice", [], [cancelCommand], [], null, [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateChange, "CancelInvoice", [], [cancelCommand], [], [], [], [], [], [], [], SourceLocation.Start);
 
         var feature = new FeatureSyntax("Invoices", [], [registerSlice, processSlice, cancelSlice], SourceLocation.Start);
         var module = new ModuleSyntax("Billing", [], [feature], SourceLocation.Start);

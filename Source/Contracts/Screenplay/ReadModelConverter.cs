@@ -31,23 +31,28 @@ public static class ReadModelConverter
         string slicePath)
     {
         var queries = slice.Queries.ToArray();
-        if (slice.Projection is null && queries.Length == 0)
+
+        // A slice may declare several projections. A read-model definition carries one, so the first is taken
+        // and the rest are left unconverted — the same single-projection shape as before, rather than a silent
+        // merge of models that describe different things.
+        var projection = slice.Projections.FirstOrDefault();
+        if (projection is null && queries.Length == 0)
         {
             return null;
         }
 
-        var name = slice.Projection?.ReadModel
+        var name = projection?.ReadModel
             ?? queries.Select(query => query.ReturnType.Name).FirstOrDefault()
-            ?? slice.Projection?.Name
+            ?? projection?.Name
             ?? slice.Name;
 
-        var properties = CollectProperties(slice.Projection, queries, eventPropertyTypes);
+        var properties = CollectProperties(projection, queries, eventPropertyTypes);
 
         return new ReadModelDefinition(
             DeterministicId.From($"{slicePath}.readmodel.{name}"),
             name,
             schema.ForReadModel(properties),
-            slice.Projection is { } projection ? ProjectionConverter.Convert(projection) : null);
+            projection is not null ? ProjectionConverter.Convert(projection) : null);
     }
 
     static List<KeyValuePair<string, string?>> CollectProperties(

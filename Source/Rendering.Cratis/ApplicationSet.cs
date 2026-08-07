@@ -139,8 +139,7 @@ public class ApplicationSet
     }
 
     IEnumerable<string> ProjectionKeyConceptNames() =>
-        Slices.Select(slice => slice.Slice.Projection)
-            .OfType<ProjectionSyntax>()
+        Slices.SelectMany(slice => slice.Slice.Projections)
             .SelectMany(projection => projection.Blocks.OfType<FromSyntax>())
             .Select(KeyConceptName)
             .OfType<string>();

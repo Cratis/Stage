@@ -62,7 +62,7 @@ public class a_projection_slice : Specification
             [invoiceRegistered, invoiceSent],
             [],
             [],
-            projection,
+            [projection],
             [],
             [],
             [],

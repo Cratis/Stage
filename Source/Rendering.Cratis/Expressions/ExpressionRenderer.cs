@@ -38,9 +38,7 @@ public static class ExpressionRenderer
         SourceItemExpressionSyntax sourceItem => RenderPath(sourceItem.Path),
         ContextExpressionSyntax context => RenderContextPath(context.Path),
         EnvironmentExpressionSyntax environment => $"Environment.GetEnvironmentVariable({CSharpCodeBuilder.StringLiteral(environment.Name)})",
-        SecretExpressionSyntax secret =>
-            $"Environment.GetEnvironmentVariable({CSharpCodeBuilder.StringLiteral(secret.Name)}) /* TODO: resolve '{secret.Name}' from secrets, not environment */",
-        StringsExpressionSyntax strings => $"{CSharpCodeBuilder.StringLiteral(strings.Key)} /* TODO: resolve localized string */",
+        StringsExpressionSyntax strings =>$"{CSharpCodeBuilder.StringLiteral(strings.Key)} /* TODO: resolve localized string */",
         RawExpressionSyntax raw => raw.Text,
         EventSourceIdExpressionSyntax => "context.EventSourceId",
         EventContextExpressionSyntax eventContext => RenderContextPath(eventContext.Path),

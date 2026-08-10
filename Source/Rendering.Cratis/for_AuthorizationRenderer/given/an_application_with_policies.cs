@@ -47,8 +47,27 @@ public class an_application_with_policies : Specification
         _diagnostics = [];
     }
 
-    protected static AuthorizeSyntax Authorize(params string[] policies) =>
-        new([.. policies.Select((policy, index) => new PolicyReferenceSyntax(policy, index > 0, SourceLocation.Start))], SourceLocation.Start);
+    /// <summary>
+    /// Builds an <c>authorize A or B or C</c> — the policies as alternatives.
+    /// </summary>
+    /// <param name="policies">The policies to combine.</param>
+    /// <returns>The <see cref="AuthorizeSyntax"/>.</returns>
+    protected static AuthorizeSyntax Authorize(params string[] policies) => Combine(LogicalOperator.Or, policies);
+
+    /// <summary>
+    /// Builds an <c>authorize A and B and C</c> — every policy required at once, which is what writing two
+    /// policies next to each other has always meant.
+    /// </summary>
+    /// <param name="policies">The policies to combine.</param>
+    /// <returns>The <see cref="AuthorizeSyntax"/>.</returns>
+    protected static AuthorizeSyntax AuthorizeAll(params string[] policies) => Combine(LogicalOperator.And, policies);
+
+    static AuthorizeSyntax Combine(LogicalOperator @operator, string[] policies) =>
+        new(
+            policies
+                .Select(policy => (PolicyRequirementSyntax)new PolicyReferenceSyntax(policy, SourceLocation.Start))
+                .Aggregate((left, right) => new LogicalPolicyRequirementSyntax(left, @operator, right, SourceLocation.Start)),
+            SourceLocation.Start);
 
     protected string Render(AuthorizeSyntax? authorize) =>
         AuthorizationRenderer.Render(authorize, _applicationSet, "Command 'RegisterInvoice'", _diagnostics);

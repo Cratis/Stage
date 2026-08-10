@@ -42,7 +42,7 @@ public static class UnrenderedConstructs
             "command",
             "neither its input, the events it produces nor its authorization is rendered.");
         yield return (
-            slice.Projection is not null && !rendered.HasFlag(RenderedConstructs.ReadModel) ? 1 : 0,
+            rendered.HasFlag(RenderedConstructs.ReadModel) ? slice.Projections.Count() - 1 : slice.Projections.Count(),
             "projection",
             "no read model is rendered for it.");
         yield return (

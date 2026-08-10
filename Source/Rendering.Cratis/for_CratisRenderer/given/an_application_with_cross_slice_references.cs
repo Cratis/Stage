@@ -45,7 +45,7 @@ public class an_application_with_cross_slice_references : Specification
         var invoiceRegistered = new EventSyntax("InvoiceRegistered", [invoiceNumber, amount], SourceLocation.Start);
 
         var registerSlice = new SliceSyntax(
-            SliceType.StateChange, "Register", [invoiceRegistered], [command], [], null, [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateChange, "Register", [invoiceRegistered], [command], [], [], [], [], [], [], [], SourceLocation.Start);
 
         var from = new FromSyntax(
             [new EventSpecSyntax("InvoiceRegistered", null, SourceLocation.Start)],
@@ -62,7 +62,7 @@ public class an_application_with_cross_slice_references : Specification
             "InvoiceSummary", "InvoiceSummary", null, AutoMapMode.Enabled, null, [from], SourceLocation.Start);
 
         _summarySlice = new SliceSyntax(
-            SliceType.StateView, "Summary", [], [], [], projection, [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateView, "Summary", [], [], [], [projection], [], [], [], [], [], SourceLocation.Start);
 
         var reactor = new ReactorSyntax(
             "InvoiceNotifications",
@@ -70,7 +70,7 @@ public class an_application_with_cross_slice_references : Specification
             SourceLocation.Start);
 
         var notifySlice = new SliceSyntax(
-            SliceType.Automation, "Notify", [], [], [], null, [], [reactor], [], [], [], SourceLocation.Start);
+            SliceType.Automation, "Notify", [], [], [], [], [], [reactor], [], [], [], SourceLocation.Start);
 
         var registrationFeature = new FeatureSyntax("Registration", [], [registerSlice], SourceLocation.Start);
         _reportingFeature = new FeatureSyntax("Reporting", [], [_summarySlice], SourceLocation.Start);

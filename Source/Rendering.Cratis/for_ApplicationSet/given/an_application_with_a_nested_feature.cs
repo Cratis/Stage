@@ -30,7 +30,7 @@ public class an_application_with_a_nested_feature : Specification
             [],
             [command],
             [],
-            null,
+            [],
             [],
             [],
             [],

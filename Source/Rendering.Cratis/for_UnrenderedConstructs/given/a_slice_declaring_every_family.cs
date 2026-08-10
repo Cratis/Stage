@@ -60,7 +60,7 @@ public class a_slice_declaring_every_family : Specification
             [],
             [command],
             [query],
-            projection,
+            [projection],
             [capture],
             [reactor],
             [screen],

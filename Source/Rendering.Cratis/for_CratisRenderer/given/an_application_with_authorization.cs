@@ -45,7 +45,7 @@ public class an_application_with_authorization : Specification
             [invoiceRegistered],
             [register],
             [],
-            null,
+            [],
             [],
             [],
             [],
@@ -55,7 +55,7 @@ public class an_application_with_authorization : Specification
 
         var archive = new CommandSyntax("ArchiveInvoice", [invoiceNumber], null, [], [], null, SourceLocation.Start);
         var archiveSlice = new SliceSyntax(
-            SliceType.StateChange, "Archive", [], [archive], [], null, [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateChange, "Archive", [], [archive], [], [], [], [], [], [], [], SourceLocation.Start);
 
         var from = new FromSyntax(
             [new EventSpecSyntax("InvoiceRegistered", null, SourceLocation.Start)],
@@ -79,7 +79,7 @@ public class an_application_with_authorization : Specification
                 Query("All", Authorize("Administrator")),
                 Query("Mine", Authorize("Auditor")),
             ],
-            projection,
+            [projection],
             [],
             [],
             [new ScreenSyntax("Invoices", new FileReferenceSyntax("Invoices.tsx", SourceLocation.Start), [], SourceLocation.Start)],
@@ -103,7 +103,7 @@ public class an_application_with_authorization : Specification
             [module],
             SourceLocation.Start,
             Personas: [new PersonaSyntax("Accountant", null, ["Auditor"], SourceLocation.Start)],
-            Authentication: new AuthenticationSyntax([new AuthenticationProviderSyntax("entra", [], SourceLocation.Start)], SourceLocation.Start));
+            Authentication: new AuthenticationSyntax([new AuthenticationProviderSyntax("entra", null, SourceLocation.Start)], SourceLocation.Start));
 
         _codeOutput = new InMemoryCodeOutput();
         _renderer = new CratisRenderer(
@@ -124,7 +124,11 @@ public class an_application_with_authorization : Specification
         new(name, new TypeRefSyntax(type, false, false, SourceLocation.Start), SourceLocation.Start, IsIdentifier: isIdentifier);
 
     static AuthorizeSyntax Authorize(params string[] policies) =>
-        new([.. policies.Select((policy, index) => new PolicyReferenceSyntax(policy, index > 0, SourceLocation.Start))], SourceLocation.Start);
+        new(
+            policies
+                .Select(policy => (PolicyRequirementSyntax)new PolicyReferenceSyntax(policy, SourceLocation.Start))
+                .Aggregate((left, right) => new LogicalPolicyRequirementSyntax(left, LogicalOperator.Or, right, SourceLocation.Start)),
+            SourceLocation.Start);
 
     static QuerySyntax Query(string name, AuthorizeSyntax authorize) =>
         new(name, new TypeRefSyntax("InvoiceSummary", true, false, SourceLocation.Start), null, [], authorize, SourceLocation.Start);

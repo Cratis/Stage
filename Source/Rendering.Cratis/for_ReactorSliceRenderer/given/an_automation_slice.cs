@@ -42,7 +42,7 @@ public class an_automation_slice : Specification
             [invoiceRegistered],
             [],
             [],
-            null,
+            [],
             [],
             [reactor],
             [],

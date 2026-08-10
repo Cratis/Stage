@@ -61,11 +61,25 @@ public sealed class StageCommandHandler(
         }
 
         var caller = identity.Current();
-        var events = ProducedEventPayloads.Build(definition.Produces, payload.AsReadOnly(), DateTimeOffset.UtcNow, caller);
+        var values = payload.AsReadOnly();
+        var events = ProducedEventPayloads.Build(definition.Produces, values, DateTimeOffset.UtcNow, caller);
 
-        // Screenplay does not declare which command value identifies the event source, so every command execution
-        // opens its own stream. Modeled correlation across commands is a follow-up that needs the language to say
-        // which property is the identity.
-        await appender.Append(Guid.NewGuid().ToString(), events, caller);
+        await appender.Append(EventSourceId(values), events, caller);
+    }
+
+    // The model names the property carrying the event source id, so successive commands for the same entity land on
+    // the same stream. A command that declares no identifier - or whose payload carries no value for it - has no
+    // entity to continue, so it opens a stream of its own rather than appending to an empty one every other such
+    // command would share.
+    string EventSourceId(IReadOnlyDictionary<string, JsonElement> payload)
+    {
+        if (definition.Identifier is not { Length: > 0 } identifier)
+        {
+            return Guid.NewGuid().ToString();
+        }
+
+        var value = CommandPayloadValues.Text(CommandPayloadValues.Lookup(payload, identifier));
+
+        return value.Length > 0 ? value : Guid.NewGuid().ToString();
     }
 }

@@ -92,7 +92,8 @@
         "StateSchema": { "type": "string", "description": "The command's state (DCB) schema as a JSON Schema string." },
         "Rules": { "type": "array", "items": { "$ref": "#/$defs/CommandPropertyRules" } },
         "LogicDescription": { "type": "string" },
-        "Produces": { "type": "array", "description": "The events the command appends, in declaration order.", "items": { "$ref": "#/$defs/ProducedEvent" } }
+        "Produces": { "type": "array", "description": "The events the command appends, in declaration order.", "items": { "$ref": "#/$defs/ProducedEvent" } },
+        "Identifier": { "type": ["string", "null"], "description": "The name of the command property whose value identifies the event source the command appends to. Null when the command declares none, in which case every execution opens a stream of its own." }
       },
       "additionalProperties": false
     },

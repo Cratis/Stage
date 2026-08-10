@@ -15,6 +15,9 @@ namespace Cratis.Stage.Contracts.Commands;
 /// <param name="Rules">The validation rules defined for the command's properties.</param>
 /// <param name="LogicDescription">The natural-language description of the command's logic.</param>
 /// <param name="Produces">The events the command appends, in declaration order.</param>
+/// <param name="Identifier">The name of the command property whose value identifies the event source the command
+/// appends to, or <see langword="null"/> when the command declares none - in which case every execution opens a
+/// stream of its own. At most one property can be the identifier.</param>
 public record CommandDefinition(
     Guid Id,
     string Name,
@@ -22,4 +25,5 @@ public record CommandDefinition(
     string StateSchema,
     IReadOnlyList<CommandPropertyRules> Rules,
     string LogicDescription,
-    IReadOnlyList<ProducedEvent> Produces);
+    IReadOnlyList<ProducedEvent> Produces,
+    string? Identifier = null);

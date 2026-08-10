@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Stage.Rendering.Cratis.Authorization;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Types;
@@ -10,47 +11,88 @@ using Cratis.Stage.Rendering.Cratis.Types;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Renders a <see cref="SliceType.StateView"/> slice: the <c>[ReadModel]</c> record inferred from its
-/// <see cref="ProjectionSyntax"/>'s mappings, using model-bound projection attributes for the <c>from</c> blocks
-/// this renderer understands. Constructs it can't express as attributes (composite keys, <c>join</c>,
-/// <c>children</c>, <c>nested</c>) are called out with a comment rather than silently dropped — see the
-/// project's rendering plan for the documented v1 scope.
+/// Renders a <see cref="SliceType.StateView"/> slice: the <c>[EventType]</c> records the slice declares, plus the
+/// <c>[ReadModel]</c> record inferred from its <see cref="ProjectionSyntax"/>'s mappings, using model-bound
+/// projection attributes for the blocks this renderer understands. Constructs it can't express as attributes
+/// (composite keys, <c>join</c>, <c>children</c>, <c>nested</c>, <c>every</c>/<c>all</c>) are reported as
+/// diagnostics and called out in the file rather than silently dropped, as is everything else the slice declares
+/// that nothing renders (see <see cref="UnrenderedConstructs"/>).
 /// </summary>
+/// <remarks>
+/// The slice's declared <c>query</c> blocks are not rendered — the read model gets a fixed all/by-id pair
+/// instead — so the authorization those queries declare would have nowhere to land and the read surface would be
+/// open to everyone. The read model therefore carries the <b>union</b> of what its declared queries permit: every
+/// caller the document lets read this model through some query can still read it, and nobody else can. That the
+/// declared queries themselves are missing is reported separately.
+/// </remarks>
 public class StateViewSliceRenderer : ISliceRenderer
 {
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(rootNamespace, slice.FullPath));
-        var path = new List<string>(SliceNaming.FolderPath(slice.FullPath)) { SliceNaming.FileName(slice.Slice.Name) };
+        var diagnostics = new List<string>();
+        var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
+        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
+
+        UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.ReadModel, diagnostics);
+
+        foreach (var @event in slice.Slice.Events)
+        {
+            EventRenderer.Render(builder, @event, applicationSet, diagnostics);
+        }
+
+        var referenced = new List<string>(EventRenderer.ReferencedNames(slice.Slice.Events));
 
         if (slice.Slice.Projection is { } projection)
         {
-            RenderReadModel(builder, projection, applicationSet, rootNamespace, slice.FullPath);
+            RenderReadModel(builder, projection, slice.Slice.Queries, applicationSet, referenced, diagnostics);
         }
 
-        return new RenderedFile(Path.Combine([.. path]), builder.ToString());
+        foreach (var @namespace in ReferencedNamespaces.Resolve(referenced, applicationSet, rootNamespace, ownNamespace))
+        {
+            builder.Using(@namespace);
+        }
+
+        var path = new List<string>(SliceNaming.FolderPath(slice.FullPath)) { SliceNaming.FileName(slice.Slice.Name) };
+        return new RenderedFile(Path.Combine([.. path]), builder.ToString()) { Diagnostics = diagnostics };
     }
 
     static void RenderReadModel(
-        CSharpCodeBuilder builder, ProjectionSyntax projection, ApplicationSet applicationSet, string rootNamespace, IReadOnlyList<string> ownPath)
+        CSharpCodeBuilder builder,
+        ProjectionSyntax projection,
+        IEnumerable<QuerySyntax> queries,
+        ApplicationSet applicationSet,
+        List<string> referenced,
+        List<string> diagnostics)
     {
         var typeName = Identifiers.ToPascalCase(projection.ReadModel ?? projection.Name);
         var fromBlocks = projection.Blocks.OfType<FromSyntax>().ToArray();
-        var eventPropertyTypes = BuildEventPropertyTypes(applicationSet);
-        var properties = InferProperties(fromBlocks, eventPropertyTypes, applicationSet);
-        var keyProperty = ResolveKeyProperty(projection, fromBlocks);
+        var events = EventPropertyIndex.Build(applicationSet);
+        var properties = InferProperties(fromBlocks, events, applicationSet, diagnostics);
+        var keyProperty = ProjectionKey.Resolve(projection, fromBlocks, properties, events, applicationSet, diagnostics);
 
-        builder.Using("Cratis.Arc.Queries.ModelBound")
+        builder.Using(AuthorizationRenderer.Namespace)
+            .Using("Cratis.Arc.Queries.ModelBound")
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels")
             .Using("MongoDB.Driver");
 
-        var ownNamespace = SliceNaming.Namespace(rootNamespace, ownPath);
-        foreach (var conceptNamespace in ConceptUsings(properties, applicationSet, rootNamespace, ownNamespace))
+        referenced.AddRange(properties.Where(property => property.Type.Kind is not ResolvedTypeKind.Unresolved).Select(property => property.Type.ClrTypeName));
+
+        var subscribedEvents = fromBlocks.SelectMany(from => from.Events).Select(spec => spec.Event).Distinct(StringComparer.Ordinal).ToArray();
+        var removalEvents = projection.Blocks.OfType<RemoveWithSyntax>().Select(block => block.Event).Distinct(StringComparer.Ordinal).ToArray();
+        referenced.AddRange(subscribedEvents);
+        referenced.AddRange(removalEvents);
+
+        foreach (var eventName in subscribedEvents)
         {
-            builder.Using(conceptNamespace);
+            builder.Attribute($"FromEvent<{Identifiers.ToPascalCase(eventName)}>");
+        }
+
+        foreach (var eventName in removalEvents)
+        {
+            builder.Attribute($"RemovedWith<{Identifiers.ToPascalCase(eventName)}>");
         }
 
         if (keyProperty is not null)
@@ -58,24 +100,13 @@ public class StateViewSliceRenderer : ISliceRenderer
             builder.Using("Cratis.Chronicle.Keys");
         }
 
-        foreach (var eventName in fromBlocks.SelectMany(from => from.Events).Select(spec => spec.Event).Distinct(StringComparer.Ordinal))
-        {
-            builder.Attribute($"FromEvent<{Identifiers.ToPascalCase(eventName)}>");
-        }
+        ReportUnrenderedBlocks(builder, projection, typeName, diagnostics);
 
-        if (projection.Blocks.OfType<AllSyntax>().Any() || projection.Blocks.OfType<EverySyntax>().Any())
-        {
-            builder.Attribute("FromAll");
-        }
-
-        var unsupportedBlocks = projection.Blocks.Where(block => block is JoinSyntax or ChildrenSyntax or NestedSyntax).ToArray();
-        if (unsupportedBlocks.Length > 0)
-        {
-            builder.Line($"// TODO: {unsupportedBlocks.Length} join/children/nested block(s) not yet rendered — add via fluent IProjectionFor<{typeName}>");
-        }
+        var authorization = AuthorizationRenderer.Render(
+            queries.Select(query => query.Authorize), applicationSet, $"Read model '{typeName}'", diagnostics);
 
         var parameters = string.Join(", ", properties.Select(property => RenderParameter(property, keyProperty)));
-        builder.Attribute("ReadModel").OpenBlock($"public record {typeName}({parameters})");
+        builder.Attribute("ReadModel").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
 
         var keyType = keyProperty is null ? "Guid" : properties.First(property => property.Name == keyProperty).Type.ToTypeSyntax();
         var idParameterName = keyProperty is null ? "id" : Identifiers.ToCamelCase(keyProperty);
@@ -87,28 +118,36 @@ public class StateViewSliceRenderer : ISliceRenderer
             .EndBlock();
     }
 
-    static IReadOnlyList<string> ConceptUsings(
-        List<InferredProperty> properties, ApplicationSet applicationSet, string rootNamespace, string ownNamespace)
+    static void ReportUnrenderedBlocks(CSharpCodeBuilder builder, ProjectionSyntax projection, string typeName, List<string> diagnostics)
     {
-        var namespaces = new HashSet<string>(StringComparer.Ordinal);
-        var referencedNames = properties
-            .Where(property => property.Type.Kind is ResolvedTypeKind.Concept or ResolvedTypeKind.Enum or ResolvedTypeKind.Composite)
-            .Select(property => property.Type.ClrTypeName);
+        var unrendered = projection.Blocks
+            .Where(block => block is JoinSyntax or ChildrenSyntax or NestedSyntax or AllSyntax or EverySyntax or ClearWithSyntax or RemoveViaJoinSyntax)
+            .GroupBy(BlockKeyword)
+            .Select(group => $"{group.Count()} {group.Key}")
+            .ToArray();
 
-        foreach (var name in referencedNames)
+        if (unrendered.Length == 0)
         {
-            var placement = applicationSet.ConceptPlacements.GetValueOrDefault(name, []);
-            var @namespace = placement.Count == 0 ? $"{rootNamespace}.Common" : SliceNaming.Namespace(rootNamespace, placement);
-            if (!string.Equals(@namespace, ownNamespace, StringComparison.Ordinal))
-            {
-                namespaces.Add(@namespace);
-            }
+            return;
         }
 
-        return [.. namespaces];
+        var summary = string.Join(", ", unrendered);
+        builder.Line($"// TODO: {summary} block(s) not yet rendered — add via fluent IProjectionFor<{typeName}>");
+        diagnostics.Add($"Projection '{typeName}' declares {summary} block(s) with no model-bound equivalent — they are not rendered.");
     }
 
-    static string RenderParameter(InferredProperty property, string? keyProperty)
+    static string BlockKeyword(ProjectionBlockSyntax block) => block switch
+    {
+        JoinSyntax => "join",
+        ChildrenSyntax => "children",
+        NestedSyntax => "nested",
+        AllSyntax => "all",
+        EverySyntax => "every",
+        ClearWithSyntax => "clear with",
+        _ => "remove via join",
+    };
+
+    static string RenderParameter(MappedProperty property, string? keyProperty)
     {
         var attributes = new List<string>();
         if (property.Name == keyProperty)
@@ -116,111 +155,37 @@ public class StateViewSliceRenderer : ISliceRenderer
             attributes.Add("[Key]");
         }
 
-        if (property.EventType is not null)
+        if (property.Attribute is not null)
         {
-            var attribute = property.Mapping switch
-            {
-                IncrementMappingSyntax => $"[Increment<{property.EventType}>]",
-                DecrementMappingSyntax => $"[Decrement<{property.EventType}>]",
-                CountMappingSyntax => $"[Count<{property.EventType}>]",
-                AddMappingSyntax add => $"[AddFrom<{property.EventType}>(nameof({property.EventType}.{RenderSourcePropertyName(add.Value)}))]",
-                SubtractMappingSyntax subtract => $"[SubtractFrom<{property.EventType}>(nameof({property.EventType}.{RenderSourcePropertyName(subtract.Value)}))]",
-                SetMappingSyntax set => $"[SetFrom<{property.EventType}>(nameof({property.EventType}.{RenderSourcePropertyName(set.Source)}))]",
-                _ => null,
-            };
-
-            if (attribute is not null)
-            {
-                attributes.Add(attribute);
-            }
+            attributes.Add(property.Attribute);
         }
 
         var prefix = attributes.Count > 0 ? $"{string.Join(' ', attributes)} " : string.Empty;
         return $"{prefix}{property.Type.ToTypeSyntax()} {property.Name}";
     }
 
-    static string RenderSourcePropertyName(ExpressionSyntax source) =>
-        source is PathExpressionSyntax path ? Identifiers.ToPascalCase(path.Path) : "Value";
-
-    static List<InferredProperty> InferProperties(
+    static List<MappedProperty> InferProperties(
         IReadOnlyList<FromSyntax> fromBlocks,
-        IReadOnlyDictionary<string, Dictionary<string, TypeRefSyntax>> eventPropertyTypes,
-        ApplicationSet applicationSet)
+        EventPropertyIndex events,
+        ApplicationSet applicationSet,
+        List<string> diagnostics)
     {
-        var properties = new List<InferredProperty>();
+        var properties = new List<MappedProperty>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var from in fromBlocks)
         {
             var eventName = from.Events.FirstOrDefault()?.Event;
-            var eventTypeName = eventName is null ? null : Identifiers.ToPascalCase(eventName);
-
             foreach (var mapping in from.Mappings)
             {
-                var pascalName = Identifiers.ToPascalCase(mapping.Property);
-                if (!seen.Add(pascalName))
+                var property = ProjectionMapping.Resolve(mapping, eventName, events, applicationSet, diagnostics);
+                if (seen.Add(property.Name))
                 {
-                    continue;
+                    properties.Add(property);
                 }
-
-                var resolved = ResolvePropertyType(mapping, eventName, eventPropertyTypes, applicationSet);
-                properties.Add(new InferredProperty(pascalName, resolved, eventTypeName, mapping));
             }
         }
 
         return properties;
     }
-
-    static ResolvedType ResolvePropertyType(
-        MappingSyntax mapping,
-        string? eventName,
-        IReadOnlyDictionary<string, Dictionary<string, TypeRefSyntax>> eventPropertyTypes,
-        ApplicationSet applicationSet)
-    {
-        if (mapping is IncrementMappingSyntax or DecrementMappingSyntax or CountMappingSyntax)
-        {
-            return new ResolvedType("int", false, false, ResolvedTypeKind.Primitive);
-        }
-
-        var sourcePropertyName = mapping switch
-        {
-            SetMappingSyntax set when set.Source is PathExpressionSyntax path => path.Path,
-            AddMappingSyntax add when add.Value is PathExpressionSyntax path => path.Path,
-            SubtractMappingSyntax subtract when subtract.Value is PathExpressionSyntax path => path.Path,
-            _ => mapping.Property,
-        };
-
-        if (eventName is not null && eventPropertyTypes.TryGetValue(eventName, out var eventProperties) &&
-            eventProperties.TryGetValue(sourcePropertyName, out var typeRef))
-        {
-            return TypeResolver.Resolve(typeRef, applicationSet);
-        }
-
-        return new ResolvedType("object", false, false, ResolvedTypeKind.Unresolved);
-    }
-
-    static string? ResolveKeyProperty(ProjectionSyntax projection, IReadOnlyList<FromSyntax> fromBlocks)
-    {
-        var key = projection.Key ?? fromBlocks.Select(from => from.Key).FirstOrDefault(candidate => candidate is not null);
-        return key is ExpressionKeySyntax { Expression: PathExpressionSyntax path } ? Identifiers.ToPascalCase(path.Path) : null;
-    }
-
-    static Dictionary<string, Dictionary<string, TypeRefSyntax>> BuildEventPropertyTypes(ApplicationSet applicationSet)
-    {
-        var result = new Dictionary<string, Dictionary<string, TypeRefSyntax>>(StringComparer.Ordinal);
-        foreach (var @event in applicationSet.Slices.SelectMany(slice => slice.Slice.Events))
-        {
-            var properties = new Dictionary<string, TypeRefSyntax>(StringComparer.Ordinal);
-            foreach (var property in @event.Properties)
-            {
-                properties[property.Name] = property.Type;
-            }
-
-            result[@event.Name] = properties;
-        }
-
-        return result;
-    }
-
-    sealed record InferredProperty(string Name, ResolvedType Type, string? EventType, MappingSyntax Mapping);
 }

@@ -31,7 +31,11 @@ public enum ResolvedTypeKind
 /// <param name="IsCollection">Whether the type is a collection.</param>
 /// <param name="IsOptional">Whether the type is optional (nullable).</param>
 /// <param name="Kind">The <see cref="ResolvedTypeKind"/> of the resolved type.</param>
-public sealed record ResolvedType(string ClrTypeName, bool IsCollection, bool IsOptional, ResolvedTypeKind Kind)
+/// <param name="SourceName">
+/// The Screenplay type name the reference was written as — carried so an <see cref="ResolvedTypeKind.Unresolved"/>
+/// type can name what it failed to resolve rather than silently becoming an untyped placeholder.
+/// </param>
+public sealed record ResolvedType(string ClrTypeName, bool IsCollection, bool IsOptional, ResolvedTypeKind Kind, string? SourceName = null)
 {
     /// <summary>
     /// Renders the full C# type syntax, including collection and optional decoration.

@@ -21,7 +21,7 @@ public class when_a_project_already_exists : Specification
         _scaffolder = new TemplateEngineProjectScaffolder();
     }
 
-    async Task Because() => _result = await _scaffolder.EnsureScaffolded(_target, TextWriter.Null);
+    async Task Because() => _result = await _scaffolder.EnsureScaffolded(_target, "Existing", TextWriter.Null);
 
     [Fact] void should_not_scaffold() => _result.ShouldBeFalse();
 

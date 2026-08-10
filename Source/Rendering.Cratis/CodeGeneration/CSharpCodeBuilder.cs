@@ -18,6 +18,21 @@ public class CSharpCodeBuilder
     int _indent;
 
     /// <summary>
+    /// Escapes a value so it can sit inside a C# string literal.
+    /// </summary>
+    /// <param name="value">The value to escape.</param>
+    /// <returns>The escaped text, without the surrounding quotes.</returns>
+    public static string Escape(string value) =>
+        value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Renders a value as a quoted C# string literal.
+    /// </summary>
+    /// <param name="value">The value to render.</param>
+    /// <returns>The quoted, escaped literal.</returns>
+    public static string StringLiteral(string value) => $"\"{Escape(value)}\"";
+
+    /// <summary>
     /// Adds a <see langword="using"/> directive. Duplicates are ignored; the final output sorts usings alphabetically.
     /// </summary>
     /// <param name="namespace">The namespace to import.</param>

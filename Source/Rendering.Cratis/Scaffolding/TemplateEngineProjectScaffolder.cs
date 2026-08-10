@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Reflection;
+using System.Runtime.Versioning;
 using Microsoft.TemplateEngine.Abstractions;
 using Microsoft.TemplateEngine.Abstractions.Installer;
 using Microsoft.TemplateEngine.Abstractions.Mount;
@@ -27,9 +29,12 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
 {
     const string PackageId = "Cratis.Templates";
     const string TemplateShortName = "cratis";
+    const string FrameworkParameter = "Framework";
+    const string PackageManagerParameter = "packageManager";
+    const string PackageManager = "yarn";
 
     /// <inheritdoc/>
-    public async Task<bool> EnsureScaffolded(DirectoryInfo targetDirectory, TextWriter output)
+    public async Task<bool> EnsureScaffolded(DirectoryInfo targetDirectory, string projectName, TextWriter output)
     {
         if (HasExistingProject(targetDirectory))
         {
@@ -58,26 +63,89 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
         var template = templates.FirstOrDefault(candidate => candidate.ShortNameList.Contains(TemplateShortName)) ??
             throw new TemplateNotFound(TemplateShortName);
 
-        await output.WriteLineAsync($"Applying template '{TemplateShortName}'...");
+        var parameters = BuildParameters(template);
+        await output.WriteLineAsync($"Applying template '{TemplateShortName}' as '{projectName}' targeting '{parameters[FrameworkParameter]}'...");
+
         var creator = new TemplateCreator(environment);
         var result = await creator.InstantiateAsync(
             template,
-            targetDirectory.Name,
-            targetDirectory.Name,
+            projectName,
+            projectName,
             targetDirectory.FullName,
-            new Dictionary<string, string?>());
+            parameters);
 
         if (result.Status != CreationResultStatus.Success)
         {
             throw new ScaffoldingFailed($"Failed to instantiate template '{TemplateShortName}': {result.ErrorMessage}");
         }
 
+        if (SampleSlice.Remove(targetDirectory))
+        {
+            await output.WriteLineAsync("Removed the template's sample slice.");
+        }
+
         await output.WriteLineAsync("Scaffolding complete.");
         return true;
     }
 
+    /// <summary>
+    /// Builds the template parameters. Every parameter the template declares is supplied explicitly — the
+    /// programmatic Template Engine API does not apply a symbol's declared <c>defaultValue</c> for a parameter the
+    /// caller leaves out, and an unbound symbol emits its raw placeholder token (<c>TARGET_FRAMEWORK</c>) into the
+    /// generated files.
+    /// </summary>
+    /// <param name="template">The <see cref="ITemplateInfo"/> being instantiated.</param>
+    /// <returns>The parameters to instantiate the template with.</returns>
+    static Dictionary<string, string?> BuildParameters(ITemplateInfo template) => new(StringComparer.Ordinal)
+    {
+        [FrameworkParameter] = ResolveTargetFramework(template),
+        [PackageManagerParameter] = PackageManager,
+    };
+
+    /// <summary>
+    /// Resolves the target framework to render for — the one the renderer itself runs on, so the rendered
+    /// application builds with the same SDK. Falls back to the template's own default when that moniker is not one
+    /// of the choices the template offers.
+    /// </summary>
+    /// <param name="template">The <see cref="ITemplateInfo"/> being instantiated.</param>
+    /// <returns>The target framework moniker.</returns>
+    static string ResolveTargetFramework(ITemplateInfo template)
+    {
+        var running = RunningTargetFramework();
+        var parameter = template.ParameterDefinitions.FirstOrDefault(candidate => candidate.Name == FrameworkParameter);
+
+        if (parameter?.Choices is null || parameter.Choices.Count == 0)
+        {
+            return running;
+        }
+
+        return parameter.Choices.ContainsKey(running) ? running : parameter.DefaultValue ?? running;
+    }
+
+    static string RunningTargetFramework()
+    {
+        var frameworkName = typeof(TemplateEngineProjectScaffolder).Assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName;
+        if (frameworkName is null)
+        {
+            return $"net{Environment.Version.Major}.{Environment.Version.Minor}";
+        }
+
+        var version = new FrameworkName(frameworkName).Version;
+        return $"net{version.Major}.{version.Minor}";
+    }
+
+    /// <summary>
+    /// The components the template engine host is built with — each library's own complete <c>AllComponents</c>
+    /// set rather than a hand-picked subset. The Runnable Projects set carries the macro components that evaluate
+    /// generated symbols and value forms; without them the generator still renames files from <c>sourceName</c>,
+    /// but every content substitution resolves to nothing and the raw placeholder tokens
+    /// (<c>TARGET_FRAMEWORK</c>, <c>PROJECT_GUID</c>, <c>CratisApp</c>) are written verbatim.
+    /// </summary>
+    /// <returns>The built-in components.</returns>
     static IReadOnlyList<(Type InterfaceType, IIdentifiedComponent Instance)> BuiltInComponents() =>
     [
+        .. Microsoft.TemplateEngine.Edge.Components.AllComponents,
+        .. Microsoft.TemplateEngine.Orchestrator.RunnableProjects.Components.AllComponents,
         (typeof(ITemplatePackageProviderFactory), new GlobalSettingsTemplatePackageProviderFactory()),
         (typeof(IInstallerFactory), new NuGetInstallerFactory()),
         (typeof(IInstallerFactory), new FolderInstallerFactory()),

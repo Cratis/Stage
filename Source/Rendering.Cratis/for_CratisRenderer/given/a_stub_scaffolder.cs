@@ -9,9 +9,12 @@ public class a_stub_scaffolder : IProjectScaffolder
 {
     public bool WasCalled { get; private set; }
 
-    public Task<bool> EnsureScaffolded(DirectoryInfo targetDirectory, TextWriter output)
+    public string? ProjectName { get; private set; }
+
+    public Task<bool> EnsureScaffolded(DirectoryInfo targetDirectory, string projectName, TextWriter output)
     {
         WasCalled = true;
+        ProjectName = projectName;
         return Task.FromResult(false);
     }
 }

@@ -20,12 +20,17 @@ public static class ValidationRuleRenderer
     /// </summary>
     /// <param name="kind">The rule kind.</param>
     /// <param name="value">The rendered comparison value, when the rule kind needs one.</param>
+    /// <param name="subjectIsText">
+    /// Whether the value being validated is text. Screenplay's <c>max</c>/<c>min</c> bound a number's magnitude but
+    /// a string's <b>length</b>, and FluentValidation has a separate call for each — comparing a string against a
+    /// number does not compile.
+    /// </param>
     /// <returns>The call fragment, or <see langword="null"/> when the rule kind is not recognized here.</returns>
-    public static string? RenderCall(ValidationRuleKind kind, string value) => kind switch
+    public static string? RenderCall(ValidationRuleKind kind, string value, bool subjectIsText = false) => kind switch
     {
         ValidationRuleKind.NotEmpty => ".NotEmpty()",
-        ValidationRuleKind.Max => $".LessThanOrEqualTo({value})",
-        ValidationRuleKind.Min => $".GreaterThanOrEqualTo({value})",
+        ValidationRuleKind.Max => subjectIsText ? $".MaximumLength({value})" : $".LessThanOrEqualTo({value})",
+        ValidationRuleKind.Min => subjectIsText ? $".MinimumLength({value})" : $".GreaterThanOrEqualTo({value})",
         ValidationRuleKind.GreaterThan => $".GreaterThan({value})",
         ValidationRuleKind.GreaterThanOrEqual => $".GreaterThanOrEqualTo({value})",
         ValidationRuleKind.LessThan => $".LessThan({value})",

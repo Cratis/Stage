@@ -33,7 +33,10 @@ public static class EventConverter
             string.Empty,
             schema.ForProperties(@event.Properties),
             UniqueEventTypeConstraint: null,
-            UniqueConstraint: null)).ToList();
+            UniqueConstraint: null)
+        {
+            Tags = ProducedValueConverter.Tags(@event.Tags)
+        }).ToList();
 
         foreach (var constraint in constraints)
         {

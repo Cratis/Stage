@@ -16,9 +16,9 @@ public class when_reporting_what_a_slice_declares : a_slice_declaring_every_fami
 
     void Because() => UnrenderedConstructs.Report(_builder, _slice, RenderedConstructs.None, _diagnostics);
 
-    [Fact] void should_report_every_family_it_declares() => _diagnostics.Count.ShouldEqual(9);
+    [Fact] void should_report_every_family_it_declares() => _diagnostics.Count.ShouldEqual(11);
     [Fact] void should_note_every_family_in_the_emitted_file() =>
-        _builder.ToString().Split('\n').Count(line => line.StartsWith("// TODO:", StringComparison.Ordinal)).ShouldEqual(9);
+        _builder.ToString().Split('\n').Count(line => line.StartsWith("// TODO:", StringComparison.Ordinal)).ShouldEqual(11);
     [Fact] void should_report_the_command() =>
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 command declaration(s) with no rendered equivalent — neither its input, the events it " +
@@ -26,6 +26,14 @@ public class when_reporting_what_a_slice_declares : a_slice_declaring_every_fami
     [Fact] void should_report_the_projection() =>
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 projection declaration(s) with no rendered equivalent — no read model is rendered for it.");
+    [Fact] void should_report_the_read_model() =>
+        _diagnostics.ShouldContain(
+            "Slice 'Summary' declares 1 readmodel declaration(s) with no rendered equivalent — nothing in the rendered " +
+            "application holds the state it declares.");
+    [Fact] void should_report_the_reducer() =>
+        _diagnostics.ShouldContain(
+            "Slice 'Summary' declares 1 reducer declaration(s) with no rendered equivalent — the read model it builds is " +
+            "never populated in the rendered application.");
     [Fact] void should_report_the_reactor() =>
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 reactor declaration(s) with no rendered equivalent — nothing reacts to the events in the " +

@@ -53,7 +53,9 @@ public sealed class DynamicTypeFactory
                 return existing;
             }
 
-            var typeBuilder = _module.DefineType(fullName, TypeAttributes.Public | TypeAttributes.Class, baseType);
+            // TypeAttributes.Class is zero — naming it beside Public says nothing the default does not already
+            // say, and Roslynator flags the redundant flag as an error in Release.
+            var typeBuilder = _module.DefineType(fullName, TypeAttributes.Public, baseType);
 
             // Emit a public parameterless constructor chaining to the base so the JSON deserializer can instantiate it.
             var constructor = typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, Type.EmptyTypes);

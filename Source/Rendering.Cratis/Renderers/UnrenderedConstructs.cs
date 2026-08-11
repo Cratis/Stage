@@ -45,6 +45,17 @@ public static class UnrenderedConstructs
             rendered.HasFlag(RenderedConstructs.ReadModel) ? slice.Projections.Count() - 1 : slice.Projections.Count(),
             "projection",
             "no read model is rendered for it.");
+
+        // A rendered read model is inferred from the slice's first projection, so at most one declared readmodel
+        // has a rendered counterpart — counted the same way the projections above are.
+        yield return (
+            rendered.HasFlag(RenderedConstructs.ReadModel) ? ReadModels(slice).Count() - 1 : ReadModels(slice).Count(),
+            "readmodel",
+            "nothing in the rendered application holds the state it declares.");
+        yield return (
+            Reducers(slice).Count(),
+            "reducer",
+            "the read model it builds is never populated in the rendered application.");
         yield return (
             rendered.HasFlag(RenderedConstructs.Reactors) ? 0 : slice.Reactors.Count(),
             "reactor",
@@ -74,4 +85,9 @@ public static class UnrenderedConstructs
             "specification",
             "no specs are rendered for the generated application.");
     }
+
+    // Both collections are trailing optionals on SliceSyntax and are null on a slice that declares neither.
+    static IEnumerable<ReadModelSyntax> ReadModels(SliceSyntax slice) => slice.ReadModels ?? [];
+
+    static IEnumerable<ReducerSyntax> Reducers(SliceSyntax slice) => slice.Reducers ?? [];
 }

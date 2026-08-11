@@ -54,6 +54,10 @@ public class a_slice_declaring_every_family : Specification
             [new ReactorTriggerSyntax("InvoiceRegistered", null, null, SourceLocation.Start)],
             SourceLocation.Start);
 
+        var readModel = new ReadModelSyntax("InvoiceSummary", [], SourceLocation.Start);
+
+        var reducer = new ReducerSyntax("InvoiceTotals", "InvoiceSummary", [], SourceLocation.Start);
+
         _slice = new SliceSyntax(
             SliceType.StateView,
             "Summary",
@@ -66,6 +70,8 @@ public class a_slice_declaring_every_family : Specification
             [screen],
             [constraint],
             [specification],
-            SourceLocation.Start);
+            SourceLocation.Start,
+            ReadModels: [readModel],
+            Reducers: [reducer]);
     }
 }

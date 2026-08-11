@@ -20,4 +20,10 @@ public record EventDefinition(
     string SourceEventId,
     string Schema,
     UniqueEventTypeConstraint? UniqueEventTypeConstraint,
-    UniqueConstraint? UniqueConstraint);
+    UniqueConstraint? UniqueConstraint)
+{
+    /// <summary>
+    /// Gets the tags declared on the event, applied to every occurrence of it.
+    /// </summary>
+    public IReadOnlyList<string> Tags { get; init; } = [];
+}

@@ -14,4 +14,11 @@ public record ProducedEvent(
     string Event,
     ProducedEventCondition? When,
     IReadOnlyList<ProducedEventProperty> Properties,
-    IReadOnlyList<string> Tags);
+    IReadOnlyList<string> Tags)
+{
+    /// <summary>
+    /// Gets where the event source this event is appended to comes from — the modeled <c>for</c> clause — or
+    /// <see langword="null"/> when the event lands on the command's own event source.
+    /// </summary>
+    public ProducedEventSource? For { get; init; }
+}

@@ -21,6 +21,30 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     public const string EmptyObjectSchema = """{"type":"object","properties":{}}""";
 
     /// <summary>
+    /// The schema keyword naming the concept a property is typed as.
+    /// </summary>
+    /// <remarks>
+    /// A concept resolves to its underlying primitive in the schema, which erases which concept it was. Naming it
+    /// keeps the property joinable back to the concept it came from.
+    /// </remarks>
+    public const string ConceptKeyword = "x-concept";
+
+    /// <summary>
+    /// The schema keyword carrying the attributes declared on the concept a property is typed as, as a map of
+    /// attribute name to its declared reason (an empty string when none was declared).
+    /// </summary>
+    /// <remarks>
+    /// Carries <c>@pii</c> and <c>@sensitive</c> — and anything the language adds later, since the map is keyed by
+    /// whatever the concept declares rather than by a fixed set. Without it a compliance marker does not survive
+    /// the import at all: the property is indistinguishable from an ordinary string once the concept is resolved.
+    /// <para>
+    /// This states the marker; it does not enforce it. Chronicle carries its own <c>compliance</c> schema keyword
+    /// that drives encryption at rest, which is a separate and deliberate step.
+    /// </para>
+    /// </remarks>
+    public const string ConceptAttributesKeyword = "x-conceptAttributes";
+
+    /// <summary>
     /// Synthesizes a JSON Schema object for a set of typed properties (a command or event payload).
     /// </summary>
     /// <param name="properties">The typed properties.</param>
@@ -79,6 +103,39 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
             _ => null
         };
 
+    // Applied after the underlying type is resolved so the marker lands on the node that actually holds the value —
+    // for a collection that is the item schema, which is where a reader of the property looks.
+    static JsonNode Annotate(JsonNode node, ConceptSyntax concept)
+    {
+        if (node is not JsonObject schema)
+        {
+            return node;
+        }
+
+        schema[ConceptKeyword] = concept.Name;
+
+        var attributes = concept.Attributes.ToArray();
+        if (attributes.Length == 0)
+        {
+            return schema;
+        }
+
+        // A concept based on another concept resolves through this method twice; the inner attributes are already
+        // on the node, so they are merged into rather than replaced.
+        if (schema[ConceptAttributesKeyword] is not JsonObject declared)
+        {
+            declared = [];
+            schema[ConceptAttributesKeyword] = declared;
+        }
+
+        foreach (var attribute in attributes)
+        {
+            declared[attribute.Name] = attribute.Reason ?? string.Empty;
+        }
+
+        return schema;
+    }
+
     JsonNode ForType(TypeRefSyntax type)
     {
         var inner = ForTypeName(type.Name);
@@ -96,9 +153,11 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
 
         if (concepts.TryGetValue(name, out var concept))
         {
-            return concept.IsEnum
+            var node = concept.IsEnum
                 ? new JsonObject { ["type"] = "string", ["enum"] = new JsonArray([.. concept.Values.Select(value => (JsonNode)JsonValue.Create(value))]) }
                 : ForTypeName(concept.Type);
+
+            return Annotate(node, concept);
         }
 
         return new JsonObject { ["type"] = "object" };

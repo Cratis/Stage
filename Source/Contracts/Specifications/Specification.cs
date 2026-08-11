@@ -18,4 +18,16 @@ public record Specification(
     IReadOnlyList<SpecificationGivenEvent> Given,
     SpecificationCommand? When,
     IReadOnlyList<SpecificationThenEvent> ThenEvents,
-    IReadOnlyList<SpecificationError> ThenErrors);
+    IReadOnlyList<SpecificationError> ThenErrors)
+{
+    /// <summary>
+    /// Gets the read model states that establish the Given precondition.
+    /// </summary>
+    public IReadOnlyList<SpecificationReadModel> GivenReadModels { get; init; } = [];
+
+    /// <summary>
+    /// Gets the read model states expected in the Then step — what
+    /// <see cref="SpecificationRunStepKind.ThenReadModel"/> verifies.
+    /// </summary>
+    public IReadOnlyList<SpecificationReadModel> ThenReadModels { get; init; } = [];
+}

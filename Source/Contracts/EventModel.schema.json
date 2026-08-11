@@ -78,7 +78,8 @@
         "SourceEventId": { "type": "string", "description": "Empty when the event is owned by this slice; otherwise the id of the event this one references (a State Change slice's event referenced by a consumer slice)." },
         "Schema": { "type": "string", "description": "The event payload as a JSON Schema string." },
         "UniqueEventTypeConstraint": { "oneOf": [{ "$ref": "#/$defs/UniqueEventTypeConstraint" }, { "type": "null" }] },
-        "UniqueConstraint": { "oneOf": [{ "$ref": "#/$defs/UniqueConstraint" }, { "type": "null" }] }
+        "UniqueConstraint": { "oneOf": [{ "$ref": "#/$defs/UniqueConstraint" }, { "type": "null" }] },
+        "Tags": { "type": "array", "description": "The tags declared on the event, applied to every append of it.", "items": { "type": "string" } }
       },
       "additionalProperties": false
     },
@@ -93,7 +94,43 @@
         "Rules": { "type": "array", "items": { "$ref": "#/$defs/CommandPropertyRules" } },
         "LogicDescription": { "type": "string" },
         "Produces": { "type": "array", "description": "The events the command appends, in declaration order.", "items": { "$ref": "#/$defs/ProducedEvent" } },
-        "Identifier": { "type": ["string", "null"], "description": "The name of the command property whose value identifies the event source the command appends to. Null when the command declares none, in which case every execution opens a stream of its own." }
+        "Identifier": { "type": ["string", "null"], "description": "The name of the command property whose value identifies the event source the command appends to. Null when the command declares none, in which case every execution opens a stream of its own." },
+        "Authorization": { "oneOf": [{ "$ref": "#/$defs/AuthorizationRequirement" }, { "type": "null" }], "description": "What the caller must satisfy to execute the command; null when the command declares none and anyone may execute it." },
+        "Requirements": { "type": "array", "description": "The conditions the command as a whole must satisfy - the modeled 'require' rules.", "items": { "$ref": "#/$defs/Requirement" } },
+        "Reads": { "type": "array", "description": "The read models the command consults before it decides - the modeled 'reads' declarations.", "items": { "$ref": "#/$defs/ReadsDefinition" } }
+      },
+      "additionalProperties": false
+    },
+    "AuthorizationRequirement": {
+      "type": "object",
+      "description": "What an 'authorize' declaration requires of the caller. Discriminated by 'kind': 'policy' names one policy, 'logical' combines two requirements. A tree rather than a flat list of names, because a flat list cannot distinguish 'A or B and C' from '(A or B) and C'.",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["policy", "logical"] },
+        "Policy": { "type": "string", "description": "Policy only - the name of the referenced policy." },
+        "Left": { "$ref": "#/$defs/AuthorizationRequirement" },
+        "Operator": { "type": "string", "enum": ["And", "Or"], "description": "Logical only - the operator combining the requirements." },
+        "Right": { "$ref": "#/$defs/AuthorizationRequirement" }
+      },
+      "additionalProperties": false
+    },
+    "Requirement": {
+      "type": "object",
+      "description": "A rule the command as a whole must satisfy - the modeled 'require' rule. Carries the same condition tree a 'produces when' guard carries.",
+      "required": ["Condition"],
+      "properties": {
+        "Condition": { "$ref": "#/$defs/ProducedEventCondition" },
+        "Message": { "type": ["string", "null"], "description": "The message reported when the condition does not hold; null when none is declared." }
+      },
+      "additionalProperties": false
+    },
+    "ReadsDefinition": {
+      "type": "object",
+      "description": "A read model the command consults before it decides - the modeled 'reads' declaration.",
+      "required": ["ReadModel"],
+      "properties": {
+        "ReadModel": { "type": "string", "description": "The name of the read model the command reads." },
+        "By": { "type": ["string", "null"], "description": "The command property the read model is looked up by; null when the read model is not keyed." }
       },
       "additionalProperties": false
     },
@@ -105,7 +142,17 @@
         "Event": { "type": "string", "description": "The name of the event type to append." },
         "When": { "oneOf": [{ "$ref": "#/$defs/ProducedEventCondition" }, { "type": "null" }], "description": "The condition guarding the production; null when the event is always produced." },
         "Properties": { "type": "array", "items": { "$ref": "#/$defs/ProducedEventProperty" } },
-        "Tags": { "type": "array", "items": { "type": "string" } }
+        "Tags": { "type": "array", "items": { "type": "string" } },
+        "For": { "oneOf": [{ "$ref": "#/$defs/ProducedEventSource" }, { "type": "null" }], "description": "Where the event source this event is appended to comes from - the modeled 'for' clause. Null when the event lands on the command's own event source." }
+      },
+      "additionalProperties": false
+    },
+    "ProducedEventSource": {
+      "type": "object",
+      "description": "Where the event source a produced event is appended to comes from. Carries no property name, unlike ProducedEventProperty: the value identifies the stream rather than filling a property of the payload.",
+      "properties": {
+        "Kind": { "type": "string", "enum": ["CommandProperty", "Literal", "Occurred", "Identity", "Environment", "Template", "Unsupported"] },
+        "Expression": { "type": "string", "description": "The source, interpreted according to Kind." }
       },
       "additionalProperties": false
     },
@@ -214,7 +261,9 @@
         "Given": { "type": "array", "items": { "$ref": "#/$defs/SpecificationGivenEvent" } },
         "When": { "oneOf": [{ "$ref": "#/$defs/SpecificationCommand" }, { "type": "null" }] },
         "ThenEvents": { "type": "array", "items": { "$ref": "#/$defs/SpecificationThenEvent" } },
-        "ThenErrors": { "type": "array", "items": { "$ref": "#/$defs/SpecificationError" } }
+        "ThenErrors": { "type": "array", "items": { "$ref": "#/$defs/SpecificationError" } },
+        "GivenReadModels": { "type": "array", "description": "The read model states that establish the Given precondition.", "items": { "$ref": "#/$defs/SpecificationReadModel" } },
+        "ThenReadModels": { "type": "array", "description": "The read model states expected in the Then step - what a ThenReadModel run step verifies.", "items": { "$ref": "#/$defs/SpecificationReadModel" } }
       },
       "additionalProperties": false
     },
@@ -225,6 +274,16 @@
         "Name": { "type": "string" },
         "EventId": { "type": "string", "format": "uuid" },
         "Values": { "type": "string", "description": "The event values as a JSON string." }
+      }
+    },
+    "SpecificationReadModel": {
+      "type": "object",
+      "description": "A read model state in a specification - used for both the Given precondition and the Then expectation.",
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "ReadModelId": { "type": "string", "format": "uuid" },
+        "Values": { "type": "string", "description": "The read model values as a JSON string." }
       }
     },
     "SpecificationCommand": {

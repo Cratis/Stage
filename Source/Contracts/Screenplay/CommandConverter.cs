@@ -30,7 +30,25 @@ public static class CommandConverter
             ValidationRuleConverter.Convert(command.Validations),
             string.Empty,
             ProducesConverter.Convert(command.Produces),
-            Identifier(command));
+            Identifier(command))
+        {
+            Authorization = AuthorizationConverter.Convert(command.Authorize),
+            Requirements = Requirements(command.Validations),
+            Reads = [.. (command.Reads ?? []).Select(reads => new ReadsDefinition(reads.ReadModel, reads.By))]
+        };
+
+    // 'require' rules live inside the declarative validate blocks rather than on the command itself, alongside the
+    // per-property rules ValidationRuleConverter takes from the same blocks. A requirement whose condition has no
+    // Stage equivalent is dropped rather than carried as an empty rule that would always hold.
+    static IReadOnlyList<Requirement> Requirements(IEnumerable<ValidateSyntax> validations) =>
+    [
+        .. validations
+            .OfType<DeclarativeValidateSyntax>()
+            .SelectMany(block => block.Requirements ?? [])
+            .Select(requirement => (Condition: ConditionConverter.Convert(requirement.Condition), requirement.Message))
+            .Where(requirement => requirement.Condition is not null)
+            .Select(requirement => new Requirement(requirement.Condition!, requirement.Message))
+    ];
 
     // The Screenplay compiler already reports a second 'identifier' as an error and drops it, so a compiled document
     // never carries more than one. A syntax tree built any other way still can - and silently taking the first would

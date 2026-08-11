@@ -61,8 +61,26 @@ public static class SpecificationConverter
             given,
             when,
             thenEvents,
-            thenErrors);
+            thenErrors)
+        {
+            GivenReadModels = ReadModels(specification.GivenReadModels, $"{specificationPath}.given", slicePath),
+            ThenReadModels = ReadModels(specification.ThenReadModels, $"{specificationPath}.then", slicePath)
+        };
     }
+
+    // The read model is referred to by name, resolved to the same identifier ReadModelConverter derives for the
+    // slice's read model — the way the event and command steps already resolve what they refer to.
+    static IReadOnlyList<SpecificationReadModel> ReadModels(
+        IEnumerable<SpecificationReadModelSyntax>? readModels,
+        string stepPath,
+        string slicePath) =>
+    [
+        .. (readModels ?? []).Select((readModel, index) => new SpecificationReadModel(
+            DeterministicId.From($"{stepPath}.readmodel.{index}.{readModel.Name}"),
+            readModel.Name,
+            DeterministicId.From($"{slicePath}.readmodel.{readModel.Name}"),
+            Values(readModel.Properties)))
+    ];
 
     static string Values(IEnumerable<PropertyMappingSyntax> mappings)
     {

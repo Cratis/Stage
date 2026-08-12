@@ -21,9 +21,10 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// <remarks>
 /// The slice's declared <c>query</c> blocks are not rendered — the read model gets a fixed all/by-id pair
 /// instead — so the authorization those queries declare would have nowhere to land and the read surface would be
-/// open to everyone. The read model therefore carries the <b>union</b> of what its declared queries permit: every
-/// caller the document lets read this model through some query can still read it, and nobody else can. That the
-/// declared queries themselves are missing is reported separately.
+/// open to everyone. The read model therefore carries the <b>union</b> of what the queries that read <i>it</i>
+/// permit: every caller the document lets read this model through some query can still read it, and nobody else
+/// can. Which queries those are is <see cref="ReadModelAuthorization"/>'s job. That the declared queries
+/// themselves are missing is reported separately.
 /// </remarks>
 public class StateViewSliceRenderer : ISliceRenderer
 {
@@ -43,10 +44,10 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         var referenced = new List<string>(EventRenderer.ReferencedNames(slice.Slice.Events));
 
-        // A slice may declare several projections. Only the first is rendered — the read model carries a fixed
-        // all/by-id pair with no way to say which projection a query belongs to, so rendering the rest would
-        // guard each of them with the same union of every query's authorization. The ones left out are reported
-        // by UnrenderedConstructs rather than dropped in silence.
+        // A slice may declare several projections. Only the first is rendered; the ones left out are reported by
+        // UnrenderedConstructs rather than dropped in silence. Authorization is no longer what holds this back —
+        // a query names the read model it reads with its return type, so each read model's guard is attributable
+        // and the ones that are dropped no longer widen the one that survives.
         if (slice.Slice.Projections.FirstOrDefault() is { } projection)
         {
             RenderReadModel(builder, projection, slice.Slice.Queries, applicationSet, referenced, diagnostics);
@@ -106,8 +107,7 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         ReportUnrenderedBlocks(builder, projection, typeName, diagnostics);
 
-        var authorization = AuthorizationRenderer.Render(
-            queries.Select(query => query.Authorize), applicationSet, $"Read model '{typeName}'", diagnostics);
+        var authorization = ReadModelAuthorization.Render(typeName, queries, applicationSet, diagnostics);
 
         var parameters = string.Join(", ", properties.Select(property => RenderParameter(property, keyProperty)));
         builder.Attribute("ReadModel").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");

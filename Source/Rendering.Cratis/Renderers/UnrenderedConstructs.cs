@@ -63,7 +63,7 @@ public static class UnrenderedConstructs
         yield return (
             slice.Queries.Count(),
             "query",
-            "the read model carries the fixed all/by-id pair instead, guarded by the union of the declared queries' authorization.");
+            "the read model carries the fixed all/by-id pair instead, guarded by the union of the authorization declared by the queries that read it.");
         yield return (
             slice.Queries.Count(query => query.Performer is not null),
             "query performer",

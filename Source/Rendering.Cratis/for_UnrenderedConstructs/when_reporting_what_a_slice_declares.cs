@@ -41,7 +41,7 @@ public class when_reporting_what_a_slice_declares : a_slice_declaring_every_fami
     [Fact] void should_report_the_queries() =>
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 query declaration(s) with no rendered equivalent — the read model carries the fixed " +
-            "all/by-id pair instead, guarded by the union of the declared queries' authorization.");
+            "all/by-id pair instead, guarded by the union of the authorization declared by the queries that read it.");
     [Fact] void should_report_the_query_performer() =>
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 query performer declaration(s) with no rendered equivalent — the query logic is not rendered.");

@@ -31,7 +31,7 @@ public static class SpecificationRenderer
     /// Says why a specification cannot be rendered faithfully, or <see langword="null"/> when it can.
     /// </summary>
     /// <param name="specification">The specification to consider.</param>
-    /// <param name="command">The command the slice declares, if any.</param>
+    /// <param name="slice">The slice the specification belongs to.</param>
     /// <returns>The reason, or <see langword="null"/>.</returns>
     /// <remarks>
     /// The <c>given</c> case is the interesting one, and it is not a gap in the target: <c>CommandScenario</c>
@@ -41,8 +41,9 @@ public static class SpecificationRenderer
     /// <c>InvoiceRegistered</c> for a <i>different</i> invoice than the one the command registers, and seeding it
     /// against the command's id would make the spec assert something else entirely.
     /// </remarks>
-    public static string? Unrenderable(SpecificationSyntax specification, CommandSyntax? command)
+    public static string? Unrenderable(SpecificationSyntax specification, SliceSyntax slice)
     {
+        var command = slice.Commands.FirstOrDefault();
         if (command is null || specification.When is null)
         {
             return "it exercises no command, and only a command scenario is rendered";
@@ -50,7 +51,11 @@ public static class SpecificationRenderer
 
         if (!string.Equals(specification.When.CommandType, command.Name, StringComparison.OrdinalIgnoreCase))
         {
-            return $"it exercises '{specification.When.CommandType}', which this slice does not declare";
+            // The slice may well declare it — only the first command is rendered, so anything else has no type to
+            // exercise. Saying "this slice does not declare it" would send a reader to the wrong document.
+            return slice.Commands.Any(candidate => string.Equals(candidate.Name, specification.When.CommandType, StringComparison.OrdinalIgnoreCase))
+                ? $"it exercises '{specification.When.CommandType}', and only the first command a slice declares is rendered"
+                : $"it exercises '{specification.When.CommandType}', which this slice does not declare";
         }
 
         if (specification.Given.Any())
@@ -63,6 +68,12 @@ public static class SpecificationRenderer
         if (specification.GivenReadModels?.Any() == true || specification.ThenReadModels?.Any() == true)
         {
             return "it states read model state, which has no assertion in the scenario family";
+        }
+
+        if (specification.ThenEvents.Any() && specification.ThenErrors.Any())
+        {
+            return "it expects both a rejection and appended events, and a rejected command appends nothing — " +
+                "rendering either half would assert something the document did not state";
         }
 
         if (!specification.ThenEvents.Any() && !specification.ThenErrors.Any())
@@ -92,11 +103,21 @@ public static class SpecificationRenderer
         var diagnostics = new List<string>();
         var name = Behavior(specification.Name);
         var commandType = Identifiers.ToPascalCase(command.Name);
+        var ownNamespace = $"{SliceNaming.Namespace(rootNamespace, slice.FullPath)}.{name}";
         var builder = new CSharpCodeBuilder()
-            .Namespace($"{SliceNaming.Namespace(rootNamespace, slice.FullPath)}.{name}")
+            .Namespace(ownNamespace)
             .Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications")
             .Using("Xunit");
+
+        // Resolved the way every other renderer resolves: a spec sits in a child namespace of its slice, so the
+        // command it exercises is found without an import but an event another slice declares - or a concept
+        // placed above the slice - is not.
+        foreach (var @namespace in ReferencedNamespaces.Resolve(
+            ReferencedNames(specification, command), applicationSet, rootNamespace, ownNamespace))
+        {
+            builder.Using(@namespace);
+        }
 
         builder.BlankLine().OpenBlock($"public class {name} : Specification")
             .Line($"readonly CommandScenario<{commandType}> _scenario = new();")
@@ -163,13 +184,21 @@ public static class SpecificationRenderer
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands").Line("[Fact] void should_succeed() => _result.ShouldBeSuccessful();");
 
         var identifier = SpecificationAssertions.Of(specification.When!, command, applicationSet, diagnostics);
+        var events = specification.ThenEvents.ToArray();
 
-        foreach (var @event in specification.ThenEvents)
+        foreach (var (@event, index) in events.Select((@event, index) => (@event, index)))
         {
             var eventType = Identifiers.ToPascalCase(@event.EventType);
             var predicate = SpecificationAssertions.Predicate(@event, applicationSet, diagnostics);
+
+            // A fanout states the same event type more than once, each with its own values. The facts have to be
+            // named apart or the rendered class declares the same member twice.
+            var occurrence = events.Count(other => string.Equals(other.EventType, @event.EventType, StringComparison.OrdinalIgnoreCase)) > 1
+                ? $"_{events.Take(index + 1).Count(other => string.Equals(other.EventType, @event.EventType, StringComparison.OrdinalIgnoreCase))}"
+                : string.Empty;
+
             builder.Line(
-                $"[Fact] async Task should_have_appended_{Identifiers.ToSnakeCase(@event.EventType)}() => " +
+                $"[Fact] async Task should_have_appended_{Identifiers.ToSnakeCase(@event.EventType)}{occurrence}() => " +
                 $"await _scenario.ShouldHaveAppendedEvent<{commandType}, {eventType}>({identifier}{predicate});");
         }
     }
@@ -206,6 +235,18 @@ public static class SpecificationRenderer
 
         return string.Join(", ", command.Properties.Select(property => SpecificationValues.For(property, when.Values, command.Name, applicationSet, diagnostics)));
     }
+
+    /// <summary>
+    /// Every Screenplay name the rendered spec references — the command, the events it expects, and the types
+    /// their values are stated as.
+    /// </summary>
+    /// <param name="specification">The specification being rendered.</param>
+    /// <param name="command">The command it exercises.</param>
+    /// <returns>The referenced names.</returns>
+    static IEnumerable<string> ReferencedNames(SpecificationSyntax specification, CommandSyntax command) =>
+        specification.ThenEvents.Select(@event => @event.EventType)
+            .Append(command.Name)
+            .Concat(command.Properties.Select(property => property.Type.Name));
 
     /// <summary>
     /// Turns the specification's name into the behavior the folder and class read as — <c>RegisteringADraftInvoice</c>

@@ -38,7 +38,7 @@ public static class SpecificationAssertions
         }
 
         var stated = when.Values.FirstOrDefault(value => string.Equals(value.Property, identifier.Name, StringComparison.OrdinalIgnoreCase));
-        if (stated?.Source is not LiteralExpressionSyntax { Value: string text })
+        if (stated is null)
         {
             diagnostics.Add(
                 $"The specification states no value for '{identifier.Name}', which is what says which event source " +
@@ -46,7 +46,20 @@ public static class SpecificationAssertions
             return "EventSourceId.Unspecified";
         }
 
-        return $"new EventSourceId({CodeGeneration.CSharpCodeBuilder.StringLiteral(text)})";
+        var value = SpecificationValues.For(identifier, when.Values, command.Name, applicationSet, diagnostics);
+        if (value == "default!")
+        {
+            diagnostics.Add(
+                $"The value stated for '{identifier.Name}' cannot be rendered, so the appended events are asserted " +
+                "against no event source.");
+            return "EventSourceId.Unspecified";
+        }
+
+        // Rendered through the same conversion the command's own argument takes, then to string. Arc resolves the
+        // event source id from the constructed identity, and a Guid's canonical form is lowercase - asserting
+        // against the document's raw text would never match an id the command appended under, whatever casing the
+        // document happened to use.
+        return $"new EventSourceId({value}.ToString())";
     }
 
     /// <summary>
@@ -66,9 +79,19 @@ public static class SpecificationAssertions
             return string.Empty;
         }
 
-        var comparisons = @event.Values
+        var pairs = @event.Values
             .Select(value => (Value: value, Property: declared.Properties.FirstOrDefault(
                 property => string.Equals(property.Name, value.Property, StringComparison.OrdinalIgnoreCase))))
+            .ToArray();
+
+        foreach (var undeclared in pairs.Where(pair => pair.Property is null))
+        {
+            diagnostics.Add(
+                $"The specification states '{undeclared.Value.Property}' on '{@event.EventType}', which the event does " +
+                "not declare — it is not asserted.");
+        }
+
+        var comparisons = pairs
             .Where(pair => pair.Property is not null)
             .Select(pair => Comparison(pair.Value, pair.Property!, @event.EventType, applicationSet, diagnostics))
             .Where(comparison => comparison is not null)
@@ -86,6 +109,9 @@ public static class SpecificationAssertions
     {
         if (value.Source is not LiteralExpressionSyntax literal)
         {
+            diagnostics.Add(
+                $"'{property.Name}' of '{eventType}' is stated as a {value.Source.GetType().Name}, which an assertion " +
+                "cannot compare against — it is not asserted.");
             return null;
         }
 

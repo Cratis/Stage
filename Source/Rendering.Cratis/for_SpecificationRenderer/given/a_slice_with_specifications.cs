@@ -14,6 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_SpecificationRenderer.given;
 public class a_slice_with_specifications : Specification
 {
     protected CommandSyntax _command = null!;
+    protected SliceSyntax _sliceSyntax = null!;
     protected LocatedSlice _slice = null!;
     protected ApplicationSet _applicationSet = null!;
 
@@ -28,6 +29,7 @@ public class a_slice_with_specifications : Specification
 
         var slice = new SliceSyntax(
             SliceType.StateChange, "Register", [registered], [_command], [], [], [], [], [], [], [], SourceLocation.Start);
+        _sliceSyntax = slice;
         _slice = new LocatedSlice(slice, ["Billing", "Invoicing"]);
 
         var application = new ApplicationSyntax(

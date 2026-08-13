@@ -91,7 +91,7 @@ public static class SpecificationValues
             "DateOnly" when value is string text => $"DateOnly.Parse({CSharpCodeBuilder.StringLiteral(text)}, CultureInfo.InvariantCulture)",
             "DateTimeOffset" when value is string text => $"DateTimeOffset.Parse({CSharpCodeBuilder.StringLiteral(text)}, CultureInfo.InvariantCulture)",
             "bool" when value is bool boolean => boolean ? "true" : "false",
-            "int" when value is int or long or double or decimal => Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
+            "int" when value is int or long or double or decimal && Integral(value) is { } integer => integer.ToString(CultureInfo.InvariantCulture),
             "decimal" when value is int or long or double or decimal => $"{Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture)}m",
             _ => null,
         };
@@ -112,6 +112,21 @@ public static class SpecificationValues
     /// <param name="rendered">The rendered literal.</param>
     /// <returns>True when the rendering parses a culture-sensitive value.</returns>
     public static bool NeedsGlobalization(string rendered) => rendered.Contains("CultureInfo.InvariantCulture", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The value as an <see langword="int"/>, or <see langword="null"/> when it is not one. A stated 1.5 is not
+    /// the integer 2, and a value outside the range is not an integer at all — rounding either would put a value
+    /// in the rendered output that the document never stated.
+    /// </summary>
+    /// <param name="value">The stated literal.</param>
+    /// <returns>The integer, or <see langword="null"/>.</returns>
+    static int? Integral(object value)
+    {
+        var number = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+        return number == decimal.Truncate(number) && number >= int.MinValue && number <= int.MaxValue
+            ? (int)number
+            : null;
+    }
 
     static string? Underlying(TypeRefSyntax declared, ResolvedType type, ApplicationSet applicationSet)
     {

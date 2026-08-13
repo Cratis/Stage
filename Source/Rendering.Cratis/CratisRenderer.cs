@@ -224,17 +224,19 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
     async Task RenderSpecifications(
         LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
     {
-        var command = slice.Slice.Commands.FirstOrDefault();
-
         foreach (var specification in slice.Slice.Specifications)
         {
-            if (SpecificationRenderer.Unrenderable(specification, command) is { } reason)
+            if (SpecificationRenderer.Unrenderable(specification, slice.Slice) is { } reason)
             {
                 await error.WriteLineAsync($"Specification '{specification.Name}' is not rendered — {reason}.");
                 continue;
             }
 
-            await WriteFile(SpecificationRenderer.Render(specification, command!, slice, applicationSet, rootNamespace), targetDirectory, output, error);
+            await WriteFile(
+                SpecificationRenderer.Render(specification, slice.Slice.Commands.First(), slice, applicationSet, rootNamespace),
+                targetDirectory,
+                output,
+                error);
         }
     }
 

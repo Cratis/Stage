@@ -80,7 +80,12 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
     [Fact] void should_import_what_parsing_it_needs() => _appended.Content.ShouldContain("using System.Globalization;");
     [Fact] void should_assert_the_appended_event_against_its_event_source() =>
         _appended.Content.ShouldContain(
-            "await _scenario.ShouldHaveAppendedEvent<RegisterInvoice, InvoiceRegistered>(new EventSourceId(\"9c858901-8a57-4791-81fe-4c455b099bc9\"), @event => @event.InvoiceNumber == \"INV-000123\");");
+            "await _scenario.ShouldHaveAppendedEvent<RegisterInvoice, InvoiceRegistered>(new EventSourceId(Guid.Parse(\"9c858901-8a57-4791-81fe-4c455b099bc9\").ToString()), @event => @event.InvoiceNumber == \"INV-000123\");");
+
+    // The command constructs its identity through Guid.Parse, whose ToString is canonical lowercase. Asserting
+    // against the document's raw text would never match an id the command appended under.
+    [Fact] void should_assert_against_the_event_source_the_command_appends_under() =>
+        _appended.Content.ShouldNotContain("new EventSourceId(\"9c858901");
 
     // Both, deliberately: on its own ShouldNotBeSuccessful cannot tell a rejection from an unhandled exception.
     [Fact] void should_assert_a_rejection_as_both_unsuccessful_and_invalid() =>

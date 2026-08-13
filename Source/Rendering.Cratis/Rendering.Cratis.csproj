@@ -25,6 +25,8 @@
             has no reason to do.
         -->
         <PackageReference Include="Cratis" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Chronicle.Testing" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.MongoDB" ExcludeAssets="analyzers" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />
     </ItemGroup>

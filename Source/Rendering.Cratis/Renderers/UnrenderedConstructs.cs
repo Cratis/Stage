@@ -80,10 +80,9 @@ public static class UnrenderedConstructs
             slice.Captures.Count(),
             "capture",
             "no ingestion of the captured source is rendered.");
-        yield return (
-            slice.Specifications.Count(),
-            "specification",
-            "no specs are rendered for the generated application.");
+
+        // Specifications are rendered separately, one file each, and each one that cannot be says so on its own
+        // — so counting them here would report the same thing twice and count the rendered ones as dropped.
     }
 
     // Both collections are trailing optionals on SliceSyntax and are null on a slice that declares neither.

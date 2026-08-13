@@ -19,7 +19,8 @@
         usings and the type collisions that come with them. These carry no build assets. Arc.Chronicle and
         Arc.Swagger are here only so the spec compilation can model the ambient namespaces a real Cratis
         application has, not because rendered code names anything in them; MongoDB.Driver is, because a
-        rendered read model exposes its collection query as IMongoCollection&lt;T&gt;.
+        rendered read model exposes its collection query as IMongoCollection&lt;T&gt;. The two Testing packages
+        are what a rendered specification compiles against - CommandScenario and the appended-event assertions.
     -->
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!--
@@ -29,7 +30,9 @@
         -->
         <PackageReference Include="Cratis.Arc" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Chronicle" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Chronicle.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Swagger" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Chronicle" ExcludeAssets="analyzers" />
         <PackageReference Include="MongoDB.Driver" />
     </ItemGroup>

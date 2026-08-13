@@ -18,6 +18,7 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
 {
     RenderedFile _appended = null!;
     RenderedFile _rejected = null!;
+    RenderedFile _withoutIdentity = null!;
     IReadOnlyList<string> _errors = null!;
 
     void Because()
@@ -46,9 +47,21 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
             _applicationSet,
             "Acme");
 
+        // The identifier is deliberately unstated here: it is the branch that renders EventSourceId.Unspecified,
+        // and it is only ever exercised by compiling it.
+        _withoutIdentity = SpecificationRenderer.Render(
+            Specification(
+                "RegisteringWithoutSayingWhich",
+                when: When("RegisterInvoice", ("invoiceNumber", "INV-000124")),
+                then: [Event("InvoiceRegistered", ("invoiceNumber", "INV-000124"))]),
+            _command,
+            _slice,
+            _applicationSet,
+            "Acme");
+
         var slice = new StateChangeSliceRenderer().Render(_slice, _applicationSet, "Acme");
         var concepts = _applicationSet.Concepts.Values.Select(concept => ConceptRenderer.Render(concept, _applicationSet, "Acme"));
-        _errors = RenderedOutput.Errors([slice, _appended, _rejected, .. concepts]);
+        _errors = RenderedOutput.Errors([slice, _appended, _rejected, _withoutIdentity, .. concepts]);
     }
 
     [Fact] void should_render_specs_that_compile() => _errors.ShouldBeEmpty();
@@ -74,6 +87,12 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
         _rejected.Content.ShouldContain("_result.ShouldNotBeSuccessful();");
     [Fact] void should_assert_a_rejection_has_validation_errors() =>
         _rejected.Content.ShouldContain("_result.ShouldHaveValidationErrors();");
+    [Fact] void should_assert_against_no_event_source_when_the_document_names_none() =>
+        _withoutIdentity.Content.ShouldContain("ShouldHaveAppendedEvent<RegisterInvoice, InvoiceRegistered>(EventSourceId.Unspecified");
+    [Fact] void should_say_the_event_source_was_never_named() =>
+        _withoutIdentity.Diagnostics.ShouldContain(
+            "The specification states no value for 'invoiceId', which is what says which event source the appended events belong to.");
+
     [Fact] void should_report_what_the_document_left_unstated() =>
         _rejected.Diagnostics.ShouldContain(
             "Specification 'RejectingAnInvoiceWithNoNumber' states no value for 'invoiceNumber', 'dueDate' of command 'RegisterInvoice' — the rendered spec constructs them as missing values.");

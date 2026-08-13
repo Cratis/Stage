@@ -8,10 +8,6 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Cratis.Screenplay" />
-        <PackageReference Include="Cratis.Templates" />
-        <PackageReference Include="Microsoft.TemplateEngine.Abstractions" />
-        <PackageReference Include="Microsoft.TemplateEngine.Edge" />
-        <PackageReference Include="Microsoft.TemplateEngine.Orchestrator.RunnableProjects" />
     </ItemGroup>
     <!--
         Specs compile the rendered output in memory against the real Cratis assemblies — asserting on generated

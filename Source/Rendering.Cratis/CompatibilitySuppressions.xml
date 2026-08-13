@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
+<Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Cratis.Arc.Generated.GeneratedMarker</Target>
+    <Left>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Left>
+    <Right>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Cratis.Stage.Rendering.Cratis.Scaffolding.SampleSlice</Target>
+    <Left>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Left>
+    <Right>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Cratis.Stage.Rendering.Cratis.Scaffolding.ScaffoldingFailed</Target>
+    <Left>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Left>
+    <Right>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Cratis.Stage.Rendering.Cratis.Scaffolding.TemplateEngineProjectScaffolder</Target>
+    <Left>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Left>
+    <Right>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Cratis.Stage.Rendering.Cratis.Scaffolding.TemplateNotFound</Target>
+    <Left>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Left>
+    <Right>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Cratis.Stage.Rendering.Cratis.Scaffolding.TemplatePackageNotFound</Target>
+    <Left>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Left>
+    <Right>lib/net10.0/Cratis.Stage.Rendering.Cratis.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+</Suppressions>

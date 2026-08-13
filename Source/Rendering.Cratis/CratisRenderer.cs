@@ -23,9 +23,14 @@ namespace Cratis.Stage.Rendering.Cratis;
 public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<SliceType, ISliceRenderer> sliceRenderers, ICodeOutput codeOutput) : IRenderer
 {
     /// <summary>
-    /// Creates a <see cref="CratisRenderer"/> wired with the real scaffolder, slice renderers, and local file
-    /// system output.
+    /// Creates a <see cref="CratisRenderer"/> wired with the slice renderers and local file system output,
+    /// rendering into the target directory without scaffolding a project around it.
     /// </summary>
+    /// <remarks>
+    /// Pass a <see cref="IProjectScaffolder"/> to the constructor to scaffold as well — the template-engine
+    /// one lives in <c>Cratis.Stage.Rendering.Cratis.Scaffolding</c>, kept out of this package because the
+    /// engine it needs cannot be hosted beside MSBuild.
+    /// </remarks>
     /// <returns>The <see cref="CratisRenderer"/>.</returns>
     public static CratisRenderer CreateDefault()
     {
@@ -38,7 +43,7 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
             [SliceType.Translate] = reactorRenderer,
         };
 
-        return new CratisRenderer(new TemplateEngineProjectScaffolder(), sliceRenderers, new LocalFileSystemOutput());
+        return new CratisRenderer(new TargetDirectoryScaffolder(), sliceRenderers, new LocalFileSystemOutput());
     }
 
     /// <inheritdoc/>

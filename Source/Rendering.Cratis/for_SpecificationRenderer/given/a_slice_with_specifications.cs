@@ -21,9 +21,10 @@ public class a_slice_with_specifications : Specification
     {
         var invoiceId = Property("invoiceId", "InvoiceId", isIdentifier: true);
         var invoiceNumber = Property("invoiceNumber", "String");
-        var registered = new EventSyntax("InvoiceRegistered", [invoiceId, invoiceNumber], SourceLocation.Start);
+        var dueDate = Property("dueDate", "Date");
+        var registered = new EventSyntax("InvoiceRegistered", [invoiceId, invoiceNumber, dueDate], SourceLocation.Start);
 
-        _command = new CommandSyntax("RegisterInvoice", [invoiceId, invoiceNumber], null, [], [], null, SourceLocation.Start);
+        _command = new CommandSyntax("RegisterInvoice", [invoiceId, invoiceNumber, dueDate], null, [], [], null, SourceLocation.Start);
 
         var slice = new SliceSyntax(
             SliceType.StateChange, "Register", [registered], [_command], [], [], [], [], [], [], [], SourceLocation.Start);

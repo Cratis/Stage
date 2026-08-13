@@ -116,8 +116,17 @@ public static class SpecificationRenderer
 
         builder.EndBlock();
 
+        // Decided from the rendered content rather than predicted: a date or timestamp anywhere in the values or
+        // the assertions renders as a parse against the invariant culture, and only the emitted text knows whether
+        // one is there.
+        var content = builder.ToString();
+        if (SpecificationValues.NeedsGlobalization(content))
+        {
+            content = builder.Using("System.Globalization").ToString();
+        }
+
         var path = new List<string>(SliceNaming.FolderPath(slice.FullPath)) { $"{name}.cs" };
-        return new RenderedFile(Path.Combine([.. path]), Conditional(builder.ToString())) { Diagnostics = diagnostics };
+        return new RenderedFile(Path.Combine([.. path]), Conditional(content)) { Diagnostics = diagnostics };
     }
 
     /// <summary>

@@ -76,9 +76,13 @@ internal static class RenderedOutput
     /// <returns>The compilation errors, empty when the output compiles.</returns>
     public static IReadOnlyList<string> Errors(IEnumerable<RenderedFile> files)
     {
+        // DEBUG has to be defined or a rendered specification compiles to nothing: the whole file sits inside
+        // '#if DEBUG', and a parse without the symbol drops it silently — the assertion would then pass on an
+        // empty compilation unit and prove nothing about the spec it was written for.
+        var parseOptions = new CSharpParseOptions(preprocessorSymbols: ["DEBUG"]);
         var trees = files
-            .Select(file => CSharpSyntaxTree.ParseText(file.Content, path: file.RelativePath))
-            .Prepend(CSharpSyntaxTree.ParseText(ImplicitUsings, path: "GlobalUsings.g.cs"));
+            .Select(file => CSharpSyntaxTree.ParseText(file.Content, parseOptions, path: file.RelativePath))
+            .Prepend(CSharpSyntaxTree.ParseText(ImplicitUsings, parseOptions, path: "GlobalUsings.g.cs"));
 
         var compilation = CSharpCompilation.Create(
             "RenderedApplication",

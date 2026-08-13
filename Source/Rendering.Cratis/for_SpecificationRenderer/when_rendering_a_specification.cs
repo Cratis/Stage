@@ -25,7 +25,11 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
         _appended = SpecificationRenderer.Render(
             Specification(
                 "RegisteringAnInvoice",
-                when: When("RegisterInvoice", ("invoiceId", "9c858901-8a57-4791-81fe-4c455b099bc9"), ("invoiceNumber", "INV-000123")),
+                when: When(
+                    "RegisterInvoice",
+                    ("invoiceId", "9c858901-8a57-4791-81fe-4c455b099bc9"),
+                    ("invoiceNumber", "INV-000123"),
+                    ("dueDate", "2026-08-13")),
                 then: [Event("InvoiceRegistered", ("invoiceNumber", "INV-000123"))]),
             _command,
             _slice,
@@ -55,6 +59,12 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
         _appended.Content.ShouldContain("readonly CommandScenario<RegisterInvoice> _scenario = new();");
     [Fact] void should_state_the_uuid_the_document_wrote_as_text() =>
         _appended.Content.ShouldContain("Guid.Parse(\"9c858901-8a57-4791-81fe-4c455b099bc9\")");
+
+    // A date renders as a parse against the invariant culture, which needs a using the renderer only knows to
+    // emit by looking at what it rendered.
+    [Fact] void should_state_the_date_the_document_wrote_as_text() =>
+        _appended.Content.ShouldContain("DateOnly.Parse(\"2026-08-13\", CultureInfo.InvariantCulture)");
+    [Fact] void should_import_what_parsing_it_needs() => _appended.Content.ShouldContain("using System.Globalization;");
     [Fact] void should_assert_the_appended_event_against_its_event_source() =>
         _appended.Content.ShouldContain(
             "await _scenario.ShouldHaveAppendedEvent<RegisterInvoice, InvoiceRegistered>(new EventSourceId(\"9c858901-8a57-4791-81fe-4c455b099bc9\"), @event => @event.InvoiceNumber == \"INV-000123\");");
@@ -66,5 +76,5 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
         _rejected.Content.ShouldContain("_result.ShouldHaveValidationErrors();");
     [Fact] void should_report_what_the_document_left_unstated() =>
         _rejected.Diagnostics.ShouldContain(
-            "Specification 'RejectingAnInvoiceWithNoNumber' states no value for 'invoiceNumber' of command 'RegisterInvoice' — the rendered spec constructs them as missing values.");
+            "Specification 'RejectingAnInvoiceWithNoNumber' states no value for 'invoiceNumber', 'dueDate' of command 'RegisterInvoice' — the rendered spec constructs them as missing values.");
 }

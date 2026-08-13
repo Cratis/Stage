@@ -10,6 +10,11 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_ExpressionRenderer;
 
+/// <summary>
+/// The renderings that hold when Chronicle's <c>EventContext</c> is in scope as <c>context</c> — a reactor method
+/// and a projection. What <c>$context</c> becomes elsewhere is the enclosing artifact's to say; a command handler
+/// receives no such parameter, so its renderings are specified against <c>CommandContextAccess</c> instead.
+/// </summary>
 public class when_rendering_expressions : Specification
 {
     string _stringLiteral = null!;
@@ -52,11 +57,11 @@ public class when_rendering_expressions : Specification
     [Fact] void should_render_a_null_literal_as_null() => _nullLiteral.ShouldEqual("null");
     [Fact] void should_render_a_path_as_a_pascal_case_property_reference() => _path.ShouldEqual("InvoiceId");
     [Fact] void should_render_a_dotted_path_segment_by_segment() => _dottedPath.ShouldEqual("BillingContact.Email");
-    [Fact] void should_render_a_context_path_against_the_fixed_context_parameter() => _context.ShouldEqual("context.Identity.Id");
+    [Fact] void should_render_a_context_path_against_the_event_context() => _context.ShouldEqual("context.Identity.Id");
     [Fact] void should_render_an_environment_expression_as_environment_get_environment_variable() =>
         _environment.ShouldEqual("Environment.GetEnvironmentVariable(\"SERVICE_NAME\")");
     [Fact] void should_render_caused_by_with_a_property() => _causedByWithProperty.ShouldEqual("context.CausedBy.Name");
     [Fact] void should_render_caused_by_without_a_property() => _causedByWithoutProperty.ShouldEqual("context.CausedBy");
-    [Fact] void should_render_event_source_id_against_the_fixed_context_parameter() => _eventSourceId.ShouldEqual("context.EventSourceId");
+    [Fact] void should_render_event_source_id_against_the_event_context() => _eventSourceId.ShouldEqual("context.EventSourceId");
     [Fact] void should_render_a_template_as_an_interpolated_string() => _template.ShouldEqual("$\"Invoice {InvoiceNumber}\"");
 }

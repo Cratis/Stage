@@ -17,6 +17,13 @@
         Specs compile the rendered output in memory against the real Cratis assemblies — asserting on generated
         strings is what let a whole class of non-compiling output ship unnoticed. These are private assets: the
         renderer itself does not depend on Cratis at runtime, only its specs do.
+
+        Named individually rather than through the Cratis meta-package: that package contributes
+        GlobalUsings.cs through its Cratis.props, so every consumer of this one silently gains 28 global
+        usings and the type collisions that come with them. These carry no build assets. Arc.Chronicle and
+        Arc.Swagger are here only so the spec compilation can model the ambient namespaces a real Cratis
+        application has, not because rendered code names anything in them; MongoDB.Driver is, because a
+        rendered read model exposes its collection query as IMongoCollection&lt;T&gt;.
     -->
     <ItemGroup>
         <!--
@@ -24,8 +31,11 @@
             into this assembly that binds the Cratis runtime at startup, which the renderer — a text generator —
             has no reason to do.
         -->
-        <PackageReference Include="Cratis" ExcludeAssets="analyzers" />
-        <PackageReference Include="Cratis.Arc.MongoDB" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Chronicle" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Swagger" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Chronicle" ExcludeAssets="analyzers" />
+        <PackageReference Include="MongoDB.Driver" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>

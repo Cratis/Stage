@@ -16,9 +16,9 @@ public class when_reporting_what_a_slice_declares : a_slice_declaring_every_fami
 
     void Because() => UnrenderedConstructs.Report(_builder, _slice, RenderedConstructs.None, _diagnostics);
 
-    [Fact] void should_report_every_family_it_declares() => _diagnostics.Count.ShouldEqual(11);
+    [Fact] void should_report_every_family_it_declares() => _diagnostics.Count.ShouldEqual(10);
     [Fact] void should_note_every_family_in_the_emitted_file() =>
-        _builder.ToString().Split('\n').Count(line => line.StartsWith("// TODO:", StringComparison.Ordinal)).ShouldEqual(11);
+        _builder.ToString().Split('\n').Count(line => line.StartsWith("// TODO:", StringComparison.Ordinal)).ShouldEqual(10);
     [Fact] void should_report_the_command() =>
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 command declaration(s) with no rendered equivalent — neither its input, the events it " +
@@ -55,8 +55,11 @@ public class when_reporting_what_a_slice_declares : a_slice_declaring_every_fami
     [Fact] void should_report_the_captures() =>
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 capture declaration(s) with no rendered equivalent — no ingestion of the captured source is rendered.");
-    [Fact] void should_report_the_specifications() =>
-        _diagnostics.ShouldContain(
+
+    // Specifications are not in this list any more: each one is rendered into its own file, or says on its own
+    // why it could not be. Counting them here would report a rendered specification as dropped.
+    [Fact] void should_not_report_the_specifications() =>
+        _diagnostics.ShouldNotContain(
             "Slice 'Summary' declares 1 specification declaration(s) with no rendered equivalent — no specs are rendered for the " +
             "generated application.");
 }

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.Rendering.Cratis.Scaffolding</AssemblyName>
+        <RootNamespace>Cratis.Stage.Rendering.Cratis.Scaffolding</RootNamespace>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <IsPackable>true</IsPackable>
+        <Description>Scaffolds the Cratis project a rendered Screenplay application is placed into, from the Cratis templates.</Description>
+        <!-- New package: there is no released baseline to compare against yet. -->
+        <EnablePackageValidation>false</EnablePackageValidation>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Cratis.Templates" />
+        <PackageReference Include="Microsoft.TemplateEngine.Abstractions" />
+        <PackageReference Include="Microsoft.TemplateEngine.Edge" />
+        <PackageReference Include="Microsoft.TemplateEngine.Orchestrator.RunnableProjects" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="../Rendering.Cratis/Rendering.Cratis.csproj" />
+    </ItemGroup>
+</Project>

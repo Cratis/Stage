@@ -12,5 +12,7 @@
     <ItemGroup>
         <!-- The Screenplay language compiler — the event model input is authored as .play source. -->
         <PackageReference Include="Cratis.Screenplay" />
+        <!-- The Scene object model — screens/layouts/forms translate into these types. -->
+        <PackageReference Include="Cratis.Scene.Model" />
     </ItemGroup>
 </Project>

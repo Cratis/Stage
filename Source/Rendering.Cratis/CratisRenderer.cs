@@ -8,6 +8,7 @@ using Cratis.Stage.Rendering.Cratis.Emission;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
+using Cratis.Stage.Rendering.Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -23,9 +24,14 @@ namespace Cratis.Stage.Rendering.Cratis;
 public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<SliceType, ISliceRenderer> sliceRenderers, ICodeOutput codeOutput) : IRenderer
 {
     /// <summary>
-    /// Creates a <see cref="CratisRenderer"/> wired with the real scaffolder, slice renderers, and local file
-    /// system output.
+    /// Creates a <see cref="CratisRenderer"/> wired with the slice renderers and local file system output,
+    /// rendering into the target directory without scaffolding a project around it.
     /// </summary>
+    /// <remarks>
+    /// Pass a <see cref="IProjectScaffolder"/> to the constructor to scaffold as well — the template-engine
+    /// one lives in <c>Cratis.Stage.Rendering.Cratis.Scaffolding</c>, kept out of this package because the
+    /// engine it needs cannot be hosted beside MSBuild.
+    /// </remarks>
     /// <returns>The <see cref="CratisRenderer"/>.</returns>
     public static CratisRenderer CreateDefault()
     {
@@ -38,7 +44,7 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
             [SliceType.Translate] = reactorRenderer,
         };
 
-        return new CratisRenderer(new TemplateEngineProjectScaffolder(), sliceRenderers, new LocalFileSystemOutput());
+        return new CratisRenderer(new TargetDirectoryScaffolder(), sliceRenderers, new LocalFileSystemOutput());
     }
 
     /// <inheritdoc/>
@@ -196,10 +202,41 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
         {
             await output.WriteLineAsync($"Rendering slice '{slicePath}'...");
             await WriteFile(renderer.Render(slice, applicationSet, rootNamespace), targetDirectory, output, error);
+            await RenderSpecifications(slice, applicationSet, rootNamespace, targetDirectory, output, error);
         }
         catch (Exception exception)
         {
             await error.WriteLineAsync($"Failed to render slice '{slicePath}': {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Renders the slice's specifications, one file each. A specification that cannot be rendered faithfully is
+    /// reported rather than emitted — a spec asserting something the document did not state is worse than none.
+    /// </summary>
+    /// <param name="slice">The located slice whose specifications to render.</param>
+    /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve against.</param>
+    /// <param name="rootNamespace">The root namespace of the target application.</param>
+    /// <param name="targetDirectory">The directory to render into.</param>
+    /// <param name="output">The <see cref="TextWriter"/> progress is reported to.</param>
+    /// <param name="error">The <see cref="TextWriter"/> rendering problems are reported to.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    async Task RenderSpecifications(
+        LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
+    {
+        foreach (var specification in slice.Slice.Specifications)
+        {
+            if (SpecificationRenderer.Unrenderable(specification, slice.Slice) is { } reason)
+            {
+                await error.WriteLineAsync($"Specification '{specification.Name}' is not rendered — {reason}.");
+                continue;
+            }
+
+            await WriteFile(
+                SpecificationRenderer.Render(specification, slice.Slice.Commands.First(), slice, applicationSet, rootNamespace),
+                targetDirectory,
+                output,
+                error);
         }
     }
 

@@ -57,6 +57,14 @@ public static class Identifiers
     public static string ToWords(string name) => string.Join(' ', SplitWords(name).SelectMany(SplitOnCaseBoundary)).ToLowerInvariant();
 
     /// <summary>
+    /// Converts a name into snake_case — used for the spec folder and class names the repository conventions
+    /// use, where <c>RegisteringADraftInvoice</c> reads as <c>registering_a_draft_invoice</c>.
+    /// </summary>
+    /// <param name="name">The name to convert.</param>
+    /// <returns>The snake_case name.</returns>
+    public static string ToSnakeCase(string name) => ToWords(name).Replace(' ', '_');
+
+    /// <summary>
     /// Escapes an identifier with <c>@</c> when it is a reserved C# keyword.
     /// </summary>
     /// <param name="identifier">The identifier to escape.</param>

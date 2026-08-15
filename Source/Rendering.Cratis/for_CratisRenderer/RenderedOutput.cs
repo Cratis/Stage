@@ -18,9 +18,16 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 internal static class RenderedOutput
 {
     /// <summary>
-    /// The implicit usings the scaffolded project enables (<c>ImplicitUsings</c> in the Cratis template), mirrored
+    /// The implicit usings the scaffolded project enables (<c>ImplicitUsings</c> in the Cratis template), together
+    /// with the global usings the <c>Cratis</c> package itself contributes through its <c>Cratis.props</c>, mirrored
     /// here so the compilation sees the same ambient namespaces the rendered application really builds with.
     /// </summary>
+    /// <remarks>
+    /// The package's set is load-bearing in both directions: without it the rendered validators look broken because
+    /// <c>FluentValidation</c> is missing, and with it a short type name that is unambiguous on its own becomes
+    /// ambiguous — <c>IIdentityProvider</c> is declared by both <c>Cratis.Arc.Identity</c> and
+    /// <c>Cratis.Chronicle.Identities</c>. A compilation that omits them sees neither.
+    /// </remarks>
     const string ImplicitUsings = """
         global using System;
         global using System.Collections.Generic;
@@ -29,6 +36,30 @@ internal static class RenderedOutput
         global using System.Net.Http;
         global using System.Threading;
         global using System.Threading.Tasks;
+        global using Cratis.Arc;
+        global using Cratis.Arc.Authentication;
+        global using Cratis.Arc.Authorization;
+        global using Cratis.Arc.Chronicle.Aggregates;
+        global using Cratis.Arc.Commands;
+        global using Cratis.Arc.Commands.ModelBound;
+        global using Cratis.Arc.Identity;
+        global using Cratis.Arc.Queries;
+        global using Cratis.Arc.Queries.ModelBound;
+        global using Cratis.Arc.Swagger;
+        global using Cratis.Arc.Validation;
+        global using Cratis.Chronicle;
+        global using Cratis.Chronicle.Events;
+        global using Cratis.Chronicle.Events.Constraints;
+        global using Cratis.Chronicle.EventSequences;
+        global using Cratis.Chronicle.Observation;
+        global using Cratis.Chronicle.Projections;
+        global using Cratis.Chronicle.Projections.ModelBound;
+        global using Cratis.Chronicle.Reactors;
+        global using Cratis.Chronicle.ReadModels;
+        global using Cratis.Chronicle.Reducers;
+        global using Cratis.Chronicle.Transactions;
+        global using Cratis.Concepts;
+        global using FluentValidation;
         """;
 
     static readonly MetadataReference[] _references =
@@ -45,9 +76,13 @@ internal static class RenderedOutput
     /// <returns>The compilation errors, empty when the output compiles.</returns>
     public static IReadOnlyList<string> Errors(IEnumerable<RenderedFile> files)
     {
+        // DEBUG has to be defined or a rendered specification compiles to nothing: the whole file sits inside
+        // '#if DEBUG', and a parse without the symbol drops it silently — the assertion would then pass on an
+        // empty compilation unit and prove nothing about the spec it was written for.
+        var parseOptions = new CSharpParseOptions(preprocessorSymbols: ["DEBUG"]);
         var trees = files
-            .Select(file => CSharpSyntaxTree.ParseText(file.Content, path: file.RelativePath))
-            .Prepend(CSharpSyntaxTree.ParseText(ImplicitUsings, path: "GlobalUsings.g.cs"));
+            .Select(file => CSharpSyntaxTree.ParseText(file.Content, parseOptions, path: file.RelativePath))
+            .Prepend(CSharpSyntaxTree.ParseText(ImplicitUsings, parseOptions, path: "GlobalUsings.g.cs"));
 
         var compilation = CSharpCompilation.Create(
             "RenderedApplication",

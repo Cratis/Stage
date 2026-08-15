@@ -35,13 +35,13 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
     /// <returns>The <see cref="CratisRenderer"/>.</returns>
     public static CratisRenderer CreateDefault()
     {
-        var reactorRenderer = new ReactorSliceRenderer();
+        var reactionRenderer = new ReactionSliceRenderer();
         var sliceRenderers = new Dictionary<SliceType, ISliceRenderer>
         {
             [SliceType.StateChange] = new StateChangeSliceRenderer(),
             [SliceType.StateView] = new StateViewSliceRenderer(),
-            [SliceType.Automation] = reactorRenderer,
-            [SliceType.Translate] = reactorRenderer,
+            [SliceType.Automation] = reactionRenderer,
+            [SliceType.Translate] = reactionRenderer,
         };
 
         return new CratisRenderer(new TargetDirectoryScaffolder(), sliceRenderers, new LocalFileSystemOutput());

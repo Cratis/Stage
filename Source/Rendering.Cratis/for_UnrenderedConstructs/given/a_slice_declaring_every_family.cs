@@ -49,9 +49,9 @@ public class a_slice_declaring_every_family : Specification
         var projection = new ProjectionSyntax(
             "InvoiceSummary", "InvoiceSummary", null, AutoMapMode.Enabled, null, [], SourceLocation.Start);
 
-        var reactor = new ReactorSyntax(
+        var reaction = new ReactionSyntax(
             "InvoiceNotifications",
-            [new ReactorTriggerSyntax("InvoiceRegistered", null, null, SourceLocation.Start)],
+            [new ReactionTriggerSyntax(new NamedTriggerSourceSyntax("InvoiceRegistered", SourceLocation.Start), [], null, null, SourceLocation.Start)],
             SourceLocation.Start);
 
         var readModel = new ReadModelSyntax("InvoiceSummary", [], SourceLocation.Start);
@@ -66,7 +66,7 @@ public class a_slice_declaring_every_family : Specification
             [query],
             [projection],
             [capture],
-            [reactor],
+            [reaction],
             [screen],
             [constraint],
             [specification],

@@ -57,8 +57,8 @@ public static class UnrenderedConstructs
             "reducer",
             "the read model it builds is never populated in the rendered application.");
         yield return (
-            rendered.HasFlag(RenderedConstructs.Reactors) ? 0 : slice.Reactors.Count(),
-            "reactor",
+            rendered.HasFlag(RenderedConstructs.Reactions) ? 0 : slice.Reactions.Count(),
+            "reaction",
             "nothing reacts to the events in the rendered application.");
         yield return (
             slice.Queries.Count(),

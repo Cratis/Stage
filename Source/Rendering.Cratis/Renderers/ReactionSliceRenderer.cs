@@ -10,9 +10,9 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// <summary>
 /// Renders an <see cref="SliceType.Automation"/> or <see cref="SliceType.Translate"/> slice: the
 /// <c>[EventType]</c> records the slice declares, plus one <c>IReactor</c> class per declared
-/// <see cref="ReactorSyntax"/>, with one method per <see cref="ReactorTriggerSyntax"/>. Both slice types render
-/// identically — Screenplay expresses their behavior the same way, as reactors reacting to events — so this
-/// single renderer is registered for both.
+/// <see cref="ReactionSyntax"/>, with one method per event-triggered <see cref="ReactionTriggerSyntax"/>. Both
+/// slice types render identically — Screenplay expresses their behavior the same way — so this single renderer
+/// is registered for both.
 /// </summary>
 /// <remarks>
 /// A trigger with an inline <c>csharp</c> block is embedded verbatim, preceded by a positional deconstruction of
@@ -20,8 +20,14 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// convention observed in Screenplay's own samples). A trigger with a <c>file</c> reference is stubbed — the
 /// referenced file is not read or copied in this pass. A trigger with neither is Screenplay's own documented
 /// "statement of intent" — a stub is emitted, not an error.
+/// <para>
+/// Only an event sets off a Chronicle reactor. Screenplay 3 lets a reaction be set off by the clock or by a
+/// trigger an integration provides, and Chronicle has no handler shape for either, so those are reported
+/// rather than rendered. Emitting nothing and saying nothing would make a scheduled reaction indistinguishable
+/// from one nobody wrote.
+/// </para>
 /// </remarks>
-public class ReactorSliceRenderer : ISliceRenderer
+public class ReactionSliceRenderer : ISliceRenderer
 {
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
@@ -34,16 +40,16 @@ public class ReactorSliceRenderer : ISliceRenderer
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Reactors");
 
-        UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.Reactors, diagnostics);
+        UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.Reactions, diagnostics);
 
         foreach (var @event in slice.Slice.Events)
         {
             EventRenderer.Render(builder, @event, applicationSet, diagnostics);
         }
 
-        foreach (var reactor in slice.Slice.Reactors)
+        foreach (var reaction in slice.Slice.Reactions)
         {
-            RenderReactor(builder, reactor, slice.Slice);
+            RenderReaction(builder, reaction, slice.Slice, diagnostics);
         }
 
         foreach (var @namespace in ReferencedNamespaces.Resolve(ReferencedNames(slice.Slice), applicationSet, rootNamespace, ownNamespace))
@@ -57,33 +63,65 @@ public class ReactorSliceRenderer : ISliceRenderer
 
     static IEnumerable<string> ReferencedNames(SliceSyntax slice) =>
         EventRenderer.ReferencedNames(slice.Events)
-            .Concat(slice.Reactors.SelectMany(reactor => reactor.Triggers).Select(trigger => trigger.Event));
+            .Concat(slice.Reactions
+                .SelectMany(reaction => reaction.Triggers)
+                .Select(trigger => trigger.Source)
+                .OfType<NamedTriggerSourceSyntax>()
+                .Select(source => source.Name));
 
-    static void RenderReactor(CSharpCodeBuilder builder, ReactorSyntax reactor, SliceSyntax slice)
+    static void RenderReaction(CSharpCodeBuilder builder, ReactionSyntax reaction, SliceSyntax slice, List<string> diagnostics)
     {
-        var typeName = Identifiers.ToPascalCase(reactor.Name);
-        var summary = reactor.Description ?? $"Reacts to events for {Identifiers.ToWords(reactor.Name)}.";
+        var typeName = Identifiers.ToPascalCase(reaction.Name);
+        var summary = reaction.Description ?? $"Reacts to events for {Identifiers.ToWords(reaction.Name)}.";
 
         builder.BlankLine().Summary(summary).OpenBlock($"public class {typeName} : IReactor");
 
         var isFirst = true;
-        foreach (var trigger in reactor.Triggers)
+        foreach (var trigger in reaction.Triggers)
         {
+            if (trigger.Source is not NamedTriggerSourceSyntax named)
+            {
+                ReportUnrenderableTrigger(builder, reaction, trigger.Source, diagnostics);
+                continue;
+            }
+
             if (!isFirst)
             {
                 builder.BlankLine();
             }
 
             isFirst = false;
-            RenderTrigger(builder, trigger, slice);
+            RenderTrigger(builder, trigger, named.Name, slice);
+        }
+
+        if (reaction.Where is not null)
+        {
+            builder.Line("// TODO: 'where' narrows which occurrences run this reaction - express it in the handler body");
+            diagnostics.Add($"Reaction '{reaction.Name}' declares a 'where' condition with no rendered equivalent - the handler runs for every occurrence");
         }
 
         builder.EndBlock();
     }
 
-    static void RenderTrigger(CSharpCodeBuilder builder, ReactorTriggerSyntax trigger, SliceSyntax slice)
+    // The clock and an integration's trigger have no Chronicle handler to render into. Saying so in both the
+    // generated file and the diagnostics is the whole difference between a construct that could not be
+    // rendered and one that was never written.
+    static void ReportUnrenderableTrigger(CSharpCodeBuilder builder, ReactionSyntax reaction, TriggerSourceSyntax source, List<string> diagnostics)
     {
-        var eventTypeName = Identifiers.ToPascalCase(trigger.Event);
+        var described = source switch
+        {
+            IntervalTriggerSourceSyntax interval => $"every {interval.Amount} {interval.Unit.ToString().ToLowerInvariant()}",
+            ScheduleTriggerSourceSyntax schedule => $"at {schedule.Time:HH\\:mm}",
+            _ => "an unrecognized trigger"
+        };
+
+        builder.Line($"// TODO: reaction '{reaction.Name}' is set off '{described}' - a Chronicle reactor is set off by an event, so this is not rendered");
+        diagnostics.Add($"Reaction '{reaction.Name}' is set off '{described}', which has no Chronicle equivalent - it is not rendered");
+    }
+
+    static void RenderTrigger(CSharpCodeBuilder builder, ReactionTriggerSyntax trigger, string eventName, SliceSyntax slice)
+    {
+        var eventTypeName = Identifiers.ToPascalCase(eventName);
         if (trigger.Description is not null)
         {
             builder.Summary(trigger.Description);
@@ -93,7 +131,7 @@ public class ReactorSliceRenderer : ISliceRenderer
 
         if (trigger.Code is not null)
         {
-            var triggeringEvent = slice.Events.FirstOrDefault(candidate => candidate.Name == trigger.Event);
+            var triggeringEvent = slice.Events.FirstOrDefault(candidate => candidate.Name == eventName);
             var propertyNames = triggeringEvent?.Properties.Select(property => Identifiers.ToPascalCase(property.Name)).ToArray() ?? [];
             if (propertyNames.Length > 0)
             {

@@ -28,7 +28,7 @@ public enum RenderedConstructs
     ReadModel = 1 << 1,
 
     /// <summary>
-    /// The renderer emits the slice's reactors.
+    /// The renderer emits the slice's reactions.
     /// </summary>
-    Reactors = 1 << 2,
+    Reactions = 1 << 2,
 }

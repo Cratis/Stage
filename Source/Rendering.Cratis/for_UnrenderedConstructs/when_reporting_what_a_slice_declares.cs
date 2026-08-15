@@ -34,9 +34,9 @@ public class when_reporting_what_a_slice_declares : a_slice_declaring_every_fami
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 reducer declaration(s) with no rendered equivalent — the read model it builds is " +
             "never populated in the rendered application.");
-    [Fact] void should_report_the_reactor() =>
+    [Fact] void should_report_the_reaction() =>
         _diagnostics.ShouldContain(
-            "Slice 'Summary' declares 1 reactor declaration(s) with no rendered equivalent — nothing reacts to the events in the " +
+            "Slice 'Summary' declares 1 reaction declaration(s) with no rendered equivalent — nothing reacts to the events in the " +
             "rendered application.");
     [Fact] void should_report_the_queries() =>
         _diagnostics.ShouldContain(

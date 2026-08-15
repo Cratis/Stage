@@ -3,18 +3,18 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
-using Cratis.Stage.Rendering.Cratis.for_ReactorSliceRenderer.given;
+using Cratis.Stage.Rendering.Cratis.for_ReactionSliceRenderer.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
-namespace Cratis.Stage.Rendering.Cratis.for_ReactorSliceRenderer;
+namespace Cratis.Stage.Rendering.Cratis.for_ReactionSliceRenderer;
 
 public class when_rendering_a_reactor : an_automation_slice
 {
     RenderedFile _file = null!;
-    ReactorSliceRenderer _renderer = null!;
+    ReactionSliceRenderer _renderer = null!;
 
-    void Establish() => _renderer = new ReactorSliceRenderer();
+    void Establish() => _renderer = new ReactionSliceRenderer();
 
     void Because() => _file = _renderer.Render(_detectorSlice, _applicationSet, "CratisApp");
 

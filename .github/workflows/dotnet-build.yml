@@ -39,5 +39,14 @@ jobs:
       - name: Build & run tests
         run: dotnet test --configuration Debug
 
+      # The version is a sentinel, not a release. Package validation compares assembly versions, and one
+      # below the baseline is rejected on that alone before the API surface is ever looked at - so it has to
+      # be set on the build, since the pack below reuses what this produces.
       - name: Build Release
-        run: dotnet build --configuration Release
+        run: dotnet build --configuration Release -p:Version=9999.0.0
+
+      # Package validation only runs on pack, and no pull request packed - so a binary break stayed invisible
+      # until the release failed on main, after merge. That is how v3.0.0 came to be tagged with nothing on
+      # NuGet. Packing here puts the break in the pull request that causes it.
+      - name: Pack
+        run: dotnet pack --no-build --configuration Release -o ./Artifacts/NuGet -p:Version=9999.0.0

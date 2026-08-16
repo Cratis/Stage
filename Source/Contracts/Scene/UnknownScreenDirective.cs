@@ -6,7 +6,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <summary>
 /// The exception that is thrown when a Screenplay screen directive is a subtype of
 /// <c>ScreenDirectiveSyntax</c> that <see cref="ScreenDirectiveConverter"/> does not yet know how to
-/// convert (or, for a <c>layout</c>/<c>slot</c> directive, is not the sole top-level directive
+/// convert (or, for a <c>template</c>/<c>slot</c> directive, is not the sole top-level directive
 /// <see cref="ScreenConverter"/> expects - see its own remarks).
 /// </summary>
 /// <param name="typeName">The name of the unrecognized <c>ScreenDirectiveSyntax</c> subtype.</param>

@@ -54,6 +54,11 @@ public static class ScreenDirectiveConverter
                 "core:section",
                 new Dictionary<string, object?> { ["name"] = section.Name },
                 new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["content"] = Convert(section.Directives, id) }),
+            ScreenplaySyntax.ScreenNavigateSyntax navigate => SceneElementFactory.Component(id, "core:navigate", new Dictionary<string, object?>
+            {
+                ["targetScreen"] = navigate.Screen,
+                ["by"] = navigate.By,
+            }),
             ScreenplaySyntax.ScreenTitleSyntax title => SceneElementFactory.Component(id, "core:title", new Dictionary<string, object?> { ["text"] = title.Text }),
             ScreenplaySyntax.ScreenTableSyntax table => ConvertTable(table, id),
             ScreenplaySyntax.ScreenSummarySyntax summary => ConvertSummary(summary, id),
@@ -106,6 +111,7 @@ public static class ScreenDirectiveConverter
             ScreenplaySyntax.ScreenDataSyntax => "data",
             ScreenplaySyntax.ScreenActionSyntax => "action",
             ScreenplaySyntax.ScreenSectionSyntax => "section",
+            ScreenplaySyntax.ScreenNavigateSyntax => "navigate",
             ScreenplaySyntax.ScreenTitleSyntax => "title",
             ScreenplaySyntax.ScreenTableSyntax => "table",
             ScreenplaySyntax.ScreenSummarySyntax => "summary",

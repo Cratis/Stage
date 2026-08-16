@@ -103,6 +103,7 @@ public static class EventModelLoader
             [.. list.SelectMany(application => application.Modules)],
             SourceLocation.Start,
             UiProfiles: [.. list.SelectMany(application => application.UiProfiles ?? [])],
-            Themes: [.. list.SelectMany(application => application.Themes ?? [])]);
+            Themes: [.. list.SelectMany(application => application.Themes ?? [])],
+            Layouts: [.. list.SelectMany(application => application.Layouts ?? [])]);
     }
 }

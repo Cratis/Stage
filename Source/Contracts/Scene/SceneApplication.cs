@@ -14,10 +14,14 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </summary>
 /// <param name="UiProfiles">Every <see cref="SceneProfiles.UiProfile"/> declared in the application.</param>
 /// <param name="Themes">Every <see cref="SceneProfiles.Theme"/> declared in the application.</param>
-/// <param name="Layouts">Every <see cref="SceneLayouts.Layout"/>, both explicitly declared and implicitly synthesized for Level-1/file-referenced screens.</param>
+/// <param name="Layouts">Every application <see cref="SceneLayouts.Layout"/> - the declared shells, or the single synthesized <see cref="DefaultLayout"/> when the document declares none.</param>
+/// <param name="ScreenTemplates">Every <see cref="SceneScreens.ScreenTemplate"/> across every module.</param>
+/// <param name="DialogTemplates">Every <see cref="SceneScreens.DialogTemplate"/> across every module.</param>
 /// <param name="Screens">Every <see cref="SceneScreens.Screen"/> across every slice.</param>
 public record SceneApplication(
     IReadOnlyList<SceneProfiles.UiProfile> UiProfiles,
     IReadOnlyList<SceneProfiles.Theme> Themes,
     IReadOnlyList<SceneLayouts.Layout> Layouts,
+    IReadOnlyList<SceneScreens.ScreenTemplate> ScreenTemplates,
+    IReadOnlyList<SceneScreens.DialogTemplate> DialogTemplates,
     IReadOnlyList<SceneScreens.Screen> Screens);

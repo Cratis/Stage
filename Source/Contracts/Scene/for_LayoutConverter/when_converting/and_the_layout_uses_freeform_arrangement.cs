@@ -30,8 +30,7 @@ public class and_the_layout_uses_freeform_arrangement : Specification
             "Storyboard",
             [new SlotSyntax("header", null, SourceLocation.Start), new SlotSyntax("footer", null, SourceLocation.Start)],
             SourceLocation.Start,
-            LayoutArrangement.Freeform,
-            Variants: [variant]);
+            new ArrangementSyntax(ArrangementMode.Freeform, SourceLocation.Start, null, null, [variant]));
     }
 
     void Because() => _result = LayoutConverter.Convert(_syntax);

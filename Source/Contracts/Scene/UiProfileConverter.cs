@@ -18,8 +18,12 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <see cref="SizeClass"/>. This converter resolves both gaps deliberately: one <see cref="SceneModel.UiProfile"/>
 /// is produced per platform (matching how Stage#39 selects package resolution/theme/renderer per target),
 /// and a bare <c>target size</c> name is applied to both the width and height axis (Screenplay has no
-/// per-axis default size syntax). <see cref="ScreenplaySyntax.UiProfileSyntax.Theme"/> has no home on
-/// <see cref="SceneModel.UiProfile"/> and is a known, deliberate gap - not carried through.
+/// per-axis default size syntax). <see cref="ScreenplaySyntax.UiProfileSyntax.Theme"/> and
+/// <see cref="ScreenplaySyntax.UiProfileSyntax.Layout"/> - the shell the profile selects - both have no home on
+/// <see cref="SceneModel.UiProfile"/> (its members are <c>Name</c>, <c>TargetPlatform</c>, <c>Packages</c> and
+/// <c>DefaultSizeClass</c>) and are known, deliberate gaps - not carried through. The selected layout is
+/// therefore not what resolves <see cref="Cratis.Scene.Model.Screens.Screen.Layout"/>; see
+/// <see cref="ScreenplaySceneVisitor"/> for what does.
 /// </remarks>
 public static class UiProfileConverter
 {

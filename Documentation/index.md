@@ -33,3 +33,4 @@ yourself.
 - [The Stage container](docker/index.md) — what is inside the image, how it boots, its ports, mount points and configuration.
 - [The specification runner](docker/spec-runner.md) — running a model's specifications as a container job.
 - [URLs of a running Stage](reference/urls.md) — every URL a play session exposes, and how the model's names turn into routes.
+- [Render plans](reference/render-plans.md) — what Stage resolves for each `ui profile` a model ships, and what it reports when a target does not fully resolve.

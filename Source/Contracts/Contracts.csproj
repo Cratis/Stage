@@ -14,5 +14,11 @@
         <PackageReference Include="Cratis.Screenplay" />
         <!-- The Scene object model — screens/layouts/forms translate into these types. -->
         <PackageReference Include="Cratis.Scene.Model" />
+        <!--
+            Scene's resolution engines — package/component resolution, theme compatibility, screen template
+            placement, size classes and arrangement evaluation. Referenced so a render plan drives them
+            unmodified rather than Stage reimplementing any of it (Cratis/Stage#39).
+        -->
+        <PackageReference Include="Cratis.Scene.Engine" />
     </ItemGroup>
 </Project>

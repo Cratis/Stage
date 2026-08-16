@@ -16,14 +16,14 @@ namespace Cratis.Stage.Contracts.Scene;
 /// (<c>target platform web, ios</c>) and a single bare <c>target size</c> name, while Scene's
 /// <see cref="SceneModel.UiProfile"/> targets exactly one platform and a two-axis
 /// <see cref="SizeClass"/>. This converter resolves both gaps deliberately: one <see cref="SceneModel.UiProfile"/>
-/// is produced per platform (matching how Stage#39 selects package resolution/theme/renderer per target),
-/// and a bare <c>target size</c> name is applied to both the width and height axis (Screenplay has no
-/// per-axis default size syntax). <see cref="ScreenplaySyntax.UiProfileSyntax.Theme"/> and
-/// <see cref="ScreenplaySyntax.UiProfileSyntax.Layout"/> - the shell the profile selects - both have no home on
-/// <see cref="SceneModel.UiProfile"/> (its members are <c>Name</c>, <c>TargetPlatform</c>, <c>Packages</c> and
-/// <c>DefaultSizeClass</c>) and are known, deliberate gaps - not carried through. The selected layout is
-/// therefore not what resolves <see cref="Cratis.Scene.Model.Screens.Screen.Layout"/>; see
-/// <see cref="ScreenplaySceneVisitor"/> for what does.
+/// is produced per platform - a platform is a deployment target of its own, which is what
+/// <see cref="RenderPlanner"/> plans against (Cratis/Stage#39) - and a bare <c>target size</c> name is applied
+/// to both the width and height axis (Screenplay has no per-axis default size syntax).
+/// <see cref="ScreenplaySyntax.UiProfileSyntax.Layout"/> - the shell the profile selects - and
+/// <see cref="ScreenplaySyntax.UiProfileSyntax.Theme"/> both carry straight through, and are what a render plan
+/// resolves the target's layout and theme from. The selected layout is <em>not</em> what resolves
+/// <see cref="Cratis.Scene.Model.Screens.Screen.Layout"/>; see <see cref="ScreenplaySceneVisitor"/> for what
+/// does, and <see cref="RenderFindingKind.ScreenNotOnSelectedLayout"/> for how the difference is reported.
 /// </remarks>
 public static class UiProfileConverter
 {
@@ -37,7 +37,8 @@ public static class UiProfileConverter
         var defaultSizeClass = ConvertDefaultSizeClass(uiProfile.DefaultSizeClass);
         var packages = uiProfile.Packages.ToList();
 
-        return uiProfile.Platforms.Select(platform => new SceneModel.UiProfile(uiProfile.Name, platform, packages, defaultSizeClass));
+        return uiProfile.Platforms.Select(platform =>
+            new SceneModel.UiProfile(uiProfile.Name, platform, packages, defaultSizeClass, uiProfile.Layout, uiProfile.Theme));
     }
 
     static SizeClass? ConvertDefaultSizeClass(string? defaultSizeClass)

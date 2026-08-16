@@ -19,7 +19,10 @@ namespace Cratis.Stage.Contracts.Scene;
 /// module-scoped. A document may declare several layouts so that different <c>ui profile</c>s can select
 /// different shells; every screen resolves against the first declared one, because
 /// <see cref="SceneScreens.Screen.Layout"/> holds a single name. Carrying the per-profile selection through
-/// would mean one <see cref="SceneScreens.Screen"/> per profile - a deliberate gap, not attempted here.
+/// would mean one <see cref="SceneScreens.Screen"/> per profile, which this translation deliberately does not
+/// do - per-target resolution is <see cref="RenderPlanner"/>'s job (Cratis/Stage#39), and a screen left on a
+/// shell its target does not select is reported as <see cref="RenderFindingKind.ScreenNotOnSelectedLayout"/>
+/// rather than silently rendered against the wrong one.
 /// </remarks>
 public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntaxVisitor<SceneApplication>
 {

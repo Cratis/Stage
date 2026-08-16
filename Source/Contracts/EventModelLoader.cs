@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Scene.Model.Packages;
 using Cratis.Screenplay;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Files;
@@ -11,9 +12,9 @@ using Cratis.Stage.Contracts.Screenplay;
 namespace Cratis.Stage.Contracts;
 
 /// <summary>
-/// Loads an <see cref="EventModel"/> or a <see cref="SceneApplication"/> from Screenplay <c>.play</c>
-/// source fed to the engine at startup. Every <c>.play</c> file beneath a directory is compiled and merged
-/// into a single model.
+/// Loads an <see cref="EventModel"/>, a <see cref="SceneApplication"/> or an <see cref="ApplicationRenderPlan"/>
+/// from Screenplay <c>.play</c> source fed to the engine at startup. Every <c>.play</c> file beneath a
+/// directory is compiled and merged into a single model.
 /// </summary>
 public static class EventModelLoader
 {
@@ -42,6 +43,29 @@ public static class EventModelLoader
     {
         var merged = await CompileAndMergeDirectory(directory);
         return new ScreenplaySceneVisitor().Visit(merged);
+    }
+
+    /// <summary>
+    /// Discovers and compiles every <c>.play</c> file beneath the given directory (using the <c>**/*.play</c> glob), merges
+    /// them into a single application, translates it into a <see cref="SceneApplication"/> and resolves that against the
+    /// given package catalog - one <see cref="RenderPlan"/> per deployment target (Cratis/Stage#39).
+    /// </summary>
+    /// <param name="directory">The directory to search for <c>.play</c> files.</param>
+    /// <param name="catalog">Every package available to resolve against - the declarations behind the names a <c>ui profile</c> lists.</param>
+    /// <returns>The <see cref="ApplicationRenderPlan"/> for every target the application ships.</returns>
+    /// <exception cref="InvalidEventModel">Thrown when the directory is missing, contains no <c>.play</c> files, or any file fails to compile.</exception>
+    /// <remarks>
+    /// Note where the two kinds of problem separate. A <em>compilation</em> error throws
+    /// <see cref="InvalidEventModel"/> here, before anything is translated or resolved - source that does not
+    /// compile has no model to plan. Everything discovered after that point is a <em>resolution</em> outcome:
+    /// valid source that turns out to be under-specified for one concrete target. Those never throw; they are
+    /// reported per target on the returned plan as <see cref="RenderFinding"/>s, so a caller sees every target's
+    /// problems in one pass and decides for itself which ones stop a build.
+    /// </remarks>
+    public static async Task<ApplicationRenderPlan> LoadRenderPlanFromDirectoryAsync(string directory, IReadOnlyList<ScenePackage> catalog)
+    {
+        var merged = await CompileAndMergeDirectory(directory);
+        return RenderPlanner.Plan(new ScreenplaySceneVisitor().Visit(merged), catalog);
     }
 
     /// <summary>

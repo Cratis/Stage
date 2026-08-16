@@ -38,7 +38,7 @@ public class when_rendering_a_reaction_the_clock_sets_off : Specification
         _rendered = _renderer.Render(new LocatedSlice(slice, ["Billing", "Invoices"]), new ApplicationSet([]), "Acme");
     }
 
-    [Fact] void should_report_both_triggers() => _rendered.Diagnostics.Count().ShouldEqual(2);
+    [Fact] void should_report_both_triggers() => _rendered.Diagnostics.Count.ShouldEqual(2);
     [Fact] void should_name_the_interval() => _rendered.Diagnostics.ShouldContain("Reaction 'OverdueChaser' is set off 'every 15 minutes', which has no Chronicle equivalent - it is not rendered");
     [Fact] void should_name_the_schedule() => _rendered.Diagnostics.ShouldContain("Reaction 'OverdueChaser' is set off 'at 08:00', which has no Chronicle equivalent - it is not rendered");
     [Fact] void should_say_so_in_the_generated_file() => _rendered.Content.ShouldContain("a Chronicle reactor is set off by an event, so this is not rendered");

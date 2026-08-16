@@ -3,8 +3,8 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
-using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.Specifications;
 using Xunit;
 

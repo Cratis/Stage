@@ -1,2 +1,4 @@
 - name: URLs of a running Stage
   href: urls.md
+- name: Render plans
+  href: render-plans.md

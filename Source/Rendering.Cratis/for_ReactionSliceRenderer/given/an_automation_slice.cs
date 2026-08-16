@@ -5,7 +5,7 @@ using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 
-namespace Cratis.Stage.Rendering.Cratis.for_ReactorSliceRenderer.given;
+namespace Cratis.Stage.Rendering.Cratis.for_ReactionSliceRenderer.given;
 
 public class an_automation_slice : Specification
 {
@@ -19,8 +19,9 @@ public class an_automation_slice : Specification
             [new PropertySyntax("dueDate", new TypeRefSyntax("DateTime", false, false, SourceLocation.Start), SourceLocation.Start)],
             SourceLocation.Start);
 
-        var codeTrigger = new ReactorTriggerSyntax(
-            "InvoiceRegistered",
+        var codeTrigger = new ReactionTriggerSyntax(
+            new NamedTriggerSourceSyntax("InvoiceRegistered", SourceLocation.Start),
+            [],
             null,
             new CodeBlockSyntax(
                 "csharp",
@@ -28,12 +29,11 @@ public class an_automation_slice : Specification
                 SourceLocation.Start),
             SourceLocation.Start);
 
-        var fileTrigger = new ReactorTriggerSyntax(
-            "InvoiceSent", new FileReferenceSyntax("Reactors/NotifyCustomerReactor.cs", SourceLocation.Start), null, SourceLocation.Start);
+        var fileTrigger = new ReactionTriggerSyntax(new NamedTriggerSourceSyntax("InvoiceSent", SourceLocation.Start), [], new FileReferenceSyntax("Reactors/NotifyCustomerReactor.cs", SourceLocation.Start), null, SourceLocation.Start);
 
-        var bareTrigger = new ReactorTriggerSyntax("InvoicePaid", null, null, SourceLocation.Start);
+        var bareTrigger = new ReactionTriggerSyntax(new NamedTriggerSourceSyntax("InvoicePaid", SourceLocation.Start), [], null, null, SourceLocation.Start);
 
-        var reactor = new ReactorSyntax(
+        var reaction = new ReactionSyntax(
             "OverdueInvoiceDetector", [codeTrigger, fileTrigger, bareTrigger], SourceLocation.Start, "Detects overdue invoices");
 
         var slice = new SliceSyntax(
@@ -44,7 +44,7 @@ public class an_automation_slice : Specification
             [],
             [],
             [],
-            [reactor],
+            [reaction],
             [],
             [],
             [],

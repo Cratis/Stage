@@ -33,6 +33,6 @@ public static class Declarations
     static IEnumerable<string> DeclaredNames(LocatedSlice slice) =>
         slice.Slice.Events.Select(@event => @event.Name)
             .Concat(slice.Slice.Commands.Select(command => command.Name))
-            .Concat(slice.Slice.Reactors.Select(reactor => reactor.Name))
+            .Concat(slice.Slice.Reactions.Select(reaction => reaction.Name))
             .Concat(slice.Slice.Projections.Select(projection => projection.ReadModel ?? projection.Name));
 }

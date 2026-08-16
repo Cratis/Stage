@@ -64,13 +64,13 @@ public class an_application_with_cross_slice_references : Specification
         _summarySlice = new SliceSyntax(
             SliceType.StateView, "Summary", [], [], [], [projection], [], [], [], [], [], SourceLocation.Start);
 
-        var reactor = new ReactorSyntax(
+        var reaction = new ReactionSyntax(
             "InvoiceNotifications",
-            [new ReactorTriggerSyntax("InvoiceRegistered", null, null, SourceLocation.Start)],
+            [new ReactionTriggerSyntax(new NamedTriggerSourceSyntax("InvoiceRegistered", SourceLocation.Start), [], null, null, SourceLocation.Start)],
             SourceLocation.Start);
 
         var notifySlice = new SliceSyntax(
-            SliceType.Automation, "Notify", [], [], [], [], [], [reactor], [], [], [], SourceLocation.Start);
+            SliceType.Automation, "Notify", [], [], [], [], [], [reaction], [], [], [], SourceLocation.Start);
 
         var registrationFeature = new FeatureSyntax("Registration", [], [registerSlice], SourceLocation.Start);
         _reportingFeature = new FeatureSyntax("Reporting", [], [_summarySlice], SourceLocation.Start);
@@ -89,15 +89,15 @@ public class an_application_with_cross_slice_references : Specification
             SourceLocation.Start);
 
         _codeOutput = new InMemoryCodeOutput();
-        var reactorRenderer = new ReactorSliceRenderer();
+        var reactionRenderer = new ReactionSliceRenderer();
         _renderer = new CratisRenderer(
             new a_stub_scaffolder(),
             new Dictionary<SliceType, ISliceRenderer>
             {
                 [SliceType.StateChange] = new StateChangeSliceRenderer(),
                 [SliceType.StateView] = new StateViewSliceRenderer(),
-                [SliceType.Automation] = reactorRenderer,
-                [SliceType.Translate] = reactorRenderer,
+                [SliceType.Automation] = reactionRenderer,
+                [SliceType.Translate] = reactionRenderer,
             },
             _codeOutput);
 

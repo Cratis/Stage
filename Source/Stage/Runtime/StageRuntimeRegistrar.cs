@@ -3,6 +3,7 @@
 
 using Cratis.Chronicle;
 using Cratis.Chronicle.Contracts;
+using Cratis.Chronicle.Contracts.EventStores;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Stage.Contracts;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,7 +39,7 @@ public static class StageRuntimeRegistrar
             await eventStore.Connection.Connect();
 
             var accessor = (IChronicleServicesAccessor)eventStore.Connection;
-            await accessor.Services.EventStores.Ensure(new EnsureEventStore { Name = eventStore.Name });
+            await accessor.Services.EventStores.EnsureEventStore(new EnsureEventStoreRequest { Name = eventStore.Name });
 
             // Event types come first — projections reference them, and the Workbench lists them.
             var eventTypes = StageChronicleDefinitions.BuildEventTypes(model);

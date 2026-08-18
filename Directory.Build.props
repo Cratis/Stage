@@ -17,16 +17,19 @@
             an init property, and this makes the alternative an error in the pull request that causes it.
         -->
         <!--
-            Off for the 3.0.0 major only. Screenplay 3 renamed reactor to reaction, and taking it renamed
+            Was off for the 3.0.0 major only. Screenplay 3 renamed reactor to reaction, and taking it renamed
             this repo's public surface with it - RenderedConstructs.Reactors became Reactions and
             ReactorSliceRenderer became ReactionSliceRenderer. Validating a deliberate major against the
             line it deliberately leaves has no answer to give, and the pack fails outright, which means no
             release: v3.0.0 is tagged with nothing on NuGet because of exactly this.
 
-            Turn back on with the baseline at the first 3.x that publishes.
+            Back on now, with the baseline at the latest published 3.x rather than at the first one. The
+            first published 3.x is 3.0.1 - 3.0.0 never reached NuGet - but every release from 3.0.1 to 3.5.0
+            was cut with this guard off, so baselining at 3.0.1 would report whatever those releases changed
+            as this pull request's doing. The latest is what a consumer actually has.
         -->
-        <EnablePackageValidation>false</EnablePackageValidation>
-        <PackageValidationBaselineVersion>2.4.0</PackageValidationBaselineVersion>
+        <EnablePackageValidation>true</EnablePackageValidation>
+        <PackageValidationBaselineVersion>3.5.0</PackageValidationBaselineVersion>
 
         <RunAnalyzersDuringBuild>True</RunAnalyzersDuringBuild>
         <RunAnalyzersDuringLiveAnalysis>True</RunAnalyzersDuringLiveAnalysis>

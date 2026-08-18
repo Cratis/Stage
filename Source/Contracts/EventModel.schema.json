@@ -12,6 +12,16 @@
       "type": "array",
       "description": "The module collections. Each collection becomes a grouping of modules on the canvas.",
       "items": { "$ref": "#/$defs/ModuleCollection" }
+    },
+    "Concepts": {
+      "type": "array",
+      "description": "The concepts the application declares - the strongly typed domain values everything else is written in terms of. Declared once for the whole application rather than per slice.",
+      "items": { "$ref": "#/$defs/ConceptDefinition" }
+    },
+    "Policies": {
+      "type": "array",
+      "description": "The policies the application declares - what the names a command's 'authorize' declaration refers to actually check.",
+      "items": { "$ref": "#/$defs/PolicyDefinition" }
     }
   },
   "additionalProperties": false,
@@ -65,7 +75,10 @@
         "Events": { "type": "array", "items": { "$ref": "#/$defs/EventDefinition" } },
         "Command": { "oneOf": [{ "$ref": "#/$defs/CommandDefinition" }, { "type": "null" }] },
         "ReadModel": { "oneOf": [{ "$ref": "#/$defs/ReadModelDefinition" }, { "type": "null" }] },
-        "Specifications": { "type": "array", "items": { "$ref": "#/$defs/Specification" } }
+        "Specifications": { "type": "array", "items": { "$ref": "#/$defs/Specification" } },
+        "Reactions": { "type": "array", "description": "The reactions declared within the slice - the behavior that runs when something happens.", "items": { "$ref": "#/$defs/ReactionDefinition" } },
+        "Screens": { "type": "array", "description": "The screens declared within the slice - which read models the slice's user interface shows, and which commands it offers.", "items": { "$ref": "#/$defs/ScreenDefinition" } },
+        "Captures": { "type": "array", "description": "The captures declared within the slice - the translations of external sources into events.", "items": { "$ref": "#/$defs/CaptureDefinition" } }
       },
       "additionalProperties": false
     },
@@ -310,6 +323,248 @@
         "Id": { "type": "string", "format": "uuid" },
         "Name": { "type": "string" }
       }
+    },
+    "ConceptDefinition": {
+      "type": "object",
+      "description": "A concept the application declares - a strongly typed domain value.",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Type": { "type": "string", "description": "The primitive type the concept is based on, or 'Enum' for an enumeration." },
+        "IsEnum": { "type": "boolean" },
+        "Values": { "type": "array", "description": "The values of the concept when it is an enumeration; empty otherwise.", "items": { "type": "string" } },
+        "Attributes": { "type": "array", "items": { "$ref": "#/$defs/ConceptAttribute" } }
+      },
+      "additionalProperties": false
+    },
+    "ConceptAttribute": {
+      "type": "object",
+      "description": "An attribute declared on a concept, such as '@pii' or '@sensitive', with the reason declared for it.",
+      "required": ["Name"],
+      "properties": {
+        "Name": { "type": "string", "description": "The name of the attribute, without the '@' prefix." },
+        "Reason": { "type": "string", "description": "The reason declared with it; empty when none was declared." }
+      },
+      "additionalProperties": false
+    },
+    "PolicyDefinition": {
+      "type": "object",
+      "description": "A policy the application declares - the named authorization rule an 'authorize' declaration refers to by name.",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Condition": { "oneOf": [{ "$ref": "#/$defs/PolicyCondition" }, { "type": "null" }], "description": "What the policy requires; null when it states no condition, which is the case for one implemented in code." },
+        "CodeLanguage": { "type": "string", "description": "The language tag of the inline code block implementing the policy; empty when the policy states its condition declaratively. Only the tag is carried, never the code." }
+      },
+      "additionalProperties": false
+    },
+    "PolicyCondition": {
+      "type": "object",
+      "description": "What a policy requires of the caller. Discriminated by 'kind': 'authenticated' requires only a signed-in caller, 'role' a named role, 'claim' a claim value, 'logical' combines two conditions. A tree rather than a flat list, because a flat list cannot distinguish 'A or B and C' from '(A or B) and C'.",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["authenticated", "role", "claim", "logical"] },
+        "Role": { "type": "string", "description": "Role only - the name of the required role." },
+        "Claim": { "type": "string", "description": "Claim only - the name of the claim the caller must carry." },
+        "MatchesSubject": { "type": "boolean", "description": "Claim only - whether the claim is matched against the subject rather than against Value." },
+        "ValueKind": { "type": "string", "enum": ["CommandProperty", "Literal", "Occurred", "Identity", "Environment", "Template", "Unsupported"] },
+        "Value": { "type": "string", "description": "Claim only - the value the claim is matched against, interpreted according to ValueKind. Empty when matched against the subject." },
+        "Left": { "$ref": "#/$defs/PolicyCondition" },
+        "Operator": { "type": "string", "enum": ["And", "Or"], "description": "Logical only - the operator combining the conditions." },
+        "Right": { "$ref": "#/$defs/PolicyCondition" }
+      },
+      "additionalProperties": false
+    },
+    "ReactionDefinition": {
+      "type": "object",
+      "description": "A reaction declared within a slice - behavior that runs when something happens.",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Description": { "type": "string", "description": "What the reaction does; empty when none is declared." },
+        "Where": { "oneOf": [{ "$ref": "#/$defs/ProducedEventCondition" }, { "type": "null" }], "description": "The condition narrowing which occurrences run the reaction; null when every occurrence does." },
+        "Triggers": { "type": "array", "items": { "$ref": "#/$defs/ReactionTrigger" } }
+      },
+      "additionalProperties": false
+    },
+    "ReactionTrigger": {
+      "type": "object",
+      "description": "One trigger clause of a reaction - what sets it off, and what it does when set off.",
+      "properties": {
+        "Source": { "$ref": "#/$defs/ReactionTriggerSource" },
+        "Data": { "type": "array", "description": "The names of the values of the occurrence the reaction uses.", "items": { "type": "string" } },
+        "Description": { "type": "string" },
+        "File": { "type": "string", "description": "The relative path of the file holding the implementation; empty when the implementation is not in a file. The path is carried, the code is not." },
+        "Produces": { "type": "array", "items": { "$ref": "#/$defs/ProducedEvent" } },
+        "Invokes": { "type": "array", "items": { "$ref": "#/$defs/InvokedCommand" } }
+      },
+      "additionalProperties": false
+    },
+    "ReactionTriggerSource": {
+      "type": "object",
+      "description": "What causes a reaction to run. Discriminated by 'kind': 'named' is an event or a declared trigger, 'interval' runs on an interval, 'schedule' runs at a time of day.",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["named", "interval", "schedule"] },
+        "Name": { "type": "string", "description": "Named only - the name of the event or trigger." },
+        "Amount": { "type": "integer", "description": "Interval only - how many units pass between runs." },
+        "Unit": { "type": "string", "enum": ["Seconds", "Minutes", "Hours", "Days"] },
+        "Time": { "type": "string", "description": "Schedule only - the time of day the reaction runs at." },
+        "DayOfWeek": { "type": ["string", "null"], "description": "Schedule only - the day of the week it runs on; null when it runs every day." },
+        "DayOfMonth": { "type": ["integer", "null"], "description": "Schedule only - the day of the month it runs on; null when it runs every day." }
+      },
+      "additionalProperties": false
+    },
+    "InvokedCommand": {
+      "type": "object",
+      "description": "A command a reaction dispatches - the modeled 'invokes' declaration. Kept apart from ProducedEvent because a command is not produced but asked for, and may still be rejected.",
+      "required": ["Command"],
+      "properties": {
+        "Command": { "type": "string" },
+        "Mappings": { "type": "array", "items": { "$ref": "#/$defs/ProducedEventProperty" } }
+      },
+      "additionalProperties": false
+    },
+    "ScreenDefinition": {
+      "type": "object",
+      "description": "A screen declared within a slice - which read models it shows, and which commands it offers. The presentation structure of a screen is a parallel output (Cratis.Scene.Model), not part of this one.",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "File": { "type": "string", "description": "The relative path of the file the screen lives in; empty when the screen is declared inline." },
+        "Data": { "type": "array", "items": { "$ref": "#/$defs/ScreenDataBinding" } },
+        "Actions": { "type": "array", "items": { "$ref": "#/$defs/ScreenAction" } }
+      },
+      "additionalProperties": false
+    },
+    "ScreenDataBinding": {
+      "type": "object",
+      "description": "A read model a screen binds to - the modeled 'data' directive.",
+      "required": ["ReadModel"],
+      "properties": {
+        "ReadModel": { "type": "string" },
+        "Query": { "type": "string", "description": "The name of the query providing the data." },
+        "By": { "type": ["string", "null"], "description": "The parameter the query is keyed by; null when it is not keyed." }
+      },
+      "additionalProperties": false
+    },
+    "ScreenAction": {
+      "type": "object",
+      "description": "A command a screen exposes - the modeled 'action' directive.",
+      "required": ["Command"],
+      "properties": {
+        "Command": { "type": "string" },
+        "Label": { "type": ["string", "null"] },
+        "NavigatesTo": { "type": ["string", "null"], "description": "The screen navigated to once the action succeeds; null when it navigates nowhere." }
+      },
+      "additionalProperties": false
+    },
+    "CaptureDefinition": {
+      "type": "object",
+      "description": "A capture declared within a slice - the translation of an external source into events.",
+      "required": ["Name"],
+      "properties": {
+        "Id": { "type": "string", "format": "uuid" },
+        "Name": { "type": "string" },
+        "Source": { "oneOf": [{ "$ref": "#/$defs/CaptureSource" }, { "type": "null" }] },
+        "Key": { "type": ["string", "null"], "description": "The source property identifying an instance." },
+        "Map": { "type": "array", "items": { "$ref": "#/$defs/CaptureMapOperation" } },
+        "Appends": { "type": "array", "items": { "$ref": "#/$defs/CaptureAppend" } },
+        "Children": { "type": "array", "items": { "$ref": "#/$defs/CaptureChildren" } },
+        "Nested": { "type": "array", "items": { "$ref": "#/$defs/CaptureNested" } }
+      },
+      "additionalProperties": false
+    },
+    "CaptureSource": {
+      "type": "object",
+      "description": "Where a capture reads from. The kind stays the text the document wrote rather than becoming an enumeration, because the set of sources is open.",
+      "properties": {
+        "Kind": { "type": "string", "description": "The kind of source, such as 'api', 'webhook' or 'message'." },
+        "Settings": { "type": "array", "items": { "$ref": "#/$defs/CaptureSourceSetting" } }
+      },
+      "additionalProperties": false
+    },
+    "CaptureSourceSetting": {
+      "type": "object",
+      "description": "A single setting of a capture source, such as 'route /invoices' or 'poll 5m'.",
+      "properties": {
+        "Name": { "type": "string" },
+        "Value": { "type": "string", "description": "The verbatim value of the setting." }
+      },
+      "additionalProperties": false
+    },
+    "CaptureMapOperation": {
+      "type": "object",
+      "description": "One operation in a capture's 'map' body. Discriminated by 'kind': 'mapping' fills one property from a source value, 'split' fills several from one.",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["mapping", "split"] },
+        "Property": { "type": "string", "description": "Mapping only - the target property." },
+        "SourceKind": { "type": "string", "enum": ["CommandProperty", "Literal", "Occurred", "Identity", "Environment", "Template", "Unsupported"] },
+        "Source": { "type": "string", "description": "The source, interpreted according to SourceKind." },
+        "Translations": { "type": "array", "items": { "$ref": "#/$defs/CaptureTranslation" } },
+        "Separator": { "type": "string", "description": "Split only - the separator the value is split by." },
+        "Targets": { "type": "array", "description": "Split only - the target properties receiving the parts, in order.", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "CaptureTranslation": {
+      "type": "object",
+      "description": "A single value translation within a mapping, such as '\"utkast\" => draft'.",
+      "properties": {
+        "From": { "type": "string" },
+        "To": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "CaptureAppend": {
+      "type": "object",
+      "description": "An event a capture appends - the modeled 'append' declaration.",
+      "required": ["Event"],
+      "properties": {
+        "Event": { "type": "string" },
+        "When": { "oneOf": [{ "$ref": "#/$defs/CaptureTrigger" }, { "type": "null" }], "description": "What makes the append happen; null when the capture appends on every change it observes." },
+        "Mappings": { "type": "array", "items": { "$ref": "#/$defs/ProducedEventProperty" } },
+        "Tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "CaptureTrigger": {
+      "type": "object",
+      "description": "What makes a capture append happen - the modeled 'when' clause.",
+      "properties": {
+        "Kind": { "type": "string", "enum": ["PropertyChanged", "Added", "Removed", "Changed", "LogicalOr", "LogicalAnd", "ValueTransition", "Expression"] },
+        "Properties": { "type": "array", "items": { "type": "string" } },
+        "FromValue": { "type": ["string", "null"] },
+        "ToValue": { "type": ["string", "null"] },
+        "Expression": { "type": ["string", "null"], "description": "The template expression that must evaluate to true." }
+      },
+      "additionalProperties": false
+    },
+    "CaptureChildren": {
+      "type": "object",
+      "description": "A 'children' block of a capture - changes within a child collection of the source.",
+      "properties": {
+        "Property": { "type": "string" },
+        "IdentifiedBy": { "type": "string", "description": "The property identifying a child instance." },
+        "Map": { "type": "array", "items": { "$ref": "#/$defs/CaptureMapOperation" } },
+        "Appends": { "type": "array", "items": { "$ref": "#/$defs/CaptureAppend" } }
+      },
+      "additionalProperties": false
+    },
+    "CaptureNested": {
+      "type": "object",
+      "description": "A 'nested' block of a capture - a single nullable child object of the source.",
+      "properties": {
+        "Property": { "type": "string" },
+        "Map": { "type": "array", "items": { "$ref": "#/$defs/CaptureMapOperation" } },
+        "Appends": { "type": "array", "items": { "$ref": "#/$defs/CaptureAppend" } }
+      },
+      "additionalProperties": false
     }
   }
 }

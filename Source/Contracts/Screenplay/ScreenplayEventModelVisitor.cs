@@ -10,6 +10,12 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// engine runs. Screenplay has no collection concept, so every module is wrapped in a single <see cref="ModuleCollection"/>;
 /// identifiers are derived deterministically from names so re-compiling the same source yields the same identity graph.
 /// </summary>
+/// <remarks>
+/// The concepts and policies an application declares live on the model rather than on any one slice, which is where
+/// the language puts them. The concepts are read twice on purpose and for two different reasons: to resolve the type
+/// of a property typed as one, which is what <see cref="SchemaSynthesizer"/> needs, and to carry the declarations
+/// themselves, which a schema cannot hold — it only names the concepts some property happens to use.
+/// </remarks>
 public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<EventModel>
 {
     /// <inheritdoc/>
@@ -33,7 +39,11 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         var collection = new ModuleCollection(collectionId, modelId, collectionModules);
 
-        return new EventModel(modelId, modelName, [collection]);
+        return new EventModel(modelId, modelName, [collection])
+        {
+            Concepts = ConceptConverter.Convert(syntax.Concepts, modelName),
+            Policies = PolicyConverter.Convert(syntax.Policies, modelName)
+        };
     }
 
     static Module ConvertModule(

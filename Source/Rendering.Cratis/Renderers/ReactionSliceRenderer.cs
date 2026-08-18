@@ -44,7 +44,7 @@ public class ReactionSliceRenderer : ISliceRenderer
 
         foreach (var @event in slice.Slice.Events)
         {
-            EventRenderer.Render(builder, @event, applicationSet, diagnostics);
+            EventRenderer.Render(builder, @event, applicationSet, diagnostics, slice.Slice.Constraints);
         }
 
         foreach (var reaction in slice.Slice.Reactions)

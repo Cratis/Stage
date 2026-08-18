@@ -30,8 +30,12 @@ public class when_rendering_an_application_with_authorization : an_application_w
         SliceContent("Summary").ShouldContain("[Roles(\"Administrator\", \"Auditor\")]");
     [Fact] void should_report_the_queries_it_does_not_render() =>
         _error.ToString().ShouldContain("Slice 'Summary' declares 2 query declaration(s) with no rendered equivalent");
-    [Fact] void should_report_the_constraint_it_does_not_render() =>
-        _error.ToString().ShouldContain("Slice 'Register' declares 1 constraint declaration(s) with no rendered equivalent");
+    [Fact] void should_mark_the_property_the_constraint_keeps_unique() =>
+        SliceContent("Register").ShouldContain("[property: Unique(\"UniqueInvoiceNumber\")]");
+    [Fact] void should_import_the_constraint_namespace_into_the_command_slice() =>
+        SliceContent("Register").ShouldContain("using Cratis.Chronicle.Events.Constraints;");
+    [Fact] void should_no_longer_report_the_constraint_as_unrendered() =>
+        _error.ToString().ShouldNotContain("Slice 'Register' declares 1 constraint declaration(s)");
     [Fact] void should_report_the_screen_it_does_not_render() =>
         _error.ToString().ShouldContain("Slice 'Summary' declares 1 screen declaration(s) with no rendered equivalent");
     [Fact] void should_report_the_personas_it_does_not_render() =>

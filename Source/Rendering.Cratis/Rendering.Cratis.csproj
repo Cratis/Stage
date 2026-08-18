@@ -38,6 +38,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="../Contracts/Contracts.csproj" />

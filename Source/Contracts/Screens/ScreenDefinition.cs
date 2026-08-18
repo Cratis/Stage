@@ -32,11 +32,21 @@ public record ScreenAction(string Command, string? Label, string? NavigatesTo);
 /// <param name="Actions">The commands the screen offers, in declaration order.</param>
 /// <remarks>
 /// What is carried here is the screen's place in the event model - the read models it reads and the commands
-/// it sends - and deliberately not its presentation. The full presentation structure of a screen, with its
-/// templates, slots, arrangements, widgets and theming, is already translated in whole by
+/// it sends - and deliberately not its presentation, which is translated in whole by
 /// <see cref="EventModelLoader.LoadSceneApplicationFromDirectoryAsync"/> into
-/// <see cref="Scene.SceneApplication"/>, which is a parallel output of the same source rather than a part of
-/// this one. Restating it here would give the same source two encodings to disagree about.
+/// <see cref="Scene.SceneApplication"/>, a parallel output of the same source rather than a part of this one.
+/// <para>
+/// That parallel output is not presentation-only, and this record does not fill a gap in it.
+/// <see cref="Scene.ScreenDirectiveConverter"/> reads the same <c>data</c> and <c>action</c> directives, and
+/// on their fields carries more than this does - <c>isCollection</c> and <c>navigateByParameter</c> appear
+/// there and not here - while <see cref="Scene.ScreenConverter"/> also resolves a screen's forms from the
+/// commands its actions reference. The two therefore do give the same source two encodings of the same
+/// information, and what this one contributes is the shape rather than the content:
+/// <see cref="Scene.SceneApplication"/> holds it as untyped <c>object?</c> entries in the property bag of
+/// <c>core:data</c> and <c>core:action</c> components nested in a screen's slot content, reachable only by
+/// walking an element tree and matching component names as strings, where <c>Data</c> and <c>Actions</c> are
+/// typed lists.
+/// </para>
 /// <para>
 /// Bindings and actions are collected from the whole screen body, however deeply a section, slot or template
 /// reference nests them, so nesting changes where they appear on the screen and never whether they appear

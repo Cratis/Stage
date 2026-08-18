@@ -12,10 +12,20 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// </summary>
 /// <remarks>
 /// Named for what it converts rather than for the construct, because it deliberately converts only part of one.
-/// A screen's presentation - its templates, slots, arrangements, widgets and theming - is translated in whole
-/// by <see cref="Scene.ScreenConverter"/> into <see cref="Scene.SceneApplication"/>, a parallel output of the
-/// same source. What that translation has no place for is the screen's standing in the event model, which is
-/// what this carries.
+/// A screen is translated in whole by <see cref="Scene.ScreenConverter"/> into
+/// <see cref="Scene.SceneApplication"/>, a parallel output of the same source, and that translation is not
+/// confined to presentation: <see cref="Scene.ScreenDirectiveConverter"/> reads the same
+/// <see cref="ScreenDataSyntax"/> and <see cref="ScreenActionSyntax"/> nodes this does, and on their fields
+/// carries more of them - <c>isCollection</c> on data and <c>navigateByParameter</c> on actions have no
+/// counterpart here. <see cref="Scene.ScreenConverter"/> additionally resolves a screen's forms by walking
+/// every command its actions reference.
+/// <para>
+/// So what differs is the encoding, not the information. <see cref="Scene.SceneApplication"/> holds these as
+/// untyped <c>object?</c> entries in the property bag of <c>core:data</c> and <c>core:action</c> components
+/// nested in a screen's slot content, which a consumer reaches by walking an element tree and matching
+/// component names as strings; this produces two typed lists instead. That is a difference in ergonomics for
+/// an event-model consumer, not in fidelity.
+/// </para>
 /// <para>
 /// Directives are collected through sections, slots and template references rather than off the top level
 /// only, so how deeply a screen nests its content changes where the content appears and never whether it is

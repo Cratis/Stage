@@ -35,7 +35,16 @@ public class StateViewSliceRenderer : ISliceRenderer
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
         var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
 
-        UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.ReadModel, diagnostics);
+        // A slice may declare several projections. Only the first is rendered; the ones left out are reported by
+        // UnrenderedConstructs rather than dropped in silence. Authorization is no longer what holds this back —
+        // a query names the read model it reads with its return type, so each read model's guard is attributable
+        // and the ones that are dropped no longer widen the one that survives. That same return type decides which
+        // queries this file can hold a method for, so the read model's name is what the reporting is measured
+        // against and has to be known before anything is reported.
+        var projection = slice.Slice.Projections.FirstOrDefault();
+        var readModel = projection is null ? null : ReadModelName(projection);
+
+        UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.ReadModel, diagnostics, readModel);
 
         foreach (var @event in slice.Slice.Events)
         {
@@ -44,13 +53,9 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         var referenced = new List<string>(EventRenderer.ReferencedNames(slice.Slice.Events));
 
-        // A slice may declare several projections. Only the first is rendered; the ones left out are reported by
-        // UnrenderedConstructs rather than dropped in silence. Authorization is no longer what holds this back —
-        // a query names the read model it reads with its return type, so each read model's guard is attributable
-        // and the ones that are dropped no longer widen the one that survives.
-        if (slice.Slice.Projections.FirstOrDefault() is { } projection)
+        if (projection is not null)
         {
-            RenderReadModel(builder, projection, slice.Slice.Queries, applicationSet, referenced, diagnostics);
+            RenderReadModel(builder, projection, readModel!, slice.Slice.Queries, applicationSet, referenced, diagnostics);
         }
 
         foreach (var @namespace in ReferencedNamespaces.Resolve(referenced, applicationSet, rootNamespace, ownNamespace))
@@ -62,15 +67,20 @@ public class StateViewSliceRenderer : ISliceRenderer
         return new RenderedFile(Path.Combine([.. path]), builder.ToString()) { Diagnostics = diagnostics };
     }
 
+    // The C# type name the read model rendered from a projection takes — what a query's return type has to name
+    // for its method to belong on that read model.
+    static string ReadModelName(ProjectionSyntax projection) =>
+        Identifiers.ToPascalCase(projection.ReadModel ?? projection.Name);
+
     static void RenderReadModel(
         CSharpCodeBuilder builder,
         ProjectionSyntax projection,
+        string typeName,
         IEnumerable<QuerySyntax> queries,
         ApplicationSet applicationSet,
         List<string> referenced,
         List<string> diagnostics)
     {
-        var typeName = Identifiers.ToPascalCase(projection.ReadModel ?? projection.Name);
         var fromBlocks = projection.Blocks.OfType<FromSyntax>().ToArray();
         var events = EventPropertyIndex.Build(applicationSet);
         var properties = InferProperties(fromBlocks, events, applicationSet, diagnostics);

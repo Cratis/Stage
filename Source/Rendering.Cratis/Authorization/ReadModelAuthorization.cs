@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Syntax;
-using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Renderers;
 
 namespace Cratis.Stage.Rendering.Cratis.Authorization;
 
@@ -15,7 +15,9 @@ namespace Cratis.Stage.Rendering.Cratis.Authorization;
 /// A slice declares as many read models as its behavior needs, and a query names the one it reads with its
 /// return type. Authorization has to follow that attribution: a query returning <c>OverdueInvoices</c> says
 /// nothing about who may read <c>InvoiceSummary</c>, so the union guarding a read model is taken over its own
-/// queries and no others.
+/// queries and no others. Which queries those are is <see cref="QueryRenderer.Reads"/>, the same rule that decides
+/// which read model a query's rendered method lives on — a guard drawn from one set of queries and a method
+/// rendered for another would guard something nobody reads.
 /// </para>
 /// <para>
 /// The attribution is a correctness concern rather than a tidy one, because getting it wrong fails in the
@@ -47,7 +49,7 @@ public static class ReadModelAuthorization
         string readModel, IEnumerable<QuerySyntax> queries, ApplicationSet applicationSet, ICollection<string> diagnostics)
     {
         var declared = queries.ToArray();
-        var own = declared.Where(query => Reads(query, readModel)).ToArray();
+        var own = declared.Where(query => QueryRenderer.Reads(query, readModel)).ToArray();
         var subject = $"Read model '{readModel}'";
 
         if (own.Length == 0 && declared.Length > 0)
@@ -61,14 +63,4 @@ public static class ReadModelAuthorization
 
         return AuthorizationRenderer.Render(own.Select(query => query.Authorize), applicationSet, subject, diagnostics);
     }
-
-    /// <summary>
-    /// Whether a query reads the given read model. The return type names it, whether the query answers with one
-    /// instance or a collection of them.
-    /// </summary>
-    /// <param name="query">The <see cref="QuerySyntax"/> to attribute.</param>
-    /// <param name="readModel">The rendered read model's C# type name.</param>
-    /// <returns>True when the query reads that read model.</returns>
-    static bool Reads(QuerySyntax query, string readModel) =>
-        Identifiers.ToPascalCase(query.ReturnType.Name).Equals(readModel, StringComparison.Ordinal);
 }

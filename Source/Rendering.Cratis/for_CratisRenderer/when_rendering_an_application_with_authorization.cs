@@ -28,8 +28,17 @@ public class when_rendering_an_application_with_authorization : an_application_w
         SliceContent("Archive").ShouldContain("[AllowAnonymous]");
     [Fact] void should_guard_the_read_model_with_what_its_queries_authorize() =>
         SliceContent("Summary").ShouldContain("[Roles(\"Administrator\", \"Auditor\")]");
-    [Fact] void should_report_the_queries_it_does_not_render() =>
-        _error.ToString().ShouldContain("Slice 'Summary' declares 2 query declaration(s) with no rendered equivalent");
+    [Fact] void should_name_the_query_methods_after_the_queries_the_document_declares() =>
+        SliceContent("Summary").ShouldContain("public static IQueryable<InvoiceSummary> All(");
+    [Fact] void should_render_every_declared_query_not_only_the_first() =>
+        SliceContent("Summary").ShouldContain("public static IQueryable<InvoiceSummary> Mine(");
+    [Fact] void should_not_invent_a_query_the_document_never_declared() =>
+        SliceContent("Summary").ShouldNotContain("InvoiceSummaryById");
+
+    // Both of this slice's queries are plain declarations, so both now render as methods named after them and
+    // neither is reported. Only a query stating narrowing it cannot get - a filter, or a performer - still is.
+    [Fact] void should_not_report_a_query_it_now_renders() =>
+        _error.ToString().ShouldNotContain("Slice 'Summary' declares 2 query declaration(s) with no rendered equivalent");
     [Fact] void should_mark_the_property_the_constraint_keeps_unique() =>
         SliceContent("Register").ShouldContain("[property: Unique(\"UniqueInvoiceNumber\")]");
     [Fact] void should_import_the_constraint_namespace_into_the_command_slice() =>

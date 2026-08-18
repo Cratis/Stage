@@ -115,11 +115,8 @@ public class StateViewSliceRenderer : ISliceRenderer
         var keyType = keyProperty is null ? "Guid" : properties.First(property => property.Name == keyProperty).Type.ToTypeSyntax();
         var idParameterName = keyProperty is null ? "id" : Identifiers.ToCamelCase(keyProperty);
 
-        builder.BlankLine()
-            .Line($"public static IQueryable<{typeName}> All{Pluralizer.Pluralize(typeName)}(IMongoCollection<{typeName}> collection) => collection.AsQueryable();")
-            .Line($"public static Task<{typeName}?> {typeName}ById(IReadModels readModels, {keyType} {idParameterName}) => " +
-                  $"readModels.GetInstanceById<{typeName}>((EventSourceId){idParameterName});")
-            .EndBlock();
+        QueryRenderer.Render(builder, typeName, keyType, idParameterName, queries);
+        builder.EndBlock();
     }
 
     static void ReportUnrenderedBlocks(CSharpCodeBuilder builder, ProjectionSyntax projection, string typeName, List<string> diagnostics)

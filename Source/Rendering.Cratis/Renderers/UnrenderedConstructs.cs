@@ -60,10 +60,13 @@ public static class UnrenderedConstructs
             rendered.HasFlag(RenderedConstructs.Reactions) ? 0 : slice.Reactions.Count(),
             "reaction",
             "nothing reacts to the events in the rendered application.");
+        // A declared query now renders as a method named after it. What is still reported is the narrowing it
+        // states and cannot get - a filter, or a performer holding the body - since the method is rendered either
+        // way and a reader has no other way to learn it answers less than the document says.
         yield return (
-            slice.Queries.Count(),
+            slice.Queries.Count(query => !QueryRenderer.IsFullyRendered(query)),
             "query",
-            "the read model carries the fixed all/by-id pair instead, guarded by the union of the authorization declared by the queries that read it.");
+            "it is rendered as a method reading the whole read model, without the narrowing the document states.");
         yield return (
             slice.Queries.Count(query => query.Performer is not null),
             "query performer",

@@ -60,6 +60,7 @@ public static class UnrenderedConstructs
             rendered.HasFlag(RenderedConstructs.Reactions) ? 0 : slice.Reactions.Count(),
             "reaction",
             "nothing reacts to the events in the rendered application.");
+
         // A declared query now renders as a method named after it. What is still reported is the narrowing it
         // states and cannot get - a filter, or a performer holding the body - since the method is rendered either
         // way and a reader has no other way to learn it answers less than the document says.

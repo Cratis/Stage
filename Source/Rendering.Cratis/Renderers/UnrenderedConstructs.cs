@@ -20,22 +20,60 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 public static class UnrenderedConstructs
 {
     /// <summary>
+    /// Reports every construct family the slice declares that the rendered file has no equivalent for, for a
+    /// renderer that emits no read model.
+    /// </summary>
+    /// <param name="builder">The <see cref="CSharpCodeBuilder"/> to emit the in-file notes to.</param>
+    /// <param name="slice">The <see cref="SliceSyntax"/> being rendered.</param>
+    /// <param name="rendered">What the calling renderer emits; everything beyond it is reported.</param>
+    /// <param name="diagnostics">Collects what could not be rendered faithfully.</param>
+    public static void Report(CSharpCodeBuilder builder, SliceSyntax slice, RenderedConstructs rendered, ICollection<string> diagnostics) =>
+        Report(builder, slice, rendered, diagnostics, null);
+
+    /// <summary>
     /// Reports every construct family the slice declares that the rendered file has no equivalent for.
     /// </summary>
     /// <param name="builder">The <see cref="CSharpCodeBuilder"/> to emit the in-file notes to.</param>
     /// <param name="slice">The <see cref="SliceSyntax"/> being rendered.</param>
     /// <param name="rendered">What the calling renderer emits; everything beyond it is reported.</param>
     /// <param name="diagnostics">Collects what could not be rendered faithfully.</param>
-    public static void Report(CSharpCodeBuilder builder, SliceSyntax slice, RenderedConstructs rendered, ICollection<string> diagnostics)
+    /// <param name="readModel">The read model the calling renderer emits, and <see langword="null"/> when it emits
+    /// none. A query's method lives on the read model its return type names, so this is what decides which of the
+    /// slice's queries the file can hold a method for at all.</param>
+    public static void Report(
+        CSharpCodeBuilder builder,
+        SliceSyntax slice,
+        RenderedConstructs rendered,
+        ICollection<string> diagnostics,
+        string? readModel)
     {
-        foreach (var (count, keyword, consequence) in Families(slice, rendered).Where(family => family.Count > 0))
+        foreach (var (count, keyword, consequence) in Families(slice, rendered, readModel).Where(family => family.Count > 0))
         {
             builder.Line($"// TODO: {count} {keyword} declaration(s) not rendered — {consequence}");
             diagnostics.Add($"Slice '{slice.Name}' declares {count} {keyword} declaration(s) with no rendered equivalent — {consequence}");
         }
+
+        ReportQueriesReadingAnotherReadModel(builder, slice, readModel, diagnostics);
     }
 
-    static IEnumerable<(int Count, string Keyword, string Consequence)> Families(SliceSyntax slice, RenderedConstructs rendered)
+    // Reported one by one rather than counted, because which query it is and what it returns is the whole content
+    // of the report: the alternative to leaving the method out is rendering it against the read model that is here,
+    // which answers with a different read model than the document states — a value nobody wrote, and worse than a
+    // missing method.
+    static void ReportQueriesReadingAnotherReadModel(
+        CSharpCodeBuilder builder, SliceSyntax slice, string? readModel, ICollection<string> diagnostics)
+    {
+        foreach (var query in slice.Queries.Where(query => !QueryRenderer.HasRenderedMethod(query, readModel)))
+        {
+            builder.Line($"// TODO: query '{query.Name}' not rendered — it returns '{query.ReturnType.Name}', which is not the read model rendered here");
+            diagnostics.Add(
+                $"Query '{query.Name}' returns '{query.ReturnType.Name}', which is not the read model rendered here — no method is " +
+                "rendered for it, since rendering one against the read model that is here would answer with a read model the " +
+                "document does not ask it for.");
+        }
+    }
+
+    static IEnumerable<(int Count, string Keyword, string Consequence)> Families(SliceSyntax slice, RenderedConstructs rendered, string? readModel)
     {
         yield return (
             slice.Commands.Count() - (rendered.HasFlag(RenderedConstructs.Command) ? 1 : 0),
@@ -63,13 +101,14 @@ public static class UnrenderedConstructs
 
         // A declared query now renders as a method named after it. What is still reported is the narrowing it
         // states and cannot get - a filter, or a performer holding the body - since the method is rendered either
-        // way and a reader has no other way to learn it answers less than the document says.
+        // way and a reader has no other way to learn it answers less than the document says. Only the queries that
+        // do get a method are counted here; a query with no method at all is reported whole, on its own.
         yield return (
-            slice.Queries.Count(query => !QueryRenderer.IsFullyRendered(query)),
+            slice.Queries.Count(query => QueryRenderer.HasRenderedMethod(query, readModel) && !QueryRenderer.IsFullyRendered(query)),
             "query",
             "it is rendered as a method reading the whole read model, without the narrowing the document states.");
         yield return (
-            slice.Queries.Count(query => query.Performer is not null),
+            slice.Queries.Count(query => QueryRenderer.HasRenderedMethod(query, readModel) && query.Performer is not null),
             "query performer",
             "the query logic is not rendered.");
 

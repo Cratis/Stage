@@ -24,6 +24,13 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// collection's change stream. It used to render as its one-shot counterpart and say nothing about it, so a
 /// document asking for a query that keeps pushing produced one that answered once and looked correct.
 /// </para>
+/// <para>
+/// A query names the read model it reads with its return type, and only the queries naming <i>this</i> read model
+/// are rendered onto it. Every declared query used to be rendered against the slice's first projection whatever
+/// its return type said, so a query returning <c>OverdueInvoices</c> came out reading <c>InvoiceSummary</c> —
+/// a different read model, substituted in silence. What a read model is not the return type of is reported by
+/// <see cref="UnrenderedConstructs"/> instead of rendered against the wrong one.
+/// </para>
 /// </remarks>
 public static class QueryRenderer
 {
@@ -40,7 +47,7 @@ public static class QueryRenderer
     /// <param name="typeName">The rendered read model type name.</param>
     /// <param name="keyType">The type of the read model's key.</param>
     /// <param name="keyParameterName">The name the key is rendered under.</param>
-    /// <param name="queries">The queries the slice declares.</param>
+    /// <param name="queries">The queries the slice declares, across all of its read models.</param>
     public static void Render(
         CSharpCodeBuilder builder,
         string typeName,
@@ -48,32 +55,62 @@ public static class QueryRenderer
         string keyParameterName,
         IEnumerable<QuerySyntax> queries)
     {
-        var declared = queries.ToArray();
+        var own = queries.Where(query => Reads(query, typeName)).ToArray();
 
         builder.BlankLine();
 
-        if (declared.Length == 0)
+        if (own.Length == 0)
         {
             RenderTheFixedPair(builder, typeName, keyType, keyParameterName);
             return;
         }
 
-        if (declared.Any(query => query.IsObservable))
+        if (own.Any(query => query.IsObservable))
         {
             builder.Using(ObservableNamespace);
         }
 
-        foreach (var query in declared)
+        foreach (var query in own)
         {
             builder.Line(Signature(query, typeName, keyType, keyParameterName));
         }
     }
 
     /// <summary>
-    /// Determines whether a query has a rendered method, so what does not can be reported.
+    /// Whether a query reads the given read model. The return type names it, whether the query answers with one
+    /// instance or a collection of them.
+    /// </summary>
+    /// <param name="query">The <see cref="QuerySyntax"/> to attribute.</param>
+    /// <param name="readModel">The rendered read model's C# type name.</param>
+    /// <returns>True when the query reads that read model.</returns>
+    /// <remarks>
+    /// The one place the attribution is decided, so the method rendered for a query and the authorization guarding
+    /// the read model it reads cannot disagree about which read model that is.
+    /// </remarks>
+    public static bool Reads(QuerySyntax query, string readModel) =>
+        Identifiers.ToPascalCase(query.ReturnType.Name).Equals(readModel, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Determines whether a query is rendered as a method at all, so what is not can be reported.
     /// </summary>
     /// <param name="query">The query to consider.</param>
+    /// <param name="readModel">The read model rendered in the file, or <see langword="null"/> when none is.</param>
     /// <returns>True when a method is rendered for it.</returns>
+    /// <remarks>
+    /// A method for a query lives on the read model the query returns, so a slice rendering no read model — or one
+    /// the query does not name — renders no method for it. Rendering it against the read model that <i>is</i> there
+    /// would answer with a different read model than the document states, which is an invented value rather than a
+    /// missing one.
+    /// </remarks>
+    public static bool HasRenderedMethod(QuerySyntax query, string? readModel) =>
+        readModel is not null && Reads(query, readModel);
+
+    /// <summary>
+    /// Determines whether a query's rendered method answers everything the document states, so what does not can
+    /// be reported.
+    /// </summary>
+    /// <param name="query">The query to consider.</param>
+    /// <returns>True when the rendered method answers what the document states.</returns>
     /// <remarks>
     /// A query whose logic lives in a performer is not rendered — the document delegates the body to a file or an
     /// inline block, and neither is read here. Its name is still rendered, so the application answers to the

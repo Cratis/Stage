@@ -38,6 +38,7 @@ public class when_reporting_what_a_slice_declares : a_slice_declaring_every_fami
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 reaction declaration(s) with no rendered equivalent — nothing reacts to the events in the " +
             "rendered application.");
+
     // The query is still reported because this slice's one query holds a performer — its body is not rendered.
     // A plain declared query now renders as a method named after it and is no longer reported at all.
     [Fact] void should_report_the_queries() =>

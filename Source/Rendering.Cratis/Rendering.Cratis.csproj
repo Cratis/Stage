@@ -21,6 +21,10 @@
         application has, not because rendered code names anything in them; MongoDB.Driver is, because a
         rendered read model exposes its collection query as IMongoCollection&lt;T&gt;. The two Testing packages
         are what a rendered specification compiles against - CommandScenario and the appended-event assertions.
+
+        Arc.MongoDB is the one the scaffolded project template also references, and it is what puts Observe and
+        ObserveById on IMongoCollection&lt;T&gt; - a rendered observable query calls them and nothing else does,
+        so without it here the compile spec would pass on output the rendered application cannot build.
     -->
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!--
@@ -31,6 +35,7 @@
         <PackageReference Include="Cratis.Arc" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Chronicle" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Chronicle.Testing" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.MongoDB" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Swagger" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Chronicle" ExcludeAssets="analyzers" />

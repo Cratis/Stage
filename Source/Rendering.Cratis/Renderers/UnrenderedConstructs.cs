@@ -68,8 +68,11 @@ public static class UnrenderedConstructs
             slice.Queries.Count(query => query.Performer is not null),
             "query performer",
             "the query logic is not rendered.");
+
+        // Only what rendering does not place on an event: a file-backed constraint, and one naming an event or
+        // property the slice does not declare. The rest now render as Chronicle [Unique] attributes.
         yield return (
-            slice.Constraints.Count(),
+            slice.Constraints.Count(constraint => !ConstraintRenderer.IsRendered(constraint, slice.Events)),
             "constraint",
             "uniqueness is not enforced in the rendered application.");
         yield return (

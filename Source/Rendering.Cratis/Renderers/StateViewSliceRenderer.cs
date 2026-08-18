@@ -39,7 +39,7 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         foreach (var @event in slice.Slice.Events)
         {
-            EventRenderer.Render(builder, @event, applicationSet, diagnostics);
+            EventRenderer.Render(builder, @event, applicationSet, diagnostics, slice.Slice.Constraints);
         }
 
         var referenced = new List<string>(EventRenderer.ReferencedNames(slice.Slice.Events));

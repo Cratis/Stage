@@ -37,7 +37,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
 
         foreach (var @event in slice.Slice.Events)
         {
-            EventRenderer.Render(builder, @event, applicationSet, diagnostics);
+            EventRenderer.Render(builder, @event, applicationSet, diagnostics, slice.Slice.Constraints);
         }
 
         foreach (var @namespace in ReferencedNamespaces.Resolve(ReferencedNames(slice.Slice), applicationSet, rootNamespace, ownNamespace))

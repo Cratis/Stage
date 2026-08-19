@@ -14,6 +14,13 @@
     <ItemGroup>
         <PackageReference Include="Cratis" />
         <PackageReference Include="Cratis.Arc.MongoDB" />
+        <!--
+            Referenced directly so the Chronicle client the image ships is the one Directory.Packages.props pins, not
+            the one the Cratis meta-package happens to depend on - see the note in Directory.Packages.props. The
+            Dockerfile's cratis/chronicle base image tag tracks the same version.
+        -->
+        <PackageReference Include="Cratis.Chronicle" />
+        <PackageReference Include="Cratis.Chronicle.AspNetCore" />
         <PackageReference Include="Scalar.AspNetCore" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />

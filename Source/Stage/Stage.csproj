@@ -11,6 +11,14 @@
     <ItemGroup>
         <PackageReference Include="Cratis" />
         <PackageReference Include="Cratis.Arc.MongoDB" />
+        <!--
+            The Chronicle client packages are referenced directly, not left to arrive transitively through the Cratis
+            meta-package: central package management only pins direct references, so without these the client ships at
+            whatever version that package was built against while Contracts follows the pin - the mismatch that crashed
+            the 3.6.0 image at boot. Keep them at the version Directory.Packages.props pins.
+        -->
+        <PackageReference Include="Cratis.Chronicle" />
+        <PackageReference Include="Cratis.Chronicle.AspNetCore" />
         <PackageReference Include="Cratis.Chronicle.Contracts" />
     </ItemGroup>
 

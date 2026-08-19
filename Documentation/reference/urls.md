@@ -21,7 +21,9 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 | `https://localhost:35000` | **The Chronicle Workbench** — event stores, event types, observers and read models for the session. |
 
 The Scalar page is the authoritative list of what a session exposes: it is generated from the endpoints Arc
-actually mapped for the model that was loaded.
+actually mapped for the model that was loaded. Reached through a path-prefixed reverse proxy that sends the
+`X-Forwarded-*` headers, both it and the OpenAPI document's `servers` entry report the public address — see
+[Behind a reverse proxy](../docker/index.md#behind-a-reverse-proxy).
 
 ## Command endpoints
 

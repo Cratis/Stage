@@ -9,7 +9,10 @@
 
 # The Chronicle base image is the kernel (Cratis.Chronicle.Server in /app). Storage is fully in-memory, so no
 # database is required to run a play session — the container is self-contained on its own.
-FROM cratis/chronicle:latest-development
+#
+# The tag must track the Cratis.Chronicle pin in Directory.Packages.props: the kernel bundled here and the client the
+# Stage is built against have to be the same version, or the two drift apart silently between releases.
+FROM cratis/chronicle:16.36.2-development
 
 # The Chronicle base image bundles MongoDB (its default storage backend, an ~800MB install). The Stage runs
 # fully in-memory, so purge it to keep the image database-free. The purge is guarded so it is a no-op on

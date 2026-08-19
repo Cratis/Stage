@@ -28,8 +28,13 @@ flowchart TB
     end
 ```
 
-Two things about that base image are worth knowing:
+Three things about that base image are worth knowing:
 
+- **The kernel is pinned to the version the host's Chronicle client is built against.** The Dockerfile names an
+  exact `cratis/chronicle:<version>-development` tag — the same version `Directory.Packages.props` pins for the
+  `Cratis.Chronicle` client — rather than `latest`. The two talk gRPC over a contract that changes between
+  Chronicle versions, so letting either float is how a client and a kernel end up disagreeing about a message
+  shape and the host fails at boot.
 - **Storage is fully in-memory.** The MongoDB install the Chronicle image ships with is purged from the layer and
   the kernel is started with `Cratis__Chronicle__Storage__Type=InMemory`. The image carries no database, and
   every session starts empty.
@@ -107,6 +112,20 @@ The host separates **hosting** defaults from **deployment** configuration:
 
 Anything Chronicle-related can also be set with the kernel's own environment variables
 (`Cratis__Chronicle__…`), which is how the entrypoint pins in-memory storage and the Workbench.
+
+## Behind a reverse proxy
+
+A play session is usually not exposed on its own port but reached through whatever started it — Studio, for one,
+proxies `https://<studio>/api/play/<session>/…` to the container's root. The host is built for that: it honors
+the standard **`X-Forwarded-Host`**, **`X-Forwarded-Proto`** and **`X-Forwarded-Prefix`** headers, and applies
+them before anything else in its pipeline. Send them from the proxy and everything that derives a URL from the
+request follows the public address — the OpenAPI document's `servers` entry names
+`https://<studio>/api/play/<session>` instead of the internal service name, and Scalar's request builder targets
+the same, so the reference works as-is under the prefix.
+
+The headers are trusted from any caller: there is no list of known proxies to configure, because a session only
+ever sits behind the proxy of whoever started it and is thrown away with it. Keep port `9090` off the public
+network accordingly — the proxy is the boundary, not the host.
 
 ## Building the images locally
 

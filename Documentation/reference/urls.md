@@ -3,11 +3,11 @@ title: URLs of a running Stage
 description: Every URL a play session exposes — the model's command and query endpoints, the Scalar reference, the introspection endpoints, and the Chronicle Workbench.
 ---
 
-A play session serves two things on two ports: **the model's own API** on `9090`, and **the Chronicle Workbench**
-on `35000`. Everything below assumes both were published as themselves:
+A play session serves everything a caller needs on **one port**: the model's own API, the Scalar reference and
+the Chronicle Workbench, all on `9090`. Everything below assumes it was published as itself:
 
 ```bash
-docker run --rm -p 9090:9090 -p 35000:35000 -v "$PWD":/eventmodel cratis/stage:latest
+docker run --rm -p 9090:9090 -v "$PWD":/eventmodel cratis/stage:latest
 ```
 
 Nothing needs to be discovered by hand — start at the Scalar reference and click.
@@ -18,7 +18,7 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 |---|---|
 | `http://localhost:9090/scalar/v1` | **The API reference.** A Scalar UI over the model's operations, with a request builder that executes them. `http://localhost:9090/scalar` redirects here. |
 | `http://localhost:9090/openapi/v1.json` | The OpenAPI document behind it. Framework infrastructure operations are stripped, so it describes **only** the model's own commands and queries. |
-| `https://localhost:35000` | **The Chronicle Workbench** — event stores, event types, observers and read models for the session. |
+| `http://localhost:9090/workbench` | **The Chronicle Workbench** — event stores, event types, observers and read models for the session. |
 
 The Scalar page is the authoritative list of what a session exposes: it is generated from the endpoints Arc
 actually mapped for the model that was loaded. Reached through a path-prefixed reverse proxy that sends the
@@ -136,30 +136,28 @@ The session's event store is a real Chronicle event store, and the Workbench is 
 event types, event streams, observers, projections and read models:
 
 ```text
-https://localhost:35000
+http://localhost:9090/workbench
 ```
 
-- **HTTPS only — the `https://` matters.** The port multiplexes HTTP/1.1 and HTTP/2 through ALPN, which requires
-  TLS, so there is no plaintext mode: `http://localhost:35000` returns nothing at all (`ERR_EMPTY_RESPONSE` in a
-  browser, `curl: (52) Empty reply from server`).
-- **The certificate is a development one.** The kernel generates a self-signed certificate when none is
-  configured, so accept the browser warning once (and use `curl -k` from the command line).
-- **Sign in with the base image's development credentials** — user `admin`, password `ChangeMeNow!`.
-- **Find the session by its generated name.** Each session gets a Docker-style event store name
-  (`brave-mendel`, `nifty-turing`, …), printed in the host's startup log and shown in the Workbench.
+It is served on the **model's own port**, alongside everything else, so publishing `9090` is all a session needs.
+Nothing has to be signed into: a play session's kernel runs with authentication turned off, because it is
+embedded in the container with its only client and is thrown away with it.
 
-The same port also serves the Chronicle API and its OAuth authority, which is what the Workbench itself calls —
-`https://localhost:35000/.well-known/openid-configuration` describes it, and `POST /connect/token` issues a token
-for API calls:
+**Find the session by its generated name.** Each session gets a Docker-style event store name (`brave-mendel`,
+`nifty-turing`, …), printed in the host's startup log and shown in the Workbench.
 
-```bash
-curl -k -X POST https://localhost:35000/connect/token \
-    -d "grant_type=password&username=admin&password=ChangeMeNow!&scope=openid"
-```
+Reached through a path-prefixed reverse proxy, the Workbench follows the prefix like the rest of the session —
+the Stage tells the page where it is being served from, so a session proxied at
+`https://studio.example.com/api/play/<session>/` has its Workbench at `…/api/play/<session>/workbench`.
 
 :::note
-`35000` carries gRPC (HTTP/2) as well — that is how the Stage host talks to the kernel inside the container. You
-do not need to publish it for the model's API to work; publish it to get the Workbench.
+The kernel's own port, `35000`, still serves the Workbench directly and carries the gRPC the Stage host uses to
+talk to it. Publishing it is optional — everything a caller needs is on `9090`.
+
+Reaching `35000` directly is **HTTPS only**: the port multiplexes HTTP/1.1 and HTTP/2 through ALPN, which
+requires TLS, so `http://localhost:35000` returns nothing at all (`ERR_EMPTY_RESPONSE` in a browser,
+`curl: (52) Empty reply from server`). The certificate is self-signed, so accept the browser warning once (and
+use `curl -k` from the command line).
 :::
 
 ## What the endpoints do today

@@ -22,6 +22,7 @@
         <PackageReference Include="Cratis.Chronicle" />
         <PackageReference Include="Cratis.Chronicle.AspNetCore" />
         <PackageReference Include="Scalar.AspNetCore" />
+        <PackageReference Include="Yarp.ReverseProxy" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />

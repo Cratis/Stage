@@ -6,6 +6,7 @@ using Cratis.Chronicle;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Host;
+using Cratis.Stage.Host.Workbench;
 using Cratis.Stage.Naming;
 using Cratis.Stage.Runtime;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -43,6 +44,7 @@ builder.Services.AddSingleton<IAppendProducedEvents, ProducedEventAppender>();
 builder.Services.AddSingleton<IProvideStageIdentity, StageIdentity>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
+builder.Services.AddWorkbenchProxy();
 
 // A play session is reached through its caller's reverse proxy on a path prefix (Studio proxies
 // https://<studio>/api/play/<session>/… to this container's root), and the proxy sends the standard
@@ -78,6 +80,11 @@ app.UseCratisChronicle();
 // path base, so the reference works the same when served through a path-prefixed proxy as when served directly.
 app.MapOpenApi();
 app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
+
+// The session's own Chronicle Workbench, reachable on the same address as everything else the Stage serves.
+// The kernel is in this container and its port is not published, so a caller could otherwise never inspect the
+// events a play session produced.
+app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
 
 // Once the app has started (and UseCratisChronicle has connected the client), register the model's read models
 // and projections with Chronicle from the runtime model data so projections run and populate the read-model store.

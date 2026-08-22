@@ -22,7 +22,7 @@ public static class ProducesConverter
         .. produces.Select(declaration => new ProducedEvent(
             declaration.Event,
             ConditionConverter.Convert(declaration.When),
-            [.. declaration.Mappings.Select(Property)],
+            [.. declaration.Mappings.Select(ProducedValueConverter.Property)],
             ProducedValueConverter.Tags(declaration.Tags))
         {
             For = EventSource(declaration.For)
@@ -41,12 +41,5 @@ public static class ProducesConverter
         var (kind, text) = ProducedValueConverter.Convert(expression);
 
         return kind is ProducedValueKind.Unsupported ? null : new ProducedEventSource(kind, text);
-    }
-
-    static ProducedEventProperty Property(PropertyMappingSyntax mapping)
-    {
-        var (kind, expression) = ProducedValueConverter.Convert(mapping.Source);
-
-        return new(mapping.Property, kind, expression);
     }
 }

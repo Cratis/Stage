@@ -7,7 +7,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 
 /// <summary>
 /// Converts a Screenplay <see cref="ScreenplaySyntax.SliceSyntax"/> into a Stage <see cref="Slice"/>, delegating the
-/// command, events, read model and specifications to their focused converters.
+/// command, events, read model, specifications, reactions, screens and captures to their focused converters.
 /// </summary>
 public static class SliceConverter
 {
@@ -35,7 +35,12 @@ public static class SliceConverter
             EventConverter.Convert(slice.Events, slice.Constraints, schema, slicePath),
             command is not null ? CommandConverter.Convert(command, schema, slicePath) : null,
             ReadModelConverter.Convert(slice, schema, eventPropertyTypes, slicePath),
-            [.. slice.Specifications.Select(specification => SpecificationConverter.Convert(specification, slicePath))]);
+            [.. slice.Specifications.Select(specification => SpecificationConverter.Convert(specification, slicePath))])
+        {
+            Reactions = ReactionConverter.Convert(slice.Reactions, slicePath),
+            Screens = ScreenBindingConverter.Convert(slice.Screens, slicePath),
+            Captures = CaptureConverter.Convert(slice.Captures, slicePath)
+        };
     }
 
     static SliceType MapType(ScreenplaySyntax.SliceType type) =>

@@ -39,6 +39,23 @@ public static class ProducedValueConverter
         };
 
     /// <summary>
+    /// Converts a property mapping into the Stage record stating how that property gets its value.
+    /// </summary>
+    /// <param name="mapping">The mapping to convert.</param>
+    /// <returns>The Stage produced-event property.</returns>
+    /// <remarks>
+    /// Shared by every construct that fills a payload from a mapping — a command's <c>produces</c>, a
+    /// reaction's <c>produces</c> and <c>invokes</c>, and a capture's <c>append</c> — so the same written
+    /// mapping converts the same way whichever of them wrote it.
+    /// </remarks>
+    public static ProducedEventProperty Property(PropertyMappingSyntax mapping)
+    {
+        var (kind, expression) = Convert(mapping.Source);
+
+        return new(mapping.Property, kind, expression);
+    }
+
+    /// <summary>
     /// Converts an expression used as a tag into its constant text.
     /// </summary>
     /// <param name="expression">The expression to convert.</param>

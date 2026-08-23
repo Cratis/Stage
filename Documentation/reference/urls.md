@@ -14,11 +14,11 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 
 ## Start here
 
-| URL | What it is |
-|---|---|
-| `http://localhost:9090/scalar/v1` | **The API reference.** A Scalar UI over the model's operations, with a request builder that executes them. `http://localhost:9090/scalar` redirects here. |
-| `http://localhost:9090/openapi/v1.json` | The OpenAPI document behind it. Framework infrastructure operations are stripped, so it describes **only** the model's own commands and queries. |
-| `http://localhost:9090/workbench` | **The Chronicle Workbench** — event stores, event types, observers and read models for the session. |
+| URL                                     | What it is                                                                                                                                                |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `http://localhost:9090/scalar/v1`       | **The API reference.** A Scalar UI over the model's operations, with a request builder that executes them. `http://localhost:9090/scalar` redirects here. |
+| `http://localhost:9090/openapi/v1.json` | The OpenAPI document behind it. Framework infrastructure operations are stripped, so it describes **only** the model's own commands and queries.          |
+| `http://localhost:9090/workbench`       | **The Chronicle Workbench** — event stores, event types, observers and read models for the session.                                                       |
 
 The Scalar page is the authoritative list of what a session exposes: it is generated from the endpoints Arc
 actually mapped for the model that was loaded. Reached through a path-prefixed reverse proxy that sends the
@@ -55,14 +55,17 @@ The body is the command's modeled payload, and the reply is Arc's standard `Comm
 
 ```json
 {
-  "response": { "invoiceNumber": "INV-1042", "customerId": "11111111-1111-1111-1111-111111111111" },
-  "correlationId": "a870543c-f442-4ee9-913e-25cecb7b9c7a",
-  "isSuccess": true,
-  "isAuthorized": true,
-  "isValid": true,
-  "hasExceptions": false,
-  "validationResults": [],
-  "exceptionMessages": []
+    "response": {
+        "invoiceNumber": "INV-1042",
+        "customerId": "11111111-1111-1111-1111-111111111111"
+    },
+    "correlationId": "a870543c-f442-4ee9-913e-25cecb7b9c7a",
+    "isSuccess": true,
+    "isAuthorized": true,
+    "isValid": true,
+    "hasExceptions": false,
+    "validationResults": [],
+    "exceptionMessages": []
 }
 ```
 
@@ -81,31 +84,29 @@ curl "http://localhost:9090/api/invoicing/invoice-management/all-invoice-list-re
 curl "http://localhost:9090/api/invoicing/invoice-management/get-invoice-list-read-model-by-id?id=$ID"
 ```
 
-Each answers with Arc's `QueryResult` envelope — `data` plus paging and status:
+Each answers with Arc's `QueryResult` envelope. Modeled query performers currently deny authorization and expose
+no data because Stage does not yet receive Screenplay's executable query authorization semantics. The relevant
+fields therefore report a fail-closed result:
 
 ```json
 {
-  "paging": { "page": 0, "size": 0, "totalItems": 0, "totalPages": 0 },
-  "correlationId": "5134b279-41f5-44b1-b058-7f73e87f6867",
-  "data": [],
-  "isSuccess": true,
-  "isReady": true,
-  "isAuthorized": true,
-  "isValid": true
+    "data": null,
+    "isAuthorized": false
 }
 ```
 
 Every query endpoint also accepts the HTTP `QUERY` method, carrying its arguments in a JSON body instead of the
-query string — useful when arguments are too large or too structured for a URL.
+query string — useful when arguments are too large or too structured for a URL. The alternate method has the same
+fail-closed behavior.
 
 ## Discovering the surface programmatically
 
 Two endpoints list what the session exposes, for tooling that would rather not parse OpenAPI:
 
-| URL | What it returns |
-|---|---|
-| `http://localhost:9090/.cratis/commands` | Every command: name, namespace, type, and its payload schema. |
-| `http://localhost:9090/.cratis/queries` | Every query: name, fully qualified name, read model type, and its arguments schema. |
+| URL                                      | What it returns                                                                     |
+| ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| `http://localhost:9090/.cratis/commands` | Every command: name, namespace, type, and its payload schema.                       |
+| `http://localhost:9090/.cratis/queries`  | Every query: name, fully qualified name, read model type, and its arguments schema. |
 
 :::caution
 Take the **route** from the OpenAPI document, not from the `route` field these two return. The introspection
@@ -118,14 +119,14 @@ have, so calling it verbatim gives a 404. Names, types and schemas are accurate.
 Arc's own infrastructure is served under `/.cratis` on the same port. It is deliberately absent from the OpenAPI
 document, but it is there:
 
-| URL | Purpose |
-|---|---|
-| `/.cratis/me` | The current identity. Unauthenticated in a sandbox session, so it answers `401`. |
-| `/.cratis/users`, `/.cratis/tenants` | Development identity endpoints — the users and tenants a client can switch between. |
-| `/.cratis/identity-details/schema` | The schema of the identity details the app provides. |
-| `/.cratis/queries/ws` | WebSocket transport for observable queries (a plain `GET` fails — it needs the upgrade). |
-| `/.cratis/queries/sse`, `/.cratis/queries/sse/subscribe`, `/.cratis/queries/sse/unsubscribe` | Server-Sent Events transport for observable queries. |
-| `/.cratis/queries/health` | Observable query health. Answers `202` until it has produced its first result. |
+| URL                                                                                          | Purpose                                                                                  |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `/.cratis/me`                                                                                | The current identity. Unauthenticated in a sandbox session, so it answers `401`.         |
+| `/.cratis/users`, `/.cratis/tenants`                                                         | Development identity endpoints — the users and tenants a client can switch between.      |
+| `/.cratis/identity-details/schema`                                                           | The schema of the identity details the app provides.                                     |
+| `/.cratis/queries/ws`                                                                        | WebSocket transport for observable queries (a plain `GET` fails — it needs the upgrade). |
+| `/.cratis/queries/sse`, `/.cratis/queries/sse/subscribe`, `/.cratis/queries/sse/unsubscribe` | Server-Sent Events transport for observable queries.                                     |
+| `/.cratis/queries/health`                                                                    | Observable query health. Answers `202` until it has produced its first result.           |
 
 Two request headers are honored on every call: **`X-Correlation-Id`** to correlate a call with what it caused, and
 **`X-Tenant-Id`** to pick the tenant.
@@ -162,15 +163,23 @@ use `curl -k` from the command line).
 
 ## What the endpoints do today
 
-The surface above is real and complete — every command and query in the model is mapped, described and callable.
-What happens behind them is still being filled in:
+The surface above is mapped and described, but runtime semantics are intentionally partial:
 
-- A **command** accepts its payload and echoes it back as the response. It does not yet append the events the
-  model says it produces, and the modeled validation rules and authorization policies are not yet enforced on
-  the HTTP surface — so a payload that violates a rule still answers `isSuccess: true`. Those rules *are*
-  enforced by [the specification runner](../docker/spec-runner.md), which checks them against the model.
-- A **query** answers with a well-formed envelope, but with no rows (`data: []`) or no instance — the model's
-  projections are registered with Chronicle, and reading their projected documents back is a follow-up.
+- A **command** accepts its payload, evaluates its modeled `produces` mappings, appends the resulting facts to
+  Chronicle, and echoes the payload as the response. The modeled command validation rules and authorization
+  policies are not yet enforced on the runtime HTTP surface, so this sandbox path must not be treated as a
+  production security boundary.
+- A **query** is mapped but currently fails closed: authorization is denied, its performer is not executed, and
+  no data is returned. Reading projected documents waits for the Screenplay-owned executable query and
+  authorization model rather than relying on invented Stage semantics.
+- The **specification runner** checks modeled facts and expectations, but that verification is model-level. It is
+  not a substitute for executing every slice through the runtime or a rendered application.
+- The separate **Cratis renderer** writes reviewable backend source. It preserves role-only alternatives and
+  authenticated-only authorization exactly on each generated query method. Unsupported authorization raises
+  `STAGE-AUTH-001` and faults the render operation. Because output is currently written directly, a failed target
+  is unsafe and incomplete: stale files, including a prior copy of a blocked artifact, can remain physically
+  present. The advisory `.stage-render-failed` marker does not disable or delete them. Frontend/UI rendering and
+  other model constructs remain incomplete.
 
-Use a session to explore the shape a model produces — its routes, payloads and schemas. For verifying behavior,
-reach for the specification runner.
+Use a session to explore routes, payloads, appended facts, and schemas. Use the specification runner for modeled
+expectations, and review/build the renderer output when evaluating generated application behavior.

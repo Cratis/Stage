@@ -19,12 +19,9 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// that nothing renders (see <see cref="UnrenderedConstructs"/>).
 /// </summary>
 /// <remarks>
-/// The slice's declared <c>query</c> blocks are not rendered — the read model gets a fixed all/by-id pair
-/// instead — so the authorization those queries declare would have nowhere to land and the read surface would be
-/// open to everyone. The read model therefore carries the <b>union</b> of what the queries that read <i>it</i>
-/// permit: every caller the document lets read this model through some query can still read it, and nobody else
-/// can. Which queries those are is <see cref="ReadModelAuthorization"/>'s job. That the declared queries
-/// themselves are missing is reported separately.
+/// Each declared query that returns the rendered read model becomes a static method with its own exact Arc
+/// authorization attribute. A read model receives the synthesized all/by-id pair only when no declared query
+/// returns it; only that pair shares a type-level authorization fallback from <see cref="ReadModelAuthorization"/>.
 /// </remarks>
 public class StateViewSliceRenderer : ISliceRenderer
 {
@@ -36,11 +33,9 @@ public class StateViewSliceRenderer : ISliceRenderer
         var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
 
         // A slice may declare several projections. Only the first is rendered; the ones left out are reported by
-        // UnrenderedConstructs rather than dropped in silence. Authorization is no longer what holds this back —
-        // a query names the read model it reads with its return type, so each read model's guard is attributable
-        // and the ones that are dropped no longer widen the one that survives. That same return type decides which
-        // queries this file can hold a method for, so the read model's name is what the reporting is measured
-        // against and has to be known before anything is reported.
+        // UnrenderedConstructs rather than dropped in silence. A query names the read model it reads with its
+        // return type, which decides both whether this file can hold its method and where that method's own
+        // authorization belongs. The read model's name is therefore known before anything is reported.
         var projection = slice.Slice.Projections.FirstOrDefault();
         var readModel = projection is null ? null : ReadModelName(projection);
 
@@ -117,15 +112,21 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         ReportUnrenderedBlocks(builder, projection, typeName, diagnostics);
 
-        var authorization = ReadModelAuthorization.Render(typeName, queries, applicationSet, diagnostics);
+        var typeAuthorization = ReadModelAuthorization.Render(typeName, queries, diagnostics);
 
         var parameters = string.Join(", ", properties.Select(property => RenderParameter(property, keyProperty)));
-        builder.Attribute("ReadModel").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
+        builder.Attribute("ReadModel");
+        if (typeAuthorization is not null)
+        {
+            builder.Attribute(typeAuthorization);
+        }
+
+        builder.OpenBlock($"public record {typeName}({parameters})");
 
         var keyType = keyProperty is null ? "Guid" : properties.First(property => property.Name == keyProperty).Type.ToTypeSyntax();
         var idParameterName = keyProperty is null ? "id" : Identifiers.ToCamelCase(keyProperty);
 
-        QueryRenderer.Render(builder, typeName, keyType, idParameterName, queries);
+        QueryRenderer.Render(builder, typeName, keyType, idParameterName, queries, applicationSet, diagnostics);
         builder.EndBlock();
     }
 

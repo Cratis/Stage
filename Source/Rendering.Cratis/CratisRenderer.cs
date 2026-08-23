@@ -14,9 +14,8 @@ namespace Cratis.Stage.Rendering.Cratis;
 
 /// <summary>
 /// Renders a compiled Screenplay application into a Cratis Arc + Chronicle vertical-slice application — the
-/// Cratis-specific implementation of <see cref="IRenderer"/>. Scaffolds the target project on first use, then
-/// renders every concept, composite type and slice, continuing best-effort on a per-item failure rather than
-/// aborting the whole run.
+/// Cratis-specific implementation of <see cref="IRenderer"/>. Independent artifacts continue after a failure so
+/// diagnostics are complete, but any blocking failure ends the operation with <see cref="RenderingFailed"/>.
 /// </summary>
 /// <param name="scaffolder">Scaffolds the target project when none exists yet.</param>
 /// <param name="sliceRenderers">The <see cref="ISliceRenderer"/> to use per <see cref="SliceType"/>.</param>
@@ -50,32 +49,48 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
     /// <inheritdoc/>
     public async Task Render(IReadOnlyList<ApplicationSyntax> applications, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
     {
+        var failures = new List<Exception>();
         await output.WriteLineAsync($"Rendering {applications.Count} application(s) to '{targetDirectory.FullName}'...");
 
         var rootNamespace = Identifiers.ToPascalCase(targetDirectory.Name);
-        await scaffolder.EnsureScaffolded(targetDirectory, rootNamespace, output);
+        if (!await TryScaffold(targetDirectory, rootNamespace, output, error, failures))
+        {
+            await Complete(targetDirectory, output, error, failures);
+            return;
+        }
 
         var applicationSet = new ApplicationSet(applications);
 
         foreach (var concept in applicationSet.Concepts.Values)
         {
-            await WriteFile(ConceptRenderer.Render(concept, applicationSet, rootNamespace), targetDirectory, output, error);
+            await RenderFile(
+                () => ConceptRenderer.Render(concept, applicationSet, rootNamespace),
+                $"concept '{concept.Name}'",
+                targetDirectory,
+                output,
+                error,
+                failures);
         }
 
         foreach (var type in applicationSet.Types.Values)
         {
-            await WriteFile(TypeRenderer.Render(type, applicationSet, rootNamespace), targetDirectory, output, error);
+            await RenderFile(
+                () => TypeRenderer.Render(type, applicationSet, rootNamespace),
+                $"type '{type.Name}'",
+                targetDirectory,
+                output,
+                error,
+                failures);
         }
 
         foreach (var slice in applicationSet.Slices)
         {
-            await RenderSlice(slice, applicationSet, rootNamespace, targetDirectory, output, error);
+            await RenderSlice(slice, applicationSet, rootNamespace, targetDirectory, output, error, failures);
         }
 
         await ReportUnrenderableReferences(applicationSet, error);
         await ReportUnrenderedDeclarations(applicationSet, error);
-
-        await output.WriteLineAsync("Rendering complete.");
+        await Complete(targetDirectory, output, error, failures);
     }
 
     /// <summary>
@@ -176,19 +191,39 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
         }
     }
 
+    static async Task RecordFailure(string operation, Exception exception, TextWriter error, List<Exception> failures)
+    {
+        failures.Add(exception);
+        await error.WriteLineAsync($"Failed to {operation}: {exception.Message}");
+    }
+
     async Task RenderLocated(
         IReadOnlyList<LocatedSlice> slices, ApplicationSet context, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
     {
+        var failures = new List<Exception>();
         var rootNamespace = Identifiers.ToPascalCase(targetDirectory.Name);
-        await scaffolder.EnsureScaffolded(targetDirectory, rootNamespace, output);
+        if (!await TryScaffold(targetDirectory, rootNamespace, output, error, failures))
+        {
+            await Complete(targetDirectory, output, error, failures);
+            return;
+        }
 
         foreach (var slice in slices)
         {
-            await RenderSlice(slice, context, rootNamespace, targetDirectory, output, error);
+            await RenderSlice(slice, context, rootNamespace, targetDirectory, output, error, failures);
         }
+
+        await Complete(targetDirectory, output, error, failures);
     }
 
-    async Task RenderSlice(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
+    async Task RenderSlice(
+        LocatedSlice slice,
+        ApplicationSet applicationSet,
+        string rootNamespace,
+        DirectoryInfo targetDirectory,
+        TextWriter output,
+        TextWriter error,
+        List<Exception> failures)
     {
         var slicePath = string.Join('.', slice.FullPath);
 
@@ -198,16 +233,21 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
             return;
         }
 
+        await output.WriteLineAsync($"Rendering slice '{slicePath}'...");
+
+        RenderedFile file;
         try
         {
-            await output.WriteLineAsync($"Rendering slice '{slicePath}'...");
-            await WriteFile(renderer.Render(slice, applicationSet, rootNamespace), targetDirectory, output, error);
-            await RenderSpecifications(slice, applicationSet, rootNamespace, targetDirectory, output, error);
+            file = renderer.Render(slice, applicationSet, rootNamespace);
         }
         catch (Exception exception)
         {
-            await error.WriteLineAsync($"Failed to render slice '{slicePath}': {exception.Message}");
+            await RecordFailure($"render slice '{slicePath}'", exception, error, failures);
+            return;
         }
+
+        await WriteFile(file, targetDirectory, output, error, failures);
+        await RenderSpecifications(slice, applicationSet, rootNamespace, targetDirectory, output, error, failures);
     }
 
     /// <summary>
@@ -220,9 +260,16 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
     /// <param name="targetDirectory">The directory to render into.</param>
     /// <param name="output">The <see cref="TextWriter"/> progress is reported to.</param>
     /// <param name="error">The <see cref="TextWriter"/> rendering problems are reported to.</param>
+    /// <param name="failures">Collects blocking failures while independent artifacts continue.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     async Task RenderSpecifications(
-        LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
+        LocatedSlice slice,
+        ApplicationSet applicationSet,
+        string rootNamespace,
+        DirectoryInfo targetDirectory,
+        TextWriter output,
+        TextWriter error,
+        List<Exception> failures)
     {
         foreach (var specification in slice.Slice.Specifications)
         {
@@ -232,15 +279,44 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
                 continue;
             }
 
-            await WriteFile(
-                SpecificationRenderer.Render(specification, slice.Slice.Commands.First(), slice, applicationSet, rootNamespace),
+            await RenderFile(
+                () => SpecificationRenderer.Render(specification, slice.Slice.Commands.First(), slice, applicationSet, rootNamespace),
+                $"specification '{specification.Name}'",
                 targetDirectory,
                 output,
-                error);
+                error,
+                failures);
         }
     }
 
-    async Task WriteFile(RenderedFile file, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
+    async Task RenderFile(
+        Func<RenderedFile> render,
+        string subject,
+        DirectoryInfo targetDirectory,
+        TextWriter output,
+        TextWriter error,
+        List<Exception> failures)
+    {
+        RenderedFile file;
+        try
+        {
+            file = render();
+        }
+        catch (Exception exception)
+        {
+            await RecordFailure($"render {subject}", exception, error, failures);
+            return;
+        }
+
+        await WriteFile(file, targetDirectory, output, error, failures);
+    }
+
+    async Task WriteFile(
+        RenderedFile file,
+        DirectoryInfo targetDirectory,
+        TextWriter output,
+        TextWriter error,
+        List<Exception> failures)
     {
         try
         {
@@ -253,7 +329,54 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
         }
         catch (Exception exception)
         {
-            await error.WriteLineAsync($"Failed to write '{file.RelativePath}': {exception.Message}");
+            await RecordFailure($"write '{file.RelativePath}'", exception, error, failures);
         }
+    }
+
+    async Task<bool> TryScaffold(
+        DirectoryInfo targetDirectory,
+        string rootNamespace,
+        TextWriter output,
+        TextWriter error,
+        List<Exception> failures)
+    {
+        try
+        {
+            await scaffolder.EnsureScaffolded(targetDirectory, rootNamespace, output);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            await RecordFailure("scaffold the target", exception, error, failures);
+            return false;
+        }
+    }
+
+    async Task Complete(DirectoryInfo targetDirectory, TextWriter output, TextWriter error, List<Exception> failures)
+    {
+        if (failures.Count == 0)
+        {
+            await output.WriteLineAsync("Rendering complete.");
+            return;
+        }
+
+        await error.WriteLineAsync(
+            $"Rendering failed with {failures.Count} blocking failure(s). The target output is unsafe and incomplete; " +
+            "files from earlier runs may remain, including artifacts blocked by this run.");
+
+        try
+        {
+            var markerWritten = await codeOutput.TryWriteFailureMarker(targetDirectory, output);
+            await error.WriteLineAsync(markerWritten
+                ? $"Wrote advisory failure marker '{RenderFailureMarker.RelativePath}'. It does not remove or disable stale artifacts."
+                : $"No new failure marker was written at '{RenderFailureMarker.RelativePath}'. The output remains unsafe and incomplete.");
+        }
+        catch (Exception exception)
+        {
+            failures.Add(exception);
+            await error.WriteLineAsync($"Failed to write advisory failure marker '{RenderFailureMarker.RelativePath}': {exception.Message}");
+        }
+
+        throw new RenderingFailed(failures);
     }
 }

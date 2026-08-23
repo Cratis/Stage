@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#if DEBUG
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
@@ -78,6 +79,7 @@ public class an_application_with_authorization : Specification
             [
                 Query("All", Authorize("Administrator")),
                 Query("Mine", Authorize("Auditor")),
+                Query("AuthenticatedOnly", Authorize("Authenticated")),
             ],
             [projection],
             [],
@@ -99,6 +101,7 @@ public class an_application_with_authorization : Specification
             [
                 new PolicySyntax("Administrator", new RoleConditionSyntax("Administrator", SourceLocation.Start), null, SourceLocation.Start),
                 new PolicySyntax("Auditor", new RoleConditionSyntax("Auditor", SourceLocation.Start), null, SourceLocation.Start),
+                new PolicySyntax("Authenticated", new AuthenticatedConditionSyntax(SourceLocation.Start), null, SourceLocation.Start),
             ],
             [module],
             SourceLocation.Start,
@@ -123,11 +126,50 @@ public class an_application_with_authorization : Specification
     static PropertySyntax Property(string name, string type, bool isIdentifier = false) =>
         new(name, new TypeRefSyntax(type, false, false, SourceLocation.Start), SourceLocation.Start, IsIdentifier: isIdentifier);
 
-    static AuthorizeSyntax Authorize(params string[] policies) =>
+    static AuthorizeSyntax Authorize(params string[] policies) => Combine(LogicalOperator.Or, policies);
+
+    /// <summary>
+    /// Changes the Register command to require every named policy at once.
+    /// </summary>
+    /// <param name="policies">The policies the command requires.</param>
+    protected void RequireAllPoliciesForRegister(params string[] policies)
+    {
+        var module = _application.Modules.Single();
+        var feature = module.Features.Single();
+        var registerSlice = feature.Slices.Single(slice => slice.Name == "Register");
+        var register = registerSlice.Commands.Single();
+        var changedSlice = registerSlice with { Commands = [register with { Authorize = Combine(LogicalOperator.And, policies) }] };
+        ReplaceSlice(module, feature, registerSlice, changedSlice);
+    }
+
+    /// <summary>
+    /// Changes one Summary query method to require every named policy at once.
+    /// </summary>
+    /// <param name="queryName">The query whose method becomes unsupported.</param>
+    /// <param name="policies">The policies the query requires.</param>
+    protected void RequireAllPoliciesForQuery(string queryName, params string[] policies)
+    {
+        var module = _application.Modules.Single();
+        var feature = module.Features.Single();
+        var summarySlice = feature.Slices.Single(slice => slice.Name == "Summary");
+        var query = summarySlice.Queries.Single(query => query.Name == queryName);
+        var changedQuery = query with { Authorize = Combine(LogicalOperator.And, policies) };
+        var changedSlice = summarySlice with { Queries = [changedQuery, .. summarySlice.Queries.Where(candidate => candidate != query)] };
+        ReplaceSlice(module, feature, summarySlice, changedSlice);
+    }
+
+    void ReplaceSlice(ModuleSyntax module, FeatureSyntax feature, SliceSyntax original, SliceSyntax replacement)
+    {
+        var changedFeature = feature with { Slices = [replacement, .. feature.Slices.Where(slice => slice != original)] };
+        var changedModule = module with { Features = [changedFeature] };
+        _application = _application with { Modules = [changedModule] };
+    }
+
+    static AuthorizeSyntax Combine(LogicalOperator @operator, string[] policies) =>
         new(
             policies
                 .Select(policy => (PolicyRequirementSyntax)new PolicyReferenceSyntax(policy, SourceLocation.Start))
-                .Aggregate((left, right) => new LogicalPolicyRequirementSyntax(left, LogicalOperator.Or, right, SourceLocation.Start)),
+                .Aggregate((left, right) => new LogicalPolicyRequirementSyntax(left, @operator, right, SourceLocation.Start)),
             SourceLocation.Start);
 
     static QuerySyntax Query(string name, AuthorizeSyntax authorize) =>
@@ -141,3 +183,4 @@ public class an_application_with_authorization : Specification
                 new PropertyMappingSyntax(mapping.Property, new PathExpressionSyntax(mapping.Source, SourceLocation.Start), SourceLocation.Start))],
             SourceLocation.Start);
 }
+#endif

@@ -54,7 +54,7 @@ public class and_one_of_them_is_observable : Specification
     static string Render(params QuerySyntax[] queries)
     {
         var builder = new CSharpCodeBuilder();
-        QueryRenderer.Render(builder, "InvoiceSummary", "string", "id", queries);
+        QueryRenderer.Render(builder, "InvoiceSummary", "string", "id", queries, new ApplicationSet([]), []);
         return builder.ToString();
     }
 

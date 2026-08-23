@@ -9,9 +9,9 @@ namespace Cratis.Stage.Rendering.Cratis.for_ReadModelAuthorization.when_renderin
 
 public class and_its_query_answers_with_a_collection : an_application_with_policies
 {
-    string _attribute = null!;
+    string? _attribute;
 
     void Because() => _attribute = Render("InvoiceList", QueryForMany("ListInvoices", "InvoiceList", "Accountant"));
 
-    [Fact] void should_attribute_it_to_the_read_model_the_return_type_names() => _attribute.ShouldEqual("Roles(\"Accountant\")");
+    [Fact] void should_leave_authorization_on_the_generated_collection_method() => _attribute.ShouldBeNull();
 }

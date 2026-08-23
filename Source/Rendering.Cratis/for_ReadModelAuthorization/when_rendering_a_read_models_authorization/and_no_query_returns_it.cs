@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_ReadModelAuthorization.when_renderin
 
 public class and_no_query_returns_it : an_application_with_policies
 {
-    string _attribute = null!;
+    string? _attribute;
 
     void Because() => _attribute = Render("InvoiceSummary", QueryForMany("GetOverdueInvoices", "OverdueInvoices", "Accountant"));
 
@@ -17,6 +17,6 @@ public class and_no_query_returns_it : an_application_with_policies
     [Fact] void should_report_that_nothing_states_who_may_read_it() =>
         _diagnostics.ShouldContain(
             "Read model 'InvoiceSummary' is returned by none of the 1 query declaration(s) in its slice — the document " +
-            "states who may read the other read models and nothing about this one, so its rendered read surface " +
+            "states who may read the other read models and nothing about this one, so its synthesized query pair " +
             "requires an authenticated caller rather than being left open to everyone.");
 }

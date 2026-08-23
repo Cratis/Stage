@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Reflection;
+using System.Runtime.Loader;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -74,7 +76,29 @@ internal static class RenderedOutput
     /// </summary>
     /// <param name="files">The rendered files to compile.</param>
     /// <returns>The compilation errors, empty when the output compiles.</returns>
-    public static IReadOnlyList<string> Errors(IEnumerable<RenderedFile> files)
+    public static IReadOnlyList<string> Errors(IEnumerable<RenderedFile> files) => Errors(CreateCompilation(files));
+
+    /// <summary>
+    /// Compiles and loads rendered files so specs can exercise the real Arc evaluators against generated members.
+    /// </summary>
+    /// <param name="files">The rendered files to compile and load.</param>
+    /// <returns>The loaded rendered application assembly.</returns>
+    /// <exception cref="RenderedOutputDoesNotCompile">The rendered output does not compile.</exception>
+    public static Assembly Load(IEnumerable<RenderedFile> files)
+    {
+        var compilation = CreateCompilation(files);
+        using var assembly = new MemoryStream();
+        var result = compilation.Emit(assembly);
+        if (!result.Success)
+        {
+            throw new RenderedOutputDoesNotCompile(Errors(compilation));
+        }
+
+        assembly.Position = 0;
+        return AssemblyLoadContext.Default.LoadFromStream(assembly);
+    }
+
+    static CSharpCompilation CreateCompilation(IEnumerable<RenderedFile> files)
     {
         // DEBUG has to be defined or a rendered specification compiles to nothing: the whole file sits inside
         // '#if DEBUG', and a parse without the symbol drops it silently — the assertion would then pass on an
@@ -84,17 +108,20 @@ internal static class RenderedOutput
             .Select(file => CSharpSyntaxTree.ParseText(file.Content, parseOptions, path: file.RelativePath))
             .Prepend(CSharpSyntaxTree.ParseText(ImplicitUsings, parseOptions, path: "GlobalUsings.g.cs"));
 
-        var compilation = CSharpCompilation.Create(
-            "RenderedApplication",
+        return CSharpCompilation.Create(
+            $"RenderedApplication_{Guid.NewGuid():N}",
             trees,
             _references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
-
-        return
-        [
-            .. compilation.GetDiagnostics()
-                .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-                .Select(diagnostic => $"{diagnostic.Location.SourceTree?.FilePath}: {diagnostic.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}")
-        ];
     }
+
+    static IReadOnlyList<string> Errors(CSharpCompilation compilation) =>
+    [
+        .. compilation.GetDiagnostics()
+            .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .Select(diagnostic => $"{diagnostic.Location.SourceTree?.FilePath}: {diagnostic.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}")
+    ];
+
+    sealed class RenderedOutputDoesNotCompile(IReadOnlyList<string> errors) : Exception(
+        $"Rendered output does not compile:{Environment.NewLine}{string.Join(Environment.NewLine, errors)}");
 }

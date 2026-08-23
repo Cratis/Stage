@@ -49,9 +49,10 @@ public class when_a_query_returns_another_read_model_the_slice_builds : a_slice_
         _file.Content.ShouldContain(
             "// TODO: query 'GetOverdueInvoices' not rendered — it returns 'OverdueInvoices', which is not the read model rendered here");
 
-    // The read model's guard is drawn from the queries that return it, and only those. Rendering fewer methods
-    // must not quietly widen or narrow that — the unguarded query on the other read model still says nothing here.
-    [Fact] void should_keep_the_read_model_guarded_by_its_own_querys_policy() => _file.Content.ShouldContain("[Roles(\"Accountant\")]");
+    // The query's policy belongs to its generated method. Rendering fewer methods must not quietly widen or
+    // narrow it — the unguarded query on the other read model still says nothing here.
+    [Fact] void should_keep_the_generated_method_guarded_by_its_querys_policy() =>
+        _file.Content.ShouldContain("[Roles(\"Accountant\")]\n    public static Task<InvoiceSummary?> GetInvoiceSummary");
 
     [Fact] void should_not_publish_the_read_model_to_everyone() => _file.Content.Contains("[AllowAnonymous]", StringComparison.Ordinal).ShouldBeFalse();
 }

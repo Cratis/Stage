@@ -9,12 +9,12 @@ namespace Cratis.Stage.Rendering.Cratis.for_ReadModelAuthorization.when_renderin
 
 public class and_another_read_model_has_an_unguarded_query : an_application_with_policies
 {
-    string _attribute = null!;
+    string? _attribute;
 
     void Because() => _attribute = Render(
         "InvoiceSummary",
         Query("GetInvoiceSummary", "InvoiceSummary", "Accountant"),
         QueryForMany("GetOverdueInvoices", "OverdueInvoices"));
 
-    [Fact] void should_keep_the_guard_its_own_query_declares() => _attribute.ShouldEqual("Roles(\"Accountant\")");
+    [Fact] void should_leave_each_querys_authorization_on_its_generated_method() => _attribute.ShouldBeNull();
 }

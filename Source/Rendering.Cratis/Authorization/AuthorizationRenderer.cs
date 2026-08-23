@@ -12,29 +12,16 @@ namespace Cratis.Stage.Rendering.Cratis.Authorization;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Every referenced policy is reduced to the roles it happens to require, and those roles are unioned into a
-/// single <c>[Roles]</c>. <c>require authenticated</c> renders as a bare <c>[Authorize]</c>, and an alternative
-/// satisfied by authentication alone subsumes the roles beside it. No <c>authorize</c> at all renders as
-/// <c>[AllowAnonymous]</c>, stating the absence rather than leaving it to be inferred. A policy declared nowhere,
-/// a policy whose requirement is authored code, and a <c>claim</c> requirement have no attribute equivalent; each
-/// falls back to requiring an authenticated caller and says so.
+/// A role policy, or an explicit disjunction made entirely from role policies, has the same any-of semantics as
+/// Arc's <c>[Roles]</c> attribute and is preserved exactly. Authentication alone renders as <c>[Authorize]</c>.
+/// No <c>authorize</c> declaration renders as <c>[AllowAnonymous]</c>.
 /// </para>
 /// <para>
-/// <b>This is known to be wrong, and is preserved here deliberately</b> — see
-/// <see href="https://github.com/Cratis/Stage/issues/20">Cratis/Stage#20</see>. Policies and roles are not the
-/// same shape: a role says <i>which callers are allowed</i>, so a set of roles is naturally an <b>any-of</b>;
-/// a policy is a <i>demand</i>, so a set of policies is naturally an <b>all-of</b>. Reducing a policy to its
-/// roles erases that distinction, and the union then grants on any one of them. So <c>authorize A B</c> — which
-/// the document means as <i>both</i> — renders as <c>[Roles("A", "B")]</c>, which Arc evaluates as <i>either</i>.
-/// The rendered application is more permissive than the document it came from.
-/// </para>
-/// <para>
-/// The fix is to render policies <i>as policies</i> rather than as the roles behind them, which this renderer
-/// cannot do yet: Arc carries <c>AuthorizeAttribute.Policy</c> but never evaluates it
-/// (<see href="https://github.com/Cratis/Arc/issues/2464">Cratis/Arc#2464</see>), so a policy-named attribute
-/// would admit any authenticated caller. Until that lands there is no attribute that expresses a conjunction —
-/// <c>[Roles]</c> is any-of, only the first <c>AuthorizeAttribute</c> is read, and <c>RolesAttribute</c> cannot
-/// be applied twice — so this pass keeps the existing behavior rather than substituting a different wrong one.
+/// Conjunctions and requirements involving claims, authored code, missing policies, or unknown policy syntax do
+/// not have a faithful Arc attribute equivalent. These outcomes throw <see cref="AuthorizationCannotBeRendered"/>
+/// so the containing artifact is not emitted. In particular, <c>authorize A B</c> is a conjunction and is never
+/// weakened into the disjunction <c>[Roles("A", "B")]</c>. Faithful rendering of those requirements depends on
+/// the future Screenplay-owned portable policy backend.
 /// </para>
 /// </remarks>
 public static class AuthorizationRenderer
@@ -45,6 +32,12 @@ public static class AuthorizationRenderer
     public const string Namespace = "Cratis.Arc.Authorization";
 
     /// <summary>
+    /// The stable diagnostic code reported when authorization requires the portable policy backend to render
+    /// faithfully.
+    /// </summary>
+    public const string PortablePolicyRequiredDiagnosticCode = AuthorizationCannotBeRendered.DiagnosticCode;
+
+    /// <summary>
     /// Renders the authorization attribute for a single <c>authorize</c> declaration.
     /// </summary>
     /// <param name="authorize">The declaration, or <see langword="null"/> when the construct declares none.</param>
@@ -52,6 +45,7 @@ public static class AuthorizationRenderer
     /// <param name="subject">What is being authorized, for diagnostics (for example <c>Command 'Invite'</c>).</param>
     /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
     /// <returns>The attribute content, without the surrounding brackets.</returns>
+    /// <exception cref="AuthorizationCannotBeRendered">The authorization cannot be represented faithfully.</exception>
     public static string Render(AuthorizeSyntax? authorize, ApplicationSet applicationSet, string subject, ICollection<string> diagnostics) =>
         Render([authorize], applicationSet, subject, diagnostics);
 
@@ -64,111 +58,125 @@ public static class AuthorizationRenderer
     /// <param name="subject">What is being authorized, for diagnostics (for example <c>Read model 'Invoice'</c>).</param>
     /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
     /// <returns>The attribute content, without the surrounding brackets.</returns>
+    /// <exception cref="AuthorizationCannotBeRendered">The authorization cannot be represented faithfully.</exception>
+    /// <exception cref="UnreachableAuthorizationRendering">An internal authorization outcome is not handled.</exception>
     public static string Render(
         IEnumerable<AuthorizeSyntax?> authorizations, ApplicationSet applicationSet, string subject, ICollection<string> diagnostics)
     {
-        var declared = authorizations.ToArray();
-        if (declared.Length == 0 || declared.Any(authorize => authorize?.References().Any() != true))
+        var outcome = Resolve(authorizations, applicationSet);
+        if (outcome is UnsupportedAuthorization unsupported)
         {
-            return "AllowAnonymous";
+            var exception = new AuthorizationCannotBeRendered(subject, unsupported.Reason);
+            diagnostics.Add(exception.Message);
+            throw exception;
         }
 
-        // References() flattens the requirement tree to the policies it names, discarding how they combine —
-        // the same flat list the removed Policies property gave, so the rendering below is unchanged. That is
-        // the defect in Cratis/Stage#20, not an oversight in absorbing the tree: reading Requirement instead
-        // would tell us an 'and' from an 'or', but no Arc attribute can express the difference until
-        // Cratis/Arc#2464 makes a named policy actually evaluate. Kept as-is so the fix is one deliberate
-        // change against a spec that already documents the wrong answer.
-        var required = declared
-            .SelectMany(authorize => authorize!.References())
-            .Select(reference => RolesRequiredBy(reference, applicationSet, subject, diagnostics))
-            .ToArray();
-
-        if (required.Any(roles => roles.Length == 0))
+        return outcome switch
         {
-            return "Authorize";
-        }
-
-        var union = required.SelectMany(roles => roles).Distinct(StringComparer.Ordinal).Select(CSharpCodeBuilder.StringLiteral);
-        return $"Roles({string.Join(", ", union)})";
+            AnonymousAccess => "AllowAnonymous",
+            AuthenticatedOnly => "Authorize",
+            RoleDisjunction roles =>
+                $"Roles({string.Join(", ", roles.Roles.Select(CSharpCodeBuilder.StringLiteral))})",
+            _ => throw new UnreachableAuthorizationRendering(outcome.GetType()),
+        };
     }
 
-    /// <summary>
-    /// Resolves the roles one referenced policy requires. An empty result means "any authenticated caller" — both
-    /// when that is what the policy says and when its requirement has no attribute equivalent, in which case a
-    /// diagnostic records that the rendered attribute is weaker than the document.
-    /// </summary>
-    /// <param name="reference">The policy reference to resolve.</param>
-    /// <param name="applicationSet">The <see cref="ApplicationSet"/> the policy is resolved against.</param>
-    /// <param name="subject">What is being authorized, for diagnostics.</param>
-    /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
-    /// <returns>The required roles, any one of which grants access; empty for authentication alone.</returns>
-    static string[] RolesRequiredBy(
-        PolicyReferenceSyntax reference, ApplicationSet applicationSet, string subject, ICollection<string> diagnostics)
+    static AuthorizationRendering Resolve(IEnumerable<AuthorizeSyntax?> authorizations, ApplicationSet applicationSet)
+    {
+        var declared = authorizations.ToArray();
+        if (declared.Length == 0)
+        {
+            return AnonymousAccess.Instance;
+        }
+
+        return Alternative(declared.Select(authorize =>
+            authorize is null ? AnonymousAccess.Instance : Resolve(authorize.Requirement, applicationSet)));
+    }
+
+    static AuthorizationRendering Resolve(PolicyRequirementSyntax requirement, ApplicationSet applicationSet) =>
+        requirement switch
+        {
+            PolicyReferenceSyntax reference => Resolve(reference, applicationSet),
+            LogicalPolicyRequirementSyntax { Operator: LogicalOperator.Or } logical => Alternative(
+                Resolve(logical.Left, applicationSet),
+                Resolve(logical.Right, applicationSet)),
+            LogicalPolicyRequirementSyntax { Operator: LogicalOperator.And } => new UnsupportedAuthorization(
+                "declares a conjunction, which Arc's role attribute would weaken to a disjunction"),
+            _ => new UnsupportedAuthorization("contains a policy requirement this renderer does not understand"),
+        };
+
+    static AuthorizationRendering Resolve(PolicyReferenceSyntax reference, ApplicationSet applicationSet)
     {
         if (!applicationSet.Policies.TryGetValue(reference.Name, out var policy))
         {
-            diagnostics.Add(
-                $"{subject} authorizes against policy '{reference.Name}', which nothing declares — " +
-                "rendered as requiring an authenticated caller.");
-            return [];
+            return new UnsupportedAuthorization($"references policy '{reference.Name}', which nothing declares");
         }
 
         if (policy.Code is not null)
         {
-            diagnostics.Add(
-                $"{subject} authorizes against policy '{policy.Name}', whose requirement is a {policy.Code.Language} block with no " +
-                "attribute equivalent — rendered as requiring an authenticated caller.");
-            return [];
+            return new UnsupportedAuthorization(
+                $"references policy '{policy.Name}', whose requirement is an authored {policy.Code.Language} block");
         }
 
-        var roles = RolesOf(policy.Condition);
-        if (roles is null)
-        {
-            diagnostics.Add(
-                $"{subject} authorizes against policy '{policy.Name}', which requires {Describe(policy.Condition)} — no authorization " +
-                "attribute expresses that, so it is rendered as requiring an authenticated caller.");
-            return [];
-        }
-
-        return roles;
+        return Resolve(policy.Name, policy.Condition);
     }
 
-    /// <summary>
-    /// Reduces a policy condition to the roles an attribute can carry, or <see langword="null"/> when no attribute
-    /// expresses it.
-    /// </summary>
-    /// <param name="condition">The condition to reduce.</param>
-    /// <returns>The roles, empty for authentication alone, or <see langword="null"/> when inexpressible.</returns>
-    static string[]? RolesOf(PolicyConditionSyntax? condition) => condition switch
+    static AuthorizationRendering Resolve(string policy, PolicyConditionSyntax? condition) => condition switch
     {
-        AuthenticatedConditionSyntax => [],
-        RoleConditionSyntax role => [role.Role],
-        LogicalPolicyConditionSyntax { Operator: LogicalOperator.Or } logical => Union(RolesOf(logical.Left), RolesOf(logical.Right)),
-        _ => null,
+        AuthenticatedConditionSyntax => AuthenticatedOnly.Instance,
+        RoleConditionSyntax role => new RoleDisjunction([role.Role]),
+        LogicalPolicyConditionSyntax { Operator: LogicalOperator.Or } logical => Alternative(
+            Resolve(policy, logical.Left),
+            Resolve(policy, logical.Right)),
+        _ => new UnsupportedAuthorization($"references policy '{policy}', which requires {Describe(condition)}"),
     };
 
-    static string[]? Union(string[]? left, string[]? right)
+    static AuthorizationRendering Alternative(params AuthorizationRendering[] alternatives) => Alternative(alternatives.AsEnumerable());
+
+    static AuthorizationRendering Alternative(IEnumerable<AuthorizationRendering> alternatives)
     {
-        if (left is null || right is null)
+        var outcomes = alternatives.ToArray();
+        var unsupported = outcomes.OfType<UnsupportedAuthorization>().FirstOrDefault();
+        if (unsupported is not null)
         {
-            return null;
+            return unsupported;
         }
 
-        // An alternative satisfied by authentication alone subsumes the roles beside it.
-        if (left.Length == 0 || right.Length == 0)
+        if (outcomes.Any(outcome => outcome is AnonymousAccess))
         {
-            return [];
+            return AnonymousAccess.Instance;
         }
 
-        return [.. left.Concat(right).Distinct(StringComparer.Ordinal)];
+        if (outcomes.Any(outcome => outcome is AuthenticatedOnly))
+        {
+            return AuthenticatedOnly.Instance;
+        }
+
+        return new RoleDisjunction(
+            [.. outcomes.OfType<RoleDisjunction>().SelectMany(outcome => outcome.Roles).Distinct(StringComparer.Ordinal)]);
     }
 
     static string Describe(PolicyConditionSyntax? condition) => condition switch
     {
         null => "nothing",
         ClaimConditionSyntax claim => $"the claim '{claim.Claim}'",
-        LogicalPolicyConditionSyntax { Operator: LogicalOperator.And } => "more than one thing at once",
-        _ => "a requirement this renderer does not understand",
+        LogicalPolicyConditionSyntax { Operator: LogicalOperator.And } => "more than one condition at once",
+        _ => "a condition this renderer does not understand",
     };
+
+    abstract record AuthorizationRendering;
+
+    sealed record AnonymousAccess : AuthorizationRendering
+    {
+        public static readonly AnonymousAccess Instance = new();
+    }
+
+    sealed record AuthenticatedOnly : AuthorizationRendering
+    {
+        public static readonly AuthenticatedOnly Instance = new();
+    }
+
+    sealed record RoleDisjunction(string[] Roles) : AuthorizationRendering;
+
+    sealed record UnsupportedAuthorization(string Reason) : AuthorizationRendering;
 }

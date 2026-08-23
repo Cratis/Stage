@@ -9,26 +9,14 @@ using Cratis.Stage.Rendering.Cratis.Authorization;
 namespace Cratis.Stage.Rendering.Cratis.for_ReadModelAuthorization.given;
 
 /// <summary>
-/// An application declaring the one role policy these specs authorize against, and the helpers for hanging
-/// query declarations off the read models a slice declares.
+/// Helpers for hanging query declarations off the read models a slice declares and observing whether only the
+/// synthesized fixed pair receives type-level authorization.
 /// </summary>
 public class an_application_with_policies : Specification
 {
-    protected ApplicationSet _applicationSet = null!;
     protected List<string> _diagnostics = null!;
 
-    void Establish()
-    {
-        var application = new ApplicationSyntax(
-            [],
-            [],
-            [new PolicySyntax("Accountant", new RoleConditionSyntax("Accountant", SourceLocation.Start), null, SourceLocation.Start)],
-            [],
-            SourceLocation.Start);
-
-        _applicationSet = new ApplicationSet([application]);
-        _diagnostics = [];
-    }
+    void Establish() => _diagnostics = [];
 
     /// <summary>
     /// Builds a query answering with one instance of a read model, guarded by the named policies — or by nothing
@@ -69,6 +57,6 @@ public class an_application_with_policies : Specification
                     .Aggregate((left, right) => new LogicalPolicyRequirementSyntax(left, LogicalOperator.Or, right, SourceLocation.Start)),
                 SourceLocation.Start);
 
-    protected string Render(string readModel, params QuerySyntax[] queries) =>
-        ReadModelAuthorization.Render(readModel, queries, _applicationSet, _diagnostics);
+    protected string? Render(string readModel, params QuerySyntax[] queries) =>
+        ReadModelAuthorization.Render(readModel, queries, _diagnostics);
 }

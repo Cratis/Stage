@@ -1,15 +1,17 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Cratis.Arc.Queries;
-
 namespace Cratis.Stage.Api;
 
 /// <summary>
-/// An <see cref="IQueryPerformer"/> for a modeled read model query. Foundation behavior returns no instance for
-/// the by-id query and an empty set for the all query; reading projected documents from the read model store is a
-/// follow-up.
+/// An <see cref="IQueryPerformer"/> for a modeled read model query.
 /// </summary>
+/// <remarks>
+/// Stage does not yet receive an executable query authorization contract from Screenplay. Queries therefore deny
+/// anonymous access and authorization by default, so Arc short-circuits before <see cref="Perform"/> and exposes no
+/// data. Full query authorization and execution depend on the Screenplay-owned executable semantic/query model;
+/// this performer does not invent an interim query DTO contract.
+/// </remarks>
 public sealed class StageQueryPerformer : IQueryPerformer
 {
     readonly bool _byId;
@@ -57,13 +59,13 @@ public sealed class StageQueryPerformer : IQueryPerformer
     public QueryParameters Parameters { get; }
 
     /// <inheritdoc/>
-    public bool AllowsAnonymousAccess => true;
+    public bool AllowsAnonymousAccess => false;
 
     /// <inheritdoc/>
     public bool SupportsPaging => false;
 
     /// <inheritdoc/>
-    public bool IsAuthorized(QueryContext context) => true;
+    public bool IsAuthorized(QueryContext context) => false;
 
     /// <inheritdoc/>
     public ValueTask<object?> Perform(QueryContext context)

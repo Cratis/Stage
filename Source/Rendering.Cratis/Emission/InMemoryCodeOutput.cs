@@ -17,10 +17,27 @@ public class InMemoryCodeOutput : ICodeOutput
     /// </summary>
     public IReadOnlyList<RenderedFile> Files => _files;
 
+    /// <summary>
+    /// Gets a value indicating whether the advisory failure marker has been written.
+    /// </summary>
+    public bool FailureMarkerWasWritten { get; private set; }
+
     /// <inheritdoc/>
     public Task Write(RenderedFile file, DirectoryInfo targetDirectory, TextWriter output)
     {
         _files.Add(file);
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> TryWriteFailureMarker(DirectoryInfo targetDirectory, TextWriter output)
+    {
+        if (FailureMarkerWasWritten)
+        {
+            return Task.FromResult(false);
+        }
+
+        FailureMarkerWasWritten = true;
+        return Task.FromResult(true);
     }
 }

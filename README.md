@@ -1,8 +1,9 @@
+<!-- markdownlint-disable MD033 MD041 -->
 <div align="center">
 
 # ▶️ Cratis Stage
 
-**Hands an authored event model a stage and lets it perform — a live, running Cratis application at runtime. No code generation, no compilation: the model *is* the application.**
+**Compiles Screenplay source, verifies modeled specifications, and renders or partially performs Cratis applications.**
 
 [![Discord](https://img.shields.io/discord/1182595891576717413?label=Discord&logo=discord&logoColor=white)](https://discord.gg/kt4AMpV8WV)
 [![Docker](https://img.shields.io/docker/v/cratis/stage?label=Docker&logo=docker&sort=semver)](https://hub.docker.com/r/cratis/stage)
@@ -14,103 +15,138 @@
 
 ---
 
-A script isn't a show until someone performs it. Hand **Stage** an authored event model — the intermediate JSON
-produced by [Cratis Studio](https://github.com/Cratis/Studio), the Cratis CLI, or any other tool — and it puts
-the model on its feet: dynamically generated commands and queries (Arc), read models and projections
-(Chronicle), and a Scalar/OpenAPI surface, all materialized **at runtime**. Nothing is generated to disk and
-compiled; the model is interpreted and *performed*. Change the model, and the performance changes with it.
+Stage has three responsibilities around a Screenplay application:
 
-Stage is self-contained — it has **no dependency on Studio**. It's consumed as containers (the host and the
-specification runner) and as a NuGet package (the contracts), from Studio, the Cratis CLI, or your own tooling.
+1. **Runtime** — provide a disposable host that directly performs the subset of modeled backend behavior Stage
+   currently understands.
+2. **Specification runner** — verify the specifications declared in the model and write structured results.
+3. **Renderer** — turn compiled Screenplay syntax into a reviewable Cratis Arc + Chronicle application on disk.
 
-## ▶️ Why "Stage"?
+The renderer is the project's highest-priority path. Direct runtime execution and specification verification are
+useful, but partial; they must not be read as proof that every Screenplay construct has executable semantics.
+Frontend and UI rendering are deferred.
 
-Three reasons, and they all line up:
+## Authoritative input
 
-- **The stage is where the script becomes a live show.** A screenplay is just paper until it's staged; the
-  performance happens in front of a live audience — here, real HTTP callers hitting a running API. Stage is
-  where the model stops being a document and starts *behaving*.
-- **It performs, it doesn't print.** No code generation, no build step, no artifacts to check in — the model
-  runs as-is. The stage is bare until the model steps onto it, and it leaves nothing behind when the curtain
-  falls.
-- **The Cratis storytelling family.** Cratis names its products after telling a story: **Chronicle** records
-  what happened, **Arc** shapes the plot, **Screenplay** is the script, **Studio** storyboards it,
-  **Narrator** reads it back… **Stage** is where the cast performs the script live. It joins the ensemble.
-
-Hand the same model to **Studio** and it storyboards it — visualizing and generating. Hand it to **Stage** and
-it performs it. One model; no meaning lost between the whiteboard and the running app.
-
-## 🎬 One model, curtain up
-
-The only thing Stage needs is a serialized `EventModel`. The types and the exact serialization live in
-`Cratis.Stage.Contracts`, so consumers write the file with `EventModelFile.Write(model)` and never hand-roll
-JSON:
+The authoritative input is Screenplay source: a `.play` file or a folder containing `.play` files. The host and
+specification runner recursively compile every `.play` file beneath the folder they receive and merge the
+results. Stage's contract models are internal/tooling seams produced from that compilation; an
+`event-model.json` file is not the current startup or rendering contract.
 
 ```mermaid
 flowchart LR
-    Author["🎨 Studio · CLI<br/>authors the model"] -->|"event-model.json"| Model[["📄 EventModel"]]
-    Model -->|"cratis/stage"| Host["▶️ Stage host"]
-    Model -->|"cratis/stage-specrunner"| Spec["🧪 spec runner"]
-    Host --> Api["🌐 live HTTP API<br/>Arc + Chronicle · Scalar/OpenAPI · :9090"]
-    Host --> Workbench["🔍 Chronicle Workbench<br/>events · observers · read models · :35000"]
-    Spec --> Results["📋 results.json"]
+    Play[["📄 Screenplay<br/>*.play files"]]
+    Play -->|compile| Runtime["▶️ partial runtime<br/>Arc + Chronicle API"]
+    Play -->|compile| Specs["🧪 model specification runner<br/>results.json"]
+    Play -->|compile| Renderer["🎨 Cratis renderer<br/>C# application source"]
 ```
 
-At startup the host loads the model, stands up its commands, queries, read models, and projections, and
-registers the projections with Chronicle so they run and populate the read-model store — a real event-sourced
-application, materialized from JSON.
+Stage is independent of Studio. Studio, the Cratis CLI, and other tooling can supply the same Screenplay source
+without Stage depending on any one authoring environment.
 
-## 🎭 The cast (projects)
+## Current scope
 
-| Project | Package / Image | Purpose |
-|---|---|---|
-| `Source/Contracts` | `Cratis.Stage.Contracts` (NuGet) | The event model intermediate format (with its embedded JSON schema), specification run results, and the serialization for both (`EventModelFile`, `SpecificationRunResultsFile`, `StageJson`). |
-| `Source/Stage` | `Cratis.Stage` (NuGet) | The engine — synthesizes commands, queries, validators, read models, and projections from a deserialized `EventModel` at runtime. |
-| `Source/Host` | `cratis/stage` (Docker) | Self-contained play sandbox: in-memory Chronicle kernel + the Stage engine in one container. Mount a model at `/eventmodel`, get a live API on port `9090` and the Chronicle Workbench on port `35000`. |
-| `Source/SpecRunner` | `cratis/stage-specrunner` (Docker) | Run-to-completion job that compiles the Screenplay files in the mounted `/model` folder, runs their specifications, and writes `results.json` to the mounted `/output` folder. |
+### Renderer — highest priority
 
-## 🎟️ Consuming
+`Cratis.Stage.Rendering.Cratis` renders backend Cratis artifacts from compiled Screenplay applications,
+including concepts, types, state changes, state views, reactions, authorization attributes, and specifications.
+Role-only alternatives and authenticated-only authorization render exactly. Each generated query method carries
+its own attribute; policies from distinct queries are never unioned on the read model. Conjunctions, claims,
+authored code, missing policies, and mixed unsupported authorization raise `STAGE-AUTH-001` for the containing
+artifact. The renderer continues independent work to collect diagnostics, then faults the operation with a typed
+`RenderingFailed`; it prints `Rendering complete.` only after a run with no blocking failures.
 
-```text
-Studio / CLI ──(event-model.json)──▶ cratis/stage            ⇒ live HTTP API (9090) + Workbench (35000)
-Studio / CLI ──(event-model.json)──▶ cratis/stage-specrunner ⇒ results.json
+The current filesystem output writes artifacts directly and has no managed staging, manifest, or safe stale-file
+removal. A failed run therefore leaves the target **unsafe and incomplete**: files from an earlier run can remain,
+including a physical copy of an artifact blocked by the current run. When it can do so without overwriting an
+existing file, Stage creates `.stage-render-failed` as an advisory marker. The marker does not disable or delete
+anything. Render failures into a fresh target and review the result before building, running, or deploying it.
+Managed `ArtifactRenderPlan` commit semantics are deferred to Stage #56 and CLI #101.
+
+Other model limitations are reported as render diagnostics. `Cratis.Stage.Rendering.Cratis.Scaffolding` can place
+the output into a project created from the Cratis templates. Rendering currently targets the backend application.
+Screens, layouts, forms, components, and other frontend/UI output are not rendered yet.
+
+### Direct runtime — partial
+
+The `cratis/stage` image is a disposable sandbox containing the Stage host and an in-memory Chronicle kernel. It
+loads a folder of `.play` files and exposes the runtime surfaces Stage currently implements. This path is not a
+complete executable implementation of the Screenplay language and should not be treated as a generated
+production application.
+
+Runtime commands evaluate their modeled `produces` mappings, append the resulting facts to Chronicle, and echo
+the payload as the response. Modeled command validation and authorization are not yet enforced by this runtime
+path.
+
+Stage also does not yet receive an executable query authorization contract. Modeled query performers deny access
+by default and return no data, so they cannot expose projected documents while authorization semantics are absent.
+Full query authorization and query execution are blocked on the Screenplay-owned executable semantic/query model;
+Stage does not invent an interim query DTO contract.
+
+### Specification runner — model-level verification
+
+`cratis/stage-specrunner` is a run-to-completion job. It compiles the `.play` files, checks the modeled
+specifications against the model, writes `results.json`, and exits. Verification is currently model-level: it
+checks the modeled facts and expectations but is not a substitute for behaviorally executing every slice against
+a live runtime.
+
+## Projects
+
+| Project                               | Package / image                             | Purpose                                                                                                                                                              |
+| ------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Source/Contracts`                    | `Cratis.Stage.Contracts`                    | Contract models and converters produced from compiled Screenplay syntax, specification results, and Scene/render-plan contracts used by Stage tooling.               |
+| `Source/Rendering.Cratis`             | `Cratis.Stage.Rendering.Cratis`             | Cratis-specific backend renderer with method-specific query authorization and explicit failed-operation signaling; direct-write targets remain unsafe after failure. |
+| `Source/Rendering.Cratis.Scaffolding` | `Cratis.Stage.Rendering.Cratis.Scaffolding` | Optional Cratis template scaffolding around rendered source.                                                                                                         |
+| `Source/Stage`                        | `Cratis.Stage`                              | Partial direct runtime engine: dynamic API types, command handling, Chronicle registration, specification strategies, and fail-closed modeled query performers.      |
+| `Source/Host`                         | `cratis/stage`                              | Disposable HTTP host paired with an in-memory Chronicle kernel for direct runtime exploration.                                                                       |
+| `Source/SpecRunner`                   | `cratis/stage-specrunner`                   | Container job for model-level specification verification and `results.json` output.                                                                                  |
+
+## Running the sandbox
+
+Mount a folder containing one or more `.play` files:
+
+```bash
+docker run --rm \
+    -p 9090:9090 \
+    -p 35000:35000 \
+    -v "$PWD":/eventmodel \
+    cratis/stage:latest
 ```
 
-Full documentation — what is inside the images, how they boot, and every URL a play session exposes — lives in
+The Stage API is exposed on port `9090`; the Chronicle Workbench is exposed on port `35000`. The host takes the
+model folder as its first argument. Deployment configuration is read from `cratis-stage.json`, with its path
+overridable through `STAGE_CONFIG`.
+
+## Running modeled specifications
+
+```bash
+docker run --rm \
+    -v /path/to/screenplays:/model \
+    -v /path/to/results:/output \
+    cratis/stage-specrunner:latest
+```
+
+The runner accepts `--model <folder>` and `--output <file>`, with optional `--slice <guid>` and `--spec <guid>`
+filters. The container defaults to `/model` and `/output/results.json`.
+
+Full container, URL, specification-result, and render-plan documentation lives in
 [Documentation](Documentation/index.md).
 
-- The **host** takes the model file path as its first argument (the container entrypoint finds it in
-  `/eventmodel`). Deployment configuration is supplied through a dedicated `cratis-stage.json` file (path
-  overridable with the `STAGE_CONFIG` environment variable) instead of `appsettings.json`.
-- The **spec runner** takes `--model <folder>` and `--output <file>`, with optional `--slice <guid>` /
-  `--spec <guid>` filters; the container defaults to `/model` and `/output/results.json`.
-
-## 🚀 Building
+## Building
 
 ```shell
-dotnet build                # Debug
-dotnet test                 # run the specs
-dotnet build -c Release     # Release — warnings are errors
+dotnet build -c Debug
+dotnet test -c Debug
+dotnet build -c Release
 ```
 
-Both Dockerfiles expect a prebuilt, framework-dependent `dotnet publish` output rather than compiling inside
-the Docker build — `./dockerize.sh` publishes both apps and builds both images from the repository root:
-
-```shell
-./dockerize.sh
-```
-
-## ✅ Quality gates
-
-```shell
-dotnet build -c Release     # zero warnings, zero errors
-dotnet test                 # all specs green
-```
+Release treats warnings as errors. Both Dockerfiles consume prebuilt, framework-dependent publish output;
+`./dockerize.sh` publishes the host and specification runner and then builds both images.
 
 ---
 
 <div align="center">
 
-*Part of the [Cratis](https://cratis.io) platform · Licensed under the [MIT license](LICENSE)*
+_Part of the [Cratis](https://cratis.io) platform · Licensed under the [MIT license](LICENSE)_
 
 </div>

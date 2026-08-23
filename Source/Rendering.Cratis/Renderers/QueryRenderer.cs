@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Rendering.Cratis.Authorization;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 
@@ -31,6 +32,12 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// a different read model, substituted in silence. What a read model is not the return type of is reported by
 /// <see cref="UnrenderedConstructs"/> instead of rendered against the wrong one.
 /// </para>
+/// <para>
+/// Authorization belongs to each generated method. Combining query policies on the read-model type changes two
+/// distinct operations into one wider surface: an administrator-only <c>All</c> and auditor-only <c>Mine</c>
+/// would both admit either role. Rendering the attribute immediately before its method preserves the operation
+/// boundary Arc evaluates.
+/// </para>
 /// </remarks>
 public static class QueryRenderer
 {
@@ -48,12 +55,17 @@ public static class QueryRenderer
     /// <param name="keyType">The type of the read model's key.</param>
     /// <param name="keyParameterName">The name the key is rendered under.</param>
     /// <param name="queries">The queries the slice declares, across all of its read models.</param>
+    /// <param name="applicationSet">The application set the query's authorization policies resolve against.</param>
+    /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
+    /// <exception cref="AuthorizationCannotBeRendered">A generated query method's authorization cannot be represented faithfully.</exception>
     public static void Render(
         CSharpCodeBuilder builder,
         string typeName,
         string keyType,
         string keyParameterName,
-        IEnumerable<QuerySyntax> queries)
+        IEnumerable<QuerySyntax> queries,
+        ApplicationSet applicationSet,
+        ICollection<string> diagnostics)
     {
         var own = queries.Where(query => Reads(query, typeName)).ToArray();
 
@@ -72,7 +84,12 @@ public static class QueryRenderer
 
         foreach (var query in own)
         {
-            builder.Line(Signature(query, typeName, keyType, keyParameterName));
+            var authorization = AuthorizationRenderer.Render(
+                query.Authorize,
+                applicationSet,
+                $"Query '{query.Name}'",
+                diagnostics);
+            builder.Attribute(authorization).Line(Signature(query, typeName, keyType, keyParameterName));
         }
     }
 
@@ -84,8 +101,8 @@ public static class QueryRenderer
     /// <param name="readModel">The rendered read model's C# type name.</param>
     /// <returns>True when the query reads that read model.</returns>
     /// <remarks>
-    /// The one place the attribution is decided, so the method rendered for a query and the authorization guarding
-    /// the read model it reads cannot disagree about which read model that is.
+    /// The one place the attribution is decided, so a query method and its authorization are rendered on the
+    /// read model the query actually returns.
     /// </remarks>
     public static bool Reads(QuerySyntax query, string readModel) =>
         Identifiers.ToPascalCase(query.ReturnType.Name).Equals(readModel, StringComparison.Ordinal);

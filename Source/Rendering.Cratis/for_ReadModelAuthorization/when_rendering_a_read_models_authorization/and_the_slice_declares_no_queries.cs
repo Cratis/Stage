@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_ReadModelAuthorization.when_renderin
 /// </summary>
 public class and_the_slice_declares_no_queries : an_application_with_policies
 {
-    string _attribute = null!;
+    string? _attribute;
 
     void Because() => _attribute = Render("InvoiceSummary");
 

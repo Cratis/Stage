@@ -44,7 +44,7 @@ public class and_they_return_different_read_models : Specification
     static string Render(params QuerySyntax[] queries)
     {
         var builder = new CSharpCodeBuilder();
-        QueryRenderer.Render(builder, "InvoiceSummary", "string", "id", queries);
+        QueryRenderer.Render(builder, "InvoiceSummary", "string", "id", queries, new ApplicationSet([]), []);
         return builder.ToString();
     }
 

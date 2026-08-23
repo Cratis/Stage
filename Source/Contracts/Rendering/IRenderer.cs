@@ -18,6 +18,9 @@ public interface IRenderer
     /// <param name="targetDirectory">The directory to render into.</param>
     /// <param name="output">The <see cref="TextWriter"/> progress is reported to.</param>
     /// <param name="error">The <see cref="TextWriter"/> rendering problems are reported to.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <returns>
+    /// A <see cref="Task"/> representing the asynchronous operation. Implementations fault the task when a
+    /// blocking render failure occurs; diagnostics written to <paramref name="error"/> are not a success result.
+    /// </returns>
     Task Render(IReadOnlyList<ApplicationSyntax> applications, DirectoryInfo targetDirectory, TextWriter output, TextWriter error);
 }

@@ -76,7 +76,14 @@ internal static class RenderedOutput
     /// </summary>
     /// <param name="files">The rendered files to compile.</param>
     /// <returns>The compilation errors, empty when the output compiles.</returns>
-    public static IReadOnlyList<string> Errors(IEnumerable<RenderedFile> files) => Errors(CreateCompilation(files));
+    public static IReadOnlyList<string> Errors(IEnumerable<RenderedFile> files) => Diagnostics(CreateCompilation(files), DiagnosticSeverity.Error);
+
+    /// <summary>
+    /// Compiles rendered files and returns every compiler warning.
+    /// </summary>
+    /// <param name="files">The rendered files to compile.</param>
+    /// <returns>The compilation warnings, empty when the output is warning-free.</returns>
+    public static IReadOnlyList<string> Warnings(IEnumerable<RenderedFile> files) => Diagnostics(CreateCompilation(files), DiagnosticSeverity.Warning);
 
     /// <summary>
     /// Compiles and loads rendered files so specs can exercise the real Arc evaluators against generated members.
@@ -91,7 +98,7 @@ internal static class RenderedOutput
         var result = compilation.Emit(assembly);
         if (!result.Success)
         {
-            throw new RenderedOutputDoesNotCompile(Errors(compilation));
+            throw new RenderedOutputDoesNotCompile(Diagnostics(compilation, DiagnosticSeverity.Error));
         }
 
         assembly.Position = 0;
@@ -115,10 +122,10 @@ internal static class RenderedOutput
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
     }
 
-    static IReadOnlyList<string> Errors(CSharpCompilation compilation) =>
+    static IReadOnlyList<string> Diagnostics(CSharpCompilation compilation, DiagnosticSeverity severity) =>
     [
         .. compilation.GetDiagnostics()
-            .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .Where(diagnostic => diagnostic.Severity == severity)
             .Select(diagnostic => $"{diagnostic.Location.SourceTree?.FilePath}: {diagnostic.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}")
     ];
 

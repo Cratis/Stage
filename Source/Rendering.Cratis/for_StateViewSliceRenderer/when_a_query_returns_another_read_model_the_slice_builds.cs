@@ -30,8 +30,8 @@ public class when_a_query_returns_another_read_model_the_slice_builds : a_slice_
 
     [Fact] void should_render_the_query_that_returns_the_rendered_read_model() =>
         _file.Content.ShouldContain(
-            "public static Task<InvoiceSummary?> GetInvoiceSummary(IReadModels readModels, string invoiceNumber) => " +
-            "readModels.GetInstanceById<InvoiceSummary>((EventSourceId)invoiceNumber);");
+            "public static async Task<InvoiceSummary?> GetInvoiceSummary(IReadModels readModels, string invoiceNumber) => " +
+            "await readModels.GetInstanceById<InvoiceSummary>((EventSourceId)invoiceNumber);");
 
     [Fact] void should_not_render_a_method_for_the_query_that_returns_the_other_one() =>
         _file.Content.ShouldNotContain("IQueryable<InvoiceSummary> GetOverdueInvoices");
@@ -52,7 +52,7 @@ public class when_a_query_returns_another_read_model_the_slice_builds : a_slice_
     // The query's policy belongs to its generated method. Rendering fewer methods must not quietly widen or
     // narrow it — the unguarded query on the other read model still says nothing here.
     [Fact] void should_keep_the_generated_method_guarded_by_its_querys_policy() =>
-        _file.Content.ShouldContain("[Roles(\"Accountant\")]\n    public static Task<InvoiceSummary?> GetInvoiceSummary");
+        _file.Content.ShouldContain("[Roles(\"Accountant\")]\n    public static async Task<InvoiceSummary?> GetInvoiceSummary");
 
     [Fact] void should_not_publish_the_read_model_to_everyone() => _file.Content.Contains("[AllowAnonymous]", StringComparison.Ordinal).ShouldBeFalse();
 }

@@ -87,7 +87,7 @@ public class and_one_of_them_is_observable : Specification
 
     [Fact] void should_leave_a_by_query_the_document_does_not_mark_observable_a_one_shot_read() =>
         Render(By("ForInvoice", "invoiceNumber", observable: false))
-            .ShouldContain("public static Task<InvoiceSummary?> ForInvoice(IReadModels readModels, string invoiceNumber)");
+            .ShouldContain("public static async Task<InvoiceSummary?> ForInvoice(IReadModels readModels, string invoiceNumber)");
 
     [Fact] void should_render_each_query_as_what_the_document_declares_it_to_be() =>
         Render(Collection("Invoices", observable: false), Collection("LiveInvoices", observable: true))

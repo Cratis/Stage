@@ -16,6 +16,7 @@ public class when_planning_the_register_project_application : a_register_project
     ArtifactRenderPlan _first = null!;
     ArtifactRenderPlan _second = null!;
     IReadOnlyList<string> _compilationErrors = null!;
+    IReadOnlyList<string> _compilationWarnings = null!;
     int _validationErrors;
 
     void Because()
@@ -27,6 +28,7 @@ public class when_planning_the_register_project_application : a_register_project
             .Select(_ => new RenderedFile(_.RelativePath, Text(_)))
             .ToArray();
         _compilationErrors = RenderedOutput.Errors(sources);
+        _compilationWarnings = RenderedOutput.Warnings(sources);
         _validationErrors = ValidateEmptyName(RenderedOutput.Load(sources));
     }
 
@@ -38,12 +40,13 @@ public class when_planning_the_register_project_application : a_register_project
     [Fact] void should_render_the_exact_validation_message() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("WithMessage(\"Project name is required\")");
     [Fact] void should_render_the_event_destination_as_the_identifier() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("public ProjectRegistered Handle() => new(ProjectId, Name);");
     [Fact] void should_render_the_one_instance_projection() => Content("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("[FromEvent<ProjectRegistered>]");
-    [Fact] void should_render_the_optional_snapshot_query() => Content("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("public static Task<ProjectSummary?> ProjectById");
+    [Fact] void should_render_the_optional_snapshot_query() => Content("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("public static async Task<ProjectSummary?> ProjectById");
     [Fact] void should_render_the_success_command_specification() => ContentEnding("when_registering_aproject.cs").ShouldContain("ShouldHaveAppendedEvent<RegisterProject, ProjectRegistered>");
     [Fact] void should_render_the_rejection_specification() => ContentEnding("when_rejecting_an_empty_project_name.cs").ShouldContain("ShouldHaveValidationErrors");
     [Fact] void should_render_the_projection_specification() => ContentEnding("when_registering_aproject_is_projected.cs").ShouldContain("ReadModelScenario<ProjectSummary>");
     [Fact] void should_render_the_query_specification() => ContentEnding("when_registering_aproject_is_queried.cs").ShouldContain("ProjectSummary.ProjectById");
     [Fact] void should_compile_the_generated_backend_and_specifications() => string.Join(Environment.NewLine, _compilationErrors).ShouldEqual(string.Empty);
+    [Fact] void should_generate_warning_free_backend_and_specifications() => string.Join(Environment.NewLine, _compilationWarnings).ShouldEqual(string.Empty);
     [Fact] void should_reject_the_empty_project_name() => _validationErrors.ShouldEqual(1);
     [Fact] void should_repeat_the_same_artifact_paths() => _second.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_first.Artifacts.Select(_ => _.RelativePath)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_artifact_hashes() => _second.Artifacts.Select(_ => _.Sha256).SequenceEqual(_first.Artifacts.Select(_ => _.Sha256)).ShouldBeTrue();
@@ -57,10 +60,10 @@ public class when_planning_the_register_project_application : a_register_project
         var projectId = Activator.CreateInstance(assembly.GetTypes().Single(_ => _.Name == "ProjectId"), Guid.NewGuid());
         var projectName = Activator.CreateInstance(assembly.GetTypes().Single(_ => _.Name == "ProjectName"), string.Empty);
         var commandType = assembly.GetTypes().Single(_ => _.Name == "RegisterProject");
-        var command = Activator.CreateInstance(commandType, projectId, projectName)!;
-        var validator = (IValidator)Activator.CreateInstance(assembly.GetTypes().Single(_ => _.Name == "RegisterProjectValidator"))!;
+        var command = Activator.CreateInstance(commandType, projectId, projectName);
+        var validator = (IValidator)Activator.CreateInstance(assembly.GetTypes().Single(_ => _.Name == "RegisterProjectValidator"));
         var contextType = typeof(ValidationContext<>).MakeGenericType(commandType);
-        var context = (IValidationContext)Activator.CreateInstance(contextType, command)!;
+        var context = (IValidationContext)Activator.CreateInstance(contextType, command);
         return validator.Validate(context).Errors.Count;
     }
 }

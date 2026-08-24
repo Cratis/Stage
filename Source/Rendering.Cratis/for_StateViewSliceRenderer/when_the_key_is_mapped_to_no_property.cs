@@ -47,7 +47,7 @@ public class when_the_key_is_mapped_to_no_property : Specification
 
     [Fact] void should_add_a_property_carrying_the_key() => _file.Content.ShouldContain("[Key] string InvoiceNumber");
     [Fact] void should_type_the_key_property_from_the_event_it_comes_from() =>
-        _file.Content.ShouldContain("public static Task<InvoiceTotals?> InvoiceTotalsById(IReadModels readModels, string invoiceNumber)");
+        _file.Content.ShouldContain("public static async Task<InvoiceTotals?> InvoiceTotalsById(IReadModels readModels, string invoiceNumber)");
     [Fact] void should_report_that_the_key_carries_no_mapping() =>
         _file.Diagnostics.ShouldContain("Key 'invoiceNumber' is mapped to no read model property — a 'InvoiceNumber' property was added to carry it.");
 }

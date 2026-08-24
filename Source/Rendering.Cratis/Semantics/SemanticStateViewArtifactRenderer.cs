@@ -82,7 +82,7 @@ internal static class SemanticStateViewArtifactRenderer
         builder.BlankLine()
             .Attribute("AllowAnonymous")
             .ExpressionMember(
-                $"public static Task<{readModelName}?> {Identifiers.ToPascalCase(query.Name)}(IReadModels readModels, {types.Type(query.Argument.Type)} {argumentName})",
-                $"readModels.GetInstanceById<{readModelName}>((EventSourceId){argumentName})");
+                $"public static async Task<{readModelName}?> {Identifiers.ToPascalCase(query.Name)}(IReadModels readModels, {types.Type(query.Argument.Type)} {argumentName})",
+                $"await readModels.GetInstanceById<{readModelName}>((EventSourceId){argumentName})");
     }
 }

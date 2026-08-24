@@ -16,25 +16,58 @@ The renderer is the highest-priority path; the runtime and specification runner 
 
 ### Renderer
 
-`Cratis.Stage.Rendering.Cratis` renders concepts, types, state changes, state views, reactions, specifications, and
-the authorization declarations it can express exactly with Arc attributes. Role-only alternatives render as
-`[Roles(...)]`, authenticated-only access renders as `[Authorize]`, and an absent declaration renders as
-`[AllowAnonymous]`. Every generated query method carries its own exact attribute; Stage does not union distinct
-query policies on the read model.
+`Cratis.Stage.Rendering.Cratis` now exposes a pure `CratisArtifactRenderPlanner` for the executable semantic model
+(ESM). It accepts an immutable `ArtifactRenderRequest` and returns the complete in-memory `ArtifactRenderPlan`
+before anything is written. The plan carries an explicit artifact-schema version, and every artifact has a
+normalized relative path, exact bytes, and SHA-256 hash; errors are typed diagnostics and make the plan
+non-publishable.
 
-Conjunctions, claims, authored policy code, missing policies, and trees mixing supported and unsupported
-requirements raise `STAGE-AUTH-001` for the containing artifact. Stage continues independent artifacts to collect
-diagnostics, then faults the operation with `RenderingFailed`; an unqualified `Rendering complete.` is success
-only.
+The first direct ESM capability is deliberately narrow and complete: concepts and composite types, one
+`RegisterProject`-shaped command with `not empty` validation, its event destination and mappings, a one-instance
+projection, an optional snapshot by-key query, and generated success/rejection specifications. The planner uses
+stable semantic identities and materialized ESM mappings directly. It never converts the ESM back into
+`ApplicationSyntax`, guesses a mapping, emits a `TODO`, or performs filesystem, process, network, clock, or ambient
+environment access.
 
-Filesystem output is currently direct-write, without managed staging or safe stale-file removal. After any failure,
-treat the target as **unsafe and incomplete**: a file from an earlier run can remain physically present even when
-the current run blocks that artifact. Stage attempts to create an advisory `.stage-render-failed` marker without
-overwriting an existing file, but the marker neither disables nor deletes stale code. Use a fresh target after a
-failure. Managed `ArtifactRenderPlan` commit semantics are deferred to Stage #56 and CLI #101.
+A caller supplies exact scaffold/template bytes as profile inputs:
 
-Screens, layouts, forms, and other frontend/UI artifacts are not yet rendered, and other unsupported model
-constructs are reported as diagnostics.
+```csharp
+var scaffold = CratisArtifactRenderInput.CreateText(
+    "Projects.csproj",
+    "1.1.1",
+    projectFileContent);
+var profile = ArtifactRenderProfile.Create(
+    CratisArtifactRenderPlanner.Target,
+    "22.1.0",
+    CratisArtifactRenderPlanner.Renderer,
+    "1",
+    [scaffold]);
+var request = new ArtifactRenderRequest(
+    semanticModel,
+    executionPlan,
+    profile,
+    new(ArtifactRenderScopeKind.Application, semanticModel.Application.Id));
+
+var plan = new CratisArtifactRenderPlanner().Plan(request);
+if (!plan.Success)
+{
+    foreach (var diagnostic in plan.Diagnostics)
+    {
+        Console.Error.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+    }
+}
+```
+
+Application, module, feature, and slice scopes produce the same paths and bytes for the artifacts they share.
+Application scope also includes the fully resolved scaffold inputs. Unsupported reachable semantics block
+publication rather than producing a thinner application.
+
+The published syntax-based `IRenderer` remains available through an explicit compatibility adapter. That legacy
+path still renders its existing broader `ApplicationSyntax` surface and writes directly to a target directory.
+Direct writes do not provide managed staging or safe stale-file removal: after a legacy rendering failure, treat
+the target as **unsafe and incomplete** and use a fresh target. Safe staged publication remains owned by CLI #101.
+
+Screens, layouts, forms, and other frontend/UI artifacts remain outside this backend milestone.
 
 ### Runtime host
 
@@ -69,7 +102,7 @@ The [Cratis CLI](/cli/reference/run) wraps this in `cratis run`, so you rarely t
 | ------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | The Stage host           | `cratis/stage`                  | Disposable partial runtime with Arc, Chronicle, OpenAPI, command fact appending, and fail-closed queries.        |
 | The specification runner | `cratis/stage-specrunner`       | Run-to-completion model-level specification verification.                                                        |
-| The renderer             | `Cratis.Stage.Rendering.Cratis` | Reviewable backend generation with exact per-method query authorization and explicit failed-operation signaling. |
+| The renderer             | `Cratis.Stage.Rendering.Cratis` | Pure ESM artifact planning for the first complete backend vertical, plus the syntax-based compatibility renderer. |
 | The contracts            | `Cratis.Stage.Contracts`        | Internal/tooling seams and specification results produced from compiled Screenplay syntax.                       |
 
 ## Where to go next

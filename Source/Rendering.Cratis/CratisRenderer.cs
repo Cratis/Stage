@@ -17,11 +17,30 @@ namespace Cratis.Stage.Rendering.Cratis;
 /// Cratis-specific implementation of <see cref="IRenderer"/>. Independent artifacts continue after a failure so
 /// diagnostics are complete, but any blocking failure ends the operation with <see cref="RenderingFailed"/>.
 /// </summary>
-/// <param name="scaffolder">Scaffolds the target project when none exists yet.</param>
-/// <param name="sliceRenderers">The <see cref="ISliceRenderer"/> to use per <see cref="SliceType"/>.</param>
-/// <param name="codeOutput">Writes rendered files to their destination.</param>
-public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<SliceType, ISliceRenderer> sliceRenderers, ICodeOutput codeOutput) : IRenderer
+public class CratisRenderer : IRenderer
 {
+    readonly ICodeOutput _codeOutput;
+    readonly LegacyRendererCompatibilityAdapter _compatibilityAdapter;
+    readonly IProjectScaffolder _scaffolder;
+    readonly IReadOnlyDictionary<SliceType, ISliceRenderer> _sliceRenderers;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CratisRenderer"/> class.
+    /// </summary>
+    /// <param name="scaffolder">Scaffolds the target project when none exists yet.</param>
+    /// <param name="sliceRenderers">The slice renderers used by the legacy syntax path.</param>
+    /// <param name="codeOutput">Writes legacy rendered files to their destination.</param>
+    public CratisRenderer(
+        IProjectScaffolder scaffolder,
+        IReadOnlyDictionary<SliceType, ISliceRenderer> sliceRenderers,
+        ICodeOutput codeOutput)
+    {
+        _scaffolder = scaffolder;
+        _sliceRenderers = sliceRenderers;
+        _codeOutput = codeOutput;
+        _compatibilityAdapter = new(RenderApplications);
+    }
+
     /// <summary>
     /// Creates a <see cref="CratisRenderer"/> wired with the slice renderers and local file system output,
     /// rendering into the target directory without scaffolding a project around it.
@@ -47,51 +66,8 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
     }
 
     /// <inheritdoc/>
-    public async Task Render(IReadOnlyList<ApplicationSyntax> applications, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
-    {
-        var failures = new List<Exception>();
-        await output.WriteLineAsync($"Rendering {applications.Count} application(s) to '{targetDirectory.FullName}'...");
-
-        var rootNamespace = Identifiers.ToPascalCase(targetDirectory.Name);
-        if (!await TryScaffold(targetDirectory, rootNamespace, output, error, failures))
-        {
-            await Complete(targetDirectory, output, error, failures);
-            return;
-        }
-
-        var applicationSet = new ApplicationSet(applications);
-
-        foreach (var concept in applicationSet.Concepts.Values)
-        {
-            await RenderFile(
-                () => ConceptRenderer.Render(concept, applicationSet, rootNamespace),
-                $"concept '{concept.Name}'",
-                targetDirectory,
-                output,
-                error,
-                failures);
-        }
-
-        foreach (var type in applicationSet.Types.Values)
-        {
-            await RenderFile(
-                () => TypeRenderer.Render(type, applicationSet, rootNamespace),
-                $"type '{type.Name}'",
-                targetDirectory,
-                output,
-                error,
-                failures);
-        }
-
-        foreach (var slice in applicationSet.Slices)
-        {
-            await RenderSlice(slice, applicationSet, rootNamespace, targetDirectory, output, error, failures);
-        }
-
-        await ReportUnrenderableReferences(applicationSet, error);
-        await ReportUnrenderedDeclarations(applicationSet, error);
-        await Complete(targetDirectory, output, error, failures);
-    }
+    public Task Render(IReadOnlyList<ApplicationSyntax> applications, DirectoryInfo targetDirectory, TextWriter output, TextWriter error) =>
+        _compatibilityAdapter.Render(applications, targetDirectory, output, error);
 
     /// <summary>
     /// Renders a single module — every slice under it, and nothing else.
@@ -197,6 +173,52 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
         await error.WriteLineAsync($"Failed to {operation}: {exception.Message}");
     }
 
+    async Task RenderApplications(IReadOnlyList<ApplicationSyntax> applications, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
+    {
+        var failures = new List<Exception>();
+        await output.WriteLineAsync($"Rendering {applications.Count} application(s) to '{targetDirectory.FullName}'...");
+
+        var rootNamespace = Identifiers.ToPascalCase(targetDirectory.Name);
+        if (!await TryScaffold(targetDirectory, rootNamespace, output, error, failures))
+        {
+            await Complete(targetDirectory, output, error, failures);
+            return;
+        }
+
+        var applicationSet = new ApplicationSet(applications);
+
+        foreach (var concept in applicationSet.Concepts.Values)
+        {
+            await RenderFile(
+                () => ConceptRenderer.Render(concept, applicationSet, rootNamespace),
+                $"concept '{concept.Name}'",
+                targetDirectory,
+                output,
+                error,
+                failures);
+        }
+
+        foreach (var type in applicationSet.Types.Values)
+        {
+            await RenderFile(
+                () => TypeRenderer.Render(type, applicationSet, rootNamespace),
+                $"type '{type.Name}'",
+                targetDirectory,
+                output,
+                error,
+                failures);
+        }
+
+        foreach (var slice in applicationSet.Slices)
+        {
+            await RenderSlice(slice, applicationSet, rootNamespace, targetDirectory, output, error, failures);
+        }
+
+        await ReportUnrenderableReferences(applicationSet, error);
+        await ReportUnrenderedDeclarations(applicationSet, error);
+        await Complete(targetDirectory, output, error, failures);
+    }
+
     async Task RenderLocated(
         IReadOnlyList<LocatedSlice> slices, ApplicationSet context, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
     {
@@ -227,7 +249,7 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
     {
         var slicePath = string.Join('.', slice.FullPath);
 
-        if (!sliceRenderers.TryGetValue(slice.Slice.Type, out var renderer))
+        if (!_sliceRenderers.TryGetValue(slice.Slice.Type, out var renderer))
         {
             await error.WriteLineAsync($"No renderer registered for slice type '{slice.Slice.Type}' ('{slicePath}') — skipped.");
             return;
@@ -325,7 +347,7 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
                 await error.WriteLineAsync($"{file.RelativePath}: {diagnostic}");
             }
 
-            await codeOutput.Write(file, targetDirectory, output);
+            await _codeOutput.Write(file, targetDirectory, output);
         }
         catch (Exception exception)
         {
@@ -342,7 +364,7 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
     {
         try
         {
-            await scaffolder.EnsureScaffolded(targetDirectory, rootNamespace, output);
+            await _scaffolder.EnsureScaffolded(targetDirectory, rootNamespace, output);
             return true;
         }
         catch (Exception exception)
@@ -366,7 +388,7 @@ public class CratisRenderer(IProjectScaffolder scaffolder, IReadOnlyDictionary<S
 
         try
         {
-            var markerWritten = await codeOutput.TryWriteFailureMarker(targetDirectory, output);
+            var markerWritten = await _codeOutput.TryWriteFailureMarker(targetDirectory, output);
             await error.WriteLineAsync(markerWritten
                 ? $"Wrote advisory failure marker '{RenderFailureMarker.RelativePath}'. It does not remove or disable stale artifacts."
                 : $"No new failure marker was written at '{RenderFailureMarker.RelativePath}'. The output remains unsafe and incomplete.");

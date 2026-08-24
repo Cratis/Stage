@@ -107,6 +107,7 @@ public sealed class PlannedArtifact
     /// <param name="relativePath">The portable relative path.</param>
     /// <param name="content">The text content.</param>
     /// <returns>The planned artifact.</returns>
+    /// <exception cref="InvalidArtifactRenderContract"></exception>
     public static PlannedArtifact CreateText(string relativePath, string content)
     {
         if (content is null)
@@ -167,6 +168,11 @@ public sealed class PlannedArtifact
 /// </summary>
 public sealed class ArtifactRenderPlan
 {
+    /// <summary>
+    /// The current artifact-plan schema version.
+    /// </summary>
+    public const string CurrentSchemaVersion = "1";
+
     ArtifactRenderPlan(
         string target,
         string targetVersion,
@@ -186,6 +192,11 @@ public sealed class ArtifactRenderPlan
         Artifacts = artifacts;
         Diagnostics = diagnostics;
     }
+
+    /// <summary>
+    /// Gets the artifact-plan schema version.
+    /// </summary>
+    public string SchemaVersion => CurrentSchemaVersion;
 
     /// <summary>
     /// Gets the target identity.
@@ -239,6 +250,7 @@ public sealed class ArtifactRenderPlan
     /// <param name="artifacts">The target artifacts.</param>
     /// <param name="diagnostics">The typed diagnostics.</param>
     /// <returns>The complete deterministic plan.</returns>
+    /// <exception cref="InvalidArtifactRenderContract"></exception>
     public static ArtifactRenderPlan Create(
         ArtifactRenderRequest request,
         ImmutableArray<PlannedArtifact> artifacts,

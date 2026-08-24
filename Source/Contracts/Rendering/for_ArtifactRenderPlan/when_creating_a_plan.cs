@@ -26,6 +26,7 @@ public class when_creating_a_plan : given.an_artifact_render_request
     }
 
     [Fact] void should_be_successful_without_errors() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_carry_the_schema_version() => _plan.SchemaVersion.ShouldEqual(ArtifactRenderPlan.CurrentSchemaVersion);
     [Fact] void should_carry_the_application_name() => _plan.ApplicationName.ShouldEqual("Projects");
     [Fact] void should_carry_the_semantic_revision() => _plan.SemanticRevision.ShouldEqual(_request.Model.Revision);
     [Fact] void should_order_artifacts_by_normalized_path() => _plan.Artifacts.Select(_ => _.RelativePath).SequenceEqual(["a/logo.bin", "z/Project.cs"]).ShouldBeTrue();

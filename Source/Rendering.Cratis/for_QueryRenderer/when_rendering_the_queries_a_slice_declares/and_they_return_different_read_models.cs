@@ -69,7 +69,7 @@ public class and_they_return_different_read_models : Specification
 
     [Fact] void should_keep_the_by_shape_of_its_own_query() =>
         Render(Collection("GetOverdueInvoices", "OverdueInvoices"), By("ForInvoice", "InvoiceSummary", "invoiceNumber"))
-            .ShouldContain("public static Task<InvoiceSummary?> ForInvoice(IReadModels readModels, string invoiceNumber)");
+            .ShouldContain("public static async Task<InvoiceSummary?> ForInvoice(IReadModels readModels, string invoiceNumber)");
 
     [Fact] void should_keep_the_observable_shape_of_its_own_query() =>
         Render(Collection("GetOverdueInvoices", "OverdueInvoices"), Collection("LiveInvoices", "InvoiceSummary", observable: true))

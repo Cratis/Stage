@@ -150,8 +150,8 @@ public static class QueryRenderer
 
         return readsTheWholeModel
             ? $"public static IQueryable<{typeName}> {name}(IMongoCollection<{typeName}> collection) => collection.AsQueryable();"
-            : $"public static Task<{typeName}?> {name}(IReadModels readModels, {keyType} {parameter}) => " +
-              $"readModels.GetInstanceById<{typeName}>((EventSourceId){parameter});";
+            : $"public static async Task<{typeName}?> {name}(IReadModels readModels, {keyType} {parameter}) => " +
+              $"await readModels.GetInstanceById<{typeName}>((EventSourceId){parameter});";
     }
 
     // A query declared 'observable' reads what its non-observable counterpart reads, and keeps reading it: the
@@ -167,6 +167,6 @@ public static class QueryRenderer
     static void RenderTheFixedPair(CSharpCodeBuilder builder, string typeName, string keyType, string keyParameterName) =>
         builder
             .Line($"public static IQueryable<{typeName}> All{Pluralizer.Pluralize(typeName)}(IMongoCollection<{typeName}> collection) => collection.AsQueryable();")
-            .Line($"public static Task<{typeName}?> {typeName}ById(IReadModels readModels, {keyType} {keyParameterName}) => " +
-                  $"readModels.GetInstanceById<{typeName}>((EventSourceId){keyParameterName});");
+            .Line($"public static async Task<{typeName}?> {typeName}ById(IReadModels readModels, {keyType} {keyParameterName}) => " +
+                  $"await readModels.GetInstanceById<{typeName}>((EventSourceId){keyParameterName});");
 }

@@ -18,8 +18,9 @@ The renderer is the highest-priority path; the runtime and specification runner 
 
 `Cratis.Stage.Rendering.Cratis` now exposes a pure `CratisArtifactRenderPlanner` for the executable semantic model
 (ESM). It accepts an immutable `ArtifactRenderRequest` and returns the complete in-memory `ArtifactRenderPlan`
-before anything is written. Every artifact has a normalized relative path, exact bytes, and SHA-256 hash; errors
-are typed diagnostics and make the plan non-publishable.
+before anything is written. The plan carries an explicit artifact-schema version, and every artifact has a
+normalized relative path, exact bytes, and SHA-256 hash; errors are typed diagnostics and make the plan
+non-publishable.
 
 The first direct ESM capability is deliberately narrow and complete: concepts and composite types, one
 `RegisterProject`-shaped command with `not empty` validation, its event destination and mappings, a one-instance

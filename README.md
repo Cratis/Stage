@@ -48,24 +48,21 @@ without Stage depending on any one authoring environment.
 
 ### Renderer — highest priority
 
-`Cratis.Stage.Rendering.Cratis` renders backend Cratis artifacts from compiled Screenplay applications,
-including concepts, types, state changes, state views, reactions, authorization attributes, and specifications.
-Role-only alternatives and authenticated-only authorization render exactly. Each generated query method carries
-its own attribute; policies from distinct queries are never unioned on the read model. Conjunctions, claims,
-authored code, missing policies, and mixed unsupported authorization raise `STAGE-AUTH-001` for the containing
-artifact. The renderer continues independent work to collect diagnostics, then faults the operation with a typed
-`RenderingFailed`; it prints `Rendering complete.` only after a run with no blocking failures.
+`Cratis.Stage.Rendering.Cratis` exposes a pure executable-semantic-model planner. It accepts an immutable
+`ArtifactRenderRequest` and returns a complete in-memory `ArtifactRenderPlan` with normalized paths, exact bytes,
+SHA-256 hashes, and typed diagnostics before publication. The currently admitted vertical includes concepts,
+composite types, one command/event production path, one-instance projection state, an optional snapshot lookup,
+and modeled specifications. Unsupported reachable semantics block publication instead of producing thinner code.
+Cratis CLI publishes successful plans through its managed artifact publisher.
 
-The current filesystem output writes artifacts directly and has no managed staging, manifest, or safe stale-file
-removal. A failed run therefore leaves the target **unsafe and incomplete**: files from an earlier run can remain,
-including a physical copy of an artifact blocked by the current run. When it can do so without overwriting an
-existing file, Stage creates `.stage-render-failed` as an advisory marker. The marker does not disable or delete
-anything. Render failures into a fresh target and review the result before building, running, or deploying it.
-Managed `ArtifactRenderPlan` commit semantics are deferred to Stage #56 and CLI #101.
+The published syntax-based `IRenderer` remains available as a compatibility path for the older, broader syntax
+surface. That path writes directly and has no managed staging or safe stale-file removal. A failure can leave its
+target **unsafe and incomplete**; render legacy output into a fresh target and review it before building or running.
+Do not use that direct-write compatibility path as the basis for a new target.
 
 Other model limitations are reported as render diagnostics. `Cratis.Stage.Rendering.Cratis.Scaffolding` can place
-the output into a project created from the Cratis templates. Rendering currently targets the backend application.
-Screens, layouts, forms, components, and other frontend/UI output are not rendered yet.
+output into a project created from Cratis templates. Rendering currently targets backend applications. Screens,
+layouts, forms, components, and other frontend/UI output are not rendered yet.
 
 ### Direct runtime — partial
 
@@ -130,7 +127,8 @@ The runner accepts `--model <folder>` and `--output <file>`, with optional `--sl
 filters. The container defaults to `/model` and `/output/results.json`.
 
 Full container, URL, specification-result, and render-plan documentation lives in
-[Documentation](Documentation/index.md).
+[Documentation](Documentation/index.md). Framework maintainers can use the
+[renderer target guide](Documentation/guides/build-renderer-target.md) to implement another deterministic Screenplay-to-code target.
 
 ## Building
 

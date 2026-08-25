@@ -243,7 +243,7 @@ Create one target-owned admission phase. Evaluate the selected artifacts and all
 - executable specification values and expectations;
 - target lifecycle, persistence, transport, and package choices.
 
-Collect independent target diagnostics so an author can fix several issues in one pass. When a required semantic fails admission, do not emit its dependent artifacts. Never substitute thinner code, a `TODO`, an empty handler, a placeholder value, or a guessed default.
+Collect independent target diagnostics so an author can fix several issues in one pass. When a required semantic fails admission, do not emit its dependent artifacts. Never substitute thinner code, an unfinished implementation, an empty handler, a placeholder value, or a guessed default.
 
 Build target-local indexes keyed by `SemanticId`. Use `ExecutableSemanticModel` and `SemanticExecutionPlan` mappings for command production, destinations, properties, projection transitions, affected-instance keys, queries, and typed specification values. Never join artifacts by a short or display name.
 

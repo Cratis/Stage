@@ -1,3 +1,5 @@
+- name: Guides
+  href: guides/toc.yml
 - name: Docker
   href: docker/toc.yml
 - name: Reference

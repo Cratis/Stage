@@ -308,3 +308,6 @@ vite*.map
 *.lscache
 # Local NuGet feed output
 .local-feed/
+
+# Local AI work artifacts (plans, handovers, session notes) — never tracked
+.ai-work/

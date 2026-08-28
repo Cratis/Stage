@@ -67,9 +67,15 @@ surface. That path writes directly and has no managed staging or safe stale-file
 target **unsafe and incomplete**; render legacy output into a fresh target and review it before building or running.
 Do not use that direct-write compatibility path as the basis for a new target.
 
-Other model limitations are reported as render diagnostics. `Cratis.Stage.Rendering.Cratis.Scaffolding` can place
-output into a project created from Cratis templates. Rendering currently targets backend applications. Screens,
-layouts, forms, components, and other frontend/UI output are not rendered yet.
+Other model limitations are reported as render diagnostics. For a first run,
+`CratisBackendApplicationScaffoldRequest` and `CratisBackendApplicationScaffold` create eight ordered, normalized
+backend scaffold inputs entirely in memory; they do not use the template engine or write to a file system. Local
+`Directory.Build.props` and `Directory.Packages.props` boundaries keep parent build and central-package settings
+out of the generated application. The current profile pins .NET 10, Cratis/Arc 22.3.0, the verified specification
+dependencies, and the compatible `cratis/chronicle:16.35.3-development` image. The optional
+`Cratis.Stage.Rendering.Cratis.Scaffolding` package
+remains available to the legacy direct-write compatibility path. Rendering currently targets backend applications.
+Screens, layouts, forms, components, and other frontend/UI output are not rendered yet.
 
 ### Direct runtime — partial
 

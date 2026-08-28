@@ -20,11 +20,18 @@ Stage has three responsibilities around a Screenplay application:
 1. **Runtime** — provide a disposable host that directly performs the subset of modeled backend behavior Stage
    currently understands.
 2. **Specification runner** — verify the specifications declared in the model and write structured results.
-3. **Renderer** — turn compiled Screenplay syntax into a reviewable Cratis Arc + Chronicle application on disk.
+3. **Renderer** — turn compiled Screenplay syntax into a reviewable [Cratis Arc](https://github.com/Cratis/Arc) + [Chronicle](https://github.com/Cratis/Chronicle) application on disk.
 
 The renderer is the project's highest-priority path. Direct runtime execution and specification verification are
 useful, but partial; they must not be read as proof that every Screenplay construct has executable semantics.
 Frontend and UI rendering are deferred.
+
+Stage is part of the experimental Cratis model-first layer: [Screenplay](https://github.com/Cratis/Screenplay) is
+the modeling language, [Studio](https://github.com/Cratis/Studio) the collaborative modeling environment,
+[Scene](https://github.com/Cratis/Scene) the platform-neutral UI model, and
+[Prologue](https://github.com/Cratis/Prologue) captures existing system behavior into event models. What Stage
+renders is an event-sourced CQRS application built on Cratis Arc and Chronicle, the Cratis event-sourcing
+database and runtime.
 
 ## Authoritative input
 
@@ -140,6 +147,21 @@ dotnet build -c Release
 
 Release treats warnings as errors. Both Dockerfiles consume prebuilt, framework-dependent publish output;
 `./dockerize.sh` publishes the host and specification runner and then builds both images.
+
+## The Cratis ecosystem
+
+This project is part of [Cratis](https://www.cratis.io) — free, MIT-licensed tools for building event-sourced and CQRS applications.
+
+- **[Chronicle](https://github.com/Cratis/Chronicle)** — event-sourcing database and runtime. Orleans-based kernel, pluggable storage (MongoDB default; PostgreSQL, SQL Server, SQLite, in-memory), language-agnostic gRPC contracts. [Docs](https://www.cratis.io/chronicle/)
+- **Chronicle clients** — first-class [.NET SDK](https://github.com/Cratis/Chronicle), plus [TypeScript](https://github.com/Cratis/Chronicle.TypeScript), [Kotlin/Java](https://github.com/Cratis/Chronicle.Kotlin), and [Elixir](https://github.com/Cratis/Chronicle.Elixir); [Python](https://github.com/Cratis/Chronicle.Python) coming soon (pre-alpha). AI agents connect through the [Chronicle MCP server](https://github.com/Cratis/Chronicle.Mcp).
+- **[Arc](https://github.com/Cratis/Arc)** — opinionated CQRS framework for ASP.NET Core with commands, queries, validation, authorization, and TypeScript proxy generation. Works without event sourcing. [Docs](https://www.cratis.io/arc/)
+- **[Components](https://github.com/Cratis/Components)** — React components aligned with Arc patterns. [Docs](https://www.cratis.io/components/)
+- **[CLI](https://github.com/Cratis/cli) + Workbench** — inspect and diagnose Chronicle from the terminal or the browser. [Docs](https://www.cratis.io/cli/)
+- **Model-first layer (experimental)** — [Studio](https://github.com/Cratis/Studio), [Screenplay](https://github.com/Cratis/Screenplay), Stage (this repository), [Scene](https://github.com/Cratis/Scene), [Prologue](https://github.com/Cratis/Prologue)
+- **Supporting** — [Fundamentals](https://github.com/Cratis/Fundamentals), [Specifications](https://github.com/Cratis/Specifications), [Synopsis](https://github.com/Cratis/Synopsis), [Lens](https://github.com/Cratis/Lens), [Narrator](https://github.com/Cratis/Narrator), and free [AI tooling](https://github.com/Cratis/AI) (preview); [Ensemble](https://github.com/Cratis/Ensemble) coming soon (pre-release)
+- **[Samples](https://github.com/Cratis/Samples)** — runnable event sourcing and CQRS samples for the whole stack
+
+Everything Cratis publishes today is MIT licensed and free to use.
 
 ---
 

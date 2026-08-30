@@ -40,6 +40,13 @@
         <PackageReference Include="Cratis.Arc.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Chronicle" ExcludeAssets="analyzers" />
         <PackageReference Include="MongoDB.Driver" />
+        <!--
+            The frozen RegisterProject conformance corpus - the planner fixture loads its source and identity
+            catalog through the real serializers instead of copying strings or repository-relative files.
+            Debug-only and PrivateAssets="All": specs are stripped from Release (Source/Directory.Build.targets),
+            so this dependency never needs to appear in the packed renderer's public dependency surface.
+        -->
+        <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />

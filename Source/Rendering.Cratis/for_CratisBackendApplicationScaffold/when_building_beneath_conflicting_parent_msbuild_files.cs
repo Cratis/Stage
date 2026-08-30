@@ -29,6 +29,15 @@ public class when_building_beneath_conflicting_parent_msbuild_files : Specificat
             </Project>
             """);
         File.WriteAllText(
+            Path.Combine(_root.FullName, "Directory.Build.targets"),
+            """
+            <Project>
+              <Target Name="RejectNestedTargetBuild" BeforeTargets="PrepareForBuild">
+                <Error Text="The scaffold inherited conflicting parent build targets." />
+              </Target>
+            </Project>
+            """);
+        File.WriteAllText(
             Path.Combine(_root.FullName, "Directory.Packages.props"),
             """
             <Project>
@@ -62,7 +71,8 @@ public class when_building_beneath_conflicting_parent_msbuild_files : Specificat
 
     [Fact] void should_test_the_debug_scaffold_successfully() => _debug.ExitCode.ShouldEqual(0);
     [Fact] void should_build_the_release_scaffold_successfully() => _release.ExitCode.ShouldEqual(0);
-    [Fact] void should_not_import_the_conflicting_parent_build_target() => $"{_debug.Output}{_release.Output}".ShouldNotContain("conflicting parent build properties");
+    [Fact] void should_not_import_the_conflicting_parent_build_properties() => $"{_debug.Output}{_release.Output}".ShouldNotContain("conflicting parent build properties");
+    [Fact] void should_not_import_the_conflicting_parent_build_targets() => $"{_debug.Output}{_release.Output}".ShouldNotContain("conflicting parent build targets");
 
     async Task<ProcessResult> Run(params string[] arguments)
     {

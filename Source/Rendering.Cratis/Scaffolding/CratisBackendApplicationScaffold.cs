@@ -27,8 +27,8 @@ public sealed class CratisBackendApplicationScaffold
         var profile = request.Profile;
         var artifacts = new (string RelativePath, string Content)[]
         {
-            (".gitignore", GitIgnore()),
             ("Directory.Build.props", DirectoryBuildProps()),
+            ("Directory.Build.targets", DirectoryBuildTargets()),
             ("Directory.Packages.props", DirectoryPackagesProps()),
             ($"{request.ProjectName}.csproj", Project(request)),
             ($"{request.ProjectName}.slnx", Solution(request)),
@@ -51,14 +51,12 @@ public sealed class CratisBackendApplicationScaffold
         return CratisArtifactRenderInput.CreateText(relativePath, version, withSingleTrailingLineFeed);
     }
 
-    static string GitIgnore() =>
+    static string DirectoryBuildProps() =>
         """
-        .vs/
-        bin/
-        obj/
+        <Project />
         """;
 
-    static string DirectoryBuildProps() =>
+    static string DirectoryBuildTargets() =>
         """
         <Project />
         """;
@@ -91,6 +89,7 @@ public sealed class CratisBackendApplicationScaffold
             <Nullable>enable</Nullable>
             <IsPackable>false</IsPackable>
             <IsTestProject Condition="'$(Configuration)' == 'Debug'">true</IsTestProject>
+            <NoWarn Condition="'$(Configuration)' == 'Debug'">$(NoWarn);CS7022</NoWarn>
           </PropertyGroup>
           <ItemGroup>
             <PackageReference Include="Cratis" Version="{{profile.CratisPackageVersion}}" />
@@ -117,7 +116,6 @@ public sealed class CratisBackendApplicationScaffold
         // Copyright (c) Cratis. All rights reserved.
         // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-        #if !DEBUG
         using Cratis.Arc.MongoDB;
 
         var builder = WebApplication.CreateBuilder(args);
@@ -131,7 +129,6 @@ public sealed class CratisBackendApplicationScaffold
         app.MapHealthChecks("/healthz");
 
         await app.RunAsync();
-        #endif
         """;
 
     static string AppSettings(CratisBackendApplicationScaffoldRequest request) =>

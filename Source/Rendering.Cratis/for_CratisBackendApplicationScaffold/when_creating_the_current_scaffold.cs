@@ -16,8 +16,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
 {
     static readonly string[] _expectedPaths =
     [
-        ".gitignore",
         "Directory.Build.props",
+        "Directory.Build.targets",
         "Directory.Packages.props",
         "MyApp.csproj",
         "MyApp.slnx",
@@ -35,13 +35,15 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_normalize_every_input_to_line_feeds() => _first.All(input => !input.Bytes.Contains((byte)'\r')).ShouldBeTrue();
     [Fact] void should_end_every_input_with_exactly_one_line_feed_byte() => _first.All(EndsWithExactlyOneLineFeed).ShouldBeTrue();
     [Fact] void should_stop_inheriting_parent_build_properties() => Content("Directory.Build.props").ShouldEqual("<Project />\n");
+    [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");
     [Fact] void should_disable_inherited_central_package_management() => DirectoryPackagesPropsDisablesCentralPackageManagement().ShouldBeTrue();
     [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("1|net10.0|22.3.0|22.3.0|22.3.0|4.0.0|4.0.0|18.9.0|6.2.0|2.9.3|4.0.0|16.35.3");
     [Fact] void should_expose_only_the_verified_current_profile_as_public_static_surface() => PublicStaticProfileMethods().ShouldContainOnly("get_Current");
     [Fact] void should_emit_the_solution_without_a_guid() => SolutionSemantics().ShouldEqual("MyApp.csproj|False");
     [Fact] void should_emit_only_the_exact_package_versions() => PackageVersions().ShouldEqual(ExpectedPackageVersions());
     [Fact] void should_keep_all_specification_packages_in_the_debug_item_group() => TestingPackagesAreDebugOnly().ShouldBeTrue();
-    [Fact] void should_disable_the_host_in_debug() => Content("Program.cs").ShouldContain("#if !DEBUG");
+    [Fact] void should_keep_the_host_active_in_debug() => Content("Program.cs").ShouldNotContain("#if");
+    [Fact] void should_suppress_the_debug_test_entry_point_warning_locally() => Content("MyApp.csproj").ShouldContain("<NoWarn Condition=\"'$(Configuration)' == 'Debug'\">$(NoWarn);CS7022</NoWarn>");
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");
     [Fact] void should_activate_cratis_and_the_health_endpoint_before_running() => ProgramSemantics().ShouldEqual("True|True|True");
     [Fact] void should_emit_the_exact_arc_chronicle_and_mongodb_settings() => AppSettingsSemantics().ShouldEqual("api|False|1|MyApp|chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000|mongodb://localhost:27017|MyApp");

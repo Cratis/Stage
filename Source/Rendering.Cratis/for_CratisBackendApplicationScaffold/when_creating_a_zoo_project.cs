@@ -19,8 +19,8 @@ public class when_creating_a_zoo_project : Specification
 
     [Fact] void should_order_all_actual_relative_paths_ordinally() => _paths.SequenceEqual(
         [
-            ".gitignore",
             "Directory.Build.props",
+            "Directory.Build.targets",
             "Directory.Packages.props",
             "Program.cs",
             "Zoo.csproj",

@@ -64,6 +64,9 @@ public class a_register_project_render_request : Specification
 
     protected CratisArtifactRenderPlanner _planner = null!;
     protected ArtifactRenderRequest _request = null!;
+    protected ExecutableSemanticModel _model = null!;
+    protected SemanticExecutionPlan _executionPlan = null!;
+    protected CratisRenderingOptions _options = null!;
     protected SemanticModule _module = null!;
     protected SemanticFeature _feature = null!;
     protected SemanticSlice _registerProject = null!;
@@ -80,34 +83,16 @@ public class a_register_project_render_request : Specification
         var compilation = new SemanticModelCompiler().Compile(
             "Projects",
             SemanticDocumentSet.Create([document], catalog));
-        var model = compilation.Value!.Model;
-        var executionPlan = SemanticExecutionPlan.Compile(model).Plan!;
-        var scaffold = CratisArtifactRenderInput.CreateText(
-            "Projects.csproj",
-            "1.1.1",
-            """
-            <Project Sdk="Microsoft.NET.Sdk.Web">
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <Nullable>enable</Nullable>
-              </PropertyGroup>
-              <ItemGroup>
-                <PackageReference Include="Cratis" Version="22.1.0" />
-              </ItemGroup>
-            </Project>
-            """);
-        var profile = ArtifactRenderProfile.Create(
-            CratisArtifactRenderPlanner.Target,
-            "22.1.0",
-            CratisArtifactRenderPlanner.Renderer,
-            "1",
-            [scaffold]);
+        _model = compilation.Value!.Model;
+        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
+        _options = new("Projects", "Projects");
+        var profile = CratisRendering.CreateProfile(_model.Application.Name, _options);
 
-        _module = model.Application.Modules.Single();
+        _module = _model.Application.Modules.Single();
         _feature = _module.Features.Single();
         _registerProject = _feature.Slices.Single(_ => _.Kind == SemanticSliceKind.StateChange);
         _projectLookup = _feature.Slices.Single(_ => _.Kind == SemanticSliceKind.StateView);
-        _request = new(model, executionPlan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        _request = new(_model, _executionPlan, profile, new(ArtifactRenderScopeKind.Application, _model.Application.Id));
         _planner = new CratisArtifactRenderPlanner();
     }
 

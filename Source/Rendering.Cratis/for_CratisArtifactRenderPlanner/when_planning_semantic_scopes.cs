@@ -17,10 +17,10 @@ public class when_planning_semantic_scopes : a_register_project_render_request
 
     void Because()
     {
-        _application = _planner.Plan(_request);
-        _modulePlan = _planner.Plan(_request with { Scope = new(ArtifactRenderScopeKind.Module, _module.Id) });
-        _featurePlan = _planner.Plan(_request with { Scope = new(ArtifactRenderScopeKind.Feature, _feature.Id) });
-        _slicePlan = _planner.Plan(_request with { Scope = new(ArtifactRenderScopeKind.Slice, _registerProject.Id) });
+        _application = CratisRendering.Plan(_model, _executionPlan, _request.Scope, _options);
+        _modulePlan = CratisRendering.Plan(_model, _executionPlan, new(ArtifactRenderScopeKind.Module, _module.Id), _options);
+        _featurePlan = CratisRendering.Plan(_model, _executionPlan, new(ArtifactRenderScopeKind.Feature, _feature.Id), _options);
+        _slicePlan = CratisRendering.Plan(_model, _executionPlan, new(ArtifactRenderScopeKind.Slice, _registerProject.Id), _options);
     }
 
     [Fact] void should_plan_every_scope_successfully() => new[] { _application, _modulePlan, _featurePlan, _slicePlan }.All(_ => _.Success).ShouldBeTrue();

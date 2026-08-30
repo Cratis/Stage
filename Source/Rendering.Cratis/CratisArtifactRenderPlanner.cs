@@ -16,34 +16,49 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     /// <summary>
     /// The stable target identity.
     /// </summary>
-    public const string Target = "cratis";
+    public const string Target = CratisRendering.TargetId;
 
     /// <summary>
     /// The stable renderer identity.
     /// </summary>
-    public const string Renderer = "Cratis.Stage.Rendering.Cratis";
+    public const string Renderer = CratisRendering.RendererId;
+
+    /// <summary>
+    /// The exact renderer implementation version.
+    /// </summary>
+    public const string RendererVersion = CratisRendering.RendererVersion;
+
+    /// <summary>
+    /// Gets the exact supported Cratis integration target version.
+    /// </summary>
+    public static string TargetVersion => CratisRendering.TargetVersion;
 
     /// <inheritdoc/>
     public ArtifactRenderPlan Plan(ArtifactRenderRequest request)
     {
         var artifacts = new List<PlannedArtifact>();
         var diagnostics = new List<ArtifactRenderDiagnostic>();
-        if (!ProfileMatches(request.Profile))
+        if (!CratisArtifactRenderProfileAdmission.Matches(request, out var mismatch))
         {
             diagnostics.Add(Error(
                 "STAGE-CRATIS-001",
-                $"Profile target '{request.Profile.Target}' and renderer '{request.Profile.Renderer}' do not select the Cratis artifact planner.",
+                $"The artifact render profile is not the exact package-owned Cratis profile. {mismatch}",
                 request.Model.Application.Id));
             return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
         }
 
-        AddScaffold(request, artifacts, diagnostics);
         var context = new SemanticApplicationContext(request);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticCratisAdmission.Evaluate(context, slices));
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {
-            return CreatePlan(request, artifacts, diagnostics);
+            return CreatePlan(request, [], diagnostics);
+        }
+
+        AddScaffold(request, artifacts, diagnostics);
+        if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
+        {
+            return CreatePlan(request, [], diagnostics);
         }
 
         if (request.Scope.Kind == ArtifactRenderScopeKind.Application)
@@ -73,10 +88,6 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         return CreatePlan(request, artifacts, diagnostics);
     }
-
-    static bool ProfileMatches(ArtifactRenderProfile profile) =>
-        string.Equals(profile.Target, Target, StringComparison.Ordinal) &&
-        string.Equals(profile.Renderer, Renderer, StringComparison.Ordinal);
 
     static void AddScaffold(
         ArtifactRenderRequest request,

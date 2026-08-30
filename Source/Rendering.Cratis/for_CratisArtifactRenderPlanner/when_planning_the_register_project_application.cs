@@ -24,7 +24,7 @@ public class when_planning_the_register_project_application : a_register_project
         _first = _planner.Plan(_request);
         _second = _planner.Plan(_request);
         var sources = _first.Artifacts
-            .Where(_ => _.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
+            .Where(_ => _.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && _.RelativePath != "Program.cs")
             .Select(_ => new RenderedFile(_.RelativePath, Text(_)))
             .ToArray();
         _compilationErrors = RenderedOutput.Errors(sources);

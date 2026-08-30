@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
-using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
@@ -18,14 +17,8 @@ public class when_supplying_the_scaffold_to_the_application_planner : a_register
 
     void Establish()
     {
-        var scaffoldRequest = CratisBackendApplicationScaffoldRequest.Create("Projects", "Projects", "Projects");
-        _inputs = new CratisBackendApplicationScaffold().Create(scaffoldRequest);
-        var profile = ArtifactRenderProfile.Create(
-            CratisArtifactRenderPlanner.Target,
-            scaffoldRequest.Profile.CratisPackageVersion,
-            CratisArtifactRenderPlanner.Renderer,
-            scaffoldRequest.Profile.Version,
-            _inputs);
+        var profile = CratisRendering.CreateProfile(_model.Application.Name, _options);
+        _inputs = profile.Inputs;
         _request = _request with { Profile = profile };
     }
 

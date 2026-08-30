@@ -59,6 +59,5 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
     [Fact] void should_not_be_publishable() => _plan.Success.ShouldBeFalse();
     [Fact] void should_report_the_unsupported_destination() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-006");
     [Fact] void should_report_the_unsupported_affected_instance() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-009");
-    [Fact] void should_not_emit_a_semantic_stub() => _plan.Artifacts.Where(_ => _.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).ShouldBeEmpty();
-    [Fact] void should_not_emit_a_todo() => _plan.Artifacts.All(_ => !Text(_).Contains("TODO", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_emit_no_candidate_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

@@ -55,27 +55,52 @@ without Stage depending on any one authoring environment.
 
 ### Renderer — highest priority
 
-`Cratis.Stage.Rendering.Cratis` exposes a pure executable-semantic-model planner. It accepts an immutable
-`ArtifactRenderRequest` and returns a complete in-memory `ArtifactRenderPlan` with normalized paths, exact bytes,
-SHA-256 hashes, and typed diagnostics before publication. The currently admitted vertical includes concepts,
-composite types, one command/event production path, one-instance projection state, an optional snapshot lookup,
-and modeled specifications. Unsupported reachable semantics block publication instead of producing thinner code.
-Cratis CLI publishes successful plans through its managed artifact publisher.
+Stage v1 has exactly one forward-rendering target: `cratis`. The `Cratis.Stage.Rendering.Cratis` package owns the
+complete pure target policy through the `CratisRendering` facade: target `cratis`, renderer version `1`, exact
+dependency pins, exact scaffold inputs, profile creation, and planning. The Cratis CLI and Studio's in-memory preview
+must consume this facade with only the executable semantic model, execution plan, semantic scope, and explicit
+project/root-namespace options; neither caller should copy target policy.
 
-The published syntax-based `IRenderer` remains available as a compatibility path for the older, broader syntax
-surface. That path writes directly and has no managed staging or safe stale-file removal. A failure can leave its
-target **unsafe and incomplete**; render legacy output into a fresh target and review it before building or running.
-Do not use that direct-write compatibility path as the basis for a new target.
+`CratisRendering.Plan(...)` returns the existing destination-independent `ArtifactRenderPlan` with normalized
+paths, exact bytes, SHA-256 hashes, and typed diagnostics. Callers supply destination-independent project and root
+namespace names; the facade derives every target, renderer, profile, package, and runtime version itself:
 
-Other model limitations are reported as render diagnostics. For a first run,
-`CratisBackendApplicationScaffoldRequest` and `CratisBackendApplicationScaffold` create eight ordered, normalized
-backend scaffold inputs entirely in memory; they do not use the template engine or write to a file system. Local
-`Directory.Build.props` and `Directory.Packages.props` boundaries keep parent build and central-package settings
-out of the generated application. The current profile pins .NET 10, Cratis/Arc 22.3.0, the verified specification
-dependencies, and the compatible `cratis/chronicle:16.35.3-development` image. The optional
-`Cratis.Stage.Rendering.Cratis.Scaffolding` package
-remains available to the legacy direct-write compatibility path. Rendering currently targets backend applications.
-Screens, layouts, forms, components, and other frontend/UI output are not rendered yet.
+```csharp
+var options = new CratisRenderingOptions("Projects", "Projects");
+var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id);
+var plan = CratisRendering.Plan(model, executionPlan, scope, options);
+```
+
+The plan must be published only when `plan.Success` is `true`. A failed plan carries diagnostics and **no candidate
+artifacts**. Callers that need the immutable package-owned profile for a lower-level `ArtifactRenderRequest` can use
+`CratisRendering.CreateProfile(...)`; they must not reconstruct or modify it. The planner rejects changed identities,
+versions, input rosters, bytes, and hashes.
+
+The underlying `IArtifactRenderPlanner` performs no file system, process, network, environment, clock, or random
+access. The currently admitted vertical includes concepts, composite types, one command/event production path,
+one-instance projection state, an optional snapshot lookup, and modeled specifications. Unsupported reachable
+semantics block publication instead of producing thinner code.
+
+Application scope adds exactly eight deterministic backend scaffold artifacts: `Directory.Build.props`,
+`Directory.Build.targets`, `Directory.Packages.props`, the project and solution files, `Program.cs`,
+`appsettings.json`, and `docker-compose.yml`. The local MSBuild and central-package boundaries isolate the generated
+application from parent repositories. `Program.cs` remains active in Debug beside inline generated specifications;
+the project locally suppresses only their expected CS7022 entry-point warning. The profile pins .NET 10,
+Cratis/Arc 22.3.0, the verified specification dependencies, and
+`cratis/chronicle:16.35.3-development`. It emits no frontend, repository marker, `.gitignore`, floating version,
+random identifier, or destination-specific value.
+
+The generated compose contract intentionally binds local ports `27017` and `35000`. Start it with
+`docker compose up --detach`, run the generated project, and probe `/healthz`; stop it with
+`docker compose down --volumes`. Isolated automation can instead map both container ports to Docker-assigned
+loopback ports and override `Cratis__MongoDB__Server` and `Cratis__Chronicle__ConnectionString` for the generated
+host. This avoids colliding with an existing MongoDB or Chronicle service without changing the generated compose
+contract.
+
+The published syntax-based `IRenderer` and optional `Cratis.Stage.Rendering.Cratis.Scaffolding` package are
+legacy-only direct-write compatibility paths. Direct rendering has no managed staging or safe stale-file removal;
+a failure can leave its target **unsafe and incomplete**. New CLI and Studio rendering must use `CratisRendering`,
+not the legacy renderer.
 
 ### Direct runtime — partial
 

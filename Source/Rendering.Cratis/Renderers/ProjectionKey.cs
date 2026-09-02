@@ -15,6 +15,14 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// A Screenplay <c>key</c> names an <b>event</b> property, while <c>[Key]</c> marks a <b>read model</b> property.
 /// They are usually different names — <c>key documentId</c> with <c>id = documentId</c> keys the model's
 /// <c>Id</c> — so the key is matched by what a property is mapped <i>from</i> first, and only then by name.
+/// <para>
+/// <c>[Key]</c> is identity, not routing. Chronicle never reads it to decide which document an event updates —
+/// it seeds every <c>From</c> with the event source id and only overwrites that from a class-level
+/// <c>[FromEvent]</c>'s key, which <see cref="StateViewSliceRenderer"/> renders. A key written on a <c>from</c>
+/// block or on one of its events therefore has to reach <c>[FromEvent]</c> to have any effect; a key written on
+/// the projection itself drives neither, which matches the kernel's own visitor — it never reads
+/// <see cref="ProjectionSyntax.Key"/> — so both route on the event source id and agree.
+/// </para>
 /// </remarks>
 public static class ProjectionKey
 {
@@ -39,6 +47,8 @@ public static class ProjectionKey
     {
         var declaring = fromBlocks.FirstOrDefault(from => from.Key is not null);
         var key = projection.Key ?? declaring?.Key;
+
+        ReportInlineKeys(fromBlocks, key, diagnostics);
 
         if (key is CompositeKeySyntax composite)
         {
@@ -67,6 +77,32 @@ public static class ProjectionKey
 
         properties.Add(Synthesize(keyPropertyName, path.Path, declaring, events, applicationSet, diagnostics));
         return keyPropertyName;
+    }
+
+    // A key written on one event of a 'from' routes that event on its own and wins over the block's key, which is
+    // rendered onto that event's [FromEvent]. The read model itself is identified by one property, so where an
+    // inline key names something the resolved key does not, the two describe the same document differently and
+    // the difference is named rather than left for whoever reads the generated file to notice.
+    static void ReportInlineKeys(IReadOnlyList<FromSyntax> fromBlocks, KeySyntax? resolved, ICollection<string> diagnostics)
+    {
+        var resolvedPath = resolved is ExpressionKeySyntax { Expression: PathExpressionSyntax path } ? path.Path : null;
+        var differing = fromBlocks
+            .SelectMany(from => from.Events)
+            .Where(spec => spec.Key is PathExpressionSyntax inline && !string.Equals(inline.Path, resolvedPath, StringComparison.OrdinalIgnoreCase))
+            .Select(spec => spec.Event)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        if (differing.Length == 0)
+        {
+            return;
+        }
+
+        var named = string.Join(", ", differing.Select(name => $"'{name}'"));
+        diagnostics.Add(
+            resolvedPath is null
+                ? $"{named} declare(s) a key inside a 'from' block and nothing else declares one — those events route on it, but the read model is rendered without a key property."
+                : $"{named} declare(s) a key of its own inside a 'from' block — those events route on it, while the read model is identified by '{resolvedPath}'.");
     }
 
     static MappedProperty Synthesize(

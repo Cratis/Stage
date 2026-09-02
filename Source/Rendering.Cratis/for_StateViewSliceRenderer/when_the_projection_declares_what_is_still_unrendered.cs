@@ -12,10 +12,10 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// The blocks that still have no rendering: <c>children</c> and <c>nested</c> each project into a child record
-/// type nothing generates yet, a <c>clear with</c> is only valid inside a <c>nested</c> block and is only read by
-/// Chronicle on a nested type, and a composite key has no model-bound equivalent at all. All four have to stay
-/// visible in the file and in the diagnostics rather than disappear now that their neighbors render.
+/// The blocks that still have no rendering: <c>children</c> projects into a child record type nothing generates
+/// yet, a <c>clear with</c> written outside a <c>nested</c> block is discarded by Chronicle on a root read model,
+/// and a composite key has no model-bound equivalent at all. All three have to stay visible in the file and in the
+/// diagnostics rather than disappear now that their neighbors — <c>nested</c> among them — render.
 /// </summary>
 public class when_the_projection_declares_what_is_still_unrendered : Specification
 {
@@ -46,7 +46,14 @@ public class when_the_projection_declares_what_is_still_unrendered : Specificati
             [],
             SourceLocation.Start);
 
-        var nested = new NestedSyntax("shipping", AutoMapMode.Inherit, [], SourceLocation.Start);
+        var nestedFrom = new FromSyntax(
+            [new EventSpecSyntax("OrderLineAdded", null, SourceLocation.Start)],
+            null,
+            null,
+            [new SetMappingSyntax("sku", new PathExpressionSyntax("sku", SourceLocation.Start), SourceLocation.Start)],
+            SourceLocation.Start);
+
+        var nested = new NestedSyntax("shipping", AutoMapMode.Inherit, [nestedFrom], SourceLocation.Start);
 
         var clearWith = new ClearWithSyntax("OrderArchived", SourceLocation.Start);
 
@@ -74,11 +81,17 @@ public class when_the_projection_declares_what_is_still_unrendered : Specificati
 
     void Because() => _file = new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp");
 
-    [Fact] void should_flag_the_unrendered_blocks_in_the_file() =>
-        _file.Content.ShouldContain("// TODO: 1 children, 1 nested, 1 clear with block(s) not yet rendered");
-    [Fact] void should_report_the_unrendered_blocks_as_a_diagnostic() =>
+    [Fact] void should_flag_the_unrendered_children_block_in_the_file() =>
+        _file.Content.ShouldContain("// TODO: 1 children block(s) not yet rendered — they project into a child record type nothing generates yet");
+    [Fact] void should_report_the_unrendered_children_block_as_a_diagnostic() =>
         _file.Diagnostics.ShouldContain(
-            "Projection 'OrderLines' declares 1 children, 1 nested, 1 clear with block(s) that belong to a nested or child record type nothing generates yet — they are not rendered.");
+            "Projection 'OrderLines' declares 1 children block(s) that project into a child record type nothing generates yet — they are not rendered.");
+    [Fact] void should_flag_the_unrendered_clear_with_block_in_the_file() =>
+        _file.Content.ShouldContain("// TODO: 1 clear with block(s) not yet rendered — a class-level [ClearWith] is only read on a nested type");
+    [Fact] void should_report_the_unrendered_clear_with_block_as_a_diagnostic() =>
+        _file.Diagnostics.ShouldContain(
+            "Projection 'OrderLines' declares 1 'clear with' block(s) outside a 'nested' block — Chronicle only reads a " +
+            "class-level [ClearWith] on a nested type, so they are not rendered.");
     [Fact] void should_report_the_composite_key_as_a_diagnostic() =>
         _file.Diagnostics.ShouldContain("Composite key 'OrderLineKey' has no model-bound equivalent — the read model is rendered without a key.");
 
@@ -86,4 +99,11 @@ public class when_the_projection_declares_what_is_still_unrendered : Specificati
     // type. Emitting it would look like it worked, so the renderer must not emit it at all.
     [Fact] void should_not_render_a_clear_with_attribute_on_the_root_read_model() =>
         _file.Content.ShouldNotContain("ClearWith<");
+
+    // The 'nested' block next to them does render now, and it renders as a sibling record the read model holds
+    // through a nullable property — the stronger fact that replaced the expectation that it was unrendered.
+    [Fact] void should_render_the_nested_block_as_a_sibling_record() =>
+        _file.Content.ShouldContain("public record OrderLinesShipping([SetFrom<OrderLineAdded>(nameof(OrderLineAdded.Sku))] string Sku);");
+    [Fact] void should_hold_the_nested_record_on_a_nullable_property() =>
+        _file.Content.ShouldContain("[Nested] OrderLinesShipping? Shipping");
 }

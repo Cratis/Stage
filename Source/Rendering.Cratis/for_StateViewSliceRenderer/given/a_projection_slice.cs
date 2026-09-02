@@ -28,12 +28,18 @@ public class a_projection_slice : Specification
             [new PropertySyntax("invoiceNumber", new TypeRefSyntax("String", false, false, SourceLocation.Start), SourceLocation.Start)],
             SourceLocation.Start);
 
+        var customerRegistered = new EventSyntax(
+            "CustomerRegistered",
+            [new PropertySyntax("name", new TypeRefSyntax("String", false, false, SourceLocation.Start), SourceLocation.Start)],
+            SourceLocation.Start);
+
         var registeredFrom = new FromSyntax(
             [new EventSpecSyntax("InvoiceRegistered", null, SourceLocation.Start)],
             null,
             null,
             [
                 new SetMappingSyntax("invoiceNumber", new PathExpressionSyntax("invoiceNumber", SourceLocation.Start), SourceLocation.Start),
+                new SetMappingSyntax("customerId", new PathExpressionSyntax("customerId", SourceLocation.Start), SourceLocation.Start),
                 new IncrementMappingSyntax("totalCount", SourceLocation.Start),
             ],
             SourceLocation.Start);
@@ -45,7 +51,17 @@ public class a_projection_slice : Specification
             [new DecrementMappingSyntax("draftCount", SourceLocation.Start)],
             SourceLocation.Start);
 
-        var join = new JoinSyntax("customer", "customerId", [], SourceLocation.Start);
+        var join = new JoinSyntax(
+            "customer",
+            "customerId",
+            [
+                new JoinEventSyntax(
+                    "CustomerRegistered",
+                    AutoMapMode.Inherit,
+                    [new SetMappingSyntax("customerName", new PathExpressionSyntax("name", SourceLocation.Start), SourceLocation.Start)],
+                    SourceLocation.Start),
+            ],
+            SourceLocation.Start);
 
         var projection = new ProjectionSyntax(
             "InvoiceSummary",
@@ -59,7 +75,7 @@ public class a_projection_slice : Specification
         var slice = new SliceSyntax(
             SliceType.StateView,
             "InvoiceSummary",
-            [invoiceRegistered, invoiceSent],
+            [invoiceRegistered, invoiceSent, customerRegistered],
             [],
             [],
             [projection],

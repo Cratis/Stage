@@ -61,21 +61,52 @@ public static class ProjectionKey
             return null;
         }
 
+        return ResolveIdentifying(path.Path, $"Key '{path.Path}'", "read model", declaring, properties, events, applicationSet, diagnostics);
+    }
+
+    /// <summary>
+    /// Resolves the property a key path identifies on a record, adding one to carry it when nothing maps from it.
+    /// </summary>
+    /// <param name="keyPath">The Screenplay path the key is written as.</param>
+    /// <param name="subject">How the key is named in a diagnostic, e.g. <c>Key 'invoiceNumber'</c>.</param>
+    /// <param name="target">What the record is called in a diagnostic, e.g. <c>read model</c>.</param>
+    /// <param name="declaring">The <c>from</c> block to type a synthesized property against, when there is one.</param>
+    /// <param name="properties">The inferred properties; a synthesized key property is appended here.</param>
+    /// <param name="events">The <see cref="EventPropertyIndex"/> to type a synthesized key property against.</param>
+    /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve concept types against.</param>
+    /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
+    /// <returns>The name of the identifying property.</returns>
+    /// <remarks>
+    /// A key names an <b>event</b> property while the property it identifies is a <b>record</b> property, so it is
+    /// matched by what a property is mapped <i>from</i> first and only then by name. Both the read model's
+    /// <c>key</c> and a <c>children</c> block's <c>identified by</c> resolve this way, and both need the property
+    /// to exist — a name that is on no record identifies nothing.
+    /// </remarks>
+    public static string ResolveIdentifying(
+        string keyPath,
+        string subject,
+        string target,
+        FromSyntax? declaring,
+        ICollection<MappedProperty> properties,
+        EventPropertyIndex events,
+        ApplicationSet applicationSet,
+        ICollection<string> diagnostics)
+    {
         var mappedFromKey = properties.FirstOrDefault(property =>
-            property.SourcePath is not null && string.Equals(property.SourcePath, path.Path, StringComparison.OrdinalIgnoreCase));
+            property.SourcePath is not null && string.Equals(property.SourcePath, keyPath, StringComparison.OrdinalIgnoreCase));
         if (mappedFromKey is not null)
         {
             return mappedFromKey.Name;
         }
 
-        var keyPropertyName = Identifiers.ToPascalCase(path.Path);
+        var keyPropertyName = Identifiers.ToPascalCase(keyPath);
         var named = properties.FirstOrDefault(property => property.Name == keyPropertyName);
         if (named is not null)
         {
             return named.Name;
         }
 
-        properties.Add(Synthesize(keyPropertyName, path.Path, declaring, events, applicationSet, diagnostics));
+        properties.Add(Synthesize(keyPropertyName, keyPath, subject, target, declaring, events, applicationSet, diagnostics));
         return keyPropertyName;
     }
 
@@ -108,6 +139,8 @@ public static class ProjectionKey
     static MappedProperty Synthesize(
         string keyPropertyName,
         string keyPath,
+        string subject,
+        string target,
         FromSyntax? declaring,
         EventPropertyIndex events,
         ApplicationSet applicationSet,
@@ -118,11 +151,11 @@ public static class ProjectionKey
 
         if (typeRef is null)
         {
-            diagnostics.Add($"Key '{keyPath}' is mapped to no read model property and its type could not be resolved — rendered as 'object'.");
+            diagnostics.Add($"{subject} is mapped to no {target} property and its type could not be resolved — rendered as 'object'.");
             return new MappedProperty(keyPropertyName, new ResolvedType("object", false, false, ResolvedTypeKind.Unresolved, keyPath), null, keyPath);
         }
 
-        diagnostics.Add($"Key '{keyPath}' is mapped to no read model property — a '{keyPropertyName}' property was added to carry it.");
+        diagnostics.Add($"{subject} is mapped to no {target} property — a '{keyPropertyName}' property was added to carry it.");
         return new MappedProperty(keyPropertyName, TypeResolver.Resolve(typeRef, applicationSet), null, keyPath);
     }
 }

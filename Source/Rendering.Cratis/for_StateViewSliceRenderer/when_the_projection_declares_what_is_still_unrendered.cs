@@ -12,10 +12,10 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// The blocks that still have no rendering: <c>children</c> projects into a child record type nothing generates
-/// yet, a <c>clear with</c> written outside a <c>nested</c> block is discarded by Chronicle on a root read model,
-/// and a composite key has no model-bound equivalent at all. All three have to stay visible in the file and in the
-/// diagnostics rather than disappear now that their neighbors — <c>nested</c> among them — render.
+/// What still has no rendering: a <c>clear with</c> written outside a <c>nested</c> block is discarded by
+/// Chronicle on a root read model, and a composite key has no model-bound equivalent at all. Both have to stay
+/// visible in the file and in the diagnostics rather than disappear now that their neighbors — <c>nested</c> and
+/// <c>children</c> among them — render.
 /// </summary>
 public class when_the_projection_declares_what_is_still_unrendered : Specification
 {
@@ -39,11 +39,18 @@ public class when_the_projection_declares_what_is_still_unrendered : Specificati
             [new SetMappingSyntax("orderNumber", new PathExpressionSyntax("orderNumber", SourceLocation.Start), SourceLocation.Start)],
             SourceLocation.Start);
 
+        var childFrom = new FromSyntax(
+            [new EventSpecSyntax("OrderLineAdded", null, SourceLocation.Start)],
+            null,
+            null,
+            [new SetMappingSyntax("sku", new PathExpressionSyntax("sku", SourceLocation.Start), SourceLocation.Start)],
+            SourceLocation.Start);
+
         var children = new ChildrenSyntax(
             "lines",
             new PathExpressionSyntax("sku", SourceLocation.Start),
             AutoMapMode.Inherit,
-            [],
+            [childFrom],
             SourceLocation.Start);
 
         var nestedFrom = new FromSyntax(
@@ -81,11 +88,6 @@ public class when_the_projection_declares_what_is_still_unrendered : Specificati
 
     void Because() => _file = new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp");
 
-    [Fact] void should_flag_the_unrendered_children_block_in_the_file() =>
-        _file.Content.ShouldContain("// TODO: 1 children block(s) not yet rendered — they project into a child record type nothing generates yet");
-    [Fact] void should_report_the_unrendered_children_block_as_a_diagnostic() =>
-        _file.Diagnostics.ShouldContain(
-            "Projection 'OrderLines' declares 1 children block(s) that project into a child record type nothing generates yet — they are not rendered.");
     [Fact] void should_flag_the_unrendered_clear_with_block_in_the_file() =>
         _file.Content.ShouldContain("// TODO: 1 clear with block(s) not yet rendered — a class-level [ClearWith] is only read on a nested type");
     [Fact] void should_report_the_unrendered_clear_with_block_as_a_diagnostic() =>
@@ -106,4 +108,13 @@ public class when_the_projection_declares_what_is_still_unrendered : Specificati
         _file.Content.ShouldContain("public record OrderLinesShipping([SetFrom<OrderLineAdded>(nameof(OrderLineAdded.Sku))] string Sku);");
     [Fact] void should_hold_the_nested_record_on_a_nullable_property() =>
         _file.Content.ShouldContain("[Nested] OrderLinesShipping? Shipping");
+
+    // The 'children' block beside them renders too now — as its own sibling record, keyed on what identifies a
+    // child, held on an IEnumerable the parent's [ChildrenFrom] fills.
+    [Fact] void should_render_the_children_block_as_a_sibling_record() =>
+        _file.Content.ShouldContain("public record OrderLinesLines([Key] [SetFrom<OrderLineAdded>(nameof(OrderLineAdded.Sku))] string Sku);");
+    [Fact] void should_hold_the_child_record_on_an_enumerable_property() =>
+        _file.Content.ShouldContain("[ChildrenFrom<OrderLineAdded>(identifiedBy: nameof(OrderLinesLines.Sku))] IEnumerable<OrderLinesLines> Lines");
+    [Fact] void should_not_leave_a_todo_for_the_children_block() =>
+        _file.Content.ShouldNotContain("children block(s) not yet rendered");
 }

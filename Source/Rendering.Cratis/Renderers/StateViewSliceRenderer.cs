@@ -14,10 +14,11 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// Renders a <see cref="SliceType.StateView"/> slice: the <c>[EventType]</c> records the slice declares, plus the
 /// <c>[ReadModel]</c> record inferred from its <see cref="ProjectionSyntax"/>'s mappings, using model-bound
 /// projection attributes for the blocks this renderer understands — <c>from</c>, <c>join</c>, <c>all</c>,
-/// <c>every</c>, <c>remove with</c>, <c>remove via join</c>, and <c>nested</c> together with the <c>clear with</c>
-/// that is only meaningful inside one. Constructs it can't express as attributes (composite keys, and the
-/// <c>children</c> blocks that need a generated child record type) are reported as diagnostics and called out in
-/// the file rather than silently dropped, as is everything else the slice declares that nothing renders (see
+/// <c>every</c>, <c>remove with</c>, <c>remove via join</c>, <c>nested</c> together with the <c>clear with</c>
+/// that is only meaningful inside one, and <c>children</c> together with the sibling child record it projects
+/// into. Constructs it can't express as attributes (composite keys, and the blocks whose meaning inside a
+/// generated nested or child record is not established) are reported as diagnostics and called out in the file
+/// rather than silently dropped, as is everything else the slice declares that nothing renders (see
 /// <see cref="UnrenderedConstructs"/>).
 /// </summary>
 /// <remarks>
@@ -87,7 +88,7 @@ public class StateViewSliceRenderer : ISliceRenderer
         // also what emits the sibling records its 'nested' blocks declare — they have to sit outside the record
         // this renders, not inside the block it is about to open.
         var properties = InferProperties(builder, blocks, typeName, true, events, applicationSet, referenced, diagnostics);
-        if (blocks.OfType<NestedSyntax>().Any())
+        if (blocks.Any(block => block is NestedSyntax or ChildrenSyntax))
         {
             builder.BlankLine();
         }
@@ -118,7 +119,7 @@ public class StateViewSliceRenderer : ISliceRenderer
         // documents on the event source id no matter what the projection declared.
         foreach (var subscription in subscriptions)
         {
-            builder.Attribute(FromEvent(subscription.From, subscription.Spec, typeName, events, diagnostics));
+            builder.Attribute(FromEvent(subscription.From, subscription.Spec, typeName, "read model", events, diagnostics));
         }
 
         foreach (var eventName in removalEvents)
@@ -146,7 +147,6 @@ public class StateViewSliceRenderer : ISliceRenderer
             builder.Using("Cratis.Chronicle.Keys");
         }
 
-        ReportUnrenderedChildren(builder, blocks, typeName, diagnostics);
         ReportUnrenderedClearWith(builder, blocks, typeName, diagnostics);
 
         var typeAuthorization = ReadModelAuthorization.Render(typeName, queries, diagnostics);
@@ -214,26 +214,6 @@ public class StateViewSliceRenderer : ISliceRenderer
         }
     }
 
-    // A 'children' block projects into its own child record type, which nothing generates yet. It is the last
-    // block left without a rendering; composite keys are reported separately by ProjectionKey because they have
-    // no model-bound equivalent at all.
-    static void ReportUnrenderedChildren(
-        CSharpCodeBuilder builder,
-        IReadOnlyList<ProjectionBlockSyntax> blocks,
-        string typeName,
-        List<string> diagnostics)
-    {
-        var count = blocks.OfType<ChildrenSyntax>().Count();
-        if (count == 0)
-        {
-            return;
-        }
-
-        builder.Line($"// TODO: {count} children block(s) not yet rendered — they project into a child record type nothing generates yet");
-        diagnostics.Add(
-            $"Projection '{typeName}' declares {count} children block(s) that project into a child record type nothing generates yet — they are not rendered.");
-    }
-
     // A 'clear with' renders only inside a 'nested' block, as the class-level [ClearWith] on the nested type.
     // Anywhere else Chronicle reads nothing from it — the attribute would compile on the root read model and then
     // be discarded — so emitting it there would be a silent no-op dressed up as a rendering.
@@ -256,16 +236,18 @@ public class StateViewSliceRenderer : ISliceRenderer
     }
 
     // Inside a 'nested' block only 'from', 'clear with' and further 'nested' blocks have an established meaning on
-    // the nested type. What Chronicle's nested definition does with the rest is unverified, so they are named
-    // rather than rendered as attributes whose behavior there nobody has confirmed.
-    static void ReportBlocksUnrenderedInNested(
+    // the nested type; inside a 'children' block a 'remove with' has one too, because a child is removed from the
+    // collection that holds it. What Chronicle's generated-record definitions do with the rest is unverified, so
+    // they are named rather than rendered as attributes whose behavior there nobody has confirmed.
+    static void ReportBlocksUnrenderedInGeneratedRecord(
         CSharpCodeBuilder builder,
-        IReadOnlyList<ProjectionBlockSyntax> blocks,
+        IEnumerable<ProjectionBlockSyntax> blocks,
         string typeName,
+        string recordKind,
+        string typeKind,
         List<string> diagnostics)
     {
         var unrendered = blocks
-            .Where(block => block is JoinSyntax or AllSyntax or EverySyntax or RemoveWithSyntax or RemoveViaJoinSyntax)
             .GroupBy(NestedBlockKeyword)
             .Select(group => $"{group.Count()} {group.Key}")
             .ToArray();
@@ -276,9 +258,9 @@ public class StateViewSliceRenderer : ISliceRenderer
         }
 
         var summary = string.Join(", ", unrendered);
-        builder.Line($"// TODO: {summary} block(s) not yet rendered — their meaning on a nested type is not established");
+        builder.Line($"// TODO: {summary} block(s) not yet rendered — their meaning on a {typeKind} is not established");
         diagnostics.Add(
-            $"Nested record '{typeName}' declares {summary} block(s) whose meaning on a nested type is not established — they are not rendered.");
+            $"{recordKind} '{typeName}' declares {summary} block(s) whose meaning on a {typeKind} is not established — they are not rendered.");
     }
 
     static string NestedBlockKeyword(ProjectionBlockSyntax block) => block switch
@@ -288,7 +270,11 @@ public class StateViewSliceRenderer : ISliceRenderer
         EverySyntax => "every",
         RemoveWithSyntax => "remove with",
         RemoveViaJoinSyntax => "remove via join",
-        _ => throw new ArgumentOutOfRangeException(nameof(block), $"'{block.GetType().Name}' is not one of the blocks a nested record leaves unrendered.")
+
+        // Screenplay accepts 'clear with' inside a 'children' block as readily as inside a 'nested' one, but only
+        // a nested type has a class-level [ClearWith] Chronicle reads, so in a child it is reported, not rendered.
+        ClearWithSyntax => "clear with",
+        _ => throw new ArgumentOutOfRangeException(nameof(block), $"'{block.GetType().Name}' is not one of the blocks a generated record leaves unrendered.")
     };
 
     static string RenderParameter(MappedProperty property, string? keyProperty)
@@ -372,6 +358,11 @@ public class StateViewSliceRenderer : ISliceRenderer
             Add(RenderNestedRecord(builder, nested, typeName, events, applicationSet, referenced, diagnostics), "nested");
         }
 
+        foreach (var children in blocks.OfType<ChildrenSyntax>())
+        {
+            Add(RenderChildrenRecord(builder, children, typeName, events, applicationSet, referenced, diagnostics), "children");
+        }
+
         if (!root)
         {
             return properties;
@@ -430,12 +421,17 @@ public class StateViewSliceRenderer : ISliceRenderer
         referenced.AddRange(properties.Where(property => property.Type.Kind is not ResolvedTypeKind.Unresolved).Select(property => property.Type.ClrTypeName));
 
         builder.BlankLine();
-        ReportUnrenderedChildren(builder, blocks, typeName, diagnostics);
-        ReportBlocksUnrenderedInNested(builder, blocks, typeName, diagnostics);
+        ReportBlocksUnrenderedInGeneratedRecord(
+            builder,
+            blocks.Where(block => block is JoinSyntax or AllSyntax or EverySyntax or RemoveWithSyntax or RemoveViaJoinSyntax),
+            typeName,
+            "Nested record",
+            "nested type",
+            diagnostics);
 
         foreach (var subscription in subscriptions)
         {
-            builder.Attribute(FromEvent(subscription.From, subscription.Spec, typeName, events, diagnostics));
+            builder.Attribute(FromEvent(subscription.From, subscription.Spec, typeName, "nested record", events, diagnostics));
         }
 
         foreach (var eventName in clearingEvents)
@@ -452,6 +448,184 @@ public class StateViewSliceRenderer : ISliceRenderer
         builder.Line($"public record {typeName}({parameters});");
 
         return new MappedProperty(propertyName, new ResolvedType(typeName, false, true, ResolvedTypeKind.Composite), "[Nested]", null);
+    }
+
+    // A 'children' block projects into its own sibling record, which — unlike a nested record — carries no
+    // class-level [FromEvent] of its own: the parent's [ChildrenFrom] is what subscribes it, one attribute per
+    // event, each naming the event property the child is keyed on and the child property that identifies an
+    // instance. The parent holds the record in an IEnumerable<T>, the only shape Chronicle reads as a child
+    // collection, and a 'remove with' inside the block belongs on that same property because it removes a child
+    // from the collection rather than the document that holds it. The type name is the enclosing type's name
+    // suffixed with the property, so children inside children still land on a name nothing else can take.
+    static MappedProperty RenderChildrenRecord(
+        CSharpCodeBuilder builder,
+        ChildrenSyntax children,
+        string parentTypeName,
+        EventPropertyIndex events,
+        ApplicationSet applicationSet,
+        List<string> referenced,
+        List<string> diagnostics)
+    {
+        var propertyName = Identifiers.ToPascalCase(children.Property);
+        var typeName = $"{parentTypeName}{propertyName}";
+        var blocks = children.Blocks.ToArray();
+        var properties = InferProperties(builder, blocks, typeName, false, events, applicationSet, referenced, diagnostics);
+
+        var fromBlocks = blocks.OfType<FromSyntax>().ToArray();
+        var subscriptions = Subscriptions(fromBlocks);
+        var removals = blocks.OfType<RemoveWithSyntax>().ToArray();
+
+        referenced.AddRange(subscriptions.Select(subscription => subscription.Spec.Event));
+        referenced.AddRange(removals.Select(removal => removal.Event));
+        referenced.AddRange(properties.Where(property => property.Type.Kind is not ResolvedTypeKind.Unresolved).Select(property => property.Type.ClrTypeName));
+
+        var identity = ChildIdentity(children, typeName, fromBlocks, properties, events, applicationSet, diagnostics);
+
+        builder.BlankLine();
+        ReportBlocksUnrenderedInGeneratedRecord(
+            builder,
+            blocks.Where(block => block is JoinSyntax or AllSyntax or EverySyntax or RemoveViaJoinSyntax or ClearWithSyntax),
+            typeName,
+            "Children record",
+            "child type",
+            diagnostics);
+
+        if (children.AutoMap == AutoMapMode.Disabled)
+        {
+            builder.Using("Cratis.Chronicle.Projections").Attribute("NoAutoMap");
+        }
+
+        if (identity is not null)
+        {
+            builder.Using("Cratis.Chronicle.Keys");
+        }
+
+        var parameters = string.Join(", ", properties.Select(property => RenderParameter(property, identity)));
+        builder.Line($"public record {typeName}({parameters});");
+
+        var identifiedBy = identity is null ? null : $"identifiedBy: nameof({typeName}.{identity})";
+        var attributes = subscriptions
+            .Select(subscription => ChildrenFrom(subscription.From, subscription.Spec, typeName, identifiedBy, events, diagnostics))
+            .Concat(removals.Select(removal => RemovedWithChild(removal, typeName, events, diagnostics)))
+            .ToArray();
+
+        return new MappedProperty(
+            propertyName,
+            new ResolvedType($"IEnumerable<{typeName}>", false, false, ResolvedTypeKind.Composite),
+            attributes.Length == 0 ? null : string.Join(' ', attributes),
+            null);
+    }
+
+    // Chronicle identifies a child by a property of the child record, which the 'identified by' names. It has to
+    // exist there and carry [Key] for the collection to be updated in place rather than appended to, so when the
+    // child's own mappings produce nothing for it a property is added to carry it — the same thing ProjectionKey
+    // does for a read model whose key maps to nothing.
+    static string? ChildIdentity(
+        ChildrenSyntax children,
+        string typeName,
+        FromSyntax[] fromBlocks,
+        ICollection<MappedProperty> properties,
+        EventPropertyIndex events,
+        ApplicationSet applicationSet,
+        List<string> diagnostics)
+    {
+        if (children.IdentifiedBy is not PathExpressionSyntax path)
+        {
+            diagnostics.Add(
+                $"The 'identified by' of type '{children.IdentifiedBy.GetType().Name}' on the children block '{children.Property}' does not " +
+                $"name a property, so child record '{typeName}' is rendered without a [Key] and Chronicle identifies its children by convention.");
+            return null;
+        }
+
+        return ProjectionKey.ResolveIdentifying(
+            path.Path,
+            $"The 'identified by' '{path.Path}' of children record '{typeName}'",
+            "child record",
+            fromBlocks.Length > 0 ? fromBlocks[0] : null,
+            properties,
+            events,
+            applicationSet,
+            diagnostics);
+    }
+
+    // The attribute a child's 'from' block renders to, on the parent's collection property. Its key resolves
+    // exactly as [FromEvent]'s does — an inline key on one event wins over the block's — because it answers the
+    // same question: which property of the event the instance is keyed on.
+    static string ChildrenFrom(
+        FromSyntax from,
+        EventSpecSyntax spec,
+        string typeName,
+        string? identifiedBy,
+        EventPropertyIndex events,
+        List<string> diagnostics)
+    {
+        var eventTypeName = Identifiers.ToPascalCase(spec.Event);
+        var arguments = new List<string>();
+        var key = EventKeyReference(from, spec, typeName, "children record", events, diagnostics);
+
+        if (key is not null)
+        {
+            arguments.Add($"key: {key}");
+        }
+
+        if (identifiedBy is not null)
+        {
+            arguments.Add(identifiedBy);
+        }
+
+        var parentKey = ParentKeyReference(from.ParentKey, spec.Event, typeName, "children record", events, diagnostics);
+        if (parentKey is not null)
+        {
+            arguments.Add($"parentKey: {parentKey}");
+        }
+        else if (from.ParentKey is null)
+        {
+            // Without an explicit parent key Chronicle guesses, and the guess is weak enough to be worth naming:
+            // it looks for a property literally called 'Id' on the read model — never [Key] — and, only if it finds
+            // one, takes the first event property of that same type in declaration order. A read model keyed on
+            // anything else falls all the way through to the event source id. Either way the children can land
+            // under a parent nobody chose, and nothing fails, so the modeler is told to say which it is.
+            diagnostics.Add(
+                $"The 'from' on '{spec.Event}' in children record '{typeName}' declares no 'parent' — Chronicle infers the parent " +
+                "from an 'Id' property on the read model and otherwise attaches the children on the event source id, so declare " +
+                "'parent' to say which property identifies the parent.");
+        }
+
+        return arguments.Count == 0
+            ? $"[ChildrenFrom<{eventTypeName}>]"
+            : $"[ChildrenFrom<{eventTypeName}>({string.Join(", ", arguments)})]";
+    }
+
+    // A 'remove with' inside a 'children' block removes one child from the collection, which is a property-level
+    // [RemovedWith] on that collection — the same attribute the read model carries at class level, read as a
+    // child removal only because of where it sits.
+    static string RemovedWithChild(RemoveWithSyntax removal, string typeName, EventPropertyIndex events, List<string> diagnostics)
+    {
+        var eventTypeName = Identifiers.ToPascalCase(removal.Event);
+        var arguments = new List<string>();
+
+        switch (removal.Key)
+        {
+            case PathExpressionSyntax path:
+                arguments.Add($"key: {ProjectionMapping.EventPropertyReference(removal.Event, path.Path, events)}");
+                break;
+
+            case not null:
+                diagnostics.Add(
+                    $"The key of type '{removal.Key.GetType().Name}' on the 'remove with' for '{removal.Event}' in children record " +
+                    $"'{typeName}' does not read a property of that event, so it is not rendered and the removal matches on the event source id.");
+                break;
+        }
+
+        var parentKey = ParentKeyReference(removal.ParentKey, removal.Event, typeName, "children record", events, diagnostics);
+        if (parentKey is not null)
+        {
+            arguments.Add($"parentKey: {parentKey}");
+        }
+
+        return arguments.Count == 0
+            ? $"[RemovedWith<{eventTypeName}>]"
+            : $"[RemovedWith<{eventTypeName}>({string.Join(", ", arguments)})]";
     }
 
     // The key a 'from' declares is what routes its events to a document, and [FromEvent] is what carries it, on
@@ -471,46 +645,86 @@ public class StateViewSliceRenderer : ISliceRenderer
         FromSyntax from,
         EventSpecSyntax spec,
         string typeName,
+        string recordKind,
         EventPropertyIndex events,
         List<string> diagnostics)
     {
         var eventTypeName = Identifiers.ToPascalCase(spec.Event);
         var arguments = new List<string>();
+        var key = EventKeyReference(from, spec, typeName, recordKind, events, diagnostics);
+
+        if (key is not null)
+        {
+            arguments.Add($"key: {key}");
+        }
+
+        var parentKey = ParentKeyReference(from.ParentKey, spec.Event, typeName, recordKind, events, diagnostics);
+        if (parentKey is not null)
+        {
+            arguments.Add($"parentKey: {parentKey}");
+        }
+
+        return arguments.Count == 0 ? $"FromEvent<{eventTypeName}>" : $"FromEvent<{eventTypeName}>({string.Join(", ", arguments)})";
+    }
+
+    // The one place a 'from' block's key is resolved, shared by the [FromEvent] a record carries and the
+    // [ChildrenFrom] a parent carries for its children: a key written on one event of the block wins over the
+    // block's own, matching the order the kernel resolves the same syntax in. Everything it cannot render is
+    // named, because a dropped key does not lose a detail — it routes the write on the event source id instead.
+    static string? EventKeyReference(
+        FromSyntax from,
+        EventSpecSyntax spec,
+        string typeName,
+        string recordKind,
+        EventPropertyIndex events,
+        List<string> diagnostics)
+    {
         var key = spec.Key ?? (from.Key as ExpressionKeySyntax)?.Expression;
 
         switch (key)
         {
             case PathExpressionSyntax path:
-                arguments.Add($"key: {ProjectionMapping.EventPropertyReference(spec.Event, path.Path, events)}");
-                break;
+                return ProjectionMapping.EventPropertyReference(spec.Event, path.Path, events);
 
             case not null:
                 diagnostics.Add(
-                    $"The key of type '{key.GetType().Name}' on '{spec.Event}' in nested record '{typeName}' does not read a property of " +
+                    $"The key of type '{key.GetType().Name}' on '{spec.Event}' in {recordKind} '{typeName}' does not read a property of " +
                     "that event, so it is not rendered and the event routes on the event source id.");
-                break;
+                return null;
 
             case null when from.Key is CompositeKeySyntax composite:
                 diagnostics.Add(
-                    $"The composite key '{composite.Type}' on '{spec.Event}' in nested record '{typeName}' has no model-bound " +
+                    $"The composite key '{composite.Type}' on '{spec.Event}' in {recordKind} '{typeName}' has no model-bound " +
                     "equivalent, so it is not rendered and the event routes on the event source id.");
-                break;
+                return null;
         }
 
-        switch (from.ParentKey)
+        return null;
+    }
+
+    // A 'parent' key names the property of the same event that points at the document holding this one. It is
+    // resolved identically wherever it appears, so it is rendered from one place too.
+    static string? ParentKeyReference(
+        ExpressionSyntax? parentKey,
+        string eventName,
+        string typeName,
+        string recordKind,
+        EventPropertyIndex events,
+        List<string> diagnostics)
+    {
+        switch (parentKey)
         {
-            case PathExpressionSyntax parentPath:
-                arguments.Add($"parentKey: {ProjectionMapping.EventPropertyReference(spec.Event, parentPath.Path, events)}");
-                break;
+            case PathExpressionSyntax path:
+                return ProjectionMapping.EventPropertyReference(eventName, path.Path, events);
 
             case not null:
                 diagnostics.Add(
-                    $"The parent key of type '{from.ParentKey.GetType().Name}' on '{spec.Event}' in nested record '{typeName}' does not " +
+                    $"The parent key of type '{parentKey.GetType().Name}' on '{eventName}' in {recordKind} '{typeName}' does not " +
                     "read a property of that event, so it is not rendered.");
-                break;
+                return null;
         }
 
-        return arguments.Count == 0 ? $"FromEvent<{eventTypeName}>" : $"FromEvent<{eventTypeName}>({string.Join(", ", arguments)})";
+        return null;
     }
 
     static void AddJoined(

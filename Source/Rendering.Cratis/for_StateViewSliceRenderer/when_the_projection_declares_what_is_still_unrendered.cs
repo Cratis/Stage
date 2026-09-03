@@ -1,0 +1,120 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using Cratis.Screenplay.Diagnostics;
+using Cratis.Screenplay.Syntax;
+using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Renderers;
+using Xunit;
+
+namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
+
+/// <summary>
+/// What still has no rendering: a <c>clear with</c> written outside a <c>nested</c> block is discarded by
+/// Chronicle on a root read model, and a composite key has no model-bound equivalent at all. Both have to stay
+/// visible in the file and in the diagnostics rather than disappear now that their neighbors — <c>nested</c> and
+/// <c>children</c> among them — render.
+/// </summary>
+public class when_the_projection_declares_what_is_still_unrendered : Specification
+{
+    ApplicationSet _applicationSet = null!;
+    RenderedFile _file = null!;
+
+    void Establish()
+    {
+        var lineAdded = new EventSyntax(
+            "OrderLineAdded",
+            [
+                new PropertySyntax("orderNumber", new TypeRefSyntax("String", false, false, SourceLocation.Start), SourceLocation.Start),
+                new PropertySyntax("sku", new TypeRefSyntax("String", false, false, SourceLocation.Start), SourceLocation.Start),
+            ],
+            SourceLocation.Start);
+
+        var from = new FromSyntax(
+            [new EventSpecSyntax("OrderLineAdded", null, SourceLocation.Start)],
+            null,
+            null,
+            [new SetMappingSyntax("orderNumber", new PathExpressionSyntax("orderNumber", SourceLocation.Start), SourceLocation.Start)],
+            SourceLocation.Start);
+
+        var childFrom = new FromSyntax(
+            [new EventSpecSyntax("OrderLineAdded", null, SourceLocation.Start)],
+            null,
+            null,
+            [new SetMappingSyntax("sku", new PathExpressionSyntax("sku", SourceLocation.Start), SourceLocation.Start)],
+            SourceLocation.Start);
+
+        var children = new ChildrenSyntax(
+            "lines",
+            new PathExpressionSyntax("sku", SourceLocation.Start),
+            AutoMapMode.Inherit,
+            [childFrom],
+            SourceLocation.Start);
+
+        var nestedFrom = new FromSyntax(
+            [new EventSpecSyntax("OrderLineAdded", null, SourceLocation.Start)],
+            null,
+            null,
+            [new SetMappingSyntax("sku", new PathExpressionSyntax("sku", SourceLocation.Start), SourceLocation.Start)],
+            SourceLocation.Start);
+
+        var nested = new NestedSyntax("shipping", AutoMapMode.Inherit, [nestedFrom], SourceLocation.Start);
+
+        var clearWith = new ClearWithSyntax("OrderArchived", SourceLocation.Start);
+
+        var compositeKey = new CompositeKeySyntax(
+            "OrderLineKey",
+            [new KeyPartSyntax("orderNumber", new PathExpressionSyntax("orderNumber", SourceLocation.Start), SourceLocation.Start)],
+            SourceLocation.Start);
+
+        var projection = new ProjectionSyntax(
+            "OrderLines",
+            "OrderLines",
+            null,
+            AutoMapMode.Enabled,
+            compositeKey,
+            [from, children, nested, clearWith],
+            SourceLocation.Start);
+
+        var slice = new SliceSyntax(
+            SliceType.StateView, "OrderLines", [lineAdded], [], [], [projection], [], [], [], [], [], SourceLocation.Start);
+
+        var feature = new FeatureSyntax("Orders", [], [slice], SourceLocation.Start);
+        var module = new ModuleSyntax("Sales", [], [feature], SourceLocation.Start);
+        _applicationSet = new ApplicationSet([new ApplicationSyntax([], [], [], [module], SourceLocation.Start)]);
+    }
+
+    void Because() => _file = new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp");
+
+    [Fact] void should_flag_the_unrendered_clear_with_block_in_the_file() =>
+        _file.Content.ShouldContain("// TODO: 1 clear with block(s) not yet rendered — a class-level [ClearWith] is only read on a nested type");
+    [Fact] void should_report_the_unrendered_clear_with_block_as_a_diagnostic() =>
+        _file.Diagnostics.ShouldContain(
+            "Projection 'OrderLines' declares 1 'clear with' block(s) outside a 'nested' block — Chronicle only reads a " +
+            "class-level [ClearWith] on a nested type, so they are not rendered.");
+    [Fact] void should_report_the_composite_key_as_a_diagnostic() =>
+        _file.Diagnostics.ShouldContain("Composite key 'OrderLineKey' has no model-bound equivalent — the read model is rendered without a key.");
+
+    // A 'clear with' on a root read model is a silent no-op in Chronicle: the attribute is only read on a nested
+    // type. Emitting it would look like it worked, so the renderer must not emit it at all.
+    [Fact] void should_not_render_a_clear_with_attribute_on_the_root_read_model() =>
+        _file.Content.ShouldNotContain("ClearWith<");
+
+    // The 'nested' block next to them does render now, and it renders as a sibling record the read model holds
+    // through a nullable property — the stronger fact that replaced the expectation that it was unrendered.
+    [Fact] void should_render_the_nested_block_as_a_sibling_record() =>
+        _file.Content.ShouldContain("public record OrderLinesShipping([SetFrom<OrderLineAdded>(nameof(OrderLineAdded.Sku))] string Sku);");
+    [Fact] void should_hold_the_nested_record_on_a_nullable_property() =>
+        _file.Content.ShouldContain("[Nested] OrderLinesShipping? Shipping");
+
+    // The 'children' block beside them renders too now — as its own sibling record, keyed on what identifies a
+    // child, held on an IEnumerable the parent's [ChildrenFrom] fills.
+    [Fact] void should_render_the_children_block_as_a_sibling_record() =>
+        _file.Content.ShouldContain("public record OrderLinesLines([Key] [SetFrom<OrderLineAdded>(nameof(OrderLineAdded.Sku))] string Sku);");
+    [Fact] void should_hold_the_child_record_on_an_enumerable_property() =>
+        _file.Content.ShouldContain("[ChildrenFrom<OrderLineAdded>(identifiedBy: nameof(OrderLinesLines.Sku))] IEnumerable<OrderLinesLines> Lines");
+    [Fact] void should_not_leave_a_todo_for_the_children_block() =>
+        _file.Content.ShouldNotContain("children block(s) not yet rendered");
+}

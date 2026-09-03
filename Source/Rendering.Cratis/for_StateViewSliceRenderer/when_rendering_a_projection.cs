@@ -27,9 +27,16 @@ public class when_rendering_a_projection : a_projection_slice
         _file.Content.ShouldContain("[Key] [SetFrom<InvoiceRegistered>(nameof(InvoiceRegistered.InvoiceNumber))] string InvoiceNumber");
     [Fact] void should_emit_an_increment_attribute() => _file.Content.ShouldContain("[Increment<InvoiceRegistered>] int TotalCount");
     [Fact] void should_emit_a_decrement_attribute() => _file.Content.ShouldContain("[Decrement<InvoiceSent>] int DraftCount");
-    [Fact] void should_flag_the_unsupported_join_block() => _file.Content.ShouldContain("TODO: 1 join block(s) not yet rendered");
-    [Fact] void should_report_the_unsupported_join_block_as_a_diagnostic() =>
-        _file.Diagnostics.ShouldContain("Projection 'InvoiceSummary' declares 1 join block(s) with no model-bound equivalent — they are not rendered.");
+    [Fact] void should_render_the_join_onto_the_property_it_contributes() =>
+        _file.Content.ShouldContain(
+            "[Join<CustomerRegistered>(on: nameof(CustomerId), eventPropertyName: nameof(CustomerRegistered.Name))] string CustomerName");
+    [Fact] void should_not_flag_the_join_block_as_unrendered() => _file.Content.ShouldNotContain("TODO:");
+
+    // Asserted against every diagnostic rather than one retired sentence, so it still fails if the join ever
+    // starts reporting again under different wording.
+    [Fact] void should_not_report_the_join_block_as_a_diagnostic() =>
+        _file.Diagnostics.Any(diagnostic => diagnostic.Contains("join", StringComparison.OrdinalIgnoreCase)).ShouldBeFalse();
+    [Fact] void should_reference_the_joined_event() => _file.Content.ShouldContain("public record CustomerRegistered(");
     [Fact] void should_declare_the_events_the_slice_owns() => _file.Content.ShouldContain("public record InvoiceRegistered(");
     [Fact] void should_emit_the_all_query_method() =>
         _file.Content.ShouldContain("public static IQueryable<InvoiceSummary> AllInvoiceSummaries(IMongoCollection<InvoiceSummary> collection) => collection.AsQueryable();");

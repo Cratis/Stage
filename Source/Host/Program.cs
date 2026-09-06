@@ -21,7 +21,7 @@ CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 var modelPath = args.FirstOrDefault(argument => !argument.StartsWith('-'))
     ?? throw new MissingModelArgument();
 
-var model = await EventModelLoader.LoadFromDirectoryAsync(modelPath);
+var model = await EventModelLoader.LoadFromPathAsync(modelPath);
 var eventStore = DockerStyleName.Generate();
 
 var builder = WebApplication.CreateBuilder(args);

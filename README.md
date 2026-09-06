@@ -36,8 +36,8 @@ database and runtime.
 ## Authoritative input
 
 The authoritative input is Screenplay source: a `.play` file or a folder containing `.play` files. The host and
-specification runner recursively compile every `.play` file beneath the folder they receive and merge the
-results. Stage's contract models are internal/tooling seams produced from that compilation; an
+specification runner compile the selected file alone, or compile every `.play` file beneath the selected folder
+as one application. Stage's contract models are internal/tooling seams produced from that compilation; an
 `event-model.json` file is not the current startup or rendering contract.
 
 ```mermaid
@@ -70,6 +70,12 @@ var options = new CratisRenderingOptions("Projects", "Projects");
 var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id);
 var plan = CratisRendering.Plan(model, executionPlan, scope, options);
 ```
+
+`ProjectName` controls the project and solution file names; `RootNamespace` controls the project setting and
+all generated semantic C# source, imports, and specification namespaces. For example,
+`new CratisRenderingOptions("BackendHost", "Acme.projectAPI")` keeps that exact dotted namespace and casing,
+even when the semantic application is named `Projects`. Module, feature, and slice plans use the same namespace
+as the application plan. Neither the application display name nor a destination folder overrides this option.
 
 The plan must be published only when `plan.Success` is `true`. A failed plan carries diagnostics and **no candidate
 artifacts**. Callers that need the immutable package-owned profile for a lower-level `ArtifactRenderRequest` can use
@@ -105,7 +111,7 @@ not the legacy renderer.
 ### Direct runtime — partial
 
 The `cratis/stage` image is a disposable sandbox containing the Stage host and an in-memory Chronicle kernel. It
-loads a folder of `.play` files and exposes the runtime surfaces Stage currently implements. This path is not a
+loads a `.play` file or folder and exposes the runtime surfaces Stage currently implements. This path is not a
 complete executable implementation of the Screenplay language and should not be treated as a generated
 production application.
 
@@ -144,25 +150,38 @@ Mount a folder containing one or more `.play` files:
 docker run --rm \
     -p 9090:9090 \
     -p 35000:35000 \
-    -v "$PWD":/eventmodel \
+    -v "$PWD":/eventmodel:ro \
     cratis/stage:latest
 ```
 
-The Stage API is exposed on port `9090`; the Chronicle Workbench is exposed on port `35000`. The host takes the
-model folder as its first argument. Deployment configuration is read from `cratis-stage.json`, with its path
+For a single file, mount only the selected file and pass its container path:
+
+```bash
+docker run --rm \
+    -p 9090:9090 \
+    -p 35000:35000 \
+    -v /path/to/invoicing.play:/eventmodel/input.play:ro \
+    cratis/stage:latest /eventmodel/input.play
+```
+
+The Stage API is exposed on port `9090`; the Chronicle Workbench is exposed on port `35000`. The entrypoint takes
+the model file or folder as its first argument, defaulting to `/eventmodel`. Deployment configuration is read from `cratis-stage.json`, with its path
 overridable through `STAGE_CONFIG`.
 
 ## Running modeled specifications
 
 ```bash
 docker run --rm \
-    -v /path/to/screenplays:/model \
+    -v /path/to/screenplays:/model:ro \
     -v /path/to/results:/output \
     cratis/stage-specrunner:latest
 ```
 
-The runner accepts `--model <folder>` and `--output <file>`, with optional `--slice <guid>` and `--spec <guid>`
-filters. The container defaults to `/model` and `/output/results.json`.
+The runner accepts `--model <file-or-folder>` and `--output <file>`, with optional `--slice <guid>` and `--spec <guid>`
+filters. The container defaults to `/model` and `/output/results.json`. To select one file, mount
+`/path/to/invoicing.play:/model/input.play:ro` and pass `--model /model/input.play --output /output/results.json`.
+Implementation `file` references remain symbolic: the loader does not open or execute them or require mounting
+their parent folder. Input errors exit with code `1` without writing results; any existing output is left intact.
 
 Full container, URL, specification-result, and render-plan documentation lives in
 [Documentation](Documentation/index.md). Framework maintainers can use the

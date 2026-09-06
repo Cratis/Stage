@@ -4,7 +4,7 @@
 namespace Cratis.Stage.Host;
 
 /// <summary>
-/// The exception that is thrown when the engine is started without a path to a directory of Screenplay <c>.play</c> files.
+/// The exception that is thrown when the engine is started without a Screenplay <c>.play</c> file or folder path.
 /// </summary>
 public class MissingModelArgument : Exception
 {
@@ -12,7 +12,7 @@ public class MissingModelArgument : Exception
     /// Initializes a new instance of the <see cref="MissingModelArgument"/> class.
     /// </summary>
     public MissingModelArgument()
-        : base("No event model was provided. Pass the path to a directory containing Screenplay .play files as the first argument.")
+        : base("No event model was provided. Pass the path to a Screenplay .play file or a directory containing .play files as the first argument.")
     {
     }
 }

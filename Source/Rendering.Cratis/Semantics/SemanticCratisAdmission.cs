@@ -25,32 +25,6 @@ internal static class SemanticCratisAdmission
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         ValidateTypes(context, diagnostics);
 
-        // Commands share a route namespace within each feature, regardless of their declaring slice.
-        var commandsByFeature = slices
-            .Where(slice => slice.Slice.Kind == SemanticSliceKind.StateChange)
-            .GroupBy(slice => string.Join('.', slice.Path.SkipLast(1)));
-
-        foreach (var feature in commandsByFeature)
-        {
-            var duplicates = feature
-                .SelectMany(slice => slice.Slice.Commands)
-                .GroupBy(command => command.Name, StringComparer.OrdinalIgnoreCase)
-                .Where(group => group.Count() > 1)
-                .Select(group => group.Key);
-
-            foreach (var duplicate in duplicates)
-            {
-                var affectedSlices = feature
-                    .Where(slice => slice.Slice.Commands.Any(command => command.Name.Equals(duplicate, StringComparison.OrdinalIgnoreCase)))
-                    .Select(slice => slice.Slice.Name);
-
-                diagnostics.Add(Error(
-                    "STAGE-ESM-011",
-                    $"Command '{duplicate}' is declared in multiple slices ({string.Join(", ", affectedSlices)}) within the same feature. Commands must have unique names to avoid route ambiguity.",
-                    feature.First().Slice.Id));
-            }
-        }
-
         foreach (var located in slices)
         {
             switch (located.Slice.Kind)

@@ -81,11 +81,6 @@ access. The currently admitted vertical includes concepts, composite types, one 
 one-instance projection state, an optional snapshot lookup, and modeled specifications. Unsupported reachable
 semantics block publication instead of producing thinner code.
 
-State-change commands in the selected scope must have unique names within each feature, compared without case
-sensitivity. Duplicate names across slices produce the blocking diagnostic `STAGE-ESM-011`, naming the command
-and affected slices before code is emitted. Rename the conflicting commands to avoid route ambiguity; the same
-command name may be reused in different features.
-
 Application scope adds exactly eight deterministic backend scaffold artifacts: `Directory.Build.props`,
 `Directory.Build.targets`, `Directory.Packages.props`, the project and solution files, `Program.cs`,
 `appsettings.json`, and `docker-compose.yml`. The local MSBuild and central-package boundaries isolate the generated

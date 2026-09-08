@@ -31,8 +31,12 @@ internal static class SemanticCommandSpecificationRenderer
             .Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications")
             .Using("System.Globalization")
-            .Using("Xunit")
-            .Using($"{context.RootNamespace}.Common");
+            .Using("Xunit");
+        if (command.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
+            specification.When.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
+        {
+            builder.Using($"{context.RootNamespace}.Common");
+        }
 
         foreach (var expected in specification.ThenEvents)
         {
@@ -81,11 +85,19 @@ internal static class SemanticCommandSpecificationRenderer
         var destinationProperty = command.Properties.Single(_ => _.Id == destination.Target);
         var destinationValue = specification.When.Values.Single(_ => _.TargetProperty == destination.Target).Value;
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
+            .Using("Cratis.Chronicle.Events")
             .Line("[Fact] void should_succeed() => _result.ShouldBeSuccessful();");
 
         foreach (var expected in specification.ThenEvents)
         {
             var @event = context.Events[expected.EventContract];
+            if (SemanticTypeSystem.ValueNeedsCommon(destinationValue, destinationProperty.Type) ||
+                @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
+                    expected.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
+            {
+                builder.Using($"{context.RootNamespace}.Common");
+            }
+
             var predicate = string.Join(" && ", @event.Properties.Select(property =>
             {
                 var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
@@ -94,7 +106,7 @@ internal static class SemanticCommandSpecificationRenderer
             builder.Line(
                 $"[Fact] async Task should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}() => " +
                 $"await _scenario.ShouldHaveAppendedEvent<{commandName}, {Identifiers.ToPascalCase(@event.Name)}>(" +
-                $"{types.Value(destinationValue, destinationProperty.Type)}, @event => {predicate});");
+                $"{types.EventSourceExpression(types.Value(destinationValue, destinationProperty.Type), destinationProperty.Type)}, @event => {predicate});");
         }
     }
 

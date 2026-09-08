@@ -3,14 +3,18 @@
 
 #if DEBUG
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
 public class a_generated_application : a_register_project_render_request
 {
     protected DirectoryInfo _evidence = null!;
+    readonly Dictionary<string, string> _artifactHashes = new(StringComparer.Ordinal);
     DirectoryInfo? _application;
 
     void Establish()
@@ -23,14 +27,17 @@ public class a_generated_application : a_register_project_render_request
         {
             _application.Create();
             File.WriteAllText(Path.Combine(_evidence.FullName, "lifecycle.log"), $"Created: {_application.FullName}\nStarted: {DateTimeOffset.UtcNow:O}\n");
-            var plan = CratisRendering.Plan(_model, _executionPlan, _request.Scope, new("BackendHost", "Acme.projectAPI"));
+            var plan = CreatePlan();
             plan.Success.ShouldBeTrue();
             foreach (var artifact in plan.Artifacts)
             {
                 var path = Path.Combine(_application.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 File.WriteAllBytes(path, [.. artifact.Bytes]);
+                _artifactHashes.Add(artifact.RelativePath, artifact.Sha256);
             }
+
+            File.WriteAllText(Path.Combine(_evidence.FullName, "artifact-hashes.json"), JsonSerializer.Serialize(_artifactHashes));
         }
         catch
         {
@@ -38,6 +45,9 @@ public class a_generated_application : a_register_project_render_request
             throw;
         }
     }
+
+    protected virtual ArtifactRenderPlan CreatePlan() =>
+        CratisRendering.Plan(_model, _executionPlan, _request.Scope, new("BackendHost", "Acme.projectAPI"));
 
     void Destroy() => Cleanup();
 
@@ -93,6 +103,13 @@ public class a_generated_application : a_register_project_render_request
         var truncated = stdout.Truncated || stderr.Truncated;
         var logPath = Path.Combine(_evidence.FullName, logName);
         await File.WriteAllTextAsync(logPath, $"{command}\nExit code: {process.ExitCode}\nTimed out: {timedOut}\nTruncated: {truncated}\n{output}");
+        foreach (var (relativePath, expectedHash) in _artifactHashes)
+        {
+            var path = Path.Combine(_application.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            var actualHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(path))).ToLowerInvariant();
+            actualHash.ShouldEqual(expectedHash);
+        }
+
         if (timedOut || truncated || process.ExitCode != 0)
         {
             throw new GeneratedApplicationVerificationFailed(command, logPath, output);

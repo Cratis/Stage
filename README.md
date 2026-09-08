@@ -87,6 +87,13 @@ access. The currently admitted vertical includes concepts, composite types, one 
 one-instance projection state, an optional snapshot lookup, and modeled specifications. Unsupported reachable
 semantics block publication instead of producing thinner code.
 
+Generated state-change commands implement `ICanProvideEventSourceId` using the resolved semantic `produces for`
+property, rather than property names or discovery order. Primitive String/Uuid destinations remain `string`/`Guid`;
+identity concepts retain their implicit conversion, and other scalar destinations use Arc's `ToString()` value
+semantics. Events are still appended through the event returned by `Handle()`. Generated acceptance specs assert
+both the destination event-source ID and event payload. `Common` imports follow the types declared in each artifact
+and the constructors actually emitted in command specification values, not unrelated application concepts.
+
 Application scope adds exactly eight deterministic backend scaffold artifacts: `Directory.Build.props`,
 `Directory.Build.targets`, `Directory.Packages.props`, the project and solution files, `Program.cs`,
 `appsettings.json`, and `docker-compose.yml`. The local MSBuild and central-package boundaries isolate the generated

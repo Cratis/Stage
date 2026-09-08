@@ -30,8 +30,12 @@ internal static class SemanticStateChangeArtifactRenderer
             .Using("Cratis.Arc.Authorization")
             .Using("Cratis.Arc.Commands.ModelBound")
             .Using("Cratis.Arc.Validation")
-            .Using("Cratis.Chronicle.Events")
-            .Using($"{context.RootNamespace}.Common");
+            .Using("Cratis.Chronicle.Events");
+        if (command.Properties.Concat(located.Slice.Events.SelectMany(_ => _.Properties))
+            .Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)))
+        {
+            builder.Using($"{context.RootNamespace}.Common");
+        }
 
         var eventSlice = context.DeclaringSlice(@event.Id);
         var eventNamespace = SliceNaming.Namespace(context.RootNamespace, eventSlice.Path);
@@ -67,9 +71,16 @@ internal static class SemanticStateChangeArtifactRenderer
             return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
         });
 
+        var destination = (SemanticResolvedExpression)produced.Destination!;
+        var destinationProperty = command.Properties.Single(_ => _.Id == destination.Target);
+        var destinationExpression = types.EventSourceExpression(Identifiers.ToPascalCase(destinationProperty.Name), destinationProperty.Type);
+
         builder.Attribute("Command")
             .Attribute("AllowAnonymous")
-            .OpenBlock($"public record {name}({parameters})")
+            .OpenBlock($"public record {name}({parameters}) : ICanProvideEventSourceId")
+            .Line("/// <inheritdoc/>")
+            .ExpressionMember("public EventSourceId GetEventSourceId()", destinationExpression)
+            .BlankLine()
             .ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", $"new({string.Join(", ", arguments)})")
             .EndBlock()
             .BlankLine();

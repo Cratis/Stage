@@ -39,6 +39,8 @@ public class when_planning_the_register_project_application : a_register_project
     [Fact] void should_render_the_command_from_esm() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("public record RegisterProject(ProjectId ProjectId, ProjectName Name)");
     [Fact] void should_render_the_exact_validation_message() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("WithMessage(\"Project name is required\")");
     [Fact] void should_render_the_event_destination_as_the_identifier() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("public ProjectRegistered Handle() => new(ProjectId, Name);");
+    [Fact] void should_explicitly_provide_the_canonical_destination() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("public EventSourceId GetEventSourceId() => ProjectId;");
+    [Fact] void should_implement_the_event_source_provider() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("public record RegisterProject(ProjectId ProjectId, ProjectName Name) : ICanProvideEventSourceId");
     [Fact] void should_render_the_one_instance_projection() => Content("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("[FromEvent<ProjectRegistered>]");
     [Fact] void should_render_the_optional_snapshot_query() => Content("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("public static async Task<ProjectSummary?> ProjectById");
     [Fact] void should_render_the_success_command_specification() => ContentEnding("when_registering_aproject.cs").ShouldContain("ShouldHaveAppendedEvent<RegisterProject, ProjectRegistered>");

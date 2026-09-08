@@ -33,8 +33,13 @@ internal static class SemanticStateViewArtifactRenderer
             .Using("Cratis.Arc.Queries.ModelBound")
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
-            .Using("Cratis.Chronicle.ReadModels")
-            .Using($"{context.RootNamespace}.Common");
+            .Using("Cratis.Chronicle.ReadModels");
+        if (readModel.Properties.Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)) ||
+            located.Slice.Queries.Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Argument.Type)))
+        {
+            builder.Using($"{context.RootNamespace}.Common");
+        }
+
         if (!string.Equals(ownNamespace, eventNamespace, StringComparison.Ordinal))
         {
             builder.Using(eventNamespace);

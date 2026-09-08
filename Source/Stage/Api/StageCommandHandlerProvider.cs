@@ -48,7 +48,7 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
             }
 
             var commandType = typeFactory.CreateCommandType(located.TypeNamespace, ModelNaming.ToIdentifier(command.Name));
-            _handlers.Add(new StageCommandHandler(commandType, located.Location, command, appender, identity));
+            _handlers.Add(new StageCommandHandler(commandType, located.CanonicalLocation, command, appender, identity));
         }
     }
 

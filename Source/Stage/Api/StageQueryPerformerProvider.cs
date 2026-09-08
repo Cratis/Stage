@@ -42,8 +42,8 @@ public sealed class StageQueryPerformerProvider : IQueryPerformerProvider
             var name = ModelNaming.ToIdentifier(readModel.Name);
             var readModelType = typeFactory.CreateReadModelType(located.TypeNamespace, name);
 
-            _performers.Add(new StageQueryPerformer(readModelType, $"Get{name}ById", located.Location, byId: true));
-            _performers.Add(new StageQueryPerformer(readModelType, $"All{ModelNaming.Pluralize(name)}", located.Location, byId: false));
+            _performers.Add(new StageQueryPerformer(readModelType, $"Get{name}ById", located.CanonicalLocation, byId: true));
+            _performers.Add(new StageQueryPerformer(readModelType, $"All{ModelNaming.Pluralize(name)}", located.CanonicalLocation, byId: false));
         }
     }
 

@@ -35,7 +35,11 @@ builder.Configuration.AddJsonFile(
     optional: true,
     reloadOnChange: true);
 
-builder.AddStageCratis(eventStore, programIdentifier: $"Cratis Stage ({eventStore})");
+// Admit modeled ownership before AddCratis, DI/provider resolution, type emission, any endpoint mapping,
+// or Chronicle connection. Use one startup snapshot for planning, mapping, and discovery.
+var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
+var httpSurface = StageHttpSurface.Create(model, routeOptions);
+builder.AddStageCratis(eventStore, programIdentifier: $"Cratis Stage ({eventStore})", routeOptions: routeOptions);
 
 builder.Services.AddSingleton(model);
 builder.Services.AddSingleton<DynamicTypeFactory>();
@@ -73,6 +77,7 @@ app.UseForwardedHeaders();
 app.UseRouting();
 app.UseWebSockets();
 app.MapControllers();
+StageEndpointMapper.Map(app, httpSurface);
 app.UseCratisArc();
 app.UseCratisChronicle();
 

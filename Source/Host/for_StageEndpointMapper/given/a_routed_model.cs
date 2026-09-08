@@ -1,0 +1,195 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System.Diagnostics;
+using System.Text;
+using Cratis.Arc;
+using Cratis.Arc.Commands;
+using Cratis.Arc.Http;
+using Cratis.Arc.Introspection;
+using Cratis.Arc.Queries;
+using Cratis.Arc.Queries.Filters;
+using Cratis.Arc.Validation;
+using Cratis.Execution;
+using Cratis.Specifications;
+using Cratis.Stage.Api;
+using Cratis.Stage.Contracts;
+using Cratis.Stage.Runtime;
+using Cratis.Traces;
+using Cratis.Types;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Options;
+using NSubstitute;
+
+namespace Cratis.Stage.Host.for_StageEndpointMapper.given;
+
+public class a_routed_model : Specification
+{
+    readonly ActivitySource _activitySource = new("StageHttpRoutingSpecs");
+    protected readonly List<CommandContext> _commands = [];
+    protected readonly List<QueryContext> _queries = [];
+    protected readonly List<(Type BoundType, string EventSourceId, IReadOnlyList<ProducedEventPayload> Events)> _appends = [];
+    protected WebApplication _app = null!;
+    protected ICommandHandlerProviders _commandProviders = null!;
+    protected IQueryPerformerProviders _queryProviders = null!;
+    protected IQueryRenderers _queryRenderers = null!;
+    protected IntrospectionService _introspection = null!;
+    protected bool _createdTypes;
+    private protected StageHttpSurface _surface = null!;
+    RequestDelegate _request = null!;
+
+    protected void MapModel(EventModel model, bool enableQueryHttpMethod = true)
+    {
+        // Deliberately match Program's ordering. A rejected model cannot reach type construction or mapping.
+        var routes = new StageHttpRouteOptions(enableQueryHttpMethod);
+        _surface = StageHttpSurface.Create(model, routes);
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.Configure<ArcOptions>(options => options.GeneratedApis = routes.Canonical);
+        StageHttpRouteOptions.AlignIntrospection(builder.Services);
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddOpenApi(options => options.AddDocumentTransformer<StageOnlyOperationsDocumentTransformer>());
+        builder.Services.AddSingleton(Substitute.For<IHttpRequestContextAccessor>());
+        var correlation = Substitute.For<ICorrelationIdAccessor>();
+        correlation.Current.Returns(CorrelationId.New());
+        builder.Services.AddSingleton(correlation);
+
+        _createdTypes = true;
+        var types = new DynamicTypeFactory();
+        var identity = Substitute.For<IProvideStageIdentity>();
+        identity.Current().Returns(new Dictionary<string, string>());
+        var appender = Substitute.For<IAppendProducedEvents>();
+        appender.Append(Arg.Any<string>(), Arg.Any<IReadOnlyList<ProducedEventPayload>>(), Arg.Any<IReadOnlyDictionary<string, string>>())
+            .Returns(call =>
+            {
+                _appends.Add((_commands[^1].Type, call.Arg<string>(), call.Arg<IReadOnlyList<ProducedEventPayload>>()));
+                return Task.CompletedTask;
+            });
+        var commands = new StageCommandHandlerProvider([model], [types], [appender], [identity]);
+        var queries = new StageQueryPerformerProvider([model], [types]);
+        _commandProviders = new CommandHandlerProviders(Instances<ICommandHandlerProvider>(commands));
+        _queryProviders = new QueryPerformerProviders(Instances<IQueryPerformerProvider>(queries));
+        builder.Services.AddSingleton(_commandProviders);
+        builder.Services.AddSingleton(_queryProviders);
+        builder.Services.AddSingleton(Instances<IQueryRequestReader>(new QueryStringQueryRequestReader(), new BodyQueryRequestReader()));
+        builder.Services.AddSingleton(Substitute.For<IObservableQueryHandler>());
+
+        ConfigureCommandPipeline(builder.Services, correlation);
+        ConfigureQueryPipeline(builder.Services, correlation);
+        _app = builder.Build();
+        _introspection = new IntrospectionService(
+            _commandProviders,
+            _queryProviders,
+            _app.Services.GetRequiredService<IOptions<ApiEndpointOptions>>(),
+            _app.Services.GetRequiredService<IOptions<ArcOptions>>());
+        StageEndpointMapper.Map(_app, _surface);
+        _app.MapOpenApi();
+        BuildRouting();
+    }
+
+    protected RouteEndpoint[] Endpoints() => [.. ((IEndpointRouteBuilder)_app).DataSources
+        .SelectMany(source => source.Endpoints).OfType<RouteEndpoint>()];
+
+    protected void BuildRouting()
+    {
+        // Native selection is essential: invoking RequestDelegate on a chosen endpoint misses ambiguity in routing.
+        var pipeline = new ApplicationBuilder(_app.Services);
+        pipeline.UseRouting();
+        pipeline.UseEndpoints(endpoints =>
+        {
+            foreach (var source in ((IEndpointRouteBuilder)_app).DataSources)
+            {
+                endpoints.DataSources.Add(source);
+            }
+        });
+        _request = pipeline.Build();
+    }
+
+    protected async Task<(int Status, string Body, string? EndpointName)> Request(string method, string path, string body = "{}")
+    {
+        await using var requestBody = new MemoryStream(Encoding.UTF8.GetBytes(body));
+        await using var responseBody = new MemoryStream();
+        await using var scope = _app.Services.CreateAsyncScope();
+        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+        var parts = path.Split('?', 2);
+        context.Request.Method = method;
+        context.Request.Path = parts[0];
+        context.Request.QueryString = parts.Length > 1 ? new QueryString($"?{parts[1]}") : QueryString.Empty;
+        context.Request.ContentType = "application/json";
+        context.Request.ContentLength = requestBody.Length;
+        context.Request.Body = requestBody;
+        context.Response.Body = responseBody;
+        await _request(context);
+
+        return (context.Response.StatusCode, Encoding.UTF8.GetString(responseBody.ToArray()), context.GetEndpoint()?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName);
+    }
+
+    static IInstancesOf<T> Instances<T>(params T[] instances)
+        where T : class
+    {
+        var result = Substitute.For<IInstancesOf<T>>();
+        result.GetEnumerator().Returns(_ => ((IEnumerable<T>)instances).GetEnumerator());
+        return result;
+    }
+
+    void ConfigureCommandPipeline(IServiceCollection services, ICorrelationIdAccessor correlation)
+    {
+        var filters = Substitute.For<ICommandFilters>();
+        filters.OnExecution(Arg.Any<CommandContext>()).Returns(call =>
+        {
+            var context = call.Arg<CommandContext>();
+            _commands.Add(context);
+            return Task.FromResult(CommandResult.Success(context.CorrelationId));
+        });
+        var values = Substitute.For<ICommandContextValuesBuilder>();
+        values.Build(Arg.Any<object>()).Returns(CommandContextValues.Empty);
+        var resolver = Substitute.For<ICommandHandlerArgumentResolver>();
+        resolver.Resolve(Arg.Any<ICommandHandler>(), Arg.Any<CommandContext>(), Arg.Any<IServiceProvider>(), Arg.Any<ValidationResultSeverity?>())
+            .Returns(call => new CommandHandlerArgumentResolution([], CommandResult.Success(call.Arg<CommandContext>().CorrelationId)));
+        var activity = Substitute.For<IActivitySource<CommandPipeline>>();
+        activity.ActualSource.Returns(_activitySource);
+        services.AddSingleton<ICommandPipeline>(provider => new CommandPipeline(
+            correlation,
+            filters,
+            _commandProviders,
+            Substitute.For<ICommandResponseValueHandlers>(),
+            Substitute.For<ICommandContextModifier>(),
+            values,
+            resolver,
+            Instances<ICommandExecutionScope>(),
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            activity));
+    }
+
+    void ConfigureQueryPipeline(IServiceCollection services, ICorrelationIdAccessor correlation)
+    {
+        var authorization = new AuthorizationFilter(_queryProviders);
+        var filters = Substitute.For<IQueryFilters>();
+        filters.OnPerform(Arg.Any<QueryContext>()).Returns(call =>
+        {
+            var context = call.Arg<QueryContext>();
+            _queries.Add(context);
+            return authorization.OnPerform(context);
+        });
+        var activity = Substitute.For<IActivitySource<QueryPipeline>>();
+        activity.ActualSource.Returns(_activitySource);
+        _queryRenderers = Substitute.For<IQueryRenderers>();
+        services.AddSingleton<IQueryPipeline>(new QueryPipeline(
+            correlation,
+            Substitute.For<IQueryContextManager>(),
+            filters,
+            _queryProviders,
+            _queryRenderers,
+            Substitute.For<IReadModelInterceptors>(),
+            Substitute.For<IDiscoverableValidators>(),
+            activity));
+    }
+
+    async Task Destroy()
+    {
+        if (_app is not null)
+        {
+            await _app.DisposeAsync();
+        }
+        _activitySource.Dispose();
+    }
+}

@@ -85,6 +85,20 @@ The existing legacy failure flow skips that slice's artifact and specifications,
 attempts an advisory failure marker, and ends with `RenderingFailed` rather than a success summary. Unselected
 unsafe slices do not block a valid scoped render. The syntax compiler and ESM binder policies are unchanged.
 
+Legacy state-view query rendering supports conventional unfiltered collections, identifying `by` lookups,
+observable variants, and per-method authorization. It rejects declared filter parameter contracts and file or
+inline performers rather than replacing their intent with an unrestricted query. Every query in a selected
+state-view slice is checked before emission, including later queries and queries returning an unmatched model;
+unselected slices do not block a scoped render. Direct `QueryRenderer` calls check only queries owned by the
+requested read model, before changing the supplied builder. Rejection reports `UnsupportedQueryIntent` with code
+`STAGE-CRATIS-QUERY-001`, the authored query and return-type names, typed reason, relevant source location, and
+selected slice path when available. The location is the first filter declaration, otherwise the file or code
+attachment; malformed performers use the performer declaration. Bodies are neither interpreted nor included in
+the diagnostic, and file references are not opened. The affected slice and its specifications are skipped;
+independent output continues, an advisory failure marker is attempted, and the operation ends with
+`RenderingFailed`, not a success summary. The synthesized all/by-id pair still applies only when no declared
+query returns the read model. Portable ESM query planning is unchanged.
+
 Direct writes do not provide managed staging or safe stale-file removal: after a legacy rendering failure, treat
 the target as **unsafe and incomplete** and use a fresh target. Safe staged publication remains owned by CLI #101.
 

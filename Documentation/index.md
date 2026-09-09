@@ -76,7 +76,7 @@ Admission fails closed for non-C# languages, malformed or incomplete bodies, all
 (including inactive branches), analysis failures, and unresolved or ambiguous potential context bindings.
 Unresolved unrelated generated event types do not by themselves block admission: this narrow binding check is
 **not** a guarantee of arbitrary C# compilation, Screenplay-to-Arc semantic parity, or a security sandbox.
-File-backed handlers and declarative `produces` behavior are unchanged.
+Declarative `produces` behavior is unchanged. File-backed command implementations have a separate guard below.
 
 Every inline handler in a selected state-change slice is checked before emission, not only the first command;
 `produces` is not a fallback for a rejected inline body. Rejection throws `UnsupportedInlineCommandHandler` with
@@ -84,6 +84,21 @@ code `STAGE-CRATIS-INLINE-001`, the command name, full slice path, exact authore
 The existing legacy failure flow skips that slice's artifact and specifications, continues independent output,
 attempts an advisory failure marker, and ends with `RenderingFailed` rather than a success summary. Unselected
 unsafe slices do not block a valid scoped render. The syntax compiler and ESM binder policies are unchanged.
+
+Legacy file-backed command implementations are not supported. Every command in a selected state-change slice
+is checked for `Handler.File` before inline admission or emission, including commands after the first. Rejection
+throws `UnsupportedFileBackedCommandHandler` with code `STAGE-CRATIS-FILE-001`, the command name, full slice path,
+exact command source location, and the symbolic file reference with its own source location. The fixed reason is
+"file-backed command implementation not supported by legacy Cratis renderer", not a claim that the file is missing.
+No implementation file is read or validated. File references remain valid Screenplay syntax and symbolic paths;
+declaration file annotations are not handler implementations and do not trigger this guard.
+
+This is a compatibility change: formerly ignored file implementations now block instead of silently emitting an
+empty handler. Manually constructed syntax containing both a file and inline code or `produces` also blocks;
+neither is a fallback. The DSL already rejects combining `handler` and `produces`. File rejection follows the same
+existing partial-output failure flow described above. No supported external binding or replacement implementation
+is supplied; migrate to declarative behavior only when it is equivalent. This narrow correction does not close
+the broader Stage #13 file-backed implementation work or change other file implementation families.
 
 Direct writes do not provide managed staging or safe stale-file removal: after a legacy rendering failure, treat
 the target as **unsafe and incomplete** and use a fresh target. Safe staged publication remains owned by CLI #101.

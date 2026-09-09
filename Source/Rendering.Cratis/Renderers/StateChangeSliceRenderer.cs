@@ -23,6 +23,14 @@ public class StateChangeSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        foreach (var fileCommand in slice.Slice.Commands)
+        {
+            if (fileCommand.Handler?.File is { } file)
+            {
+                throw new UnsupportedFileBackedCommandHandler(fileCommand.Name, string.Join('.', slice.FullPath), fileCommand.Location, file);
+            }
+        }
+
         foreach (var inlineCommand in slice.Slice.Commands.Where(command => command.Handler?.Code is not null))
         {
             InlineCommandHandlerAdmission.EnsureAccepted(inlineCommand.Handler!.Code!, inlineCommand.Name, string.Join('.', slice.FullPath));

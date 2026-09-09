@@ -59,7 +59,7 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         if (projection is not null)
         {
-            RenderReadModel(builder, projection, readModel!, slice.Slice.Queries, applicationSet, referenced, diagnostics);
+            RenderReadModel(builder, projection, readModel!, slice.Slice.Queries, applicationSet, referenced, diagnostics, string.Join('.', slice.FullPath));
         }
 
         foreach (var @namespace in ReferencedNamespaces.Resolve(referenced, applicationSet, rootNamespace, ownNamespace))
@@ -102,7 +102,8 @@ public class StateViewSliceRenderer : ISliceRenderer
         IEnumerable<QuerySyntax> queries,
         ApplicationSet applicationSet,
         List<string> referenced,
-        List<string> diagnostics)
+        List<string> diagnostics,
+        string slicePath)
     {
         var blocks = projection.Blocks.ToArray();
         var fromBlocks = blocks.OfType<FromSyntax>().ToArray();
@@ -118,7 +119,11 @@ public class StateViewSliceRenderer : ISliceRenderer
             builder.BlankLine();
         }
 
-        var keyProperty = ProjectionKey.Resolve(projection, fromBlocks, properties, events, applicationSet, diagnostics);
+        var subscriptions = Subscriptions(fromBlocks);
+        var stringKeys = RootStringKeyProfile.Admit(projection, subscriptions, properties, queries, slicePath);
+        var keyProperty = stringKeys is null
+            ? ProjectionKey.Resolve(projection, fromBlocks, properties, events, applicationSet, diagnostics)
+            : null;
 
         builder.Using(AuthorizationRenderer.Namespace)
             .Using("Cratis.Arc.Queries.ModelBound")
@@ -129,7 +134,6 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         referenced.AddRange(properties.Where(property => property.Type.Kind is not ResolvedTypeKind.Unresolved).Select(property => property.Type.ClrTypeName));
 
-        var subscriptions = Subscriptions(fromBlocks);
         var removalEvents = projection.Blocks.OfType<RemoveWithSyntax>().Select(block => block.Event).Distinct(StringComparer.Ordinal).ToArray();
         var joinedEvents = joinBlocks.SelectMany(join => join.Events).Select(joined => joined.Event).Distinct(StringComparer.Ordinal).ToArray();
         var joinRemovals = projection.Blocks.OfType<RemoveViaJoinSyntax>().ToArray();
@@ -138,13 +142,16 @@ public class StateViewSliceRenderer : ISliceRenderer
         referenced.AddRange(joinedEvents);
         referenced.AddRange(joinRemovals.Select(block => block.Event));
 
-        // The key is rendered onto [FromEvent] here exactly as it is on a nested record. Chronicle seeds every
+        // Root string constants use the separately admitted public ConstantKey property; other keys use the
+        // existing property-key renderer, also used by nested records. Chronicle seeds every
         // From with the event source id and only ever overwrites it from a class-level [FromEvent]'s key — it
         // never reads [Key] for this — so a read model whose key came only from [Key] would keep routing its
         // documents on the event source id no matter what the projection declared.
         foreach (var subscription in subscriptions)
         {
-            builder.Attribute(FromEvent(subscription.From, subscription.Spec, typeName, "read model", events, diagnostics));
+            builder.Attribute(stringKeys is null
+                ? FromEvent(subscription.From, subscription.Spec, typeName, "read model", events, diagnostics)
+                : $"FromEvent<{Identifiers.ToPascalCase(subscription.Spec.Event)}>(ConstantKey = {CSharpCodeBuilder.StringLiteral(stringKeys.ValueFor(subscription.Spec.Event))})");
         }
 
         foreach (var eventName in removalEvents)
@@ -186,6 +193,11 @@ public class StateViewSliceRenderer : ISliceRenderer
         builder.OpenBlock($"public record {typeName}({parameters})");
 
         var keyType = keyProperty is null ? "Guid" : properties.First(property => property.Name == keyProperty).Type.ToTypeSyntax();
+        if (stringKeys is not null)
+        {
+            keyType = "string";
+        }
+
         var idParameterName = keyProperty is null ? "id" : Identifiers.ToCamelCase(keyProperty);
 
         QueryRenderer.Render(builder, typeName, keyType, idParameterName, queries, applicationSet, diagnostics);

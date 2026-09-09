@@ -164,10 +164,10 @@ public class when_admitting_effective_root_composite_keys : Specification
     }
 
     [Fact]
-    public void should_not_broaden_the_guard_to_constant_keys()
+    public void should_admit_a_supported_root_string_key_instead_of_rejecting_it_as_composite()
     {
         Compile("from OrderCreated\n  key literal \"global\"\n  total = total");
-        Render().Content.ShouldContain("[FromEvent<OrderCreated>]");
+        Render().Content.ShouldContain("[FromEvent<OrderCreated>(ConstantKey = \"global\")]");
     }
 
     void Compile(string blocks)

@@ -63,7 +63,7 @@ internal static class SemanticStateViewArtifactRenderer
         SemanticProjectionTransition transition,
         SemanticEventContract @event,
         SemanticTypeSystem types) =>
-        string.Join(", ", readModel.Properties.Select(property =>
+        string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
         {
             var mapping = transition.Mappings.Single(_ => _.TargetProperty == property.Id);
             var source = (SemanticResolvedExpression)mapping.Source;

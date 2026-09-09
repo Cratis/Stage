@@ -22,7 +22,9 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// <see cref="UnrenderedConstructs"/>).
 /// </summary>
 /// <remarks>
-/// Each declared query that returns the rendered read model becomes a static method with its own exact Arc
+/// All queries in the selected slice are admitted before emission: filters and performers fail closed, even
+/// when their return model is not rendered. Each supported query returning the rendered read model becomes a
+/// static method with its own exact Arc
 /// authorization attribute. A read model receives the synthesized all/by-id pair only when no declared query
 /// returns it; only that pair shares a type-level authorization fallback from <see cref="ReadModelAuthorization"/>.
 /// </remarks>
@@ -31,6 +33,8 @@ public class StateViewSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        QueryAdmission.EnsureSupported(slice.Slice.Queries, string.Join('.', slice.FullPath));
+
         var diagnostics = new List<string>();
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
         var builder = new CSharpCodeBuilder().Namespace(ownNamespace);

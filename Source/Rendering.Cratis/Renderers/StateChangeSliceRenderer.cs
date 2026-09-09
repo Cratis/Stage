@@ -23,6 +23,11 @@ public class StateChangeSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        foreach (var inlineCommand in slice.Slice.Commands.Where(command => command.Handler?.Code is not null))
+        {
+            InlineCommandHandlerAdmission.EnsureAccepted(inlineCommand.Handler!.Code!, inlineCommand.Name, string.Join('.', slice.FullPath));
+        }
+
         var diagnostics = new List<string>();
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
         var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
@@ -79,9 +84,6 @@ public class StateChangeSliceRenderer : ISliceRenderer
     {
         if (command.Handler?.Code is not null)
         {
-            diagnostics.Add(
-                $"Command '{command.Name}' handles with an authored {command.Handler.Code.Language} block, which is written against Screenplay's " +
-                "own CommandContext — a rendered Arc handler receives Arc's, so the block is emitted as written and compiles only where the two agree.");
             builder.Using("Cratis.Arc.Commands")
                 .BlankLine()
                 .OpenBlock("public IEnumerable<object> Handle(CommandContext context)")

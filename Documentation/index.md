@@ -64,6 +64,27 @@ publication rather than producing a thinner application.
 
 The published syntax-based `IRenderer` remains available through an explicit compatibility adapter. That legacy
 path still renders its existing broader `ApplicationSyntax` surface and writes directly to a target directory.
+Legacy inline command handlers support only C# (`csharp`) bodies proven not to bind to the generated `context`
+parameter. Context-independent bodies such as `return Array.Empty<object>();` remain supported and are emitted
+as authored, with the renderer's normal indentation. Screenplay and Arc have different command contexts; no
+shared type-and-meaning mapping is assumed. Direct references, aliases, captures, `dynamic` aliases, and `nameof`
+references to the parameter are rejected, including escaped and Unicode identifiers. Symbol-bound references to
+other declarations, such as a shadowing lambda parameter or an anonymous object's `context` property, are not
+references to the generated parameter.
+
+Admission fails closed for non-C# languages, malformed or incomplete bodies, all preprocessor directives
+(including inactive branches), analysis failures, and unresolved or ambiguous potential context bindings.
+Unresolved unrelated generated event types do not by themselves block admission: this narrow binding check is
+**not** a guarantee of arbitrary C# compilation, Screenplay-to-Arc semantic parity, or a security sandbox.
+File-backed handlers and declarative `produces` behavior are unchanged.
+
+Every inline handler in a selected state-change slice is checked before emission, not only the first command;
+`produces` is not a fallback for a rejected inline body. Rejection throws `UnsupportedInlineCommandHandler` with
+code `STAGE-CRATIS-INLINE-001`, the command name, full slice path, exact authored code location, and reason.
+The existing legacy failure flow skips that slice's artifact and specifications, continues independent output,
+attempts an advisory failure marker, and ends with `RenderingFailed` rather than a success summary. Unselected
+unsafe slices do not block a valid scoped render. The syntax compiler and ESM binder policies are unchanged.
+
 Direct writes do not provide managed staging or safe stale-file removal: after a legacy rendering failure, treat
 the target as **unsafe and incomplete** and use a fresh target. Safe staged publication remains owned by CLI #101.
 

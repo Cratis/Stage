@@ -114,6 +114,23 @@ independent output continues, an advisory failure marker is attempted, and the o
 `RenderingFailed`, not a success summary. The synthesized all/by-id pair still applies only when no declared
 query returns the read model. Portable ESM query planning is unchanged.
 
+Legacy state-view rendering also rejects **effective root `from` composite keys** in the first projection it
+actually emits. After query admission and before slice emission, it checks the same subscriptions emission uses:
+the first subscription for each event name wins, and an inline per-event key overrides the block key. A composite
+block fully overridden by inline keys, or shadowed by earlier subscriptions, does not trigger this guard; an event
+still falling back to that composite does. An unsupported explicit composite identity must not be confused with
+an absent key, whose event-source-id default remains unchanged. Rejection throws
+`UnsupportedCompositeProjectionKey` with code `STAGE-CRATIS-KEY-001`, selected slice path, authored projection and
+read model names (the projection name when the read model name is omitted), event name, composite type name, and
+original key source location without path normalization. No key-part values are evaluated.
+
+This is a compatibility correction: previously the affected root subscription warned but emitted a bare
+`FromEvent` attribute, losing the authored composite identity. The affected slice source and specifications are
+now skipped; independent artifacts, including common types, may still be written, an advisory failure marker is
+attempted, and rendering ends with `RenderingFailed`, not a success summary. An unsafe unselected slice does not
+block a safe scoped render. This guard neither implements composite keys nor changes projection-level, nested,
+children, join, parent, constant-key, or unrendered-projection behavior. The broader Stage #13 work remains open.
+
 Direct writes do not provide managed staging or safe stale-file removal: after a legacy rendering failure, treat
 the target as **unsafe and incomplete** and use a fresh target. Safe staged publication remains owned by CLI #101.
 

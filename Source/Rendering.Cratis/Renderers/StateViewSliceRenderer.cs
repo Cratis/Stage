@@ -16,7 +16,8 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// projection attributes for the blocks this renderer understands — <c>from</c>, <c>join</c>, <c>all</c>,
 /// <c>every</c>, <c>remove with</c>, <c>remove via join</c>, <c>nested</c> together with the <c>clear with</c>
 /// that is only meaningful inside one, and <c>children</c> together with the sibling child record it projects
-/// into. Constructs it can't express as attributes (composite keys, and the blocks whose meaning inside a
+/// into. Effective root <c>from</c> composite keys fail closed before emission. Other constructs it can't express
+/// as attributes (including composite keys in other scopes, and the blocks whose meaning inside a
 /// generated nested or child record is not established) are reported as diagnostics and called out in the file
 /// rather than silently dropped, as is everything else the slice declares that nothing renders (see
 /// <see cref="UnrenderedConstructs"/>).
@@ -35,16 +36,17 @@ public class StateViewSliceRenderer : ISliceRenderer
     {
         QueryAdmission.EnsureSupported(slice.Slice.Queries, string.Join('.', slice.FullPath));
 
-        var diagnostics = new List<string>();
-        var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
-        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
-
         // A slice may declare several projections. Only the first is rendered; the ones left out are reported by
         // UnrenderedConstructs rather than dropped in silence. A query names the read model it reads with its
         // return type, which decides both whether this file can hold its method and where that method's own
         // authorization belongs. The read model's name is therefore known before anything is reported.
         var projection = slice.Slice.Projections.FirstOrDefault();
+        EnsureSupportedRootKeys(projection, string.Join('.', slice.FullPath));
         var readModel = projection is null ? null : ReadModelName(projection);
+
+        var diagnostics = new List<string>();
+        var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
+        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
 
         UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.ReadModel, diagnostics, readModel);
 
@@ -67,6 +69,25 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         var path = new List<string>(SliceNaming.FolderPath(slice.FullPath)) { SliceNaming.FileName(slice.Slice.Name) };
         return new RenderedFile(Path.Combine([.. path]), builder.ToString()) { Diagnostics = diagnostics };
+    }
+
+    // Admit precisely the root subscriptions emission selects, including its first-event winner rule.
+    // An inline event key overrides the block key; nested/child and unrendered projections are not this scope.
+    static void EnsureSupportedRootKeys(ProjectionSyntax? projection, string slicePath)
+    {
+        if (projection is null)
+        {
+            return;
+        }
+
+        foreach (var subscription in Subscriptions([.. projection.Blocks.OfType<FromSyntax>()]))
+        {
+            if (subscription.Spec.Key is null && subscription.From.Key is CompositeKeySyntax composite)
+            {
+                throw new UnsupportedCompositeProjectionKey(
+                    slicePath, projection.Name, projection.ReadModel ?? projection.Name, subscription.Spec.Event, composite.Type, composite.Location);
+            }
+        }
     }
 
     // The C# type name the read model rendered from a projection takes — what a query's return type has to name

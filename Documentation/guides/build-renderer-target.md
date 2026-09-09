@@ -304,6 +304,8 @@ The target must also make its own emission deterministic:
 - resolve all templates and package versions into the profile before planning;
 - avoid timestamps, generated random identifiers, machine-specific headers, and formatter-version drift.
 
+The Cratis renderer orders read-model parameter declarations, generated constructor arguments, and assertions by ordinal semantic ID so serializing and deserializing the model does not change artifact bytes. This can change positional record parameter order in directly source-generated output from source declaration order; the captured route already uses canonical order.
+
 A plan describes destination-independent bytes. Publication, staging, stale-file removal, recovery, and overwrite policy belong after successful planning.
 
 ## Verify the generated code

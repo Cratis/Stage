@@ -129,7 +129,50 @@ This is a compatibility correction: previously the affected root subscription wa
 now skipped; independent artifacts, including common types, may still be written, an advisory failure marker is
 attempted, and rendering ends with `RenderingFailed`, not a success summary. An unsafe unselected slice does not
 block a safe scoped render. This guard neither implements composite keys nor changes projection-level, nested,
-children, join, parent, constant-key, or unrendered-projection behavior. The broader Stage #13 work remains open.
+children, join, parent, or unrendered-projection behavior. Root string literals have the separate bounded profile
+below. The broader Stage #13 work remains open.
+
+Legacy root string keys render as `[FromEvent<OrderCreated>(ConstantKey = "global")]`, using the public named
+property, not a constructor argument or `[Key]`. This profile activates only when an **effective** root subscription
+in the first rendered projection has a string literal key. It uses the same first-event winner and inline-key
+override rules as emission; shadowed or overridden literals do not activate it. Once active, **every effective root
+key** must be a nonempty string matching the anchored .NET expression `\A[\w ._/:\*\+\-]+\z`. This is the nonempty
+counterpart of the payload grammar in Chronicle's pinned `ValueExpressionResolver`, not arbitrary-string support.
+Unicode `\w`, spaces (including space-only values), and the listed punctuation survive unchanged; nothing is
+trimmed. Empty strings, quotes, backslashes, parentheses, newlines, and expression-injection-like payloads are
+rejected. Different admitted strings may coexist on different effective subscriptions.
+
+The active profile rejects mixed default/property/nonstring keys, separate projection-level `key`, affected root
+`parent` keys, and conventional identity on the inferred root record. Identity detection uses the actual inferred
+C# properties, conservatively rejecting any ordinal-ignore-case spelling of `Id`, of any type, including properties
+introduced by nested/children or other mappings. Generated properties have no serialization renames; this is not
+general detection of custom serializers or arbitrary identifying attributes. The record's constructor, properties,
+and schema remain unchanged: no synthetic `Id`, identity property, or `[Key]` is introduced.
+The active profile also requires **at least one inferred root property** (`PropertylessRecord` rejection otherwise).
+The pinned Chronicle 16.38.2 target applies class-level `ConstantKey` during constructor-parameter/property
+processing; on a propertyless record it instead retains the default event-source key. This bounded requirement
+does not establish full materialization. Propertyless records in inactive/default profiles are unchanged.
+
+Generated fixed by-id, declared single-instance, compatible `by`, and live by-id lookups use **`string` rather than
+`Guid`**. This changes the generated public lookup signature and callers must adapt. Existing parameter names,
+collection queries, and authorization are preserved. Every owned authored `by` must be primitive, required,
+noncollection `String`; concepts, `Uuid`, other types, optional strings, and collections are rejected rather than
+rewriting that explicit contract. Queries returning other read models do not affect this lookup profile, but the
+existing all-selected-slice query-intent guard still runs first.
+
+Unsupported active profiles throw `UnsupportedRootStringKey` (`STAGE-CRATIS-KEY-002`) with a typed reason,
+selected slice, authored projection/read-model/event names, and the original relevant source location. Inferred
+conventional identity uses the projection's location. The affected slice and its specifications are not returned;
+independent output continues, the failure marker is attempted, and rendering ends with `RenderingFailed`.
+The existing composite guard may reject a mixed composite profile first. This stricter blocking replaces earlier
+lossy emission; it does not make other key families faithful. Inactive default/property profiles and nested, child,
+join, removal, parent, and unrendered-projection behavior are otherwise unchanged.
+
+Verification distinguishes three contracts: generated public attributes and unchanged record shape; actual generated
+nonlive lookup calls preserving the complete string through `EventSourceId` into the public client's `ReadModelKey`;
+and separate native Stage fixtures showing public attribute discovery/registration produces `$value(payload)` text.
+These checks do not establish registration from the generated assembly, downstream resolver execution, persisted
+materialization, or live-kernel behavior.
 
 Direct writes do not provide managed staging or safe stale-file removal: after a legacy rendering failure, treat
 the target as **unsafe and incomplete** and use a fresh target. Safe staged publication remains owned by CLI #101.

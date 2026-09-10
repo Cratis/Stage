@@ -4,6 +4,33 @@
 
 set -e
 
+# Validate only the selected input before starting either process. Implementation-file references remain symbolic.
+input="${1:-/eventmodel}"
+# Anchor relative inputs before changing the working directory for the Host.
+case "$input" in
+    /*) ;;
+    *) input="$PWD/$input" ;;
+esac
+if [ -d "$input" ]; then
+    if [ -z "$(cd -- "$input" && find . -type f -iname '*.play' -print -quit)" ]; then
+        printf 'ERROR: No Screenplay .play files found under %s. Supply a .play file or a folder containing .play files.\n' "$input" >&2
+        exit 1
+    fi
+elif [ -f "$input" ]; then
+    case "$input" in
+        *.[pP][lL][aA][yY]) ;;
+        *)
+            printf 'ERROR: Selected file %s must have a .play extension.\n' "$input" >&2
+            exit 1
+            ;;
+    esac
+else
+    printf 'ERROR: Input %s does not exist. Supply a .play file or a folder containing .play files.\n' "$input" >&2
+    exit 1
+fi
+
+printf 'Using event model from %s\n' "$input"
+
 # This container is a self-contained play sandbox: the Chronicle kernel and the Stage run here and talk to each
 # other over localhost. Storage is fully in-memory — no database is bundled — so every play session is completely
 # isolated and disposable.
@@ -42,17 +69,8 @@ until nc -z localhost 35000 > /dev/null 2>&1; do
 done
 echo "Chronicle is ready."
 
-# 2. Discover the Screenplay .play files in the mounted volume. The Stage compiles every .play file beneath
-#    /eventmodel (recursively) and merges them into a single event model.
-if [ -z "$(find /eventmodel -type f -name '*.play' -print -quit 2>/dev/null)" ]; then
-    echo "ERROR: No Screenplay .play files found under /eventmodel/"
-    exit 1
-fi
-
-echo "Using event model from Screenplay .play files under /eventmodel"
-
-# 3. Start the Stage. It connects to the in-container Chronicle (localhost:35000) using the defaults in
-#    appsettings.Docker.json and reads the event model from the mounted /eventmodel directory. The URLs below are
+# 2. Start the Stage. It connects to the in-container Chronicle (localhost:35000) using the defaults in
+#    appsettings.Docker.json and reads the selected model file or folder. The URLs below are
 #    container-internal ports — substitute whatever host ports they were published on.
 echo "Starting Stage..."
 echo "  Stage API           http://localhost:9090"
@@ -61,4 +79,4 @@ echo "  Chronicle Workbench https://localhost:35000 — HTTPS only; plain http r
 echo "                      sign in with the development credentials admin / ChangeMeNow!"
 cd /stage
 export ASPNETCORE_ENVIRONMENT=Docker
-exec dotnet Cratis.Stage.Host.dll /eventmodel
+exec dotnet Cratis.Stage.Host.dll "$input"

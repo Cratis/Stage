@@ -12,7 +12,7 @@ pipeline or an editor's "verify my model" action.
 
 ```bash
 docker run --rm \
-    -v /path/to/screenplays:/model \
+    -v /path/to/screenplays:/model:ro \
     -v /path/to/results:/output \
     cratis/stage-specrunner:latest
 ```
@@ -27,28 +27,39 @@ The image defaults to the two mounted folders, so the invocation above needs no 
 
 | Argument | Default | Meaning |
 |---|---|---|
-| `--model <folder>` | `/model` | The folder of `.play` files. Searched recursively; every file beneath it is compiled and merged into one model. |
+| `--model <file-or-folder>` | `/model` | One `.play` file, or a folder searched recursively for `.play` files and compiled as one application. |
 | `--output <file>` | `/output/results.json` | The file the results are written to. |
 | `--slice <guid>` | — | Limit the run to a single slice. |
 | `--spec <guid>` | — | Limit the run to a single specification. |
 
-`--model` takes the **folder**, not a file. Override either default by passing the arguments after the image
-name:
+Override either default by passing arguments after the image name. To compile just one file, mount only that
+file read-only; no host parent-folder mount is needed:
 
 ```bash
-docker run --rm -v "$PWD":/model -v "$PWD/out":/output cratis/stage-specrunner:latest \
-    --model /model --output /output/invoicing.json --slice 9f877a6c-f978-e3c5-f3d4-b6d23a0bc11c
+docker run --rm \
+    -v /path/to/invoicing.play:/model/input.play:ro \
+    -v /path/to/results:/output \
+    cratis/stage-specrunner:latest \
+    --model /model/input.play --output /output/invoicing.json
 ```
+
+File extensions are case-insensitive. A single-file input does not load sibling `.play` files. Implementation
+`file` references remain symbolic and are not opened or executed by this loader. For local use, the executable
+requires both `--model` and `--output`; the defaults above are supplied by the container.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | The run completed and `results.json` was written. **A failing specification is still a completed run** — read the outcomes from the file. |
+| `1` | The input path is missing, the file extension is unsupported, the folder is empty, or model compilation fails. An actionable error is written to standard error. |
 | `2` | A required argument (`--model` or `--output`) was missing. A usage line is written to standard error. |
 
-A model that does not compile, or a `--model` folder holding no `.play` files, fails the run with an error
-describing the offending file and position rather than a results file.
+Input failures do not write results or delete or overwrite an existing output file. Compiler errors identify the
+source path and position, ordered by path, line and column. Folder diagnostics use relative source paths.
+
+The existing argument parser treats an invalid `--slice` or `--spec` GUID as no filter, rather than rejecting it.
+Check filter values before invoking the runner; this input-path support does not change that policy.
 
 ## Reading results.json
 

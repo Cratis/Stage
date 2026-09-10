@@ -38,7 +38,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     {
         var artifacts = new List<PlannedArtifact>();
         var diagnostics = new List<ArtifactRenderDiagnostic>();
-        if (!CratisArtifactRenderProfileAdmission.Matches(request, out var mismatch))
+        if (!CratisArtifactRenderProfileAdmission.Matches(request, out var options, out var mismatch))
         {
             diagnostics.Add(Error(
                 "STAGE-CRATIS-001",
@@ -47,7 +47,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
         }
 
-        var context = new SemanticApplicationContext(request);
+        var context = new SemanticApplicationContext(request, options);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticCratisAdmission.Evaluate(context, slices));
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))

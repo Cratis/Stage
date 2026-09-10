@@ -107,7 +107,7 @@ public static class SpecificationValues
     }
 
     /// <summary>
-    /// Whether rendering a literal into the given type needs <c>System.Globalization</c> in scope.
+    /// Whether rendering a literal into the given type needs <c language="csharp">System.Globalization</c> in scope.
     /// </summary>
     /// <param name="rendered">The rendered literal.</param>
     /// <returns>True when the rendering parses a culture-sensitive value.</returns>

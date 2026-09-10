@@ -14,7 +14,7 @@ public sealed record LocatedSlice(SliceSyntax Slice, IReadOnlyList<string> Path)
 {
     /// <summary>
     /// Gets the full path to the slice, including the slice's own name — the namespace/folder convention is
-    /// <c>&lt;Module&gt;.&lt;Feature&gt;.&lt;Slice&gt;</c>, not just <c>&lt;Module&gt;.&lt;Feature&gt;</c>.
+    /// <c language="csharp">&lt;Module&gt;.&lt;Feature&gt;.&lt;Slice&gt;</c>, not just <c language="csharp">&lt;Module&gt;.&lt;Feature&gt;</c>.
     /// </summary>
     public IReadOnlyList<string> FullPath => [.. Path, Slice.Name];
 }

@@ -20,9 +20,9 @@ using Microsoft.TemplateEngine.Orchestrator.RunnableProjects;
 namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 
 /// <summary>
-/// Scaffolds a new target application from the <c>Cratis.Templates</c> NuGet package, using the .NET Template
-/// Engine's programmatic API directly — never shelling out to <c>dotnet new</c>. The package is located in the
-/// local NuGet cache, where the running application's own <c>Cratis.Templates</c> package reference already
+/// Scaffolds a new target application from the <c language="csharp">Cratis.Templates</c> NuGet package, using the .NET Template
+/// Engine's programmatic API directly — never shelling out to <c language="csharp">dotnet new</c>. The package is located in the
+/// local NuGet cache, where the running application's own <c language="csharp">Cratis.Templates</c> package reference already
 /// restored it, so no separate network fetch happens at scaffold time.
 /// </summary>
 public class TemplateEngineProjectScaffolder : IProjectScaffolder
@@ -90,8 +90,8 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
 
     /// <summary>
     /// Builds the template parameters. Every parameter the template declares is supplied explicitly — the
-    /// programmatic Template Engine API does not apply a symbol's declared <c>defaultValue</c> for a parameter the
-    /// caller leaves out, and an unbound symbol emits its raw placeholder token (<c>TARGET_FRAMEWORK</c>) into the
+    /// programmatic Template Engine API does not apply a symbol's declared <c language="csharp">defaultValue</c> for a parameter the
+    /// caller leaves out, and an unbound symbol emits its raw placeholder token (<c language="csharp">TARGET_FRAMEWORK</c>) into the
     /// generated files.
     /// </summary>
     /// <param name="template">The <see cref="ITemplateInfo"/> being instantiated.</param>
@@ -135,11 +135,11 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
     }
 
     /// <summary>
-    /// The components the template engine host is built with — each library's own complete <c>AllComponents</c>
+    /// The components the template engine host is built with — each library's own complete <c language="csharp">AllComponents</c>
     /// set rather than a hand-picked subset. The Runnable Projects set carries the macro components that evaluate
-    /// generated symbols and value forms; without them the generator still renames files from <c>sourceName</c>,
+    /// generated symbols and value forms; without them the generator still renames files from <c language="csharp">sourceName</c>,
     /// but every content substitution resolves to nothing and the raw placeholder tokens
-    /// (<c>TARGET_FRAMEWORK</c>, <c>PROJECT_GUID</c>, <c>CratisApp</c>) are written verbatim.
+    /// (<c language="csharp">TARGET_FRAMEWORK</c>, <c language="csharp">PROJECT_GUID</c>, <c language="csharp">CratisApp</c>) are written verbatim.
     /// </summary>
     /// <returns>The built-in components.</returns>
     static IReadOnlyList<(Type InterfaceType, IIdentifiedComponent Instance)> BuiltInComponents() =>

@@ -10,12 +10,12 @@ using Cratis.Stage.Rendering.Cratis.Renderers;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
 
 /// <summary>
-/// A command that fills its event from every <c>$context</c> path the language names, onto event properties
+/// A command that fills its event from every <c language="csharp">$context</c> path the language names, onto event properties
 /// declared as the types those values actually are.
 /// </summary>
 /// <remarks>
 /// A command handler is the one place these have nowhere to come from: it receives no event context and Arc's
-/// <c>CommandContext</c> carries none of them. Everything the document can say here therefore has to be reached
+/// <c language="csharp">CommandContext</c> carries none of them. Everything the document can say here therefore has to be reached
 /// through a collaborator, and the only assertion that proves the reach is real is compiling the result.
 /// </remarks>
 public class an_application_reading_the_context : Specification

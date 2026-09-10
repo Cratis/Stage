@@ -66,52 +66,52 @@ public sealed class CratisBackendApplicationScaffoldProfile
     public string TargetFramework { get; }
 
     /// <summary>
-    /// Gets the exact <c>Cratis</c> package version.
+    /// Gets the exact <c language="csharp">Cratis</c> package version.
     /// </summary>
     public string CratisPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c>Cratis.Arc.MongoDB</c> package version.
+    /// Gets the exact <c language="csharp">Cratis.Arc.MongoDB</c> package version.
     /// </summary>
     public string CratisArcMongoDBPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c>Cratis.Arc.Chronicle.Testing</c> package version.
+    /// Gets the exact <c language="csharp">Cratis.Arc.Chronicle.Testing</c> package version.
     /// </summary>
     public string CratisArcChronicleTestingPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c>Cratis.Specifications</c> package version.
+    /// Gets the exact <c language="csharp">Cratis.Specifications</c> package version.
     /// </summary>
     public string CratisSpecificationsPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c>Cratis.Specifications.XUnit</c> package version.
+    /// Gets the exact <c language="csharp">Cratis.Specifications.XUnit</c> package version.
     /// </summary>
     public string CratisSpecificationsXUnitPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c>Microsoft.NET.Test.Sdk</c> package version.
+    /// Gets the exact <c language="csharp">Microsoft.NET.Test.Sdk</c> package version.
     /// </summary>
     public string MicrosoftNetTestSdkPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c>NSubstitute</c> package version.
+    /// Gets the exact <c language="csharp">NSubstitute</c> package version.
     /// </summary>
     public string NSubstitutePackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c>xunit</c> package version.
+    /// Gets the exact <c language="csharp">xunit</c> package version.
     /// </summary>
     public string XunitPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c>xunit.runner.visualstudio</c> package version.
+    /// Gets the exact <c language="csharp">xunit.runner.visualstudio</c> package version.
     /// </summary>
     public string XunitRunnerVisualStudioPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c>cratis/chronicle</c> image version.
+    /// Gets the exact <c language="csharp">cratis/chronicle</c> image version.
     /// </summary>
     public string ChronicleImageVersion { get; }
 
@@ -120,16 +120,16 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// </summary>
     /// <param name="version">The scaffold contract version.</param>
     /// <param name="targetFramework">The exact target framework moniker.</param>
-    /// <param name="cratisPackageVersion">The exact <c>Cratis</c> package version.</param>
-    /// <param name="cratisArcMongoDBPackageVersion">The exact <c>Cratis.Arc.MongoDB</c> package version.</param>
-    /// <param name="cratisArcChronicleTestingPackageVersion">The exact <c>Cratis.Arc.Chronicle.Testing</c> package version.</param>
-    /// <param name="cratisSpecificationsPackageVersion">The exact <c>Cratis.Specifications</c> package version.</param>
-    /// <param name="cratisSpecificationsXUnitPackageVersion">The exact <c>Cratis.Specifications.XUnit</c> package version.</param>
-    /// <param name="microsoftNetTestSdkPackageVersion">The exact <c>Microsoft.NET.Test.Sdk</c> package version.</param>
-    /// <param name="nSubstitutePackageVersion">The exact <c>NSubstitute</c> package version.</param>
-    /// <param name="xunitPackageVersion">The exact <c>xunit</c> package version.</param>
-    /// <param name="xunitRunnerVisualStudioPackageVersion">The exact <c>xunit.runner.visualstudio</c> package version.</param>
-    /// <param name="chronicleImageVersion">The exact <c>cratis/chronicle</c> image version.</param>
+    /// <param name="cratisPackageVersion">The exact <c language="csharp">Cratis</c> package version.</param>
+    /// <param name="cratisArcMongoDBPackageVersion">The exact <c language="csharp">Cratis.Arc.MongoDB</c> package version.</param>
+    /// <param name="cratisArcChronicleTestingPackageVersion">The exact <c language="csharp">Cratis.Arc.Chronicle.Testing</c> package version.</param>
+    /// <param name="cratisSpecificationsPackageVersion">The exact <c language="csharp">Cratis.Specifications</c> package version.</param>
+    /// <param name="cratisSpecificationsXUnitPackageVersion">The exact <c language="csharp">Cratis.Specifications.XUnit</c> package version.</param>
+    /// <param name="microsoftNetTestSdkPackageVersion">The exact <c language="csharp">Microsoft.NET.Test.Sdk</c> package version.</param>
+    /// <param name="nSubstitutePackageVersion">The exact <c language="csharp">NSubstitute</c> package version.</param>
+    /// <param name="xunitPackageVersion">The exact <c language="csharp">xunit</c> package version.</param>
+    /// <param name="xunitRunnerVisualStudioPackageVersion">The exact <c language="csharp">xunit.runner.visualstudio</c> package version.</param>
+    /// <param name="chronicleImageVersion">The exact <c language="csharp">cratis/chronicle</c> image version.</param>
     /// <returns>The validated profile.</returns>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when a version or target framework is not exact and supported.</exception>
     internal static CratisBackendApplicationScaffoldProfile Create(

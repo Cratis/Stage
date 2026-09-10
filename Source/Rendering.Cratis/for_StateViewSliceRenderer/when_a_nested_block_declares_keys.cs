@@ -13,8 +13,8 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// The key a nested <c>from</c> declares is what routes its events to a document. Chronicle applies a class-level
-/// <c>[FromEvent]</c>'s key and parent key to the nested definition's own <c>From</c>, and that is the key
+/// The key a nested <c language="csharp">from</c> declares is what routes its events to a document. Chronicle applies a class-level
+/// <c language="csharp">[FromEvent]</c>'s key and parent key to the nested definition's own <c language="csharp">From</c>, and that is the key
 /// resolver the projection is built with — so dropping the key would not lose a detail, it would write the nested
 /// object onto whatever the event source id points at. A key written on one event wins over the block's, which is
 /// the order the kernel resolves the same syntax in.

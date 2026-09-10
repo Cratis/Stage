@@ -11,11 +11,11 @@ using Cratis.Stage.Rendering.Cratis.Types;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Renders a <see cref="SliceType.StateView"/> slice: the <c>[EventType]</c> records the slice declares, plus the
-/// <c>[ReadModel]</c> record inferred from its <see cref="ProjectionSyntax"/>'s mappings, using model-bound
-/// projection attributes for the blocks this renderer understands — <c>from</c>, <c>join</c>, <c>all</c>,
-/// <c>every</c>, <c>remove with</c>, <c>remove via join</c>, <c>nested</c> together with the <c>clear with</c>
-/// that is only meaningful inside one, and <c>children</c> together with the sibling child record it projects
+/// Renders a <see cref="SliceType.StateView"/> slice: the <c language="csharp">[EventType]</c> records the slice declares, plus the
+/// <c language="csharp">[ReadModel]</c> record inferred from its <see cref="ProjectionSyntax"/>'s mappings, using model-bound
+/// projection attributes for the blocks this renderer understands — <c language="csharp">from</c>, <c language="csharp">join</c>, <c language="csharp">all</c>,
+/// <c language="csharp">every</c>, <c language="csharp">remove with</c>, <c language="csharp">remove via join</c>, <c language="csharp">nested</c> together with the <c language="csharp">clear with</c>
+/// that is only meaningful inside one, and <c language="csharp">children</c> together with the sibling child record it projects
 /// into. Constructs it can't express as attributes (composite keys, and the blocks whose meaning inside a
 /// generated nested or child record is not established) are reported as diagnostics and called out in the file
 /// rather than silently dropped, as is everything else the slice declares that nothing renders (see

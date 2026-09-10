@@ -13,9 +13,9 @@ using Cratis.Stage.Rendering.Cratis.Validation;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Renders a <see cref="SliceType.StateChange"/> slice: the <c>[Command]</c> record, the authorization attribute
-/// its <c>authorize</c> declares, its paired <c>CommandValidator&lt;T&gt;</c> when the command declares
-/// validation, and the <c>[EventType]</c> records it can produce. Everything else the slice declares is reported
+/// Renders a <see cref="SliceType.StateChange"/> slice: the <c language="csharp">[Command]</c> record, the authorization attribute
+/// its <c language="csharp">authorize</c> declares, its paired <c language="csharp">CommandValidator&lt;T&gt;</c> when the command declares
+/// validation, and the <c language="csharp">[EventType]</c> records it can produce. Everything else the slice declares is reported
 /// through <see cref="UnrenderedConstructs"/> rather than silently dropped.
 /// </summary>
 public class StateChangeSliceRenderer : ISliceRenderer
@@ -145,7 +145,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
     /// only the producing slice: a command routinely produces an event another slice declares, and falling back to
     /// the mapping order then constructs it with the wrong number of arguments.
     /// </summary>
-    /// <param name="produces">The <c>produces</c> declaration to render arguments for.</param>
+    /// <param name="produces">The <c language="csharp">produces</c> declaration to render arguments for.</param>
     /// <param name="command">The command producing the event — the scope a mapping source has to resolve against.</param>
     /// <param name="context">The <see cref="CommandContextAccess"/> rendering what reaches outside the command.</param>
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve the event and its property types against.</param>
@@ -228,7 +228,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
     /// Describes why a context value cannot fill the property the document maps it onto, or <see langword="null"/>
     /// when it can. The runtime carries every one of these as a fixed type — the tenant as a string, the caller's
     /// subject as a string — and a document is free to declare the property it fills as anything, so a
-    /// <c>Uuid</c> concept fed from a string identifier is a mapping no rendering can honor.
+    /// <c language="csharp">Uuid</c> concept fed from a string identifier is a mapping no rendering can honor.
     /// </summary>
     /// <param name="context">The context expression being mapped.</param>
     /// <param name="declared">The declared event property, when the event is known.</param>

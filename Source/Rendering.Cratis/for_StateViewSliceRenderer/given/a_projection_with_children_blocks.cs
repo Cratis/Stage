@@ -9,9 +9,9 @@ using Cratis.Specifications;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer.given;
 
 /// <summary>
-/// An invoice details projection with a <c>children</c> block of line items identified by their line number,
-/// mapping from two events, removed by a third, holding a further <c>children</c> block of allocations with
-/// automapping disabled, and declaring an <c>every</c> block whose meaning on a child type is not established.
+/// An invoice details projection with a <c language="csharp">children</c> block of line items identified by their line number,
+/// mapping from two events, removed by a third, holding a further <c language="csharp">children</c> block of allocations with
+/// automapping disabled, and declaring an <c language="csharp">every</c> block whose meaning on a child type is not established.
 /// </summary>
 public class a_projection_with_children_blocks : Specification
 {

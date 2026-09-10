@@ -13,7 +13,7 @@ namespace Cratis.Stage.Host.Workbench;
 /// </summary>
 /// <param name="routePrefix">The path the Workbench is mapped under on this host.</param>
 /// <param name="publicPrefix">The path the browser reaches the Workbench at, including any proxy path base.</param>
-/// <param name="basePathMetaPattern">The unset <c>base-path</c> meta tag as the Workbench ships it.</param>
+/// <param name="basePathMetaPattern">The unset <c language="csharp">base-path</c> meta tag as the Workbench ships it.</param>
 public sealed class WorkbenchTransformer(string routePrefix, string publicPrefix, string basePathMetaPattern) : HttpTransformer
 {
     /// <inheritdoc/>

@@ -77,7 +77,7 @@ public sealed class ArtifactRenderProfile
     }
 
     /// <summary>
-    /// Gets the target identity, such as <c>cratis</c>.
+    /// Gets the target identity, such as <c language="csharp">cratis</c>.
     /// </summary>
     public string Target { get; }
 

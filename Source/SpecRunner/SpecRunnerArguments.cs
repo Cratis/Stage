@@ -6,7 +6,7 @@ namespace Cratis.Stage.SpecRunner;
 /// <summary>
 /// Represents the parsed command-line arguments for the specification runner.
 /// </summary>
-/// <param name="ModelPath">The path to the directory of Screenplay <c>.play</c> files that make up the event model.</param>
+/// <param name="ModelPath">The path to the directory of Screenplay <c language="csharp">.play</c> files that make up the event model.</param>
 /// <param name="OutputPath">The path the result JSON file is written to.</param>
 /// <param name="SliceId">An optional slice identifier to limit the run to a single slice.</param>
 /// <param name="SpecificationId">An optional specification identifier to limit the run to a single specification.</param>
@@ -15,7 +15,7 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
     /// <summary>
     /// Parses the supplied command-line arguments.
     /// </summary>
-    /// <param name="args">The raw command-line arguments (for example <c>--model path --output path</c>).</param>
+    /// <param name="args">The raw command-line arguments (for example <c language="csharp">--model path --output path</c>).</param>
     /// <returns>The parsed <see cref="SpecRunnerArguments"/>.</returns>
     /// <exception cref="MissingArgument">Thrown when a required argument is missing.</exception>
     public static SpecRunnerArguments Parse(string[] args)

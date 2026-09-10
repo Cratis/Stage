@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace Cratis.Stage.Contracts.Commands;
 
 /// <summary>
-/// Represents the condition guarding a <see cref="ProducedEvent"/> — the modeled <c>produces when</c> clause.
+/// Represents the condition guarding a <see cref="ProducedEvent"/> — the modeled <c language="csharp">produces when</c> clause.
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(ProducedEventComparison), "comparison")]
@@ -14,7 +14,7 @@ namespace Cratis.Stage.Contracts.Commands;
 public abstract record ProducedEventCondition;
 
 /// <summary>
-/// Represents a comparison of a command property against a constant, such as <c>status == "sent"</c>.
+/// Represents a comparison of a command property against a constant, such as <c language="csharp">status == "sent"</c>.
 /// </summary>
 /// <param name="Property">The name of the command property being compared.</param>
 /// <param name="Operator">The comparison to apply.</param>
@@ -22,7 +22,7 @@ public abstract record ProducedEventCondition;
 public record ProducedEventComparison(string Property, ProducedEventComparisonOperator Operator, string Value) : ProducedEventCondition;
 
 /// <summary>
-/// Represents two conditions combined with <c>and</c> or <c>or</c>.
+/// Represents two conditions combined with <c language="csharp">and</c> or <c language="csharp">or</c>.
 /// </summary>
 /// <param name="Left">The left hand condition.</param>
 /// <param name="Operator">The operator combining the conditions.</param>

@@ -8,7 +8,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <summary>
 /// Builds <see cref="SceneElements.ExternalComponent"/> instances with sensible visual defaults - part of
 /// Cratis/Stage#37's directive-to-element mapping, where every Screenplay screen directive becomes one
-/// component named after its own kind rather than a bespoke <c>SceneElement</c> subtype per widget.
+/// component named after its own kind rather than a bespoke <c language="csharp">SceneElement</c> subtype per widget.
 /// </summary>
 public static class SceneElementFactory
 {

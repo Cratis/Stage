@@ -6,7 +6,7 @@ using Cratis.Screenplay.Syntax;
 namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
-/// The exception that is thrown when a Screenplay <c>arrangement</c> container has an
+/// The exception that is thrown when a Screenplay <c language="csharp">arrangement</c> container has an
 /// <see cref="ArrangementContainerKind"/> that <see cref="ArrangementConverter"/> does not yet know how to
 /// convert.
 /// </summary>

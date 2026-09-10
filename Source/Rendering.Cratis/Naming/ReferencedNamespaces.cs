@@ -56,7 +56,7 @@ public static class ReferencedNamespaces
     }
 
     /// <summary>
-    /// Computes the namespace for a placement path — an empty path meaning the application-wide <c>Common</c>
+    /// Computes the namespace for a placement path — an empty path meaning the application-wide <c language="csharp">Common</c>
     /// folder.
     /// </summary>
     /// <param name="rootNamespace">The root namespace of the target application.</param>

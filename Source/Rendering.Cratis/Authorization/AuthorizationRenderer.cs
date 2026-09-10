@@ -7,20 +7,20 @@ using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 namespace Cratis.Stage.Rendering.Cratis.Authorization;
 
 /// <summary>
-/// Renders a Screenplay <c>authorize</c> declaration as the Cratis Arc authorization attribute the generated
+/// Renders a Screenplay <c language="csharp">authorize</c> declaration as the Cratis Arc authorization attribute the generated
 /// artifact carries.
 /// </summary>
 /// <remarks>
 /// <para>
 /// A role policy, or an explicit disjunction made entirely from role policies, has the same any-of semantics as
-/// Arc's <c>[Roles]</c> attribute and is preserved exactly. Authentication alone renders as <c>[Authorize]</c>.
-/// No <c>authorize</c> declaration renders as <c>[AllowAnonymous]</c>.
+/// Arc's <c language="csharp">[Roles]</c> attribute and is preserved exactly. Authentication alone renders as <c language="csharp">[Authorize]</c>.
+/// No <c language="csharp">authorize</c> declaration renders as <c language="csharp">[AllowAnonymous]</c>.
 /// </para>
 /// <para>
 /// Conjunctions and requirements involving claims, authored code, missing policies, or unknown policy syntax do
 /// not have a faithful Arc attribute equivalent. These outcomes throw <see cref="AuthorizationCannotBeRendered"/>
-/// so the containing artifact is not emitted. In particular, <c>authorize A B</c> is a conjunction and is never
-/// weakened into the disjunction <c>[Roles("A", "B")]</c>. Faithful rendering of those requirements depends on
+/// so the containing artifact is not emitted. In particular, <c language="csharp">authorize A B</c> is a conjunction and is never
+/// weakened into the disjunction <c language="csharp">[Roles("A", "B")]</c>. Faithful rendering of those requirements depends on
 /// the future Screenplay-owned portable policy backend.
 /// </para>
 /// </remarks>
@@ -38,11 +38,11 @@ public static class AuthorizationRenderer
     public const string PortablePolicyRequiredDiagnosticCode = AuthorizationCannotBeRendered.DiagnosticCode;
 
     /// <summary>
-    /// Renders the authorization attribute for a single <c>authorize</c> declaration.
+    /// Renders the authorization attribute for a single <c language="csharp">authorize</c> declaration.
     /// </summary>
     /// <param name="authorize">The declaration, or <see langword="null"/> when the construct declares none.</param>
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> the policies are resolved against.</param>
-    /// <param name="subject">What is being authorized, for diagnostics (for example <c>Command 'Invite'</c>).</param>
+    /// <param name="subject">What is being authorized, for diagnostics (for example <c language="csharp">Command 'Invite'</c>).</param>
     /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
     /// <returns>The attribute content, without the surrounding brackets.</returns>
     /// <exception cref="AuthorizationCannotBeRendered">The authorization cannot be represented faithfully.</exception>
@@ -50,12 +50,12 @@ public static class AuthorizationRenderer
         Render([authorize], applicationSet, subject, diagnostics);
 
     /// <summary>
-    /// Renders the single authorization attribute covering several <c>authorize</c> declarations at once — the
+    /// Renders the single authorization attribute covering several <c language="csharp">authorize</c> declarations at once — the
     /// union of what they permit, for an artifact that stands in for all of them.
     /// </summary>
     /// <param name="authorizations">The declarations; an entry is <see langword="null"/> when its construct declares none.</param>
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> the policies are resolved against.</param>
-    /// <param name="subject">What is being authorized, for diagnostics (for example <c>Read model 'Invoice'</c>).</param>
+    /// <param name="subject">What is being authorized, for diagnostics (for example <c language="csharp">Read model 'Invoice'</c>).</param>
     /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
     /// <returns>The attribute content, without the surrounding brackets.</returns>
     /// <exception cref="AuthorizationCannotBeRendered">The authorization cannot be represented faithfully.</exception>

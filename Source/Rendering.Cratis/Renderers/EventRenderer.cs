@@ -9,7 +9,7 @@ using Cratis.Stage.Rendering.Cratis.Types;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Renders a Screenplay <see cref="EventSyntax"/> as an <c>[EventType]</c> record. Every slice type may declare
+/// Renders a Screenplay <see cref="EventSyntax"/> as an <c language="csharp">[EventType]</c> record. Every slice type may declare
 /// events — a State View declaring the events it projects, a reactor slice declaring the ones it reacts to — so
 /// this is shared rather than owned by the State Change renderer.
 /// </summary>

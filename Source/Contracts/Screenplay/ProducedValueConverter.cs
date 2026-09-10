@@ -13,7 +13,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// <summary>
 /// Converts a Screenplay <see cref="ExpressionSyntax"/> into the <see cref="ProducedValueKind"/> and expression text
 /// the engine evaluates at runtime — the vocabulary shared by a produced event's property mappings, the event source
-/// a <c>produces … for</c> names, and the constant side of a condition.
+/// a <c language="csharp">produces … for</c> names, and the constant side of a condition.
 /// </summary>
 public static class ProducedValueConverter
 {

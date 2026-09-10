@@ -12,10 +12,10 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// What still has no rendering: a <c>clear with</c> written outside a <c>nested</c> block is discarded by
+/// What still has no rendering: a <c language="csharp">clear with</c> written outside a <c language="csharp">nested</c> block is discarded by
 /// Chronicle on a root read model, and a composite key has no model-bound equivalent at all. Both have to stay
-/// visible in the file and in the diagnostics rather than disappear now that their neighbors — <c>nested</c> and
-/// <c>children</c> among them — render.
+/// visible in the file and in the diagnostics rather than disappear now that their neighbors — <c language="csharp">nested</c> and
+/// <c language="csharp">children</c> among them — render.
 /// </summary>
 public class when_the_projection_declares_what_is_still_unrendered : Specification
 {

@@ -10,7 +10,7 @@ using Cratis.Stage.Runtime;
 namespace Cratis.Stage.Api;
 
 /// <summary>
-/// An <see cref="ICommandHandler"/> for a modeled command. Evaluates the command's <c>produces</c> declarations
+/// An <see cref="ICommandHandler"/> for a modeled command. Evaluates the command's <c language="csharp">produces</c> declarations
 /// against the incoming payload and appends the resulting events, then echoes the payload back as the response.
 /// </summary>
 /// <param name="commandType">The emitted runtime command type.</param>

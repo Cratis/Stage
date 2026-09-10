@@ -11,7 +11,7 @@ using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
 namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
-/// Everything one deployment target resolves to - a <c>ui profile</c> on one platform, with its packages
+/// Everything one deployment target resolves to - a <c language="csharp">ui profile</c> on one platform, with its packages
 /// expanded, its components bound, its shell and theme picked and its arrangements evaluated. Cratis/Stage#39.
 /// </summary>
 /// <remarks>
@@ -19,7 +19,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// A <see cref="SceneApplication"/> is deliberately target-agnostic: a screen names components and slots, never
 /// a package, a theme or a shell. A render plan is that same application made concrete for exactly one target,
 /// and it is where a build finds out whether the target can actually be rendered. Every resolution decision in
-/// it was made by <c>Cratis.Scene.Engine</c>, so a plan and a running renderer resolve identically.
+/// it was made by <c language="csharp">Cratis.Scene.Engine</c>, so a plan and a running renderer resolve identically.
 /// </para>
 /// <para>
 /// Nothing unresolved is dropped: whatever did not resolve appears in <see cref="Findings"/>, so a plan is

@@ -10,14 +10,14 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// <summary>
 /// Converts a Screenplay <see cref="ProjectionSyntax"/> into a Stage <see cref="ProjectionDefinition"/> — which is
 /// deliberately shaped to be compatible with Chronicle's projection engine. Mirrors Chronicle's own projection syntax
-/// visitor so the translated <c>from</c>/<c>join</c>/<c>children</c>/<c>every</c>/<c>remove</c> blocks are interpreted
+/// visitor so the translated <c language="csharp">from</c>/<c language="csharp">join</c>/<c language="csharp">children</c>/<c language="csharp">every</c>/<c language="csharp">remove</c> blocks are interpreted
 /// identically by the engine at runtime.
 /// </summary>
 /// <remarks>
-/// Two Screenplay constructs have no representation in Stage's projection model and are dropped: <c>nested</c> (a single
-/// nullable child object) and the projection-level <c>key</c> declaration (Chronicle's visitor likewise ignores it in
-/// favor of block-level keys). An <c>all</c> block maps to a from-every block with children included; Stage cannot flag
-/// "subscribes to all events" (the runtime hard-codes that off), so a pure <c>all</c> projection degrades to its mappings.
+/// Two Screenplay constructs have no representation in Stage's projection model and are dropped: <c language="csharp">nested</c> (a single
+/// nullable child object) and the projection-level <c language="csharp">key</c> declaration (Chronicle's visitor likewise ignores it in
+/// favor of block-level keys). An <c language="csharp">all</c> block maps to a from-every block with children included; Stage cannot flag
+/// "subscribes to all events" (the runtime hard-codes that off), so a pure <c language="csharp">all</c> projection degrades to its mappings.
 /// </remarks>
 public static class ProjectionConverter
 {

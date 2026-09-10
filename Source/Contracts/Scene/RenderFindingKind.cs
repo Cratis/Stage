@@ -17,7 +17,7 @@ namespace Cratis.Stage.Contracts.Scene;
 public enum RenderFindingKind
 {
     /// <summary>
-    /// The application declares no <c>ui profile</c>, so there is no deployment target to render for.
+    /// The application declares no <c language="csharp">ui profile</c>, so there is no deployment target to render for.
     /// </summary>
     NoTargetDeclared = 0,
 
@@ -76,7 +76,7 @@ public enum RenderFindingKind
     ComponentNotResolved = 9,
 
     /// <summary>
-    /// A screen template's <c>fits slot</c> names no single container - either nothing in scope declares a
+    /// A screen template's <c language="csharp">fits slot</c> names no single container - either nothing in scope declares a
     /// slot of that name, or several do and the name is ambiguous.
     /// </summary>
     ScreenTemplateUnplaced = 10,

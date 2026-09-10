@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
 /// Reports the construct families a slice declares that no renderer emits anything for — the same treatment the
-/// projection blocks with no model-bound equivalent already get: a <c>TODO</c> in the emitted file and a
+/// projection blocks with no model-bound equivalent already get: a <c language="csharp">TODO</c> in the emitted file and a
 /// diagnostic on it.
 /// </summary>
 /// <remarks>

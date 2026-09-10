@@ -16,7 +16,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_QueryRenderer.when_rendering_the_que
 /// </summary>
 /// <remarks>
 /// Every declared query used to be rendered against the read model the slice's first projection builds, whatever
-/// the query's return type said. A query returning <c>OverdueInvoices</c> came out reading <c>InvoiceSummary</c>:
+/// the query's return type said. A query returning <c language="csharp">OverdueInvoices</c> came out reading <c language="csharp">InvoiceSummary</c>:
 /// a different read model, put there by nobody, named in no report — the rendered application answered the
 /// document's question with someone else's data and looked correct doing it.
 /// </remarks>

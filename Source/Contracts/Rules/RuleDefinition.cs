@@ -10,7 +10,7 @@ namespace Cratis.Stage.Contracts.Rules;
 /// </summary>
 /// <remarks>
 /// The rule hierarchy mirrors the closed vocabulary supported by the Cratis Arc validation engine on both the C#
-/// (FluentValidation) and TypeScript sides. Each derived type carries a stable <c>kind</c> discriminator used for
+/// (FluentValidation) and TypeScript sides. Each derived type carries a stable <c language="csharp">kind</c> discriminator used for
 /// polymorphic JSON serialization; the engine reconstructs a FluentValidation rule from each one.
 /// </remarks>
 /// <param name="ErrorMessage">The optional custom error message for the rule.</param>

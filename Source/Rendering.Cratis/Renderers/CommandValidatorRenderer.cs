@@ -11,7 +11,7 @@ using Cratis.Stage.Rendering.Cratis.Validation;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Renders the <c>CommandValidator&lt;T&gt;</c> paired with a <c>[Command]</c>.
+/// Renders the <c language="csharp">CommandValidator&lt;T&gt;</c> paired with a <c language="csharp">[Command]</c>.
 /// </summary>
 public static class CommandValidatorRenderer
 {

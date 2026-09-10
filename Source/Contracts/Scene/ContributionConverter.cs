@@ -12,10 +12,10 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <see cref="SceneContributionPoints.Contribution"/> - part of Cratis/Stage#37.
 /// </summary>
 /// <remarks>
-/// <see cref="SceneContributionPoints.Contribution"/> has no sibling <c>Label</c>/<c>Navigate</c> fields -
-/// they fold into the <c>Content</c> element's open <c>Properties</c> bag as <c>label</c>/<c>targetScreen</c>/
-/// <c>routeParameterBindings</c>, matching the contract <c>@cratis/scene.engine</c>'s <c>extractNavigationItem</c>
-/// already reads (Cratis/Scene#2) so a contribution built here is consumable by the built-in <c>NavBar</c>
+/// <see cref="SceneContributionPoints.Contribution"/> has no sibling <c language="csharp">Label</c>/<c language="csharp">Navigate</c> fields -
+/// they fold into the <c language="csharp">Content</c> element's open <c language="csharp">Properties</c> bag as <c language="csharp">label</c>/<c language="csharp">targetScreen</c>/
+/// <c language="csharp">routeParameterBindings</c>, matching the contract <c language="csharp">@cratis/scene.engine</c>'s <c language="csharp">extractNavigationItem</c>
+/// already reads (Cratis/Scene#2) so a contribution built here is consumable by the built-in <c language="csharp">NavBar</c>
 /// without either side changing.
 /// </remarks>
 public static class ContributionConverter
@@ -24,7 +24,7 @@ public static class ContributionConverter
     /// Converts a <see cref="ScreenplaySyntax.ContributionSyntax"/> into a <see cref="SceneContributionPoints.Contribution"/>.
     /// </summary>
     /// <param name="contribution">The <see cref="ScreenplaySyntax.ContributionSyntax"/> to convert.</param>
-    /// <param name="id">The id for the contributed <c>SceneElement</c>, unique within its screen.</param>
+    /// <param name="id">The id for the contributed <c language="csharp">SceneElement</c>, unique within its screen.</param>
     /// <returns>The converted <see cref="SceneContributionPoints.Contribution"/>.</returns>
     public static SceneContributionPoints.Contribution Convert(ScreenplaySyntax.ContributionSyntax contribution, string id)
     {

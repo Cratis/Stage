@@ -12,12 +12,12 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <see cref="SceneModel.UiProfile"/> per targeted platform - part of Cratis/Stage#37.
 /// </summary>
 /// <remarks>
-/// Screenplay declares a single <c>ui profile</c> for potentially several platforms
-/// (<c>target platform web, ios</c>) and a single bare <c>target size</c> name, while Scene's
+/// Screenplay declares a single <c language="csharp">ui profile</c> for potentially several platforms
+/// (<c language="csharp">target platform web, ios</c>) and a single bare <c language="csharp">target size</c> name, while Scene's
 /// <see cref="SceneModel.UiProfile"/> targets exactly one platform and a two-axis
 /// <see cref="SizeClass"/>. This converter resolves both gaps deliberately: one <see cref="SceneModel.UiProfile"/>
 /// is produced per platform - a platform is a deployment target of its own, which is what
-/// <see cref="RenderPlanner"/> plans against (Cratis/Stage#39) - and a bare <c>target size</c> name is applied
+/// <see cref="RenderPlanner"/> plans against (Cratis/Stage#39) - and a bare <c language="csharp">target size</c> name is applied
 /// to both the width and height axis (Screenplay has no per-axis default size syntax).
 /// <see cref="ScreenplaySyntax.UiProfileSyntax.Layout"/> - the shell the profile selects - and
 /// <see cref="ScreenplaySyntax.UiProfileSyntax.Theme"/> both carry straight through, and are what a render plan

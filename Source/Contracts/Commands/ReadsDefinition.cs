@@ -4,7 +4,7 @@
 namespace Cratis.Stage.Contracts.Commands;
 
 /// <summary>
-/// Represents a <c>reads</c> declaration on a command — the read model the command consults before it decides.
+/// Represents a <c language="csharp">reads</c> declaration on a command — the read model the command consults before it decides.
 /// </summary>
 /// <param name="ReadModel">The name of the read model the command reads.</param>
 /// <param name="By">The command property the read model is looked up by, or <see langword="null"/> when the read

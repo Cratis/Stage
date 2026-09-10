@@ -9,18 +9,18 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 namespace Cratis.Stage.Rendering.Cratis.Specifications;
 
 /// <summary>
-/// Renders a Screenplay <c>specification</c> as a Cratis spec — a <c>CommandScenario&lt;T&gt;</c> exercising the
+/// Renders a Screenplay <c language="csharp">specification</c> as a Cratis spec — a <c language="csharp">CommandScenario&lt;T&gt;</c> exercising the
 /// slice's own command and asserting on what it appended.
 /// </summary>
 /// <remarks>
 /// <para>
-/// One file per specification, in the folder layout the repository conventions use, wrapped in <c>#if DEBUG</c>
+/// One file per specification, in the folder layout the repository conventions use, wrapped in <c language="csharp">#if DEBUG</c>
 /// so spec code ships only in Debug. A Screenplay specification carries a single name rather than a
-/// behavior/outcome pair, so it renders as a single <c>when_</c> file rather than being split into a hierarchy
+/// behavior/outcome pair, so it renders as a single <c language="csharp">when_</c> file rather than being split into a hierarchy
 /// the document never stated.
 /// </para>
 /// <para>
-/// A specification declaring <c>given</c> is not rendered at all — see <see cref="Unrenderable"/>. Rendering it
+/// A specification declaring <c language="csharp">given</c> is not rendered at all — see <see cref="Unrenderable"/>. Rendering it
 /// without its prior state would produce a spec that passes or fails for reasons the document did not state,
 /// which is worse than not having it.
 /// </para>
@@ -34,11 +34,11 @@ public static class SpecificationRenderer
     /// <param name="slice">The slice the specification belongs to.</param>
     /// <returns>The reason, or <see langword="null"/>.</returns>
     /// <remarks>
-    /// The <c>given</c> case is the interesting one, and it is not a gap in the target: <c>CommandScenario</c>
-    /// gained <c>Given.ForEventSource(id).Events(…)</c>. It is a gap in the <i>document</i> — a <c>given</c>
+    /// The <c language="csharp">given</c> case is the interesting one, and it is not a gap in the target: <c language="csharp">CommandScenario</c>
+    /// gained <c language="csharp">Given.ForEventSource(id).Events(…)</c>. It is a gap in the <i>document</i> — a <c language="csharp">given</c>
     /// event names no event source, and which one it belongs to is not recoverable. It is frequently not the
     /// command's own: a specification asserting that a duplicate invoice number is rejected seeds an
-    /// <c>InvoiceRegistered</c> for a <i>different</i> invoice than the one the command registers, and seeding it
+    /// <c language="csharp">InvoiceRegistered</c> for a <i>different</i> invoice than the one the command registers, and seeding it
     /// against the command's id would make the spec assert something else entirely.
     /// </remarks>
     public static string? Unrenderable(SpecificationSyntax specification, SliceSyntax slice)
@@ -152,7 +152,7 @@ public static class SpecificationRenderer
 
     /// <summary>
     /// Renders the assertions for a rejected command. Both are emitted deliberately: on its own
-    /// <c>ShouldNotBeSuccessful</c> cannot tell a validation rejection from an unhandled exception. A message the
+    /// <c language="csharp">ShouldNotBeSuccessful</c> cannot tell a validation rejection from an unhandled exception. A message the
     /// document states is not asserted on — the conventions hold that message strings are presentation text.
     /// </summary>
     /// <param name="builder">The <see cref="CSharpCodeBuilder"/> to emit to.</param>
@@ -249,8 +249,8 @@ public static class SpecificationRenderer
             .Concat(command.Properties.Select(property => property.Type.Name));
 
     /// <summary>
-    /// Turns the specification's name into the behavior the folder and class read as — <c>RegisteringADraftInvoice</c>
-    /// becomes <c>when_registering_a_draft_invoice</c>.
+    /// Turns the specification's name into the behavior the folder and class read as — <c language="csharp">RegisteringADraftInvoice</c>
+    /// becomes <c language="csharp">when_registering_a_draft_invoice</c>.
     /// </summary>
     /// <param name="name">The declared specification name.</param>
     /// <returns>The rendered behavior name.</returns>

@@ -13,18 +13,18 @@ namespace Cratis.Stage.Contracts;
 
 /// <summary>
 /// Loads an <see cref="EventModel"/>, a <see cref="SceneApplication"/> or an <see cref="ApplicationRenderPlan"/>
-/// from Screenplay <c>.play</c> source fed to the engine at startup. Every <c>.play</c> file beneath a
+/// from Screenplay <c language="csharp">.play</c> source fed to the engine at startup. Every <c language="csharp">.play</c> file beneath a
 /// directory is compiled and merged into a single model.
 /// </summary>
 public static class EventModelLoader
 {
     /// <summary>
-    /// Discovers and compiles every <c>.play</c> file beneath the given directory (using the <c>**/*.play</c> glob) and
+    /// Discovers and compiles every <c language="csharp">.play</c> file beneath the given directory (using the <c language="csharp">**/*.play</c> glob) and
     /// merges them into a single <see cref="EventModel"/>.
     /// </summary>
-    /// <param name="directory">The directory to search for <c>.play</c> files.</param>
+    /// <param name="directory">The directory to search for <c language="csharp">.play</c> files.</param>
     /// <returns>The compiled <see cref="EventModel"/>.</returns>
-    /// <exception cref="InvalidEventModel">Thrown when the directory is missing, contains no <c>.play</c> files, or any file fails to compile.</exception>
+    /// <exception cref="InvalidEventModel">Thrown when the directory is missing, contains no <c language="csharp">.play</c> files, or any file fails to compile.</exception>
     public static async Task<EventModel> LoadFromDirectoryAsync(string directory)
     {
         var merged = await CompileAndMergeDirectory(directory);
@@ -32,13 +32,13 @@ public static class EventModelLoader
     }
 
     /// <summary>
-    /// Discovers and compiles every <c>.play</c> file beneath the given directory (using the <c>**/*.play</c> glob), merges
+    /// Discovers and compiles every <c language="csharp">.play</c> file beneath the given directory (using the <c language="csharp">**/*.play</c> glob), merges
     /// them into a single application, and translates it into a <see cref="SceneApplication"/> - the Screenplay-to-Scene
     /// seam (Cratis/Stage#37).
     /// </summary>
-    /// <param name="directory">The directory to search for <c>.play</c> files.</param>
+    /// <param name="directory">The directory to search for <c language="csharp">.play</c> files.</param>
     /// <returns>The translated <see cref="SceneApplication"/>.</returns>
-    /// <exception cref="InvalidEventModel">Thrown when the directory is missing, contains no <c>.play</c> files, or any file fails to compile.</exception>
+    /// <exception cref="InvalidEventModel">Thrown when the directory is missing, contains no <c language="csharp">.play</c> files, or any file fails to compile.</exception>
     public static async Task<SceneApplication> LoadSceneApplicationFromDirectoryAsync(string directory)
     {
         var merged = await CompileAndMergeDirectory(directory);
@@ -46,14 +46,14 @@ public static class EventModelLoader
     }
 
     /// <summary>
-    /// Discovers and compiles every <c>.play</c> file beneath the given directory (using the <c>**/*.play</c> glob), merges
+    /// Discovers and compiles every <c language="csharp">.play</c> file beneath the given directory (using the <c language="csharp">**/*.play</c> glob), merges
     /// them into a single application, translates it into a <see cref="SceneApplication"/> and resolves that against the
     /// given package catalog - one <see cref="RenderPlan"/> per deployment target (Cratis/Stage#39).
     /// </summary>
-    /// <param name="directory">The directory to search for <c>.play</c> files.</param>
-    /// <param name="catalog">Every package available to resolve against - the declarations behind the names a <c>ui profile</c> lists.</param>
+    /// <param name="directory">The directory to search for <c language="csharp">.play</c> files.</param>
+    /// <param name="catalog">Every package available to resolve against - the declarations behind the names a <c language="csharp">ui profile</c> lists.</param>
     /// <returns>The <see cref="ApplicationRenderPlan"/> for every target the application ships.</returns>
-    /// <exception cref="InvalidEventModel">Thrown when the directory is missing, contains no <c>.play</c> files, or any file fails to compile.</exception>
+    /// <exception cref="InvalidEventModel">Thrown when the directory is missing, contains no <c language="csharp">.play</c> files, or any file fails to compile.</exception>
     /// <remarks>
     /// Note where the two kinds of problem separate. A <em>compilation</em> error throws
     /// <see cref="InvalidEventModel"/> here, before anything is translated or resolved - source that does not

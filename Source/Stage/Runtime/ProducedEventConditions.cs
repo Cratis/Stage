@@ -9,7 +9,7 @@ using Cratis.Stage.Contracts.Commands;
 namespace Cratis.Stage.Runtime;
 
 /// <summary>
-/// Evaluates the condition guarding a produced event - the modeled <c>produces when</c> clause - against a command
+/// Evaluates the condition guarding a produced event - the modeled <c language="csharp">produces when</c> clause - against a command
 /// payload.
 /// </summary>
 public static class ProducedEventConditions

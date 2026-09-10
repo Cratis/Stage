@@ -8,11 +8,11 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 namespace Cratis.Stage.Rendering.Cratis.Expressions;
 
 /// <summary>
-/// Renders the context expressions against Chronicle's <c>EventContext</c>, for the artifacts that receive one —
+/// Renders the context expressions against Chronicle's <c language="csharp">EventContext</c>, for the artifacts that receive one —
 /// a reactor method and a projection.
 /// </summary>
 /// <remarks>
-/// <c>EventContext</c> carries <c>Occurred</c>, <c>CausedBy</c> and <c>EventSourceId</c> under those names, so
+/// <c language="csharp">EventContext</c> carries <c language="csharp">Occurred</c>, <c language="csharp">CausedBy</c> and <c language="csharp">EventSourceId</c> under those names, so
 /// PascalCasing the declared path resolves for the paths a document actually uses here.
 /// </remarks>
 public sealed class EventContextAccess : IExpressionContext

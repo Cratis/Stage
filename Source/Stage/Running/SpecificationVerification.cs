@@ -85,7 +85,7 @@ public static class SpecificationVerification
     }
 
     /// <summary>
-    /// Builds a step that checks the modeled command <c>notEmpty</c>/<c>notNull</c> rules are consistent with
+    /// Builds a step that checks the modeled command <c language="csharp">notEmpty</c>/<c language="csharp">notNull</c> rules are consistent with
     /// whether the specification models a Then error for the supplied When values.
     /// </summary>
     /// <param name="slice">The slice the specification belongs to.</param>

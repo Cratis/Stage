@@ -4,7 +4,7 @@
 namespace Cratis.Stage.Host;
 
 /// <summary>
-/// The exception that is thrown when the engine is started without a path to a directory of Screenplay <c>.play</c> files.
+/// The exception that is thrown when the engine is started without a path to a directory of Screenplay <c language="csharp">.play</c> files.
 /// </summary>
 public class MissingModelArgument : Exception
 {

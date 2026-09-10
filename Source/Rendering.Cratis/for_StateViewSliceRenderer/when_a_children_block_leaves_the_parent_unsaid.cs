@@ -13,15 +13,15 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// Two things a <c>children</c> block can say that nothing carries into the generated code, both reachable from a
+/// Two things a <c language="csharp">children</c> block can say that nothing carries into the generated code, both reachable from a
 /// Screenplay program the parser accepts, and both silent until now.
 /// </summary>
 /// <remarks>
-/// A <c>from</c> without <c>parent</c> leaves Chronicle to guess which document the children hang off: it looks
-/// for a property literally named <c>Id</c> on the read model — never <c>[Key]</c> — and otherwise falls through
+/// A <c language="csharp">from</c> without <c language="csharp">parent</c> leaves Chronicle to guess which document the children hang off: it looks
+/// for a property literally named <c language="csharp">Id</c> on the read model — never <c language="csharp">[Key]</c> — and otherwise falls through
 /// to the event source id, so children can land under a parent nobody chose without anything failing. And
-/// <c>ParseChildren</c> parses its body in nested scope, so <c>clear with</c> is as valid inside <c>children</c>
-/// as inside <c>nested</c>, yet only a nested type has a class-level <c>[ClearWith]</c> Chronicle reads.
+/// <c language="csharp">ParseChildren</c> parses its body in nested scope, so <c language="csharp">clear with</c> is as valid inside <c language="csharp">children</c>
+/// as inside <c language="csharp">nested</c>, yet only a nested type has a class-level <c language="csharp">[ClearWith]</c> Chronicle reads.
 /// </remarks>
 public class when_a_children_block_leaves_the_parent_unsaid : Specification
 {

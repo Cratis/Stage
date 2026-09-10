@@ -6,8 +6,8 @@ using Cratis.Scene.Model.SizeClasses;
 namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
-/// Parses the bare size class names Screenplay carries as plain strings (<c>target size compact</c>,
-/// <c>when width regular</c>, …) into their <see cref="WidthSizeClass"/>/<see cref="HeightSizeClass"/>
+/// Parses the bare size class names Screenplay carries as plain strings (<c language="csharp">target size compact</c>,
+/// <c language="csharp">when width regular</c>, …) into their <see cref="WidthSizeClass"/>/<see cref="HeightSizeClass"/>
 /// equivalents - part of Cratis/Stage#37.
 /// </summary>
 public static class SizeClassNames

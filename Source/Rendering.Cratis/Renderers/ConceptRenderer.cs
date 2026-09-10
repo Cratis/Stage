@@ -10,8 +10,8 @@ using Cratis.Stage.Rendering.Cratis.Validation;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Renders a Screenplay <see cref="ConceptSyntax"/> into a C# <see langword="enum"/>, or a <c>ConceptAs&lt;T&gt;</c> /
-/// <c>EventSourceId&lt;T&gt;</c> record paired with its <c>ConceptValidator&lt;T&gt;</c>.
+/// Renders a Screenplay <see cref="ConceptSyntax"/> into a C# <see langword="enum"/>, or a <c language="csharp">ConceptAs&lt;T&gt;</c> /
+/// <c language="csharp">EventSourceId&lt;T&gt;</c> record paired with its <c language="csharp">ConceptValidator&lt;T&gt;</c>.
 /// </summary>
 public static class ConceptRenderer
 {

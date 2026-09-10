@@ -6,7 +6,7 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// <summary>
 /// What a slice renderer emits, so <see cref="UnrenderedConstructs"/> can report everything the slice declares
 /// beyond it. A renderer is registered per slice type, but a slice may declare constructs its type's
-/// renderer knows nothing about — a <c>command</c> on an Automation slice, a <c>projection</c> on a State Change
+/// renderer knows nothing about — a <c language="csharp">command</c> on an Automation slice, a <c language="csharp">projection</c> on a State Change
 /// slice — and those went nowhere and said nothing.
 /// </summary>
 [Flags]

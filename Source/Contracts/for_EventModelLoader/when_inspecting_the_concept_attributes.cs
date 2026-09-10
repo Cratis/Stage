@@ -10,7 +10,7 @@ namespace Cratis.Stage.Contracts.for_EventModelLoader;
 
 /// <summary>
 /// A concept resolves to its underlying primitive in a synthesized schema, which used to erase the compliance
-/// markers declared on it entirely — a <c>@pii</c> property arrived indistinguishable from any other string.
+/// markers declared on it entirely — a <c language="csharp">@pii</c> property arrived indistinguishable from any other string.
 /// </summary>
 public class when_inspecting_the_concept_attributes : given.a_compiled_model_using_2x_constructs
 {

@@ -10,12 +10,12 @@ namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer.given;
 
 /// <summary>
 /// An order summary projection that uses every projection block with a model-bound attribute behind it: a
-/// <c>from</c>, a <c>join</c> whose key is mapped by that <c>from</c> and which two events feed, an <c>all</c>
-/// and an <c>every</c> block, and a <c>remove via join</c> carrying its own key.
+/// <c language="csharp">from</c>, a <c language="csharp">join</c> whose key is mapped by that <c language="csharp">from</c> and which two events feed, an <c language="csharp">all</c>
+/// and an <c language="csharp">every</c> block, and a <c language="csharp">remove via join</c> carrying its own key.
 /// </summary>
 /// <remarks>
-/// <c>clear with</c> is deliberately absent: Screenplay only accepts one inside a <c>nested</c> block, and
-/// Chronicle only reads a class-level <c>[ClearWith]</c> on a nested type, so it has no rendering here. It is
+/// <c language="csharp">clear with</c> is deliberately absent: Screenplay only accepts one inside a <c language="csharp">nested</c> block, and
+/// Chronicle only reads a class-level <c language="csharp">[ClearWith]</c> on a nested type, so it has no rendering here. It is
 /// covered as an unrendered block instead.
 /// </remarks>
 public class a_projection_using_every_model_bound_block : Specification

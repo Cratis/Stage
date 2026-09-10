@@ -8,19 +8,19 @@ using Yarp.ReverseProxy.Forwarder;
 namespace Cratis.Stage.Host.Workbench;
 
 /// <summary>
-/// Serves the Chronicle Workbench of the play session's own bundled kernel under <c>/workbench</c>.
+/// Serves the Chronicle Workbench of the play session's own bundled kernel under <c language="csharp">/workbench</c>.
 /// </summary>
 /// <remarks>
 /// The kernel serves the Workbench at the root of its own port, which nothing outside the container can reach -
 /// and even reachable, its assets and API calls are written root-absolute, so hanging it off a prefix breaks it.
 /// This forwards the prefix to the kernel with the prefix removed, and tells the SPA where it really lives by
-/// rewriting the <c>base-path</c> meta tag and the root-absolute asset references in <c>index.html</c> on the way
+/// rewriting the <c language="csharp">base-path</c> meta tag and the root-absolute asset references in <c language="csharp">index.html</c> on the way
 /// back. Arc's client takes that value as its API base path and prefixes every command, query, SSE and WebSocket
 /// URL with it, so the whole surface follows from the one rewrite.
 /// <para>
 /// The prefix is resolved per request rather than configured, because the Stage does not know it: reached
-/// directly it is <c>/workbench</c>, and behind a caller's reverse proxy it is whatever path that proxy states in
-/// <c>X-Forwarded-Prefix</c> - which the host already turns into <see cref="HttpRequest.PathBase"/>.
+/// directly it is <c language="csharp">/workbench</c>, and behind a caller's reverse proxy it is whatever path that proxy states in
+/// <c language="csharp">X-Forwarded-Prefix</c> - which the host already turns into <see cref="HttpRequest.PathBase"/>.
 /// </para>
 /// </remarks>
 public static class WorkbenchProxy

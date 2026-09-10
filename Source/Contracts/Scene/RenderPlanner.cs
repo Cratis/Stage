@@ -18,7 +18,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Every resolution rule this needs already exists in <c>Cratis.Scene.Engine</c> and is used unmodified:
+/// Every resolution rule this needs already exists in <c language="csharp">Cratis.Scene.Engine</c> and is used unmodified:
 /// <see cref="PackageDependencyResolver"/> expands a target's packages, <see cref="PackageResolver"/> binds
 /// component names against them, <see cref="ThemeCompatibility"/> checks the theme,
 /// <see cref="ScreenTemplateResolver"/> nests the screen templates, and <see cref="SizeClassCalculator"/>
@@ -43,7 +43,7 @@ public static class RenderPlanner
     /// Plans every deployment target an application ships.
     /// </summary>
     /// <param name="application">The translated <see cref="SceneApplication"/> to plan.</param>
-    /// <param name="catalog">Every package available to resolve against - the declarations behind the names a <c>ui profile</c> lists.</param>
+    /// <param name="catalog">Every package available to resolve against - the declarations behind the names a <c language="csharp">ui profile</c> lists.</param>
     /// <returns>The <see cref="ApplicationRenderPlan"/>, carrying one <see cref="RenderPlan"/> per target.</returns>
     /// <remarks>
     /// There is deliberately no public entry point for planning a single target. Every target comes out of one
@@ -151,7 +151,7 @@ public static class RenderPlanner
     /// <remarks>
     /// A target selecting no shell falls back to the application's first declared layout - the same one
     /// <see cref="ScreenplaySceneVisitor"/> resolved every screen against - so the common single-shell
-    /// application needs no <c>layout</c> on its <c>ui profile</c> at all.
+    /// application needs no <c language="csharp">layout</c> on its <c language="csharp">ui profile</c> at all.
     /// </remarks>
     static (string? Name, SceneLayouts.Layout? Layout) SelectLayout(
         SceneProfilesModel.UiProfile profile,

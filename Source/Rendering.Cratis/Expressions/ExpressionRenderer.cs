@@ -12,20 +12,20 @@ namespace Cratis.Stage.Rendering.Cratis.Expressions;
 
 /// <summary>
 /// Renders a Screenplay <see cref="ExpressionSyntax"/> or <see cref="ConditionSyntax"/> as C# expression text.
-/// Shared by every renderer that emits an expression — command <c>produces</c> mappings, projection mappings,
+/// Shared by every renderer that emits an expression — command <c language="csharp">produces</c> mappings, projection mappings,
 /// and their guarding conditions all resolve through the same set of rules.
 /// </summary>
 /// <remarks>
-/// An expression that reaches beyond the artifact's own properties (<c>$context.*</c>, <c>$eventContext.*</c>,
-/// <c>$causedBy</c>, <c>$eventSourceId</c>) has no single C# rendering — what it becomes depends on what the
+/// An expression that reaches beyond the artifact's own properties (<c language="csharp">$context.*</c>, <c language="csharp">$eventContext.*</c>,
+/// <c language="csharp">$causedBy</c>, <c language="csharp">$eventSourceId</c>) has no single C# rendering — what it becomes depends on what the
 /// enclosing artifact receives. The overloads taking an <see cref="IExpressionContext"/> let the caller say;
-/// the ones without assume Chronicle's <c>EventContext</c> is in scope as <c>context</c>, which holds for a
+/// the ones without assume Chronicle's <c language="csharp">EventContext</c> is in scope as <c language="csharp">context</c>, which holds for a
 /// reactor method and a projection and for nothing else.
 /// </remarks>
 public static class ExpressionRenderer
 {
     /// <summary>
-    /// Renders an expression as C# expression text, against Chronicle's <c>EventContext</c>.
+    /// Renders an expression as C# expression text, against Chronicle's <c language="csharp">EventContext</c>.
     /// </summary>
     /// <param name="expression">The expression to render.</param>
     /// <returns>The rendered C# expression text.</returns>
@@ -56,7 +56,7 @@ public static class ExpressionRenderer
     };
 
     /// <summary>
-    /// Renders a condition as a C# boolean expression, against Chronicle's <c>EventContext</c>.
+    /// Renders a condition as a C# boolean expression, against Chronicle's <c language="csharp">EventContext</c>.
     /// </summary>
     /// <param name="condition">The condition to render.</param>
     /// <param name="enumTypeOf">

@@ -7,7 +7,7 @@ namespace Cratis.Stage.Contracts.for_EventModelLoader.given;
 
 /// <summary>
 /// A document exercising the constructs the contract gained for Screenplay 2.x — concept compliance attributes,
-/// command authorization, <c>require</c>, <c>reads</c>, <c>produces … for</c>, event tags and specification read
+/// command authorization, <c language="csharp">require</c>, <c language="csharp">reads</c>, <c language="csharp">produces … for</c>, event tags and specification read
 /// model steps — compiled the same way the engine compiles one at startup.
 /// </summary>
 public class a_compiled_model_using_2x_constructs : Specification

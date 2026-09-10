@@ -17,39 +17,39 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <remarks>
 /// <para>
 /// A screen is an instance: it names the structure it fills and provides the content. A
-/// <c>template &lt;Name&gt;</c> directive (<see cref="ScreenplaySyntax.ScreenTemplateReferenceSyntax"/>) names a
+/// <c language="csharp">template &lt;Name&gt;</c> directive (<see cref="ScreenplaySyntax.ScreenTemplateReferenceSyntax"/>) names a
 /// screen or dialog template and fills its slots, and becomes
 /// <see cref="SceneScreens.Screen.ScreenTemplate"/> plus the slot-keyed
 /// <see cref="SceneScreens.Screen.SlotContent"/>.
 /// </para>
 /// <para>
-/// A screen <em>never</em> names the application's <c>layout</c> - the shell is selected once per build by a
-/// <c>ui profile</c>, which is what keeps a screen portable across web, mobile and desktop. Scene's
+/// A screen <em>never</em> names the application's <c language="csharp">layout</c> - the shell is selected once per build by a
+/// <c language="csharp">ui profile</c>, which is what keeps a screen portable across web, mobile and desktop. Scene's
 /// <see cref="SceneScreens.Screen.Layout"/> is nevertheless a required, resolved name, so the caller resolves
 /// it from the application's declared shell and passes it in.
 /// </para>
 /// <para>
-/// A Level-1 "intent" screen (per <c>screens.md</c>) names no template at all - <c>data</c>/<c>action</c> sit
-/// directly under <c>screen</c> and Studio generates the component. That is precisely the case
+/// A Level-1 "intent" screen (per <c language="csharp">screens.md</c>) names no template at all - <c language="csharp">data</c>/<c language="csharp">action</c> sit
+/// directly under <c language="csharp">screen</c> and Studio generates the component. That is precisely the case
 /// <see cref="SceneScreens.Screen.ScreenTemplate"/> documents as <see langword="null"/>: the screen fills the
 /// layout's own slots directly. So nothing is synthesized for it - it keeps a <see langword="null"/> template
 /// and its content fills <see cref="DefaultLayout.ContentSlotName"/>. Synthesizing a screen template instead
-/// would claim the screen fills a reusable, <c>fits slot</c>-placed shape, which is exactly what a Level-1
+/// would claim the screen fills a reusable, <c language="csharp">fits slot</c>-placed shape, which is exactly what a Level-1
 /// screen does not do, and would still leave <see cref="SceneScreens.Screen.Layout"/> to resolve. The same
-/// applies to a <c>file</c>-referenced screen, whose content lives entirely outside Screenplay - only a single
-/// <c>core:file</c> element is produced, carrying the referenced path.
+/// applies to a <c language="csharp">file</c>-referenced screen, whose content lives entirely outside Screenplay - only a single
+/// <c language="csharp">core:file</c> element is produced, carrying the referenced path.
 /// </para>
 /// <para>
 /// <see cref="SceneScreens.Screen.Forms"/> is resolved per <see cref="ScreenplaySyntax.FormSyntax"/>'s own
-/// doc comment: a form is discovered by its <c>For</c> command binding wherever that command is invoked,
+/// doc comment: a form is discovered by its <c language="csharp">For</c> command binding wherever that command is invoked,
 /// never nested in a screen's own directive tree. This walks every <see cref="ScreenplaySyntax.ScreenActionSyntax.Command"/>
-/// referenced anywhere in the screen (including inside <c>section</c>s and template slots) and includes every
-/// module-level form whose <c>For</c> matches one of them.
+/// referenced anywhere in the screen (including inside <c language="csharp">section</c>s and template slots) and includes every
+/// module-level form whose <c language="csharp">For</c> matches one of them.
 /// </para>
 /// <para>
 /// <see cref="SceneScreens.Screen.Contributions"/> has no source anywhere in
 /// <see cref="ScreenplaySyntax.ScreenSyntax"/>/<see cref="ScreenplaySyntax.ScreenDirectiveSyntax"/> -
-/// <c>contribute to</c> only ever appears on a module or feature. The caller supplies the already-converted
+/// <c language="csharp">contribute to</c> only ever appears on a module or feature. The caller supplies the already-converted
 /// contributions for this screen's enclosing scope.
 /// </para>
 /// </remarks>
@@ -63,7 +63,7 @@ public static class ScreenConverter
     /// <param name="availableForms">Every form declared in the screen's enclosing module.</param>
     /// <param name="contributions">The already-converted contributions for the screen's enclosing scope.</param>
     /// <returns>The converted <see cref="SceneScreens.Screen"/>.</returns>
-    /// <exception cref="UnsupportedScreenContent">Thrown when the screen mixes a top-level <c>template</c> directive with other top-level directives.</exception>
+    /// <exception cref="UnsupportedScreenContent">Thrown when the screen mixes a top-level <c language="csharp">template</c> directive with other top-level directives.</exception>
     public static SceneScreens.Screen Convert(
         ScreenplaySyntax.ScreenSyntax screen,
         string layoutName,

@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Cratis.Types;
 /// <summary>
 /// Indexes the declared properties of every event across an <see cref="ApplicationSet"/> — the lookup a
 /// projection needs to type the read-model property a mapping produces, and to tell whether a
-/// <c>nameof(TEvent.Property)</c> reference will actually bind.
+/// <c language="csharp">nameof(TEvent.Property)</c> reference will actually bind.
 /// </summary>
 public sealed class EventPropertyIndex
 {

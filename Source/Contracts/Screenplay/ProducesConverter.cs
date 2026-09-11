@@ -7,7 +7,7 @@ using Cratis.Stage.Contracts.Commands;
 namespace Cratis.Stage.Contracts.Screenplay;
 
 /// <summary>
-/// Converts the Screenplay <c>produces</c> declarations of a command into the Stage <see cref="ProducedEvent"/> records
+/// Converts the Screenplay <c language="csharp">produces</c> declarations of a command into the Stage <see cref="ProducedEvent"/> records
 /// the engine evaluates at runtime to build and append event payloads.
 /// </summary>
 public static class ProducesConverter

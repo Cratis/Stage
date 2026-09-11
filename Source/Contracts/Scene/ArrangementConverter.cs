@@ -12,17 +12,17 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>arrangement</c> works identically on all three slot-bearing Screenplay declarations - the application's
-/// <c>layout</c>, a <c>screen template</c> and a <c>dialog template</c> - so all three converters share this
+/// <c language="csharp">arrangement</c> works identically on all three slot-bearing Screenplay declarations - the application's
+/// <c language="csharp">layout</c>, a <c language="csharp">screen template</c> and a <c language="csharp">dialog template</c> - so all three converters share this
 /// one conversion. It arranges the declaring structure's own named slots relative to each other, which is why
 /// it produces the slot-referencing <see cref="SceneLayouts.FlowSlotLeaf"/>/<see cref="SceneLayouts.SlotPlacement"/>
 /// leaves rather than element leaves.
 /// </para>
 /// <para>
-/// A <c>place</c> marked <c>hidden</c> is excluded from its variant's placements entirely -
+/// A <c language="csharp">place</c> marked <c language="csharp">hidden</c> is excluded from its variant's placements entirely -
 /// <see cref="SceneLayouts.SlotPlacement"/> has no hidden flag, so "hidden in this variant" is represented as
-/// "absent from this variant". A flow slot leaf's fixed <c>width</c>/<c>height</c> is a known, deliberate gap:
-/// <see cref="SceneLayouts.FlowNode"/> carries only <c>Grow</c> and <c>Span</c>, so a fixed size on a leaf is
+/// "absent from this variant". A flow slot leaf's fixed <c language="csharp">width</c>/<c language="csharp">height</c> is a known, deliberate gap:
+/// <see cref="SceneLayouts.FlowNode"/> carries only <c language="csharp">Grow</c> and <c language="csharp">Span</c>, so a fixed size on a leaf is
 /// not carried through.
 /// </para>
 /// </remarks>

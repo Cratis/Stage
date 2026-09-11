@@ -7,12 +7,12 @@ using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
-/// Converts the slots a Screenplay <c>layout</c>, <c>screen template</c> or <c>dialog template</c> declares
+/// Converts the slots a Screenplay <c language="csharp">layout</c>, <c language="csharp">screen template</c> or <c language="csharp">dialog template</c> declares
 /// into <see cref="SceneLayouts.Slot"/>s - part of Cratis/Stage#37.
 /// </summary>
 /// <remarks>
-/// A slot is declared once, by name, in the declaring structure's body, and the <c>arrangement</c> then only
-/// positions it - so a converted <see cref="SceneLayouts.Slot"/> always leaves its own <c>Arrangement</c>
+/// A slot is declared once, by name, in the declaring structure's body, and the <c language="csharp">arrangement</c> then only
+/// positions it - so a converted <see cref="SceneLayouts.Slot"/> always leaves its own <c language="csharp">Arrangement</c>
 /// <see langword="null"/>: Screenplay has no syntax for arranging content <em>within</em> one slot, and the
 /// structure's own arrangement belongs on the structure (see <see cref="ArrangementConverter"/>), not on each
 /// slot. <see cref="ScreenplaySyntax.SlotSyntax.Contributes"/> - the contribution point a slot opens itself up

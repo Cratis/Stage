@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 /// The query reading the other one has nowhere to land.
 /// </summary>
 /// <remarks>
-/// It used to land anyway: <c>GetOverdueInvoices</c> was rendered as a method reading <c>InvoiceSummary</c>, the
+/// It used to land anyway: <c language="csharp">GetOverdueInvoices</c> was rendered as a method reading <c language="csharp">InvoiceSummary</c>, the
 /// read model that happened to be there. The name came from the document, the type came from somewhere else, and
 /// nothing anywhere reported the swap — a caller reading the document would have found the query it asked for,
 /// answering with data it never asked about.

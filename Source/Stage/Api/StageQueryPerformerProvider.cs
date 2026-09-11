@@ -9,7 +9,7 @@ namespace Cratis.Stage.Api;
 
 /// <summary>
 /// Provides query performers to Arc by convention — for every read model in the event model it exposes a
-/// <c>Get&lt;ReadModel&gt;ById</c> and an <c>All&lt;ReadModels&gt;</c> query.
+/// <c language="csharp">Get&lt;ReadModel&gt;ById</c> and an <c language="csharp">All&lt;ReadModels&gt;</c> query.
 /// </summary>
 public sealed class StageQueryPerformerProvider : IQueryPerformerProvider
 {

@@ -10,7 +10,7 @@ using Cratis.Stage.Contracts.Commands;
 namespace Cratis.Stage.Runtime;
 
 /// <summary>
-/// Evaluates a command's modeled <c>produces</c> declarations against a command payload, yielding the event payloads
+/// Evaluates a command's modeled <c language="csharp">produces</c> declarations against a command payload, yielding the event payloads
 /// to append. Purely a function of the payload and the model — no IO, so it is directly specifiable.
 /// </summary>
 public static class ProducedEventPayloads

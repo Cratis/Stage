@@ -13,7 +13,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <remarks>
 /// A dialog template is a screen template in everything but one respect: it fills no slot, because it opens
 /// <em>over</em> the application rather than sitting inside it. Screenplay makes that structural - there is no
-/// <c>fits slot</c> on <see cref="ScreenplaySyntax.DialogTemplateSyntax"/> to carry - and so does Scene, which
+/// <c language="csharp">fits slot</c> on <see cref="ScreenplaySyntax.DialogTemplateSyntax"/> to carry - and so does Scene, which
 /// is why this converter is a near-duplicate of <see cref="ScreenTemplateConverter"/> rather than a shared one
 /// with a flag. <see cref="SceneScreens.DialogTemplate.Content"/> is always left unset for the same reason it
 /// is on a screen template: Screenplay declares slots and an arrangement, and the filling

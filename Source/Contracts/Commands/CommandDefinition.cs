@@ -19,9 +19,9 @@ namespace Cratis.Stage.Contracts.Commands;
 /// appends to, or <see langword="null"/> when the command declares none - in which case every execution opens a
 /// stream of its own. At most one property can be the identifier.</param>
 /// <remarks>
-/// Capability added after the record shipped is an <c>init</c> property rather than a trailing parameter of the
+/// Capability added after the record shipped is an <c language="csharp">init</c> property rather than a trailing parameter of the
 /// primary constructor, deliberately. A trailing parameter on a positional record is source compatible and
-/// <em>binary</em> breaking: it replaces the constructor and <c>Deconstruct</c> in the compiled signature, so a
+/// <em>binary</em> breaking: it replaces the constructor and <c language="csharp">Deconstruct</c> in the compiled signature, so a
 /// package built against the previous version fails at run time with a missing method and no compiler error
 /// anywhere. Package validation now fails the build on that, and is how this record should grow from here.
 /// </remarks>
@@ -42,12 +42,12 @@ public record CommandDefinition(
     public AuthorizationRequirement? Authorization { get; init; }
 
     /// <summary>
-    /// Gets the conditions the command as a whole must satisfy — the modeled <c>require</c> rules.
+    /// Gets the conditions the command as a whole must satisfy — the modeled <c language="csharp">require</c> rules.
     /// </summary>
     public IReadOnlyList<Requirement> Requirements { get; init; } = [];
 
     /// <summary>
-    /// Gets the read models the command consults before it decides — the modeled <c>reads</c> declarations.
+    /// Gets the read models the command consults before it decides — the modeled <c language="csharp">reads</c> declarations.
     /// </summary>
     public IReadOnlyList<ReadsDefinition> Reads { get; init; } = [];
 }

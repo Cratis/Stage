@@ -14,11 +14,11 @@ namespace Cratis.Stage.Rendering.Cratis.Expressions;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A rendered command handler is an Arc model-bound <c>Handle()</c>. Arc's own <c>CommandContext</c> carries the
+/// A rendered command handler is an Arc model-bound <c language="csharp">Handle()</c>. Arc's own <c language="csharp">CommandContext</c> carries the
 /// correlation id, the command instance and the dependencies — and none of what the Screenplay language names:
-/// no <c>Occurred</c>, no <c>Identity</c>, no <c>Tenant</c>, no <c>CausedBy</c>, no <c>Causation</c>. Screenplay
-/// defines those on its own <c>Cratis.Screenplay.Contexts.CommandContext</c>, which is a different type that a
-/// rendered application never receives. Rendering <c>$context.occurred</c> as <c>context.Occurred</c> therefore
+/// no <c language="csharp">Occurred</c>, no <c language="csharp">Identity</c>, no <c language="csharp">Tenant</c>, no <c language="csharp">CausedBy</c>, no <c language="csharp">Causation</c>. Screenplay
+/// defines those on its own <c language="csharp">Cratis.Screenplay.Contexts.CommandContext</c>, which is a different type that a
+/// rendered application never receives. Rendering <c language="csharp">$context.occurred</c> as <c language="csharp">context.Occurred</c> therefore
 /// produced an application that did not compile.
 /// </para>
 /// <para>
@@ -27,7 +27,7 @@ namespace Cratis.Stage.Rendering.Cratis.Expressions;
 /// reported and rendered as a missing value rather than as a member that does not exist.
 /// </para>
 /// </remarks>
-/// <param name="subject">What is being rendered, for diagnostics (for example <c>Command 'RegisterInvoice'</c>).</param>
+/// <param name="subject">What is being rendered, for diagnostics (for example <c language="csharp">Command 'RegisterInvoice'</c>).</param>
 /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
 public sealed class CommandContextAccess(string subject, ICollection<string> diagnostics) : IExpressionContext
 {
@@ -49,7 +49,7 @@ public sealed class CommandContextAccess(string subject, ICollection<string> dia
     /// it onto can hold it. A path the language does not name has no type, and neither has one that renders to a
     /// missing value.
     /// </summary>
-    /// <param name="path">The <c>$context</c> path, without the <c>$context.</c> prefix.</param>
+    /// <param name="path">The <c language="csharp">$context</c> path, without the <c language="csharp">$context.</c> prefix.</param>
     /// <returns>The C# type name, or <see langword="null"/> when the path resolves to nothing typed.</returns>
     public static string? ValueTypeOf(string path) => path.Split('.') switch
     {

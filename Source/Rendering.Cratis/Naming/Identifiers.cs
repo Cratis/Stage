@@ -58,14 +58,14 @@ public static class Identifiers
 
     /// <summary>
     /// Converts a name into snake_case — used for the spec folder and class names the repository conventions
-    /// use, where <c>RegisteringADraftInvoice</c> reads as <c>registering_a_draft_invoice</c>.
+    /// use, where <c language="csharp">RegisteringADraftInvoice</c> reads as <c language="csharp">registering_a_draft_invoice</c>.
     /// </summary>
     /// <param name="name">The name to convert.</param>
     /// <returns>The snake_case name.</returns>
     public static string ToSnakeCase(string name) => ToWords(name).Replace(' ', '_');
 
     /// <summary>
-    /// Escapes an identifier with <c>@</c> when it is a reserved C# keyword.
+    /// Escapes an identifier with <c language="csharp">@</c> when it is a reserved C# keyword.
     /// </summary>
     /// <param name="identifier">The identifier to escape.</param>
     /// <returns>The escaped identifier, or the original identifier when escaping is not needed.</returns>

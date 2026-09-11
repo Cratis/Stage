@@ -12,7 +12,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </summary>
 /// <remarks>
 /// A screen template is a reusable shape inside the application's shell, declared at module level.
-/// <c>fits slot &lt;name&gt;</c> names the slot of its parent - the application <c>layout</c> for a module's
+/// <c language="csharp">fits slot &lt;name&gt;</c> names the slot of its parent - the application <c language="csharp">layout</c> for a module's
 /// template, an enclosing template's slot for a deeper one - that it fills, and carries straight through to
 /// <see cref="SceneScreens.ScreenTemplate.FitsSlot"/>; it is optional, and a template that declares none is
 /// placed by whatever renders it. <see cref="SceneScreens.ScreenTemplate.Content"/> is always left unset:

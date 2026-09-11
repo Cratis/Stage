@@ -9,7 +9,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// <summary>
 /// Synthesizes JSON Schema strings for commands, events and read models from Screenplay typed properties. Screenplay
 /// primitives map to JSON Schema types; concepts resolve to their underlying primitive (or an enumeration); any other
-/// type name is treated as an open object reference. The shape matches the <c>{"type":"object","properties":{...}}</c>
+/// type name is treated as an open object reference. The shape matches the <c language="json">{"type":"object","properties":{...}}</c>
 /// convention Stage's engine already consumes.
 /// </summary>
 /// <param name="concepts">The concepts declared in the application, keyed by name, used to resolve concept-typed properties.</param>
@@ -34,11 +34,11 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// attribute name to its declared reason (an empty string when none was declared).
     /// </summary>
     /// <remarks>
-    /// Carries <c>@pii</c> and <c>@sensitive</c> — and anything the language adds later, since the map is keyed by
+    /// Carries <c language="csharp">@pii</c> and <c language="csharp">@sensitive</c> — and anything the language adds later, since the map is keyed by
     /// whatever the concept declares rather than by a fixed set. Without it a compliance marker does not survive
     /// the import at all: the property is indistinguishable from an ordinary string once the concept is resolved.
     /// <para>
-    /// This states the marker; it does not enforce it. Chronicle carries its own <c>compliance</c> schema keyword
+    /// This states the marker; it does not enforce it. Chronicle carries its own <c language="csharp">compliance</c> schema keyword
     /// that drives encryption at rest, which is a separate and deliberate step.
     /// </para>
     /// </remarks>

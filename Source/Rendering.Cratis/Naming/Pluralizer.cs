@@ -4,7 +4,7 @@
 namespace Cratis.Stage.Rendering.Cratis.Naming;
 
 /// <summary>
-/// Pluralizes English words for use in generated query method names (e.g. <c>AllAuthors</c>).
+/// Pluralizes English words for use in generated query method names (e.g. <c language="csharp">AllAuthors</c>).
 /// </summary>
 public static class Pluralizer
 {

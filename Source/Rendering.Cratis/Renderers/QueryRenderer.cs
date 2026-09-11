@@ -12,8 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// Renders the queries a slice declares as the static query methods of its read model.
 /// </summary>
 /// <remarks>
-/// A read model used to receive a fixed <c>All&lt;Plural&gt;</c> and <c>&lt;Type&gt;ById</c> pair whatever the
-/// document said. A document declaring <c>GetOverdueInvoices</c> got neither that method nor a mention of it, and
+/// A read model used to receive a fixed <c language="csharp">All&lt;Plural&gt;</c> and <c language="csharp">&lt;Type&gt;ById</c> pair whatever the
+/// document said. A document declaring <c language="csharp">GetOverdueInvoices</c> got neither that method nor a mention of it, and
 /// got two methods nobody had written — so the names in the rendered application answered to nothing in the
 /// document, and a caller reading the document could not find them.
 /// <para>
@@ -21,20 +21,20 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// and inventing a way in is the lesser of the two only while the document states none.
 /// </para>
 /// <para>
-/// A query the document declares <c>observable</c> renders as a live one — an <c>ISubject</c> fed by the
+/// A query the document declares <c language="csharp">observable</c> renders as a live one — an <c language="csharp">ISubject</c> fed by the
 /// collection's change stream. It used to render as its one-shot counterpart and say nothing about it, so a
 /// document asking for a query that keeps pushing produced one that answered once and looked correct.
 /// </para>
 /// <para>
 /// A query names the read model it reads with its return type, and only the queries naming <i>this</i> read model
 /// are rendered onto it. Every declared query used to be rendered against the slice's first projection whatever
-/// its return type said, so a query returning <c>OverdueInvoices</c> came out reading <c>InvoiceSummary</c> —
+/// its return type said, so a query returning <c language="csharp">OverdueInvoices</c> came out reading <c language="csharp">InvoiceSummary</c> —
 /// a different read model, substituted in silence. What a read model is not the return type of is reported by
 /// <see cref="UnrenderedConstructs"/> instead of rendered against the wrong one.
 /// </para>
 /// <para>
 /// Authorization belongs to each generated method. Combining query policies on the read-model type changes two
-/// distinct operations into one wider surface: an administrator-only <c>All</c> and auditor-only <c>Mine</c>
+/// distinct operations into one wider surface: an administrator-only <c language="csharp">All</c> and auditor-only <c language="csharp">Mine</c>
 /// would both admit either role. Rendering the attribute immediately before its method preserves the operation
 /// boundary Arc evaluates.
 /// </para>
@@ -42,7 +42,7 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 public static class QueryRenderer
 {
     /// <summary>
-    /// The namespace holding <c>ISubject&lt;T&gt;</c>, the return type of a live query. The scaffolded project does
+    /// The namespace holding <c language="csharp">ISubject&lt;T&gt;</c>, the return type of a live query. The scaffolded project does
     /// not make it ambient, so a file rendering an observable query imports it.
     /// </summary>
     public const string ObservableNamespace = "System.Reactive.Subjects";

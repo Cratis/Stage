@@ -9,6 +9,7 @@ using Cratis.Stage.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
+using ChronicleEventTypes = Cratis.Chronicle.Contracts.EventTypes;
 using ChronicleProjections = Cratis.Chronicle.Contracts.Projections;
 using ChronicleReadModels = Cratis.Chronicle.Contracts.ReadModels;
 
@@ -45,7 +46,7 @@ public static class StageRuntimeRegistrar
             var eventTypes = StageChronicleDefinitions.BuildEventTypes(model);
             if (eventTypes.Count > 0)
             {
-                await accessor.Services.EventTypes.Register(new ChronicleEvents.RegisterEventTypesRequest
+                await accessor.Services.EventTypes.RegisterEventTypes(new ChronicleEventTypes.RegisterEventTypesRequest
                 {
                     EventStore = eventStore.Name,
                     Types = eventTypes,

@@ -7,21 +7,21 @@ namespace Cratis.Stage.Rendering.Cratis.Validation;
 
 /// <summary>
 /// Renders the FluentValidation call fragment for a Screenplay <see cref="ValidationRuleKind"/> — shared by
-/// <c>ConceptValidator&lt;T&gt;</c> rendering (<c>ConceptRenderer</c>) and <c>CommandValidator&lt;T&gt;</c>
-/// rendering (<c>StateChangeSliceRenderer</c>), which differ only in the subject the rule is applied to and how a
+/// <c language="csharp">ConceptValidator&lt;T&gt;</c> rendering (<c language="csharp">ConceptRenderer</c>) and <c language="csharp">CommandValidator&lt;T&gt;</c>
+/// rendering (<c language="csharp">StateChangeSliceRenderer</c>), which differ only in the subject the rule is applied to and how a
 /// <see cref="ValidationRuleKind.Rule"/> custom predicate is wired up.
 /// </summary>
 public static class ValidationRuleRenderer
 {
     /// <summary>
-    /// Renders the FluentValidation call fragment (e.g. <c>.NotEmpty()</c>) for every rule kind except
+    /// Renders the FluentValidation call fragment (e.g. <c language="csharp">.NotEmpty()</c>) for every rule kind except
     /// <see cref="ValidationRuleKind.Rule"/>, which has no fixed mapping — the caller renders that one itself
     /// since it requires synthesizing and registering a custom predicate method.
     /// </summary>
     /// <param name="kind">The rule kind.</param>
     /// <param name="value">The rendered comparison value, when the rule kind needs one.</param>
     /// <param name="subjectIsText">
-    /// Whether the value being validated is text. Screenplay's <c>max</c>/<c>min</c> bound a number's magnitude but
+    /// Whether the value being validated is text. Screenplay's <c language="csharp">max</c>/<c language="csharp">min</c> bound a number's magnitude but
     /// a string's <b>length</b>, and FluentValidation has a separate call for each — comparing a string against a
     /// number does not compile.
     /// </param>
@@ -42,10 +42,10 @@ public static class ValidationRuleRenderer
     };
 
     /// <summary>
-    /// Renders the <c>.WithMessage(...)</c> suffix for a rule, when it declares one.
+    /// Renders the <c language="csharp">.WithMessage(...)</c> suffix for a rule, when it declares one.
     /// </summary>
     /// <param name="rule">The rule.</param>
-    /// <returns>The <c>.WithMessage(...)</c> fragment, or an empty string when the rule has no message.</returns>
+    /// <returns>The <c language="csharp">.WithMessage(...)</c> fragment, or an empty string when the rule has no message.</returns>
     public static string RenderMessage(ValidationRuleSyntax rule) =>
         rule.Message is null ? string.Empty : $".WithMessage(\"{rule.Message.Replace("\"", "\\\"", StringComparison.Ordinal)}\")";
 }

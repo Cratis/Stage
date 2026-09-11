@@ -9,7 +9,7 @@ using Cratis.Stage.Rendering.Cratis.Authorization;
 namespace Cratis.Stage.Rendering.Cratis.for_AuthorizationRenderer.given;
 
 /// <summary>
-/// An application declaring one policy of every kind an <c>authorize</c> can reference — the two an authorization
+/// An application declaring one policy of every kind an <c language="csharp">authorize</c> can reference — the two an authorization
 /// attribute expresses (a role, plain authentication) and the three it cannot (a claim, a conjunction, authored
 /// code).
 /// </summary>
@@ -48,14 +48,14 @@ public class an_application_with_policies : Specification
     }
 
     /// <summary>
-    /// Builds an <c>authorize A or B or C</c> — the policies as alternatives.
+    /// Builds an <c language="csharp">authorize A or B or C</c> — the policies as alternatives.
     /// </summary>
     /// <param name="policies">The policies to combine.</param>
     /// <returns>The <see cref="AuthorizeSyntax"/>.</returns>
     protected static AuthorizeSyntax Authorize(params string[] policies) => Combine(LogicalOperator.Or, policies);
 
     /// <summary>
-    /// Builds an <c>authorize A and B and C</c> — every policy required at once, which is what writing two
+    /// Builds an <c language="csharp">authorize A and B and C</c> — every policy required at once, which is what writing two
     /// policies next to each other has always meant.
     /// </summary>
     /// <param name="policies">The policies to combine.</param>

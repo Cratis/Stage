@@ -4,7 +4,7 @@
 namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 
 /// <summary>
-/// Removes the <c>SomeModule/SomeFeature</c> sample slice the <c>Cratis.Templates</c> template ships with. A
+/// Removes the <c language="csharp">SomeModule/SomeFeature</c> sample slice the <c language="csharp">Cratis.Templates</c> template ships with. A
 /// rendered application brings its own slices, so the sample is dead weight that compiles into the app and shows
 /// up as a real feature — it is removed together with the single route that composes it.
 /// </summary>

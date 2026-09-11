@@ -9,17 +9,17 @@ using Cratis.Stage.Rendering.Cratis.Types;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Resolves which read-model property carries a projection's <c>key</c>.
+/// Resolves which read-model property carries a projection's <c language="csharp">key</c>.
 /// </summary>
 /// <remarks>
-/// A Screenplay <c>key</c> names an <b>event</b> property, while <c>[Key]</c> marks a <b>read model</b> property.
-/// They are usually different names — <c>key documentId</c> with <c>id = documentId</c> keys the model's
-/// <c>Id</c> — so the key is matched by what a property is mapped <i>from</i> first, and only then by name.
+/// A Screenplay <c language="csharp">key</c> names an <b>event</b> property, while <c language="csharp">[Key]</c> marks a <b>read model</b> property.
+/// They are usually different names — <c language="csharp">key documentId</c> with <c language="csharp">id = documentId</c> keys the model's
+/// <c language="csharp">Id</c> — so the key is matched by what a property is mapped <i>from</i> first, and only then by name.
 /// <para>
-/// <c>[Key]</c> is identity, not routing. Chronicle never reads it to decide which document an event updates —
-/// it seeds every <c>From</c> with the event source id and only overwrites that from a class-level
-/// <c>[FromEvent]</c>'s key, which <see cref="StateViewSliceRenderer"/> renders. A key written on a <c>from</c>
-/// block or on one of its events therefore has to reach <c>[FromEvent]</c> to have any effect; a key written on
+/// <c language="csharp">[Key]</c> is identity, not routing. Chronicle never reads it to decide which document an event updates —
+/// it seeds every <c language="csharp">From</c> with the event source id and only overwrites that from a class-level
+/// <c language="csharp">[FromEvent]</c>'s key, which <see cref="StateViewSliceRenderer"/> renders. A key written on a <c language="csharp">from</c>
+/// block or on one of its events therefore has to reach <c language="csharp">[FromEvent]</c> to have any effect; a key written on
 /// the projection itself drives neither, which matches the kernel's own visitor — it never reads
 /// <see cref="ProjectionSyntax.Key"/> — so both route on the event source id and agree.
 /// </para>
@@ -27,11 +27,11 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 public static class ProjectionKey
 {
     /// <summary>
-    /// Resolves the read-model property to mark with <c>[Key]</c>, adding a property for the key when the
+    /// Resolves the read-model property to mark with <c language="csharp">[Key]</c>, adding a property for the key when the
     /// projection maps nothing from it.
     /// </summary>
     /// <param name="projection">The <see cref="ProjectionSyntax"/> being rendered.</param>
-    /// <param name="fromBlocks">The projection's <c>from</c> blocks.</param>
+    /// <param name="fromBlocks">The projection's <c language="csharp">from</c> blocks.</param>
     /// <param name="properties">The inferred read-model properties; a synthesized key property is appended here.</param>
     /// <param name="events">The <see cref="EventPropertyIndex"/> to type a synthesized key property against.</param>
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve concept types against.</param>
@@ -68,9 +68,9 @@ public static class ProjectionKey
     /// Resolves the property a key path identifies on a record, adding one to carry it when nothing maps from it.
     /// </summary>
     /// <param name="keyPath">The Screenplay path the key is written as.</param>
-    /// <param name="subject">How the key is named in a diagnostic, e.g. <c>Key 'invoiceNumber'</c>.</param>
-    /// <param name="target">What the record is called in a diagnostic, e.g. <c>read model</c>.</param>
-    /// <param name="declaring">The <c>from</c> block to type a synthesized property against, when there is one.</param>
+    /// <param name="subject">How the key is named in a diagnostic, e.g. <c language="csharp">Key 'invoiceNumber'</c>.</param>
+    /// <param name="target">What the record is called in a diagnostic, e.g. <c language="csharp">read model</c>.</param>
+    /// <param name="declaring">The <c language="csharp">from</c> block to type a synthesized property against, when there is one.</param>
     /// <param name="properties">The inferred properties; a synthesized key property is appended here.</param>
     /// <param name="events">The <see cref="EventPropertyIndex"/> to type a synthesized key property against.</param>
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve concept types against.</param>
@@ -79,7 +79,7 @@ public static class ProjectionKey
     /// <remarks>
     /// A key names an <b>event</b> property while the property it identifies is a <b>record</b> property, so it is
     /// matched by what a property is mapped <i>from</i> first and only then by name. Both the read model's
-    /// <c>key</c> and a <c>children</c> block's <c>identified by</c> resolve this way, and both need the property
+    /// <c language="csharp">key</c> and a <c language="csharp">children</c> block's <c language="csharp">identified by</c> resolve this way, and both need the property
     /// to exist — a name that is on no record identifies nothing.
     /// </remarks>
     public static string ResolveIdentifying(

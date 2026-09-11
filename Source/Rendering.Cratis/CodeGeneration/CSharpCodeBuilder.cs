@@ -55,7 +55,7 @@ public class CSharpCodeBuilder
     }
 
     /// <summary>
-    /// Emits a multiline XML doc <c>&lt;summary&gt;</c> at the current indent level.
+    /// Emits a multiline XML doc <c language="csharp">&lt;summary&gt;</c> at the current indent level.
     /// </summary>
     /// <param name="lines">The summary text, one XML doc line per entry.</param>
     /// <returns>The builder, for chaining.</returns>
@@ -72,7 +72,7 @@ public class CSharpCodeBuilder
     }
 
     /// <summary>
-    /// Emits a single-line multiline XML doc <c>&lt;summary&gt;</c> at the current indent level.
+    /// Emits a single-line multiline XML doc <c language="csharp">&lt;summary&gt;</c> at the current indent level.
     /// </summary>
     /// <param name="text">The summary text.</param>
     /// <returns>The builder, for chaining.</returns>
@@ -81,7 +81,7 @@ public class CSharpCodeBuilder
     /// <summary>
     /// Emits an attribute usage at the current indent level.
     /// </summary>
-    /// <param name="attribute">The attribute content, without the surrounding brackets (e.g. <c>Command</c>).</param>
+    /// <param name="attribute">The attribute content, without the surrounding brackets (e.g. <c language="csharp">Command</c>).</param>
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder Attribute(string attribute) => Line($"[{attribute}]");
 
@@ -113,7 +113,7 @@ public class CSharpCodeBuilder
     /// <summary>
     /// Embeds pre-formatted, multiline source text verbatim, indenting every line to the current block level while
     /// preserving each line's own relative indentation — used to splice authored code blocks (Screenplay
-    /// <c>csharp</c> blocks) into generated method bodies.
+    /// <c language="csharp">csharp</c> blocks) into generated method bodies.
     /// </summary>
     /// <param name="text">The raw source text to embed.</param>
     /// <returns>The builder, for chaining.</returns>
@@ -128,16 +128,16 @@ public class CSharpCodeBuilder
     }
 
     /// <summary>
-    /// Emits an expression-bodied member: <c>&lt;signature&gt; =&gt; &lt;expression&gt;;</c>.
+    /// Emits an expression-bodied member: <c language="csharp">&lt;signature&gt; =&gt; &lt;expression&gt;;</c>.
     /// </summary>
-    /// <param name="signature">The member signature, without a trailing <c>=&gt;</c>.</param>
+    /// <param name="signature">The member signature, without a trailing <c language="csharp">=&gt;</c>.</param>
     /// <param name="expression">The expression body.</param>
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder ExpressionMember(string signature, string expression) => Line($"{signature} => {expression};");
 
     /// <summary>
     /// Opens a braced block — a type, method, or control-flow construct — emitting its signature followed by
-    /// <c>{</c>, and indenting every subsequent line until the matching <see cref="EndBlock"/>.
+    /// <c language="csharp">{</c>, and indenting every subsequent line until the matching <see cref="EndBlock"/>.
     /// </summary>
     /// <param name="signature">The block's signature line.</param>
     /// <returns>The builder, for chaining.</returns>

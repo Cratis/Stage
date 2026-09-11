@@ -10,7 +10,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// <summary>
 /// Converts the declarative validation rules of a Screenplay command into Stage's per-property
 /// <see cref="CommandPropertyRules"/>. Only <see cref="DeclarativeValidateSyntax"/> blocks are translated; inline
-/// <c>validate csharp</c> blocks have no Stage rule equivalent and are skipped, as is any rule whose operand is not a
+/// <c language="csharp">validate csharp</c> blocks have no Stage rule equivalent and are skipped, as is any rule whose operand is not a
 /// literal — a Stage rule holds a fixed value, and there is none to hold for one stated against a runtime value.
 /// </summary>
 public static class ValidationRuleConverter

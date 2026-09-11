@@ -34,7 +34,7 @@ public enum ProducedValueKind
     Environment = 4,
 
     /// <summary>
-    /// The value is an interpolated string, where <c>${property}</c> placeholders resolve against the command payload.
+    /// The value is an interpolated string, where <c language="csharp">${property}</c> placeholders resolve against the command payload.
     /// </summary>
     Template = 5,
 

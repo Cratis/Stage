@@ -25,7 +25,7 @@ public static class ModelNaming
     }
 
     /// <summary>
-    /// Produces a simple English plural of the given identifier, used for the <c>All&lt;Plural&gt;</c> query name.
+    /// Produces a simple English plural of the given identifier, used for the <c language="csharp">All&lt;Plural&gt;</c> query name.
     /// </summary>
     /// <param name="value">The singular identifier.</param>
     /// <returns>The pluralized identifier.</returns>

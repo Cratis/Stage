@@ -26,8 +26,8 @@ public sealed record HandlerCollaborator(string TypeName, string ParameterName, 
     /// Gets the collaborator giving the identity recorded as having caused what the command appends.
     /// </summary>
     /// <remarks>
-    /// Named in full: the Cratis package's global usings bring in both <c>Cratis.Chronicle.Identities</c> and
-    /// <c>Cratis.Arc.Identity</c>, and each declares an <c>IIdentityProvider</c>, so the short name is ambiguous
+    /// Named in full: the Cratis package's global usings bring in both <c language="csharp">Cratis.Chronicle.Identities</c> and
+    /// <c language="csharp">Cratis.Arc.Identity</c>, and each declares an <c language="csharp">IIdentityProvider</c>, so the short name is ambiguous
     /// in every rendered file whether or not this one adds a using of its own.
     /// </remarks>
     public static readonly HandlerCollaborator Identities = new("Cratis.Chronicle.Identities.IIdentityProvider", "identities", string.Empty);

@@ -8,8 +8,8 @@ using SceneScreens = Cratis.Scene.Model.Screens;
 namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
-/// The full result of translating a compiled Screenplay <c>ApplicationSyntax</c> into Scene - part of
-/// Cratis/Stage#37. A Stage-side bundle, not a Scene concept - <c>Cratis.Scene.Model</c> has no "whole
+/// The full result of translating a compiled Screenplay <c language="csharp">ApplicationSyntax</c> into Scene - part of
+/// Cratis/Stage#37. A Stage-side bundle, not a Scene concept - <c language="csharp">Cratis.Scene.Model</c> has no "whole
 /// translated app" type, and none should exist there.
 /// </summary>
 /// <param name="UiProfiles">Every <see cref="SceneProfiles.UiProfile"/> declared in the application.</param>

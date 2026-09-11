@@ -6,11 +6,11 @@ using System.Text.Json.Serialization;
 namespace Cratis.Stage.Contracts.Commands;
 
 /// <summary>
-/// Represents what a command's <c>authorize</c> declaration requires of the caller — a policy, or policies combined.
+/// Represents what a command's <c language="csharp">authorize</c> declaration requires of the caller — a policy, or policies combined.
 /// </summary>
 /// <remarks>
 /// A tree rather than a flat list of policy names, deliberately. A set of names cannot distinguish
-/// <c>A or B and C</c> from <c>(A or B) and C</c>, so a consumer deciding whether a caller is allowed cannot
+/// <c language="csharp">A or B and C</c> from <c language="csharp">(A or B) and C</c>, so a consumer deciding whether a caller is allowed cannot
 /// answer from one — which is what <see href="https://github.com/Cratis/Screenplay/issues/68">Screenplay#68</see>
 /// was about. Use <see cref="Policies"/> for the flat set when only the names are needed.
 /// </remarks>
@@ -43,7 +43,7 @@ public abstract record AuthorizationRequirement
 public record PolicyReference(string Policy) : AuthorizationRequirement;
 
 /// <summary>
-/// Represents two authorization requirements combined with <c>and</c> or <c>or</c>.
+/// Represents two authorization requirements combined with <c language="csharp">and</c> or <c language="csharp">or</c>.
 /// </summary>
 /// <param name="Left">The left hand requirement.</param>
 /// <param name="Operator">The operator combining the requirements.</param>

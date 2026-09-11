@@ -8,8 +8,8 @@ namespace Cratis.Stage.Contracts.Projections;
 /// </summary>
 /// <remarks>
 /// The <paramref name="Expression"/> is an expression string compatible with Chronicle's projection engine — either a
-/// plain event property name, or one of the well-known tokens (for example <c>$eventSourceId</c>, <c>$eventContext.occurred</c>,
-/// <c>$value</c>, <c>$add</c>, <c>$increment</c>).
+/// plain event property name, or one of the well-known tokens (for example <c language="csharp">$eventSourceId</c>, <c language="csharp">$eventContext.occurred</c>,
+/// <c language="csharp">$value</c>, <c language="csharp">$add</c>, <c language="csharp">$increment</c>).
 /// </remarks>
 /// <param name="Property">The target property path on the read model.</param>
 /// <param name="Expression">The source expression that produces the value.</param>

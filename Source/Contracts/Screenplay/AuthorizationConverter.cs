@@ -11,7 +11,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// </summary>
 /// <remarks>
 /// The tree is carried whole rather than flattened to the policy names it mentions. Flattening cannot distinguish
-/// <c>A or B and C</c> from <c>(A or B) and C</c>, so a consumer deciding whether a caller is allowed could not
+/// <c language="csharp">A or B and C</c> from <c language="csharp">(A or B) and C</c>, so a consumer deciding whether a caller is allowed could not
 /// answer from the result — see <see href="https://github.com/Cratis/Screenplay/issues/68">Screenplay#68</see>.
 /// A consumer that only wants the names calls <see cref="AuthorizationRequirement.Policies"/>.
 /// </remarks>

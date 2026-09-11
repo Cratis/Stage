@@ -75,15 +75,15 @@ public static class ProjectionMapping
     }
 
     /// <summary>
-    /// Resolves a mapping inside a <c>join</c> block's <c>with</c> to the read-model property it produces, carrying
-    /// the <c>[Join]</c> attribute that pulls the value in from the joined event instead of the local one.
+    /// Resolves a mapping inside a <c language="csharp">join</c> block's <c language="csharp">with</c> to the read-model property it produces, carrying
+    /// the <c language="csharp">[Join]</c> attribute that pulls the value in from the joined event instead of the local one.
     /// </summary>
     /// <param name="mapping">The <see cref="MappingSyntax"/> to resolve.</param>
     /// <param name="eventName">The Screenplay name of the joined event.</param>
     /// <param name="on">The Screenplay name of the read-model property the join matches on.</param>
     /// <param name="modelProperties">
     /// The read-model property names inferred so far, deciding whether the join key can be referenced with
-    /// <c>nameof</c> — a name that is not a property of the record would not bind.
+    /// <c language="csharp">nameof</c> — a name that is not a property of the record would not bind.
     /// </param>
     /// <param name="events">The <see cref="EventPropertyIndex"/> to type event properties against.</param>
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve concept types against.</param>
@@ -133,7 +133,7 @@ public static class ProjectionMapping
     }
 
     /// <summary>
-    /// Resolves a mapping inside an <c>all</c> or <c>every</c> block to the read-model property it produces.
+    /// Resolves a mapping inside an <c language="csharp">all</c> or <c language="csharp">every</c> block to the read-model property it produces.
     /// </summary>
     /// <param name="mapping">The <see cref="MappingSyntax"/> to resolve.</param>
     /// <param name="scope">The <see cref="GlobalMappingScope"/> the mapping was declared in.</param>
@@ -169,9 +169,9 @@ public static class ProjectionMapping
     /// <param name="eventName">The Screenplay name of the event.</param>
     /// <param name="sourcePath">The Screenplay name of the property on that event.</param>
     /// <param name="events">The <see cref="EventPropertyIndex"/> deciding whether the reference would bind.</param>
-    /// <returns>A <c>nameof</c> reference when the event really declares the property, a string literal otherwise.</returns>
+    /// <returns>A <c language="csharp">nameof</c> reference when the event really declares the property, a string literal otherwise.</returns>
     /// <remarks>
-    /// A <c>nameof()</c> reference is a compile-time check that the mapping still matches the event. It can only be
+    /// A <c language="csharp">nameof()</c> reference is a compile-time check that the mapping still matches the event. It can only be
     /// emitted when the event is declared here and really carries the property; otherwise the name goes through as
     /// a string so the generated file still compiles and the diagnostic raised alongside it says why.
     /// </remarks>

@@ -11,8 +11,8 @@ namespace Cratis.Stage.Contracts.Screenplay;
 
 /// <summary>
 /// Converts Screenplay <see cref="ExpressionSyntax"/> and <see cref="KeySyntax"/> nodes into the Chronicle-compatible
-/// projection expression strings Stage's <c>ProjectionDefinition</c> carries (for example <c>$eventSourceId</c>,
-/// <c>$eventContext(occurred)</c>, <c>$value("global")</c>). Targets the expressions the projection engine's
+/// projection expression strings Stage's <c language="csharp">ProjectionDefinition</c> carries (for example <c language="csharp">$eventSourceId</c>,
+/// <c language="csharp">$eventContext(occurred)</c>, <c language="csharp">$value("global")</c>). Targets the expressions the projection engine's
 /// resolvers support — which is narrower than what Chronicle's own definition-language visitor emits.
 /// </summary>
 public static class ScreenplayExpression
@@ -43,7 +43,7 @@ public static class ScreenplayExpression
 
     /// <summary>
     /// Converts an expression used as a key into its Chronicle key expression string. String literals are wrapped in
-    /// the <c>$value(...)</c> token so the engine treats them as constant keys rather than property references.
+    /// the <c language="csharp">$value(...)</c> token so the engine treats them as constant keys rather than property references.
     /// </summary>
     /// <param name="expression">The key expression to convert.</param>
     /// <returns>The Chronicle-compatible key expression string.</returns>

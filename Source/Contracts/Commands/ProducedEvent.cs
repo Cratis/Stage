@@ -4,7 +4,7 @@
 namespace Cratis.Stage.Contracts.Commands;
 
 /// <summary>
-/// Represents an event a command produces — the modeled <c>produces</c> declaration.
+/// Represents an event a command produces — the modeled <c language="csharp">produces</c> declaration.
 /// </summary>
 /// <param name="Event">The name of the event type to append.</param>
 /// <param name="When">The condition guarding the production, or <see langword="null"/> when the event is always produced.</param>
@@ -17,7 +17,7 @@ public record ProducedEvent(
     IReadOnlyList<string> Tags)
 {
     /// <summary>
-    /// Gets where the event source this event is appended to comes from — the modeled <c>for</c> clause — or
+    /// Gets where the event source this event is appended to comes from — the modeled <c language="csharp">for</c> clause — or
     /// <see langword="null"/> when the event lands on the command's own event source.
     /// </summary>
     public ProducedEventSource? For { get; init; }

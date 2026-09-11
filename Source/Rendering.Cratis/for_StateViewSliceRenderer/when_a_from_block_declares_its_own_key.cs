@@ -13,13 +13,13 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// A key written on a <c>from</c> block, or on one of its events, is what decides which document the event
-/// updates. Chronicle seeds every <c>From</c> with the event source id and only overwrites it from a class-level
-/// <c>[FromEvent]</c>'s key — never from <c>[Key]</c>, which it reads solely to identify a child — so a read
-/// model carrying only <c>[Key]</c> keeps routing on the event source id however the projection is written.
+/// A key written on a <c language="csharp">from</c> block, or on one of its events, is what decides which document the event
+/// updates. Chronicle seeds every <c language="csharp">From</c> with the event source id and only overwrites it from a class-level
+/// <c language="csharp">[FromEvent]</c>'s key — never from <c language="csharp">[Key]</c>, which it reads solely to identify a child — so a read
+/// model carrying only <c language="csharp">[Key]</c> keeps routing on the event source id however the projection is written.
 /// </summary>
 /// <remarks>
-/// The key is deliberately declared on the <c>from</c> blocks here rather than on the projection: the kernel's
+/// The key is deliberately declared on the <c language="csharp">from</c> blocks here rather than on the projection: the kernel's
 /// visitor never reads <see cref="ProjectionSyntax.Key"/>, so a projection-level key routes nothing and the two
 /// agree on the event source id. This covers the case where they would otherwise disagree.
 /// </remarks>

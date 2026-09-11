@@ -11,8 +11,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// navigational shell - into a <see cref="SceneLayouts.Layout"/> - part of Cratis/Stage#37.
 /// </summary>
 /// <remarks>
-/// A <c>layout</c> is a top-level Screenplay declaration, alongside <c>theme</c> and <c>ui profile</c>, and an
-/// application selects one of them per <c>ui profile</c>. The reusable shapes that go <em>inside</em> the
+/// A <c language="csharp">layout</c> is a top-level Screenplay declaration, alongside <c language="csharp">theme</c> and <c language="csharp">ui profile</c>, and an
+/// application selects one of them per <c language="csharp">ui profile</c>. The reusable shapes that go <em>inside</em> the
 /// shell - the ones that used to share the word "layout" - are screen and dialog templates now, converted by
 /// <see cref="ScreenTemplateConverter"/> and <see cref="DialogTemplateConverter"/>. All three are structurally
 /// alike (slots plus an arrangement) and differ only in role, which is exactly how both languages model them.

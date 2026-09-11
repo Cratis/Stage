@@ -4,7 +4,7 @@
 namespace Cratis.Stage.Naming;
 
 /// <summary>
-/// Generates docker-style <c>&lt;adjective&gt;-&lt;noun&gt;</c> names, used as the ephemeral event store name for an engine run.
+/// Generates docker-style <c language="csharp">&lt;adjective&gt;-&lt;noun&gt;</c> names, used as the ephemeral event store name for an engine run.
 /// </summary>
 public static class DockerStyleName
 {
@@ -25,7 +25,7 @@ public static class DockerStyleName
     /// <summary>
     /// Generates a new docker-style name.
     /// </summary>
-    /// <returns>A name in the form <c>&lt;adjective&gt;-&lt;noun&gt;</c>.</returns>
+    /// <returns>A name in the form <c language="csharp">&lt;adjective&gt;-&lt;noun&gt;</c>.</returns>
     public static string Generate()
     {
         var adjective = _adjectives[Random.Shared.Next(_adjectives.Length)];

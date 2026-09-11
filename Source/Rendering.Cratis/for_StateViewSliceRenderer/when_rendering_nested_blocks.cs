@@ -11,8 +11,8 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// A <c>nested</c> block renders as a sibling record carrying its own class-level projection attributes, which the
-/// read model holds through a nullable <c>[Nested]</c> property. The compilation is the assertion that matters:
+/// A <c language="csharp">nested</c> block renders as a sibling record carrying its own class-level projection attributes, which the
+/// read model holds through a nullable <c language="csharp">[Nested]</c> property. The compilation is the assertion that matters:
 /// only the compiler can say the attributes exist and are legal where they were placed.
 /// </summary>
 public class when_rendering_nested_blocks : a_projection_with_nested_blocks

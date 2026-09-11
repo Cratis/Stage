@@ -10,7 +10,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 
 /// <summary>
 /// Converts the Screenplay <see cref="SpecificationSyntax">specifications</see> of a slice into Stage
-/// <see cref="Specification"/> records — translating <c>given</c>/<c>when</c>/<c>then</c> steps and rendering each
+/// <see cref="Specification"/> records — translating <c language="csharp">given</c>/<c language="csharp">when</c>/<c language="csharp">then</c> steps and rendering each
 /// step's property values as a JSON object string.
 /// </summary>
 public static class SpecificationConverter

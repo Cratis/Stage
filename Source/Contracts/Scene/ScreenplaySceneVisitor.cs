@@ -10,13 +10,13 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <summary>
 /// Visits a compiled Screenplay <see cref="ScreenplaySyntax.ApplicationSyntax"/> and produces the Scene
 /// translation of it - part of Cratis/Stage#37. A separate, parallel visitor from
-/// <see cref="Cratis.Stage.Contracts.Screenplay.ScreenplayEventModelVisitor"/> (which produces the unrelated <c>EventModel</c>) -
+/// <see cref="Cratis.Stage.Contracts.Screenplay.ScreenplayEventModelVisitor"/> (which produces the unrelated <c language="csharp">EventModel</c>) -
 /// this one does not touch it.
 /// </summary>
 /// <remarks>
-/// The roots follow Screenplay's taxonomy: <c>layout</c> is top-level (the application's one navigational
-/// shell), while <c>screen template</c> and <c>dialog template</c> - the reusable shapes inside it - are
-/// module-scoped. A document may declare several layouts so that different <c>ui profile</c>s can select
+/// The roots follow Screenplay's taxonomy: <c language="csharp">layout</c> is top-level (the application's one navigational
+/// shell), while <c language="csharp">screen template</c> and <c language="csharp">dialog template</c> - the reusable shapes inside it - are
+/// module-scoped. A document may declare several layouts so that different <c language="csharp">ui profile</c>s can select
 /// different shells; every screen resolves against the first declared one, because
 /// <see cref="SceneScreens.Screen.Layout"/> holds a single name. Carrying the per-profile selection through
 /// would mean one <see cref="SceneScreens.Screen"/> per profile, which this translation deliberately does not

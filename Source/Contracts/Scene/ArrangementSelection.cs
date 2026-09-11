@@ -11,7 +11,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </summary>
 /// <remarks>
 /// Exactly one of <paramref name="Flow"/>, <paramref name="Slots"/> and <paramref name="Elements"/> is set,
-/// matching the three arrangement shapes <c>Cratis.Scene.Model</c> defines. They are Scene's own evaluated
+/// matching the three arrangement shapes <c language="csharp">Cratis.Scene.Model</c> defines. They are Scene's own evaluated
 /// results, carried through unchanged - the selection is what Scene's evaluators returned, not a Stage-side
 /// interpretation of them.
 /// </remarks>

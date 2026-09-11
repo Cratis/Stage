@@ -11,7 +11,7 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// A <c>children</c> block renders as a sibling record the parent holds in an <c>IEnumerable&lt;T&gt;</c>, with
+/// A <c language="csharp">children</c> block renders as a sibling record the parent holds in an <c language="csharp">IEnumerable&lt;T&gt;</c>, with
 /// every projection attribute on that collection property rather than on the child record itself. The compilation
 /// is the assertion that matters: only the compiler can say the attributes exist, take the arguments they were
 /// given, and are legal where they were placed.

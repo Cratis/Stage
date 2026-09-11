@@ -11,11 +11,11 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_QueryRenderer.when_rendering_the_queries_a_slice_declares;
 
 /// <summary>
-/// A read model whose slice declares a query the document marks <c>observable</c> — a live read that keeps
+/// A read model whose slice declares a query the document marks <c language="csharp">observable</c> — a live read that keeps
 /// pushing as the read model changes, rather than answering once.
 /// </summary>
 /// <remarks>
-/// This one was rendered as its own opposite. An <c>observable</c> query became the same one-shot method a
+/// This one was rendered as its own opposite. An <c language="csharp">observable</c> query became the same one-shot method a
 /// plain query does, and nothing anywhere said so — not the file, not a diagnostic — so the rendered
 /// application looked exactly like the one the document asked for and was not it.
 /// </remarks>

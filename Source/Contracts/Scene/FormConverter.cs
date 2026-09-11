@@ -13,7 +13,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </summary>
 /// <remarks>
 /// <see cref="ScreenplaySyntax.FormSyntax.OnSubmit"/> has no home on <see cref="SceneModel.Form"/> and is a
-/// known, deliberate gap - not carried through. For <c>populate via query ... by &lt;param&gt;</c>, Screenplay
+/// known, deliberate gap - not carried through. For <c language="csharp">populate via query ... by &lt;param&gt;</c>, Screenplay
 /// carries only the bare parameter name, not a resolved binding path - this converter treats the parameter
 /// name as its own binding path (a value already in scope under that exact name), a documented assumption
 /// pending a real multi-screen translation to validate against.
@@ -21,7 +21,7 @@ namespace Cratis.Stage.Contracts.Scene;
 public static class FormConverter
 {
     /// <summary>
-    /// The synthesized binding path used for a <c>populate from item</c> declaration, which carries no
+    /// The synthesized binding path used for a <c language="csharp">populate from item</c> declaration, which carries no
     /// path of its own in Screenplay's grammar.
     /// </summary>
     public const string FromItemPath = "item";

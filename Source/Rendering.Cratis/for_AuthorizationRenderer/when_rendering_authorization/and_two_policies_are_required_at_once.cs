@@ -10,7 +10,7 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_AuthorizationRenderer.when_rendering_authorization;
 
 /// <summary>
-/// Specifies that <c>authorize Administrator and Auditor</c> is a conjunction and must never be weakened into
+/// Specifies that <c language="csharp">authorize Administrator and Auditor</c> is a conjunction and must never be weakened into
 /// Arc's role disjunction.
 /// </summary>
 public class and_two_policies_are_required_at_once : an_application_with_policies

@@ -20,15 +20,15 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 internal static class RenderedOutput
 {
     /// <summary>
-    /// The implicit usings the scaffolded project enables (<c>ImplicitUsings</c> in the Cratis template), together
-    /// with the global usings the <c>Cratis</c> package itself contributes through its <c>Cratis.props</c>, mirrored
+    /// The implicit usings the scaffolded project enables (<c language="csharp">ImplicitUsings</c> in the Cratis template), together
+    /// with the global usings the <c language="csharp">Cratis</c> package itself contributes through its <c language="csharp">Cratis.props</c>, mirrored
     /// here so the compilation sees the same ambient namespaces the rendered application really builds with.
     /// </summary>
     /// <remarks>
     /// The package's set is load-bearing in both directions: without it the rendered validators look broken because
-    /// <c>FluentValidation</c> is missing, and with it a short type name that is unambiguous on its own becomes
-    /// ambiguous — <c>IIdentityProvider</c> is declared by both <c>Cratis.Arc.Identity</c> and
-    /// <c>Cratis.Chronicle.Identities</c>. A compilation that omits them sees neither.
+    /// <c language="csharp">FluentValidation</c> is missing, and with it a short type name that is unambiguous on its own becomes
+    /// ambiguous — <c language="csharp">IIdentityProvider</c> is declared by both <c language="csharp">Cratis.Arc.Identity</c> and
+    /// <c language="csharp">Cratis.Chronicle.Identities</c>. A compilation that omits them sees neither.
     /// </remarks>
     const string ImplicitUsings = """
         global using System;

@@ -12,7 +12,7 @@ using Cratis.Stage.Rendering.Cratis.Renderers;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
 
 /// <summary>
-/// An application that states who may do what: policies at the top, an <c>authorize</c> on commands and on the
+/// An application that states who may do what: policies at the top, an <c language="csharp">authorize</c> on commands and on the
 /// queries of a State View, alongside the constructs that surround them in a real document — a uniqueness
 /// constraint, a screen, a persona and an authentication provider. Every one of them was silently dropped.
 /// </summary>

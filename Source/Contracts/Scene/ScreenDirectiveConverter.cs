@@ -11,14 +11,14 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <see cref="SceneElements.SceneElement"/>s - part of Cratis/Stage#37.
 /// </summary>
 /// <remarks>
-/// Every directive kind (including <c>data</c>, which is not itself visual) becomes one
-/// <see cref="SceneElements.ExternalComponent"/> named <c>core:&lt;directive-kind&gt;</c>, with the
-/// directive's own fields folded into its open <c>Properties</c> bag and any nested directives placed in
-/// its <c>Slots["content"]</c>. This is a deliberately mechanical, uniform mapping rather than a bespoke
-/// <c>SceneElement</c> subtype per widget - the <c>core:*</c> components don't have to exist in
-/// <c>Scene.React</c> yet for the translated model to be correct; rendering them is a separate, later
-/// concern (a <c>core</c> package addition), the same reasoning Cratis/Scene#5 used to leave
-/// <c>Scene.React</c> untouched.
+/// Every directive kind (including <c language="csharp">data</c>, which is not itself visual) becomes one
+/// <see cref="SceneElements.ExternalComponent"/> named <c language="csharp">core:&lt;directive-kind&gt;</c>, with the
+/// directive's own fields folded into its open <c language="csharp">Properties</c> bag and any nested directives placed in
+/// its <c language="csharp">Slots["content"]</c>. This is a deliberately mechanical, uniform mapping rather than a bespoke
+/// <c language="csharp">SceneElement</c> subtype per widget - the <c language="csharp">core:*</c> components don't have to exist in
+/// <c language="csharp">Scene.React</c> yet for the translated model to be correct; rendering them is a separate, later
+/// concern (a <c language="csharp">core</c> package addition), the same reasoning Cratis/Scene#5 used to leave
+/// <c language="csharp">Scene.React</c> untouched.
 /// </remarks>
 public static class ScreenDirectiveConverter
 {

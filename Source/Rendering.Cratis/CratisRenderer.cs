@@ -47,7 +47,7 @@ public class CratisRenderer : IRenderer
     /// </summary>
     /// <remarks>
     /// Pass a <see cref="IProjectScaffolder"/> to the constructor to scaffold as well — the template-engine
-    /// one lives in <c>Cratis.Stage.Rendering.Cratis.Scaffolding</c>, kept out of this package because the
+    /// one lives in <c language="csharp">Cratis.Stage.Rendering.Cratis.Scaffolding</c>, kept out of this package because the
     /// engine it needs cannot be hosted beside MSBuild.
     /// </remarks>
     /// <returns>The <see cref="CratisRenderer"/>.</returns>
@@ -119,7 +119,7 @@ public class CratisRenderer : IRenderer
     static IReadOnlyList<string> Path(params string?[] segments) => [.. segments.Where(segment => !string.IsNullOrWhiteSpace(segment))!];
 
     /// <summary>
-    /// Reports every name a slice references that nothing in the rendered output declares. An <c>import</c> names
+    /// Reports every name a slice references that nothing in the rendered output declares. An <c language="csharp">import</c> names
     /// a construct owned by another domain — the rendered application has no source for it, and a reference to it
     /// will not compile until that domain's contracts are referenced.
     /// </summary>
@@ -136,8 +136,8 @@ public class CratisRenderer : IRenderer
     }
 
     /// <summary>
-    /// Reports the application-wide declarations nothing renders. A <c>persona</c> is what binds a caller to the
-    /// policies they hold and <c>authentication</c> is what establishes who the caller is — without them the
+    /// Reports the application-wide declarations nothing renders. A <c language="csharp">persona</c> is what binds a caller to the
+    /// policies they hold and <c language="csharp">authentication</c> is what establishes who the caller is — without them the
     /// authorization the commands and read models now carry has nothing to evaluate against, so their absence is
     /// as load-bearing as a missing slice.
     /// </summary>

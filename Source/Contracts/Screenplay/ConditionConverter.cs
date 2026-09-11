@@ -10,9 +10,9 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// Converts a Screenplay <see cref="ConditionSyntax"/> into the Stage <see cref="ProducedEventCondition"/> tree.
 /// </summary>
 /// <remarks>
-/// One condition converter for every construct that carries a condition — a <c>produces when</c> guard and a
-/// <c>require</c> rule are the same condition grammar in the language, so they are the same tree here. A second
-/// tree for requirements would let <c>and</c> and <c>or</c> drift apart between the two.
+/// One condition converter for every construct that carries a condition — a <c language="csharp">produces when</c> guard and a
+/// <c language="csharp">require</c> rule are the same condition grammar in the language, so they are the same tree here. A second
+/// tree for requirements would let <c language="csharp">and</c> and <c language="csharp">or</c> drift apart between the two.
 /// </remarks>
 public static class ConditionConverter
 {

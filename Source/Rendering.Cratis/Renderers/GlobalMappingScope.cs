@@ -9,9 +9,9 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// </summary>
 public enum GlobalMappingScope
 {
-    /// <summary>An <c>all</c> block — every event type in the system, rendered as <c>[FromAll]</c>.</summary>
+    /// <summary>An <c language="csharp">all</c> block — every event type in the system, rendered as <c language="csharp">[FromAll]</c>.</summary>
     All,
 
-    /// <summary>An <c>every</c> block — every event the projection subscribes to, rendered as <c>[FromEvery]</c>.</summary>
+    /// <summary>An <c language="csharp">every</c> block — every event the projection subscribes to, rendered as <c language="csharp">[FromEvery]</c>.</summary>
     Every
 }

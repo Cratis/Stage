@@ -11,13 +11,13 @@ public enum ResolvedTypeKind
     /// <summary>A built-in Screenplay primitive (Uuid, String, Int, Decimal, Bool, Date, DateTime).</summary>
     Primitive,
 
-    /// <summary>A declared <c>concept</c> rendered as <c>ConceptAs&lt;T&gt;</c> or <c>EventSourceId&lt;T&gt;</c>.</summary>
+    /// <summary>A declared <c language="csharp">concept</c> rendered as <c language="csharp">ConceptAs&lt;T&gt;</c> or <c language="csharp">EventSourceId&lt;T&gt;</c>.</summary>
     Concept,
 
-    /// <summary>A declared <c>concept</c> rendered as a C# <see langword="enum"/>.</summary>
+    /// <summary>A declared <c language="csharp">concept</c> rendered as a C# <see langword="enum"/>.</summary>
     Enum,
 
-    /// <summary>A declared composite <c>type</c>.</summary>
+    /// <summary>A declared composite <c language="csharp">type</c>.</summary>
     Composite,
 
     /// <summary>A referenced name that could not be resolved to a primitive, concept or type.</summary>

@@ -11,9 +11,9 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_ExpressionRenderer;
 
 /// <summary>
-/// The renderings that hold when Chronicle's <c>EventContext</c> is in scope as <c>context</c> — a reactor method
-/// and a projection. What <c>$context</c> becomes elsewhere is the enclosing artifact's to say; a command handler
-/// receives no such parameter, so its renderings are specified against <c>CommandContextAccess</c> instead.
+/// The renderings that hold when Chronicle's <c language="csharp">EventContext</c> is in scope as <c language="csharp">context</c> — a reactor method
+/// and a projection. What <c language="csharp">$context</c> becomes elsewhere is the enclosing artifact's to say; a command handler
+/// receives no such parameter, so its renderings are specified against <c language="csharp">CommandContextAccess</c> instead.
 /// </summary>
 public class when_rendering_expressions : Specification
 {

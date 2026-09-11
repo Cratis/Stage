@@ -7,7 +7,7 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
 /// Renders the uniqueness a slice declares onto the events it is declared against, as Chronicle
-/// <c>[Unique]</c> attributes.
+/// <c language="csharp">[Unique]</c> attributes.
 /// </summary>
 /// <remarks>
 /// Uniqueness is the one invariant a rendered application cannot enforce for itself. A read-then-write check in a
@@ -41,7 +41,7 @@ public static class ConstraintRenderer
     /// <param name="property">The name of the property being rendered.</param>
     /// <returns>The attribute text, targeted at the property, or <see langword="null"/> when it carries none.</returns>
     /// <remarks>
-    /// The <c>property:</c> target is load-bearing. An event renders as a positional record, and an attribute on a
+    /// The <c language="csharp">property:</c> target is load-bearing. An event renders as a positional record, and an attribute on a
     /// positional parameter lands on the parameter, which Chronicle never reads — it looks at the property the
     /// record generates from it.
     /// </remarks>

@@ -3,12 +3,13 @@
 
 using Cratis.Chronicle;
 using Cratis.Chronicle.Contracts;
+using Cratis.Chronicle.Contracts.Commands;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Chronicle.Identities;
 using Microsoft.Extensions.Logging;
 using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
-using ChronicleEventSequences = Cratis.Chronicle.Contracts.EventSequences;
-using ChronicleIdentities = Cratis.Chronicle.Contracts.Identities;
+using ChronicleIdentities = Cratis.Chronicle.Contracts.Sequences;
+using ChronicleSequences = Cratis.Chronicle.Contracts.Sequences;
 
 namespace Cratis.Stage.Runtime;
 
@@ -36,45 +37,44 @@ public sealed class ProducedEventAppender(IChronicleClient client, StageEventSto
         await store.Connection.Connect();
         var accessor = (IChronicleServicesAccessor)store.Connection;
 
-        var response = await accessor.Services.EventSequences.AppendMany(new ChronicleEventSequences.AppendManyRequest
+        // 18 moved the event source id to the request: every event in a batch append shares it.
+        // Tags are request-scoped too, so the batch carries the union of the per-event tags.
+        var response = await accessor.Services.Sequences.AppendMany(new ChronicleSequences.AppendManyRequest
         {
             EventStore = store.Name,
             Namespace = EventStoreNamespaceName.Default,
             EventSequenceId = EventSequenceId.Log,
+            EventSourceId = eventSourceId,
             CausedBy = CausedBy(identity),
+            Tags = [.. events.SelectMany(@event => @event.Tags).Distinct()],
             Events =
             [
-                .. events.Select(@event => ToAppend(eventSourceId, @event))
+                .. events.Select(ToAppend)
             ],
         });
+        response.EnsureSuccess();
 
-        if (response.ConstraintViolations.Count > 0)
+        if (response.Response.ConstraintViolations.Any())
         {
             ProducedEventAppenderLogging.ConstraintViolations(
                 logger,
                 eventSourceId,
-                string.Join("; ", response.ConstraintViolations.Select(violation => $"{violation.ConstraintName}: {violation.Message}")));
+                string.Join("; ", response.Response.ConstraintViolations.Select(violation => $"{violation.ConstraintName}: {violation.Message}")));
         }
     }
 
-    static ChronicleEvents.EventToAppend ToAppend(string eventSourceId, ProducedEventPayload @event)
+    static ChronicleSequences.EventToAppend ToAppend(ProducedEventPayload @event)
     {
-        // protobuf-net rejects a read-only underlying collection for a repeated field, and an array reports itself
-        // as read-only - so the tags have to go over the wire as a List.
-        List<string> tags = [.. @event.Tags];
-
         return new()
         {
-            EventSourceId = eventSourceId,
-            EventType = new ChronicleEvents.EventType { Id = @event.EventType, Generation = FirstGeneration },
+            EventType = new ChronicleSequences.EventType { Id = @event.EventType, Generation = FirstGeneration },
             Content = @event.Content.ToJsonString(),
-            Tags = tags,
         };
     }
 
     // The kernel requires a causing identity on every append. An anonymous caller is genuinely unknown rather than
     // the platform itself acting, so the Unknown sentinel is the honest default.
-    static ChronicleIdentities.Identity CausedBy(IReadOnlyDictionary<string, string> identity) =>
+    static ChronicleSequences.Identity CausedBy(IReadOnlyDictionary<string, string> identity) =>
         new()
         {
             Subject = Value(identity, "subject", Identity.Unknown.Subject),

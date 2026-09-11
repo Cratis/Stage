@@ -10,13 +10,13 @@ using Xunit;
 namespace Cratis.Stage.Contracts.Screenplay.for_ValidationRuleConverter.when_converting_the_validation_of_a_command;
 
 /// <summary>
-/// Screenplay lets a rule be stated against a value only known while the application runs — <c>dueDate &gt; today</c>,
+/// Screenplay lets a rule be stated against a value only known while the application runs — <c language="csharp">dueDate &gt; today</c>,
 /// or a threshold naming another property. A Stage rule holds a fixed operand and there is none to hold for these, so
 /// they are dropped.
 /// </summary>
 /// <remarks>
-/// The conversion used to substitute <c>0</c> for the missing number and an empty string for the missing pattern, which
-/// is the failure worth pinning: <c>dueDate &gt; today</c> became "greater than zero" and <c>matches somePattern</c>
+/// The conversion used to substitute <c language="csharp">0</c> for the missing number and an empty string for the missing pattern, which
+/// is the failure worth pinning: <c language="csharp">dueDate &gt; today</c> became "greater than zero" and <c language="csharp">matches somePattern</c>
 /// became "matches the empty pattern" — rules that assert something the document never said, carried with the same
 /// confidence as the ones it did. A rule that is not carried can be reported; a rule carried with an invented operand
 /// reads as faithful and is not.

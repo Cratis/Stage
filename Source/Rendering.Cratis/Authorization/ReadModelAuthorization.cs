@@ -13,12 +13,12 @@ namespace Cratis.Stage.Rendering.Cratis.Authorization;
 /// <remarks>
 /// Declared queries are separate Arc operations and carry their exact authorization on their generated methods.
 /// Their policies must never be combined on the read-model type: doing so widens distinct operations, such as an
-/// administrator-only <c>All</c> and an auditor-only <c>Mine</c>, so either role can call both.
+/// administrator-only <c language="csharp">All</c> and an auditor-only <c language="csharp">Mine</c>, so either role can call both.
 /// <para>
 /// A type-level attribute remains necessary only when <see cref="QueryRenderer"/> synthesizes its fixed all/by-id
 /// pair because no declared query returns the read model. If the slice declares queries for other read models,
 /// the document grants no access to this invented pair, so it requires authentication and reports that inference.
-/// If the slice declares no query at all, the historical explicit <c>AllowAnonymous</c> semantics remain.
+/// If the slice declares no query at all, the historical explicit <c language="csharp">AllowAnonymous</c> semantics remain.
 /// </para>
 /// </remarks>
 public static class ReadModelAuthorization

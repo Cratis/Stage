@@ -9,15 +9,15 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
 /// Renders an <see cref="SliceType.Automation"/> or <see cref="SliceType.Translate"/> slice: the
-/// <c>[EventType]</c> records the slice declares, plus one <c>IReactor</c> class per declared
+/// <c language="csharp">[EventType]</c> records the slice declares, plus one <c language="csharp">IReactor</c> class per declared
 /// <see cref="ReactionSyntax"/>, with one method per event-triggered <see cref="ReactionTriggerSyntax"/>. Both
 /// slice types render identically — Screenplay expresses their behavior the same way — so this single renderer
 /// is registered for both.
 /// </summary>
 /// <remarks>
-/// A trigger with an inline <c>csharp</c> block is embedded verbatim, preceded by a positional deconstruction of
+/// A trigger with an inline <c language="csharp">csharp</c> block is embedded verbatim, preceded by a positional deconstruction of
 /// the triggering event so the block can reference its properties by bare name (matching the authored
-/// convention observed in Screenplay's own samples). A trigger with a <c>file</c> reference is stubbed — the
+/// convention observed in Screenplay's own samples). A trigger with a <c language="csharp">file</c> reference is stubbed — the
 /// referenced file is not read or copied in this pass. A trigger with neither is Screenplay's own documented
 /// "statement of intent" — a stub is emitted, not an error.
 /// <para>

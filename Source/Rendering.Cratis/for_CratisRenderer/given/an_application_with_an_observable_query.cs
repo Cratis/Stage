@@ -11,14 +11,14 @@ using Cratis.Stage.Rendering.Cratis.Renderers;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
 
 /// <summary>
-/// An application whose State View declares live queries: a collection the document marks <c>observable</c>, the
-/// single instance behind an identifying <c>by</c> parameter marked the same way, and a plain query alongside
+/// An application whose State View declares live queries: a collection the document marks <c language="csharp">observable</c>, the
+/// single instance behind an identifying <c language="csharp">by</c> parameter marked the same way, and a plain query alongside
 /// them so the rendered file has to tell the two apart.
 /// </summary>
 /// <remarks>
-/// The point of rendering this one through the whole renderer, rather than through <c>QueryRenderer</c> alone, is
-/// the compilation: <c>Observe</c> and <c>ObserveById</c> are extension methods a package puts on
-/// <c>IMongoCollection&lt;T&gt;</c> and <c>ISubject</c> lives in a namespace nothing else in a rendered file
+/// The point of rendering this one through the whole renderer, rather than through <c language="csharp">QueryRenderer</c> alone, is
+/// the compilation: <c language="csharp">Observe</c> and <c language="csharp">ObserveById</c> are extension methods a package puts on
+/// <c language="csharp">IMongoCollection&lt;T&gt;</c> and <c language="csharp">ISubject</c> lives in a namespace nothing else in a rendered file
 /// imports, so a string assertion would happily pass on a method the rendered application cannot build.
 /// </remarks>
 public class an_application_with_an_observable_query : Specification

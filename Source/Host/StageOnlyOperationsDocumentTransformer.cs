@@ -8,7 +8,7 @@ namespace Cratis.Stage.Host;
 
 /// <summary>
 /// Removes the framework infrastructure operations (identity, development, introspection and query
-/// transport — all served under the <c>/.cratis</c> route) from the generated OpenAPI document so the
+/// transport — all served under the <c language="csharp">/.cratis</c> route) from the generated OpenAPI document so the
 /// Scalar reference only shows the operations that belong to the event model being played.
 /// </summary>
 public class StageOnlyOperationsDocumentTransformer : IOpenApiDocumentTransformer

@@ -13,8 +13,8 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// <c>no automap</c> is an explicit instruction, and Chronicle defaults AutoMap to enabled whenever
-/// <c>[NoAutoMap]</c> is absent. Failing to render it would not merely drop the instruction, it would invert it —
+/// <c language="csharp">no automap</c> is an explicit instruction, and Chronicle defaults AutoMap to enabled whenever
+/// <c language="csharp">[NoAutoMap]</c> is absent. Failing to render it would not merely drop the instruction, it would invert it —
 /// auto-mapping every name-matching event property the author wrote the block to exclude.
 /// </summary>
 public class when_the_projection_disables_auto_map : Specification

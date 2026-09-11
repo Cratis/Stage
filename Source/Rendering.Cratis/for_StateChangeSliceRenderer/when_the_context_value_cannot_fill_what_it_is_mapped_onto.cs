@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_StateChangeSliceRenderer;
 
 /// <summary>
 /// The runtime supplies the tenant as a string. A document is free to declare the property it fills as anything —
-/// here a <c>Uuid</c> concept — and nothing can turn one into the other, so the mapping is dropped and reported
+/// here a <c language="csharp">Uuid</c> concept — and nothing can turn one into the other, so the mapping is dropped and reported
 /// rather than rendered into a conversion that does not exist.
 /// </summary>
 public class when_the_context_value_cannot_fill_what_it_is_mapped_onto : Specification

@@ -44,16 +44,16 @@ echo "Chronicle is ready."
 
 # 2. Discover the Screenplay .play files in the mounted volume. The Stage compiles every .play file beneath
 #    /eventmodel (recursively) and merges them into a single event model.
-if [ -z "$(find /eventmodel -type f -name '*.play' -print -quit 2>/dev/null)" ]; then
+stage_arguments=(/eventmodel)
+if [ "${STAGE_WARM:-false}" = "true" ]; then
+    stage_arguments=(--warm)
+elif [ -z "$(find /eventmodel -type f -name '*.play' -print -quit 2>/dev/null)" ]; then
     echo "ERROR: No Screenplay .play files found under /eventmodel/"
     exit 1
 fi
 
-echo "Using event model from Screenplay .play files under /eventmodel"
-
-# 3. Start the Stage. It connects to the in-container Chronicle (localhost:35000) using the defaults in
-#    appsettings.Docker.json and reads the event model from the mounted /eventmodel directory. The URLs below are
-#    container-internal ports — substitute whatever host ports they were published on.
+# 3. Start the Stage. A warm Stage starts without a model. Accepting a handoff exits with 42 so this supervisor
+#    restarts only the Stage process against the newly written model while the in-container Chronicle stays warm.
 echo "Starting Stage..."
 echo "  Stage API           http://localhost:9090"
 echo "  API reference       http://localhost:9090/scalar/v1"
@@ -61,4 +61,16 @@ echo "  Chronicle Workbench https://localhost:35000 — HTTPS only; plain http r
 echo "                      sign in with the development credentials admin / ChangeMeNow!"
 cd /stage
 export ASPNETCORE_ENVIRONMENT=Docker
-exec dotnet Cratis.Stage.Host.dll /eventmodel
+
+while true; do
+    set +e
+    dotnet Cratis.Stage.Host.dll "${stage_arguments[@]}"
+    stage_exit_code=$?
+    set -e
+
+    if [ "$stage_exit_code" -ne 42 ]; then
+        exit "$stage_exit_code"
+    fi
+
+    stage_arguments=(/eventmodel)
+done

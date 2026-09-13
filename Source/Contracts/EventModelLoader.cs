@@ -32,6 +32,20 @@ public static class EventModelLoader
     }
 
     /// <summary>
+    /// Compiles one Screenplay source set once and translates both the executable event model and its renderable Scene.
+    /// </summary>
+    /// <param name="directory">The directory to search for <c language="csharp">.play</c> files.</param>
+    /// <returns>The two Stage views of the same compiled application.</returns>
+    /// <exception cref="InvalidEventModel">Thrown when the directory is missing, empty, or fails to compile.</exception>
+    public static async Task<StageApplication> LoadStageApplicationFromDirectoryAsync(string directory)
+    {
+        var merged = await CompileAndMergeDirectory(directory);
+        return new StageApplication(
+            new ScreenplayEventModelVisitor().Visit(merged),
+            new ScreenplaySceneVisitor().Visit(merged));
+    }
+
+    /// <summary>
     /// Discovers and compiles every <c language="csharp">.play</c> file beneath the given directory (using the <c language="csharp">**/*.play</c> glob), merges
     /// them into a single application, and translates it into a <see cref="SceneApplication"/> - the Screenplay-to-Scene
     /// seam (Cratis/Stage#37).

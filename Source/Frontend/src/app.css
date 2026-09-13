@@ -1,0 +1,44 @@
+/* Copyright (c) Cratis. All rights reserved.
+ * Licensed under the MIT license. See LICENSE file in the project root for full license information.
+ */
+
+:root {
+    color: #e8ecf4;
+    background: #0e1320;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 20rem; min-height: 100vh; }
+button { font: inherit; }
+
+.stage-application { min-height: 100vh; }
+.stage-header {
+    align-items: center;
+    background: #151c2d;
+    border-bottom: 1px solid #2a354d;
+    display: flex;
+    gap: 2rem;
+    min-height: 3.5rem;
+    padding: 0.65rem 1rem;
+}
+.stage-header nav { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.stage-header button,
+.stage-screen button {
+    background: #222d45;
+    border: 1px solid #3b4966;
+    border-radius: 0.4rem;
+    color: inherit;
+    cursor: pointer;
+    padding: 0.45rem 0.7rem;
+}
+.stage-header button.selected { background: #5b54e8; border-color: #817cf2; }
+.stage-screen { margin: 0 auto; max-width: 76rem; padding: 1.5rem; }
+.stage-slot { display: grid; gap: 1rem; }
+.stage-slot + .stage-slot { margin-top: 1rem; }
+.stage-slot section { border-color: #3b4966 !important; }
+.stage-message { display: grid; min-height: 100vh; padding: 2rem; place-content: center; text-align: center; }
+.stage-activity { background: #222d45; border-radius: 0.4rem; margin-top: 1rem; padding: 0.75rem; }
+pre { background: #080b12; border-radius: 0.4rem; overflow: auto; padding: 1rem; }
+[role='table'] header { display: flex; gap: 1rem; font-weight: 600; }

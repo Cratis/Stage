@@ -282,6 +282,7 @@ __pycache__/
 
 package-json.lock
 package-lock.json
+!Source/Frontend/package-lock.json
 dist
 **/node_modules/
 *.tsbuildinfo

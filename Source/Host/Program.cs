@@ -29,7 +29,7 @@ if (!warmMode && modelPath is null)
 var stageApplication = warmMode ? null : await EventModelLoader.LoadStageApplicationFromDirectoryAsync(modelPath!);
 var model = stageApplication?.EventModel;
 var scene = stageApplication?.Scene;
-var eventStore = DockerStyleName.Generate();
+var eventStore = ContainerEventStoreName.Resolve();
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile(

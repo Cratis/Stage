@@ -122,8 +122,24 @@ app.UseCratisArc();
 app.MapOpenApi();
 app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
 app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
+
+// A model authored on Studio's canvas declares no screens - the canvas cannot record one - so the scene it
+// translates to is empty. Rather than serving a frontend that says the model has nothing to show, the screens
+// the model implies are synthesized from its slices, and the routes Arc registered for their commands and
+// queries are attached so the frontend calls the real application rather than a guessed URL.
+var synthesized = SceneSynthesizer.Synthesize(scene!, model);
+if (!ReferenceEquals(synthesized, scene))
+{
+    StageLog.SynthesizedScreens(app.Logger, synthesized.Screens.Count);
+}
+
+// Resolved on first read, not here: Arc registers the modeled commands and queries as endpoints while the
+// application starts, so asking for them during configuration finds an empty endpoint set and every element
+// ends up without the route it is backed by.
+var sceneRoutes = new StageSceneRoutes(synthesized, app.Services, app.Logger);
+
 app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(model.Name), WarmStageHandoff.ReadHandoffId(modelPath!)));
-app.MapGet("/stage/scene", () => Results.Json(scene, StageJson.Options));
+app.MapGet("/stage/scene", () => Results.Json(sceneRoutes.Scene, StageJson.Options));
 app.MapFallbackToFile("index.html");
 app.Lifetime.ApplicationStarted.Register(() =>
     _ = StageRuntimeRegistrar.RegisterAsync(app.Services, eventStore, model, app.Logger));

@@ -139,6 +139,11 @@ if (!ReferenceEquals(synthesized, scene))
 var sceneRoutes = new StageSceneRoutes(synthesized, app.Services, app.Logger);
 
 app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(model.Name), WarmStageHandoff.ReadHandoffId(modelPath!)));
+
+// A stage that already runs an application cannot take another one. Leaving the route unmapped answered that
+// with 405 Method Not Allowed, which reads as a broken endpoint rather than an occupied stage - and the pool
+// looking for somewhere to put a play session treated it as a fault instead of moving on to the next stage.
+app.MapPost("/stage/load", () => Results.Conflict());
 app.MapGet("/stage/scene", () => Results.Json(sceneRoutes.Scene, StageJson.Options));
 app.MapFallbackToFile("index.html");
 app.Lifetime.ApplicationStarted.Register(() =>

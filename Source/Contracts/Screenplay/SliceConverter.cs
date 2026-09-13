@@ -23,6 +23,23 @@ public static class SliceConverter
         ScreenplaySyntax.SliceSyntax slice,
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
+        string featurePath) =>
+        Convert(slice, schema, eventPropertyTypes, new Dictionary<string, IReadOnlyList<KeyValuePair<string, string>>>(StringComparer.Ordinal), featurePath);
+
+    /// <summary>
+    /// Converts a slice declaration into its Stage record, resolving what an <c language="csharp">automap</c> projection copies.
+    /// </summary>
+    /// <param name="slice">The slice to convert.</param>
+    /// <param name="schema">The schema synthesizer.</param>
+    /// <param name="eventPropertyTypes">The global map of event property name to Screenplay type name, used to infer read-model property types.</param>
+    /// <param name="eventProperties">The properties each event declares, keyed by event name.</param>
+    /// <param name="featurePath">The fully-qualified feature path the slice belongs to.</param>
+    /// <returns>The Stage slice.</returns>
+    public static Slice Convert(
+        ScreenplaySyntax.SliceSyntax slice,
+        SchemaSynthesizer schema,
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
         string featurePath)
     {
         var slicePath = $"{featurePath}.{slice.Name}";
@@ -34,7 +51,7 @@ public static class SliceConverter
             MapType(slice.Type),
             EventConverter.Convert(slice.Events, slice.Constraints, schema, slicePath),
             command is not null ? CommandConverter.Convert(command, schema, slicePath) : null,
-            ReadModelConverter.Convert(slice, schema, eventPropertyTypes, slicePath),
+            ReadModelConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, slicePath),
             [.. slice.Specifications.Select(specification => SpecificationConverter.Convert(specification, slicePath))]);
     }
 

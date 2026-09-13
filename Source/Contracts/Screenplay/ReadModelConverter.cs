@@ -28,6 +28,29 @@ public static class ReadModelConverter
         SliceSyntax slice,
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
+        string slicePath) =>
+        Convert(slice, schema, eventPropertyTypes, new Dictionary<string, IReadOnlyList<KeyValuePair<string, string>>>(StringComparer.Ordinal), slicePath);
+
+    /// <summary>
+    /// Builds the read-model definition for a slice, resolving what an <c language="csharp">automap</c> projection copies.
+    /// </summary>
+    /// <param name="slice">The slice to build from.</param>
+    /// <param name="schema">The schema synthesizer.</param>
+    /// <param name="eventPropertyTypes">The global map of event property name to Screenplay type name, used to infer read-model property types.</param>
+    /// <param name="eventProperties">The properties each event declares, keyed by event name.</param>
+    /// <param name="slicePath">The fully-qualified slice path, used to derive a stable identifier.</param>
+    /// <returns>The read-model definition, or <see langword="null"/>.</returns>
+    /// <remarks>
+    /// A projection that says <c language="csharp">automap</c> and nothing else declares no mappings at all, so the read model
+    /// came out with no properties - and a read model with no properties is one Chronicle copies nothing into. The
+    /// documents were built and stayed empty, which is how a played model showed rows with no values in them. What
+    /// automap actually copies is every property of the events it maps from, so that is what the shape is taken from.
+    /// </remarks>
+    public static ReadModelDefinition? Convert(
+        SliceSyntax slice,
+        SchemaSynthesizer schema,
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
         string slicePath)
     {
         var queries = slice.Queries.ToArray();
@@ -46,7 +69,7 @@ public static class ReadModelConverter
             ?? projection?.Name
             ?? slice.Name;
 
-        var properties = CollectProperties(projection, queries, eventPropertyTypes);
+        var properties = CollectProperties(projection, queries, eventPropertyTypes, eventProperties);
 
         return new ReadModelDefinition(
             DeterministicId.From($"{slicePath}.readmodel.{name}"),
@@ -58,7 +81,8 @@ public static class ReadModelConverter
     static List<KeyValuePair<string, string?>> CollectProperties(
         ProjectionSyntax? projection,
         IEnumerable<QuerySyntax> queries,
-        IReadOnlyDictionary<string, string> eventPropertyTypes)
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties)
     {
         var properties = new List<KeyValuePair<string, string?>>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -73,8 +97,25 @@ public static class ReadModelConverter
 
         if (projection is not null)
         {
+            var automaps = projection.AutoMap != AutoMapMode.Disabled;
             foreach (var block in projection.Blocks)
             {
+                if (automaps && block is FromSyntax automapped)
+                {
+                    foreach (var spec in automapped.Events)
+                    {
+                        if (!eventProperties.TryGetValue(spec.Event, out var declared))
+                        {
+                            continue;
+                        }
+
+                        foreach (var property in declared)
+                        {
+                            Add(property.Key, property.Value);
+                        }
+                    }
+                }
+
                 CollectFromBlock(block, eventPropertyTypes, Add);
             }
         }

@@ -30,6 +30,10 @@ public static class StageChronicleDefinitions
     // Read models are projected into the kernel's in-memory store so the whole Stage runs without any database.
     const string InMemorySinkTypeId = "InMemory";
 
+    // The property a read model document is identified by, and the schema keyword that says so.
+    const string IdentityPropertyName = "id";
+    const string IdentityKeyword = "identity";
+
     /// <summary>
     /// Builds the Chronicle read-model and projection definitions for every read model in the model that has a
     /// projection.
@@ -92,7 +96,7 @@ public static class StageChronicleDefinitions
             ContainerName = ModelNaming.ToIdentifier(readModel.Name),
             DisplayName = readModel.Name,
             Sink = new ChronicleSinks.SinkDefinition { ConfigurationId = Guid.Empty, TypeId = InMemorySinkTypeId },
-            Schema = readModel.Schema,
+            Schema = WithIdentityProperty(readModel.Schema),
             Indexes = [],
             ObserverType = ChronicleReadModels.ReadModelObserverType.Projection,
             ObserverIdentifier = projectionIdentifier,
@@ -122,6 +126,51 @@ public static class StageChronicleDefinitions
             Nested = new Dictionary<string, ChronicleProjections.ChildrenDefinition>(),
             SubscribesToAllEvents = false,
         };
+
+    /// <summary>
+    /// Ensures the read model's schema declares the property its documents are identified by.
+    /// </summary>
+    /// <param name="schema">The schema synthesized from the model.</param>
+    /// <returns>The schema, with an identity property added when it declares none.</returns>
+    /// <remarks>
+    /// <para>
+    /// Screenplay read models declare their shape, never their identity: the projection's key decides it. Chronicle
+    /// writes that key into the document's identity property, and a schema that names none made the projection
+    /// fail on its first event with "Value cannot be null. (Parameter 'key')" - the read model then stayed empty
+    /// forever, with nothing in the play session saying why.
+    /// </para>
+    /// </remarks>
+    static string WithIdentityProperty(string schema)
+    {
+        try
+        {
+            var document = System.Text.Json.Nodes.JsonNode.Parse(string.IsNullOrWhiteSpace(schema) ? "{}" : schema) as System.Text.Json.Nodes.JsonObject
+                ?? [];
+
+            if (document["properties"] is not System.Text.Json.Nodes.JsonObject properties)
+            {
+                properties = [];
+                document["properties"] = properties;
+            }
+
+            document["type"] ??= "object";
+
+            if (properties[IdentityPropertyName] is null)
+            {
+                properties[IdentityPropertyName] = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["type"] = "string",
+                    [IdentityKeyword] = true
+                };
+            }
+
+            return document.ToJsonString();
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return schema;
+        }
+    }
 
     static Guid DeterministicGuid(string value)
     {

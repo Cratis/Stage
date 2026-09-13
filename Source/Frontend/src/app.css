@@ -40,5 +40,17 @@ button { font: inherit; }
 .stage-slot section { border-color: #3b4966 !important; }
 .stage-message { display: grid; min-height: 100vh; padding: 2rem; place-content: center; text-align: center; }
 .stage-activity { background: #222d45; border-radius: 0.4rem; margin-top: 1rem; padding: 0.75rem; }
+.stage-table table { border-collapse: collapse; width: 100%; }
+.stage-table th,
+.stage-table td { border-bottom: 1px solid #2a354d; padding: 0.5rem 0.75rem; text-align: left; }
+.stage-table th { color: #9fb0cd; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
+.stage-empty { color: #7d8aa5; font-style: italic; }
+.stage-note { color: #9fb0cd; margin: 0 0 0.5rem; }
+.stage-note--error { color: #ff9d9d; }
+.stage-action { display: grid; gap: 0.75rem; justify-items: start; }
+.stage-form { background: #151c2d; border: 1px solid #2a354d; border-radius: 0.5rem; display: grid; gap: 0.6rem; padding: 1rem; min-width: 20rem; }
+.stage-form label { display: grid; gap: 0.25rem; }
+.stage-form span { color: #9fb0cd; font-size: 0.85rem; }
+.stage-form input { background: #0e1320; border: 1px solid #3b4966; border-radius: 0.3rem; color: inherit; padding: 0.45rem 0.6rem; }
 pre { background: #080b12; border-radius: 0.4rem; overflow: auto; padding: 1rem; }
 [role='table'] header { display: flex; gap: 1rem; font-weight: 600; }

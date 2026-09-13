@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import type { Layout, SceneElement, Screen, ScreenTemplate } from '@cratis/scene.model';
-import { coreComponents, SceneElementView } from '@cratis/scene.react';
+import { SceneElementView } from '@cratis/scene.react';
+import { stageComponents } from './stageComponents';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -70,7 +71,14 @@ export function App() {
 
     if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
     if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
-    if (scene.screens.length === 0) return <main className='stage-message'><h1>No screens modeled yet</h1><p>Add a screen to the Screenplay to see its frontend.</p></main>;
+    if (scene.screens.length === 0) {
+        return (
+            <main className='stage-message'>
+                <h1>Nothing to show yet</h1>
+                <p>This model has no slice carrying a command or a read model, so there is no screen to render.</p>
+            </main>
+        );
+    }
 
     const screen = scene.screens.find(candidate => candidate.name === selectedScreen) ?? scene.screens[0];
 
@@ -103,5 +111,5 @@ export function App() {
 }
 
 function SceneContent({ element }: { element: SceneElement }) {
-    return <SceneElementView element={element} registry={coreComponents} resolveBinding={() => undefined} />;
+    return <SceneElementView element={element} registry={stageComponents} resolveBinding={() => undefined} />;
 }

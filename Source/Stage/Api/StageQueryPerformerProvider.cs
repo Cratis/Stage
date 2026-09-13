@@ -42,8 +42,12 @@ public sealed class StageQueryPerformerProvider : IQueryPerformerProvider
             var name = ModelNaming.ToIdentifier(readModel.Name);
             var readModelType = typeFactory.CreateReadModelType(located.TypeNamespace, name);
 
-            _performers.Add(new StageQueryPerformer(readModelType, $"Get{name}ById", located.Location, byId: true));
-            _performers.Add(new StageQueryPerformer(readModelType, $"All{ModelNaming.Pluralize(name)}", located.Location, byId: false));
+            // The identifier the read model is registered in Chronicle with is what its documents are read back
+            // by - see StageChronicleDefinitions, which registers exactly this identifier.
+            var identifier = readModel.Id.ToString();
+
+            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"Get{name}ById", located.Location, byId: true));
+            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"All{ModelNaming.Pluralize(name)}", located.Location, byId: false));
         }
     }
 

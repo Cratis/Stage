@@ -21,6 +21,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         var schema = new SchemaSynthesizer(concepts);
         var eventPropertyTypes = BuildEventPropertyTypes(syntax.Modules);
+        var eventProperties = BuildEventProperties(syntax.Modules);
 
         var modules = syntax.Modules.ToArray();
         var modelName = modules.Length > 0 ? modules[0].Name : "EventModel";
@@ -28,7 +29,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         var collectionId = DeterministicId.From($"model:{modelName}:collection");
 
         var collectionModules = modules
-            .Select(module => ConvertModule(module, modelId, collectionId, schema, eventPropertyTypes))
+            .Select(module => ConvertModule(module, modelId, collectionId, schema, eventPropertyTypes, eventProperties))
             .ToArray();
 
         var collection = new ModuleCollection(collectionId, modelId, collectionModules);
@@ -41,10 +42,11 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         Guid modelId,
         Guid collectionId,
         SchemaSynthesizer schema,
-        IReadOnlyDictionary<string, string> eventPropertyTypes)
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties)
     {
         var features = module.Features
-            .Select(feature => ConvertFeature(feature, parentId: null, $"{module.Name}", schema, eventPropertyTypes))
+            .Select(feature => ConvertFeature(feature, parentId: null, $"{module.Name}", schema, eventPropertyTypes, eventProperties))
             .ToArray();
 
         return new Module(DeterministicId.From($"module:{module.Name}"), modelId, collectionId, module.Name, features);
@@ -55,17 +57,18 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         Guid? parentId,
         string parentPath,
         SchemaSynthesizer schema,
-        IReadOnlyDictionary<string, string> eventPropertyTypes)
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties)
     {
         var featurePath = $"{parentPath}.{feature.Name}";
         var featureId = DeterministicId.From($"feature:{featurePath}");
 
         var subFeatures = feature.Features
-            .Select(sub => ConvertFeature(sub, featureId, featurePath, schema, eventPropertyTypes))
+            .Select(sub => ConvertFeature(sub, featureId, featurePath, schema, eventPropertyTypes, eventProperties))
             .ToArray();
 
         var slices = feature.Slices
-            .Select(slice => SliceConverter.Convert(slice, schema, eventPropertyTypes, featurePath))
+            .Select(slice => SliceConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, featurePath))
             .ToArray();
 
         return new Feature(featureId, feature.Name, parentId, subFeatures, slices);
@@ -84,6 +87,30 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         }
 
         return types;
+    }
+
+    /// <summary>
+    /// Collects the properties every declared event carries, keyed by event name.
+    /// </summary>
+    /// <param name="modules">The modules to collect from.</param>
+    /// <returns>The declared properties per event name.</returns>
+    /// <remarks>
+    /// An <c language="csharp">automap</c> projection states no mappings, so what its read model holds is only knowable from
+    /// the events it maps from - which is why the event shapes travel alongside the flat property-type map.
+    /// </remarks>
+    static Dictionary<string, IReadOnlyList<KeyValuePair<string, string>>> BuildEventProperties(IEnumerable<ModuleSyntax> modules)
+    {
+        var properties = new Dictionary<string, IReadOnlyList<KeyValuePair<string, string>>>(StringComparer.Ordinal);
+
+        foreach (var slice in modules.SelectMany(module => Slices(module.Features)))
+        {
+            foreach (var @event in slice.Events)
+            {
+                properties.TryAdd(@event.Name, [.. @event.Properties.Select(property => new KeyValuePair<string, string>(property.Name, property.Type.Name))]);
+            }
+        }
+
+        return properties;
     }
 
     static IEnumerable<SliceSyntax> Slices(IEnumerable<FeatureSyntax> features) =>

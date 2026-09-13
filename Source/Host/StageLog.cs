@@ -10,4 +10,10 @@ internal static partial class StageLog
 {
     [LoggerMessage(LogLevel.Information, "Stage running event model '{ModelName}' as event store '{EventStore}'")]
     internal static partial void Running(ILogger logger, string modelName, string eventStore);
+
+    [LoggerMessage(LogLevel.Information, "Endpoint {Method} {Route} is known as {Names}")]
+    internal static partial void EndpointConsidered(ILogger logger, string method, string route, string names);
+
+    [LoggerMessage(LogLevel.Information, "Synthesized {ScreenCount} screen(s) for a model that declares none")]
+    internal static partial void SynthesizedScreens(ILogger logger, int screenCount);
 }

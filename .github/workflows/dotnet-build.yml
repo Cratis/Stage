@@ -6,6 +6,7 @@ concurrency:
 
 env:
   DOTNET_VERSION: "10.0.x"
+  NODE_VERSION: "24"
 
 on:
   workflow_dispatch:
@@ -33,6 +34,19 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Source/Frontend/package-lock.json
+
+      - name: Build and test frontend
+        run: |
+          npm ci --prefix Source/Frontend
+          npm test --prefix Source/Frontend
+          npm run build --prefix Source/Frontend
 
       # The specs live inline beside the code and are stripped from Release builds, where the test SDK is not
       # referenced either - so a Release test run discovers nothing at all. Debug runs the specs; Release is the

@@ -26,7 +26,9 @@ if (!warmMode && modelPath is null)
     throw new MissingModelArgument();
 }
 
-var model = warmMode ? null : await EventModelLoader.LoadFromDirectoryAsync(modelPath!);
+var stageApplication = warmMode ? null : await EventModelLoader.LoadStageApplicationFromDirectoryAsync(modelPath!);
+var model = stageApplication?.EventModel;
+var scene = stageApplication?.Scene;
 var eventStore = DockerStyleName.Generate();
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,6 +63,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 app.UseForwardedHeaders();
+if (!warmMode)
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
 app.UseRouting();
 app.UseCratisChronicle();
 
@@ -108,6 +115,8 @@ app.MapOpenApi();
 app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
 app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
 app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(model.Name), WarmStageHandoff.ReadHandoffId(modelPath!)));
+app.MapGet("/stage/scene", () => Results.Json(scene, StageJson.Options));
+app.MapFallbackToFile("index.html");
 app.Lifetime.ApplicationStarted.Register(() =>
     _ = StageRuntimeRegistrar.RegisterAsync(app.Services, eventStore, model, app.Logger));
 

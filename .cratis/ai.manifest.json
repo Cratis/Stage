@@ -1,5 +1,5 @@
 {
-  "SourceRevision": "f43680de02c01dbc8a0a32b410591bd6fc742ee5",
+  "SourceRevision": "aefbf0bb646ea62a113606809a1b287635ef2809",
   "Files": [
     {
       "Source": "agents/backend-developer.md",
@@ -94,7 +94,7 @@
     {
       "Source": "hooks/README.md",
       "Destination": "hooks/README.md",
-      "Hash": "EBAF95735A53A08005B4C394115468E86AD20E1DF27C6DF109433A4068ECFA54"
+      "Hash": "4FD12AD0A26C7B7614F1DD8D999068A4B36F1BDDFCCA40F15A656184A52186D4"
     },
     {
       "Source": "hooks/agent-stop.md",
@@ -129,17 +129,17 @@
     {
       "Source": "hooks/scripts/cratis-quality-gate.sh",
       "Destination": "hooks/scripts/cratis-quality-gate.sh",
-      "Hash": "C7A612435CE1EC0A820809A104D4863B0BD36EA9D8F62DC921CCD2AA47EBE947"
+      "Hash": "9E59C975C2DBBDC26795421963D3259B410C043E11ECC7D02B42A5E566CC35CE"
     },
     {
       "Source": "hooks/scripts/hook-lib.sh",
       "Destination": "hooks/scripts/hook-lib.sh",
-      "Hash": "17051519E0D71D763F66F50E962DD6BACE45A961F5D698DA71D98DB3A9FF8709"
+      "Hash": "2B71499000AFF2331F418A88EEFDB543CB9AFAE855B79516E9D77DC72EA0C26D"
     },
     {
       "Source": "hooks/scripts/quality-gates.json",
       "Destination": "hooks/scripts/quality-gates.json",
-      "Hash": "431BFE74729B6ECE4F50C754F55B4D462BA1A368304D553FE1AFFD8E7C61967D"
+      "Hash": "4B47A74659733DA211BA24195C8DAE178F196681A30F1B70301CE79A46461C27"
     },
     {
       "Source": "hooks/scripts/type-references-allowlist.txt",

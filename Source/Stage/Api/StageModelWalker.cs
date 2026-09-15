@@ -10,9 +10,15 @@ namespace Cratis.Stage.Api;
 /// namespace the engine uses to build its API surface by convention.
 /// </summary>
 /// <param name="Slice">The slice.</param>
-/// <param name="Location">The route location segments (used to build the conventional URL).</param>
+/// <param name="Location">The legacy route location segments, excluding the slice.</param>
 /// <param name="TypeNamespace">A namespace unique to the slice, used for emitted command and read model types.</param>
-public record LocatedSlice(Slice Slice, IReadOnlyList<string> Location, string TypeNamespace);
+public record LocatedSlice(Slice Slice, IReadOnlyList<string> Location, string TypeNamespace)
+{
+    /// <summary>
+    /// Gets the canonical HTTP location, including the slice without changing the legacy positional contract.
+    /// </summary>
+    public IReadOnlyList<string> CanonicalLocation => [.. Location, ModelNaming.ToIdentifier(Slice.Name)];
+}
 
 /// <summary>
 /// Walks an <see cref="EventModel"/> and yields every slice within it, including those in nested sub-features.

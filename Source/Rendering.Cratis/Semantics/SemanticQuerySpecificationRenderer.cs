@@ -43,7 +43,7 @@ internal static class SemanticQuerySpecificationRenderer
             .Using($"{context.RootNamespace}.Common")
             .Using(queryNamespace);
 
-        var expectedArguments = readModel.Properties.Select(property =>
+        var expectedArguments = readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
             types.Value(result.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
         var key = types.Value(expected.Key, query.Argument.Type);
         builder.OpenBlock($"public class {behavior} : Specification")

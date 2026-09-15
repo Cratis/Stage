@@ -57,6 +57,7 @@ public static class QueryRenderer
     /// <param name="queries">The queries the slice declares, across all of its read models.</param>
     /// <param name="applicationSet">The application set the query's authorization policies resolve against.</param>
     /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
+    /// <exception cref="UnsupportedQueryIntent">An owned query declares filters or a performer.</exception>
     /// <exception cref="AuthorizationCannotBeRendered">A generated query method's authorization cannot be represented faithfully.</exception>
     public static void Render(
         CSharpCodeBuilder builder,
@@ -68,6 +69,7 @@ public static class QueryRenderer
         ICollection<string> diagnostics)
     {
         var own = queries.Where(query => Reads(query, typeName)).ToArray();
+        QueryAdmission.EnsureSupported(own);
 
         builder.BlankLine();
 
@@ -129,9 +131,10 @@ public static class QueryRenderer
     /// <param name="query">The query to consider.</param>
     /// <returns>True when the rendered method answers what the document states.</returns>
     /// <remarks>
-    /// A query whose logic lives in a performer is not rendered — the document delegates the body to a file or an
-    /// inline block, and neither is read here. Its name is still rendered, so the application answers to the
-    /// document; what is missing is what it does, which is what gets reported.
+    /// Filters and performers are rejected by admission before any owned query method is emitted. Neither a
+    /// filter's argument contract nor a performer's behavior can be replaced with an unrestricted conventional
+    /// query. This shape helper also supports diagnostics in contexts outside state-view rendering; those
+    /// diagnostics are not the admission boundary.
     /// </remarks>
     public static bool IsFullyRendered(QuerySyntax query) => query.Performer is null && !query.Filters.Any();
 

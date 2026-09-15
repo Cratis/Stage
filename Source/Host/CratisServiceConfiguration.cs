@@ -26,14 +26,15 @@ public static class CratisServiceConfiguration
     /// <param name="eventStore">The Chronicle event store name for the session.</param>
     /// <param name="programIdentifier">The human-readable program name sent to Chronicle.</param>
     /// <returns>The same <see cref="WebApplicationBuilder"/> for chaining.</returns>
-    public static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier)
+    public static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier) =>
+        builder.AddStageCratis(eventStore, programIdentifier, StageHttpRouteOptions.FromConfiguration(builder.Configuration));
+
+    internal static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier, StageHttpRouteOptions routeOptions)
     {
         builder.AddCratis(
             options =>
             {
-                options.GeneratedApis.RoutePrefix = "api";
-                options.GeneratedApis.IncludeCommandNameInRoute = false;
-                options.GeneratedApis.SegmentsToSkipForRoute = 1;
+                options.GeneratedApis = routeOptions.Canonical;
 
                 // Use the global Cratis JSON configuration which includes DerivedTypeJsonConverterFactory
                 // for polymorphic type support in commands and events.
@@ -73,6 +74,8 @@ public static class CratisServiceConfiguration
                 options.JsonSerializerOptions.Converters.Add(new DerivedTypeJsonConverterFactory(DerivedTypes.Instance));
             },
             configureChronicleBuilder: chronicleBuilder => chronicleBuilder.WithCamelCaseNamingPolicy());
+
+        StageHttpRouteOptions.AlignIntrospection(builder.Services);
 
         builder.Logging.AddOpenTelemetry(logging =>
         {

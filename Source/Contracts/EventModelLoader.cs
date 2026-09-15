@@ -19,6 +19,32 @@ namespace Cratis.Stage.Contracts;
 public static class EventModelLoader
 {
     /// <summary>
+    /// Compiles one Screenplay <c language="csharp">.play</c> file or a directory of files into an <see cref="EventModel"/>.
+    /// </summary>
+    /// <param name="path">An existing <c language="csharp">.play</c> file or directory containing <c language="csharp">.play</c> files.</param>
+    /// <returns>The compiled <see cref="EventModel"/>.</returns>
+    /// <exception cref="InvalidEventModel">Thrown when the input is missing, unsupported, empty, or fails to compile.</exception>
+    public static async Task<EventModel> LoadFromPathAsync(string path)
+    {
+        var application = await CompilePath(path);
+        return new ScreenplayEventModelVisitor().Visit(application);
+    }
+
+    /// <summary>
+    /// Compiles a selected Screenplay file or folder once and translates both its event model and Scene.
+    /// </summary>
+    /// <param name="path">An existing <c language="csharp">.play</c> file or directory containing Screenplay files.</param>
+    /// <returns>The two Stage views of the same compiled application.</returns>
+    /// <exception cref="InvalidEventModel">Thrown when the input is missing, unsupported, empty, or fails to compile.</exception>
+    public static async Task<StageApplication> LoadStageApplicationFromPathAsync(string path)
+    {
+        var application = await CompilePath(path);
+        return new StageApplication(
+            new ScreenplayEventModelVisitor().Visit(application),
+            new ScreenplaySceneVisitor().Visit(application));
+    }
+
+    /// <summary>
     /// Discovers and compiles every <c language="csharp">.play</c> file beneath the given directory (using the <c language="csharp">**/*.play</c> glob) and
     /// merges them into a single <see cref="EventModel"/>.
     /// </summary>
@@ -27,7 +53,7 @@ public static class EventModelLoader
     /// <exception cref="InvalidEventModel">Thrown when the directory is missing, contains no <c language="csharp">.play</c> files, or any file fails to compile.</exception>
     public static async Task<EventModel> LoadFromDirectoryAsync(string directory)
     {
-        var merged = await CompileAndMergeDirectory(directory);
+        var merged = await CompileDirectory(directory);
         return new ScreenplayEventModelVisitor().Visit(merged);
     }
 
@@ -39,7 +65,7 @@ public static class EventModelLoader
     /// <exception cref="InvalidEventModel">Thrown when the directory is missing, empty, or fails to compile.</exception>
     public static async Task<StageApplication> LoadStageApplicationFromDirectoryAsync(string directory)
     {
-        var merged = await CompileAndMergeDirectory(directory);
+        var merged = await CompileDirectory(directory);
         return new StageApplication(
             new ScreenplayEventModelVisitor().Visit(merged),
             new ScreenplaySceneVisitor().Visit(merged));
@@ -55,7 +81,7 @@ public static class EventModelLoader
     /// <exception cref="InvalidEventModel">Thrown when the directory is missing, contains no <c language="csharp">.play</c> files, or any file fails to compile.</exception>
     public static async Task<SceneApplication> LoadSceneApplicationFromDirectoryAsync(string directory)
     {
-        var merged = await CompileAndMergeDirectory(directory);
+        var merged = await CompileDirectory(directory);
         return new ScreenplaySceneVisitor().Visit(merged);
     }
 
@@ -78,7 +104,7 @@ public static class EventModelLoader
     /// </remarks>
     public static async Task<ApplicationRenderPlan> LoadRenderPlanFromDirectoryAsync(string directory, IReadOnlyList<ScenePackage> catalog)
     {
-        var merged = await CompileAndMergeDirectory(directory);
+        var merged = await CompileDirectory(directory);
         return RenderPlanner.Plan(new ScreenplaySceneVisitor().Visit(merged), catalog);
     }
 
@@ -99,49 +125,59 @@ public static class EventModelLoader
         return new ScreenplayEventModelVisitor().Visit(result.Value!);
     }
 
-    static Task<ApplicationSyntax> CompileAndMergeDirectory(string directory)
+    static async Task<ApplicationSyntax> CompilePath(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            return await CompileDirectory(path);
+        }
+
+        if (!File.Exists(path))
+        {
+            throw new InvalidEventModel(path, ["The path does not exist. Supply an existing .play file or a directory containing .play files."]);
+        }
+
+        if (!string.Equals(Path.GetExtension(path), ".play", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidEventModel(path, ["The selected file must have a .play extension. Supply a .play file or a directory containing .play files."]);
+        }
+
+        var compilation = new PlayFileCompiler().CompileFile(path);
+        if (!compilation.Result.Success)
+        {
+            throw new InvalidEventModel(path, Errors(Path.GetFileName(path), compilation.Result.Diagnostics));
+        }
+
+        return compilation.Result.Value!;
+    }
+
+    static Task<ApplicationSyntax> CompileDirectory(string directory)
     {
         if (!Directory.Exists(directory))
         {
-            throw new InvalidEventModel(directory);
+            throw new InvalidEventModel(directory, ["The directory does not exist. Supply a directory containing .play files."]);
         }
 
-        var compilations = new PlayFileCompiler().CompileIn(directory).ToArray();
-        if (compilations.Length == 0)
+        var compilation = new PlayFileCompiler().CompileFolder(directory);
+        if (!compilation.Sources.Any())
         {
-            throw new InvalidEventModel(directory, ["No .play files were found."]);
+            throw new InvalidEventModel(directory, ["No .play files were found. Supply a directory containing .play files."]);
         }
 
-        var failures = compilations
-            .Where(compilation => !compilation.Result.Success)
-            .SelectMany(compilation => Errors(compilation.File.RelativePath, compilation.Result.Diagnostics))
-            .ToArray();
-
-        if (failures.Length > 0)
+        if (!compilation.Result.Success)
         {
-            throw new InvalidEventModel(directory, failures);
+            throw new InvalidEventModel(directory, Errors(Path.GetFileName(directory), compilation.Result.Diagnostics));
         }
 
-        return Task.FromResult(Merge(compilations.Select(compilation => compilation.Result.Value!)));
+        return Task.FromResult(compilation.Result.Value!);
     }
 
     static IEnumerable<string> Errors(string file, IEnumerable<Diagnostic> diagnostics) =>
         diagnostics
             .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .Select(diagnostic => $"{file}({diagnostic.Location.Line},{diagnostic.Location.Column}): {diagnostic.Message}");
-
-    static ApplicationSyntax Merge(IEnumerable<ApplicationSyntax> applications)
-    {
-        var list = applications.ToArray();
-
-        return new ApplicationSyntax(
-            [.. list.SelectMany(application => application.Imports)],
-            [.. list.SelectMany(application => application.Concepts)],
-            [.. list.SelectMany(application => application.Policies)],
-            [.. list.SelectMany(application => application.Modules)],
-            SourceLocation.Start,
-            UiProfiles: [.. list.SelectMany(application => application.UiProfiles ?? [])],
-            Themes: [.. list.SelectMany(application => application.Themes ?? [])],
-            Layouts: [.. list.SelectMany(application => application.Layouts ?? [])]);
-    }
+            .OrderBy(diagnostic => diagnostic.Location.Path ?? file, StringComparer.Ordinal)
+            .ThenBy(diagnostic => diagnostic.Location.Line)
+            .ThenBy(diagnostic => diagnostic.Location.Column)
+            .ThenBy(diagnostic => diagnostic.Message, StringComparer.Ordinal)
+            .Select(diagnostic => $"{diagnostic.Location.Path ?? file}({diagnostic.Location.Line},{diagnostic.Location.Column}): {diagnostic.Message}");
 }

@@ -48,7 +48,7 @@ internal static class SemanticReadModelSpecificationRenderer
             .Line($"    .ForEventSource({types.Value(destinationValue, destinationProperty.Type)})")
             .Line($"    .Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)}));")
             .BlankLine();
-        foreach (var property in readModel.Properties)
+        foreach (var property in readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal))
         {
             var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
             builder.Line(

@@ -47,6 +47,36 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     };
 
     /// <summary>
+    /// Determines whether a rendered declaration names a shared concept or composite type.
+    /// </summary>
+    /// <param name="type">The declared type, including optional and collection modifiers.</param>
+    /// <returns>Whether the declaration requires the Common namespace.</returns>
+    public static bool DeclarationNeedsCommon(SemanticTypeReference type) =>
+        type.Kind is SemanticTypeReferenceKind.Concept or SemanticTypeReferenceKind.CompositeType;
+
+    /// <summary>
+    /// Determines whether rendering a value actually names a shared constructor.
+    /// </summary>
+    /// <param name="value">The value to render.</param>
+    /// <param name="type">The declared type.</param>
+    /// <returns>Whether the value expression requires the Common namespace.</returns>
+    public static bool ValueNeedsCommon(SemanticValue value, SemanticTypeReference type)
+    {
+        if (value is SemanticNullValue)
+        {
+            return false;
+        }
+
+        if (type.IsCollection && value is SemanticArrayValue array)
+        {
+            return array.Values.Any(element => ValueNeedsCommon(element, type with { IsCollection = false }));
+        }
+
+        return type.Kind == SemanticTypeReferenceKind.Concept ||
+            (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue);
+    }
+
+    /// <summary>
     /// Gets the C# type syntax for a semantic type reference.
     /// </summary>
     /// <param name="reference">The semantic type reference.</param>
@@ -99,6 +129,26 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         }
 
         return PrimitiveValue(value, type.Primitive);
+    }
+
+    /// <summary>
+    /// Converts an admitted required scalar destination using Arc's event-source value semantics.
+    /// </summary>
+    /// <param name="expression">The command property or concrete specification value expression.</param>
+    /// <param name="type">The destination type.</param>
+    /// <returns>The EventSourceId-compatible expression.</returns>
+    public string EventSourceExpression(string expression, SemanticTypeReference type)
+    {
+        var hasImplicitConversion = type.Kind == SemanticTypeReferenceKind.Primitive &&
+            type.Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid;
+        var isIdentityConcept = type.Kind == SemanticTypeReferenceKind.Concept &&
+            context.IdentifierConcepts.Contains(type.Target) && context.Concepts[type.Target].Values.IsEmpty;
+
+        // ESM destinations are required scalars. Arc preserves typed identity conversion, otherwise calls
+        // ToString() with the current culture. Parentheses also preserve negative numeric spec literals.
+        return hasImplicitConversion || isIdentityConcept
+            ? expression
+            : $"new EventSourceId(({expression}).ToString())";
     }
 
     static string PrimitiveValue(SemanticValue value, SemanticPrimitiveType primitive) => (value, primitive) switch

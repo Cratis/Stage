@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -13,8 +14,9 @@ static class CratisArtifactRenderProfileAdmission
 {
     const string ProjectInputPrefix = "cratis-scaffold:text:";
 
-    public static bool Matches(ArtifactRenderRequest request, out string mismatch)
+    public static bool Matches(ArtifactRenderRequest request, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
+        admittedOptions = null;
         var profile = request.Profile;
         if (!string.Equals(profile.Target, CratisRendering.TargetId, StringComparison.Ordinal) ||
             !string.Equals(profile.TargetVersion, CratisRendering.TargetVersion, StringComparison.Ordinal) ||
@@ -48,6 +50,7 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
+        admittedOptions = options!;
         mismatch = string.Empty;
         return true;
     }

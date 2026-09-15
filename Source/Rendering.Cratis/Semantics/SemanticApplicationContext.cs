@@ -3,7 +3,6 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
-using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -18,11 +17,12 @@ internal sealed class SemanticApplicationContext
     /// Initializes a new instance of the <see cref="SemanticApplicationContext"/> class.
     /// </summary>
     /// <param name="request">The immutable artifact render request.</param>
-    public SemanticApplicationContext(ArtifactRenderRequest request)
+    /// <param name="options">The explicit options admitted by the complete package-profile validation.</param>
+    public SemanticApplicationContext(ArtifactRenderRequest request, CratisRenderingOptions options)
     {
         Request = request;
         Application = request.Model.Application;
-        RootNamespace = Identifiers.ToPascalCase(Application.Name);
+        RootNamespace = options.RootNamespace;
         Concepts = Application.Concepts.ToDictionary(_ => _.Id);
         Types = Application.Types.ToDictionary(_ => _.Id);
 

@@ -7,7 +7,6 @@ using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Host;
 using Cratis.Stage.Host.Workbench;
-using Cratis.Stage.Naming;
 using Cratis.Stage.Runtime;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
@@ -26,7 +25,7 @@ if (!warmMode && modelPath is null)
     throw new MissingModelArgument();
 }
 
-var stageApplication = warmMode ? null : await EventModelLoader.LoadStageApplicationFromDirectoryAsync(modelPath!);
+var stageApplication = warmMode ? null : await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath!);
 var model = stageApplication?.EventModel;
 var scene = stageApplication?.Scene;
 var eventStore = ContainerEventStoreName.Resolve();
@@ -39,7 +38,11 @@ builder.Configuration.AddJsonFile(
     optional: true,
     reloadOnChange: true);
 
-builder.AddStageCratis(eventStore, programIdentifier: $"Cratis Stage ({eventStore})");
+// Admit modeled ownership before AddCratis, DI/provider resolution, type emission, any endpoint mapping,
+// or Chronicle connection. Use one startup snapshot for planning, mapping, and discovery.
+var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
+var httpSurface = model is null ? null : StageHttpSurface.Create(model, routeOptions);
+builder.AddStageCratis(eventStore, programIdentifier: $"Cratis Stage ({eventStore})", routeOptions: routeOptions);
 
 if (model is not null)
 {
@@ -118,6 +121,7 @@ if (warmMode)
 StageLog.Running(app.Logger, model!.Name, eventStore);
 app.UseWebSockets();
 app.MapControllers();
+StageEndpointMapper.Map(app, httpSurface!);
 app.UseCratisArc();
 app.MapOpenApi();
 app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());

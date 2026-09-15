@@ -23,7 +23,7 @@ public class when_query_transport_is_disabled : given.a_routed_model
         }
     }
 
-    [Fact] void should_keep_canonical_and_legacy_get_routes_with_authorization_denied() => _getStatuses.SequenceEqual([403, 403]).ShouldBeTrue();
+    [Fact] void should_keep_canonical_and_legacy_get_routes_with_sandbox_authorization() => _getStatuses.SequenceEqual([200, 200]).ShouldBeTrue();
     [Fact] void should_not_allow_query_on_canonical_or_legacy_paths() => _queryStatuses.SequenceEqual([405, 405]).ShouldBeTrue();
     [Fact] void should_not_plan_an_alternate_query_transport() => _surface.Operations.Any(operation => operation.Method == "QUERY").ShouldBeFalse();
     [Fact] void should_not_map_query_endpoints() => Endpoints().Any(endpoint => endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()!.HttpMethods.Contains("QUERY")).ShouldBeFalse();

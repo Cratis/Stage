@@ -7,6 +7,15 @@
 # dockerize.sh) and only copied in here — its output is portable IL, so compiling it under QEMU emulation for
 # the arm64 leg of a multi-arch image build would just waste time for no benefit.
 
+# Build the browser frontend on the runner architecture. It is static JavaScript, so compiling it once avoids
+# repeating npm and Vite under QEMU for every target image architecture.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend
+WORKDIR /frontend
+COPY Source/Frontend/package.json Source/Frontend/package-lock.json ./
+RUN npm ci
+COPY Source/Frontend/ ./
+RUN npm run build
+
 # The Chronicle base image is the kernel (Cratis.Chronicle.Server in /app). Storage is fully in-memory, so no
 # database is required to run a play session — the container is self-contained on its own.
 #
@@ -25,8 +34,9 @@ RUN apt-get update \
 
 WORKDIR /stage
 
-# Copy the prebuilt Stage application
+# Copy the prebuilt Stage application and the Scene.React browser bundle.
 COPY Source/Host/out ./
+COPY --from=frontend /frontend/dist ./wwwroot
 
 # Create the directory the Screenplay .play files are provided in. /eventmodel is plain so the model can be
 # injected through the container archive API as well as bind-mounted.

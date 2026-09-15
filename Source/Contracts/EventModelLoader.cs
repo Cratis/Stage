@@ -26,28 +26,22 @@ public static class EventModelLoader
     /// <exception cref="InvalidEventModel">Thrown when the input is missing, unsupported, empty, or fails to compile.</exception>
     public static async Task<EventModel> LoadFromPathAsync(string path)
     {
-        if (Directory.Exists(path))
-        {
-            return await LoadFromDirectoryAsync(path);
-        }
+        var application = await CompilePath(path);
+        return new ScreenplayEventModelVisitor().Visit(application);
+    }
 
-        if (!File.Exists(path))
-        {
-            throw new InvalidEventModel(path, ["The path does not exist. Supply an existing .play file or a directory containing .play files."]);
-        }
-
-        if (!string.Equals(Path.GetExtension(path), ".play", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidEventModel(path, ["The selected file must have a .play extension. Supply a .play file or a directory containing .play files."]);
-        }
-
-        var compilation = new PlayFileCompiler().CompileFile(path, new ScreenplayEventModelVisitor());
-        if (!compilation.Result.Success)
-        {
-            throw new InvalidEventModel(path, Errors(Path.GetFileName(path), compilation.Result.Diagnostics));
-        }
-
-        return compilation.Result.Value!;
+    /// <summary>
+    /// Compiles a selected Screenplay file or folder once and translates both its event model and Scene.
+    /// </summary>
+    /// <param name="path">An existing <c language="csharp">.play</c> file or directory containing Screenplay files.</param>
+    /// <returns>The two Stage views of the same compiled application.</returns>
+    /// <exception cref="InvalidEventModel">Thrown when the input is missing, unsupported, empty, or fails to compile.</exception>
+    public static async Task<StageApplication> LoadStageApplicationFromPathAsync(string path)
+    {
+        var application = await CompilePath(path);
+        return new StageApplication(
+            new ScreenplayEventModelVisitor().Visit(application),
+            new ScreenplaySceneVisitor().Visit(application));
     }
 
     /// <summary>
@@ -61,6 +55,20 @@ public static class EventModelLoader
     {
         var merged = await CompileDirectory(directory);
         return new ScreenplayEventModelVisitor().Visit(merged);
+    }
+
+    /// <summary>
+    /// Compiles one Screenplay source set once and translates both the executable event model and its renderable Scene.
+    /// </summary>
+    /// <param name="directory">The directory to search for <c language="csharp">.play</c> files.</param>
+    /// <returns>The two Stage views of the same compiled application.</returns>
+    /// <exception cref="InvalidEventModel">Thrown when the directory is missing, empty, or fails to compile.</exception>
+    public static async Task<StageApplication> LoadStageApplicationFromDirectoryAsync(string directory)
+    {
+        var merged = await CompileDirectory(directory);
+        return new StageApplication(
+            new ScreenplayEventModelVisitor().Visit(merged),
+            new ScreenplaySceneVisitor().Visit(merged));
     }
 
     /// <summary>
@@ -115,6 +123,32 @@ public static class EventModelLoader
         }
 
         return new ScreenplayEventModelVisitor().Visit(result.Value!);
+    }
+
+    static async Task<ApplicationSyntax> CompilePath(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            return await CompileDirectory(path);
+        }
+
+        if (!File.Exists(path))
+        {
+            throw new InvalidEventModel(path, ["The path does not exist. Supply an existing .play file or a directory containing .play files."]);
+        }
+
+        if (!string.Equals(Path.GetExtension(path), ".play", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidEventModel(path, ["The selected file must have a .play extension. Supply a .play file or a directory containing .play files."]);
+        }
+
+        var compilation = new PlayFileCompiler().CompileFile(path);
+        if (!compilation.Result.Success)
+        {
+            throw new InvalidEventModel(path, Errors(Path.GetFileName(path), compilation.Result.Diagnostics));
+        }
+
+        return compilation.Result.Value!;
     }
 
     static Task<ApplicationSyntax> CompileDirectory(string directory)

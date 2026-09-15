@@ -1,8 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using Cratis.Arc;
 using Cratis.Arc.Commands;
 using Cratis.Arc.Http;
@@ -10,6 +12,10 @@ using Cratis.Arc.Introspection;
 using Cratis.Arc.Queries;
 using Cratis.Arc.Queries.Filters;
 using Cratis.Arc.Validation;
+using Cratis.Chronicle;
+using Cratis.Chronicle.Connections;
+using Cratis.Chronicle.Contracts;
+using Cratis.Chronicle.Contracts.ReadModels;
 using Cratis.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Api;
@@ -28,6 +34,8 @@ public class a_routed_model : Specification
     readonly ActivitySource _activitySource = new("StageHttpRoutingSpecs");
     protected readonly List<CommandContext> _commands = [];
     protected readonly List<QueryContext> _queries = [];
+    protected readonly List<string> _readModelRequests = [];
+    protected bool _rejectQueries;
     protected readonly List<(Type BoundType, string EventSourceId, IReadOnlyList<ProducedEventPayload> Events)> _appends = [];
     protected WebApplication _app = null!;
     protected ICommandHandlerProviders _commandProviders = null!;
@@ -52,6 +60,7 @@ public class a_routed_model : Specification
         var correlation = Substitute.For<ICorrelationIdAccessor>();
         correlation.Current.Returns(CorrelationId.New());
         builder.Services.AddSingleton(correlation);
+        ConfigureReadModels(builder.Services, model);
 
         _createdTypes = true;
         var types = new DynamicTypeFactory();
@@ -168,20 +177,59 @@ public class a_routed_model : Specification
         {
             var context = call.Arg<QueryContext>();
             _queries.Add(context);
-            return authorization.OnPerform(context);
+            return _rejectQueries ? Task.FromResult(QueryResult.Unauthorized(context.CorrelationId)) : authorization.OnPerform(context);
         });
         var activity = Substitute.For<IActivitySource<QueryPipeline>>();
         activity.ActualSource.Returns(_activitySource);
         _queryRenderers = Substitute.For<IQueryRenderers>();
+        _queryRenderers.Render(Arg.Any<FullyQualifiedQueryName>(), Arg.Any<object>(), Arg.Any<IServiceProvider>()).Returns(call =>
+        {
+            var data = call.ArgAt<object>(1);
+            var count = data switch
+            {
+                ICollection collection => collection.Count,
+                null => 0,
+                _ => 1
+            };
+            return new QueryRendererResult(count, data!);
+        });
+        var interceptors = Substitute.For<IReadModelInterceptors>();
+        interceptors.Intercept(Arg.Any<Type>(), Arg.Any<IEnumerable<object>>(), Arg.Any<IServiceProvider>())
+            .Returns(call => Task.FromResult(call.Arg<IEnumerable<object>>()));
         services.AddSingleton<IQueryPipeline>(new QueryPipeline(
             correlation,
             Substitute.For<IQueryContextManager>(),
             filters,
             _queryProviders,
             _queryRenderers,
-            Substitute.For<IReadModelInterceptors>(),
+            interceptors,
             Substitute.For<IDiscoverableValidators>(),
             activity));
+    }
+
+    void ConfigureReadModels(IServiceCollection services, EventModel model)
+    {
+        var documents = StageModelWalker.Slices(model)
+            .Where(located => located.Slice.ReadModel is not null)
+            .Select(located => located.Slice.ReadModel!.Id.ToString())
+            .Distinct(StringComparer.Ordinal)
+            .ToDictionary(id => id, id => JsonSerializer.Serialize(new { Id = "11111111-1111-1111-1111-111111111111", owner = id }), StringComparer.Ordinal);
+        var connection = Substitute.For<IChronicleConnection, IChronicleServicesAccessor>();
+        var chronicleServices = Substitute.For<IServices>();
+        ((IChronicleServicesAccessor)connection).Services.Returns(chronicleServices);
+        chronicleServices.ReadModels.GetInstances(Arg.Any<GetInstancesRequest>()).Returns(call =>
+        {
+            var request = call.Arg<GetInstancesRequest>();
+            _readModelRequests.Add(request.ReadModel);
+            return new GetInstancesResponse { Instances = [documents[request.ReadModel]], TotalCount = 1 };
+        });
+        var store = Substitute.For<IEventStore>();
+        store.Name.Returns(new EventStoreName("routing-specs"));
+        store.Connection.Returns(connection);
+        var client = Substitute.For<IChronicleClient>();
+        client.GetEventStore(Arg.Any<EventStoreName>()).Returns(store);
+        services.AddSingleton(client);
+        services.AddSingleton<StageEventStoreName>("routing-specs");
     }
 
     async Task Destroy()

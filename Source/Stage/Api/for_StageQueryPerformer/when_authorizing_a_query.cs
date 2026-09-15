@@ -14,5 +14,5 @@ public class when_authorizing_a_query : a_stage_query_performer
 
     void Because() => _isAuthorized = _performer.IsAuthorized(QueryContext.NotSet);
 
-    [Fact] void should_deny_access_until_query_authorization_is_declared() => _isAuthorized.ShouldBeFalse();
+    [Fact] void should_authorize_it_in_the_sandbox_the_session_owns() => _isAuthorized.ShouldBeTrue();
 }

@@ -31,7 +31,7 @@ public class when_routing_nested_features_in_distinct_modules : given.a_routed_m
         }
     }
 
-    [Fact] void should_select_canonical_and_singleton_aliases_in_each_module() => _statuses.SequenceEqual([200, 200, 403, 200, 200, 403]).ShouldBeTrue();
+    [Fact] void should_select_canonical_and_singleton_aliases_in_each_module() => _statuses.SequenceEqual([200, 200, 200, 200, 200, 200]).ShouldBeTrue();
     [Fact] void should_keep_the_nested_orders_identity() => _appends[0].BoundType.FullName.ShouldEqual("Stage.Orders.Checkout.Packing.PlaceOrder.DoIt");
     [Fact] void should_keep_the_nested_billing_identity() => _appends[2].BoundType.FullName.ShouldEqual("Stage.Billing.Checkout.Packing.PlaceOrder.DoIt");
     [Fact] void should_keep_query_identities_distinct_across_modules() => _queries.Select(context => context.Name).Distinct().Count().ShouldEqual(2);

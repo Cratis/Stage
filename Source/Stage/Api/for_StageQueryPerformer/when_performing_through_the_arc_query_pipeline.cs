@@ -57,11 +57,8 @@ public class when_performing_through_the_arc_query_pipeline : a_stage_query_perf
 
     void Destroy() => _activitySource.Dispose();
 
-    [Fact] void should_deny_the_query() => _result.IsAuthorized.ShouldBeFalse();
-    [Fact] void should_not_execute_the_performer() => _trackingPerformer.WasPerformed.ShouldBeFalse();
-    [Fact] void should_not_expose_data() => _result.Data.ShouldBeNull();
-    [Fact] void should_not_render_any_performer_result() =>
-        _renderers.DidNotReceive().Render(Arg.Any<FullyQualifiedQueryName>(), Arg.Any<object>(), Arg.Any<IServiceProvider>());
+    [Fact] void should_authorize_the_query() => _result.IsAuthorized.ShouldBeTrue();
+    [Fact] void should_execute_the_performer() => _trackingPerformer.WasPerformed.ShouldBeTrue();
 
     sealed class SinglePerformerProvider(IQueryPerformer stagePerformer) : IQueryPerformerProviders
     {
@@ -93,11 +90,13 @@ public class when_performing_through_the_arc_query_pipeline : a_stage_query_perf
 
         public bool IsAuthorized(QueryContext context) => performer.IsAuthorized(context);
 
+        // The performed query is not delegated: what it would do is read documents out of a running Chronicle,
+        // which is not what this specification is about. Reaching the performer at all is.
         public ValueTask<object?> Perform(QueryContext context)
         {
             WasPerformed = true;
 
-            return performer.Perform(context);
+            return ValueTask.FromResult<object?>(Array.Empty<object>());
         }
     }
 }

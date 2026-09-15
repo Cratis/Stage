@@ -38,5 +38,5 @@ public class when_arc_maps_the_surface_again : given.a_routed_model
     [Fact] void should_have_no_duplicate_endpoint_names() => _after.Distinct().Count().ShouldEqual(_after.Length);
     [Fact] void should_have_no_duplicate_method_and_path_pairs() => Endpoints().SelectMany(endpoint => endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()!.HttpMethods.Select(method => (method, endpoint.RoutePattern.RawText))).GroupBy(pair => pair).All(group => group.Count() == 1).ShouldBeTrue();
     [Fact] void should_still_select_one_command() => _commandStatus.ShouldEqual(200);
-    [Fact] void should_still_select_one_query() => _queryStatus.ShouldEqual(403);
+    [Fact] void should_still_select_one_query() => _queryStatus.ShouldEqual(200);
 }

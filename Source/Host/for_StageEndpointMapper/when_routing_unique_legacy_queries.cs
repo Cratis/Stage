@@ -23,7 +23,7 @@ public class when_routing_unique_legacy_queries : given.a_routed_model
         }
     }
 
-    [Fact] void should_route_every_unique_legacy_query_without_changing_authorization() => (_statuses.Count == 8 && _statuses.TrueForAll(status => status == 403)).ShouldBeTrue();
+    [Fact] void should_route_every_unique_legacy_query_with_sandbox_authorization() => (_statuses.Count == 8 && _statuses.TrueForAll(status => status == 200)).ShouldBeTrue();
     [Fact] void should_route_each_identity_twice() => (_queries.Count == 8 && _queries.GroupBy(context => context.Name).All(group => group.Count() == 2)).ShouldBeTrue();
     [Fact] void should_keep_the_original_qualified_query_names() => _queries.Select(context => context.Name.ToString()).Distinct().Order(StringComparer.Ordinal).SequenceEqual(["Stage.Orders.Checkout.InvoiceReport.Invoice.AllInvoices", "Stage.Orders.Checkout.InvoiceReport.Invoice.GetInvoiceById", "Stage.Orders.Checkout.OrderReport.Order.AllOrders", "Stage.Orders.Checkout.OrderReport.Order.GetOrderById"]).ShouldBeTrue();
 }

@@ -13,5 +13,5 @@ public class when_checking_if_anonymous_access_is_allowed : a_stage_query_perfor
 
     void Because() => _allowsAnonymousAccess = _performer.AllowsAnonymousAccess;
 
-    [Fact] void should_deny_anonymous_access() => _allowsAnonymousAccess.ShouldBeFalse();
+    [Fact] void should_allow_it_behind_studios_authenticated_proxy() => _allowsAnonymousAccess.ShouldBeTrue();
 }

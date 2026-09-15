@@ -7,27 +7,30 @@ using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Host;
 using Cratis.Stage.Host.Workbench;
-using Cratis.Stage.Naming;
 using Cratis.Stage.Runtime;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 
-// Force invariant culture for the Backend
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 
-var modelPath = args.FirstOrDefault(argument => !argument.StartsWith('-'))
-    ?? throw new MissingModelArgument();
+var modelPath = args.FirstOrDefault(argument => !argument.StartsWith('-'));
+var warmMode = args.Contains("--warm", StringComparer.Ordinal) ||
+               (modelPath is null && bool.TryParse(Environment.GetEnvironmentVariable("STAGE_WARM"), out var warm) && warm);
 
-var model = await EventModelLoader.LoadFromPathAsync(modelPath);
-var eventStore = DockerStyleName.Generate();
+if (!warmMode && modelPath is null)
+{
+    throw new MissingModelArgument();
+}
 
+var stageApplication = warmMode ? null : await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath!);
+var model = stageApplication?.EventModel;
+var scene = stageApplication?.Scene;
+var eventStore = ContainerEventStoreName.Resolve();
 var builder = WebApplication.CreateBuilder(args);
 
-// Deployment configuration comes from a dedicated cratis-stage.json file (path overridable through the
-// STAGE_CONFIG environment variable) — not appsettings.json. appsettings.json only carries hosting defaults.
 builder.Configuration.AddJsonFile(
     Environment.GetEnvironmentVariable("STAGE_CONFIG") is { Length: > 0 } configuredPath
         ? configuredPath
@@ -38,25 +41,22 @@ builder.Configuration.AddJsonFile(
 // Admit modeled ownership before AddCratis, DI/provider resolution, type emission, any endpoint mapping,
 // or Chronicle connection. Use one startup snapshot for planning, mapping, and discovery.
 var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
-var httpSurface = StageHttpSurface.Create(model, routeOptions);
+var httpSurface = model is null ? null : StageHttpSurface.Create(model, routeOptions);
 builder.AddStageCratis(eventStore, programIdentifier: $"Cratis Stage ({eventStore})", routeOptions: routeOptions);
 
-builder.Services.AddSingleton(model);
-builder.Services.AddSingleton<DynamicTypeFactory>();
-builder.Services.AddSingleton<StageEventStoreName>(eventStore);
-builder.Services.AddSingleton<IAppendProducedEvents, ProducedEventAppender>();
-builder.Services.AddSingleton<IProvideStageIdentity, StageIdentity>();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddControllers();
-builder.Services.AddWorkbenchProxy();
+if (model is not null)
+{
+    builder.Services.AddSingleton(model);
+    builder.Services.AddSingleton<DynamicTypeFactory>();
+    builder.Services.AddSingleton<IAppendProducedEvents, ProducedEventAppender>();
+    builder.Services.AddSingleton<IProvideStageIdentity, StageIdentity>();
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddControllers();
+    builder.Services.AddWorkbenchProxy();
+    builder.Services.AddOpenApi(options => options.AddDocumentTransformer<StageOnlyOperationsDocumentTransformer>());
+}
 
-// A play session is reached through its caller's reverse proxy on a path prefix (Studio proxies
-// https://<studio>/api/play/<session>/… to this container's root), and the proxy sends the standard
-// X-Forwarded-Host, X-Forwarded-Proto and X-Forwarded-Prefix headers. Honoring them is what lets anything
-// that derives a URL from the request - the OpenAPI document's servers entry, and through it Scalar's
-// "Try it" - target the public address rather than the internal service name. The known networks and proxies
-// are cleared because there is no fixed proxy to trust: the Stage is a disposable sandbox that only ever sits
-// behind the caller's own proxy.
+builder.Services.AddSingleton<StageEventStoreName>(eventStore);
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedPrefix;
@@ -64,36 +64,100 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// Add OpenAPI and Scalar — filter out framework infrastructure operations so only the engine's own
-// model operations are shown.
-builder.Services.AddOpenApi(options => options.AddDocumentTransformer<StageOnlyOperationsDocumentTransformer>());
-
 var app = builder.Build();
-
-StageLog.Running(app.Logger, model.Name, eventStore);
-
-// First in the pipeline so every later component sees the public host, scheme and path base.
 app.UseForwardedHeaders();
+if (!warmMode)
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        OnPrepareResponse = context =>
+        {
+            context.Context.Response.Headers.CacheControl = context.Context.Request.Path.StartsWithSegments("/assets")
+                ? "public,max-age=31536000,immutable"
+                : "no-store";
+        }
+    });
+}
 app.UseRouting();
-app.UseWebSockets();
-app.MapControllers();
-StageEndpointMapper.Map(app, httpSurface);
-app.UseCratisArc();
 app.UseCratisChronicle();
 
-// Map OpenAPI endpoint and configure Scalar. The base server URL is resolved from the page's own origin and
-// path base, so the reference works the same when served through a path-prefixed proxy as when served directly.
+if (warmMode)
+{
+    using var handoff = new WarmStageHandoff("/eventmodel");
+
+    app.MapGet("/stage/status", handoff.GetStatus);
+    app.MapPost("/stage/load", async (StageLoadRequest request, IChronicleClient chronicleClient, CancellationToken cancellationToken) =>
+    {
+        var result = await handoff.Load(
+            request,
+            _ => ResetKernel(chronicleClient, eventStore),
+            cancellationToken);
+
+        if (result == StageHandoffResult.Conflict)
+        {
+            return Results.Conflict();
+        }
+
+        if (result == StageHandoffResult.InvalidPath)
+        {
+            return Results.BadRequest();
+        }
+
+        Environment.ExitCode = 42;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            app.Lifetime.StopApplication();
+        });
+
+        return Results.Accepted();
+    });
+
+    await app.RunAsync();
+    return;
+}
+
+StageLog.Running(app.Logger, model!.Name, eventStore);
+app.UseWebSockets();
+app.MapControllers();
+StageEndpointMapper.Map(app, httpSurface!);
+app.UseCratisArc();
 app.MapOpenApi();
 app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
-
-// The session's own Chronicle Workbench, reachable on the same address as everything else the Stage serves.
-// The kernel is in this container and its port is not published, so a caller could otherwise never inspect the
-// events a play session produced.
 app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
 
-// Once the app has started (and UseCratisChronicle has connected the client), register the model's read models
-// and projections with Chronicle from the runtime model data so projections run and populate the read-model store.
+// A model authored on Studio's canvas declares no screens - the canvas cannot record one - so the scene it
+// translates to is empty. Rather than serving a frontend that says the model has nothing to show, the screens
+// the model implies are synthesized from its slices, and the routes Arc registered for their commands and
+// queries are attached so the frontend calls the real application rather than a guessed URL.
+var synthesized = SceneSynthesizer.Synthesize(scene!, model);
+if (!ReferenceEquals(synthesized, scene))
+{
+    StageLog.SynthesizedScreens(app.Logger, synthesized.Screens.Count);
+}
+
+// Resolved on first read, not here: Arc registers the modeled commands and queries as endpoints while the
+// application starts, so asking for them during configuration finds an empty endpoint set and every element
+// ends up without the route it is backed by.
+var sceneRoutes = new StageSceneRoutes(synthesized, app.Services, app.Logger);
+
+app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(model.Name), WarmStageHandoff.ReadHandoffId(modelPath!)));
+
+// A stage that already runs an application cannot take another one. Leaving the route unmapped answered that
+// with 405 Method Not Allowed, which reads as a broken endpoint rather than an occupied stage - and the pool
+// looking for somewhere to put a play session treated it as a fault instead of moving on to the next stage.
+app.MapPost("/stage/load", () => Results.Conflict());
+app.MapGet("/stage/scene", () => Results.Json(sceneRoutes.Scene, StageJson.Options));
+app.MapFallbackToFile("index.html");
 app.Lifetime.ApplicationStarted.Register(() =>
     _ = StageRuntimeRegistrar.RegisterAsync(app.Services, eventStore, model, app.Logger));
 
 await app.RunAsync();
+
+static async Task ResetKernel(IChronicleClient chronicleClient, string eventStoreName)
+{
+    var eventStore = await chronicleClient.GetEventStore(eventStoreName);
+    var services = ((Cratis.Chronicle.Contracts.IChronicleServicesAccessor)eventStore.Connection).Services;
+    await services.Server.ResetKernelState();
+}

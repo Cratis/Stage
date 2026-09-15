@@ -24,7 +24,9 @@ Stage has three responsibilities around a Screenplay application:
 
 The renderer is the project's highest-priority path. Direct runtime execution and specification verification are
 useful, but partial; they must not be read as proof that every Screenplay construct has executable semantics.
-Frontend and UI rendering are deferred.
+The sandbox now serves a first web frontend by translating the same compiled Screenplay application to Scene and
+rendering its screen elements with Scene.React. Layout/template composition, query-backed data, and command forms
+remain incremental runtime work rather than being silently simulated.
 
 Stage is part of the experimental Cratis model-first layer: [Screenplay](https://github.com/Cratis/Screenplay) is
 the modeling language, [Studio](https://github.com/Cratis/Studio) the collaborative modeling environment,
@@ -43,7 +45,8 @@ as one application. Stage's contract models are internal/tooling seams produced 
 ```mermaid
 flowchart LR
     Play[["📄 Screenplay<br/>*.play files"]]
-    Play -->|compile| Runtime["▶️ partial runtime<br/>Arc + Chronicle API"]
+    Play -->|compile once| Runtime["▶️ partial runtime<br/>Arc + Chronicle API"]
+    Play -->|translate| Scene["🖥️ Scene model<br/>Scene.React frontend"]
     Play -->|compile| Specs["🧪 model specification runner<br/>results.json"]
     Play -->|compile| Renderer["🎨 Cratis renderer<br/>C# application source"]
 ```
@@ -126,10 +129,16 @@ Runtime commands evaluate their modeled `produces` mappings, append the resultin
 the payload as the response. Modeled command validation and authorization are not yet enforced by this runtime
 path.
 
-Stage also does not yet receive an executable query authorization contract. Modeled query performers deny access
-by default and return no data, so they cannot expose projected documents while authorization semantics are absent.
-Full query authorization and query execution are blocked on the Screenplay-owned executable semantic/query model;
-Stage does not invent an interim query DTO contract.
+Stage does not yet evaluate modeled query authorization. The disposable sandbox permits queries against its own
+in-memory Chronicle data; this is not production authorization. Keep the sandbox behind an authenticated host or
+bind its published ports to loopback, as in the examples below. Generated applications use the renderer's admitted
+Arc authorization contracts instead. Query-pipeline rejections still prevent reading or returning data.
+
+The host serves a browser bundle at `/`. It obtains `/stage/scene`, the Scene translation produced from the exact
+same compile as the runtime event model, and renders modeled screen content through `@cratis/scene.react`. Screen
+navigation works for translated navigation intents. For canvas models without explicit screens, the sandbox
+synthesizes query views and schema-based command forms, using the routes registered by Arc. This playback frontend
+is distinct from a standalone generated application and does not imply complete modeled UI or authorization support.
 
 ### Specification runner — model-level verification
 
@@ -147,6 +156,7 @@ a live runtime.
 | `Source/Rendering.Cratis.Scaffolding` | `Cratis.Stage.Rendering.Cratis.Scaffolding` | Optional Cratis template scaffolding around rendered source.                                                                                                         |
 | `Source/Stage`                        | `Cratis.Stage`                              | Partial direct runtime engine: dynamic API types, command handling, Chronicle registration, specification strategies, and fail-closed modeled query performers.      |
 | `Source/Host`                         | `cratis/stage`                              | Disposable HTTP host paired with an in-memory Chronicle kernel for direct runtime exploration.                                                                       |
+| `Source/Frontend`                     | bundled in `cratis/stage`                   | Scene.React browser surface translated from the sandbox's Screenplay source.                                                                                          |
 | `Source/SpecRunner`                   | `cratis/stage-specrunner`                   | Container job for model-level specification verification and `results.json` output.                                                                                  |
 
 ## Running the sandbox
@@ -155,8 +165,8 @@ Mount a folder containing one or more `.play` files:
 
 ```bash
 docker run --rm \
-    -p 9090:9090 \
-    -p 35000:35000 \
+    -p 127.0.0.1:9090:9090 \
+    -p 127.0.0.1:35000:35000 \
     -v "$PWD":/eventmodel:ro \
     cratis/stage:latest
 ```
@@ -165,15 +175,20 @@ For a single file, mount only the selected file and pass its container path:
 
 ```bash
 docker run --rm \
-    -p 9090:9090 \
-    -p 35000:35000 \
+    -p 127.0.0.1:9090:9090 \
+    -p 127.0.0.1:35000:35000 \
     -v /path/to/invoicing.play:/eventmodel/input.play:ro \
     cratis/stage:latest /eventmodel/input.play
 ```
 
-The Stage API is exposed on port `9090`; the Chronicle Workbench is exposed on port `35000`. The entrypoint takes
-the model file or folder as its first argument, defaulting to `/eventmodel`. Deployment configuration is read from `cratis-stage.json`, with its path
+The Stage frontend and API are exposed on port `9090`; the API reference is `/scalar/v1`, the translated Scene
+contract is `/stage/scene`, and the Chronicle Workbench is exposed on port `35000`. The entrypoint takes a model
+file or folder as its first argument, defaulting to `/eventmodel`. Both the runtime event model and Scene come
+from the same compilation of that input. Deployment configuration is read from `cratis-stage.json`, with its path
 overridable through `STAGE_CONFIG`.
+
+A warm container (`STAGE_WARM=true` or `--warm`) starts without requiring model files. After a successful handoff,
+the supervisor restarts only Stage against `/eventmodel`; the in-container Chronicle kernel stays warm.
 
 ## Running modeled specifications
 
@@ -196,7 +211,13 @@ Full container, URL, specification-result, and render-plan documentation lives i
 
 ## Building
 
+The container supervisor check uses Python 3 and Bash with fake kernel and host processes; it does not start Docker.
+
 ```shell
+python3 Verification/verify-stage-entrypoint.py
+npm ci --prefix Source/Frontend
+npm test --prefix Source/Frontend
+npm run build --prefix Source/Frontend
 dotnet build -c Debug
 dotnet test -c Debug
 dotnet build -c Release

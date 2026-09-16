@@ -28,22 +28,23 @@ actually mapped for the model that was loaded. Reached through a path-prefixed r
 ## Command endpoints
 
 Every command in the model becomes a `POST`, at a route built from where the command sits in the model —
-module, feature, any sub-feature, then the command name, each kebab-cased:
+module, feature, any sub-feature, **slice**, then the command name, each normalized using Arc's route conventions.
+The canonical route always includes the command name, even when it is the only command:
 
 ```text
-POST /api/<module>/<feature>[/<sub-feature>]/<command>
-POST /api/<module>/<feature>[/<sub-feature>]/<command>/validate
+POST /api/<module>/<feature>[/<sub-feature>]/<slice>/<command>
+POST /api/<module>/<feature>[/<sub-feature>]/<slice>/<command>/validate
 ```
 
-For an `Invoicing` module with an `InvoiceManagement` feature holding a `RegisterInvoice` command, and an
-`Adjustments` sub-feature holding `ApplyDiscount`:
+For an `Invoicing` module with an `InvoiceManagement` feature holding a `RegisterInvoice` slice and command,
+and an `Adjustments` sub-feature holding an `ApplyDiscount` slice and command:
 
 ```bash
-curl -X POST http://localhost:9090/api/invoicing/invoice-management/register-invoice \
+curl -X POST http://localhost:9090/api/invoicing/invoice-management/register-invoice/register-invoice \
     -H "Content-Type: application/json" \
     -d '{"invoiceNumber":"INV-1042","customerId":"11111111-1111-1111-1111-111111111111"}'
 
-curl -X POST http://localhost:9090/api/invoicing/invoice-management/adjustments/apply-discount \
+curl -X POST http://localhost:9090/api/invoicing/invoice-management/adjustments/apply-discount/apply-discount \
     -H "Content-Type: application/json" \
     -d '{"invoiceId":"…","percentage":10,"reason":"Loyal customer","requiresReview":false}'
 ```
@@ -75,13 +76,15 @@ Every read model in the model gets two queries by convention — one for a singl
 — named `Get<ReadModel>ById` and `All<ReadModels>`, kebab-cased into the route:
 
 ```text
-GET /api/<module>/<feature>/get-<read-model>-by-id?id=<guid>
-GET /api/<module>/<feature>/all-<read-models>
+GET /api/<module>/<feature>[/<sub-feature>]/<slice>/get-<read-model>-by-id?id=<guid>
+GET /api/<module>/<feature>[/<sub-feature>]/<slice>/all-<read-models>
 ```
 
+For the `InvoiceList` slice and its `InvoiceListReadModel`:
+
 ```bash
-curl "http://localhost:9090/api/invoicing/invoice-management/all-invoice-list-read-models"
-curl "http://localhost:9090/api/invoicing/invoice-management/get-invoice-list-read-model-by-id?id=$ID"
+curl "http://localhost:9090/api/invoicing/invoice-management/invoice-list/all-invoice-list-read-models"
+curl "http://localhost:9090/api/invoicing/invoice-management/invoice-list/get-invoice-list-read-model-by-id?id=$ID"
 ```
 
 Each answers with Arc's `QueryResult` envelope. Modeled query performers currently deny authorization and expose
@@ -97,7 +100,45 @@ fields therefore report a fail-closed result:
 
 Every query endpoint also accepts the HTTP `QUERY` method, carrying its arguments in a JSON body instead of the
 query string — useful when arguments are too large or too structured for a URL. The alternate method has the same
-fail-closed behavior.
+fail-closed behavior. Set `Cratis:Arc:GeneratedApis:EnableQueryHttpMethod` to `false` to disable `QUERY` on both
+canonical paths and compatibility aliases without disabling `GET`. Canonical query names are always included.
+OpenAPI describes the `GET` operation; Arc keeps the alternate `QUERY` transport out of API description while
+mapping it at the same canonical path when enabled.
+
+## Legacy compatibility and admission
+
+Legacy aliases preserve **actual historical routes**, not guessed command-suffix routes:
+
+- A feature/sub-feature with **one command** historically mapped `POST /api/<module>/<feature>[/<sub-feature>]`
+  and its `/validate` variant. For the singleton `RegisterInvoice` example, the aliases are
+  `/api/invoicing/invoice-management` and `/api/invoicing/invoice-management/validate`.
+- With multiple commands at the old feature location, Arc included each command name. Unique old command-name
+  routes and their validation routes remain aliases.
+- Conventional query aliases omit the slice, for both `GET` and `QUERY`, when uniquely owned.
+
+An alias is registered only if its **HTTP method and normalized path** uniquely identify an operation across the
+complete generated Stage command/query surface. Aliases execute the same Arc handler with the same metadata
+semantics, not a redirect. They are excluded from OpenAPI and introspection advertises only canonical routes.
+
+For example, `Orders / Checkout / PlaceOrder / DoIt` and `Orders / Checkout / CancelOrder / DoIt` remain distinct
+commands and have stable canonical routes:
+
+```text
+POST /api/orders/checkout/place-order/do-it
+POST /api/orders/checkout/cancel-order/do-it
+```
+
+The ambiguous legacy `POST /api/orders/checkout/do-it` and `/api/orders/checkout/do-it/validate` are **not registered**;
+both return **404**, never the first or last declared command. Changing declaration order does not change ownership.
+
+A canonical collision is different: Stage refuses to start with **`AmbiguousStageHttpSurface`**. Diagnostics identify
+the HTTP method, normalized path, operation kinds, slice IDs, and qualified artifacts. This admission also rejects
+case/kebab/sanitization collisions, omitted collection/type identity collisions, cross-depth execute/validation
+collisions, and a canonical route that would take over another operation's legacy URL—even an ambiguous legacy URL.
+The entire modeled surface is admitted before providers, dynamic CLR types, modeled endpoint mapping, or Chronicle
+connection; a rejected model does not publish a partial modeled surface. This is an HTTP-host boundary, not a
+compiler restriction on equal command names in different slices. No collection segments, hashes, or order-based
+suffixes are invented to resolve conflicts.
 
 ## Discovering the surface programmatically
 
@@ -108,11 +149,9 @@ Two endpoints list what the session exposes, for tooling that would rather not p
 | `http://localhost:9090/.cratis/commands` | Every command: name, namespace, type, and its payload schema.                       |
 | `http://localhost:9090/.cratis/queries`  | Every query: name, fully qualified name, read model type, and its arguments schema. |
 
-:::caution
-Take the **route** from the OpenAPI document, not from the `route` field these two return. The introspection
-route currently carries one extra leading segment (`/api/stage/invoicing/…`) that the mapped endpoint does not
-have, so calling it verbatim gives a 404. Names, types and schemas are accurate.
-:::
+The `route` fields use the same host-owned generated-API options as endpoint mapping: canonical paths include
+the slice and do **not** include an extra `/stage` segment. Command CLR names and fully qualified query identities
+are unchanged. Compatibility aliases do not add extra introspection entries.
 
 ## Framework endpoints
 

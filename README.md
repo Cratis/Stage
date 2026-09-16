@@ -38,8 +38,8 @@ database and runtime.
 ## Authoritative input
 
 The authoritative input is Screenplay source: a `.play` file or a folder containing `.play` files. The host and
-specification runner recursively compile every `.play` file beneath the folder they receive and merge the
-results. Stage's contract models are internal/tooling seams produced from that compilation; an
+specification runner compile the selected file alone, or compile every `.play` file beneath the selected folder
+as one application. Stage's contract models are internal/tooling seams produced from that compilation; an
 `event-model.json` file is not the current startup or rendering contract.
 
 ```mermaid
@@ -74,6 +74,12 @@ var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.A
 var plan = CratisRendering.Plan(model, executionPlan, scope, options);
 ```
 
+`ProjectName` controls the project and solution file names; `RootNamespace` controls the project setting and
+all generated semantic C# source, imports, and specification namespaces. For example,
+`new CratisRenderingOptions("BackendHost", "Acme.projectAPI")` keeps that exact dotted namespace and casing,
+even when the semantic application is named `Projects`. Module, feature, and slice plans use the same namespace
+as the application plan. Neither the application display name nor a destination folder overrides this option.
+
 The plan must be published only when `plan.Success` is `true`. A failed plan carries diagnostics and **no candidate
 artifacts**. Callers that need the immutable package-owned profile for a lower-level `ArtifactRenderRequest` can use
 `CratisRendering.CreateProfile(...)`; they must not reconstruct or modify it. The planner rejects changed identities,
@@ -83,6 +89,13 @@ The underlying `IArtifactRenderPlanner` performs no file system, process, networ
 access. The currently admitted vertical includes concepts, composite types, one command/event production path,
 one-instance projection state, an optional snapshot lookup, and modeled specifications. Unsupported reachable
 semantics block publication instead of producing thinner code.
+
+Generated state-change commands implement `ICanProvideEventSourceId` using the resolved semantic `produces for`
+property, rather than property names or discovery order. Primitive String/Uuid destinations remain `string`/`Guid`;
+identity concepts retain their implicit conversion, and other scalar destinations use Arc's `ToString()` value
+semantics. Events are still appended through the event returned by `Handle()`. Generated acceptance specs assert
+both the destination event-source ID and event payload. `Common` imports follow the types declared in each artifact
+and the constructors actually emitted in command specification values, not unrelated application concepts.
 
 Application scope adds exactly eight deterministic backend scaffold artifacts: `Directory.Build.props`,
 `Directory.Build.targets`, `Directory.Packages.props`, the project and solution files, `Program.cs`,
@@ -108,7 +121,7 @@ not the legacy renderer.
 ### Direct runtime — partial
 
 The `cratis/stage` image is a disposable sandbox containing the Stage host and an in-memory Chronicle kernel. It
-loads a folder of `.play` files and exposes the runtime surfaces Stage currently implements. This path is not a
+loads a `.play` file or folder and exposes the runtime surfaces Stage currently implements. This path is not a
 complete executable implementation of the Screenplay language and should not be treated as a generated
 production application.
 
@@ -116,16 +129,16 @@ Runtime commands evaluate their modeled `produces` mappings, append the resultin
 the payload as the response. Modeled command validation and authorization are not yet enforced by this runtime
 path.
 
-Stage also does not yet receive an executable query authorization contract. Modeled query performers deny access
-by default and return no data, so they cannot expose projected documents while authorization semantics are absent.
-Full query authorization and query execution are blocked on the Screenplay-owned executable semantic/query model;
-Stage does not invent an interim query DTO contract.
+Stage does not yet evaluate modeled query authorization. The disposable sandbox permits queries against its own
+in-memory Chronicle data; this is not production authorization. Keep the sandbox behind an authenticated host or
+bind its published ports to loopback, as in the examples below. Generated applications use the renderer's admitted
+Arc authorization contracts instead. Query-pipeline rejections still prevent reading or returning data.
 
 The host serves a browser bundle at `/`. It obtains `/stage/scene`, the Scene translation produced from the exact
 same compile as the runtime event model, and renders modeled screen content through `@cratis/scene.react`. Screen
-navigation works for translated navigation intents. Command actions are surfaced to the host-neutral Scene event
-boundary, but are not submitted until modeled form values and the executable command contract can be joined without
-guessing. The frontend shows those boundaries honestly instead of presenting mock data as runtime behavior.
+navigation works for translated navigation intents. For canvas models without explicit screens, the sandbox
+synthesizes query views and schema-based command forms, using the routes registered by Arc. This playback frontend
+is distinct from a standalone generated application and does not imply complete modeled UI or authorization support.
 
 ### Specification runner — model-level verification
 
@@ -152,28 +165,45 @@ Mount a folder containing one or more `.play` files:
 
 ```bash
 docker run --rm \
-    -p 9090:9090 \
-    -p 35000:35000 \
-    -v "$PWD":/eventmodel \
+    -p 127.0.0.1:9090:9090 \
+    -p 127.0.0.1:35000:35000 \
+    -v "$PWD":/eventmodel:ro \
     cratis/stage:latest
 ```
 
+For a single file, mount only the selected file and pass its container path:
+
+```bash
+docker run --rm \
+    -p 127.0.0.1:9090:9090 \
+    -p 127.0.0.1:35000:35000 \
+    -v /path/to/invoicing.play:/eventmodel/input.play:ro \
+    cratis/stage:latest /eventmodel/input.play
+```
+
 The Stage frontend and API are exposed on port `9090`; the API reference is `/scalar/v1`, the translated Scene
-contract is `/stage/scene`, and the Chronicle Workbench is exposed on port `35000`. The host takes the model folder
-as its first argument. Deployment configuration is read from `cratis-stage.json`, with its path overridable through
-`STAGE_CONFIG`.
+contract is `/stage/scene`, and the Chronicle Workbench is exposed on port `35000`. The entrypoint takes a model
+file or folder as its first argument, defaulting to `/eventmodel`. Both the runtime event model and Scene come
+from the same compilation of that input. Deployment configuration is read from `cratis-stage.json`, with its path
+overridable through `STAGE_CONFIG`.
+
+A warm container (`STAGE_WARM=true` or `--warm`) starts without requiring model files. After a successful handoff,
+the supervisor restarts only Stage against `/eventmodel`; the in-container Chronicle kernel stays warm.
 
 ## Running modeled specifications
 
 ```bash
 docker run --rm \
-    -v /path/to/screenplays:/model \
+    -v /path/to/screenplays:/model:ro \
     -v /path/to/results:/output \
     cratis/stage-specrunner:latest
 ```
 
-The runner accepts `--model <folder>` and `--output <file>`, with optional `--slice <guid>` and `--spec <guid>`
-filters. The container defaults to `/model` and `/output/results.json`.
+The runner accepts `--model <file-or-folder>` and `--output <file>`, with optional `--slice <guid>` and `--spec <guid>`
+filters. The container defaults to `/model` and `/output/results.json`. To select one file, mount
+`/path/to/invoicing.play:/model/input.play:ro` and pass `--model /model/input.play --output /output/results.json`.
+Implementation `file` references remain symbolic: the loader does not open or execute them or require mounting
+their parent folder. Input errors exit with code `1` without writing results; any existing output is left intact.
 
 Full container, URL, specification-result, and render-plan documentation lives in
 [Documentation](Documentation/index.md). Framework maintainers can use the
@@ -181,7 +211,23 @@ Full container, URL, specification-result, and render-plan documentation lives i
 
 ## Building
 
+The runtime compatibility check enforces the Host's exact Chronicle release version against all three client pins
+in `Directory.Packages.props`, plus the required `-development` image flavor. That flavor preserves the compiled
+DEVELOPMENT behavior and shell/apt/tini tools Stage needs; the bare-version image is chiseled. Regressions reject
+both the previous mismatched release and a matching release with the wrong flavor.
+This is a bounded source-pin policy, not an MSBuild evaluator or a live kernel handshake. In this file it requires
+one canonical, unconditional literal Include per protected client, rejects protected Update/Remove and case-variant
+duplicates, and fails closed on nonliteral or multi-ID PackageVersion targets (including properties, item expressions,
+wildcards, and semicolon lists). It does not establish safety against arbitrary external MSBuild imports, command-line
+properties, or project-level overrides. SpecRunner performs model-level verification without a
+Chronicle kernel; its ASP.NET 10 base matches the repository's `net10.0` target. Neither check changes the distinct
+generated application's Cratis/Arc 22.3.0 and Chronicle 16.35.3 runtime profile.
+
+The container supervisor check uses Python 3 and Bash with fake kernel and host processes; it does not start Docker.
+
 ```shell
+python3 Verification/verify-runtime-compatibility.py --self-test
+python3 Verification/verify-stage-entrypoint.py
 npm ci --prefix Source/Frontend
 npm test --prefix Source/Frontend
 npm run build --prefix Source/Frontend

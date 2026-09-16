@@ -5,8 +5,6 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <IsPackable>true</IsPackable>
         <Description>Scaffolds the Cratis project a rendered Screenplay application is placed into, from the Cratis templates.</Description>
-        <!-- New package: there is no released baseline to compare against yet. -->
-        <EnablePackageValidation>false</EnablePackageValidation>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Cratis.Templates" />
@@ -17,4 +15,21 @@
     <ItemGroup>
         <ProjectReference Include="../Rendering.Cratis/Rendering.Cratis.csproj" />
     </ItemGroup>
+    <!-- Rendering's private Roslyn references do not flow through ProjectReference. ApiCompat
+         still needs them to resolve the transitive API graph of both baseline and current packages.
+         Reuse the SDK's resolved references for validation only; do not add package dependencies. -->
+    <Target Name="IncludeRenderingPackageValidationReferences"
+            AfterTargets="_GetReferencePathFromInnerProjects"
+            Condition="'$(EnablePackageValidation)' == 'true'">
+        <MSBuild Projects="../Rendering.Cratis/Rendering.Cratis.csproj"
+                 Targets="GetReferencesForApiCompatValidatePackage"
+                 Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);BuildProjectReferences=false">
+            <Output TaskParameter="TargetOutputs" ItemName="_RenderingPackageValidationReferences" />
+        </MSBuild>
+        <ItemGroup>
+            <PackageValidationReferencePath Update="@(PackageValidationReferencePath)">
+                <ReferencePath>%(PackageValidationReferencePath.ReferencePath),@(_RenderingPackageValidationReferences->'%(ReferencePath)', ',')</ReferencePath>
+            </PackageValidationReferencePath>
+        </ItemGroup>
+    </Target>
 </Project>

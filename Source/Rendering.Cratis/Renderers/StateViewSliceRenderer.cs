@@ -16,13 +16,16 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// projection attributes for the blocks this renderer understands — <c language="csharp">from</c>, <c language="csharp">join</c>, <c language="csharp">all</c>,
 /// <c language="csharp">every</c>, <c language="csharp">remove with</c>, <c language="csharp">remove via join</c>, <c language="csharp">nested</c> together with the <c language="csharp">clear with</c>
 /// that is only meaningful inside one, and <c language="csharp">children</c> together with the sibling child record it projects
-/// into. Constructs it can't express as attributes (composite keys, and the blocks whose meaning inside a
+/// into. Effective root <c language="csharp">from</c> composite keys fail closed before emission. Other constructs it can't express
+/// as attributes (including composite keys in other scopes, and the blocks whose meaning inside a
 /// generated nested or child record is not established) are reported as diagnostics and called out in the file
 /// rather than silently dropped, as is everything else the slice declares that nothing renders (see
 /// <see cref="UnrenderedConstructs"/>).
 /// </summary>
 /// <remarks>
-/// Each declared query that returns the rendered read model becomes a static method with its own exact Arc
+/// All queries in the selected slice are admitted before emission: filters and performers fail closed, even
+/// when their return model is not rendered. Each supported query returning the rendered read model becomes a
+/// static method with its own exact Arc
 /// authorization attribute. A read model receives the synthesized all/by-id pair only when no declared query
 /// returns it; only that pair shares a type-level authorization fallback from <see cref="ReadModelAuthorization"/>.
 /// </remarks>
@@ -31,16 +34,19 @@ public class StateViewSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
-        var diagnostics = new List<string>();
-        var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
-        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
+        QueryAdmission.EnsureSupported(slice.Slice.Queries, string.Join('.', slice.FullPath));
 
         // A slice may declare several projections. Only the first is rendered; the ones left out are reported by
         // UnrenderedConstructs rather than dropped in silence. A query names the read model it reads with its
         // return type, which decides both whether this file can hold its method and where that method's own
         // authorization belongs. The read model's name is therefore known before anything is reported.
         var projection = slice.Slice.Projections.FirstOrDefault();
+        EnsureSupportedRootKeys(projection, string.Join('.', slice.FullPath));
         var readModel = projection is null ? null : ReadModelName(projection);
+
+        var diagnostics = new List<string>();
+        var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
+        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
 
         UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.ReadModel, diagnostics, readModel);
 
@@ -53,7 +59,7 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         if (projection is not null)
         {
-            RenderReadModel(builder, projection, readModel!, slice.Slice.Queries, applicationSet, referenced, diagnostics);
+            RenderReadModel(builder, projection, readModel!, slice.Slice.Queries, applicationSet, referenced, diagnostics, string.Join('.', slice.FullPath));
         }
 
         foreach (var @namespace in ReferencedNamespaces.Resolve(referenced, applicationSet, rootNamespace, ownNamespace))
@@ -63,6 +69,25 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         var path = new List<string>(SliceNaming.FolderPath(slice.FullPath)) { SliceNaming.FileName(slice.Slice.Name) };
         return new RenderedFile(Path.Combine([.. path]), builder.ToString()) { Diagnostics = diagnostics };
+    }
+
+    // Admit precisely the root subscriptions emission selects, including its first-event winner rule.
+    // An inline event key overrides the block key; nested/child and unrendered projections are not this scope.
+    static void EnsureSupportedRootKeys(ProjectionSyntax? projection, string slicePath)
+    {
+        if (projection is null)
+        {
+            return;
+        }
+
+        foreach (var subscription in Subscriptions([.. projection.Blocks.OfType<FromSyntax>()]))
+        {
+            if (subscription.Spec.Key is null && subscription.From.Key is CompositeKeySyntax composite)
+            {
+                throw new UnsupportedCompositeProjectionKey(
+                    slicePath, projection.Name, projection.ReadModel ?? projection.Name, subscription.Spec.Event, composite.Type, composite.Location);
+            }
+        }
     }
 
     // The C# type name the read model rendered from a projection takes — what a query's return type has to name
@@ -77,7 +102,8 @@ public class StateViewSliceRenderer : ISliceRenderer
         IEnumerable<QuerySyntax> queries,
         ApplicationSet applicationSet,
         List<string> referenced,
-        List<string> diagnostics)
+        List<string> diagnostics,
+        string slicePath)
     {
         var blocks = projection.Blocks.ToArray();
         var fromBlocks = blocks.OfType<FromSyntax>().ToArray();
@@ -93,7 +119,11 @@ public class StateViewSliceRenderer : ISliceRenderer
             builder.BlankLine();
         }
 
-        var keyProperty = ProjectionKey.Resolve(projection, fromBlocks, properties, events, applicationSet, diagnostics);
+        var subscriptions = Subscriptions(fromBlocks);
+        var stringKeys = RootStringKeyProfile.Admit(projection, subscriptions, properties, queries, slicePath);
+        var keyProperty = stringKeys is null
+            ? ProjectionKey.Resolve(projection, fromBlocks, properties, events, applicationSet, diagnostics)
+            : null;
 
         builder.Using(AuthorizationRenderer.Namespace)
             .Using("Cratis.Arc.Queries.ModelBound")
@@ -104,7 +134,6 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         referenced.AddRange(properties.Where(property => property.Type.Kind is not ResolvedTypeKind.Unresolved).Select(property => property.Type.ClrTypeName));
 
-        var subscriptions = Subscriptions(fromBlocks);
         var removalEvents = projection.Blocks.OfType<RemoveWithSyntax>().Select(block => block.Event).Distinct(StringComparer.Ordinal).ToArray();
         var joinedEvents = joinBlocks.SelectMany(join => join.Events).Select(joined => joined.Event).Distinct(StringComparer.Ordinal).ToArray();
         var joinRemovals = projection.Blocks.OfType<RemoveViaJoinSyntax>().ToArray();
@@ -113,13 +142,16 @@ public class StateViewSliceRenderer : ISliceRenderer
         referenced.AddRange(joinedEvents);
         referenced.AddRange(joinRemovals.Select(block => block.Event));
 
-        // The key is rendered onto [FromEvent] here exactly as it is on a nested record. Chronicle seeds every
+        // Root string constants use the separately admitted public ConstantKey property; other keys use the
+        // existing property-key renderer, also used by nested records. Chronicle seeds every
         // From with the event source id and only ever overwrites it from a class-level [FromEvent]'s key — it
         // never reads [Key] for this — so a read model whose key came only from [Key] would keep routing its
         // documents on the event source id no matter what the projection declared.
         foreach (var subscription in subscriptions)
         {
-            builder.Attribute(FromEvent(subscription.From, subscription.Spec, typeName, "read model", events, diagnostics));
+            builder.Attribute(stringKeys is null
+                ? FromEvent(subscription.From, subscription.Spec, typeName, "read model", events, diagnostics)
+                : $"FromEvent<{Identifiers.ToPascalCase(subscription.Spec.Event)}>(ConstantKey = {CSharpCodeBuilder.StringLiteral(stringKeys.ValueFor(subscription.Spec.Event))})");
         }
 
         foreach (var eventName in removalEvents)
@@ -161,6 +193,11 @@ public class StateViewSliceRenderer : ISliceRenderer
         builder.OpenBlock($"public record {typeName}({parameters})");
 
         var keyType = keyProperty is null ? "Guid" : properties.First(property => property.Name == keyProperty).Type.ToTypeSyntax();
+        if (stringKeys is not null)
+        {
+            keyType = "string";
+        }
+
         var idParameterName = keyProperty is null ? "id" : Identifiers.ToCamelCase(keyProperty);
 
         QueryRenderer.Render(builder, typeName, keyType, idParameterName, queries, applicationSet, diagnostics);

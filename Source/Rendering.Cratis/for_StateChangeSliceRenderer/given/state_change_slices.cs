@@ -47,7 +47,7 @@ public class state_change_slices : Specification
         var handlerCode = new CodeBlockSyntax(
             "csharp",
             "var events = new List<object>();\nevents.Add(new BatchProcessed(context.Identity.Id));\nreturn events;",
-            SourceLocation.Start);
+            SourceLocation.Start with { Path = "fixtures/Batch.play", Line = 17, Column = 9 });
         var batchIdProperty = new PropertySyntax("batchId", new TypeRefSyntax("Uuid", false, false, SourceLocation.Start), SourceLocation.Start);
         var processCommand = new CommandSyntax(
             "ProcessBatch", [batchIdProperty], null, [], [], new HandlerSyntax(null, handlerCode, SourceLocation.Start), SourceLocation.Start);

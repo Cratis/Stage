@@ -8,7 +8,7 @@ is no database to provision, no Chronicle server to point at, and nothing left b
 deliberate — a play session is meant to be started, poked at, and thrown away.
 
 ```bash
-docker run --rm -p 9090:9090 -p 35000:35000 -v "$PWD":/eventmodel cratis/stage:latest
+docker run --rm -p 9090:9090 -p 35000:35000 -v "$PWD":/eventmodel:ro cratis/stage:latest
 ```
 
 ## What is inside
@@ -46,15 +46,16 @@ Three things about that base image are worth knowing:
 
 `entrypoint-stage.sh` runs both processes in order:
 
-1. **Start the Chronicle kernel** from `/app` with in-memory storage, and with its API and Workbench features
+1. **Check the selected input**, defaulting to `/eventmodel`. A missing path, a file without a `.play`
+   extension, or a folder without `.play` files fails before the Chronicle kernel starts. File extensions are
+   case-insensitive. This checks the input path, not the validity or executable capabilities of the model.
+2. **Start the Chronicle kernel** from `/app` with in-memory storage, and with its API and Workbench features
    turned on explicitly.
-2. **Wait for the kernel** — it polls port `35000` until the gRPC endpoint accepts connections, so the Stage
+3. **Wait for the kernel** — it polls port `35000` until the gRPC endpoint accepts connections, so the Stage
    never races ahead of the event store it needs.
-3. **Look for the model.** If no `.play` file exists anywhere beneath `/eventmodel`, the container **fails with
-   an error instead of starting an empty API** — an empty stage is a configuration mistake, not a valid session.
-4. **Start the Stage host** against `/eventmodel`. It compiles every `.play` file beneath the folder (the
-   `**/*.play` glob), merges them into a single event model, and materializes the model's commands, queries, read
-   models and projections. The projections are registered with Chronicle once the host has started.
+4. **Start the Stage host** with the selected path. It compiles just that file, or compiles every `.play` file
+   beneath the folder as one application using Screenplay's folder compiler. The host materializes the runtime
+   constructs it currently supports; projections are registered with Chronicle once the host has started.
 
 Each session gets a generated, Docker-style event store name (`brave-mendel`, `nifty-turing`, …), which is what
 you will see in the log line the host prints and in the Workbench.
@@ -85,7 +86,7 @@ The model is read from `/eventmodel` inside the container:
 
 ```bash
 docker run --rm -p 9090:9090 -p 35000:35000 \
-    -v /path/to/screenplays:/eventmodel \
+    -v /path/to/screenplays:/eventmodel:ro \
     cratis/stage:latest
 ```
 
@@ -94,11 +95,19 @@ The folder is searched recursively, so a model split across many `.play` files i
 through the container archive API instead of a bind mount — that is how tooling that has no host folder to share
 (Studio, for one) supplies a model.
 
-The host takes the model path as its first argument, so a different path is a matter of overriding the command:
+To load a single file, mount only that file read-only and pass its container path after the image name:
 
 ```bash
-docker run --rm -p 9090:9090 -v "$PWD":/models cratis/stage:latest dotnet Cratis.Stage.Host.dll /models
+docker run --rm -p 9090:9090 -p 35000:35000 \
+    -v /path/to/invoicing.play:/eventmodel/input.play:ro \
+    cratis/stage:latest /eventmodel/input.play
 ```
+
+The entrypoint forwards absolute paths unchanged and resolves relative paths against its initial working directory
+before starting the host. A single-file input does not discover sibling `.play` files. Implementation `file` references remain symbolic: this loader does not open or execute them, and
+no mount of their parent folder is needed. Folder compilation resolves declarations across the discovered files
+and reports compilation errors with relative source paths. Compilation alone does not establish that Stage can
+execute every modeled construct.
 
 ## Configuration
 

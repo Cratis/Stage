@@ -46,8 +46,8 @@ public sealed class StageQueryPerformerProvider : IQueryPerformerProvider
             // by - see StageChronicleDefinitions, which registers exactly this identifier.
             var identifier = readModel.Id.ToString();
 
-            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"Get{name}ById", located.Location, byId: true));
-            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"All{ModelNaming.Pluralize(name)}", located.Location, byId: false));
+            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"Get{name}ById", located.CanonicalLocation, byId: true));
+            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"All{ModelNaming.Pluralize(name)}", located.CanonicalLocation, byId: false));
         }
     }
 

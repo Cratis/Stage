@@ -43,6 +43,9 @@ jobs:
           cache: npm
           cache-dependency-path: Source/Frontend/package-lock.json
 
+      - name: Verify Host kernel and client compatibility pins
+        run: python3 Verification/verify-runtime-compatibility.py --self-test
+
       - name: Verify container entrypoint supervision
         run: python3 Verification/verify-stage-entrypoint.py
 

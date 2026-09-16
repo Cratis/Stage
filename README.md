@@ -211,9 +211,22 @@ Full container, URL, specification-result, and render-plan documentation lives i
 
 ## Building
 
+The runtime compatibility check enforces the Host's exact Chronicle release version against all three client pins
+in `Directory.Packages.props`, plus the required `-development` image flavor. That flavor preserves the compiled
+DEVELOPMENT behavior and shell/apt/tini tools Stage needs; the bare-version image is chiseled. Regressions reject
+both the previous mismatched release and a matching release with the wrong flavor.
+This is a bounded source-pin policy, not an MSBuild evaluator or a live kernel handshake. In this file it requires
+one canonical, unconditional literal Include per protected client, rejects protected Update/Remove and case-variant
+duplicates, and fails closed on nonliteral or multi-ID PackageVersion targets (including properties, item expressions,
+wildcards, and semicolon lists). It does not establish safety against arbitrary external MSBuild imports, command-line
+properties, or project-level overrides. SpecRunner performs model-level verification without a
+Chronicle kernel; its ASP.NET 10 base matches the repository's `net10.0` target. Neither check changes the distinct
+generated application's Cratis/Arc 22.3.0 and Chronicle 16.35.3 runtime profile.
+
 The container supervisor check uses Python 3 and Bash with fake kernel and host processes; it does not start Docker.
 
 ```shell
+python3 Verification/verify-runtime-compatibility.py --self-test
 python3 Verification/verify-stage-entrypoint.py
 npm ci --prefix Source/Frontend
 npm test --prefix Source/Frontend

@@ -58,6 +58,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Verify Host kernel and client compatibility pins
+        run: python3 Verification/verify-runtime-compatibility.py --self-test
+
       - name: Release
         id: release
         uses: cratis/release-action@v1

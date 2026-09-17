@@ -26,7 +26,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// NuGet counterpart at all.
 /// </para>
 /// <para>
-/// The set is exactly the seven packages below, each resolved to the newest version published at or before the
+/// The set is exactly the fifteen packages below, each resolved to the newest version published at or before the
 /// publish instant of <c language="json">@cratis/arc</c> 22.3.0. It deliberately excludes <c language="json">@cratis/components</c>, which at that
 /// cut drags in a full PrimeReact peer stack, and the <c language="json">@cratis/scene.*</c> packages, which existed only at 2.0.0
 /// at that cut while the Scene capabilities a composed application needs shipped in 3.5.0. Selecting those belongs
@@ -42,7 +42,15 @@ public sealed class CratisFrontendPackageSet
         string fundamentalsPackageVersion,
         string rxjsPackageVersion,
         string tsyringePackageVersion,
-        string reflectMetadataPackageVersion)
+        string reflectMetadataPackageVersion,
+        string reactPackageVersion,
+        string reactDomPackageVersion,
+        string reactRouterDomPackageVersion,
+        string vitePackageVersion,
+        string typeScriptPackageVersion,
+        string vitePluginReactPackageVersion,
+        string typesReactPackageVersion,
+        string typesReactDomPackageVersion)
     {
         ArcPackageVersion = arcPackageVersion;
         ArcReactPackageVersion = arcReactPackageVersion;
@@ -51,6 +59,14 @@ public sealed class CratisFrontendPackageSet
         RxjsPackageVersion = rxjsPackageVersion;
         TsyringePackageVersion = tsyringePackageVersion;
         ReflectMetadataPackageVersion = reflectMetadataPackageVersion;
+        ReactPackageVersion = reactPackageVersion;
+        ReactDomPackageVersion = reactDomPackageVersion;
+        ReactRouterDomPackageVersion = reactRouterDomPackageVersion;
+        VitePackageVersion = vitePackageVersion;
+        TypeScriptPackageVersion = typeScriptPackageVersion;
+        VitePluginReactPackageVersion = vitePluginReactPackageVersion;
+        TypesReactPackageVersion = typesReactPackageVersion;
+        TypesReactDomPackageVersion = typesReactDomPackageVersion;
     }
 
     /// <summary>
@@ -89,6 +105,46 @@ public sealed class CratisFrontendPackageSet
     public string ReflectMetadataPackageVersion { get; }
 
     /// <summary>
+    /// Gets the exact <c language="json">react</c> package version.
+    /// </summary>
+    public string ReactPackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">react-dom</c> package version.
+    /// </summary>
+    public string ReactDomPackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">react-router-dom</c> package version.
+    /// </summary>
+    public string ReactRouterDomPackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">vite</c> package version.
+    /// </summary>
+    public string VitePackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">typescript</c> package version.
+    /// </summary>
+    public string TypeScriptPackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">@vitejs/plugin-react</c> package version.
+    /// </summary>
+    public string VitePluginReactPackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">@types/react</c> package version.
+    /// </summary>
+    public string TypesReactPackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">@types/react-dom</c> package version.
+    /// </summary>
+    public string TypesReactDomPackageVersion { get; }
+
+    /// <summary>
     /// Gets the frontend package set belonging to the emitted era of the current scaffold profile.
     /// </summary>
     internal static CratisFrontendPackageSet Current { get; } = new(
@@ -98,7 +154,15 @@ public sealed class CratisFrontendPackageSet
         "7.18.1",
         "7.8.2",
         "4.10.0",
-        "0.2.2");
+        "0.2.2",
+        "19.0.8",
+        "19.0.8",
+        "6.30.6",
+        "8.2.2",
+        "7.0.2",
+        "6.1.0",
+        "19.2.18",
+        "19.2.5");
 
     /// <summary>
     /// Creates an unvalidated frontend package set for in-assembly contract verification.
@@ -110,6 +174,14 @@ public sealed class CratisFrontendPackageSet
     /// <param name="rxjsPackageVersion">The exact <c language="json">rxjs</c> package version.</param>
     /// <param name="tsyringePackageVersion">The exact <c language="json">tsyringe</c> package version.</param>
     /// <param name="reflectMetadataPackageVersion">The exact <c language="json">reflect-metadata</c> package version.</param>
+    /// <param name="reactPackageVersion">The exact <c language="json">react</c> package version.</param>
+    /// <param name="reactDomPackageVersion">The exact <c language="json">react-dom</c> package version.</param>
+    /// <param name="reactRouterDomPackageVersion">The exact <c language="json">react-router-dom</c> package version.</param>
+    /// <param name="vitePackageVersion">The exact <c language="json">vite</c> package version.</param>
+    /// <param name="typeScriptPackageVersion">The exact <c language="json">typescript</c> package version.</param>
+    /// <param name="vitePluginReactPackageVersion">The exact <c language="json">@vitejs/plugin-react</c> package version.</param>
+    /// <param name="typesReactPackageVersion">The exact <c language="json">@types/react</c> package version.</param>
+    /// <param name="typesReactDomPackageVersion">The exact <c language="json">@types/react-dom</c> package version.</param>
     /// <returns>The frontend package set, validated only when a profile is created from it.</returns>
     internal static CratisFrontendPackageSet Create(
         string arcPackageVersion,
@@ -118,7 +190,15 @@ public sealed class CratisFrontendPackageSet
         string fundamentalsPackageVersion,
         string rxjsPackageVersion,
         string tsyringePackageVersion,
-        string reflectMetadataPackageVersion) =>
+        string reflectMetadataPackageVersion,
+        string reactPackageVersion,
+        string reactDomPackageVersion,
+        string reactRouterDomPackageVersion,
+        string vitePackageVersion,
+        string typeScriptPackageVersion,
+        string vitePluginReactPackageVersion,
+        string typesReactPackageVersion,
+        string typesReactDomPackageVersion) =>
         new(
             arcPackageVersion,
             arcReactPackageVersion,
@@ -126,7 +206,15 @@ public sealed class CratisFrontendPackageSet
             fundamentalsPackageVersion,
             rxjsPackageVersion,
             tsyringePackageVersion,
-            reflectMetadataPackageVersion);
+            reflectMetadataPackageVersion,
+            reactPackageVersion,
+            reactDomPackageVersion,
+            reactRouterDomPackageVersion,
+            vitePackageVersion,
+            typeScriptPackageVersion,
+            vitePluginReactPackageVersion,
+            typesReactPackageVersion,
+            typesReactDomPackageVersion);
 
     /// <summary>
     /// Gets every version in the set, for validation through the single exactness rule the scaffold profile owns.
@@ -141,5 +229,13 @@ public sealed class CratisFrontendPackageSet
         yield return RxjsPackageVersion;
         yield return TsyringePackageVersion;
         yield return ReflectMetadataPackageVersion;
+        yield return ReactPackageVersion;
+        yield return ReactDomPackageVersion;
+        yield return ReactRouterDomPackageVersion;
+        yield return VitePackageVersion;
+        yield return TypeScriptPackageVersion;
+        yield return VitePluginReactPackageVersion;
+        yield return TypesReactPackageVersion;
+        yield return TypesReactDomPackageVersion;
     }
 }

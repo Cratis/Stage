@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
@@ -46,7 +47,7 @@ public static class CratisRendering
     public static CratisBackendApplicationScaffoldProfile Dependencies => CratisBackendApplicationScaffoldProfile.Current;
 
     /// <summary>
-    /// Creates the complete immutable target profile, including all exact scaffold bytes and hashes.
+    /// Creates the complete immutable target profile, including all exact backend and frontend scaffold bytes and hashes.
     /// </summary>
     /// <param name="applicationName">The semantic application name used for persistent stores.</param>
     /// <param name="options">The explicit project and root namespace choices.</param>
@@ -64,7 +65,12 @@ public static class CratisRendering
             options.ProjectName,
             options.RootNamespace,
             Dependencies);
-        var inputs = new CratisBackendApplicationScaffold().Create(request);
+        var backend = new CratisBackendApplicationScaffold().Create(request);
+        var frontend = new CratisFrontendApplicationScaffold().Create(request);
+        var inputs = backend
+            .Concat(frontend)
+            .OrderBy(input => input.Name, StringComparer.Ordinal)
+            .ToImmutableArray();
 
         return ArtifactRenderProfile.Create(
             TargetId,

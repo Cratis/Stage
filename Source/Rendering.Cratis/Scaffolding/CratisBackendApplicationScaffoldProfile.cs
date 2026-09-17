@@ -22,7 +22,8 @@ public sealed class CratisBackendApplicationScaffoldProfile
         string nSubstitutePackageVersion,
         string xunitPackageVersion,
         string xunitRunnerVisualStudioPackageVersion,
-        string chronicleImageVersion)
+        string chronicleImageVersion,
+        CratisFrontendPackageSet frontendPackageSet)
     {
         Version = version;
         TargetFramework = targetFramework;
@@ -36,6 +37,7 @@ public sealed class CratisBackendApplicationScaffoldProfile
         XunitPackageVersion = xunitPackageVersion;
         XunitRunnerVisualStudioPackageVersion = xunitRunnerVisualStudioPackageVersion;
         ChronicleImageVersion = chronicleImageVersion;
+        FrontendPackageSet = frontendPackageSet;
     }
 
     /// <summary>
@@ -116,6 +118,18 @@ public sealed class CratisBackendApplicationScaffoldProfile
     public string ChronicleImageVersion { get; }
 
     /// <summary>
+    /// Gets the exact npm package versions the emitted era composes its frontend from.
+    /// </summary>
+    /// <remarks>
+    /// Held as a separate <see cref="CratisFrontendPackageSet"/> rather than as more version properties here, because
+    /// the frontend packages resolve from npm on their own publish cadence while the properties above resolve from
+    /// NuGet, and because neither is the same thing as the <b>tooling</b> versions the Stage repository itself builds
+    /// with. All of them are validated by the one exactness rule this type owns, so no emitted era can carry a
+    /// wildcard, a range or a prerelease from either registry.
+    /// </remarks>
+    public CratisFrontendPackageSet FrontendPackageSet { get; }
+
+    /// <summary>
     /// Creates a validated immutable scaffold profile for in-assembly contract verification.
     /// </summary>
     /// <param name="version">The scaffold contract version.</param>
@@ -130,8 +144,9 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// <param name="xunitPackageVersion">The exact <c language="csharp">xunit</c> package version.</param>
     /// <param name="xunitRunnerVisualStudioPackageVersion">The exact <c language="csharp">xunit.runner.visualstudio</c> package version.</param>
     /// <param name="chronicleImageVersion">The exact <c language="csharp">cratis/chronicle</c> image version.</param>
+    /// <param name="frontendPackageSet">Optional exact frontend package set, defaulting to the set belonging to the emitted era.</param>
     /// <returns>The validated profile.</returns>
-    /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when a version or target framework is not exact and supported.</exception>
+    /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when a version, target framework or package version is not exact and supported.</exception>
     internal static CratisBackendApplicationScaffoldProfile Create(
         string version,
         string targetFramework,
@@ -144,7 +159,8 @@ public sealed class CratisBackendApplicationScaffoldProfile
         string nSubstitutePackageVersion,
         string xunitPackageVersion,
         string xunitRunnerVisualStudioPackageVersion,
-        string chronicleImageVersion)
+        string chronicleImageVersion,
+        CratisFrontendPackageSet? frontendPackageSet = null)
     {
         if (!IsPositiveInteger(version))
         {
@@ -174,6 +190,12 @@ public sealed class CratisBackendApplicationScaffoldProfile
             throw new InvalidCratisBackendApplicationScaffold("A scaffold profile requires exact stable major.minor.patch package and image versions.");
         }
 
+        var frontend = frontendPackageSet ?? CratisFrontendPackageSet.Current;
+        if (frontend.Versions().Any(versionValue => !IsExactStableVersion(versionValue)))
+        {
+            throw new InvalidCratisBackendApplicationScaffold("A scaffold profile requires exact stable major.minor.patch frontend package versions.");
+        }
+
         return new(
             version,
             targetFramework,
@@ -186,7 +208,8 @@ public sealed class CratisBackendApplicationScaffoldProfile
             nSubstitutePackageVersion,
             xunitPackageVersion,
             xunitRunnerVisualStudioPackageVersion,
-            chronicleImageVersion);
+            chronicleImageVersion,
+            frontend);
     }
 
     static bool IsTargetFramework(string value) =>

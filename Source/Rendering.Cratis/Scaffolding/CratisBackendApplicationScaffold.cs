@@ -90,7 +90,16 @@ public sealed class CratisBackendApplicationScaffold
             <IsPackable>false</IsPackable>
             <IsTestProject Condition="'$(Configuration)' == 'Debug'">true</IsTestProject>
             <NoWarn Condition="'$(Configuration)' == 'Debug'">$(NoWarn);CS7022</NoWarn>
+            <CratisProxiesOutputPath>$(MSBuildThisFileDirectory)</CratisProxiesOutputPath>
+            <CratisProxiesSegmentsToSkip>1</CratisProxiesSegmentsToSkip>
+            <CratisProxiesSkipOutputDeletion>true</CratisProxiesSkipOutputDeletion>
+            <CratisProxiesSkipCommandNameInRoute>true</CratisProxiesSkipCommandNameInRoute>
+            <CratisProxiesUseSourceFileAsOutputFile>true</CratisProxiesUseSourceFileAsOutputFile>
           </PropertyGroup>
+          <ItemGroup>
+            <Content Remove="package.json" />
+            <None Remove="package.json" />
+          </ItemGroup>
           <ItemGroup>
             <PackageReference Include="Cratis" Version="{{profile.CratisPackageVersion}}" />
             <PackageReference Include="Cratis.Arc.MongoDB" Version="{{profile.CratisArcMongoDBPackageVersion}}" />
@@ -125,8 +134,11 @@ public sealed class CratisBackendApplicationScaffold
             configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
 
         var app = builder.Build();
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
         app.UseCratis();
         app.MapHealthChecks("/healthz");
+        app.MapFallbackToFile("/index.html");
 
         await app.RunAsync();
         """;

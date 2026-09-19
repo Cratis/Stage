@@ -28,6 +28,11 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 public class TemplateEngineProjectScaffolder : IProjectScaffolder
 {
     const string PackageId = "Cratis.Templates";
+
+    /// <summary>
+    /// The language of the template Stage scaffolds.
+    /// </summary>
+    const string TemplateLanguage = "C#";
     const string TemplateShortName = "cratis";
     const string FrameworkParameter = "Framework";
     const string PackageManagerParameter = "packageManager";
@@ -60,8 +65,20 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
 
         await packageManager.RebuildTemplateCacheAsync(CancellationToken.None);
         var templates = await packageManager.GetTemplatesAsync(CancellationToken.None);
-        var template = templates.FirstOrDefault(candidate => candidate.ShortNameList.Contains(TemplateShortName)) ??
-            throw new TemplateNotFound(TemplateShortName);
+
+        // The short name alone stopped identifying one template: Cratis.Templates 1.7.0 groups the C#, Java and
+        // Kotlin applications under a single `cratis` short name, so picking the first match can land on a
+        // template that has no project or solution file at all. Stage scaffolds the C# application, so say so.
+        var candidates = templates
+            .Where(candidate => candidate.ShortNameList.Contains(TemplateShortName) &&
+                (Language(candidate) is null || string.Equals(Language(candidate), TemplateLanguage, StringComparison.Ordinal)))
+            .ToArray();
+        var template = candidates.Length switch
+        {
+            0 => throw new TemplateNotFound(TemplateShortName),
+            1 => candidates[0],
+            _ => candidates.OrderByDescending(_ => _.Precedence).First()
+        };
 
         var parameters = BuildParameters(template);
         await output.WriteLineAsync($"Applying template '{TemplateShortName}' as '{projectName}' targeting '{parameters[FrameworkParameter]}'...");
@@ -87,6 +104,14 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
         await output.WriteLineAsync("Scaffolding complete.");
         return true;
     }
+
+    /// <summary>
+    /// Reads a template's declared language tag.
+    /// </summary>
+    /// <param name="template">The template to read.</param>
+    /// <returns>The declared language, or <c language="csharp">null</c> when the template declares none.</returns>
+    static string? Language(ITemplateInfo template) =>
+        template.TagsCollection.TryGetValue("language", out var language) ? language : null;
 
     /// <summary>
     /// Builds the template parameters. Every parameter the template declares is supplied explicitly — the

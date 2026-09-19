@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis;
@@ -63,6 +64,15 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         if (request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
+            // Only an application that actually composed a Scene gets a binding module; without one there is
+            // nothing referring to these names, and a screenless application must plan exactly what it did before.
+            if (SceneCompositionInput.IsCarriedBy(request.Profile))
+            {
+                artifacts.Add(PlannedArtifact.CreateText(
+                    SceneBindingsRenderer.RelativePath,
+                    SceneBindingsRenderer.Render(context)));
+            }
+
             artifacts.AddRange(context.Application.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
             artifacts.AddRange(context.Application.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
         }

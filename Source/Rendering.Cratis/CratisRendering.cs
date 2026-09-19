@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
+using Cratis.Stage.Rendering.Cratis.Scene;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -53,7 +54,31 @@ public static class CratisRendering
     /// <param name="options">The explicit project and root namespace choices.</param>
     /// <returns>The exact package-owned Cratis profile.</returns>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the application name or explicit options are invalid.</exception>
-    public static ArtifactRenderProfile CreateProfile(string applicationName, CratisRenderingOptions options)
+    public static ArtifactRenderProfile CreateProfile(string applicationName, CratisRenderingOptions options) =>
+        CreateProfile(applicationName, options, null);
+
+    /// <summary>
+    /// Creates the complete immutable target profile, carrying a composed Scene alongside the scaffold bytes.
+    /// </summary>
+    /// <param name="applicationName">The semantic application name used for persistent stores.</param>
+    /// <param name="options">The explicit project and root namespace choices.</param>
+    /// <param name="scene">The composed Scene application, or <c language="csharp">null</c> for an application that declares no screens.</param>
+    /// <returns>The exact package-owned Cratis profile.</returns>
+    /// <remarks>
+    /// Scene is supplied rather than derived. The caller compiles Screenplay once and already holds both views of
+    /// that compile - the executable semantic model and the translated Scene - so re-deriving a screen here would
+    /// mean a second translation of the same source. The semantic model carries no screen, layout, view or binding
+    /// at all, so it could not be the source of one anyway.
+    /// <para>
+    /// An application that declares no screens plans exactly what it planned before: no Scene payload, no binding
+    /// module, and byte-identical scaffold output.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the application name or explicit options are invalid.</exception>
+    public static ArtifactRenderProfile CreateProfile(
+        string applicationName,
+        CratisRenderingOptions options,
+        Contracts.Scene.SceneApplication? scene)
     {
         if (options is null)
         {
@@ -67,8 +92,18 @@ public static class CratisRendering
             Dependencies);
         var backend = new CratisBackendApplicationScaffold().Create(request);
         var frontend = new CratisFrontendApplicationScaffold().Create(request);
+        var composed = scene is null
+            ? []
+            : new[]
+            {
+                CratisArtifactRenderInput.CreateText(
+                    SceneCompositionInput.RelativePath,
+                    Dependencies.CratisPackageVersion,
+                    CanonicalSceneJson.Serialize(scene))
+            };
         var inputs = backend
             .Concat(frontend)
+            .Concat(composed)
             .OrderBy(input => input.Name, StringComparer.Ordinal)
             .ToImmutableArray();
 

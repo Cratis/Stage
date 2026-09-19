@@ -44,7 +44,17 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (profile.Inputs.Length != expected.Inputs.Length || !profile.Inputs.Zip(expected.Inputs).All(InputMatches))
+        // A composed Scene is application content, so it is admitted separately rather than compared against the
+        // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
+        // is still matched byte for byte, and at most one Scene payload may accompany them.
+        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_)).ToArray();
+        if (profile.Inputs.Length - scaffold.Length > 1)
+        {
+            mismatch = "The Cratis profile carries more than one composed Scene payload.";
+            return false;
+        }
+
+        if (scaffold.Length != expected.Inputs.Length || !scaffold.Zip(expected.Inputs).All(InputMatches))
         {
             mismatch = "The Cratis profile scaffold roster, versions, bytes, or SHA-256 hashes do not match the package-owned profile.";
             return false;
@@ -54,6 +64,9 @@ static class CratisArtifactRenderProfileAdmission
         mismatch = string.Empty;
         return true;
     }
+
+    static bool IsComposedScene(ArtifactRenderInput input) =>
+        string.Equals(input.Name, $"{ProjectInputPrefix}{Scene.SceneCompositionInput.RelativePath}", StringComparison.Ordinal);
 
     static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
     {

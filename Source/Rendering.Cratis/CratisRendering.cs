@@ -123,6 +123,11 @@ public static class CratisRendering
     /// <param name="scope">The explicit application, module, feature, or slice scope.</param>
     /// <param name="options">The explicit project and root namespace choices.</param>
     /// <returns>The complete deterministic artifact plan.</returns>
+    /// <remarks>
+    /// A caller that authored screens passes its own composition to <see cref="CreateProfile(string, CratisRenderingOptions, Contracts.Scene.SceneApplication?)"/>.
+    /// A caller that did not gets a default screen composed from the model itself, so a generated application
+    /// is usable without hand-writing one first.
+    /// </remarks>
     public static ArtifactRenderPlan Plan(
         ExecutableSemanticModel model,
         SemanticExecutionPlan executionPlan,

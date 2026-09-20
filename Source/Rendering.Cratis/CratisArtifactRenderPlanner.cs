@@ -64,9 +64,20 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         if (request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
-            // Only an application that actually composed a Scene gets a binding module; without one there is
-            // nothing referring to these names, and a screenless application must plan exactly what it did before.
-            if (SceneCompositionInput.IsCarriedBy(request.Profile))
+            // A caller that authored screens carries its own composition in the profile. A caller that did not
+            // gets one composed from the model here, so a generated application is usable without a hand-written
+            // screen. Either way the binding module accompanies it, because it is what the payload refers to.
+            var composed = SceneCompositionInput.IsCarriedBy(request.Profile)
+                ? null
+                : DefaultSceneComposition.Create(context);
+            if (composed is not null)
+            {
+                artifacts.Add(PlannedArtifact.CreateText(
+                    SceneCompositionInput.RelativePath,
+                    CanonicalSceneJson.Serialize(composed)));
+            }
+
+            if (composed is not null || SceneCompositionInput.IsCarriedBy(request.Profile))
             {
                 artifacts.Add(PlannedArtifact.CreateText(
                     SceneBindingsRenderer.RelativePath,

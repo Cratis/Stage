@@ -44,11 +44,20 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// Gets the profile Stage currently supports and verifies.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// A generated application is pinned to the current Cratis release, so someone generating one starts where
+    /// the framework is rather than where it was when this profile was last touched. Every version here is an
+    /// exact release, and moving them is a deliberate, reviewed change: the emitted bytes are frozen by
+    /// specification, so a bump cannot happen silently.
+    /// </para>
+    /// <para>
     /// The kernel image is not chosen freely: it tracks the Chronicle client the <c language="csharp">Cratis</c> metapackage
     /// brings with it. Cratis 22.16.1 depends on Cratis.Chronicle 18.2.0, so the image is 18.2.0. Running a
     /// generated application against a kernel from a different line is the same client and kernel drift this
     /// repository already guards its own Host image against, and a newer client against an older kernel is
-    /// known to fail the descriptor handshake outright.
+    /// known to fail the descriptor handshake outright. That is why the image is not simply the newest Chronicle
+    /// tag: the newest kernel and the client this application actually runs are different lines.
+    /// </para>
     /// </remarks>
     public static CratisBackendApplicationScaffoldProfile Current { get; } = Create(
         CurrentVersion,

@@ -50,7 +50,12 @@ public sealed class CratisFrontendPackageSet
         string typeScriptPackageVersion,
         string vitePluginReactPackageVersion,
         string typesReactPackageVersion,
-        string typesReactDomPackageVersion)
+        string typesReactDomPackageVersion,
+        string componentsPackageVersion,
+        string scenePackageVersion,
+        string primeReactPackageVersion,
+        string primeIconsPackageVersion,
+        string primeUixThemesPackageVersion)
     {
         ArcPackageVersion = arcPackageVersion;
         ArcReactPackageVersion = arcReactPackageVersion;
@@ -67,6 +72,11 @@ public sealed class CratisFrontendPackageSet
         VitePluginReactPackageVersion = vitePluginReactPackageVersion;
         TypesReactPackageVersion = typesReactPackageVersion;
         TypesReactDomPackageVersion = typesReactDomPackageVersion;
+        ComponentsPackageVersion = componentsPackageVersion;
+        ScenePackageVersion = scenePackageVersion;
+        PrimeReactPackageVersion = primeReactPackageVersion;
+        PrimeIconsPackageVersion = primeIconsPackageVersion;
+        PrimeUixThemesPackageVersion = primeUixThemesPackageVersion;
     }
 
     /// <summary>
@@ -147,22 +157,56 @@ public sealed class CratisFrontendPackageSet
     /// <summary>
     /// Gets the frontend package set belonging to the emitted era of the current scaffold profile.
     /// </summary>
+    /// <summary>
+    /// Gets the exact <c language="json">@cratis/components</c> package version.
+    /// </summary>
+    public string ComponentsPackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">@cratis/scene.*</c> package version, shared by every Scene package.
+    /// </summary>
+    public string ScenePackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact version shared by <c language="json">primereact</c> and every <c language="json">@primereact/*</c> package.
+    /// </summary>
+    /// <remarks>
+    /// These are peer dependencies of <c language="json">@cratis/components</c>, which a composed screen renders through. A
+    /// generated application that declared the component library without them would not install cleanly.
+    /// </remarks>
+    public string PrimeReactPackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">primeicons</c> package version.
+    /// </summary>
+    public string PrimeIconsPackageVersion { get; }
+
+    /// <summary>
+    /// Gets the exact <c language="json">@primeuix/themes</c> package version.
+    /// </summary>
+    public string PrimeUixThemesPackageVersion { get; }
+
     internal static CratisFrontendPackageSet Current { get; } = new(
-        "22.3.0",
-        "22.3.0",
-        "22.3.0",
-        "7.18.1",
+        "22.16.1",
+        "22.16.1",
+        "22.16.1",
+        "7.19.3",
         "7.8.2",
         "4.10.0",
         "0.2.2",
-        "19.0.8",
-        "19.0.8",
-        "6.30.6",
-        "8.2.2",
+        "19.3.0",
+        "19.3.0",
+        "7.18.4",
+        "8.3.0",
         "7.0.2",
-        "6.1.0",
-        "19.2.18",
-        "19.2.5");
+        "6.1.1",
+        "19.3.0",
+        "19.3.0",
+        "4.9.0",
+        "3.5.0",
+        "11.1.0",
+        "8.0.1",
+        "3.0.1");
 
     /// <summary>
     /// Creates an unvalidated frontend package set for in-assembly contract verification.
@@ -182,6 +226,11 @@ public sealed class CratisFrontendPackageSet
     /// <param name="vitePluginReactPackageVersion">The exact <c language="json">@vitejs/plugin-react</c> package version.</param>
     /// <param name="typesReactPackageVersion">The exact <c language="json">@types/react</c> package version.</param>
     /// <param name="typesReactDomPackageVersion">The exact <c language="json">@types/react-dom</c> package version.</param>
+    /// <param name="componentsPackageVersion">The exact <c language="json">@cratis/components</c> package version.</param>
+    /// <param name="scenePackageVersion">The exact version shared by every <c language="json">@cratis/scene.*</c> package.</param>
+    /// <param name="primeReactPackageVersion">The exact version shared by the PrimeReact packages.</param>
+    /// <param name="primeIconsPackageVersion">The exact <c language="json">primeicons</c> package version.</param>
+    /// <param name="primeUixThemesPackageVersion">The exact <c language="json">@primeuix/themes</c> package version.</param>
     /// <returns>The frontend package set, validated only when a profile is created from it.</returns>
     internal static CratisFrontendPackageSet Create(
         string arcPackageVersion,
@@ -198,7 +247,12 @@ public sealed class CratisFrontendPackageSet
         string typeScriptPackageVersion,
         string vitePluginReactPackageVersion,
         string typesReactPackageVersion,
-        string typesReactDomPackageVersion) =>
+        string typesReactDomPackageVersion,
+        string componentsPackageVersion,
+        string scenePackageVersion,
+        string primeReactPackageVersion,
+        string primeIconsPackageVersion,
+        string primeUixThemesPackageVersion) =>
         new(
             arcPackageVersion,
             arcReactPackageVersion,
@@ -214,7 +268,12 @@ public sealed class CratisFrontendPackageSet
             typeScriptPackageVersion,
             vitePluginReactPackageVersion,
             typesReactPackageVersion,
-            typesReactDomPackageVersion);
+            typesReactDomPackageVersion,
+            componentsPackageVersion,
+            scenePackageVersion,
+            primeReactPackageVersion,
+            primeIconsPackageVersion,
+            primeUixThemesPackageVersion);
 
     /// <summary>
     /// Gets every version in the set, for validation through the single exactness rule the scaffold profile owns.
@@ -237,5 +296,10 @@ public sealed class CratisFrontendPackageSet
         yield return VitePluginReactPackageVersion;
         yield return TypesReactPackageVersion;
         yield return TypesReactDomPackageVersion;
+        yield return ComponentsPackageVersion;
+        yield return ScenePackageVersion;
+        yield return PrimeReactPackageVersion;
+        yield return PrimeIconsPackageVersion;
+        yield return PrimeUixThemesPackageVersion;
     }
 }

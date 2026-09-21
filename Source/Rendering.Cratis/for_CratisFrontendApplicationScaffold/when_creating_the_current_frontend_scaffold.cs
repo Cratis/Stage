@@ -35,8 +35,15 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_end_every_input_with_exactly_one_line_feed_byte() => _first.All(EndsWithExactlyOneLineFeed).ShouldBeTrue();
     [Fact] void should_reject_a_missing_request_with_the_project_exception() => Catch.Exception(() => new CratisFrontendApplicationScaffold().Create(null!)).ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
     [Fact] void should_pin_every_dependency_exactly() => DependencyVersions().ShouldEqual(ExpectedDependencyVersions());
-    [Fact] void should_not_reference_the_component_stack() => _first.Any(input => Text(input).Contains("@cratis/components", StringComparison.Ordinal)).ShouldBeFalse();
-    [Fact] void should_not_reference_the_scene_packages() => _first.Any(input => Text(input).Contains("@cratis/scene", StringComparison.Ordinal)).ShouldBeFalse();
+    /// <summary>
+    /// The shell declares what a composed screen imports.
+    /// </summary>
+    /// <remarks>
+    /// A planned scene payload and its binding module import the component library and the Scene packages, so a
+    /// shell that omitted them would emit an application whose own generated code cannot resolve its imports.
+    /// </remarks>
+    [Fact] void should_reference_the_component_stack() => _first.Any(input => Text(input).Contains("@cratis/components", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_reference_the_scene_packages() => _first.Any(input => Text(input).Contains("@cratis/scene.components", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_mount_only_the_arc_provider() => Content(".frontend/main.tsx").ShouldContain("<Arc>");
     [Fact] void should_not_mount_the_components_provider() => Content(".frontend/main.tsx").ShouldNotContain("CratisComponentsProvider");
     [Fact] void should_load_the_metadata_reflection_polyfill_first() => Content(".frontend/main.tsx").Split('\n')[0].ShouldEqual("import 'reflect-metadata';");
@@ -73,21 +80,34 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         '|',
         new[]
         {
-            "@cratis/arc=22.3.0",
-            "@cratis/arc.react=22.3.0",
-            "@cratis/arc.vite=22.3.0",
-            "@cratis/fundamentals=7.18.1",
-            "@types/react=19.2.18",
-            "@types/react-dom=19.2.5",
-            "@vitejs/plugin-react=6.1.0",
-            "react=19.0.8",
-            "react-dom=19.0.8",
-            "react-router-dom=6.30.6",
+            "@cratis/arc=22.16.1",
+            "@cratis/arc.react=22.16.1",
+            "@cratis/arc.vite=22.16.1",
+            "@cratis/components=4.9.0",
+            "@cratis/fundamentals=7.19.3",
+            "@cratis/scene.components=3.5.0",
+            "@cratis/scene.engine=3.5.0",
+            "@cratis/scene.model=3.5.0",
+            "@cratis/scene.react=3.5.0",
+            "@primereact/core=11.1.0",
+            "@primereact/headless=11.1.0",
+            "@primereact/hooks=11.1.0",
+            "@primereact/styles=11.1.0",
+            "@primereact/types=11.1.0",
+            "@primeuix/themes=3.0.1",
+            "@types/react=19.3.0",
+            "@types/react-dom=19.3.0",
+            "@vitejs/plugin-react=6.1.1",
+            "primeicons=8.0.1",
+            "primereact=11.1.0",
+            "react=19.3.0",
+            "react-dom=19.3.0",
+            "react-router-dom=7.18.4",
             "reflect-metadata=0.2.2",
             "rxjs=7.8.2",
             "tsyringe=4.10.0",
             "typescript=7.0.2",
-            "vite=8.2.2"
+            "vite=8.3.0"
         }.Order(StringComparer.Ordinal));
 
     string ProxiedPaths() => string.Join(

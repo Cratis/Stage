@@ -44,8 +44,19 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     /// </remarks>
     [Fact] void should_reference_the_component_stack() => _first.Any(input => Text(input).Contains("@cratis/components", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_reference_the_scene_packages() => _first.Any(input => Text(input).Contains("@cratis/scene.components", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_mount_only_the_arc_provider() => Content(".frontend/main.tsx").ShouldContain("<Arc>");
-    [Fact] void should_not_mount_the_components_provider() => Content(".frontend/main.tsx").ShouldNotContain("CratisComponentsProvider");
+    [Fact] void should_mount_the_arc_provider() => Content(".frontend/main.tsx").ShouldContain("<Arc>");
+
+    /// <summary>
+    /// The composed screen renders through the component library, which the maintained reference application
+    /// mounts a provider for. Rendering its components without it is how a generated application would build
+    /// cleanly and then fail in a browser.
+    /// </summary>
+    [Fact] void should_mount_the_components_provider() => Content(".frontend/main.tsx").ShouldContain("<CratisComponentsProvider>");
+
+    [Fact] void should_render_the_composed_screen() => Content(".frontend/main.tsx").ShouldContain("SceneElementView");
+    [Fact] void should_read_the_composition_the_planner_emitted() => Content(".frontend/main.tsx").ShouldContain("from '../scene.json'");
+    [Fact] void should_register_the_generated_proxies_before_rendering() => Content(".frontend/main.tsx").ShouldContain("import '../src/bindings'");
+    [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("cratisComponentsPackage.components");
     [Fact] void should_load_the_metadata_reflection_polyfill_first() => Content(".frontend/main.tsx").Split('\n')[0].ShouldEqual("import 'reflect-metadata';");
     [Fact] void should_build_into_the_hosted_web_root() => Content(".frontend/vite.config.ts").ShouldContain("outDir: '../wwwroot'");
     [Fact] void should_emit_arc_metadata_for_the_frontend() => Content(".frontend/vite.config.ts").ShouldContain("EmitMetadataPlugin");

@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -30,7 +31,6 @@ internal static class SemanticCommandSpecificationRenderer
             .Using("Cratis.Arc.Commands")
             .Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications")
-            .Using("System.Globalization")
             .Using("Xunit");
         if (command.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
             specification.When.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
@@ -50,7 +50,12 @@ internal static class SemanticCommandSpecificationRenderer
         var commandName = Identifiers.ToPascalCase(command.Name);
         var arguments = command.Properties.Select(property =>
             types.Value(specification.When.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-        builder.OpenBlock($"public class {behavior} : Specification")
+
+        // The scenario owns a service provider and disposes it, so the specification that owns the scenario
+        // has to dispose it in turn. Generated code is built in someone else's repository, frequently with
+        // analysis as errors, and an undisposed owned resource is a build failure there that they cannot fix
+        // by editing the file.
+        builder.OpenBlock($"public class {behavior} : Specification, IDisposable")
             .Line($"readonly CommandScenario<{commandName}> _scenario = new();")
             .Line("CommandResult _result = null!;")
             .BlankLine()
@@ -67,9 +72,21 @@ internal static class SemanticCommandSpecificationRenderer
             RenderAccepted(builder, specification, command, commandName, context, types);
         }
 
-        builder.EndBlock();
+        builder.BlankLine()
+            .ExpressionMember("public void Dispose()", "_scenario.Dispose()")
+            .EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
-        return new(path, Conditional(builder.ToString()));
+
+        // Decided from the rendered content rather than predicted, the same way the non-semantic renderer
+        // does it: only a value that renders as a culture-invariant parse needs the namespace, and emitting
+        // it regardless leaves a using nobody uses in every generated specification.
+        var content = builder.ToString();
+        if (SpecificationValues.NeedsGlobalization(content))
+        {
+            content = builder.Using("System.Globalization").ToString();
+        }
+
+        return new(path, Conditional(content));
     }
 
     static void RenderAccepted(

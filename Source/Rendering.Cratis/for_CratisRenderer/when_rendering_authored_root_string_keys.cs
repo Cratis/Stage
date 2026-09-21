@@ -36,7 +36,7 @@ public class when_rendering_authored_root_string_keys : a_multi_slice_applicatio
     }
 
     [Fact] void should_emit_the_public_constant_key_property() => Assert.Single(_codeOutput.Files).Content.ShouldContain("[FromEvent<OrderCreated>(ConstantKey = \"global\")]");
-    [Fact] void should_use_a_string_lookup_without_changing_the_record() => Assert.Single(_codeOutput.Files).Content.ShouldContain("OrderById(IReadModels readModels, string id)");
+    [Fact] void should_use_a_string_lookup_without_changing_the_record() => Assert.Single(_codeOutput.Files).Content.ShouldContain("OrderById(IReadModels readModels, EventSourceId id)");
     [Fact] void should_compile_without_warnings() => RenderedOutput.Warnings(_codeOutput.Files).ShouldBeEmpty();
     [Fact] void should_compile_without_errors() => RenderedOutput.Errors(_codeOutput.Files).ShouldBeEmpty();
 }

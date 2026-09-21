@@ -57,7 +57,7 @@ public class when_admitting_propertyless_root_string_keys : a_multi_slice_applic
         var source = file.Content;
         source.ShouldContain("public record OrderReadModel()");
         source.ShouldContain("[FromEvent<OrderCreated>]");
-        source.ShouldContain("OrderById(IReadModels readModels, Guid id)");
+        source.ShouldContain("OrderById(IReadModels readModels, EventSourceId id)");
         source.ShouldNotContain("ConstantKey");
 
         // StateView does not emit commands; compile its source, not the separate command specification.

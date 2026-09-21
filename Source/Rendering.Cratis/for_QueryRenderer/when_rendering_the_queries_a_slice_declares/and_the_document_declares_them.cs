@@ -46,7 +46,7 @@ public class and_the_document_declares_them : Specification
         Render(Collection("All"), Collection("Mine")).ShouldContain("Mine(");
 
     [Fact] void should_read_one_instance_when_the_query_names_an_identifying_parameter() =>
-        Render(By("ForInvoice", "invoiceNumber")).ShouldContain("Task<InvoiceSummary?> ForInvoice(IReadModels readModels, string invoiceNumber)");
+        Render(By("ForInvoice", "invoiceNumber")).ShouldContain("Task<InvoiceSummary?> ForInvoice(IReadModels readModels, EventSourceId invoiceNumber)");
 
     [Fact] void should_not_invent_the_fixed_pair_when_the_document_declares_a_query() =>
         Render(Collection("OverdueInvoices")).ShouldNotContain("InvoiceSummaryById");

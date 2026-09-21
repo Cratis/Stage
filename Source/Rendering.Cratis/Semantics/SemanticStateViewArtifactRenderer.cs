@@ -45,10 +45,19 @@ internal static class SemanticStateViewArtifactRenderer
             builder.Using(eventNamespace);
         }
 
+        var keyedQuery = located.Slice.Queries.SingleOrDefault();
+        if (keyedQuery is not null)
+        {
+            // The model states which property the key matches, so the read model can say so itself rather than
+            // leaving the key implicit in the event source. An instance handed to a frontend is then
+            // self-identifying, which is what every hand-written Cratis read model does.
+            builder.Using("Cratis.Chronicle.Keys");
+        }
+
         builder.Attribute($"FromEvent<{Identifiers.ToPascalCase(@event.Name)}>")
             .Attribute("ReadModel")
-            .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(readModel, transition, @event, types)})");
-        if (located.Slice.Queries.SingleOrDefault() is { } query)
+            .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(readModel, transition, @event, types, keyedQuery)})");
+        if (keyedQuery is { } query)
         {
             RenderQuery(builder, query, readModel, types);
         }
@@ -62,7 +71,8 @@ internal static class SemanticStateViewArtifactRenderer
         SemanticReadModel readModel,
         SemanticProjectionTransition transition,
         SemanticEventContract @event,
-        SemanticTypeSystem types) =>
+        SemanticTypeSystem types,
+        SemanticKeyedQuery? keyedQuery) =>
         string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
         {
             var mapping = transition.Mappings.Single(_ => _.TargetProperty == property.Id);
@@ -73,7 +83,8 @@ internal static class SemanticStateViewArtifactRenderer
             var attribute = string.Equals(targetName, sourceName, StringComparison.Ordinal)
                 ? string.Empty
                 : $"[SetFrom<{Identifiers.ToPascalCase(@event.Name)}>(nameof({Identifiers.ToPascalCase(@event.Name)}.{sourceName}))] ";
-            return $"{attribute}{types.Type(property.Type)} {targetName}";
+            var key = keyedQuery?.KeyProperty == property.Id ? "[Key] " : string.Empty;
+            return $"{key}{attribute}{types.Type(property.Type)} {targetName}";
         }));
 
     static void RenderQuery(

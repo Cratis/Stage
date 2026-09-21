@@ -119,7 +119,8 @@ public static class SpecificationRenderer
             builder.Using(@namespace);
         }
 
-        builder.BlankLine().OpenBlock($"public class {name} : Specification")
+        // The scenario owns and disposes a service provider, so the specification owning it disposes it too.
+        builder.BlankLine().OpenBlock($"public class {name} : Specification, IDisposable")
             .Line($"readonly CommandScenario<{commandType}> _scenario = new();")
             .Line("CommandResult _result = null!;")
             .BlankLine()
@@ -135,7 +136,9 @@ public static class SpecificationRenderer
             RenderAppends(builder, specification, command, commandType, applicationSet, diagnostics);
         }
 
-        builder.EndBlock();
+        builder.BlankLine()
+            .ExpressionMember("public void Dispose()", "_scenario.Dispose()")
+            .EndBlock();
 
         // Decided from the rendered content rather than predicted: a date or timestamp anywhere in the values or
         // the assertions renders as a parse against the invariant culture, and only the emitted text knows whether

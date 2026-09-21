@@ -98,6 +98,7 @@ public sealed class CratisFrontendApplicationScaffold
           },
           "devDependencies": {
             "@cratis/arc.vite": "{{frontend.ArcVitePackageVersion}}",
+            "@types/node": "{{frontend.TypesNodePackageVersion}}",
             "@types/react": "{{frontend.TypesReactPackageVersion}}",
             "@types/react-dom": "{{frontend.TypesReactDomPackageVersion}}",
             "@vitejs/plugin-react": "{{frontend.VitePluginReactPackageVersion}}",
@@ -323,7 +324,8 @@ public sealed class CratisFrontendApplicationScaffold
                 "module": "ESNext",
                 "moduleResolution": "bundler",
                 "allowSyntheticDefaultImports": true,
-                "strict": true
+                "strict": true,
+                "types": ["node"]
             },
             "include": ["vite.config.ts"]
         }

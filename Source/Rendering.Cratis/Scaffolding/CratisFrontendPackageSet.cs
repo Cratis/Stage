@@ -55,7 +55,8 @@ public sealed class CratisFrontendPackageSet
         string scenePackageVersion,
         string primeReactPackageVersion,
         string primeIconsPackageVersion,
-        string primeUixThemesPackageVersion)
+        string primeUixThemesPackageVersion,
+        string typesNodePackageVersion)
     {
         ArcPackageVersion = arcPackageVersion;
         ArcReactPackageVersion = arcReactPackageVersion;
@@ -77,6 +78,7 @@ public sealed class CratisFrontendPackageSet
         PrimeReactPackageVersion = primeReactPackageVersion;
         PrimeIconsPackageVersion = primeIconsPackageVersion;
         PrimeUixThemesPackageVersion = primeUixThemesPackageVersion;
+        TypesNodePackageVersion = typesNodePackageVersion;
     }
 
     /// <summary>
@@ -186,6 +188,16 @@ public sealed class CratisFrontendPackageSet
     /// </summary>
     public string PrimeUixThemesPackageVersion { get; }
 
+    /// <summary>
+    /// Gets the exact <c language="json">@types/node</c> package version.
+    /// </summary>
+    /// <remarks>
+    /// The emitted bundler configuration resolves its own paths through <c language="json">node:url</c>, so the frontend does
+    /// not type-check without these declarations. A generated application that cannot run its own build script
+    /// is not finished, and the author cannot add the dependency to a file they are told not to edit.
+    /// </remarks>
+    public string TypesNodePackageVersion { get; }
+
     internal static CratisFrontendPackageSet Current { get; } = new(
         "22.16.1",
         "22.16.1",
@@ -206,7 +218,8 @@ public sealed class CratisFrontendPackageSet
         "3.5.0",
         "11.1.0",
         "8.0.1",
-        "3.0.1");
+        "3.0.1",
+        "26.6.2");
 
     /// <summary>
     /// Creates an unvalidated frontend package set for in-assembly contract verification.
@@ -231,6 +244,7 @@ public sealed class CratisFrontendPackageSet
     /// <param name="primeReactPackageVersion">The exact version shared by the PrimeReact packages.</param>
     /// <param name="primeIconsPackageVersion">The exact <c language="json">primeicons</c> package version.</param>
     /// <param name="primeUixThemesPackageVersion">The exact <c language="json">@primeuix/themes</c> package version.</param>
+    /// <param name="typesNodePackageVersion">The exact <c language="json">@types/node</c> package version.</param>
     /// <returns>The frontend package set, validated only when a profile is created from it.</returns>
     internal static CratisFrontendPackageSet Create(
         string arcPackageVersion,
@@ -252,7 +266,8 @@ public sealed class CratisFrontendPackageSet
         string scenePackageVersion,
         string primeReactPackageVersion,
         string primeIconsPackageVersion,
-        string primeUixThemesPackageVersion) =>
+        string primeUixThemesPackageVersion,
+        string typesNodePackageVersion) =>
         new(
             arcPackageVersion,
             arcReactPackageVersion,
@@ -273,7 +288,8 @@ public sealed class CratisFrontendPackageSet
             scenePackageVersion,
             primeReactPackageVersion,
             primeIconsPackageVersion,
-            primeUixThemesPackageVersion);
+            primeUixThemesPackageVersion,
+            typesNodePackageVersion);
 
     /// <summary>
     /// Gets every version in the set, for validation through the single exactness rule the scaffold profile owns.
@@ -301,5 +317,6 @@ public sealed class CratisFrontendPackageSet
         yield return PrimeReactPackageVersion;
         yield return PrimeIconsPackageVersion;
         yield return PrimeUixThemesPackageVersion;
+        yield return TypesNodePackageVersion;
     }
 }

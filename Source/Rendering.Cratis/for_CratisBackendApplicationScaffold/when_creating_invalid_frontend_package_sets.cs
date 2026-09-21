@@ -86,7 +86,8 @@ public class when_creating_invalid_frontend_package_sets : Specification
         string scenePackageVersion = "3.5.0",
         string primeReactPackageVersion = "11.1.0",
         string primeIconsPackageVersion = "8.0.1",
-        string primeUixThemesPackageVersion = "3.0.1") =>
+        string primeUixThemesPackageVersion = "3.0.1",
+        string typesNodePackageVersion = "26.6.2") =>
         CratisFrontendPackageSet.Create(
             arcPackageVersion,
             arcReactPackageVersion,
@@ -107,7 +108,8 @@ public class when_creating_invalid_frontend_package_sets : Specification
             scenePackageVersion,
             primeReactPackageVersion,
             primeIconsPackageVersion,
-            primeUixThemesPackageVersion);
+            primeUixThemesPackageVersion,
+            typesNodePackageVersion);
 
     static CratisBackendApplicationScaffoldProfile Profile(CratisFrontendPackageSet frontendPackageSet) =>
         CratisBackendApplicationScaffoldProfile.Create(

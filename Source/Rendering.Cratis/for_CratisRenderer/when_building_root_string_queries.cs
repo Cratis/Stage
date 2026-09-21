@@ -24,7 +24,16 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 public class when_building_root_string_queries(context fixture) : IClassFixture<context>
 {
     [Fact] void should_build_the_fixed_and_declared_queries_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
-    [Fact] void should_preserve_the_fixed_string_lookup() => fixture.Files.Single(file => file.RelativePath.Contains("Fixed", StringComparison.Ordinal)).Content.ShouldContain("FixedOrderById(IReadModels readModels, string id)");
+    /// <summary>
+    /// A raw key is declared as the event source id, not as the string it is stored as.
+    /// </summary>
+    /// <remarks>
+    /// Arc coerces a query argument to the declared parameter type before validation runs, so a parameter
+    /// declared as a raw string reaches the lookup unvalidated while a conversion in the body produces the type
+    /// the query wanted anyway. Arc's own analyser rejects the old shape (ARC0015), and a generated file cannot
+    /// be corrected by the person who has to build it.
+    /// </remarks>
+    [Fact] void should_declare_the_fixed_lookup_key_as_an_event_source_id() => fixture.Files.Single(file => file.RelativePath.Contains("Fixed", StringComparison.Ordinal)).Content.ShouldContain("FixedOrderById(IReadModels readModels, EventSourceId id)");
     [Fact] void should_preserve_collection_authorization() => fixture.Files.Single(file => file.RelativePath.Contains("Declared", StringComparison.Ordinal)).Content.ShouldContain("[Authorize]\n    public static IQueryable<DeclaredOrder> AllOrders");
     [Fact] void should_preserve_the_live_string_lookup() => fixture.Files.Single(file => file.RelativePath.Contains("Declared", StringComparison.Ordinal)).Content.ShouldContain("LiveOrder(IMongoCollection<DeclaredOrder> collection, string lookup)");
 

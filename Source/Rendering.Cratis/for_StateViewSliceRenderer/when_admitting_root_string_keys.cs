@@ -99,7 +99,7 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
     public void should_ignore_foreign_identifying_types()
     {
         Compile(Global, "query OtherById => OtherModel\n  by lookup Uuid");
-        Render().Content.ShouldContain("OrderReadModelById(IReadModels readModels, string id)");
+        Render().Content.ShouldContain("OrderReadModelById(IReadModels readModels, EventSourceId id)");
     }
 
     [Fact]
@@ -134,12 +134,12 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
         var content = Render().Content;
         content.ShouldContain("[FromEvent<OrderCreated>(key: nameof(OrderCreated.Number))]");
         content.ShouldNotContain("ConstantKey");
-        content.ShouldContain("OrderById(IReadModels readModels, Guid id)");
+        content.ShouldContain("OrderById(IReadModels readModels, EventSourceId id)");
     }
 
     [Theory]
-    [InlineData("from OrderCreated\n  total = total", "Guid id")]
-    [InlineData("from OrderCreated\n  key number\n  total = total", "string number")]
+    [InlineData("from OrderCreated\n  total = total", "EventSourceId id")]
+    [InlineData("from OrderCreated\n  key number\n  total = total", "EventSourceId number")]
     public void should_leave_shadowed_literals_inactive_and_preserve_original_typing(string first, string parameter)
     {
         Compile(first + "\n" + Global);

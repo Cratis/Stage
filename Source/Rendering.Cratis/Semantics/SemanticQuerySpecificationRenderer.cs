@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -38,7 +39,6 @@ internal static class SemanticQuerySpecificationRenderer
             .Using("Cratis.Chronicle.ReadModels")
             .Using("Cratis.Specifications")
             .Using("NSubstitute")
-            .Using("System.Globalization")
             .Using("Xunit")
             .Using($"{context.RootNamespace}.Common")
             .Using(queryNamespace);
@@ -58,7 +58,16 @@ internal static class SemanticQuerySpecificationRenderer
             .EndBlock();
 
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
-        return new(path, Conditional(builder.ToString()));
+
+        // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
+        // parse needs the namespace, and emitting it regardless leaves an unused using in every file.
+        var content = builder.ToString();
+        if (SpecificationValues.NeedsGlobalization(content))
+        {
+            content = builder.Using("System.Globalization").ToString();
+        }
+
+        return new(path, Conditional(content));
     }
 
     static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";

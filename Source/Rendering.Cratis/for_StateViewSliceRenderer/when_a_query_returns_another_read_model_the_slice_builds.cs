@@ -30,8 +30,8 @@ public class when_a_query_returns_another_read_model_the_slice_builds : a_slice_
 
     [Fact] void should_render_the_query_that_returns_the_rendered_read_model() =>
         _file.Content.ShouldContain(
-            "public static async Task<InvoiceSummary?> GetInvoiceSummary(IReadModels readModels, string invoiceNumber) => " +
-            "await readModels.GetInstanceById<InvoiceSummary>((EventSourceId)invoiceNumber);");
+            "public static async Task<InvoiceSummary?> GetInvoiceSummary(IReadModels readModels, EventSourceId invoiceNumber) => " +
+            "await readModels.GetInstanceById<InvoiceSummary>(invoiceNumber);");
 
     [Fact] void should_not_render_a_method_for_the_query_that_returns_the_other_one() =>
         _file.Content.ShouldNotContain("IQueryable<InvoiceSummary> GetOverdueInvoices");

@@ -41,6 +41,6 @@ public class when_rendering_a_projection : a_projection_slice
     [Fact] void should_emit_the_all_query_method() =>
         _file.Content.ShouldContain("public static IQueryable<InvoiceSummary> AllInvoiceSummaries(IMongoCollection<InvoiceSummary> collection) => collection.AsQueryable();");
     [Fact] void should_emit_the_by_id_query_method() =>
-        _file.Content.ShouldContain("public static async Task<InvoiceSummary?> InvoiceSummaryById(IReadModels readModels, string invoiceNumber) => " +
-            "await readModels.GetInstanceById<InvoiceSummary>((EventSourceId)invoiceNumber);");
+        _file.Content.ShouldContain("public static async Task<InvoiceSummary?> InvoiceSummaryById(IReadModels readModels, EventSourceId invoiceNumber) => " +
+            "await readModels.GetInstanceById<InvoiceSummary>(invoiceNumber);");
 }

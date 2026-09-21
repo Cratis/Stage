@@ -153,8 +153,8 @@ public static class QueryRenderer
 
         return readsTheWholeModel
             ? $"public static IQueryable<{typeName}> {name}(IMongoCollection<{typeName}> collection) => collection.AsQueryable();"
-            : $"public static async Task<{typeName}?> {name}(IReadModels readModels, {keyType} {parameter}) => " +
-              $"await readModels.GetInstanceById<{typeName}>((EventSourceId){parameter});";
+            : $"public static async Task<{typeName}?> {name}(IReadModels readModels, {LookupKeyType(keyType)} {parameter}) => " +
+              $"await readModels.GetInstanceById<{typeName}>({LookupKeyArgument(keyType, parameter)});";
     }
 
     // A query declared 'observable' reads what its non-observable counterpart reads, and keeps reading it: the
@@ -170,6 +170,33 @@ public static class QueryRenderer
     static void RenderTheFixedPair(CSharpCodeBuilder builder, string typeName, string keyType, string keyParameterName) =>
         builder
             .Line($"public static IQueryable<{typeName}> All{Pluralizer.Pluralize(typeName)}(IMongoCollection<{typeName}> collection) => collection.AsQueryable();")
-            .Line($"public static async Task<{typeName}?> {typeName}ById(IReadModels readModels, {keyType} {keyParameterName}) => " +
-                  $"await readModels.GetInstanceById<{typeName}>((EventSourceId){keyParameterName});");
+            .Line($"public static async Task<{typeName}?> {typeName}ById(IReadModels readModels, {LookupKeyType(keyType)} {keyParameterName}) => " +
+                  $"await readModels.GetInstanceById<{typeName}>({LookupKeyArgument(keyType, keyParameterName)});");
+
+    /// <summary>
+    /// The parameter type a keyed lookup declares.
+    /// </summary>
+    /// <remarks>
+    /// A raw key is declared as <c language="csharp">EventSourceId</c> rather than as the primitive it is stored as. Arc coerces
+    /// the incoming argument to the declared parameter type before validation runs and resolves the validator by
+    /// the value's runtime type, so a parameter declared as a raw string reaches the lookup unvalidated while the
+    /// body's conversion silently produces the type the query wanted. A declared key, being already the concept
+    /// the document names, is left exactly as it is.
+    /// </remarks>
+    /// <param name="keyType">The read model's key type.</param>
+    /// <returns>The type to declare the lookup parameter as.</returns>
+    static string LookupKeyType(string keyType) => IsRawKey(keyType) ? "EventSourceId" : keyType;
+
+    /// <summary>
+    /// The argument a keyed lookup passes on, converting only where the declared type is not already the key.
+    /// </summary>
+    /// <param name="keyType">The read model's key type.</param>
+    /// <param name="parameter">The parameter name.</param>
+    /// <returns>The argument expression.</returns>
+    static string LookupKeyArgument(string keyType, string parameter) =>
+        IsRawKey(keyType) ? parameter : $"(EventSourceId){parameter}";
+
+    static bool IsRawKey(string keyType) =>
+        string.Equals(keyType, "string", StringComparison.Ordinal) ||
+        string.Equals(keyType, "Guid", StringComparison.Ordinal);
 }

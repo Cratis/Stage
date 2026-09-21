@@ -45,10 +45,13 @@ public class when_invoking_root_string_lookups : given.a_root_string_key_slice
             model.GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(property => property.Name).ShouldContainOnly("Total");
             Assert.Single(model.GetConstructors()).GetParameters().Select(parameter => parameter.Name).ShouldContainOnly("Total");
             var method = model.GetMethod(query.Length == 0 ? "OrderReadModelById" : "OrderById", BindingFlags.Public | BindingFlags.Static)!;
-            method.GetParameters()[1].ParameterType.ShouldEqual(typeof(string));
+            // Declared as the event source id, not the string it is stored as: Arc validates the argument it
+            // coerces to the declared parameter type, so a raw string parameter would reach the lookup
+            // unvalidated (ARC0015). Exact forwarding of the literal is unchanged, asserted below.
+            method.GetParameters()[1].ParameterType.ShouldEqual(typeof(EventSourceId));
             method.GetParameters()[1].Name.ShouldEqual(query.Contains("by lookup", StringComparison.Ordinal) ? "lookup" : "id");
             var readModels = Substitute.For<IReadModels>();
-            await (Task)method.Invoke(null, [readModels, value])!;
+            await (Task)method.Invoke(null, [readModels, new EventSourceId(value)])!;
             var call = Assert.Single(readModels.ReceivedCalls());
             call.GetMethodInfo().Name.ShouldEqual(nameof(IReadModels.GetInstanceById));
             call.GetMethodInfo().GetGenericArguments().ShouldContainOnly(model);
@@ -57,7 +60,7 @@ public class when_invoking_root_string_lookups : given.a_root_string_key_slice
             var forwarded = Assert.IsType<ReadModelKey>(call.GetArguments()[0]);
             forwarded.Value.ShouldEqual(value);
             ((EventSourceId)forwarded).Value.ShouldEqual(value);
-            file.Content.ShouldContain("((EventSourceId)" + method.GetParameters()[1].Name + ")");
+            file.Content.ShouldContain("EventSourceId " + method.GetParameters()[1].Name + ")");
         }
     }
 

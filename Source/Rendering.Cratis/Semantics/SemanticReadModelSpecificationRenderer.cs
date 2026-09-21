@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -58,7 +59,16 @@ internal static class SemanticReadModelSpecificationRenderer
 
         builder.EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
-        return new(path, Conditional(builder.ToString()));
+
+        // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
+        // parse needs the namespace, and emitting it regardless leaves an unused using in every file.
+        var content = builder.ToString();
+        if (SpecificationValues.NeedsGlobalization(content))
+        {
+            content = builder.Using("System.Globalization").ToString();
+        }
+
+        return new(path, Conditional(content));
     }
 
     static CSharpCodeBuilder Builder(
@@ -72,7 +82,6 @@ internal static class SemanticReadModelSpecificationRenderer
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Chronicle.Testing.ReadModels")
             .Using("Cratis.Specifications")
-            .Using("System.Globalization")
             .Using("Xunit")
             .Using($"{context.RootNamespace}.Common")
             .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(readModel.Id).Path));

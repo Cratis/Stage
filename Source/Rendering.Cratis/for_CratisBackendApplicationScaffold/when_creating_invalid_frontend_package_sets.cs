@@ -67,21 +67,26 @@ public class when_creating_invalid_frontend_package_sets : Specification
     [Fact] void should_reject_an_empty_react_dom_types_version() => _typesReactDomEmpty.ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
 
     static CratisFrontendPackageSet Set(
-        string arcPackageVersion = "22.3.0",
-        string arcReactPackageVersion = "22.3.0",
-        string arcVitePackageVersion = "22.3.0",
-        string fundamentalsPackageVersion = "7.18.1",
+        string arcPackageVersion = "22.16.1",
+        string arcReactPackageVersion = "22.16.1",
+        string arcVitePackageVersion = "22.16.1",
+        string fundamentalsPackageVersion = "7.19.3",
         string rxjsPackageVersion = "7.8.2",
         string tsyringePackageVersion = "4.10.0",
         string reflectMetadataPackageVersion = "0.2.2",
-        string reactPackageVersion = "19.0.8",
-        string reactDomPackageVersion = "19.0.8",
-        string reactRouterDomPackageVersion = "6.30.6",
-        string vitePackageVersion = "8.2.2",
+        string reactPackageVersion = "19.3.0",
+        string reactDomPackageVersion = "19.3.0",
+        string reactRouterDomPackageVersion = "7.18.4",
+        string vitePackageVersion = "8.3.0",
         string typeScriptPackageVersion = "7.0.2",
-        string vitePluginReactPackageVersion = "6.1.0",
-        string typesReactPackageVersion = "19.2.18",
-        string typesReactDomPackageVersion = "19.2.5") =>
+        string vitePluginReactPackageVersion = "6.1.1",
+        string typesReactPackageVersion = "19.3.0",
+        string typesReactDomPackageVersion = "19.3.0",
+        string componentsPackageVersion = "4.9.0",
+        string scenePackageVersion = "3.5.0",
+        string primeReactPackageVersion = "11.1.0",
+        string primeIconsPackageVersion = "8.0.1",
+        string primeUixThemesPackageVersion = "3.0.1") =>
         CratisFrontendPackageSet.Create(
             arcPackageVersion,
             arcReactPackageVersion,
@@ -97,15 +102,20 @@ public class when_creating_invalid_frontend_package_sets : Specification
             typeScriptPackageVersion,
             vitePluginReactPackageVersion,
             typesReactPackageVersion,
-            typesReactDomPackageVersion);
+            typesReactDomPackageVersion,
+            componentsPackageVersion,
+            scenePackageVersion,
+            primeReactPackageVersion,
+            primeIconsPackageVersion,
+            primeUixThemesPackageVersion);
 
     static CratisBackendApplicationScaffoldProfile Profile(CratisFrontendPackageSet frontendPackageSet) =>
         CratisBackendApplicationScaffoldProfile.Create(
             "1",
             "net10.0",
-            "22.3.0",
-            "22.3.0",
-            "22.3.0",
+            "22.16.1",
+            "22.16.1",
+            "22.16.1",
             "4.0.0",
             "4.0.0",
             "18.9.0",

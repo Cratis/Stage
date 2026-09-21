@@ -10,8 +10,9 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// Creates the deterministic in-memory inputs for the framework frontend shell of a first-run Cratis application.
 /// </summary>
 /// <remarks>
-/// The shell mounts Arc alone. It deliberately carries no <c language="json">@cratis/components</c> provider and no
-/// <c language="json">@cratis/scene.*</c> composition, because those packages are not part of the emitted era pinned by
+/// The shell carries Scene and the component library the composed screen binds through, because a planned
+/// <c language="json">scene.json</c> and its binding module import them. They were left out while the emitted era predated
+/// the Scene capabilities a composition needs; the era has since moved, so the packages are pinned by
 /// <see cref="CratisFrontendPackageSet"/> yet, and selecting them may require moving that era forward.
 /// </remarks>
 public sealed class CratisFrontendApplicationScaffold
@@ -74,7 +75,20 @@ public sealed class CratisFrontendApplicationScaffold
           "dependencies": {
             "@cratis/arc": "{{frontend.ArcPackageVersion}}",
             "@cratis/arc.react": "{{frontend.ArcReactPackageVersion}}",
+            "@cratis/components": "{{frontend.ComponentsPackageVersion}}",
             "@cratis/fundamentals": "{{frontend.FundamentalsPackageVersion}}",
+            "@cratis/scene.components": "{{frontend.ScenePackageVersion}}",
+            "@cratis/scene.engine": "{{frontend.ScenePackageVersion}}",
+            "@cratis/scene.model": "{{frontend.ScenePackageVersion}}",
+            "@cratis/scene.react": "{{frontend.ScenePackageVersion}}",
+            "@primereact/core": "{{frontend.PrimeReactPackageVersion}}",
+            "@primereact/headless": "{{frontend.PrimeReactPackageVersion}}",
+            "@primereact/hooks": "{{frontend.PrimeReactPackageVersion}}",
+            "@primereact/styles": "{{frontend.PrimeReactPackageVersion}}",
+            "@primereact/types": "{{frontend.PrimeReactPackageVersion}}",
+            "@primeuix/themes": "{{frontend.PrimeUixThemesPackageVersion}}",
+            "primeicons": "{{frontend.PrimeIconsPackageVersion}}",
+            "primereact": "{{frontend.PrimeReactPackageVersion}}",
             "react": "{{frontend.ReactPackageVersion}}",
             "react-dom": "{{frontend.ReactDomPackageVersion}}",
             "react-router-dom": "{{frontend.ReactRouterDomPackageVersion}}",

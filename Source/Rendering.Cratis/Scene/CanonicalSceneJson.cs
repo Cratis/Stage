@@ -22,8 +22,14 @@ public static class CanonicalSceneJson
 {
     static readonly JsonSerializerOptions _readOptions = new()
     {
+        // The payload is read by the Scene model in TypeScript, which declares its members in camel case and
+        // discriminates an element structurally - `componentName` in the element - rather than by any emitted
+        // type discriminator. Serialising .NET member names verbatim produces a document that parses and then
+        // matches nothing: every screen would render empty, with no error to explain why.
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DictionaryKeyPolicy = null,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter() }
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
     static readonly JsonWriterOptions _writeOptions = new()

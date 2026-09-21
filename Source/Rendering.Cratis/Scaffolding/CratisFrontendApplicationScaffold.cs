@@ -35,7 +35,7 @@ public sealed class CratisFrontendApplicationScaffold
         {
             (".frontend/index.css", IndexCss()),
             (".frontend/index.html", IndexHtml(request)),
-            (".frontend/main.tsx", Main(request)),
+            (".frontend/main.tsx", Main()),
             (".frontend/tsconfig.json", FrontendTsConfig()),
             (".frontend/tsconfig.node.json", NodeTsConfig()),
             (".frontend/vite.config.ts", ViteConfig()),
@@ -159,19 +159,45 @@ public sealed class CratisFrontendApplicationScaffold
         </html>
         """;
 
-    static string Main(CratisBackendApplicationScaffoldRequest request) =>
-        $$"""
+    static string Main() =>
+        """
         import 'reflect-metadata';
         import './index.css';
         import React from 'react';
         import ReactDOM from 'react-dom/client';
         import { Arc } from '@cratis/arc.react';
+        import { CratisComponentsProvider } from '@cratis/components';
+        import { SceneElementView } from '@cratis/scene.react';
+        import { cratisComponentsPackage } from '@cratis/scene.components';
+        import type { Screen } from '@cratis/scene.model';
+        import composition from '../scene.json';
+        import '../src/bindings';
+
+        // The screen is composed, not written here: `scene.json` states what this application shows and
+        // `src/bindings` registers the generated proxies under the names it refers to. Editing this file to
+        // add a screen would put it outside the composition the backend was generated from.
+        //
+        // Typed by the screen rather than by a whole-application type: Scene has no "translated application"
+        // concept in TypeScript, and inventing one here would not match what the package actually exports.
+        const scene = composition as unknown as { screens: Screen[] };
+        const screen = scene.screens[0];
+        const elements = screen ? Object.values(screen.slotContent).flat() : [];
 
         ReactDOM.createRoot(document.getElementById('root')!).render(
             <React.StrictMode>
-                <Arc>
-                    <main id="application">{{request.ApplicationName}}</main>
-                </Arc>
+                <CratisComponentsProvider>
+                    <Arc>
+                        <main id="application">
+                            {elements.map(element => (
+                                <SceneElementView
+                                    key={element.id}
+                                    element={element}
+                                    registry={cratisComponentsPackage.components}
+                                    resolveBinding={() => undefined} />
+                            ))}
+                        </main>
+                    </Arc>
+                </CratisComponentsProvider>
             </React.StrictMode>
         );
         """;

@@ -106,6 +106,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             "@primereact/styles=11.1.0",
             "@primereact/types=11.1.0",
             "@primeuix/themes=3.0.1",
+            "@types/node=26.6.2",
             "@types/react=19.3.0",
             "@types/react-dom=19.3.0",
             "@vitejs/plugin-react=6.1.1",

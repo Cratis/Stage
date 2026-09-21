@@ -20,6 +20,15 @@ public class when_planning_a_composed_application : a_composed_register_project_
     [Fact] void should_register_the_command_under_its_semantic_name() =>
         Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain("registerCommands({RegisterProject});");
 
+    /// <summary>
+    /// A proxy is imported from the slice folder that declares it, because that is where the generator writes it.
+    /// </summary>
+    [Fact] void should_import_each_proxy_from_the_slice_that_declares_it() =>
+        Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain("from '../Projects/Registration/RegisterProject'");
+
+    [Fact] void should_import_a_query_proxy_from_its_own_slice() =>
+        Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain("from '../Projects/Registration/ProjectLookup'");
+
     [Fact] void should_register_the_keyed_query_under_its_semantic_name() =>
         Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain("registerQueries({ProjectById});");
 

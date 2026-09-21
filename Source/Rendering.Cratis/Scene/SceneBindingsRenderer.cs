@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
+using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Scene;
@@ -37,17 +39,22 @@ internal static class SceneBindingsRenderer
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
     /// <returns>The generated module text.</returns>
+    /// <remarks>
+    /// The proxy generator writes a proxy beside the source it was generated from, so a proxy is imported from
+    /// the slice folder that declares it rather than from the project root. Each of those folders carries an
+    /// index that re-exports it, which is what makes the folder itself the import.
+    /// </remarks>
     public static string Render(SemanticApplicationContext context)
     {
         var commands = context.Commands.Values
-            .Select(_ => _.Name)
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)
+            .Select(_ => (_.Name, Module: Module(context, _.Id)))
+            .DistinctBy(_ => _.Name, StringComparer.Ordinal)
+            .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ToArray();
         var queries = context.Queries.Values
-            .Select(_ => _.Name)
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)
+            .Select(_ => (_.Name, Module: Module(context, _.Id)))
+            .DistinctBy(_ => _.Name, StringComparer.Ordinal)
+            .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ToArray();
 
         var builder = new StringBuilder()
@@ -55,19 +62,28 @@ internal static class SceneBindingsRenderer
             .Append("// Scene resolves bindings by name; routes stay owned by Arc at runtime.\n")
             .Append("import { registerCommands, registerQueries } from '@cratis/scene.components';\n");
 
-        foreach (var name in commands.Concat(queries))
+        foreach (var (name, module) in commands.Concat(queries))
         {
-            builder.Append("import { ").Append(name).Append(" } from '../").Append(name).Append("';\n");
+            builder.Append("import { ").Append(name).Append(" } from '").Append(module).Append("';\n");
         }
 
         return builder
             .Append('\n')
             .Append("registerCommands({")
-            .AppendJoin(", ", commands)
+            .AppendJoin(", ", commands.Select(_ => _.Name))
             .Append("});\n")
             .Append("registerQueries({")
-            .AppendJoin(", ", queries)
+            .AppendJoin(", ", queries.Select(_ => _.Name))
             .Append("});\n")
             .ToString();
     }
+
+    /// <summary>
+    /// The module a generated proxy is imported from, relative to this module.
+    /// </summary>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="artifact">The command or query being registered.</param>
+    /// <returns>The relative module specifier.</returns>
+    static string Module(SemanticApplicationContext context, SemanticId artifact) =>
+        "../" + string.Join('/', SliceNaming.FolderPath(context.DeclaringSlice(artifact).Path));
 }

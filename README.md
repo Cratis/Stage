@@ -221,7 +221,25 @@ duplicates, and fails closed on nonliteral or multi-ID PackageVersion targets (i
 wildcards, and semicolon lists). It does not establish safety against arbitrary external MSBuild imports, command-line
 properties, or project-level overrides. SpecRunner performs model-level verification without a
 Chronicle kernel; its ASP.NET 10 base matches the repository's `net10.0` target. Neither check changes the distinct
-generated application's Cratis/Arc 22.3.0 and Chronicle 16.35.3 runtime profile.
+generated application's separate runtime profile.
+
+After updating the three client packages together, synchronize the repository Host pin with:
+
+```shell
+python3 Verification/verify-runtime-compatibility.py --synchronize
+```
+
+This command shares the guard's literal-pin policy, derives `<client-version>-development`, and changes only the
+image token in the single final Chronicle `FROM` in `Source/Host/Dockerfile`, preserving other bytes and line endings.
+The literal policy rejects heredocs, non-default escape directives, and continued `FROM` text rather than treating
+embedded content as a build stage. It requires Python 3 and curl. Before writing, it resolves the exact public Docker Hub manifest through anonymous
+metadata requests (no Docker credentials, image pulls, or containers). Each of the two requests has a 5-second connect
+and 15-second total timeout, with a 20-second process cap and no retries or redirects; curl configuration is ignored.
+The final HTTP response must identify a supported OCI/Docker manifest media type and one SHA-256 digest.
+Missing images, registry failures, timeouts, malformed/indirect pins, and mismatched clients fail without writes.
+The candidate is validated before writing and the repository pins are read back and validated before success.
+An already-aligned pin is not rewritten, but its image is still resolved. No package pins or generated-application
+profile files are changed. The default guard and `--self-test` remain offline; synchronization regressions inject a resolver.
 
 The container supervisor check uses Python 3 and Bash with fake kernel and host processes; it does not start Docker.
 

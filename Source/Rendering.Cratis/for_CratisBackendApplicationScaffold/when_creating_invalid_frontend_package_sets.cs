@@ -67,9 +67,9 @@ public class when_creating_invalid_frontend_package_sets : Specification
     [Fact] void should_reject_an_empty_react_dom_types_version() => _typesReactDomEmpty.ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
 
     static CratisFrontendPackageSet Set(
-        string arcPackageVersion = "22.16.1",
-        string arcReactPackageVersion = "22.16.1",
-        string arcVitePackageVersion = "22.16.1",
+        string arcPackageVersion = "22.19.1",
+        string arcReactPackageVersion = "22.19.1",
+        string arcVitePackageVersion = "22.19.1",
         string fundamentalsPackageVersion = "7.19.3",
         string rxjsPackageVersion = "7.8.2",
         string tsyringePackageVersion = "4.10.0",
@@ -115,9 +115,9 @@ public class when_creating_invalid_frontend_package_sets : Specification
         CratisBackendApplicationScaffoldProfile.Create(
             "1",
             "net10.0",
-            "22.16.1",
-            "22.16.1",
-            "22.16.1",
+            "22.19.1",
+            "22.19.1",
+            "22.19.1",
             "4.0.0",
             "4.0.0",
             "18.9.0",

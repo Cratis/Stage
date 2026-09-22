@@ -74,8 +74,12 @@ Command registration and command form behavior are unchanged. Bindings and Scene
 ## Package and verification boundary
 
 The emitted frontend pins the Scene family at exact **3.6.0** for this contract. Components **4.9.0**,
-Fundamentals **7.19.3**, Arc **22.16.1** and the runtime image **18.2.0** remain unchanged. Stage's own Scene
-NuGet tooling pins are separate and do not need to move for an external-component payload.
+Fundamentals **7.19.3** and the runtime image **18.2.0-development** remain unchanged. The generated
+backend and frontend use the published Arc **22.19.1** era, including Arc React's form custom-validation
+gate. The Cratis metapackage selects Chronicle and Chronicle.AspNetCore **18.2.0**. Stage's own central
+Chronicle/Host image and Scene NuGet tooling pins are separate and do not move with this generated era.
+Components **4.9.0** and Scene **3.6.0** still block the command-form Guid/submit UI contract; native
+build and specification checks do not prove browser functionality.
 
 Stage tests parse the emitted JSON and build the generated Guid/text backends with the native Arc proxy
 generator. Changes to this profile also require installing the exact published frontend packages, typechecking

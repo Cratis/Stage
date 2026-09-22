@@ -52,7 +52,7 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// </para>
     /// <para>
     /// The kernel image is not chosen freely: it tracks the Chronicle client the <c language="csharp">Cratis</c> metapackage
-    /// brings with it. Cratis 22.16.1 depends on Cratis.Chronicle 18.2.0, so the image is 18.2.0. Running a
+    /// brings with it. Cratis 22.19.1 depends on Cratis.Chronicle 18.2.0, so the image is 18.2.0. Running a
     /// generated application against a kernel from a different line is the same client and kernel drift this
     /// repository already guards its own Host image against, and a newer client against an older kernel is
     /// known to fail the descriptor handshake outright. That is why the image is not simply the newest Chronicle
@@ -62,9 +62,9 @@ public sealed class CratisBackendApplicationScaffoldProfile
     public static CratisBackendApplicationScaffoldProfile Current { get; } = Create(
         CurrentVersion,
         "net10.0",
-        "22.16.1",
-        "22.16.1",
-        "22.16.1",
+        "22.19.1",
+        "22.19.1",
+        "22.19.1",
         "4.1.1",
         "4.1.1",
         "18.10.1",

@@ -102,9 +102,10 @@ Application scope adds exactly eight deterministic backend scaffold artifacts: `
 `appsettings.json`, and `docker-compose.yml`. The local MSBuild and central-package boundaries isolate the generated
 application from parent repositories. `Program.cs` remains active in Debug beside inline generated specifications;
 the project locally suppresses only their expected CS7022 entry-point warning. The profile pins .NET 10,
-Cratis/Arc 22.3.0, the verified specification dependencies, and
-`cratis/chronicle:16.35.3-development`. It emits no frontend, repository marker, `.gitignore`, floating version,
-random identifier, or destination-specific value.
+Cratis/Arc 22.19.1, the verified specification dependencies, and
+`cratis/chronicle:18.2.0-development`, matching the metapackage's Chronicle client. The frontend scaffold
+uses the same Arc era with Components 4.9.0, Scene 3.6.0, and Fundamentals 7.19.3. It emits no repository
+marker, floating version, random identifier, or destination-specific value.
 
 The generated compose contract intentionally binds local ports `27017` and `35000`. Start it with
 `docker compose up --detach`, run the generated project, and probe `/healthz`; stop it with

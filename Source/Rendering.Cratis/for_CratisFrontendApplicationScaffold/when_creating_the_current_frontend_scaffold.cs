@@ -92,9 +92,9 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         '|',
         new[]
         {
-            "@cratis/arc=22.16.1",
-            "@cratis/arc.react=22.16.1",
-            "@cratis/arc.vite=22.16.1",
+            "@cratis/arc=22.19.1",
+            "@cratis/arc.react=22.19.1",
+            "@cratis/arc.vite=22.19.1",
             "@cratis/components=4.9.0",
             "@cratis/fundamentals=7.19.3",
             "@cratis/scene.components=3.6.0",

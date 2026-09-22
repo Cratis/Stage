@@ -205,6 +205,8 @@ public sealed class CratisFrontendApplicationScaffold
 
     static string IndexCss() =>
         """
+        @import '@cratis/components/styles';
+
         :root {
           font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
           font-size: 14px;

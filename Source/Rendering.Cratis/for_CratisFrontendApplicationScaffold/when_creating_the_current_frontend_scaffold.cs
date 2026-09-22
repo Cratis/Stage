@@ -45,6 +45,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_reference_the_component_stack() => _first.Any(input => Text(input).Contains("@cratis/components", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_reference_the_scene_packages() => _first.Any(input => Text(input).Contains("@cratis/scene.components", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_mount_the_arc_provider() => Content(".frontend/main.tsx").ShouldContain("<Arc>");
+    [Fact] void should_import_the_published_component_styles_before_local_overrides() => Content(".frontend/index.css").Split('\n')[0].ShouldEqual("@import '@cratis/components/styles';");
 
     /// <summary>
     /// The composed screen renders through the component library, which the maintained reference application

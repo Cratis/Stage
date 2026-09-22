@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
+using System.Text.Json;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
@@ -52,30 +53,43 @@ internal static class SceneBindingsRenderer
             .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ToArray();
         var queries = context.Queries.Values
-            .Select(_ => (_.Name, Module: Module(context, _.Id)))
-            .DistinctBy(_ => _.Name, StringComparer.Ordinal)
             .OrderBy(_ => _.Name, StringComparer.Ordinal)
+            .ThenBy(_ => _.Id.ToString(), StringComparer.Ordinal)
+            .Select((query, index) => (query.Name, Identity: query.Id.ToString(),
+                Export: Identifiers.ToPascalCase(query.Name), Module: Module(context, query.Id), Alias: $"__sceneQuery{index}"))
             .ToArray();
 
         var builder = new StringBuilder()
             .Append("// Registers the generated Arc proxies under the names the composed Scene refers to.\n")
             .Append("// Scene resolves bindings by name; routes stay owned by Arc at runtime.\n")
-            .Append("import { registerCommands, registerQueries } from '@cratis/scene.components';\n");
+            .Append(queries.Length > 0
+                ? "import { registerCommands, registerQueryIdentity } from '@cratis/scene.components';\n"
+                : "import { registerCommands } from '@cratis/scene.components';\n");
 
-        foreach (var (name, module) in commands.Concat(queries))
+        foreach (var (name, module) in commands)
         {
             builder.Append("import { ").Append(name).Append(" } from '").Append(module).Append("';\n");
         }
 
-        return builder
-            .Append('\n')
+        foreach (var query in queries)
+        {
+            builder.Append("import { ").Append(query.Export).Append(" as ").Append(query.Alias)
+                .Append(" } from '").Append(query.Module).Append("';\n");
+        }
+
+        builder.Append('\n')
             .Append("registerCommands({")
             .AppendJoin(", ", commands.Select(_ => _.Name))
-            .Append("});\n")
-            .Append("registerQueries({")
-            .AppendJoin(", ", queries.Select(_ => _.Name))
-            .Append("});\n")
-            .ToString();
+            .Append("});\n");
+        foreach (var query in queries)
+        {
+            // Never collapse by name or duplicate into the legacy registry: exact consumers detect collisions,
+            // and legacy table/singleResult consumers resolve a unique identity registration themselves.
+            builder.Append("registerQueryIdentity(").Append(JsonSerializer.Serialize(query.Name)).Append(", ")
+                .Append(JsonSerializer.Serialize(query.Identity)).Append(", ").Append(query.Alias).Append(");\n");
+        }
+
+        return builder.ToString();
     }
 
     /// <summary>

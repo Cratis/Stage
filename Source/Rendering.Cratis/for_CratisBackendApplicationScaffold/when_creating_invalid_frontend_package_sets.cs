@@ -83,7 +83,7 @@ public class when_creating_invalid_frontend_package_sets : Specification
         string typesReactPackageVersion = "19.3.0",
         string typesReactDomPackageVersion = "19.3.0",
         string componentsPackageVersion = "4.9.0",
-        string scenePackageVersion = "3.5.0",
+        string scenePackageVersion = "3.6.0",
         string primeReactPackageVersion = "11.1.0",
         string primeIconsPackageVersion = "8.0.1",
         string primeUixThemesPackageVersion = "3.0.1",

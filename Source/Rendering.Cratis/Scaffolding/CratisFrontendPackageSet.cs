@@ -26,11 +26,10 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// NuGet counterpart at all.
 /// </para>
 /// <para>
-/// The set is exactly the fifteen packages below, each resolved to the newest version published at or before the
-/// publish instant of <c language="json">@cratis/arc</c> 22.3.0. It deliberately excludes <c language="json">@cratis/components</c>, which at that
-/// cut drags in a full PrimeReact peer stack, and the <c language="json">@cratis/scene.*</c> packages, which existed only at 2.0.0
-/// at that cut while the Scene capabilities a composed application needs shipped in 3.5.0. Selecting those belongs
-/// to the step where emitted artifacts actually import them, because it may require moving the emitted era forward.
+/// The Scene family is pinned at exact 3.6.0 for editable keyed lookup forms and identity-aware bindings.
+/// Frontend installation and native consumer verification use those published packages as a separate gate;
+/// C# rendering checks alone do not establish it. Components, Fundamentals, Arc and the backend/runtime era
+/// remain unchanged.
 /// </para>
 /// </remarks>
 public sealed class CratisFrontendPackageSet
@@ -215,7 +214,7 @@ public sealed class CratisFrontendPackageSet
         "19.3.0",
         "19.3.0",
         "4.9.0",
-        "3.5.0",
+        "3.6.0",
         "11.1.0",
         "8.0.1",
         "3.0.1",

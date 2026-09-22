@@ -2,3 +2,5 @@
   href: urls.md
 - name: Scene UI render plans
   href: render-plans.md
+- name: Default generated Scene
+  href: default-scene-composition.md

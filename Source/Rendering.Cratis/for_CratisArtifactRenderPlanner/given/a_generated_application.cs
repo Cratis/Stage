@@ -21,8 +21,8 @@ public class a_generated_application : a_register_project_render_request
     {
         var invocation = Guid.NewGuid().ToString("N");
         var workspace = Path.Combine(WorktreeRoot(), ".ai-work", "stage-namespace");
-        _evidence = Directory.CreateDirectory(Path.Combine(workspace, $"verification-{invocation}"));
-        _application = new DirectoryInfo(Path.Combine(workspace, $"generated-{invocation}"));
+        _evidence = Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("AI_WORK_KEEP") ?? workspace, $"verification-{invocation}"));
+        _application = new DirectoryInfo(Path.Combine(Environment.GetEnvironmentVariable("AI_WORK_OUTPUT") ?? workspace, $"generated-{invocation}"));
         try
         {
             _application.Create();
@@ -60,6 +60,8 @@ public class a_generated_application : a_register_project_render_request
             File.AppendAllText(Path.Combine(_evidence.FullName, "lifecycle.log"), $"Deleted: {_application.FullName}\nFinished: {DateTimeOffset.UtcNow:O}\n");
         }
     }
+
+    protected string ReadGeneratedFile(string relativePath) => File.ReadAllText(Path.Combine(_application!.FullName, relativePath));
 
     protected async Task<string> Run(string logName, params string[] arguments)
     {

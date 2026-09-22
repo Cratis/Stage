@@ -7,6 +7,10 @@ on:
 
 jobs:
   update:
-    uses: Cratis/Workflows/.github/workflows/update-packages.yml@main
+    uses: Cratis/Workflows/.github/workflows/update-packages.yml@925a9a9cad3c3d9f2be8b44acf1788adf675af14
+    with:
+      post-update-command: python3 Verification/verify-runtime-compatibility.py --self-test --synchronize
+      publication-mode: pull-request
+      pull-request-label: patch
     secrets:
       PAT_WORKFLOWS: ${{ secrets.PAT_WORKFLOWS }}

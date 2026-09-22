@@ -241,6 +241,13 @@ The candidate is validated before writing and the repository pins are read back 
 An already-aligned pin is not rewritten, but its image is still resolved. No package pins or generated-application
 profile files are changed. The default guard and `--self-test` remain offline; synchronization regressions inject a resolver.
 
+Scheduled and manual package updates run this synchronizer and its self-tests after dependency updates, before any
+build. The caller pins the reviewed shared workflow by commit and opts into pull-request publication: the package
+and Host changes are validated together, then proposed with a `patch` label for review instead of pushed directly
+to main. A failed synchronization/build, changed candidate, or advanced base blocks publication; no automatic merge
+or unvalidated retry occurs. `PAT_WORKFLOWS` must permit branch and pull-request creation and trigger ordinary PR
+checks. The shared bootstrap excludes Stage so it cannot overwrite this repository-owned workflow or its pin.
+
 The container supervisor check uses Python 3 and Bash with fake kernel and host processes; it does not start Docker.
 
 ```shell

@@ -44,6 +44,64 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
     public SceneApplication Scene => _resolved.Value;
 
     /// <summary>
+    /// Gets the route each modeled command is posted to, by command name.
+    /// </summary>
+    /// <remarks>
+    /// An element carries the route it is backed by, which is enough for an element that <em>is</em> a command.
+    /// An interaction is not: it names a command that may live anywhere in the model, attached to a button that
+    /// knows nothing about it. Answering "where does CancelInvoice go" needs a lookup by name, and this is it.
+    /// <para>
+    /// Resolved from the same endpoint set the elements use, so an interaction and an action cannot disagree
+    /// about where the same command lives.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyDictionary<string, string> CommandRoutes => _commandRoutes.Value;
+
+    /// <summary>
+    /// Gets the route each modeled query is read from, by read model name.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> QueryRoutes => _queryRoutes.Value;
+
+    readonly Lazy<IReadOnlyDictionary<string, string>> _commandRoutes = new(
+        () => RoutesByName(services.GetRequiredService<EndpointDataSource>(), "POST"),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
+    readonly Lazy<IReadOnlyDictionary<string, string>> _queryRoutes = new(
+        () => RoutesByName(services.GetRequiredService<EndpointDataSource>(), "GET"),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
+    /// <summary>
+    /// Builds the name to route lookup for one verb.
+    /// </summary>
+    /// <param name="endpoints">The endpoints the application registered.</param>
+    /// <param name="method">The verb to collect.</param>
+    /// <returns>The route by name.</returns>
+    /// <remarks>
+    /// The shortest route wins a tie for the same reason it does when resolving an element's: a read model
+    /// backs both a collection route and a by-id route, and the collection is the one without an argument
+    /// nobody supplied.
+    /// </remarks>
+    public static IReadOnlyDictionary<string, string> RoutesByName(EndpointDataSource endpoints, string method)
+    {
+        var routes = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var candidate in Candidates(endpoints)
+            .Where(candidate => string.Equals(candidate.Method, method, StringComparison.Ordinal))
+            .OrderBy(candidate => candidate.Route.Length))
+        {
+            foreach (var name in candidate.Names)
+            {
+                var simple = name[(name.LastIndexOf('.') + 1)..];
+                if (simple.Length == 0) continue;
+
+                routes.TryAdd(simple, candidate.Route);
+            }
+        }
+
+        return routes;
+    }
+
+    /// <summary>
     /// Attaches the route of every element that names a modeled artifact.
     /// </summary>
     /// <param name="scene">The scene to attach routes to.</param>

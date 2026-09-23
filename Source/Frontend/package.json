@@ -11,10 +11,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cratis/scene.model": "3.3.1",
-    "@cratis/scene.react": "3.3.1",
+    "@cratis/scene.model": "4.0.0",
+    "@cratis/scene.react": "4.0.0",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "@cratis/scene.engine": "4.0.0"
   },
   "devDependencies": {
     "@testing-library/react": "16.3.0",

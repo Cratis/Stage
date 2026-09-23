@@ -149,6 +149,13 @@ app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(
 // looking for somewhere to put a play session treated it as a fault instead of moving on to the next stage.
 app.MapPost("/stage/load", () => Results.Conflict());
 app.MapGet("/stage/scene", () => Results.Json(sceneRoutes.Scene, StageJson.Options));
+
+// What an interaction needs that an element does not: where a command named anywhere in the model is posted.
+// Served alongside the scene rather than folded into it, because it answers a question about the running
+// application rather than describing what the document says.
+app.MapGet("/stage/routes", () => Results.Json(
+    new StageRoutes(sceneRoutes.CommandRoutes, sceneRoutes.QueryRoutes),
+    StageJson.Options));
 app.MapFallbackToFile("index.html");
 app.Lifetime.ApplicationStarted.Register(() =>
     _ = StageRuntimeRegistrar.RegisterAsync(app.Services, eventStore, model, app.Logger));

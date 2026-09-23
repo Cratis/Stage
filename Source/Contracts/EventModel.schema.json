@@ -221,7 +221,9 @@
         "InitialModelState": { "type": "string" },
         "From": { "type": "object", "additionalProperties": true },
         "Join": { "type": "object", "additionalProperties": true },
-        "Children": { "type": "object", "additionalProperties": true },
+        "Children": { "type": "object", "additionalProperties": { "$ref": "#/$defs/ChildrenProjectionDefinition" } },
+        "Nested": { "type": ["object", "null"], "additionalProperties": { "$ref": "#/$defs/ChildrenProjectionDefinition" } },
+        "SubscribesToAllEvents": { "type": "boolean" },
         "FromDerivatives": { "type": "array", "items": { "type": "object" } },
         "FromEvery": { "type": ["object", "null"] },
         "FromEventProperty": { "type": ["object", "null"] },
@@ -230,6 +232,22 @@
         "Tags": { "type": "array", "items": { "type": "string" } },
         "AutoMap": { "type": "string", "enum": ["Enabled", "Disabled"] }
       }
+    },
+    "ChildrenProjectionDefinition": {
+      "type": "object",
+      "properties": {
+        "IdentifiedBy": { "type": "string" },
+        "From": { "type": "object", "additionalProperties": true },
+        "Join": { "type": "object", "additionalProperties": true },
+        "Children": { "type": "object", "additionalProperties": { "$ref": "#/$defs/ChildrenProjectionDefinition" } },
+        "Nested": { "type": ["object", "null"], "additionalProperties": { "$ref": "#/$defs/ChildrenProjectionDefinition" } },
+        "All": { "type": "object" },
+        "FromEventProperty": { "type": ["object", "null"] },
+        "RemovedWith": { "type": "object", "additionalProperties": true },
+        "RemovedWithJoin": { "type": "object", "additionalProperties": true },
+        "AutoMap": { "type": "string", "enum": ["Inherit", "Enabled", "Disabled"] }
+      },
+      "additionalProperties": false
     },
     "UniqueConstraint": {
       "type": "object",

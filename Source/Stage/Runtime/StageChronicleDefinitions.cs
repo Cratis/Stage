@@ -72,22 +72,27 @@ public static class StageChronicleDefinitions
     /// </summary>
     /// <param name="model">The event model being run.</param>
     /// <returns>The event type registrations, one per distinct event name.</returns>
-    public static IList<ChronicleEvents.EventTypeRegistration> BuildEventTypes(EventModel model) =>
-    [
-        .. StageModelWalker.Slices(model)
+    /// <exception cref="UnsupportedProjectionEventType">A declared event requires a generation the Stage schema registration cannot provide.</exception>
+    public static IList<ChronicleEvents.EventTypeRegistration> BuildEventTypes(EventModel model)
+    {
+        var events = StageModelWalker.Slices(model)
             .SelectMany(located => located.Slice.Events)
-
-            // A slice can reference an event another slice owns, so the same name shows up more than once.
             .DistinctBy(@event => @event.Name, StringComparer.Ordinal)
-            .Select(@event => new ChronicleEvents.EventTypeRegistration
-            {
-                Type = EventType(@event.Name),
-                Schema = @event.Schema,
-                Owner = ChronicleEvents.EventTypeOwner.Client,
-                Source = ChronicleEvents.EventTypeSource.Code,
-                Generations = [new ChronicleEvents.EventTypeGenerationDefinition { Generation = FirstGeneration, Schema = @event.Schema }],
-            })
-    ];
+            .ToArray();
+        if (events.Any(@event => @event.Name.Contains('+', StringComparison.Ordinal)))
+        {
+            throw new UnsupportedProjectionEventType(events.First(@event => @event.Name.Contains('+', StringComparison.Ordinal)).Name);
+        }
+
+        return [.. events.Select(@event => new ChronicleEvents.EventTypeRegistration
+        {
+            Type = EventType(@event.Name),
+            Schema = @event.Schema,
+            Owner = ChronicleEvents.EventTypeOwner.Client,
+            Source = ChronicleEvents.EventTypeSource.Code,
+            Generations = [new ChronicleEvents.EventTypeGenerationDefinition { Generation = FirstGeneration, Schema = @event.Schema }],
+        })];
+    }
 
     static ChronicleReadModels.ReadModelDefinition BuildReadModel(ReadModelDefinition readModel, string readModelIdentifier, string projectionIdentifier) =>
         new()
@@ -123,8 +128,8 @@ public static class StageChronicleDefinitions
             RemovedWithJoin = RemovedWithJoinMap(projection.RemovedWithJoin),
             Tags = [.. projection.Tags],
             AutoMap = (ChronicleProjections.AutoMap)(int)projection.AutoMap,
-            Nested = new Dictionary<string, ChronicleProjections.ChildrenDefinition>(),
-            SubscribesToAllEvents = false,
+            Nested = ChildrenMap(projection.Nested ?? new Dictionary<string, ChildrenDefinition>()),
+            SubscribesToAllEvents = projection.SubscribesToAllEvents,
         };
 
     /// <summary>
@@ -180,17 +185,48 @@ public static class StageChronicleDefinitions
     }
 
     static ChronicleEvents.EventType EventType(string name) =>
-        new() { Id = name, Generation = FirstGeneration };
+        name.Contains('+', StringComparison.Ordinal)
+            ? ParseVersionedEventType(name)
+            : new() { Id = name, Generation = FirstGeneration };
 
-    static Dictionary<string, string> Properties(IReadOnlyList<PropertyMapping> mappings) =>
-        mappings.ToDictionary(mapping => mapping.Property, mapping => mapping.Expression);
+    static ChronicleEvents.EventType ParseVersionedEventType(string name)
+    {
+        var segments = name.Split('+');
+        if (segments.Length is < 2 or > 3 || !uint.TryParse(
+                segments[1],
+                System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var generation) ||
+            (segments.Length == 3 && !bool.TryParse(segments[2], out _)))
+        {
+            throw new UnsupportedProjectionEventType(name);
+        }
+
+        return new ChronicleEvents.EventType
+        {
+            Id = segments[0],
+            Generation = generation,
+            Tombstone = segments.Length == 3 && bool.Parse(segments[2])
+        };
+    }
+
+    static Dictionary<string, string> Properties(IReadOnlyList<PropertyMapping> mappings)
+    {
+        var properties = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var mapping in mappings)
+        {
+            properties[mapping.Property] = ProjectionRuntimeExpression.Translate(mapping.Expression);
+        }
+
+        return properties;
+    }
 
     static ChronicleProjections.FromDefinition From(FromDefinition from) =>
         new()
         {
             Properties = Properties(from.Properties),
-            Key = from.Key ?? EventSourceIdExpression,
-            ParentKey = from.ParentKey,
+            Key = ProjectionRuntimeKey.Translate(from.Key ?? EventSourceIdExpression),
+            ParentKey = from.ParentKey is null ? null : ProjectionRuntimeKey.Translate(from.ParentKey),
         };
 
     static ChronicleProjections.JoinDefinition Join(JoinDefinition join) =>
@@ -198,7 +234,7 @@ public static class StageChronicleDefinitions
         {
             On = join.On,
             Properties = Properties(join.Properties),
-            Key = join.Key ?? EventSourceIdExpression,
+            Key = ProjectionRuntimeKey.Translate(join.Key ?? EventSourceIdExpression),
         };
 
     static ChronicleProjections.FromEveryDefinition Every(FromEveryDefinition every) =>
@@ -220,13 +256,13 @@ public static class StageChronicleDefinitions
         new()
         {
             Event = EventType(fromEventProperty.EventType),
-            PropertyExpression = fromEventProperty.Expression,
+            PropertyExpression = ProjectionRuntimeExpression.Translate(fromEventProperty.Expression),
         };
 
     static ChronicleProjections.ChildrenDefinition Child(ChildrenDefinition children) =>
         new()
         {
-            IdentifiedBy = children.IdentifiedBy,
+            IdentifiedBy = ProjectionRuntimeKey.Identity(children.IdentifiedBy),
             From = FromMap(children.From),
             Join = JoinMap(children.Join),
             Children = ChildrenMap(children.Children),
@@ -235,19 +271,43 @@ public static class StageChronicleDefinitions
             RemovedWith = RemovedWithMap(children.RemovedWith),
             RemovedWithJoin = RemovedWithJoinMap(children.RemovedWithJoin),
             AutoMap = (ChronicleProjections.AutoMap)(int)children.AutoMap,
+            Nested = ChildrenMap(children.Nested ?? new Dictionary<string, ChildrenDefinition>()),
         };
 
     static Dictionary<ChronicleEvents.EventType, ChronicleProjections.FromDefinition> FromMap(IReadOnlyDictionary<string, FromDefinition> source) =>
-        source.ToDictionary(entry => EventType(entry.Key), entry => From(entry.Value));
+        EventMap(source, From);
 
     static Dictionary<ChronicleEvents.EventType, ChronicleProjections.JoinDefinition> JoinMap(IReadOnlyDictionary<string, JoinDefinition> source) =>
-        source.ToDictionary(entry => EventType(entry.Key), entry => Join(entry.Value));
+        EventMap(source, Join);
 
     static Dictionary<ChronicleEvents.EventType, ChronicleProjections.RemovedWithDefinition> RemovedWithMap(IReadOnlyDictionary<string, RemovedWithDefinition> source) =>
-        source.ToDictionary(entry => EventType(entry.Key), entry => new ChronicleProjections.RemovedWithDefinition { Key = entry.Value.Key, ParentKey = entry.Value.ParentKey });
+        EventMap(source, removal => new ChronicleProjections.RemovedWithDefinition
+        {
+            Key = ProjectionRuntimeKey.Translate(removal.Key),
+            ParentKey = removal.ParentKey is null ? null : ProjectionRuntimeKey.Translate(removal.ParentKey)
+        });
 
     static Dictionary<ChronicleEvents.EventType, ChronicleProjections.RemovedWithJoinDefinition> RemovedWithJoinMap(IReadOnlyDictionary<string, RemovedWithJoinDefinition> source) =>
-        source.ToDictionary(entry => EventType(entry.Key), entry => new ChronicleProjections.RemovedWithJoinDefinition { Key = entry.Value.Key });
+        EventMap(source, removal => new ChronicleProjections.RemovedWithJoinDefinition { Key = ProjectionRuntimeKey.Translate(removal.Key) });
+
+    static Dictionary<ChronicleEvents.EventType, TResult> EventMap<TSource, TResult>(IReadOnlyDictionary<string, TSource> source, Func<TSource, TResult> convert)
+    {
+        var mapped = new Dictionary<ChronicleEvents.EventType, TResult>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (name, value) in source)
+        {
+            var type = EventType(name);
+            var identity = $"{type.Id}+{type.Generation}+{type.Tombstone}";
+            if (!seen.Add(identity))
+            {
+                throw new UnsupportedProjectionEventType($"Duplicate projection event identity for '{name}'.");
+            }
+
+            mapped.Add(type, convert(value));
+        }
+
+        return mapped;
+    }
 
     static Dictionary<string, ChronicleProjections.ChildrenDefinition> ChildrenMap(IReadOnlyDictionary<string, ChildrenDefinition> source) =>
         source.ToDictionary(entry => entry.Key, entry => Child(entry.Value));

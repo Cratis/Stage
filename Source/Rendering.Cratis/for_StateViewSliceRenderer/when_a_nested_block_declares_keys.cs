@@ -42,11 +42,11 @@ public class when_a_nested_block_declares_keys : Specification
         var nestedFrom = new FromSyntax(
             [
                 new EventSpecSyntax("ShippingAddressSet", null, SourceLocation.Start),
-                new EventSpecSyntax("CarrierAssigned", new PathExpressionSyntax("shipmentRef", SourceLocation.Start), SourceLocation.Start),
+                new EventSpecSyntax("CarrierAssigned", new PathExpressionSyntax("shipmentRef", SourceLocation.Start), SourceLocation.Start)
             ],
             new ExpressionKeySyntax(new PathExpressionSyntax("orderNumber", SourceLocation.Start), SourceLocation.Start),
             new PathExpressionSyntax("orderNumber", SourceLocation.Start),
-            [Set("street", "street")],
+            [],
             SourceLocation.Start);
 
         var nested = new NestedSyntax("shipping", AutoMapMode.Inherit, [nestedFrom], SourceLocation.Start);

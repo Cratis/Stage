@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer.given;
 /// <summary>
 /// An invoice details projection with a <c language="csharp">children</c> block of line items identified by their line number,
 /// mapping from two events, removed by a third, holding a further <c language="csharp">children</c> block of allocations with
-/// automapping disabled, and declaring an <c language="csharp">every</c> block whose meaning on a child type is not established.
+/// automapping disabled.
 /// </summary>
 public class a_projection_with_children_blocks : Specification
 {
@@ -75,7 +75,6 @@ public class a_projection_with_children_blocks : Specification
                     new PathExpressionSyntax("lineNumber", SourceLocation.Start),
                     new PathExpressionSyntax("invoiceNumber", SourceLocation.Start),
                     SourceLocation.Start),
-                new EverySyntax([], true, AutoMapMode.Inherit, SourceLocation.Start),
                 allocations,
             ],
             SourceLocation.Start);

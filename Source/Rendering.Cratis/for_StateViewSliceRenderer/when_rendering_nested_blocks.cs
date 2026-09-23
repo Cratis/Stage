@@ -56,13 +56,6 @@ public class when_rendering_nested_blocks : a_projection_with_nested_blocks
     [Fact] void should_still_key_the_read_model_on_its_own_key() =>
         _file.Content.ShouldContain("[Key] [SetFrom<InvoiceRegistered>(nameof(InvoiceRegistered.InvoiceNumber))] string InvoiceNumber");
 
-    // 'every' inside a 'nested' block has no established meaning on a nested type, so it is named rather than
-    // rendered as an attribute nobody has confirmed the behavior of there.
-    [Fact] void should_report_the_block_a_nested_type_does_not_render() =>
-        _file.Diagnostics.ShouldContain(
-            "Nested record 'InvoiceDetailsShipping' declares 1 every block(s) whose meaning on a nested type is not established — they are not rendered.");
-    [Fact] void should_flag_that_block_in_the_file() =>
-        _file.Content.ShouldContain("// TODO: 1 every block(s) not yet rendered — their meaning on a nested type is not established");
     [Fact] void should_not_report_the_nested_blocks_as_unrendered() =>
         _file.Diagnostics.ShouldNotContain(
             "Projection 'InvoiceDetails' declares 1 nested block(s) that belong to a nested or child record type nothing generates yet — they are not rendered.");

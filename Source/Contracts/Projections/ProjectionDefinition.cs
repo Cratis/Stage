@@ -36,4 +36,15 @@ public record ProjectionDefinition(
     IReadOnlyDictionary<string, RemovedWithDefinition> RemovedWith,
     IReadOnlyDictionary<string, RemovedWithJoinDefinition> RemovedWithJoin,
     IReadOnlyList<string> Tags,
-    ProjectionAutoMap AutoMap = ProjectionAutoMap.Enabled);
+    ProjectionAutoMap AutoMap = ProjectionAutoMap.Enabled)
+{
+    /// <summary>
+    /// Gets the scalar nested object projections, keyed by property path.
+    /// </summary>
+    public IReadOnlyDictionary<string, ChildrenDefinition>? Nested { get; init; }
+
+    /// <summary>
+    /// Gets whether this projection subscribes to all event types.
+    /// </summary>
+    public bool SubscribesToAllEvents { get; init; }
+}

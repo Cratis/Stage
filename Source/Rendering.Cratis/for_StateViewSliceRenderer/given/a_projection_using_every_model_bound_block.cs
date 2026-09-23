@@ -9,9 +9,8 @@ using Cratis.Specifications;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer.given;
 
 /// <summary>
-/// An order summary projection that uses every projection block with a model-bound attribute behind it: a
-/// <c language="csharp">from</c>, a <c language="csharp">join</c> whose key is mapped by that <c language="csharp">from</c> and which two events feed, an <c language="csharp">all</c>
-/// and an <c language="csharp">every</c> block, and a <c language="csharp">remove via join</c> carrying its own key.
+/// An order summary projection with a model-bound <c language="csharp">from</c>, joined events,
+/// <c language="csharp">every</c> context mappings, and a keyed <c language="csharp">remove via join</c>.
 /// </summary>
 /// <remarks>
 /// <c language="csharp">clear with</c> is deliberately absent: Screenplay only accepts one inside a <c language="csharp">nested</c> block, and
@@ -56,14 +55,6 @@ public class a_projection_using_every_model_bound_block : Specification
             ],
             SourceLocation.Start);
 
-        var all = new AllSyntax(
-            [
-                new SetMappingSyntax("lastEventAt", new EventContextExpressionSyntax("occurred", SourceLocation.Start), SourceLocation.Start),
-                new CountMappingSyntax("totalEvents", SourceLocation.Start),
-            ],
-            AutoMapMode.Inherit,
-            SourceLocation.Start);
-
         var every = new EverySyntax(
             [
                 new SetMappingSyntax("lastUpdatedAt", new EventContextExpressionSyntax("occurred", SourceLocation.Start), SourceLocation.Start),
@@ -84,7 +75,7 @@ public class a_projection_using_every_model_bound_block : Specification
             null,
             AutoMapMode.Enabled,
             new ExpressionKeySyntax(new PathExpressionSyntax("orderNumber", SourceLocation.Start), SourceLocation.Start),
-            [placed, join, all, every, removeViaJoin],
+            [placed, join, every, removeViaJoin],
             SourceLocation.Start);
 
         var slice = new SliceSyntax(

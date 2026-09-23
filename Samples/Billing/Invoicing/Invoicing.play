@@ -27,7 +27,8 @@ module Invoicing
   form RegisterInvoiceForm for RegisterInvoice
     populate via query NextInvoiceNumber
     field invoiceNumber label $strings.invoice.number
-    field customerId label $strings.invoice.customer
+    field customerId label "Customer ID"
+    field customerName label $strings.invoice.customer
     field amount label $strings.invoice.amount
     on submit navigate to InvoiceList
 

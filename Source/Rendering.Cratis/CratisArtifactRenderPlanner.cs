@@ -37,17 +37,34 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     /// <inheritdoc/>
     public ArtifactRenderPlan Plan(ArtifactRenderRequest request)
     {
-        var artifacts = new List<PlannedArtifact>();
-        var diagnostics = new List<ArtifactRenderDiagnostic>();
         if (!CratisArtifactRenderProfileAdmission.Matches(request, out var options, out var mismatch))
         {
-            diagnostics.Add(Error(
-                "STAGE-CRATIS-001",
-                $"The artifact render profile is not the exact package-owned Cratis profile. {mismatch}",
-                request.Model.Application.Id));
-            return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
+            return ArtifactRenderPlan.Create(
+                request,
+                [],
+                [Error(
+                    "STAGE-CRATIS-001",
+                    $"The artifact render profile is not the exact package-owned Cratis profile. {mismatch}",
+                    request.Model.Application.Id)]);
         }
 
+        try
+        {
+            return PlanAdmitted(request, options);
+        }
+        catch (UnsupportedSemanticRendering exception)
+        {
+            return ArtifactRenderPlan.Create(
+                request,
+                [],
+                [Error(exception.Code, exception.Message, request.Model.Application.Id)]);
+        }
+    }
+
+    static ArtifactRenderPlan PlanAdmitted(ArtifactRenderRequest request, CratisRenderingOptions options)
+    {
+        var artifacts = new List<PlannedArtifact>();
+        var diagnostics = new List<ArtifactRenderDiagnostic>();
         var context = new SemanticApplicationContext(request, options);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticCratisAdmission.Evaluate(context, slices));
@@ -94,12 +111,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             {
                 SemanticSliceKind.StateChange => SemanticStateChangeArtifactRenderer.Render(located, context),
                 SemanticSliceKind.StateView => SemanticStateViewArtifactRenderer.Render(located, context),
-                _ => null
+                _ => throw UnsupportedSemanticRendering.For(nameof(SemanticSliceKind), located.Slice.Kind)
             };
-            if (file is not null)
-            {
-                artifacts.Add(Artifact(file));
-            }
+            artifacts.Add(Artifact(file));
 
             foreach (var specification in located.Slice.Specifications)
             {

@@ -10,8 +10,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer.given;
 
 /// <summary>
 /// An invoice details projection with a <c language="csharp">nested</c> shipping object that maps from its own event, is cleared by
-/// another, holds a further <c language="csharp">nested</c> carrier object with automapping disabled, and declares an <c language="csharp">every</c>
-/// block whose meaning on a nested type is not established.
+/// another, and holds a further <c language="csharp">nested</c> carrier object with automapping disabled.
 /// </summary>
 public class a_projection_with_nested_blocks : Specification
 {
@@ -45,7 +44,6 @@ public class a_projection_with_nested_blocks : Specification
             [
                 From("ShippingAddressSet", ("street", "street"), ("city", "city")),
                 new ClearWithSyntax("ShippingCleared", SourceLocation.Start),
-                new EverySyntax([], true, AutoMapMode.Inherit, SourceLocation.Start),
                 carrier,
             ],
             SourceLocation.Start);

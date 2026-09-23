@@ -46,6 +46,22 @@ internal static class SemanticCratisAdmission
         return [.. diagnostics];
     }
 
+    /// <summary>
+    /// Checks whether a semantic type refers to a supported, resolved type.
+    /// </summary>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="type">The declared type.</param>
+    /// <returns>Whether the declared type exists.</returns>
+    /// <exception cref="UnsupportedSemanticRendering">The type reference kind is not handled.</exception>
+    internal static bool TypeExists(SemanticApplicationContext context, SemanticTypeReference type) => type.Kind switch
+    {
+        SemanticTypeReferenceKind.Primitive => type.Primitive != SemanticPrimitiveType.Unknown,
+        SemanticTypeReferenceKind.Concept => context.Concepts.ContainsKey(type.Target),
+        SemanticTypeReferenceKind.CompositeType => context.Types.ContainsKey(type.Target),
+        SemanticTypeReferenceKind.Unknown => false,
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind)
+    };
+
     static void ValidateTypes(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
     {
         foreach (var concept in context.Application.Concepts)
@@ -181,14 +197,6 @@ internal static class SemanticCratisAdmission
     static bool IsProperty(SemanticExpression? expression, SemanticExpressionRootKind root, IEnumerable<SemanticId> candidates) =>
         expression is SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property } resolved &&
         resolved.Root == root && candidates.Contains(resolved.Target);
-
-    static bool TypeExists(SemanticApplicationContext context, SemanticTypeReference type) => type.Kind switch
-    {
-        SemanticTypeReferenceKind.Primitive => type.Primitive != SemanticPrimitiveType.Unknown,
-        SemanticTypeReferenceKind.Concept => context.Concepts.ContainsKey(type.Target),
-        SemanticTypeReferenceKind.CompositeType => context.Types.ContainsKey(type.Target),
-        _ => false
-    };
 
     static ArtifactRenderDiagnostic Error(string code, string message, SemanticId artifact) =>
         new(code, ArtifactRenderDiagnosticSeverity.Error, message, artifact);

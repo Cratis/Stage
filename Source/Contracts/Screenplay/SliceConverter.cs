@@ -51,8 +51,25 @@ public static class SliceConverter
             MapType(slice.Type),
             EventConverter.Convert(slice.Events, slice.Constraints, schema, slicePath),
             command is not null ? CommandConverter.Convert(command, schema, slicePath) : null,
-            ReadModelConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, slicePath),
+            ConvertReadModel(slice, schema, eventPropertyTypes, eventProperties, slicePath),
             [.. slice.Specifications.Select(specification => SpecificationConverter.Convert(specification, slicePath))]);
+    }
+
+    static Projections.ReadModelDefinition? ConvertReadModel(
+        ScreenplaySyntax.SliceSyntax slice,
+        SchemaSynthesizer schema,
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
+        string slicePath)
+    {
+        try
+        {
+            return ReadModelConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, slicePath);
+        }
+        catch (UnsupportedProjectionConversion error)
+        {
+            throw new InvalidEventModel(slicePath, [error.Message]);
+        }
     }
 
     static SliceType MapType(ScreenplaySyntax.SliceType type) =>

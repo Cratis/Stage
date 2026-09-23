@@ -51,27 +51,24 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// specification, so a bump cannot happen silently.
     /// </para>
     /// <para>
-    /// The kernel image is not chosen freely: it tracks the Chronicle client the <c language="csharp">Cratis</c> metapackage
-    /// brings with it. Cratis 22.19.1 depends on Cratis.Chronicle 18.2.0, so the image is 18.2.0. Running a
-    /// generated application against a kernel from a different line is the same client and kernel drift this
-    /// repository already guards its own Host image against, and a newer client against an older kernel is
-    /// known to fail the descriptor handshake outright. That is why the image is not simply the newest Chronicle
-    /// tag: the newest kernel and the client this application actually runs are different lines.
+    /// The image and the explicitly pinned Chronicle client must match. The Cratis metapackage can depend on an
+    /// older Chronicle client than the current kernel; relying on that transitive dependency would silently drift
+    /// from the image. Running a newer client against an older kernel can fail the descriptor handshake outright.
     /// </para>
     /// </remarks>
     public static CratisBackendApplicationScaffoldProfile Current { get; } = Create(
         CurrentVersion,
         "net10.0",
-        "22.19.1",
-        "22.19.1",
-        "22.19.1",
+        "22.22.0",
+        "22.22.0",
+        "22.22.0",
         "4.1.1",
         "4.1.1",
         "18.10.1",
         "6.2.0",
         "2.9.3",
         "4.0.0",
-        "18.2.0");
+        "19.4.4");
 
     /// <summary>
     /// Gets the scaffold contract version carried by every generated input.
@@ -132,6 +129,11 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// Gets the exact <c language="csharp">cratis/chronicle</c> image version.
     /// </summary>
     public string ChronicleImageVersion { get; }
+
+    /// <summary>
+    /// Gets the explicitly pinned Chronicle client, ASP.NET Core integration and testing version matching the kernel image.
+    /// </summary>
+    public string CratisChroniclePackageVersion => ChronicleImageVersion;
 
     /// <summary>
     /// Gets the exact npm package versions the emitted era composes its frontend from.

@@ -5,8 +5,6 @@ using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
 using Cratis.Specifications;
-using Cratis.Stage.Rendering.Cratis.CodeGeneration;
-using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -26,8 +24,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 public class when_a_from_block_declares_its_own_key : Specification
 {
     ApplicationSet _applicationSet = null!;
-    RenderedFile _file = null!;
-    IReadOnlyList<string> _compilationErrors = null!;
+    Exception? _error;
 
     void Establish()
     {
@@ -61,26 +58,10 @@ public class when_a_from_block_declares_its_own_key : Specification
             [new ApplicationSyntax([], [], [], [new ModuleSyntax("Sales", [], [feature], SourceLocation.Start)], SourceLocation.Start)]);
     }
 
-    void Because()
-    {
-        _file = new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp");
-        _compilationErrors = RenderedOutput.Errors([_file]);
-    }
+    void Because() => _error = Catch.Exception(() => new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp"));
 
-    [Fact] void should_render_output_that_compiles() => string.Join(Environment.NewLine, _compilationErrors).ShouldEqual(string.Empty);
-
-    [Fact] void should_carry_a_block_key_onto_the_read_models_from_event() =>
-        _file.Content.ShouldContain("[FromEvent<OrderPlaced>(key: nameof(OrderPlaced.OrderNumber))]");
-
-    [Fact] void should_carry_an_event_key_onto_the_read_models_from_event() =>
-        _file.Content.ShouldContain("[FromEvent<OrderCancelled>(key: nameof(OrderCancelled.CancellationRef))]");
-
-    // The shape the defect produced: a bare attribute, which Chronicle leaves routing on the event source id.
-    [Fact] void should_not_leave_a_keyed_event_routing_on_the_event_source_id() =>
-        _file.Content.ShouldNotContain("[FromEvent<OrderPlaced>]");
-
-    [Fact] void should_report_that_the_inline_keys_differ_from_the_models_own_key() =>
-        _file.Diagnostics.Any(diagnostic => diagnostic.Contains("declare(s) a key", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_reject_a_key_that_disagrees_with_the_read_model_identity() => _error.ShouldBeOfExactType<UnsupportedLegacyProjection>();
+    [Fact] void should_name_the_mismatched_identity() => _error!.Message.ShouldContain("OrderCancelled");
 
     static EventSyntax Event(string name, params string[] properties) =>
         new(

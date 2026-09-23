@@ -32,6 +32,12 @@ public static class StageRuntimeRegistrar
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async Task RegisterAsync(IServiceProvider services, string eventStoreName, EventModel model, ILogger logger)
     {
+        // Pure model validation must fault the task before DI resolution or any remote write. Connection failures
+        // retain the existing logging behavior; an invalid local definition is not a recoverable connection failure.
+        var eventTypes = StageChronicleDefinitions.BuildEventTypes(model);
+        string logSequence = EventSequenceId.Log;
+        var (readModels, projections) = StageChronicleDefinitions.Build(model, logSequence);
+
         try
         {
             var client = services.GetRequiredService<IChronicleClient>();
@@ -43,7 +49,6 @@ public static class StageRuntimeRegistrar
             await accessor.Services.EventStores.EnsureEventStore(new EnsureEventStoreRequest { Name = eventStore.Name });
 
             // Event types come first — projections reference them, and the Workbench lists them.
-            var eventTypes = StageChronicleDefinitions.BuildEventTypes(model);
             if (eventTypes.Count > 0)
             {
                 await accessor.Services.EventTypes.RegisterEventTypes(new ChronicleEventTypes.RegisterEventTypesRequest
@@ -54,9 +59,6 @@ public static class StageRuntimeRegistrar
 
                 StageRuntimeRegistrarLogging.RegisteredEventTypes(logger, eventTypes.Count, eventStoreName);
             }
-
-            string logSequence = EventSequenceId.Log;
-            var (readModels, projections) = StageChronicleDefinitions.Build(model, logSequence);
 
             if (readModels.Count == 0)
             {

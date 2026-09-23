@@ -13,12 +13,13 @@ module Invoicing
         validate
           require InvoiceState.status == "draft"
             message "Only a draft invoice can be issued"
-        produces when amount > 0
-          InvoiceIssued
-            for invoiceId
-            invoiceId = invoiceId
-            issuedOn = issuedOn
-            amount = InvoiceState.amount
+          require InvoiceState.amount > 0
+            message "An invoice for nothing cannot be issued"
+        produces InvoiceIssued
+          for invoiceId
+          invoiceId = invoiceId
+          issuedOn = issuedOn
+          amount = InvoiceState.amount
 
       event InvoiceIssued
         invoiceId InvoiceId
@@ -30,17 +31,22 @@ module Invoicing
         status InvoiceStatus
         amount Money
 
-      reducer InvoiceStateReducer => InvoiceState
-        description "Folds the ledger events into the state a command needs to guard itself"
-        on InvoiceRegistered
-        on InvoiceIssued
-        on InvoiceCancelled
+      projection InvoiceStateProjection => InvoiceState
+        from InvoiceRegistered key invoiceId
+          status = "draft"
+          amount = amount
+        from InvoiceIssued key invoiceId
+          status = "issued"
+          amount = amount
+        from InvoiceCancelled key invoiceId
+          status = "cancelled"
 
       specification IssuingADraftInvoice
         given InvoiceRegistered
           for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
           invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
           invoiceNumber = "INV-000123"
+          customerName = "Acme"
           amount = 1500
         when IssueInvoice
           invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"

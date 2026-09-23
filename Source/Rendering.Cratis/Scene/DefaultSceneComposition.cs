@@ -80,6 +80,33 @@ internal static class DefaultSceneComposition
         return new SceneApplication([], [], [layout], [], [], [screen]);
     }
 
+    /// <summary>
+    /// Classifies a type for default Scene scalar descriptors.
+    /// </summary>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="type">The declared type.</param>
+    /// <returns>The scalar primitive, or Unknown for intentionally unsupported descriptors.</returns>
+    /// <exception cref="UnsupportedSemanticRendering">The semantic type is not handled.</exception>
+    internal static SemanticPrimitiveType Scalar(SemanticApplicationContext context, SemanticTypeReference type)
+    {
+        // Composite types and text enumerations are deliberately not scalar Scene descriptors.
+        var primitive = type.Kind switch
+        {
+            SemanticTypeReferenceKind.Primitive => type.Primitive,
+            SemanticTypeReferenceKind.Concept when context.Concepts[type.Target].Values.IsEmpty => context.Concepts[type.Target].Primitive,
+            SemanticTypeReferenceKind.Concept or SemanticTypeReferenceKind.CompositeType => SemanticPrimitiveType.Unknown,
+            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind)
+        };
+        if (type.Kind == SemanticTypeReferenceKind.Primitive ||
+            (type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts[type.Target].Values.IsEmpty))
+        {
+            // All known scalars can reach the descriptor check; only the Scene-supported subset is selected there.
+            _ = SemanticTypeSystem.Primitive(primitive);
+        }
+
+        return type.IsCollection ? SemanticPrimitiveType.Unknown : primitive;
+    }
+
     static SceneElements.ExternalComponent? QueryInputForm(SemanticApplicationContext context, SemanticKeyedQuery query)
     {
         var keyType = Scalar(context, query.Argument.Type);
@@ -131,14 +158,6 @@ internal static class DefaultSceneComposition
             }
         };
     }
-
-    static SemanticPrimitiveType Scalar(SemanticApplicationContext context, SemanticTypeReference type) =>
-        type.IsCollection ? SemanticPrimitiveType.Unknown : type.Kind switch
-        {
-            SemanticTypeReferenceKind.Primitive => type.Primitive,
-            SemanticTypeReferenceKind.Concept when context.Concepts[type.Target].Values.IsEmpty => context.Concepts[type.Target].Primitive,
-            _ => SemanticPrimitiveType.Unknown
-        };
 
     static string ProxyPropertyName(string name)
     {

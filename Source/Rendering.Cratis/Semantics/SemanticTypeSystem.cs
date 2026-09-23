@@ -17,6 +17,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// </summary>
     /// <param name="primitive">The semantic primitive.</param>
     /// <returns>The C# primitive type syntax.</returns>
+    /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
     public static string Primitive(SemanticPrimitiveType primitive) => primitive switch
     {
         SemanticPrimitiveType.Uuid => "Guid",
@@ -26,7 +27,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         SemanticPrimitiveType.Boolean => "bool",
         SemanticPrimitiveType.Date => "DateOnly",
         SemanticPrimitiveType.DateTime => "DateTimeOffset",
-        _ => "object"
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
     };
 
     /// <summary>
@@ -34,6 +35,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// </summary>
     /// <param name="primitive">The primitive.</param>
     /// <returns>The sentinel expression.</returns>
+    /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
     public static string NotSet(SemanticPrimitiveType primitive) => primitive switch
     {
         SemanticPrimitiveType.Uuid => "Guid.Empty",
@@ -43,7 +45,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         SemanticPrimitiveType.Boolean => "false",
         SemanticPrimitiveType.Date => "DateOnly.MinValue",
         SemanticPrimitiveType.DateTime => "DateTimeOffset.MinValue",
-        _ => "default!"
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
     };
 
     /// <summary>
@@ -81,6 +83,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// </summary>
     /// <param name="reference">The semantic type reference.</param>
     /// <returns>The C# type syntax.</returns>
+    /// <exception cref="UnsupportedSemanticRendering">The type reference is not handled by this renderer.</exception>
     public string Type(SemanticTypeReference reference)
     {
         var scalar = reference.Kind switch
@@ -88,7 +91,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             SemanticTypeReferenceKind.Primitive => Primitive(reference.Primitive),
             SemanticTypeReferenceKind.Concept => Identifiers.ToPascalCase(context.Concepts[reference.Target].Name),
             SemanticTypeReferenceKind.CompositeType => Identifiers.ToPascalCase(context.Types[reference.Target].Name),
-            _ => "object"
+            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), reference.Kind)
         };
 
         var type = reference.IsCollection ? $"IReadOnlyList<{scalar}>" : scalar;
@@ -156,11 +159,11 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         (SemanticTextValue text, SemanticPrimitiveType.Uuid) => $"Guid.Parse({Literal(text.Value)})",
         (SemanticTextValue text, SemanticPrimitiveType.Date) => $"DateOnly.Parse({Literal(text.Value)}, CultureInfo.InvariantCulture)",
         (SemanticTextValue text, SemanticPrimitiveType.DateTime) => $"DateTimeOffset.Parse({Literal(text.Value)}, CultureInfo.InvariantCulture)",
-        (SemanticTextValue text, _) => Literal(text.Value),
+        (SemanticTextValue text, SemanticPrimitiveType.Text) => Literal(text.Value),
         (SemanticNumberValue number, SemanticPrimitiveType.DecimalNumber) => $"{number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}m",
-        (SemanticNumberValue number, _) => number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
-        (SemanticBooleanValue boolean, _) => boolean.Value ? "true" : "false",
-        _ => "default!"
+        (SemanticNumberValue number, SemanticPrimitiveType.WholeNumber) => number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        (SemanticBooleanValue boolean, SemanticPrimitiveType.Boolean) => boolean.Value ? "true" : "false",
+        _ => throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/{nameof(SemanticPrimitiveType)}", $"{value.Kind}/{primitive}")
     };
 
     static string Literal(string value) =>

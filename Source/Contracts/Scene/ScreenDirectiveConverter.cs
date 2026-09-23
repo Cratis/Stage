@@ -37,8 +37,21 @@ public static class ScreenDirectiveConverter
     /// </remarks>
     public static IReadOnlyList<SceneElements.SceneElement> Convert(
         IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives,
+        string path) =>
+        Convert(directives, path, null);
+
+    /// <summary>
+    /// Converts a screen's directives into Scene elements, collecting what is attached at this level.
+    /// </summary>
+    /// <param name="directives">The directives to convert.</param>
+    /// <param name="path">The id path of the directives' parent, used to derive unique element ids.</param>
+    /// <param name="behaviors">What a <c language="csharp">uses</c> clause resolves against.</param>
+    /// <param name="attached">Where to collect what was attached at this level, when anything is listening.</param>
+    /// <returns>The converted elements, in declaration order.</returns>
+    public static IReadOnlyList<SceneElements.SceneElement> Convert(
+        IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives,
         string path,
-        BehaviorScope? behaviors = null,
+        BehaviorScope? behaviors,
         ICollection<SceneInteractions.Behavior>? attached = null)
     {
         var all = directives.ToList();

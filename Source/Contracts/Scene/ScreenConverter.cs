@@ -57,6 +57,26 @@ namespace Cratis.Stage.Contracts.Scene;
 public static class ScreenConverter
 {
     /// <summary>
+    /// Converts a <see cref="ScreenplaySyntax.ScreenSyntax"/> that attaches no interactions.
+    /// </summary>
+    /// <param name="screen">The <see cref="ScreenplaySyntax.ScreenSyntax"/> to convert.</param>
+    /// <param name="layoutName">The name of the layout the screen is placed on.</param>
+    /// <param name="availableForms">The forms declared in the screen's enclosing module.</param>
+    /// <param name="contributions">The already-converted contributions for the screen's enclosing scope.</param>
+    /// <returns>The converted <see cref="SceneScreens.Screen"/>.</returns>
+    /// <remarks>
+    /// Kept so a caller that has no behaviors to resolve - and every caller predating them - does not have to
+    /// say so. Converting with an empty scope means a <c language="csharp">uses</c> would resolve to nothing, which is why the
+    /// translation proper passes a real one.
+    /// </remarks>
+    public static SceneScreens.Screen Convert(
+        ScreenplaySyntax.ScreenSyntax screen,
+        string layoutName,
+        IReadOnlyList<ScreenplaySyntax.FormSyntax> availableForms,
+        IReadOnlyList<SceneContributionPoints.Contribution> contributions) =>
+        Convert(screen, layoutName, availableForms, contributions, null);
+
+    /// <summary>
     /// Converts a <see cref="ScreenplaySyntax.ScreenSyntax"/> into a <see cref="SceneScreens.Screen"/>.
     /// </summary>
     /// <param name="screen">The <see cref="ScreenplaySyntax.ScreenSyntax"/> to convert.</param>
@@ -72,7 +92,7 @@ public static class ScreenConverter
         string layoutName,
         IReadOnlyList<ScreenplaySyntax.FormSyntax> availableForms,
         IReadOnlyList<SceneContributionPoints.Contribution> contributions,
-        BehaviorScope? behaviors = null,
+        BehaviorScope? behaviors,
         IReadOnlyList<SceneInteractions.Behavior>? inherited = null)
     {
         var scope = behaviors ?? BehaviorScope.None;

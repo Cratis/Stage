@@ -135,7 +135,12 @@ public static class ScreenDirectiveConverter
     {
         var properties = new Dictionary<string, object?>
         {
-            ["target"] = table.Target,
+            // The route-resolution pass a running Stage attaches routes with (StageSceneRoutes.WithRoutes)
+            // looks for this exact property on any element, regardless of component - matching the read model
+            // name against a registered query is what lets the table showing InvoiceSummary and the data
+            // directive that named it agree on where the data comes from, without the converter knowing
+            // anything about routing.
+            [SceneElementProperties.TypeName] = table.Target,
             ["navigateOnRowClickToScreen"] = table.RowClick?.Screen,
             ["navigateOnRowClickByParameter"] = table.RowClick?.By,
         };
@@ -165,7 +170,7 @@ public static class ScreenDirectiveConverter
         return SceneElementFactory.Component(
             id,
             "core:summary",
-            new Dictionary<string, object?> { ["target"] = summary.Target },
+            new Dictionary<string, object?> { [SceneElementProperties.TypeName] = summary.Target },
             new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["fields"] = fields });
     }
 

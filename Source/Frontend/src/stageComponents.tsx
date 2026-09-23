@@ -72,7 +72,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
     if (!route) {
         return (
             <section className='stage-table' data-scene-id={element.id}>
-                <p className='stage-note'>No query is exposed for {text(element, 'target', 'this read model')} yet.</p>
+                <p className='stage-note'>No query is exposed for {text(element, 'typeName', 'this read model')} yet.</p>
                 {slots.columns}
             </section>
         );

@@ -13,14 +13,10 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// <summary>
 /// Renders a <see cref="SliceType.StateView"/> slice: the <c language="csharp">[EventType]</c> records the slice declares, plus the
 /// <c language="csharp">[ReadModel]</c> record inferred from its <see cref="ProjectionSyntax"/>'s mappings, using model-bound
-/// projection attributes for the blocks this renderer understands — <c language="csharp">from</c>, <c language="csharp">join</c>, <c language="csharp">all</c>,
-/// <c language="csharp">every</c>, <c language="csharp">remove with</c>, <c language="csharp">remove via join</c>, <c language="csharp">nested</c> together with the <c language="csharp">clear with</c>
-/// that is only meaningful inside one, and <c language="csharp">children</c> together with the sibling child record it projects
-/// into. Effective root <c language="csharp">from</c> composite keys fail closed before emission. Other constructs it can't express
-/// as attributes (including composite keys in other scopes, and the blocks whose meaning inside a
-/// generated nested or child record is not established) are reported as diagnostics and called out in the file
-/// rather than silently dropped, as is everything else the slice declares that nothing renders (see
-/// <see cref="UnrenderedConstructs"/>).
+/// projection attributes for supported <c language="csharp">from</c>, <c language="csharp">join</c>, <c language="csharp">every</c>,
+/// removal, nested-object and child-collection declarations. Projection constructs that cannot preserve
+/// Chronicle's semantics fail with a typed exception before an affected slice artifact is returned.
+/// Unrelated unrendered slice declarations are reported through <see cref="UnrenderedConstructs"/>.
 /// </summary>
 /// <remarks>
 /// All queries in the selected slice are admitted before emission: filters and performers fail closed, even
@@ -42,6 +38,10 @@ public class StateViewSliceRenderer : ISliceRenderer
         // authorization belongs. The read model's name is therefore known before anything is reported.
         var projection = slice.Slice.Projections.FirstOrDefault();
         EnsureSupportedRootKeys(projection, string.Join('.', slice.FullPath));
+        if (projection is not null)
+        {
+            LegacyProjectionAdmission.EnsureSupported(projection, EventPropertyIndex.Build(applicationSet));
+        }
         var readModel = projection is null ? null : ReadModelName(projection);
 
         var diagnostics = new List<string>();
@@ -59,7 +59,17 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         if (projection is not null)
         {
-            RenderReadModel(builder, projection, readModel!, slice.Slice.Queries, applicationSet, referenced, diagnostics, string.Join('.', slice.FullPath));
+            var projectionDiagnostics = new List<string>();
+            RenderReadModel(builder, projection, readModel!, slice.Slice.Queries, applicationSet, referenced, projectionDiagnostics, diagnostics, string.Join('.', slice.FullPath));
+            var lost = projectionDiagnostics.FirstOrDefault(message =>
+                !message.Contains("property was added to carry it", StringComparison.Ordinal) &&
+                !message.Contains("Chronicle infers the parent", StringComparison.Ordinal));
+            if (lost is not null)
+            {
+                throw new UnsupportedLegacyProjection(projection.Name, lost);
+            }
+
+            diagnostics.AddRange(projectionDiagnostics);
         }
 
         foreach (var @namespace in ReferencedNamespaces.Resolve(referenced, applicationSet, rootNamespace, ownNamespace))
@@ -103,6 +113,7 @@ public class StateViewSliceRenderer : ISliceRenderer
         ApplicationSet applicationSet,
         List<string> referenced,
         List<string> diagnostics,
+        List<string> queryDiagnostics,
         string slicePath)
     {
         var blocks = projection.Blocks.ToArray();
@@ -181,7 +192,7 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         ReportUnrenderedClearWith(builder, blocks, typeName, diagnostics);
 
-        var typeAuthorization = ReadModelAuthorization.Render(typeName, queries, diagnostics);
+        var typeAuthorization = ReadModelAuthorization.Render(typeName, queries, queryDiagnostics);
 
         var parameters = string.Join(", ", properties.Select(property => RenderParameter(property, keyProperty)));
         builder.Attribute("ReadModel");
@@ -200,7 +211,7 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         var idParameterName = keyProperty is null ? "id" : Identifiers.ToCamelCase(keyProperty);
 
-        QueryRenderer.Render(builder, typeName, keyType, idParameterName, queries, applicationSet, diagnostics);
+        QueryRenderer.Render(builder, typeName, keyType, idParameterName, queries, applicationSet, queryDiagnostics);
         builder.EndBlock();
     }
 
@@ -377,7 +388,7 @@ public class StateViewSliceRenderer : ISliceRenderer
             // Mappings resolve against the first event a 'from' names. The rest are still subscribed through
             // [FromEvent], but nothing maps their properties onto the record, so the shortfall is named rather
             // than left looking like the block mapped every event it lists.
-            if (fromEvents.Length > 1)
+            if (fromEvents.Length > 1 && from.Mappings.Any())
             {
                 diagnostics.Add(
                     $"The 'from' block naming {string.Join(", ", fromEvents.Select(spec => $"'{spec.Event}'"))} maps only from '{eventName}' — " +

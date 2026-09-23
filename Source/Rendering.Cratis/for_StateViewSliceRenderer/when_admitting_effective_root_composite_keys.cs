@@ -29,7 +29,6 @@ public class when_admitting_effective_root_composite_keys : Specification
 
     [Theory]
     [InlineData("from OrderCreated\n  key orderNumber\n  total = total", "[FromEvent<OrderCreated>(key: nameof(OrderCreated.OrderNumber))]")]
-    [InlineData("from OrderCreated key orderNumber\n  total = total", "[FromEvent<OrderCreated>(key: nameof(OrderCreated.OrderNumber))]")]
     [InlineData("from OrderCreated\n  total = total", "[FromEvent<OrderCreated>]")]
     public void should_preserve_supported_native_keys_and_the_absent_key_default(string blocks, string attribute)
     {
@@ -41,14 +40,17 @@ public class when_admitting_effective_root_composite_keys : Specification
     }
 
     [Fact]
-    public void should_admit_a_composite_block_when_every_event_has_an_inline_property_key()
+    public void should_reject_a_root_key_without_a_matching_read_model_property()
+    {
+        Compile("from OrderCreated key orderNumber\n  total = total");
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
+    }
+
+    [Fact]
+    public void should_reject_multi_event_mappings_even_with_inline_keys()
     {
         Compile(Composite.Replace("from OrderCreated", "from OrderCreated key orderNumber, OrderUpdated key customerId", StringComparison.Ordinal));
-        var file = Render();
-        file.Content.ShouldContain("[FromEvent<OrderCreated>(key: nameof(OrderCreated.OrderNumber))]");
-        file.Content.ShouldContain("[FromEvent<OrderUpdated>(key: nameof(OrderUpdated.CustomerId))]");
-        file.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Contains("event routes on", StringComparison.Ordinal));
-        RenderedOutput.Errors([file]).ShouldBeEmpty();
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     [Fact]
@@ -63,17 +65,10 @@ public class when_admitting_effective_root_composite_keys : Specification
     [Theory]
     [InlineData("from OrderCreated key orderNumber\n  total = total")]
     [InlineData("from OrderCreated\n  total = total")]
-    public void should_ignore_a_shadowed_composite_subscription_after_the_first_event_winner(string first)
+    public void should_reject_shadowed_composite_subscriptions_with_dropped_mappings(string first)
     {
         Compile(first + "\n" + Composite);
-        var file = Render();
-        var expected = first.Contains("key orderNumber", StringComparison.Ordinal)
-            ? "[FromEvent<OrderCreated>(key: nameof(OrderCreated.OrderNumber))]"
-            : "[FromEvent<OrderCreated>]";
-        file.Content.ShouldContain(expected);
-        file.Content.Split("[FromEvent<OrderCreated>", StringSplitOptions.None).Length.ShouldEqual(2);
-        file.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Contains("event routes on", StringComparison.Ordinal));
-        RenderedOutput.Errors([file]).ShouldBeEmpty();
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     [Fact]
@@ -100,7 +95,7 @@ public class when_admitting_effective_root_composite_keys : Specification
         var safe = _slice.Projections.Single();
         Compile(Composite);
         _slice = _slice with { Projections = [safe, _slice.Projections.Single() with { Name = "Unrendered" }] };
-        Render().Content.ShouldContain("[FromEvent<OrderCreated>(key: nameof(OrderCreated.OrderNumber))]");
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     [Fact]
@@ -157,10 +152,10 @@ public class when_admitting_effective_root_composite_keys : Specification
     [Theory]
     [InlineData("nested details\n  from OrderCreated\n    key OrderKey\n      customerId = customerId\n      orderNumber = orderNumber\n    total = total")]
     [InlineData("children lines identified by orderNumber\n  from OrderCreated\n    key OrderKey\n      customerId = customerId\n      orderNumber = orderNumber\n    orderNumber = orderNumber")]
-    public void should_leave_non_root_composite_warning_behavior_unchanged(string blocks)
+    public void should_reject_non_root_composite_keys_instead_of_routing_on_event_source_id(string blocks)
     {
         Compile(blocks);
-        Render().Diagnostics.ShouldContain(diagnostic => diagnostic.Contains("event routes on the event source id", StringComparison.Ordinal));
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     [Fact]

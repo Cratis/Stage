@@ -15,5 +15,5 @@ public class when_inspecting_the_composite_key : given.a_compiled_invoicing_mode
         _projection = _model.Collections[0].Modules[0].Features[0].Slices
             .Single(slice => slice.Name == "InvoiceLineReport").ReadModel!.Projection!;
 
-    [Fact] void should_emit_only_property_expression_pairs() => _projection.From["InvoiceLineItemAdded"].Key.ShouldEqual("$composite(invoiceId=invoiceId, lineNumber=lineNumber)");
+    [Fact] void should_preserve_the_composite_type_and_property_expression_pairs() => _projection.From["InvoiceLineItemAdded"].Key.ShouldEqual("$composite(InvoiceLineKey, invoiceId=invoiceId, lineNumber=lineNumber)");
 }

@@ -110,52 +110,40 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
     }
 
     [Fact]
-    public void should_preserve_different_effective_literals_and_the_record()
+    public void should_reject_duplicate_mappings_in_different_literal_subscriptions()
     {
         Compile(Global + "\nfrom OrderUpdated\n  key literal \"other\"\n  total = total");
-        var content = Render().Content;
-        content.ShouldContain("[FromEvent<OrderCreated>(ConstantKey = \"global\")]");
-        content.ShouldContain("[FromEvent<OrderUpdated>(ConstantKey = \"other\")]");
-        content.ShouldContain("public record OrderReadModel([SetFrom<OrderCreated>(nameof(OrderCreated.Total))] decimal Total)");
-        content.ShouldNotContain("[Key]");
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     [Fact]
     public void should_reject_a_partial_inline_property_override()
     {
         Compile(Global.Replace("from OrderCreated", "from OrderCreated key number, OrderUpdated", StringComparison.Ordinal));
-        Reject(UnsupportedRootStringKeyReason.MixedKeys).EventName.ShouldEqual("OrderCreated");
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     [Fact]
-    public void should_leave_a_fully_overridden_literal_inactive()
+    public void should_reject_multi_event_mappings_even_when_literal_keys_are_overridden()
     {
         Compile(Global.Replace("from OrderCreated", "from OrderCreated key number, OrderUpdated key number", StringComparison.Ordinal));
-        var content = Render().Content;
-        content.ShouldContain("[FromEvent<OrderCreated>(key: nameof(OrderCreated.Number))]");
-        content.ShouldNotContain("ConstantKey");
-        content.ShouldContain("OrderById(IReadModels readModels, EventSourceId id)");
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     [Theory]
-    [InlineData("from OrderCreated\n  total = total", "EventSourceId id")]
-    [InlineData("from OrderCreated\n  key number\n  total = total", "EventSourceId number")]
-    public void should_leave_shadowed_literals_inactive_and_preserve_original_typing(string first, string parameter)
+    [InlineData("from OrderCreated\n  total = total")]
+    [InlineData("from OrderCreated\n  key number\n  total = total")]
+    public void should_reject_shadowed_literal_mappings_that_would_be_dropped(string first)
     {
         Compile(first + "\n" + Global);
-        var content = Render().Content;
-        content.ShouldNotContain("ConstantKey");
-        content.ShouldContain("OrderById(IReadModels readModels, " + parameter + ")");
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     [Fact]
-    public void should_ignore_shadowed_invalid_keys_after_a_literal_winner()
+    public void should_reject_shadowed_invalid_keys_with_duplicate_mappings()
     {
         Compile(Global + "\nfrom OrderCreated\n  key literal \"bad()\"\n  total = total");
-        var content = Render().Content;
-        content.ShouldContain("ConstantKey = \"global\"");
-        content.ShouldNotContain("bad()");
-        content.ShouldNotContain("[Key]");
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     [Fact]
@@ -174,12 +162,10 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
     [Theory]
     [InlineData("nested details\n  from OrderCreated\n    key literal \"global\"\n    total = total")]
     [InlineData("children lines identified by number\n  from OrderCreated\n    key literal \"global\"\n    number = number")]
-    public void should_leave_non_root_literal_behavior_unchanged(string blocks)
+    public void should_reject_non_root_literal_keys_that_would_change_routing(string blocks)
     {
         Compile(blocks);
-        var file = Render();
-        file.Content.ShouldNotContain("ConstantKey");
-        file.Diagnostics.ShouldContain(diagnostic => diagnostic.Contains("event routes on the event source id", StringComparison.Ordinal));
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
     UnsupportedRootStringKey Reject(UnsupportedRootStringKeyReason reason)

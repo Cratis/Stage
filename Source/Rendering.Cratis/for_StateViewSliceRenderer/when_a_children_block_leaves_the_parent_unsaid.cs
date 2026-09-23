@@ -13,27 +13,17 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
 /// <summary>
-/// Two things a <c language="csharp">children</c> block can say that nothing carries into the generated code, both reachable from a
-/// Screenplay program the parser accepts, and both silent until now.
+/// Preserves a supported child subscription while reporting inferred parent routing.
 /// </summary>
-/// <remarks>
-/// A <c language="csharp">from</c> without <c language="csharp">parent</c> leaves Chronicle to guess which document the children hang off: it looks
-/// for a property literally named <c language="csharp">Id</c> on the read model — never <c language="csharp">[Key]</c> — and otherwise falls through
-/// to the event source id, so children can land under a parent nobody chose without anything failing. And
-/// <c language="csharp">ParseChildren</c> parses its body in nested scope, so <c language="csharp">clear with</c> is as valid inside <c language="csharp">children</c>
-/// as inside <c language="csharp">nested</c>, yet only a nested type has a class-level <c language="csharp">[ClearWith]</c> Chronicle reads.
-/// </remarks>
 public class when_a_children_block_leaves_the_parent_unsaid : Specification
 {
     ApplicationSet _applicationSet = null!;
     RenderedFile _file = null!;
-    IReadOnlyList<string> _compilationErrors = null!;
 
     void Establish()
     {
         var opened = Event("BasketOpened", "basketNumber");
         var lineAdded = Event("BasketLineAdded", "lineNumber", "sku");
-        var lineCleared = Event("BasketLineCleared", "lineNumber");
 
         var root = new FromSyntax(
             [new EventSpecSyntax("BasketOpened", null, SourceLocation.Start)],
@@ -42,7 +32,7 @@ public class when_a_children_block_leaves_the_parent_unsaid : Specification
             [Set("basketNumber", "basketNumber")],
             SourceLocation.Start);
 
-        // No 'parent' anywhere in this children block, and a 'clear with' the parser accepts here.
+        // No 'parent' anywhere in this children block.
         var childFrom = new FromSyntax(
             [new EventSpecSyntax("BasketLineAdded", null, SourceLocation.Start)],
             new ExpressionKeySyntax(new PathExpressionSyntax("lineNumber", SourceLocation.Start), SourceLocation.Start),
@@ -54,7 +44,7 @@ public class when_a_children_block_leaves_the_parent_unsaid : Specification
             "lines",
             new PathExpressionSyntax("lineNumber", SourceLocation.Start),
             AutoMapMode.Inherit,
-            [childFrom, new ClearWithSyntax("BasketLineCleared", SourceLocation.Start)],
+            [childFrom],
             SourceLocation.Start);
 
         var projection = new ProjectionSyntax(
@@ -67,36 +57,21 @@ public class when_a_children_block_leaves_the_parent_unsaid : Specification
             SourceLocation.Start);
 
         var slice = new SliceSyntax(
-            SliceType.StateView, "BasketSummary", [opened, lineAdded, lineCleared], [], [], [projection], [], [], [], [], [], SourceLocation.Start);
+            SliceType.StateView, "BasketSummary", [opened, lineAdded], [], [], [projection], [], [], [], [], [], SourceLocation.Start);
 
         var feature = new FeatureSyntax("Baskets", [], [slice], SourceLocation.Start);
         _applicationSet = new ApplicationSet(
             [new ApplicationSyntax([], [], [], [new ModuleSyntax("Sales", [], [feature], SourceLocation.Start)], SourceLocation.Start)]);
     }
 
-    void Because()
-    {
-        _file = new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp");
-        _compilationErrors = RenderedOutput.Errors([_file]);
-    }
+    void Because() => _file = new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp");
 
-    [Fact] void should_render_output_that_compiles() => string.Join(Environment.NewLine, _compilationErrors).ShouldEqual(string.Empty);
-
-    [Fact] void should_report_that_the_children_block_says_nothing_about_the_parent() =>
-        _file.Diagnostics.ShouldContain(
-            "The 'from' on 'BasketLineAdded' in children record 'BasketSummaryLines' declares no 'parent' — Chronicle infers the parent " +
-            "from an 'Id' property on the read model and otherwise attaches the children on the event source id, so declare " +
-            "'parent' to say which property identifies the parent.");
-
-    [Fact] void should_report_the_clear_with_the_child_cannot_carry() =>
-        _file.Diagnostics.ShouldContain(
-            "Children record 'BasketSummaryLines' declares 1 clear with block(s) whose meaning on a child type is not established — they are not rendered.");
-
-    [Fact] void should_flag_the_clear_with_in_the_file() =>
-        _file.Content.ShouldContain("// TODO: 1 clear with block(s) not yet rendered — their meaning on a child type is not established");
-
-    // The shape the defect produced: the clear with vanishing with nothing said about it.
-    [Fact] void should_not_render_a_clear_with_attribute_on_the_child_record() => _file.Content.ShouldNotContain("ClearWith<");
+    [Fact] void should_report_the_inferred_parent() => _file.Diagnostics.ShouldContain(
+        "The 'from' on 'BasketLineAdded' in children record 'BasketSummaryLines' declares no 'parent' — Chronicle infers the parent " +
+        "from an 'Id' property on the read model and otherwise attaches the children on the event source id, so declare " +
+        "'parent' to say which property identifies the parent.");
+    [Fact] void should_render_the_child_subscription() => _file.Content.ShouldContain("[ChildrenFrom<BasketLineAdded>");
+    [Fact] void should_compile_supported_output() => RenderedOutput.Errors([_file]).ShouldBeEmpty();
 
     static EventSyntax Event(string name, params string[] properties) =>
         new(

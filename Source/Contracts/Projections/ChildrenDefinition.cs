@@ -24,4 +24,10 @@ public record ChildrenDefinition(
     FromEventPropertyDefinition? FromEventProperty,
     IReadOnlyDictionary<string, RemovedWithDefinition> RemovedWith,
     IReadOnlyDictionary<string, RemovedWithJoinDefinition> RemovedWithJoin,
-    ProjectionAutoMap AutoMap = ProjectionAutoMap.Inherit);
+    ProjectionAutoMap AutoMap = ProjectionAutoMap.Inherit)
+{
+    /// <summary>
+    /// Gets the recursively nested scalar object projections, keyed by property path.
+    /// </summary>
+    public IReadOnlyDictionary<string, ChildrenDefinition>? Nested { get; init; }
+}

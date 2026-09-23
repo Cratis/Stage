@@ -119,12 +119,28 @@ legacy-only direct-write compatibility paths. Direct rendering has no managed st
 a failure can leave its target **unsafe and incomplete**. New CLI and Studio rendering must use `CratisRendering`,
 not the legacy renderer.
 
+The legacy renderer checks each projection before it emits the slice. A block that model-bound attributes cannot
+express faithfully, such as `all`, root-level `clear with`, or a `join`/`every`/`remove via join` inside `children` or `nested`,
+fails with `STAGE-CRATIS-PROJECTION-001`, and no artifact is written for the affected slice. It is no longer
+rendered as a `// TODO` or a thinner projection. `CratisRendering`'s executable semantic model (ESM) projection
+capability is unchanged: this adds no ESM support for these blocks.
+
 ### Direct runtime — partial
 
 The `cratis/stage` image is a disposable sandbox containing the Stage host and an in-memory Chronicle kernel. It
 loads a `.play` file or folder and exposes the runtime surfaces Stage currently implements. This path is not a
 complete executable implementation of the Screenplay language and should not be treated as a generated
 production application.
+
+Runtime projection definitions follow Chronicle's `ProjectionDefinitionSyntaxVisitor`. `nested` becomes a scalar
+nested definition, including `nested` inside `nested`; `all` subscribes the projection to all events; `every` inside a
+child merges into that child's existing mappings and keeps their auto-map setting unless it sets its own; and other
+inherited auto-map settings resolve from the root projection. Before registration, visitor expressions that the
+pinned Chronicle engine resolves differently, such as `$causedBy` and typed composite keys, are translated to the
+engine's forms. Ambiguous compatibility translations fail registration rather than guessing. Explicit projection
+`sequence` declarations are rejected during model loading; Stage does not silently replace them with the event log.
+Definition conformance does not establish execution support for literal or template mappings in the pinned sandbox;
+those remain runtime limitations.
 
 Runtime commands evaluate their modeled `produces` mappings, append the resulting facts to Chronicle, and echo
 the payload as the response. Modeled command validation and authorization are not yet enforced by this runtime
@@ -264,6 +280,17 @@ npm run build --prefix Source/Frontend
 dotnet build -c Debug
 dotnet test -c Debug
 dotnet build -c Release
+```
+
+`dotnet test` needs a Chronicle source checkout for the projection conformance specs. They compile Chronicle's actual
+`ProjectionDefinitionSyntaxVisitor` in memory against the released `Cratis.Chronicle.Infrastructure` package and
+compare its definitions with Stage's. This checks definition equivalence for the corpus, not full kernel runtime behavior. The specs
+use `CHRONICLE_SOURCE_ROOT` when set and otherwise `../Chronicle` beside this repository; if the source is missing,
+they fail rather than skip. CI fetches a fixed Chronicle commit (see `.github/workflows/dotnet-build.yml`). To point
+at an existing checkout elsewhere:
+
+```shell
+CHRONICLE_SOURCE_ROOT=/path/to/Chronicle dotnet test -c Debug
 ```
 
 Release treats warnings as errors. Both Dockerfiles consume prebuilt, framework-dependent publish output;

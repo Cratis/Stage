@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Cratis.Chronicle;
+using Cratis.Chronicle.EventSequences;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Host;
@@ -28,6 +29,13 @@ if (!warmMode && modelPath is null)
 var stageApplication = warmMode ? null : await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath!);
 var model = stageApplication?.EventModel;
 var scene = stageApplication?.Scene;
+if (model is not null)
+{
+    // Registration starts asynchronously after ApplicationStarted. Validate pure definitions before the host
+    // listens or reports ready, then the registrar validates again before it attempts any remote writes.
+    _ = StageChronicleDefinitions.BuildEventTypes(model);
+    _ = StageChronicleDefinitions.Build(model, EventSequenceId.Log);
+}
 var eventStore = ContainerEventStoreName.Resolve();
 var builder = WebApplication.CreateBuilder(args);
 

@@ -15,6 +15,7 @@ on:
       - "**"
     paths:
       - "Source/**"
+      - "Samples/**"
       - "Verification/**"
       - "*.props"
       - "*.targets"
@@ -55,10 +56,21 @@ jobs:
           npm test --prefix Source/Frontend
           npm run build --prefix Source/Frontend
 
+      # Compare Stage's projection conversion with the exact kernel visitor source, not a Stage-owned copy.
+      # This is the immutable Chronicle source used for the in-memory Roslyn conformance oracle.
+      - name: Fetch Chronicle projection authority
+        run: |
+          git init "$RUNNER_TEMP/chronicle-source"
+          git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
+          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 0adca1f442461d627f5b29d6a17370f16775f7f4
+          git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
+
       # The specs live inline beside the code and are stripped from Release builds, where the test SDK is not
       # referenced either - so a Release test run discovers nothing at all. Debug runs the specs; Release is the
       # zero-warning compile gate.
       - name: Build & run tests
+        env:
+          CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
         run: dotnet test --configuration Debug
 
       # The version is a sentinel, not a release. Package validation compares assembly versions, and one

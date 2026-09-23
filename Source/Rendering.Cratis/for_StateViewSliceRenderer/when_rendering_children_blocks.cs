@@ -86,12 +86,6 @@ public class when_rendering_children_blocks : a_projection_with_children_blocks
             "The 'identified by' 'allocationNumber' of children record 'InvoiceDetailsLineItemsAllocations' is mapped to no child " +
             "record property — a 'AllocationNumber' property was added to carry it.");
 
-    [Fact] void should_report_the_block_a_child_type_does_not_render() =>
-        _file.Diagnostics.ShouldContain(
-            "Children record 'InvoiceDetailsLineItems' declares 1 every block(s) whose meaning on a child type is not established — they are not rendered.");
-    [Fact] void should_flag_that_block_in_the_file() =>
-        _file.Content.ShouldContain("// TODO: 1 every block(s) not yet rendered — their meaning on a child type is not established");
-
     [Fact] void should_not_report_the_children_blocks_as_unrendered() =>
         _file.Diagnostics.ShouldNotContain(
             "Projection 'InvoiceDetails' declares 1 children block(s) that project into a child record type nothing generates yet — they are not rendered.");

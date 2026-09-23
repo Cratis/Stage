@@ -8,17 +8,8 @@ using Cratis.Stage.Contracts.Projections;
 namespace Cratis.Stage.Contracts.Screenplay;
 
 /// <summary>
-/// Converts a Screenplay <see cref="ProjectionSyntax"/> into a Stage <see cref="ProjectionDefinition"/> — which is
-/// deliberately shaped to be compatible with Chronicle's projection engine. Mirrors Chronicle's own projection syntax
-/// visitor so the translated <c language="csharp">from</c>/<c language="csharp">join</c>/<c language="csharp">children</c>/<c language="csharp">every</c>/<c language="csharp">remove</c> blocks are interpreted
-/// identically by the engine at runtime.
+/// Converts Screenplay projections into Chronicle-compatible Stage definitions.
 /// </summary>
-/// <remarks>
-/// Two Screenplay constructs have no representation in Stage's projection model and are dropped: <c language="csharp">nested</c> (a single
-/// nullable child object) and the projection-level <c language="csharp">key</c> declaration (Chronicle's visitor likewise ignores it in
-/// favor of block-level keys). An <c language="csharp">all</c> block maps to a from-every block with children included; Stage cannot flag
-/// "subscribes to all events" (the runtime hard-codes that off), so a pure <c language="csharp">all</c> projection degrades to its mappings.
-/// </remarks>
 public static class ProjectionConverter
 {
     /// <summary>
@@ -26,9 +17,16 @@ public static class ProjectionConverter
     /// </summary>
     /// <param name="projection">The projection to convert.</param>
     /// <returns>The Stage projection definition.</returns>
+    /// <exception cref="UnsupportedProjectionConversion">A syntax construct has no supported translation.</exception>
     public static ProjectionDefinition Convert(ProjectionSyntax projection)
     {
-        var context = Process(projection.Blocks);
+        if (projection.Sequence is not null)
+        {
+            throw new UnsupportedProjectionConversion($"sequence '{projection.Sequence}'");
+        }
+
+        var rootAutoMap = projection.AutoMap == AutoMapMode.Disabled ? ProjectionAutoMap.Disabled : ProjectionAutoMap.Enabled;
+        var context = Process(projection.Blocks, rootAutoMap, isChild: false);
 
         return new ProjectionDefinition(
             IsActive: true,
@@ -38,128 +36,147 @@ public static class ProjectionConverter
             Join: context.Join,
             Children: context.Children,
             FromDerivatives: [],
-            FromEvery: context.BuildEvery(),
+            FromEvery: context.Every,
             FromEventProperty: null,
             RemovedWith: context.RemovedWith,
             RemovedWithJoin: context.RemovedWithJoin,
             Tags: [],
-            AutoMap: projection.AutoMap == AutoMapMode.Disabled ? ProjectionAutoMap.Disabled : ProjectionAutoMap.Enabled);
+            AutoMap: rootAutoMap)
+        {
+            Nested = context.Nested.Count > 0 ? context.Nested : null,
+            SubscribesToAllEvents = context.SubscribesToAllEvents
+        };
     }
 
-    static BlockContext Process(IEnumerable<ProjectionBlockSyntax> blocks)
+    static BlockContext Process(IEnumerable<ProjectionBlockSyntax> blocks, ProjectionAutoMap rootAutoMap, bool isChild)
     {
         var context = new BlockContext();
-
         foreach (var block in blocks)
         {
             switch (block)
             {
                 case FromSyntax from:
-                    ProcessFrom(from, context);
+                    var parentKey = from.ParentKey is null ? null : ProjectionExpression.Key(from.ParentKey);
+                    foreach (var spec in from.Events)
+                    {
+                        context.From[spec.Event] = new FromDefinition(
+                            Mappings(from.Mappings),
+                            spec.Key is null ? ProjectionExpression.Key(from.Key) : ProjectionExpression.Key(spec.Key),
+                            parentKey);
+                    }
                     break;
                 case EverySyntax every:
-                    context.EveryProperties.AddRange(Mappings(every.Mappings));
-                    context.EveryIncludeChildren = every.IncludeChildren;
-                    context.EveryAutoMap = every.AutoMap;
+                    var mappings = Mappings(every.Mappings);
+                    if (isChild)
+                    {
+                        var merged = context.Every.Properties.ToDictionary(_ => _.Property, _ => _.Expression);
+                        foreach (var mapping in mappings)
+                        {
+                            merged[mapping.Property] = mapping.Expression;
+                        }
+
+                        context.Every = context.Every with
+                        {
+                            Properties = [.. merged.Select(_ => new PropertyMapping(_.Key, _.Value))],
+                            AutoMap = every.AutoMap == AutoMapMode.Inherit ? context.Every.AutoMap : Resolve(every.AutoMap, rootAutoMap)
+                        };
+                    }
+                    else
+                    {
+                        context.Every = new(mappings, every.IncludeChildren, Resolve(every.AutoMap, rootAutoMap));
+                    }
                     break;
                 case AllSyntax all:
-                    context.EveryProperties.AddRange(Mappings(all.Mappings));
-                    context.EveryIncludeChildren = true;
-                    context.EveryAutoMap = all.AutoMap;
+                    context.Every = new(Mappings(all.Mappings), IncludeChildren: true, Resolve(all.AutoMap, rootAutoMap));
+                    context.SubscribesToAllEvents = true;
                     break;
                 case JoinSyntax join:
-                    ProcessJoin(join, context);
+                    foreach (var spec in join.Events)
+                    {
+                        context.Join[spec.Event] = new JoinDefinition(join.On, Mappings(spec.Mappings), string.Empty);
+                    }
                     break;
                 case ChildrenSyntax children:
-                    ProcessChildren(children, context);
+                    var child = Process(children.Blocks, rootAutoMap, isChild: true);
+                    context.Children[children.Property] = Child(ProjectionExpression.Key(children.IdentifiedBy), child, Resolve(children.AutoMap, rootAutoMap));
                     break;
-                case RemoveWithSyntax removeWith:
-                    context.RemovedWith[removeWith.Event] = new RemovedWithDefinition(KeyOrEmpty(removeWith.Key), KeyOrNull(removeWith.ParentKey));
+                case NestedSyntax nested:
+                    var nestedContext = Process(nested.Blocks, rootAutoMap, isChild: true);
+                    context.Nested[nested.Property] = Child("*NotSet*", nestedContext, Resolve(nested.AutoMap, rootAutoMap));
                     break;
-                case RemoveViaJoinSyntax removeViaJoin:
-                    context.RemovedWithJoin[removeViaJoin.Event] = new RemovedWithJoinDefinition(KeyOrEmpty(removeViaJoin.Key));
+                case RemoveWithSyntax removal:
+                    context.RemovedWith[removal.Event] = new(
+                        removal.Key is null ? string.Empty : ProjectionExpression.Key(removal.Key),
+                        removal.ParentKey is null ? null : ProjectionExpression.Key(removal.ParentKey));
                     break;
-                case ClearWithSyntax clearWith:
-                    context.RemovedWith[clearWith.Event] = new RemovedWithDefinition(string.Empty, ParentKey: null);
+                case RemoveViaJoinSyntax removal:
+                    context.RemovedWithJoin[removal.Event] = new(removal.Key is null ? string.Empty : ProjectionExpression.Key(removal.Key));
+                    break;
+                case ClearWithSyntax clear:
+                    context.RemovedWith[clear.Event] = new(string.Empty, ParentKey: null);
                     break;
                 default:
-                    // NestedSyntax (and any future block) has no Stage projection representation — skip.
-                    break;
+                    throw new UnsupportedProjectionConversion(block.GetType().Name);
             }
         }
 
         return context;
     }
 
-    static void ProcessFrom(FromSyntax from, BlockContext context)
-    {
-        var parentKey = KeyOrNull(from.ParentKey);
-        var blockKey = ScreenplayExpression.ToKeyExpression(from.Key);
-
-        foreach (var spec in from.Events)
+    static ChildrenDefinition Child(string identifiedBy, BlockContext context, ProjectionAutoMap autoMap) =>
+        new(
+            identifiedBy,
+            context.From,
+            context.Join,
+            context.Children,
+            context.Every,
+            null,
+            context.RemovedWith,
+            context.RemovedWithJoin,
+            autoMap)
         {
-            var key = spec.Key is not null ? ScreenplayExpression.ToKeyExpression(spec.Key) : blockKey;
-            context.From[spec.Event] = new FromDefinition(Mappings(from.Mappings), key, parentKey);
+            Nested = context.Nested.Count > 0 ? context.Nested : null
+        };
+
+    static IReadOnlyList<PropertyMapping> Mappings(IEnumerable<MappingSyntax> mappings)
+    {
+        var properties = new Dictionary<string, string>();
+        foreach (var mapping in mappings)
+        {
+            properties[mapping.Property] = mapping switch
+            {
+                SetMappingSyntax { Source: LiteralExpressionSyntax { Value: null } } => "$null",
+                SetMappingSyntax set => ProjectionExpression.Value(set.Source),
+                ClearMappingSyntax => "$null",
+                AddMappingSyntax add => $"$add({ProjectionExpression.Value(add.Value)})",
+                SubtractMappingSyntax subtract => $"$subtract({ProjectionExpression.Value(subtract.Value)})",
+                IncrementMappingSyntax => "$increment",
+                DecrementMappingSyntax => "$decrement",
+                CountMappingSyntax => "$count",
+                _ => throw new UnsupportedProjectionConversion(mapping.GetType().Name)
+            };
         }
+
+        return [.. properties.Select(_ => new PropertyMapping(_.Key, _.Value))];
     }
 
-    static void ProcessJoin(JoinSyntax join, BlockContext context)
+    static ProjectionAutoMap Resolve(AutoMapMode mode, ProjectionAutoMap rootAutoMap) => mode switch
     {
-        foreach (var joinEvent in join.Events)
-        {
-            context.Join[joinEvent.Event] = new JoinDefinition(join.On, Mappings(joinEvent.Mappings), Key: null);
-        }
-    }
-
-    static void ProcessChildren(ChildrenSyntax children, BlockContext context)
-    {
-        var childContext = Process(children.Blocks);
-        context.Children[children.Property] = new ChildrenDefinition(
-            ScreenplayExpression.ToKeyExpression(children.IdentifiedBy),
-            childContext.From,
-            childContext.Join,
-            childContext.Children,
-            childContext.BuildEvery(),
-            FromEventProperty: null,
-            childContext.RemovedWith,
-            childContext.RemovedWithJoin,
-            AutoMap: (ProjectionAutoMap)(int)children.AutoMap);
-    }
-
-    static IReadOnlyList<PropertyMapping> Mappings(IEnumerable<MappingSyntax> mappings) =>
-        [.. mappings.Select(mapping => new PropertyMapping(mapping.Property, mapping switch
-        {
-            SetMappingSyntax set => ScreenplayExpression.ToProjectionExpression(set.Source),
-            AddMappingSyntax add => $"$add({ScreenplayExpression.ToProjectionExpression(add.Value)})",
-            SubtractMappingSyntax subtract => $"$subtract({ScreenplayExpression.ToProjectionExpression(subtract.Value)})",
-            IncrementMappingSyntax => "$increment",
-            DecrementMappingSyntax => "$decrement",
-            CountMappingSyntax => "$count",
-            _ => string.Empty
-        }))];
-
-    static string KeyOrEmpty(ExpressionSyntax? expression) => expression is not null ? ScreenplayExpression.ToKeyExpression(expression) : string.Empty;
-
-    static string? KeyOrNull(ExpressionSyntax? expression) => expression is not null ? ScreenplayExpression.ToKeyExpression(expression) : null;
+        AutoMapMode.Enabled => ProjectionAutoMap.Enabled,
+        AutoMapMode.Disabled => ProjectionAutoMap.Disabled,
+        AutoMapMode.Inherit => rootAutoMap,
+        _ => throw new UnsupportedProjectionConversion($"AutoMapMode.{mode}")
+    };
 
     sealed class BlockContext
     {
         public Dictionary<string, FromDefinition> From { get; } = [];
-
         public Dictionary<string, JoinDefinition> Join { get; } = [];
-
         public Dictionary<string, ChildrenDefinition> Children { get; } = [];
-
+        public Dictionary<string, ChildrenDefinition> Nested { get; } = [];
         public Dictionary<string, RemovedWithDefinition> RemovedWith { get; } = [];
-
         public Dictionary<string, RemovedWithJoinDefinition> RemovedWithJoin { get; } = [];
-
-        public List<PropertyMapping> EveryProperties { get; } = [];
-
-        public bool EveryIncludeChildren { get; set; }
-
-        public AutoMapMode EveryAutoMap { get; set; } = AutoMapMode.Inherit;
-
-        public FromEveryDefinition BuildEvery() => new(EveryProperties, EveryIncludeChildren, (ProjectionAutoMap)(int)EveryAutoMap);
+        public FromEveryDefinition Every { get; set; } = new([], IncludeChildren: false);
+        public bool SubscribesToAllEvents { get; set; }
     }
 }

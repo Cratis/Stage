@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using SceneLayouts = Cratis.Scene.Model.Layouts;
+using SceneModel = Cratis.Scene.Model.Interactions;
 using SceneScreens = Cratis.Scene.Model.Screens;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
@@ -26,12 +27,21 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </remarks>
 public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntaxVisitor<SceneApplication>
 {
+    readonly List<RenderFinding> _findings = [];
+
+    /// <summary>
+    /// Gets what the translation could not resolve - currently a <c language="csharp">uses</c> naming a behavior the document
+    /// does not declare.
+    /// </summary>
+    public IReadOnlyList<RenderFinding> Findings => _findings;
+
     /// <inheritdoc/>
     public SceneApplication Visit(ScreenplaySyntax.ApplicationSyntax syntax)
     {
         var uiProfiles = syntax.UiProfiles?.SelectMany(UiProfileConverter.Convert).ToList() ?? [];
         var themes = syntax.Themes?.Select(ThemeConverter.Convert).ToList() ?? [];
-        var layouts = ConvertLayouts(syntax);
+        var scope = BehaviorScope.For(syntax, _findings);
+        var layouts = ConvertLayouts(syntax, scope);
 
         var screenTemplates = new List<SceneScreens.ScreenTemplate>();
         var dialogTemplates = new List<SceneScreens.DialogTemplate>();
@@ -39,26 +49,44 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         foreach (var module in syntax.Modules)
         {
-            screenTemplates.AddRange((module.ScreenTemplates ?? []).Select(ScreenTemplateConverter.Convert));
-            dialogTemplates.AddRange((module.DialogTemplates ?? []).Select(DialogTemplateConverter.Convert));
-            ConvertModuleScreens(module, layouts[0].Name, screens);
+            screenTemplates.AddRange((module.ScreenTemplates ?? []).Select(template =>
+                ScreenTemplateConverter.Convert(template) with
+                {
+                    Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
+                }));
+            dialogTemplates.AddRange((module.DialogTemplates ?? []).Select(template =>
+                DialogTemplateConverter.Convert(template) with
+                {
+                    Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
+                }));
+            ConvertModuleScreens(module, layouts[0].Name, screens, scope);
         }
 
         return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, screens);
     }
 
-    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax)
+    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope)
     {
-        var layouts = (syntax.Layouts ?? []).Select(LayoutConverter.Convert).ToList();
+        var layouts = (syntax.Layouts ?? [])
+            .Select(layout => LayoutConverter.Convert(layout) with
+            {
+                Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
+            })
+            .ToList();
         return layouts.Count > 0 ? layouts : [DefaultLayout.Create()];
     }
 
-    static void ConvertModuleScreens(ScreenplaySyntax.ModuleSyntax module, string layoutName, List<SceneScreens.Screen> screens)
+    static void ConvertModuleScreens(
+        ScreenplaySyntax.ModuleSyntax module,
+        string layoutName,
+        List<SceneScreens.Screen> screens,
+        BehaviorScope scope)
     {
         var forms = module.Forms?.ToList() ?? [];
+        var inherited = scope.Resolve(module.Behaviors, module.UsedBehaviors, module.Name);
         foreach (var feature in module.Features)
         {
-            ConvertFeatureScreens(feature, module.Name, layoutName, forms, screens);
+            ConvertFeatureScreens(feature, module.Name, layoutName, forms, screens, scope, inherited);
         }
     }
 
@@ -67,20 +95,27 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         string featurePath,
         string layoutName,
         IReadOnlyList<ScreenplaySyntax.FormSyntax> forms,
-        List<SceneScreens.Screen> screens)
+        List<SceneScreens.Screen> screens,
+        BehaviorScope scope,
+        IReadOnlyList<SceneModel.Behavior> inherited)
     {
         var path = $"{featurePath}.{feature.Name}";
         var contributions = (feature.Contributions ?? [])
             .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{path}.contribution[{index}]"))
             .ToList();
 
+        // Outermost first: a module's behaviors precede a feature's, which precede the screen's own. That is the
+        // order the engine will run them in, and the reason a module can gate everything beneath it.
+        IReadOnlyList<SceneModel.Behavior> inheritedHere =
+            [.. inherited, .. scope.Resolve(feature.Behaviors, feature.UsedBehaviors, path)];
+
         screens.AddRange(feature.Slices
             .SelectMany(slice => slice.Screens)
-            .Select(screen => ScreenConverter.Convert(screen, layoutName, forms, contributions)));
+            .Select(screen => ScreenConverter.Convert(screen, layoutName, forms, contributions, scope, inheritedHere)));
 
         foreach (var subFeature in feature.Features)
         {
-            ConvertFeatureScreens(subFeature, path, layoutName, forms, screens);
+            ConvertFeatureScreens(subFeature, path, layoutName, forms, screens, scope, inheritedHere);
         }
     }
 }

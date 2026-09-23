@@ -29,8 +29,17 @@ public static class ScreenDirectiveConverter
     /// <param name="directives">The sibling directives to convert.</param>
     /// <param name="path">The id path of the directives' parent, used to derive unique element ids.</param>
     /// <returns>The converted elements, in declaration order.</returns>
+    /// <remarks>
+    /// Behavior directives are skipped rather than converted. They share the screen body with content because
+    /// that is where they are written, but they are what the content <em>does</em>, not more of it - they are
+    /// collected as attachments by <see cref="ScreenConverter"/> instead.
+    /// </remarks>
     public static IReadOnlyList<SceneElements.SceneElement> Convert(IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives, string path) =>
-        [.. directives.Select((directive, index) => Convert(directive, $"{path}.{index}-{Kind(directive)}"))];
+        [
+            .. directives
+                .Where(directive => directive is not ScreenplaySyntax.ScreenBehaviorSyntax and not ScreenplaySyntax.ScreenUsesBehaviorSyntax)
+                .Select((directive, index) => Convert(directive, $"{path}.{index}-{Kind(directive)}"))
+        ];
 
     static SceneElements.ExternalComponent Convert(ScreenplaySyntax.ScreenDirectiveSyntax directive, string id) =>
         directive switch

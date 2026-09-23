@@ -34,17 +34,17 @@ public static class SceneSynthesizer
     /// <summary>
     /// The property every synthesized element carries the modeled artifact's emitted type name in.
     /// </summary>
-    public const string TypeNameProperty = "typeName";
+    public const string TypeNameProperty = SceneElementProperties.TypeName;
 
     /// <summary>
     /// The property the host writes the resolved API route into.
     /// </summary>
-    public const string RouteProperty = "route";
+    public const string RouteProperty = SceneElementProperties.Route;
 
     /// <summary>
     /// The property a command element carries its JSON schema in, so a frontend can build its form.
     /// </summary>
-    public const string SchemaProperty = "schema";
+    public const string SchemaProperty = SceneElementProperties.Schema;
 
     /// <summary>
     /// Synthesizes the screens an event model implies.

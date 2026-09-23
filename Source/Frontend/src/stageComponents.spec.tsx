@@ -16,7 +16,7 @@ describe('a synthesized table', () => {
     });
 
     it('reads the modeled query and shows its rows', async () => {
-        const table = element('table', 'core:table', { route: '/api/sales/invoices/all-invoices', target: 'Invoice' }, {
+        const table = element('table', 'core:table', { route: '/api/sales/invoices/all-invoices', typeName: 'Invoice' }, {
             columns: [
                 element('c1', 'core:column', { property: 'invoiceNumber', label: 'Invoice #' }),
                 element('c2', 'core:column', { property: 'amount', label: 'Amount' }),
@@ -31,7 +31,7 @@ describe('a synthesized table', () => {
     });
 
     it('shows the columns the rows carry when the model declares none', async () => {
-        const table = element('table', 'core:table', { route: '/api/sales/invoices/all-invoices', target: 'Invoice' });
+        const table = element('table', 'core:table', { route: '/api/sales/invoices/all-invoices', typeName: 'Invoice' });
         render(<StageTable element={table} slots={{}} />);
 
         expect(await screen.findByText('invoiceNumber')).toBeDefined();
@@ -39,7 +39,7 @@ describe('a synthesized table', () => {
     });
 
     it('says so when the model exposes no query', () => {
-        const table = element('table', 'core:table', { target: 'Invoice' }) as ExternalComponent;
+        const table = element('table', 'core:table', { typeName: 'Invoice' }) as ExternalComponent;
         render(<StageTable element={table} slots={{}} />);
         expect(screen.getByText(/No query is exposed/)).toBeDefined();
     });

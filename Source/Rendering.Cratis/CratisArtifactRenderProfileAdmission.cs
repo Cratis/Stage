@@ -54,6 +54,12 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
+        var scene = profile.Inputs.SingleOrDefault(IsComposedScene);
+        if (scene is not null && !Scene.SceneCompositionAdmission.Matches(scene, out mismatch))
+        {
+            return false;
+        }
+
         if (scaffold.Length != expected.Inputs.Length || !scaffold.Zip(expected.Inputs).All(InputMatches))
         {
             mismatch = "The Cratis profile scaffold roster, versions, bytes, or SHA-256 hashes do not match the package-owned profile.";

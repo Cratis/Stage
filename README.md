@@ -108,6 +108,13 @@ image instead of relying on the metapackage's transitive Chronicle 19.4.2. The f
 uses the same Arc era with Components 4.13.1, Scene 4.1.0, and Fundamentals 7.19.4. It emits no repository
 marker, floating version, random identifier, or destination-specific value.
 
+A profile may also carry one authored `scene.json`. Before planning, its version must equal the Cratis target
+version; its bytes must be valid UTF-8 JSON with no duplicate member names; the root must hold `uiProfiles`,
+`themes`, `layouts`, `screenTemplates`, `dialogTemplates`, and `screens` arrays; and every screen must be an object
+with a string `name` and a `slotContent` object whose slots are arrays of objects. A violation fails with
+`STAGE-CRATIS-001` and no candidate artifacts. This checks wire shape only: it does not resolve components or
+bindings, or prove that the Scene matches the modeled revision.
+
 The generated compose contract intentionally binds local ports `27017` and `35000`. Start it with
 `docker compose up --detach`, run the generated project, and probe `/healthz`; stop it with
 `docker compose down --volumes`. Isolated automation can instead map both container ports to Docker-assigned

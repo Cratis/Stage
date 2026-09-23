@@ -104,7 +104,7 @@ application from parent repositories. `Program.cs` remains active in Debug besid
 the project locally suppresses only their expected CS7022 entry-point warning. The profile pins .NET 10,
 Cratis/Arc 22.19.1, the verified specification dependencies, and
 `cratis/chronicle:18.2.0-development`, matching the metapackage's Chronicle client. The frontend scaffold
-uses the same Arc era with Components 4.9.0, Scene 3.6.0, and Fundamentals 7.19.3. It emits no repository
+uses the same Arc era with Components 4.13.0, Scene 3.7.0, and Fundamentals 7.19.3. It emits no repository
 marker, floating version, random identifier, or destination-specific value.
 
 The generated compose contract intentionally binds local ports `27017` and `35000`. Start it with
@@ -141,9 +141,9 @@ navigation works for translated navigation intents. For canvas models without ex
 synthesizes query views and command forms using the routes registered by Arc. Default scenes with
 String/Guid scalar commands declare exact proxy-named inputs (including required Guid identifiers) and a submit
 action; unsupported combinations show a diagnostic rather than a partial form. Authored screens take precedence.
-The explicit command form requires a Scene release newer than the currently pinned 3.6.0; until coordinated
-publication and a dependency bump, these generated inputs cannot be exercised by the published frontend. This playback frontend
-is distinct from a standalone generated application and does not imply complete modeled UI or authorization support.
+The standalone generated frontend pins Scene 3.7.0 for explicit command inputs, but native builds do not
+prove browser command submission or readback. This playback frontend is distinct from a standalone generated
+application and does not imply complete modeled UI or authorization support.
 
 ### Specification runner — model-level verification
 

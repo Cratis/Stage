@@ -103,9 +103,12 @@ public sealed class CratisBackendApplicationScaffold
           <ItemGroup>
             <PackageReference Include="Cratis" Version="{{profile.CratisPackageVersion}}" />
             <PackageReference Include="Cratis.Arc.MongoDB" Version="{{profile.CratisArcMongoDBPackageVersion}}" />
+            <PackageReference Include="Cratis.Chronicle" Version="{{profile.CratisChroniclePackageVersion}}" />
+            <PackageReference Include="Cratis.Chronicle.AspNetCore" Version="{{profile.CratisChroniclePackageVersion}}" />
           </ItemGroup>
           <ItemGroup Condition="'$(Configuration)' == 'Debug'">
             <PackageReference Include="Cratis.Arc.Chronicle.Testing" Version="{{profile.CratisArcChronicleTestingPackageVersion}}" />
+            <PackageReference Include="Cratis.Chronicle.Testing" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageReference Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
             <PackageReference Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
             <PackageReference Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />

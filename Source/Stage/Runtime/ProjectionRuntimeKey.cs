@@ -4,7 +4,7 @@
 namespace Cratis.Stage.Runtime;
 
 /// <summary>
-/// Checks whole key expressions against the pinned Chronicle 19.1.7 resolvers before registration.
+/// Limits whole key expressions to supported Chronicle resolver syntax before registration.
 /// Their regex matches are unanchored; partial matches can otherwise silently route to another key.
 /// </summary>
 internal static class ProjectionRuntimeKey

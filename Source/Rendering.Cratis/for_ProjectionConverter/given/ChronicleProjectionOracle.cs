@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_ProjectionConverter.given;
 
 /// <summary>
 /// Compiles the exact Chronicle kernel visitor and its concept dependencies against the released infrastructure.
-/// No substitute visitor or copied semantics are used. The released 19.1.7 infrastructure may differ from the
+/// No substitute visitor or copied semantics are used. The referenced released infrastructure may differ from the
 /// checked-out kernel; this oracle tests the visitor's definition construction, not full kernel execution.
 /// </summary>
 internal static class ChronicleProjectionOracle

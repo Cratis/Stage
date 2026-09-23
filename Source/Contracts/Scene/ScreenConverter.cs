@@ -86,7 +86,6 @@ public static class ScreenConverter
         };
     }
 
-
     static (string? ScreenTemplate, IReadOnlyDictionary<string, IReadOnlyList<SceneElements.SceneElement>> SlotContent) ConvertContent(
         ScreenplaySyntax.ScreenSyntax screen,
         BehaviorScope scope,
@@ -106,6 +105,7 @@ public static class ScreenConverter
         if (templateReferences.Count == 1)
         {
             var templateReference = templateReferences[0];
+
             // A filled slot has no node of its own in the Scene model, so what is attached inside one folds
             // onto the screen - the same rule module and feature attachments follow, and for the same reason.
             var slotContent = templateReference.Slots.ToDictionary(

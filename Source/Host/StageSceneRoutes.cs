@@ -34,6 +34,14 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
     /// </summary>
     public const string DiagnosticsVariable = "STAGE_ROUTE_DIAGNOSTICS";
 
+    readonly Lazy<IReadOnlyDictionary<string, string>> _commandRoutes = new(
+        () => RoutesByName(services.GetRequiredService<EndpointDataSource>(), "POST"),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
+    readonly Lazy<IReadOnlyDictionary<string, string>> _queryRoutes = new(
+        () => RoutesByName(services.GetRequiredService<EndpointDataSource>(), "GET"),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
     readonly Lazy<SceneApplication> _resolved = new(
         () => WithRoutes(scene, services.GetRequiredService<EndpointDataSource>(), logger),
         LazyThreadSafetyMode.ExecutionAndPublication);
@@ -61,14 +69,6 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
     /// Gets the route each modeled query is read from, by read model name.
     /// </summary>
     public IReadOnlyDictionary<string, string> QueryRoutes => _queryRoutes.Value;
-
-    readonly Lazy<IReadOnlyDictionary<string, string>> _commandRoutes = new(
-        () => RoutesByName(services.GetRequiredService<EndpointDataSource>(), "POST"),
-        LazyThreadSafetyMode.ExecutionAndPublication);
-
-    readonly Lazy<IReadOnlyDictionary<string, string>> _queryRoutes = new(
-        () => RoutesByName(services.GetRequiredService<EndpointDataSource>(), "GET"),
-        LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>
     /// Builds the name to route lookup for one verb.

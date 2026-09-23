@@ -1,0 +1,38 @@
+module Invoicing
+
+  feature Reminders
+    description "Chasing what is owed, without anyone having to remember to"
+
+    slice Automation RemindAboutOverdueInvoices
+
+      reaction OverdueInvoiceReminder
+        description "Nudges the customer once a day about anything still unpaid"
+        every 1 day
+          invokes SendInvoiceReminder
+            invoiceId = invoiceId
+        at 09:00 on Monday
+          invokes SendInvoiceReminder
+            invoiceId = invoiceId
+        where status == "issued"
+
+      reaction ExportRequested
+        description "Turns the frontend's export request into the work that answers it"
+        when InvoiceExportRequested
+          requestedBy String
+          produces LedgerExportStarted
+            for requestedBy
+            requestedBy = requestedBy
+
+      event LedgerExportStarted
+        requestedBy String
+
+      command SendInvoiceReminder
+        invoiceId InvoiceId identifier
+        produces InvoiceReminderSent
+          for invoiceId
+          invoiceId = invoiceId
+          sentAt = $context.occurred
+
+      event InvoiceReminderSent
+        invoiceId InvoiceId
+        sentAt DateTime

@@ -17,8 +17,10 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <see cref="SceneModel.UiProfile"/> targets exactly one platform and a two-axis
 /// <see cref="SizeClass"/>. This converter resolves both gaps deliberately: one <see cref="SceneModel.UiProfile"/>
 /// is produced per platform - a platform is a deployment target of its own, which is what
-/// <see cref="RenderPlanner"/> plans against (Cratis/Stage#39) - and a bare <c language="csharp">target size</c> name is applied
-/// to both the width and height axis (Screenplay has no per-axis default size syntax).
+/// <see cref="RenderPlanner"/> plans against (Cratis/Stage#39). A <c language="csharp">target size</c> is carried as a
+/// <see cref="TargetSizeClass"/> rather than as a point in the two-axis arrangement matrix: what a target
+/// assumes is a coarser statement than what an arrangement resolves against, and it has a third value the
+/// matrix does not.
 /// <see cref="ScreenplaySyntax.UiProfileSyntax.Layout"/> - the shell the profile selects - and
 /// <see cref="ScreenplaySyntax.UiProfileSyntax.Theme"/> both carry straight through, and are what a render plan
 /// resolves the target's layout and theme from. The selected layout is <em>not</em> what resolves
@@ -41,13 +43,6 @@ public static class UiProfileConverter
             new SceneModel.UiProfile(uiProfile.Name, platform, packages, defaultSizeClass, uiProfile.Layout, uiProfile.Theme));
     }
 
-    static SizeClass? ConvertDefaultSizeClass(string? defaultSizeClass)
-    {
-        if (defaultSizeClass is null)
-        {
-            return null;
-        }
-
-        return new SizeClass(SizeClassNames.ParseWidth(defaultSizeClass), SizeClassNames.ParseHeight(defaultSizeClass));
-    }
+    static TargetSizeClass? ConvertDefaultSizeClass(string? defaultSizeClass) =>
+        defaultSizeClass is null ? null : SizeClassNames.ParseTarget(defaultSizeClass);
 }

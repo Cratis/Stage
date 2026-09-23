@@ -1,0 +1,25 @@
+module Invoicing
+
+  feature Invoices
+
+    slice StateChange CancelInvoice
+      description "Takes an invoice back off the ledger, which only a manager may do"
+
+      command CancelInvoice
+        invoiceId InvoiceId identifier
+        reason String
+        authorize IsBillingManager
+        validate
+          reason not empty message "Cancelling an invoice has to be explained"
+        produces InvoiceCancelled
+          for invoiceId
+          invoiceId = invoiceId
+          reason = reason
+          cancelledBy = $context.identity.userName
+          cancelledAt = $context.occurred
+
+      event InvoiceCancelled
+        invoiceId InvoiceId
+        reason String
+        cancelledBy String
+        cancelledAt DateTime

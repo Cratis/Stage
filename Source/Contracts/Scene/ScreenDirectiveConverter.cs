@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using SceneElements = Cratis.Scene.Model.Elements;
+using SceneInteractions = Cratis.Scene.Model.Interactions;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
@@ -34,14 +35,38 @@ public static class ScreenDirectiveConverter
     /// that is where they are written, but they are what the content <em>does</em>, not more of it - they are
     /// collected as attachments by <see cref="ScreenConverter"/> instead.
     /// </remarks>
-    public static IReadOnlyList<SceneElements.SceneElement> Convert(IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives, string path) =>
-        [
-            .. directives
-                .Where(directive => directive is not ScreenplaySyntax.ScreenBehaviorSyntax and not ScreenplaySyntax.ScreenUsesBehaviorSyntax)
-                .Select((directive, index) => Convert(directive, $"{path}.{index}-{Kind(directive)}"))
-        ];
+    public static IReadOnlyList<SceneElements.SceneElement> Convert(
+        IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives,
+        string path,
+        BehaviorScope? behaviors = null,
+        ICollection<SceneInteractions.Behavior>? attached = null)
+    {
+        var all = directives.ToList();
+        var scope = behaviors ?? BehaviorScope.None;
 
-    static SceneElements.ExternalComponent Convert(ScreenplaySyntax.ScreenDirectiveSyntax directive, string id) =>
+        // What was written at this level attaches to whatever encloses it - the section, or the screen when
+        // nothing else does. Collecting it here rather than dropping it is the point: an interaction that
+        // silently does not exist is worse than one that is reported.
+        if (attached is not null)
+        {
+            foreach (var behavior in scope.Resolve(
+                all.OfType<ScreenplaySyntax.ScreenBehaviorSyntax>().Select(directive => directive.Behavior),
+                all.OfType<ScreenplaySyntax.ScreenUsesBehaviorSyntax>().Select(directive => directive.Uses),
+                path))
+            {
+                attached.Add(behavior);
+            }
+        }
+
+        return
+        [
+            .. all
+                .Where(directive => directive is not ScreenplaySyntax.ScreenBehaviorSyntax and not ScreenplaySyntax.ScreenUsesBehaviorSyntax)
+                .Select((directive, index) => Convert(directive, $"{path}.{index}-{Kind(directive)}", scope))
+        ];
+    }
+
+    static SceneElements.ExternalComponent Convert(ScreenplaySyntax.ScreenDirectiveSyntax directive, string id, BehaviorScope scope) =>
         directive switch
         {
             ScreenplaySyntax.ScreenDataSyntax data => SceneElementFactory.Component(id, "core:data", new Dictionary<string, object?>
@@ -58,18 +83,14 @@ public static class ScreenDirectiveConverter
                 ["navigateToScreen"] = action.Navigate?.Screen,
                 ["navigateByParameter"] = action.Navigate?.By,
             }),
-            ScreenplaySyntax.ScreenSectionSyntax section => SceneElementFactory.Component(
-                id,
-                "core:section",
-                new Dictionary<string, object?> { ["name"] = section.Name },
-                new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["content"] = Convert(section.Directives, id) }),
+            ScreenplaySyntax.ScreenSectionSyntax section => ConvertSection(section, id, scope),
             ScreenplaySyntax.ScreenNavigateSyntax navigate => SceneElementFactory.Component(id, "core:navigate", new Dictionary<string, object?>
             {
                 ["targetScreen"] = navigate.Screen,
                 ["by"] = navigate.By,
             }),
             ScreenplaySyntax.ScreenTitleSyntax title => SceneElementFactory.Component(id, "core:title", new Dictionary<string, object?> { ["text"] = title.Text }),
-            ScreenplaySyntax.ScreenTableSyntax table => ConvertTable(table, id),
+            ScreenplaySyntax.ScreenTableSyntax table => ConvertTable(table, id, scope),
             ScreenplaySyntax.ScreenSummarySyntax summary => ConvertSummary(summary, id),
             ScreenplaySyntax.ScreenCodeSyntax code => SceneElementFactory.Component(id, "core:code", new Dictionary<string, object?>
             {
@@ -79,7 +100,25 @@ public static class ScreenDirectiveConverter
             _ => throw new UnknownScreenDirective(directive.GetType().Name),
         };
 
-    static SceneElements.ExternalComponent ConvertTable(ScreenplaySyntax.ScreenTableSyntax table, string id)
+    /// <summary>
+    /// Converts a section, attaching what was written inside it to the section itself.
+    /// </summary>
+    static SceneElements.ExternalComponent ConvertSection(ScreenplaySyntax.ScreenSectionSyntax section, string id, BehaviorScope scope)
+    {
+        var attached = new List<SceneInteractions.Behavior>();
+        var content = Convert(section.Directives, id, scope, attached);
+
+        return SceneElementFactory.Component(
+            id,
+            "core:section",
+            new Dictionary<string, object?> { ["name"] = section.Name },
+            new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["content"] = content }) with
+        {
+            Behaviors = attached
+        };
+    }
+
+    static SceneElements.ExternalComponent ConvertTable(ScreenplaySyntax.ScreenTableSyntax table, string id, BehaviorScope scope)
     {
         var properties = new Dictionary<string, object?>
         {
@@ -95,7 +134,10 @@ public static class ScreenDirectiveConverter
                 new Dictionary<string, object?> { ["property"] = column.Property, ["label"] = column.Label }))
             .ToList();
 
-        return SceneElementFactory.Component(id, "core:table", properties, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["columns"] = columns });
+        return SceneElementFactory.Component(id, "core:table", properties, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["columns"] = columns }) with
+        {
+            Behaviors = scope.Resolve(table.Behaviors, table.UsedBehaviors, id)
+        };
     }
 
     static SceneElements.ExternalComponent ConvertSummary(ScreenplaySyntax.ScreenSummarySyntax summary, string id)

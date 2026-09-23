@@ -59,7 +59,7 @@ public class an_application_targeting_web_and_ios : Specification
         _application = new SceneApplication(
             [
                 new UiProfile("Admin", "web", ["PrimeReact"], null, "AppShell", "Aurora"),
-                new UiProfile("Admin", "ios", ["PrimeReact"], new SizeClass(WidthSizeClass.Compact, HeightSizeClass.Regular), "AppShell", "Aurora"),
+                new UiProfile("Admin", "ios", ["PrimeReact"], TargetSizeClass.Compact, "AppShell", "Aurora"),
             ],
             [new Theme("Aurora", ["core", "Tailwind", "PrimeReact"])],
             [layout],

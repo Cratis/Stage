@@ -76,31 +76,21 @@ public static class ScreenConverter
         IReadOnlyList<SceneInteractions.Behavior>? inherited = null)
     {
         var scope = behaviors ?? BehaviorScope.None;
-        var (screenTemplate, slotContent) = ConvertContent(screen);
+        var attached = new List<SceneInteractions.Behavior>();
+        var (screenTemplate, slotContent) = ConvertContent(screen, scope, attached);
         var forms = ResolveForms(screen, availableForms, scope);
 
         return new SceneScreens.Screen(screen.Name, layoutName, slotContent, forms, [.. contributions], screenTemplate)
         {
-            Behaviors = [.. inherited ?? [], .. ScreenBehaviors(screen, scope)]
+            Behaviors = [.. inherited ?? [], .. attached]
         };
     }
 
-    /// <summary>
-    /// Collects what is attached to the screen itself.
-    /// </summary>
-    /// <remarks>
-    /// A screen's attachments arrive as directives rather than as their own collection, because they are written
-    /// in the screen body alongside its content and the grammar keeps that order. Filtering them out here is what
-    /// lets the rest of the conversion treat the body as content.
-    /// </remarks>
-    static IReadOnlyList<SceneInteractions.Behavior> ScreenBehaviors(ScreenplaySyntax.ScreenSyntax screen, BehaviorScope scope) =>
-        scope.Resolve(
-            screen.Directives.OfType<ScreenplaySyntax.ScreenBehaviorSyntax>().Select(directive => directive.Behavior),
-            screen.Directives.OfType<ScreenplaySyntax.ScreenUsesBehaviorSyntax>().Select(directive => directive.Uses),
-            screen.Name);
 
     static (string? ScreenTemplate, IReadOnlyDictionary<string, IReadOnlyList<SceneElements.SceneElement>> SlotContent) ConvertContent(
-        ScreenplaySyntax.ScreenSyntax screen)
+        ScreenplaySyntax.ScreenSyntax screen,
+        BehaviorScope scope,
+        ICollection<SceneInteractions.Behavior> attached)
     {
         if (screen.File is not null)
         {
@@ -116,15 +106,17 @@ public static class ScreenConverter
         if (templateReferences.Count == 1)
         {
             var templateReference = templateReferences[0];
+            // A filled slot has no node of its own in the Scene model, so what is attached inside one folds
+            // onto the screen - the same rule module and feature attachments follow, and for the same reason.
             var slotContent = templateReference.Slots.ToDictionary(
                 slot => slot.Name,
-                slot => ScreenDirectiveConverter.Convert(slot.Directives, $"{screen.Name}.{slot.Name}"),
+                slot => ScreenDirectiveConverter.Convert(slot.Directives, $"{screen.Name}.{slot.Name}", scope, attached),
                 StringComparer.Ordinal);
 
             return (templateReference.Name, slotContent);
         }
 
-        return (null, ContentSlot(ScreenDirectiveConverter.Convert(screen.Directives, screen.Name)));
+        return (null, ContentSlot(ScreenDirectiveConverter.Convert(screen.Directives, screen.Name, scope, attached)));
     }
 
     static Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> ContentSlot(IReadOnlyList<SceneElements.SceneElement> content) =>

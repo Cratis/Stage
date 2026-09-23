@@ -1,0 +1,9 @@
+module Invoicing
+
+  feature Invoices
+    description "Registering, issuing and cancelling invoices"
+
+    contribute to mainNav
+      navigate to RegisterInvoice
+      label $strings.navigation.registerInvoice
+      order 2

@@ -129,8 +129,27 @@ public static class RenderPlanner
     /// number and the "at or above the breakpoint" rule in Scene rather than writing an assumed class here.
     /// </remarks>
     static SceneSizeClasses.SizeClass SizeClassFor(SceneProfilesModel.UiProfile profile) =>
-        profile.DefaultSizeClass ??
-        SizeClassCalculator.Compute(SizeClassCalculator.DefaultWidthBreakpoint, SizeClassCalculator.DefaultHeightBreakpoint);
+        profile.DefaultSizeClass is { } target
+            ? ArrangementSizeClassFor(target)
+            : SizeClassCalculator.Compute(SizeClassCalculator.DefaultWidthBreakpoint, SizeClassCalculator.DefaultHeightBreakpoint);
+
+    /// <summary>
+    /// Places the size a target assumes onto the two-axis matrix an arrangement resolves against.
+    /// </summary>
+    /// <param name="target">What the target assumes.</param>
+    /// <returns>The <see cref="SceneSizeClasses.SizeClass"/> to evaluate arrangements at.</returns>
+    /// <remarks>
+    /// The two vocabularies do not have the same number of values, and this is the one place that has to say
+    /// how they line up. An arrangement axis distinguishes only whether it is cramped, so both
+    /// <see cref="SceneSizeClasses.TargetSizeClass.Regular"/> and
+    /// <see cref="SceneSizeClasses.TargetSizeClass.Expanded"/> land on regular - a desktop and a tablet differ
+    /// in how much room they have, not in whether they have enough. Keeping the mapping explicit here is what
+    /// lets the target vocabulary gain a value without an arrangement having to learn about it.
+    /// </remarks>
+    static SceneSizeClasses.SizeClass ArrangementSizeClassFor(SceneSizeClasses.TargetSizeClass target) =>
+        target == SceneSizeClasses.TargetSizeClass.Compact
+            ? new(SceneSizeClasses.WidthSizeClass.Compact, SceneSizeClasses.HeightSizeClass.Compact)
+            : new(SceneSizeClasses.WidthSizeClass.Regular, SceneSizeClasses.HeightSizeClass.Regular);
 
     /// <summary>
     /// Scopes a theme's tokens to the packages they actually apply to.

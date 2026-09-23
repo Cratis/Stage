@@ -1,0 +1,50 @@
+module Invoicing
+
+  feature Invoices
+
+    slice StateChange IssueInvoice
+      description "Sends a draft invoice to the customer, which is what makes it owed"
+
+      command IssueInvoice
+        invoiceId InvoiceId identifier
+        issuedOn Date
+        reads InvoiceState by invoiceId
+        authorize IsBillingClerk
+        validate
+          require InvoiceState.status == "draft"
+            message "Only a draft invoice can be issued"
+        produces when amount > 0
+          InvoiceIssued
+            for invoiceId
+            invoiceId = invoiceId
+            issuedOn = issuedOn
+            amount = InvoiceState.amount
+
+      event InvoiceIssued
+        invoiceId InvoiceId
+        issuedOn Date
+        amount Money
+
+      readmodel InvoiceState
+        invoiceId InvoiceId
+        status InvoiceStatus
+        amount Money
+
+      reducer InvoiceStateReducer => InvoiceState
+        description "Folds the ledger events into the state a command needs to guard itself"
+        on InvoiceRegistered
+        on InvoiceIssued
+        on InvoiceCancelled
+
+      specification IssuingADraftInvoice
+        given InvoiceRegistered
+          for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceNumber = "INV-000123"
+          amount = 1500
+        when IssueInvoice
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          issuedOn = "2026-01-15"
+        then InvoiceIssued
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 1500

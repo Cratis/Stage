@@ -12,12 +12,11 @@ namespace Cratis.Stage.Contracts.Scene.for_UiProfileConverter.when_converting;
 public class and_a_default_size_class_is_declared : Specification
 {
     UiProfileSyntax _syntax = null!;
-    SizeClass? _result;
+    TargetSizeClass? _result;
 
     void Establish() => _syntax = new("Admin", ["web"], "compact", ["core"], SourceLocation.Start);
 
     void Because() => _result = UiProfileConverter.Convert(_syntax).Single().DefaultSizeClass;
 
-    [Fact] void should_apply_the_size_class_to_the_width_axis() => _result!.Width.ShouldEqual(WidthSizeClass.Compact);
-    [Fact] void should_apply_the_same_size_class_to_the_height_axis() => _result!.Height.ShouldEqual(HeightSizeClass.Compact);
+    [Fact] void should_carry_what_the_target_assumes() => _result!.Value.ShouldEqual(TargetSizeClass.Compact);
 }

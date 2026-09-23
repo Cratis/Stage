@@ -27,7 +27,7 @@ public class and_every_target_resolves : an_application_targeting_web_and_ios
     [Fact] void should_record_what_the_winning_package_shadowed() => Resolution("core:table").Shadows.ShouldContainOnly("core");
     [Fact] void should_place_the_screen_template_in_the_slot_it_fits() => Web().ScreenTemplates.Placements.Single().Container.ShouldEqual("AppShell");
     [Fact] void should_assume_the_regular_size_class_for_a_target_that_declares_none() => Web().SizeClass.ShouldEqual(new SizeClass(WidthSizeClass.Regular, HeightSizeClass.Regular));
-    [Fact] void should_use_the_targets_own_declared_size_class() => Ios().SizeClass.ShouldEqual(new SizeClass(WidthSizeClass.Compact, HeightSizeClass.Regular));
+    [Fact] void should_use_the_targets_own_declared_size_class() => Ios().SizeClass.ShouldEqual(new SizeClass(WidthSizeClass.Compact, HeightSizeClass.Compact));
     [Fact] void should_lay_the_shell_out_as_a_row_on_the_wide_target() => Web().Arrangements.Single().Flow.ShouldBeOfExactType<FlowRow>();
     [Fact] void should_lay_the_same_shell_out_as_a_column_on_the_narrow_target() => Ios().Arrangements.Single().Flow.ShouldBeOfExactType<FlowColumn>();
 

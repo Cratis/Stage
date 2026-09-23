@@ -4,6 +4,7 @@
 using SceneContributionPoints = Cratis.Scene.Model.ContributionPoints;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneForms = Cratis.Scene.Model.Forms;
+using SceneInteractions = Cratis.Scene.Model.Interactions;
 using SceneScreens = Cratis.Scene.Model.Screens;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
@@ -56,28 +57,59 @@ namespace Cratis.Stage.Contracts.Scene;
 public static class ScreenConverter
 {
     /// <summary>
+    /// Converts a <see cref="ScreenplaySyntax.ScreenSyntax"/> that attaches no interactions.
+    /// </summary>
+    /// <param name="screen">The <see cref="ScreenplaySyntax.ScreenSyntax"/> to convert.</param>
+    /// <param name="layoutName">The name of the layout the screen is placed on.</param>
+    /// <param name="availableForms">The forms declared in the screen's enclosing module.</param>
+    /// <param name="contributions">The already-converted contributions for the screen's enclosing scope.</param>
+    /// <returns>The converted <see cref="SceneScreens.Screen"/>.</returns>
+    /// <remarks>
+    /// Kept so a caller that has no behaviors to resolve - and every caller predating them - does not have to
+    /// say so. Converting with an empty scope means a <c language="csharp">uses</c> would resolve to nothing, which is why the
+    /// translation proper passes a real one.
+    /// </remarks>
+    public static SceneScreens.Screen Convert(
+        ScreenplaySyntax.ScreenSyntax screen,
+        string layoutName,
+        IReadOnlyList<ScreenplaySyntax.FormSyntax> availableForms,
+        IReadOnlyList<SceneContributionPoints.Contribution> contributions) =>
+        Convert(screen, layoutName, availableForms, contributions, null);
+
+    /// <summary>
     /// Converts a <see cref="ScreenplaySyntax.ScreenSyntax"/> into a <see cref="SceneScreens.Screen"/>.
     /// </summary>
     /// <param name="screen">The <see cref="ScreenplaySyntax.ScreenSyntax"/> to convert.</param>
     /// <param name="layoutName">The resolved name of the application layout the screen renders inside.</param>
     /// <param name="availableForms">Every form declared in the screen's enclosing module.</param>
     /// <param name="contributions">The already-converted contributions for the screen's enclosing scope.</param>
+    /// <param name="behaviors">What a <c language="csharp">uses</c> clause resolves against.</param>
+    /// <param name="inherited">The behaviors attached above the screen, which run before its own.</param>
     /// <returns>The converted <see cref="SceneScreens.Screen"/>.</returns>
     /// <exception cref="UnsupportedScreenContent">Thrown when the screen mixes a top-level <c language="csharp">template</c> directive with other top-level directives.</exception>
     public static SceneScreens.Screen Convert(
         ScreenplaySyntax.ScreenSyntax screen,
         string layoutName,
         IReadOnlyList<ScreenplaySyntax.FormSyntax> availableForms,
-        IReadOnlyList<SceneContributionPoints.Contribution> contributions)
+        IReadOnlyList<SceneContributionPoints.Contribution> contributions,
+        BehaviorScope? behaviors,
+        IReadOnlyList<SceneInteractions.Behavior>? inherited = null)
     {
-        var (screenTemplate, slotContent) = ConvertContent(screen);
-        var forms = ResolveForms(screen, availableForms);
+        var scope = behaviors ?? BehaviorScope.None;
+        var attached = new List<SceneInteractions.Behavior>();
+        var (screenTemplate, slotContent) = ConvertContent(screen, scope, attached);
+        var forms = ResolveForms(screen, availableForms, scope);
 
-        return new SceneScreens.Screen(screen.Name, layoutName, slotContent, forms, [.. contributions], screenTemplate);
+        return new SceneScreens.Screen(screen.Name, layoutName, slotContent, forms, [.. contributions], screenTemplate)
+        {
+            Behaviors = [.. inherited ?? [], .. attached]
+        };
     }
 
     static (string? ScreenTemplate, IReadOnlyDictionary<string, IReadOnlyList<SceneElements.SceneElement>> SlotContent) ConvertContent(
-        ScreenplaySyntax.ScreenSyntax screen)
+        ScreenplaySyntax.ScreenSyntax screen,
+        BehaviorScope scope,
+        ICollection<SceneInteractions.Behavior> attached)
     {
         if (screen.File is not null)
         {
@@ -93,24 +125,38 @@ public static class ScreenConverter
         if (templateReferences.Count == 1)
         {
             var templateReference = templateReferences[0];
+
+            // A filled slot has no node of its own in the Scene model, so what is attached inside one folds
+            // onto the screen - the same rule module and feature attachments follow, and for the same reason.
             var slotContent = templateReference.Slots.ToDictionary(
                 slot => slot.Name,
-                slot => ScreenDirectiveConverter.Convert(slot.Directives, $"{screen.Name}.{slot.Name}"),
+                slot => ScreenDirectiveConverter.Convert(slot.Directives, $"{screen.Name}.{slot.Name}", scope, attached),
                 StringComparer.Ordinal);
 
             return (templateReference.Name, slotContent);
         }
 
-        return (null, ContentSlot(ScreenDirectiveConverter.Convert(screen.Directives, screen.Name)));
+        return (null, ContentSlot(ScreenDirectiveConverter.Convert(screen.Directives, screen.Name, scope, attached)));
     }
 
     static Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> ContentSlot(IReadOnlyList<SceneElements.SceneElement> content) =>
         new(StringComparer.Ordinal) { [DefaultLayout.ContentSlotName] = content };
 
-    static IReadOnlyList<SceneForms.Form> ResolveForms(ScreenplaySyntax.ScreenSyntax screen, IReadOnlyList<ScreenplaySyntax.FormSyntax> availableForms)
+    static IReadOnlyList<SceneForms.Form> ResolveForms(
+        ScreenplaySyntax.ScreenSyntax screen,
+        IReadOnlyList<ScreenplaySyntax.FormSyntax> availableForms,
+        BehaviorScope scope)
     {
         var commands = new HashSet<string>(CommandsReferencedBy(screen.Directives), StringComparer.Ordinal);
-        return [.. availableForms.Where(form => commands.Contains(form.For)).Select(FormConverter.Convert)];
+        return
+        [
+            .. availableForms
+                .Where(form => commands.Contains(form.For))
+                .Select(form => FormConverter.Convert(form) with
+                {
+                    Behaviors = scope.Resolve(form.Behaviors, form.UsedBehaviors, form.Name)
+                })
+        ];
     }
 
     static IEnumerable<string> CommandsReferencedBy(IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives) =>

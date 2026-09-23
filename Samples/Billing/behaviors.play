@@ -1,0 +1,18 @@
+behavior ConfirmThenExecute
+  description "Ask before doing something that cannot be undone, then do it"
+  parameter command
+  parameter message
+  on click
+    confirm message
+      on success
+        execute command
+          on success
+            notify info $strings.notifications.done
+          on failure
+            notify error $strings.notifications.failed
+
+behavior RefreshOnReturn
+  description "Re-read the list whenever the screen is navigated back to"
+  order 1
+  on enter
+    refresh Invoices

@@ -1,0 +1,40 @@
+theme Corporate
+  compatible with core
+  compatible with primereact
+
+theme HighContrast
+  compatible with core
+
+layout AppShell
+  topbar
+  sidebar contributes mainNav
+  content
+  footer
+  arrangement flow
+    row gap 0
+      sidebar width 240
+      column
+        topbar height 56
+        content grow
+        footer height 32
+    when width compact
+      column gap 0
+        topbar height 56
+        content grow
+
+ui profile Desktop
+  target platform web
+  target size expanded
+  packages
+    core
+    primereact
+  layout AppShell
+  theme Corporate
+
+ui profile Phone
+  target platform web, ios, android
+  target size compact
+  packages
+    core
+  layout AppShell
+  theme HighContrast

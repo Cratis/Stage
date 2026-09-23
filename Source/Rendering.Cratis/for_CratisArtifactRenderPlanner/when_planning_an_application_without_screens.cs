@@ -61,7 +61,16 @@ public class when_planning_an_application_without_screens : a_register_project_r
     [Fact] void should_admit_upper_and_lower_case_dashed_guids() => new[] { "11223344-5566-7788-99aa-bbccddeeff00", "11223344-5566-7788-99AA-BBCCDDEEFF00" }.All(MatchesPattern).ShouldBeTrue();
     [Fact] void should_reject_malformed_nonempty_keys_before_execution() => new[] { "not-a-guid", "112233445566778899aabbccddeeff00", "{11223344-5566-7788-99aa-bbccddeeff00}", "11223344-5566-7788-99aa-bbccddeeff00\n", " 11223344-5566-7788-99aa-bbccddeeff00" }.Any(MatchesPattern).ShouldBeFalse();
     [Fact] void should_not_mutate_the_profile() => _request.Profile.Inputs.Select(_ => _.Sha256).SequenceEqual(_profileHashes).ShouldBeTrue();
-    [Fact] void should_freeze_the_complete_default_scene_bytes() => Artifact(SceneCompositionInput.RelativePath)!.Sha256.ShouldEqual("3d311c4eca9285c62f6909e87a3c0c4f369e5dc818de3beb855d75ea914f48f4");
+    /// <summary>
+    /// The frozen bytes changed because every element now carries its interactions, which serialize as an
+    /// empty collection when a document attached none - the same way its slots already serialized as an empty
+    /// object. The assertion below names that difference, so the new hash is explained by something readable
+    /// rather than by a number somebody updated until the build went green.
+    /// </summary>
+    [Fact] void should_freeze_the_complete_default_scene_bytes() => Artifact(SceneCompositionInput.RelativePath)!.Sha256.ShouldEqual("4823dc11c628f99a3ead73006dc330bc9f54409b0cf05d60c58379cdc16a5396");
+
+    [Fact] void should_declare_no_interactions_on_a_composed_element() =>
+        _elements.All(element => element.GetProperty("behaviors").GetArrayLength() == 0).ShouldBeTrue();
     [Fact] void should_freeze_the_complete_binding_module_bytes() => Artifact(SceneBindingsRenderer.RelativePath)!.Sha256.ShouldEqual("4823d01d04ac795068ac52d87afc3e7be57c826dda63b005f1c3e7a057196f2f");
     [Fact] void should_repeat_the_exact_scene_bytes() => _planner.Plan(_request).Artifacts.Single(_ => _.RelativePath == SceneCompositionInput.RelativePath).Bytes.SequenceEqual(Artifact(SceneCompositionInput.RelativePath)!.Bytes).ShouldBeTrue();
     [Fact] void should_not_emit_http_literals_or_unmodeled_queries() => new[] { "http://", "https://", "/api/", "AllProjects" }.Any(value => Text(Artifact(SceneCompositionInput.RelativePath)!).Contains(value, StringComparison.Ordinal)).ShouldBeFalse();

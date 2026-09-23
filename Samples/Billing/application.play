@@ -1,0 +1,60 @@
+domain Cratis.Samples.Billing
+
+import Cratis.Samples.Shared
+
+concept InvoiceId : Uuid
+
+concept InvoiceNumber : String
+  validate
+    not empty message "An invoice needs a number"
+    length == 10
+
+concept CustomerId : Uuid
+
+concept CustomerName : String @pii
+  pii reason "A customer name identifies a natural person when the customer is a sole trader"
+
+concept EmailAddress : String @pii
+  pii reason "An email address identifies a person and is used to reach them"
+  validate
+    matches email message $strings.validation.emailAddress
+
+concept Money : Decimal
+
+concept InvoiceStatus : Enum
+  draft
+  issued
+  paid
+  cancelled
+
+type PostalAddress
+  description "Where an invoice is sent when it is not sent by email"
+  line1 String
+  line2 String?
+  postalCode String
+  city String
+  country String
+
+policy IsBillingClerk
+  require authenticated and role "billing-clerk"
+
+policy IsBillingManager
+  require authenticated and role "billing-manager"
+
+policy OwnsTheCustomer
+  require authenticated and claim "customerId" matches $context.command.customerId
+
+persona BillingClerk
+  description "Registers and issues invoices, but cannot write off what is owed"
+  policy IsBillingClerk
+
+persona BillingManager
+  description "Everything a clerk can do, and may cancel an issued invoice"
+  policy IsBillingManager
+
+authentication
+  provider OpenIdConnect name CorporateDirectory
+
+trigger InvoiceExportRequested
+  description "Raised by the frontend when someone asks for the ledger export"
+  requestedBy String

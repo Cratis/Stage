@@ -3,7 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import type { Layout, SceneElement, Screen, ScreenTemplate } from '@cratis/scene.model';
-import { SceneElementView } from '@cratis/scene.react';
+import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
+import { InteractionScope, SceneElementView, createBrowserDispatcher } from '@cratis/scene.react';
+import { useStageRoutes } from './stageRoutes';
 import { stageComponents } from './stageComponents';
 import './app.css';
 
@@ -25,6 +27,7 @@ const endpoint = 'stage/scene';
 
 export function App() {
     const [scene, setScene] = useState<StageSceneApplication>();
+    const routes = useStageRoutes();
     const [selectedScreen, setSelectedScreen] = useState('');
     const [error, setError] = useState('');
     const [activity, setActivity] = useState('');
@@ -82,7 +85,55 @@ export function App() {
 
     const screen = scene.screens.find(candidate => candidate.name === selectedScreen) ?? scene.screens[0];
 
+    // Everything a document's interactions can do, pointed at the running application. The engine decides
+    // what runs; this only says where a command goes and what a notification looks like.
+    const dispatcher = createBrowserDispatcher({
+        executeCommand: async (command, args): Promise<CommandOutcome> => {
+            const route = routes?.commands[command];
+            if (!route) {
+                setActivity(`The modeled command “${command}” is not registered by this Stage.`);
+                return { isSuccess: false, validationErrors: [] };
+            }
+
+            const response = await fetch(route, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(args),
+            });
+
+            if (!response.ok) {
+                setActivity(`“${command}” failed with ${response.status}.`);
+                return { isSuccess: false, validationErrors: [] };
+            }
+
+            const result = await response.json() as { isSuccess?: boolean; validationResults?: { message: string; members: string[] }[] };
+
+            // Arc answers a rejected command with 200 and the reasons, so the status alone does not say
+            // whether it worked. Reading the body is what makes 'on failure' mean what the document says.
+            const validationErrors = (result.validationResults ?? []).map(_ => ({ member: _.members[0] ?? '', message: _.message }));
+            if (validationErrors.length > 0) setActivity(validationErrors.map(_ => _.message).join(' '));
+
+            return { isSuccess: result.isSuccess !== false && validationErrors.length === 0, validationErrors };
+        },
+        navigate: screenName => {
+            if (scene.screens.some(candidate => candidate.name === screenName)) {
+                setSelectedScreen(screenName);
+                setActivity('');
+            } else {
+                setActivity(`The modeled screen “${screenName}” is not available.`);
+            }
+        },
+        notify: (level, message) => setActivity(`${level}: ${message}`),
+        refreshQuery: async query => { globalThis.dispatchEvent(new CustomEvent('cratis.scene.refresh', { detail: { query } })); },
+    });
+
+    // A finding is what the engine could not do. Showing it is the whole difference between an interaction
+    // that is broken and one that silently does nothing.
+    const reportFindings = (findings: InteractionFinding[]) =>
+        setActivity(findings.map(finding => finding.detail).join(' '));
+
     return (
+        <InteractionScope dispatcher={dispatcher} context={{ resolve: () => undefined }} attachments={[]} onFindings={reportFindings}>
         <div className='stage-application'>
             <header className='stage-header'>
                 <strong>Cratis Stage</strong>
@@ -107,6 +158,7 @@ export function App() {
                 {activity && <p className='stage-activity' role='status'>{activity}</p>}
             </main>
         </div>
+        </InteractionScope>
     );
 }
 

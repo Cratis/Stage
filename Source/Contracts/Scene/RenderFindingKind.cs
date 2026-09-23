@@ -90,5 +90,10 @@ public enum RenderFindingKind
     /// A freeform arrangement declares no placement variant for the size class this target renders at.
     /// Freeform deliberately has no fallback variant, so the affected slots have nowhere to go.
     /// </summary>
-    SizeClassVariantMissing = 12
+    SizeClassVariantMissing = 12,
+
+    /// <summary>
+    /// A <c>uses</c> clause names a behavior the document does not declare.
+    /// </summary>
+    BehaviorNotFound = 13
 }

@@ -4,11 +4,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { coreComponents } from '@cratis/scene.react';
+import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
 
 interface RegisteredProps {
     element: ExternalComponent;
     slots: Record<string, ReactNode[]>;
+
+    // What the document attached to this element, to put on the node it belongs on. Absent when the component
+    // is rendered directly rather than through the renderer.
+    interactions?: InteractionHandlers;
 }
 
 /** Fired after a command executed, so every table on screen re-reads its query. */
@@ -121,7 +126,7 @@ function schemaProperties(element: ExternalComponent): SchemaProperty[] {
 }
 
 /** Executes a modeled command against the route the Stage registered for it. */
-export function StageAction({ element }: RegisteredProps) {
+export function StageAction({ element, interactions }: RegisteredProps) {
     const label = text(element, 'label', text(element, 'command'));
     const route = text(element, 'route');
     const properties = schemaProperties(element);
@@ -131,7 +136,7 @@ export function StageAction({ element }: RegisteredProps) {
     const [busy, setBusy] = useState(false);
 
     if (!route) {
-        return <button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet'>{label}</button>;
+        return <button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</button>;
     }
 
     const execute = async () => {

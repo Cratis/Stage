@@ -29,4 +29,18 @@ public static class SizeClassNames
     /// <exception cref="UnknownSizeClassName">Thrown when <paramref name="name"/> does not match a known member.</exception>
     public static HeightSizeClass ParseHeight(string name) =>
         Enum.TryParse<HeightSizeClass>(name, ignoreCase: true, out var value) ? value : throw new UnknownSizeClassName(name);
+
+    /// <summary>
+    /// Parses the size a deployment target assumes by default.
+    /// </summary>
+    /// <param name="name">The name as authored.</param>
+    /// <returns>The <see cref="TargetSizeClass"/>.</returns>
+    /// <exception cref="UnknownSizeClassName">Thrown when the name is not one a target can assume.</exception>
+    /// <remarks>
+    /// A separate vocabulary from the two arrangement axes, and three-valued. Parsing a target's size with
+    /// <see cref="ParseWidth"/> is what made <c language="csharp">target size expanded</c> - valid Screenplay, used in
+    /// Screenplay's own documentation - throw instead of translating.
+    /// </remarks>
+    public static TargetSizeClass ParseTarget(string name) =>
+        Enum.TryParse<TargetSizeClass>(name, ignoreCase: true, out var value) ? value : throw new UnknownSizeClassName(name);
 }

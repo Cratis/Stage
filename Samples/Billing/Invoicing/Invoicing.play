@@ -1,0 +1,42 @@
+module Invoicing
+  description "Everything about getting money owed onto a ledger and off it again"
+
+  screen template InvoiceWorkspace
+    fits slot content
+    header
+    body
+    aside
+    arrangement flow
+      column gap 8
+        header height 48
+        row gap 8
+          body grow
+          aside width 320
+
+  dialog template ConfirmationDialog
+    body
+    actions
+    arrangement freeform
+      variant width regular, height regular
+        place body at 0, 0 size fill, 120
+        place actions at 0, 120 size fill, 48
+      variant width compact, height compact
+        place body at 0, 0 size fill, fill
+        place actions hidden
+
+  form RegisterInvoiceForm for RegisterInvoice
+    populate via query NextInvoiceNumber
+    field invoiceNumber label $strings.invoice.number
+    field customerId label $strings.invoice.customer
+    field amount label $strings.invoice.amount
+    on submit navigate to InvoiceList
+
+  form CancelInvoiceForm for CancelInvoice
+    populate from item
+    field invoiceId
+    field reason label "Why is it being cancelled?"
+
+  contribute to mainNav
+    navigate to InvoiceList
+    label $strings.navigation.invoices
+    order 1

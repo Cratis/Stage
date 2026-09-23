@@ -1,0 +1,68 @@
+module Invoicing
+
+  feature Invoices
+
+    slice StateChange RegisterInvoice
+      description "Puts a new invoice on the ledger as a draft"
+
+      command RegisterInvoice
+        description "Register a draft invoice for a customer"
+        invoiceId InvoiceId identifier
+        invoiceNumber InvoiceNumber
+        customerId CustomerId
+        amount Money
+        authorize IsBillingClerk or IsBillingManager
+        validate
+          invoiceNumber not empty message $strings.validation.invoiceNumberRequired
+          amount > 0 message "An invoice for nothing is not an invoice"
+        produces InvoiceRegistered
+          for invoiceId
+          tag "billing"
+          invoiceId = invoiceId
+          invoiceNumber = invoiceNumber
+          customerId = customerId
+          amount = amount
+          registeredBy = $context.identity.name
+        concurrency
+          eventSource
+
+      event InvoiceRegistered
+        invoiceId InvoiceId
+        invoiceNumber InvoiceNumber
+        customerId CustomerId
+        amount Money
+        registeredBy String
+
+      constraint InvoiceNumberIsUnique
+        unique invoiceNumber on InvoiceRegistered
+
+      specification RegisteringAnInvoice
+        when RegisterInvoice
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceNumber = "INV-000123"
+          customerId = "1f0c2d3e-4b5a-6789-abcd-ef0123456789"
+          amount = 1500
+        then InvoiceRegistered
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceNumber = "INV-000123"
+          amount = 1500
+        then query InvoiceById
+          arguments
+            invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          result
+            invoiceNumber = "INV-000123"
+            amount = 1500
+
+      specification RejectingAnInvoiceForNothing
+        when RegisterInvoice
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceNumber = "INV-000124"
+          customerId = "1f0c2d3e-4b5a-6789-abcd-ef0123456789"
+          amount = 0
+        then error "An invoice for nothing is not an invoice"
+
+      screen RegisterInvoice
+        title $strings.invoice.registerTitle
+        action RegisterInvoice
+          label $strings.invoice.register
+          navigate to InvoiceList

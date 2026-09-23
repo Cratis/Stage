@@ -1,0 +1,11 @@
+module Ledger
+  description
+    ```
+    The ledger is the part of billing that other systems talk to. It exists so the invoicing
+    module never has to know that a legacy system is still the system of record for payments.
+    ```
+
+  contribute to mainNav
+    navigate to PaymentList
+    label $strings.navigation.payments
+    order 3

@@ -1,0 +1,12 @@
+seed
+  for "acme"
+    InvoiceRegistered
+      invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+      invoiceNumber = "INV-000123"
+      customerId = "1f0c2d3e-4b5a-6789-abcd-ef0123456789"
+      amount = 1500
+      registeredBy = "seed"
+    InvoiceIssued
+      invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+      issuedOn = "2026-01-15"
+      amount = 1500

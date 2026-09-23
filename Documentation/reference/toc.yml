@@ -1,3 +1,5 @@
+- name: Projects
+  href: projects.md
 - name: URLs of a running Stage
   href: urls.md
 - name: Scene UI render plans

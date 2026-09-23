@@ -70,7 +70,7 @@ public class a_register_project_render_request : Specification
         var compilation = new SemanticModelCompiler().Compile(
             Corpus.ApplicationName,
             SemanticDocumentSet.Create([.. documents], catalog));
-        compilation.Success.ShouldBeTrue();
+        Xunit.Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         return compilation.Value!;
     }
 

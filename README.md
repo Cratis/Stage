@@ -102,9 +102,10 @@ Application scope adds exactly eight deterministic backend scaffold artifacts: `
 `appsettings.json`, and `docker-compose.yml`. The local MSBuild and central-package boundaries isolate the generated
 application from parent repositories. `Program.cs` remains active in Debug beside inline generated specifications;
 the project locally suppresses only their expected CS7022 entry-point warning. The profile pins .NET 10,
-Cratis/Arc 22.3.0, the verified specification dependencies, and
-`cratis/chronicle:16.35.3-development`. It emits no frontend, repository marker, `.gitignore`, floating version,
-random identifier, or destination-specific value.
+Cratis/Arc 22.19.1, the verified specification dependencies, and
+`cratis/chronicle:18.2.0-development`, matching the metapackage's Chronicle client. The frontend scaffold
+uses the same Arc era with Components 4.13.0, Scene 3.7.0, and Fundamentals 7.19.3. It emits no repository
+marker, floating version, random identifier, or destination-specific value.
 
 The generated compose contract intentionally binds local ports `27017` and `35000`. Start it with
 `docker compose up --detach`, run the generated project, and probe `/healthz`; stop it with
@@ -137,8 +138,12 @@ Arc authorization contracts instead. Query-pipeline rejections still prevent rea
 The host serves a browser bundle at `/`. It obtains `/stage/scene`, the Scene translation produced from the exact
 same compile as the runtime event model, and renders modeled screen content through `@cratis/scene.react`. Screen
 navigation works for translated navigation intents. For canvas models without explicit screens, the sandbox
-synthesizes query views and schema-based command forms, using the routes registered by Arc. This playback frontend
-is distinct from a standalone generated application and does not imply complete modeled UI or authorization support.
+synthesizes query views and command forms using the routes registered by Arc. Default scenes with
+String/Guid scalar commands declare exact proxy-named inputs (including required Guid identifiers) and a submit
+action; unsupported combinations show a diagnostic rather than a partial form. Authored screens take precedence.
+The standalone generated frontend pins Scene 3.7.0 for explicit command inputs, but native builds do not
+prove browser command submission or readback. This playback frontend is distinct from a standalone generated
+application and does not imply complete modeled UI or authorization support.
 
 ### Specification runner — model-level verification
 

@@ -1,7 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneScreens = Cratis.Scene.Model.Screens;
@@ -19,15 +21,15 @@ namespace Cratis.Stage.Rendering.Cratis.Scene;
 /// the screen by hand.
 /// </para>
 /// <para>
-/// It composes one command form per admitted command, bound by the command's semantic name. That is the
-/// component's whole purpose: it reads the command's own property descriptors and picks a field per
-/// property, so the form follows the command rather than going stale when a property is added.
+/// It composes one command form per admitted command, bound by the command's semantic name. Native
+/// String/Guid scalar descriptors use explicit inputs so required identifiers cannot be silently omitted.
+/// Commands entirely covered by AutoCommandForm's default field providers use its fallback; unsupported
+/// required descriptors instead receive a visible diagnostic, never a partial form.
 /// </para>
 /// <para>
-/// Keyed queries are deliberately <b>not</b> composed here. The released single-result component takes its
-/// argument from the host, which has committed it - there is no editable input binding yet (Cratis/Scene#39),
-/// so a composed keyed lookup could only ever render its idle state. Emitting one would put a permanently
-/// inert element on every generated screen and suggest a capability that does not exist.
+/// After semantic admission, uniquely named optional snapshot lookups with scalar string/Guid keys get an
+/// editable query input form. Only required, non-key own string/number/boolean result fields are selected,
+/// in stable semantic identity order. Unsupported or ambiguous lookups are omitted, never fabricated.
 /// </para>
 /// </remarks>
 internal static class DefaultSceneComposition
@@ -47,17 +49,24 @@ internal static class DefaultSceneComposition
         ArgumentNullException.ThrowIfNull(context);
 
         var commands = context.Commands.Values
-            .Select(_ => _.Name)
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)
+            .DistinctBy(_ => _.Name, StringComparer.Ordinal)
+            .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ToArray();
-        if (commands.Length == 0)
+        var queries = context.Queries.Values
+            .GroupBy(_ => _.Name, StringComparer.Ordinal)
+            .Where(_ => _.Count() == 1)
+            .Select(_ => _.Single())
+            .OrderBy(_ => _.Name, StringComparer.Ordinal)
+            .Select(query => QueryInputForm(context, query))
+            .OfType<SceneElements.SceneElement>()
+            .ToArray();
+        if (commands.Length == 0 && queries.Length == 0)
         {
             return null;
         }
 
         var layout = DefaultLayout.Create();
-        var elements = commands.Select(CommandForm).ToArray();
+        var elements = commands.Select(command => CommandForm(context, command)).Concat(queries).ToArray();
         var screen = new SceneScreens.Screen(
             context.Application.Name,
             layout.Name,
@@ -71,15 +80,128 @@ internal static class DefaultSceneComposition
         return new SceneApplication([], [], [layout], [], [], [screen]);
     }
 
-    static SceneElements.SceneElement CommandForm(string command) =>
-        new SceneElements.ExternalComponent
+    static SceneElements.ExternalComponent? QueryInputForm(SemanticApplicationContext context, SemanticKeyedQuery query)
+    {
+        var keyType = Scalar(context, query.Argument.Type);
+        if (query.Cardinality != SemanticQueryCardinality.ZeroOrOne || query.Delivery != SemanticQueryDelivery.Snapshot ||
+            keyType is not (SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid))
         {
-            Id = command,
-            Name = command,
-            ComponentName = CommandFormComponent,
+            return null;
+        }
+
+        var result = context.ReadModels[query.ReadModel].Properties
+            .Where(property => property.Id != query.KeyProperty && !property.IsIdentifier && !property.Type.IsOptional &&
+                Scalar(context, property.Type) is SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber or
+                    SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean)
+            .OrderBy(property => property.Id.ToString(), StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (result is null)
+        {
+            return null;
+        }
+
+        var input = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["parameter"] = Identifiers.ToCamelCase(query.Argument.Name),
+            ["type"] = "string",
+            ["label"] = Identifiers.ToWords(query.Argument.Name),
+            ["required"] = !query.Argument.Type.IsOptional
+        };
+        if (keyType == SemanticPrimitiveType.Uuid)
+        {
+            input["label"] = $"{Identifiers.ToWords(query.Argument.Name)} (GUID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)";
+
+            // Scene validates this whole-value Unicode pattern before the native proxy can perform HTTP.
+            // Require the entire canonical dashed format without trimming or normalizing the entered value.
+            input["pattern"] = @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?![\s\S])";
+        }
+
+        return new SceneElements.ExternalComponent
+        {
+            Id = $"query:{query.Id}",
+            Name = query.Name,
+            ComponentName = "Cratis.Components:queryInputForm",
             Properties = new Dictionary<string, object?>(StringComparer.Ordinal)
             {
-                ["command"] = command
+                ["query"] = query.Name,
+                ["inputs"] = new[] { input },
+                ["resultField"] = ProxyPropertyName(result.Name),
+                ["label"] = $"Find {Identifiers.ToWords(context.ReadModels[query.ReadModel].Name)}",
+                ["submitLabel"] = "Search"
             }
         };
+    }
+
+    static SemanticPrimitiveType Scalar(SemanticApplicationContext context, SemanticTypeReference type) =>
+        type.IsCollection ? SemanticPrimitiveType.Unknown : type.Kind switch
+        {
+            SemanticTypeReferenceKind.Primitive => type.Primitive,
+            SemanticTypeReferenceKind.Concept when context.Concepts[type.Target].Values.IsEmpty => context.Concepts[type.Target].Primitive,
+            _ => SemanticPrimitiveType.Unknown
+        };
+
+    static string ProxyPropertyName(string name)
+    {
+        var member = Identifiers.ToPascalCase(name);
+
+        // Arc's proxy naming preserves leading acronyms; parameters already start in Stage's camel case.
+        return member.Length >= 2 && char.IsUpper(member[0]) && char.IsUpper(member[1])
+            ? member
+            : char.ToLowerInvariant(member[0]) + member[1..];
+    }
+
+    static SceneElements.ExternalComponent CommandForm(SemanticApplicationContext context, SemanticCommand command)
+    {
+        // Arc uses PascalCase CLR members for the proxy and camel-cases them except for leading acronyms.
+        // A normalized collision would bind two different semantic values to one native descriptor.
+        var properties = command.Properties.Select(property => (Property: property, Name: ProxyPropertyName(property.Name), Type: Scalar(context, property.Type))).ToArray();
+        var collision = properties.GroupBy(_ => _.Name, StringComparer.Ordinal).FirstOrDefault(_ => _.Count() > 1);
+        var explicitInputs = properties.All(_ => _.Type is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid);
+        var autoInputs = properties.All(_ => _.Type is SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber or
+            SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date);
+        string? invalid = null;
+        if (collision is not null)
+        {
+            invalid = $"Command {command.Name} cannot be composed: proxy property collision '{collision.Key}'.";
+        }
+        else if (!explicitInputs && !autoInputs)
+        {
+            invalid = $"Command {command.Name} cannot be composed: no complete field strategy for properties ({string.Join(", ", properties.Select(_ => _.Property.Name).Order(StringComparer.Ordinal))}).";
+        }
+        if (invalid is not null)
+        {
+            return new SceneElements.ExternalComponent
+            {
+                Id = command.Name,
+                Name = command.Name,
+                ComponentName = "core:text",
+                Properties = new Dictionary<string, object?>(StringComparer.Ordinal) { ["text"] = invalid }
+            };
+        }
+
+        var form = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["command"] = command.Name,
+            ["submitLabel"] = "Submit"
+        };
+        if (explicitInputs && properties.Any(_ => _.Type == SemanticPrimitiveType.Uuid))
+        {
+            form["inputs"] = properties.OrderBy(_ => _.Name, StringComparer.Ordinal)
+                .Select(_ => new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["property"] = _.Name,
+                    ["type"] = _.Type == SemanticPrimitiveType.Uuid ? "guid" : "string",
+                    ["label"] = string.Join(' ', Identifiers.ToWords(_.Property.Name).Split(' ').Select(word =>
+                        word.Equals("id", StringComparison.OrdinalIgnoreCase) ? "ID" : char.ToUpperInvariant(word[0]) + word[1..]))
+                }).ToArray();
+        }
+
+        return new SceneElements.ExternalComponent
+        {
+            Id = command.Name,
+            Name = command.Name,
+            ComponentName = CommandFormComponent,
+            Properties = form
+        };
+    }
 }

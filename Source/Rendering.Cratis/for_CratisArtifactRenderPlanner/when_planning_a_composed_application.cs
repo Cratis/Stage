@@ -30,7 +30,13 @@ public class when_planning_a_composed_application : a_composed_register_project_
         Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain("from '../Projects/Registration/ProjectLookup'");
 
     [Fact] void should_register_the_keyed_query_under_its_semantic_name() =>
-        Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain("registerQueries({ProjectById});");
+        Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain($"registerQueryIdentity(\"ProjectById\", \"{_projectLookup.Queries.Single().Id}\", __sceneQuery0);");
+
+    [Fact] void should_preserve_the_authored_scene_bytes_instead_of_adding_a_default_lookup() =>
+        Text(Artifact(SceneCompositionInput.RelativePath)!).ShouldEqual(CanonicalSceneJson.Serialize(_scene));
+
+    [Fact] void should_not_duplicate_identity_bindings_in_the_legacy_registry() =>
+        Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldNotContain("registerQueries");
 
     /// <summary>
     /// A query or command route is a runtime fact owned by Arc. A generated application that embedded one would

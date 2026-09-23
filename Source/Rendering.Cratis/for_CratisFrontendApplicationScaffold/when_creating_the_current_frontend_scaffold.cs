@@ -45,6 +45,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_reference_the_component_stack() => _first.Any(input => Text(input).Contains("@cratis/components", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_reference_the_scene_packages() => _first.Any(input => Text(input).Contains("@cratis/scene.components", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_mount_the_arc_provider() => Content(".frontend/main.tsx").ShouldContain("<Arc>");
+    [Fact] void should_import_the_published_component_styles_before_local_overrides() => Content(".frontend/index.css").Split('\n')[0].ShouldEqual("@import '@cratis/components/styles';");
 
     /// <summary>
     /// The composed screen renders through the component library, which the maintained reference application
@@ -57,6 +58,8 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_read_the_composition_the_planner_emitted() => Content(".frontend/main.tsx").ShouldContain("from '../scene.json'");
     [Fact] void should_register_the_generated_proxies_before_rendering() => Content(".frontend/main.tsx").ShouldContain("import '../src/bindings'");
     [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("cratisComponentsPackage.components");
+    [Fact] void should_render_core_diagnostics_and_cratis_components_through_one_registry() =>
+        Content(".frontend/main.tsx").ShouldContain("{ ...coreComponents, ...cratisComponentsPackage.components }");
     [Fact] void should_load_the_metadata_reflection_polyfill_first() => Content(".frontend/main.tsx").Split('\n')[0].ShouldEqual("import 'reflect-metadata';");
     [Fact] void should_build_into_the_hosted_web_root() => Content(".frontend/vite.config.ts").ShouldContain("outDir: '../wwwroot'");
     [Fact] void should_emit_arc_metadata_for_the_frontend() => Content(".frontend/vite.config.ts").ShouldContain("EmitMetadataPlugin");
@@ -91,15 +94,15 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         '|',
         new[]
         {
-            "@cratis/arc=22.16.1",
-            "@cratis/arc.react=22.16.1",
-            "@cratis/arc.vite=22.16.1",
-            "@cratis/components=4.9.0",
+            "@cratis/arc=22.19.1",
+            "@cratis/arc.react=22.19.1",
+            "@cratis/arc.vite=22.19.1",
+            "@cratis/components=4.13.0",
             "@cratis/fundamentals=7.19.3",
-            "@cratis/scene.components=3.5.0",
-            "@cratis/scene.engine=3.5.0",
-            "@cratis/scene.model=3.5.0",
-            "@cratis/scene.react=3.5.0",
+            "@cratis/scene.components=3.7.0",
+            "@cratis/scene.engine=3.7.0",
+            "@cratis/scene.model=3.7.0",
+            "@cratis/scene.react=3.7.0",
             "@primereact/core=11.1.0",
             "@primereact/headless=11.1.0",
             "@primereact/hooks=11.1.0",

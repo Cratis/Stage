@@ -16,11 +16,16 @@ module Invoicing
       projection InvoiceSummaryProjection => InvoiceSummary
         from InvoiceRegistered key invoiceId
           invoiceNumber = invoiceNumber
+          customerName = customerName
           amount = amount
+          status = "draft"
+          canCancel = true
         from InvoiceIssued key invoiceId
           status = "issued"
+          canCancel = true
         from InvoiceCancelled key invoiceId
           status = "cancelled"
+          canCancel = false
 
       query Invoices => observable InvoiceSummary[]
         description "Every invoice the caller is allowed to see"

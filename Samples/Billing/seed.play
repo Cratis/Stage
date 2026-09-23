@@ -4,6 +4,7 @@ seed
       invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
       invoiceNumber = "INV-000123"
       customerId = "1f0c2d3e-4b5a-6789-abcd-ef0123456789"
+      customerName = "Acme"
       amount = 1500
       registeredBy = "seed"
     InvoiceIssued

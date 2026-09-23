@@ -21,9 +21,10 @@ namespace Cratis.Stage.Rendering.Cratis.Scene;
 /// the screen by hand.
 /// </para>
 /// <para>
-/// It composes one command form per admitted command, bound by the command's semantic name. That is the
-/// component's whole purpose: it reads the command's own property descriptors and picks a field per
-/// property, so the form follows the command rather than going stale when a property is added.
+/// It composes one command form per admitted command, bound by the command's semantic name. Native
+/// String/Guid scalar descriptors use explicit inputs so required identifiers cannot be silently omitted.
+/// Commands entirely covered by AutoCommandForm's default field providers use its fallback; unsupported
+/// required descriptors instead receive a visible diagnostic, never a partial form.
 /// </para>
 /// <para>
 /// After semantic admission, uniquely named optional snapshot lookups with scalar string/Guid keys get an
@@ -48,9 +49,8 @@ internal static class DefaultSceneComposition
         ArgumentNullException.ThrowIfNull(context);
 
         var commands = context.Commands.Values
-            .Select(_ => _.Name)
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)
+            .DistinctBy(_ => _.Name, StringComparer.Ordinal)
+            .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ToArray();
         var queries = context.Queries.Values
             .GroupBy(_ => _.Name, StringComparer.Ordinal)
@@ -66,7 +66,7 @@ internal static class DefaultSceneComposition
         }
 
         var layout = DefaultLayout.Create();
-        var elements = commands.Select(CommandForm).Concat(queries).ToArray();
+        var elements = commands.Select(command => CommandForm(context, command)).Concat(queries).ToArray();
         var screen = new SceneScreens.Screen(
             context.Application.Name,
             layout.Name,
@@ -150,15 +150,58 @@ internal static class DefaultSceneComposition
             : char.ToLowerInvariant(member[0]) + member[1..];
     }
 
-    static SceneElements.SceneElement CommandForm(string command) =>
-        new SceneElements.ExternalComponent
+    static SceneElements.ExternalComponent CommandForm(SemanticApplicationContext context, SemanticCommand command)
+    {
+        // Arc uses PascalCase CLR members for the proxy and camel-cases them except for leading acronyms.
+        // A normalized collision would bind two different semantic values to one native descriptor.
+        var properties = command.Properties.Select(property => (Property: property, Name: ProxyPropertyName(property.Name), Type: Scalar(context, property.Type))).ToArray();
+        var collision = properties.GroupBy(_ => _.Name, StringComparer.Ordinal).FirstOrDefault(_ => _.Count() > 1);
+        var explicitInputs = properties.All(_ => _.Type is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid);
+        var autoInputs = properties.All(_ => _.Type is SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber or
+            SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date);
+        string? invalid = null;
+        if (collision is not null)
         {
-            Id = command,
-            Name = command,
-            ComponentName = CommandFormComponent,
-            Properties = new Dictionary<string, object?>(StringComparer.Ordinal)
+            invalid = $"Command {command.Name} cannot be composed: proxy property collision '{collision.Key}'.";
+        }
+        else if (!explicitInputs && !autoInputs)
+        {
+            invalid = $"Command {command.Name} cannot be composed: no complete field strategy for properties ({string.Join(", ", properties.Select(_ => _.Property.Name).Order(StringComparer.Ordinal))}).";
+        }
+        if (invalid is not null)
+        {
+            return new SceneElements.ExternalComponent
             {
-                ["command"] = command
-            }
+                Id = command.Name,
+                Name = command.Name,
+                ComponentName = "core:text",
+                Properties = new Dictionary<string, object?>(StringComparer.Ordinal) { ["text"] = invalid }
+            };
+        }
+
+        var form = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["command"] = command.Name,
+            ["submitLabel"] = "Submit"
         };
+        if (explicitInputs && properties.Any(_ => _.Type == SemanticPrimitiveType.Uuid))
+        {
+            form["inputs"] = properties.OrderBy(_ => _.Name, StringComparer.Ordinal)
+                .Select(_ => new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["property"] = _.Name,
+                    ["type"] = _.Type == SemanticPrimitiveType.Uuid ? "guid" : "string",
+                    ["label"] = string.Join(' ', Identifiers.ToWords(_.Property.Name).Split(' ').Select(word =>
+                        word.Equals("id", StringComparison.OrdinalIgnoreCase) ? "ID" : char.ToUpperInvariant(word[0]) + word[1..]))
+                }).ToArray();
+        }
+
+        return new SceneElements.ExternalComponent
+        {
+            Id = command.Name,
+            Name = command.Name,
+            ComponentName = CommandFormComponent,
+            Properties = form
+        };
+    }
 }

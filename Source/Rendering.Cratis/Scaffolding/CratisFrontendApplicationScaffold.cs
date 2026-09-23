@@ -168,7 +168,7 @@ public sealed class CratisFrontendApplicationScaffold
         import ReactDOM from 'react-dom/client';
         import { Arc } from '@cratis/arc.react';
         import { CratisComponentsProvider } from '@cratis/components';
-        import { SceneElementView } from '@cratis/scene.react';
+        import { SceneElementView, coreComponents } from '@cratis/scene.react';
         import { cratisComponentsPackage } from '@cratis/scene.components';
         import type { Screen } from '@cratis/scene.model';
         import composition from '../scene.json';
@@ -183,6 +183,7 @@ public sealed class CratisFrontendApplicationScaffold
         const scene = composition as unknown as { screens: Screen[] };
         const screen = scene.screens[0];
         const elements = screen ? Object.values(screen.slotContent).flat() : [];
+        const components = { ...coreComponents, ...cratisComponentsPackage.components };
 
         ReactDOM.createRoot(document.getElementById('root')!).render(
             <React.StrictMode>
@@ -193,7 +194,7 @@ public sealed class CratisFrontendApplicationScaffold
                                 <SceneElementView
                                     key={element.id}
                                     element={element}
-                                    registry={cratisComponentsPackage.components}
+                                    registry={components}
                                     resolveBinding={() => undefined} />
                             ))}
                         </main>

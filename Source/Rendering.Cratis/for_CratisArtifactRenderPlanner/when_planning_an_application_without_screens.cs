@@ -34,6 +34,19 @@ public class when_planning_an_application_without_screens : a_register_project_r
     [Fact] void should_plan_without_errors() => _plan.Diagnostics.ShouldBeEmpty();
     [Fact] void should_emit_the_binding_module() => Artifact(SceneBindingsRenderer.RelativePath).ShouldNotBeNull();
     [Fact] void should_keep_the_command_form() => _elements.Single(_ => _.GetProperty("componentName").GetString() == "Cratis.Components:commandForm").GetProperty("properties").GetProperty("command").GetString().ShouldEqual("RegisterProject");
+    [Fact] void should_match_the_emitted_command_members_and_native_proxy_descriptors()
+    {
+        var command = _elements.Single(_ => _.GetProperty("componentName").GetString() == "Cratis.Components:commandForm").GetProperty("properties");
+        command.GetProperty("submitLabel").GetString().ShouldEqual("Submit");
+        var fields = command.GetProperty("inputs").EnumerateArray().Select(_ => (
+            Name: _.GetProperty("property").GetString(), Type: _.GetProperty("type").GetString())).ToArray();
+        fields.ShouldContainOnly([("name", "string"), ("projectId", "guid")]);
+        command.GetProperty("inputs").EnumerateArray().All(_ => string.Join('|', _.EnumerateObject().Select(property => property.Name)) == "label|property|type").ShouldBeTrue();
+        var csharp = Text(Artifact("Projects/Registration/RegisterProject/RegisterProject.cs")!);
+        csharp.ShouldContain("public record RegisterProject(ProjectId ProjectId, ProjectName Name)");
+        Text(Artifact("Common/ProjectId.cs")!).ShouldContain("Guid");
+        Text(Artifact("Common/ProjectName.cs")!).ShouldContain("string");
+    }
     [Fact] void should_bind_the_command_as_before() => Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain("registerCommands({RegisterProject});");
     [Fact] void should_compose_only_the_modeled_command_and_query() => _elements.Length.ShouldEqual(2);
     [Fact] void should_have_unique_element_ids() => _elements.Select(_ => _.GetProperty("id").GetString()).Distinct(StringComparer.Ordinal).Count().ShouldEqual(_elements.Length);
@@ -48,7 +61,7 @@ public class when_planning_an_application_without_screens : a_register_project_r
     [Fact] void should_admit_upper_and_lower_case_dashed_guids() => new[] { "11223344-5566-7788-99aa-bbccddeeff00", "11223344-5566-7788-99AA-BBCCDDEEFF00" }.All(MatchesPattern).ShouldBeTrue();
     [Fact] void should_reject_malformed_nonempty_keys_before_execution() => new[] { "not-a-guid", "112233445566778899aabbccddeeff00", "{11223344-5566-7788-99aa-bbccddeeff00}", "11223344-5566-7788-99aa-bbccddeeff00\n", " 11223344-5566-7788-99aa-bbccddeeff00" }.Any(MatchesPattern).ShouldBeFalse();
     [Fact] void should_not_mutate_the_profile() => _request.Profile.Inputs.Select(_ => _.Sha256).SequenceEqual(_profileHashes).ShouldBeTrue();
-    [Fact] void should_freeze_the_complete_default_scene_bytes() => Artifact(SceneCompositionInput.RelativePath)!.Sha256.ShouldEqual("4da85b50c6e97181d25b049faeab68475571a7a7a85d5cbbe0954a57dc7c0486");
+    [Fact] void should_freeze_the_complete_default_scene_bytes() => Artifact(SceneCompositionInput.RelativePath)!.Sha256.ShouldEqual("3d311c4eca9285c62f6909e87a3c0c4f369e5dc818de3beb855d75ea914f48f4");
     [Fact] void should_freeze_the_complete_binding_module_bytes() => Artifact(SceneBindingsRenderer.RelativePath)!.Sha256.ShouldEqual("4823d01d04ac795068ac52d87afc3e7be57c826dda63b005f1c3e7a057196f2f");
     [Fact] void should_repeat_the_exact_scene_bytes() => _planner.Plan(_request).Artifacts.Single(_ => _.RelativePath == SceneCompositionInput.RelativePath).Bytes.SequenceEqual(Artifact(SceneCompositionInput.RelativePath)!.Bytes).ShouldBeTrue();
     [Fact] void should_not_emit_http_literals_or_unmodeled_queries() => new[] { "http://", "https://", "/api/", "AllProjects" }.Any(value => Text(Artifact(SceneCompositionInput.RelativePath)!).Contains(value, StringComparison.Ordinal)).ShouldBeFalse();

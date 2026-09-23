@@ -58,6 +58,8 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_read_the_composition_the_planner_emitted() => Content(".frontend/main.tsx").ShouldContain("from '../scene.json'");
     [Fact] void should_register_the_generated_proxies_before_rendering() => Content(".frontend/main.tsx").ShouldContain("import '../src/bindings'");
     [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("cratisComponentsPackage.components");
+    [Fact] void should_render_core_diagnostics_and_cratis_components_through_one_registry() =>
+        Content(".frontend/main.tsx").ShouldContain("{ ...coreComponents, ...cratisComponentsPackage.components }");
     [Fact] void should_load_the_metadata_reflection_polyfill_first() => Content(".frontend/main.tsx").Split('\n')[0].ShouldEqual("import 'reflect-metadata';");
     [Fact] void should_build_into_the_hosted_web_root() => Content(".frontend/vite.config.ts").ShouldContain("outDir: '../wwwroot'");
     [Fact] void should_emit_arc_metadata_for_the_frontend() => Content(".frontend/vite.config.ts").ShouldContain("EmitMetadataPlugin");

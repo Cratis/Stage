@@ -138,7 +138,11 @@ Arc authorization contracts instead. Query-pipeline rejections still prevent rea
 The host serves a browser bundle at `/`. It obtains `/stage/scene`, the Scene translation produced from the exact
 same compile as the runtime event model, and renders modeled screen content through `@cratis/scene.react`. Screen
 navigation works for translated navigation intents. For canvas models without explicit screens, the sandbox
-synthesizes query views and schema-based command forms, using the routes registered by Arc. This playback frontend
+synthesizes query views and command forms using the routes registered by Arc. Default scenes with
+String/Guid scalar commands declare exact proxy-named inputs (including required Guid identifiers) and a submit
+action; unsupported combinations show a diagnostic rather than a partial form. Authored screens take precedence.
+The explicit command form requires a Scene release newer than the currently pinned 3.6.0; until coordinated
+publication and a dependency bump, these generated inputs cannot be exercised by the published frontend. This playback frontend
 is distinct from a standalone generated application and does not imply complete modeled UI or authorization support.
 
 ### Specification runner — model-level verification

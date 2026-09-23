@@ -67,6 +67,46 @@ public class when_selecting_editable_lookups : a_register_project_render_request
     [Fact] void should_be_independent_of_property_enumeration_order_with_multiple_eligible_fields() => CanonicalSceneJson.Serialize(DefaultSceneComposition.Create(Context(reverse: true, additional: true))!).ShouldEqual(CanonicalSceneJson.Serialize(DefaultSceneComposition.Create(Context(additional: true))!));
     [Fact] void should_skip_an_unsupported_field_in_favor_of_an_actual_scalar() => Elements(Context(result: Result(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Uuid)), additional: true)).Single(IsLookup).GetProperty("properties").GetProperty("resultField").GetString().ShouldEqual("displayName");
 
+    [Fact] void should_render_both_canonical_command_properties_as_explicit_native_inputs()
+    {
+        var form = Command(Context()).GetProperty("properties");
+        form.GetProperty("command").GetString().ShouldEqual("RegisterProject");
+        form.GetProperty("submitLabel").GetString().ShouldEqual("Submit");
+        var inputs = form.GetProperty("inputs").EnumerateArray().ToArray();
+        inputs.Select(_ => _.GetProperty("property").GetString()).ShouldContainOnly(["name", "projectId"]);
+        inputs.Single(_ => _.GetProperty("property").GetString() == "projectId").GetProperty("type").GetString().ShouldEqual("guid");
+        inputs.Single(_ => _.GetProperty("property").GetString() == "name").GetProperty("type").GetString().ShouldEqual("string");
+        inputs.All(_ => string.Join('|', _.EnumerateObject().Select(property => property.Name)) == "label|property|type").ShouldBeTrue();
+        inputs.Single(_ => _.GetProperty("property").GetString() == "projectId").GetProperty("label").GetString().ShouldEqual("Project ID");
+    }
+
+    [Fact] void should_show_a_diagnostic_instead_of_a_partial_form_for_an_unsupported_required_property()
+    {
+        var element = Command(Context(commandProperties: [.. CommandProperties, CommandProperties[0] with
+        {
+            Id = SemanticId.Create(SemanticAddress.ForApplication(ApplicationIdentity.Create("UnsupportedCommandProperty"))),
+            Name = "details",
+            Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text) with { IsCollection = true }
+        }]));
+        element.GetProperty("componentName").GetString().ShouldEqual("core:text");
+        element.GetProperty("properties").GetProperty("text").GetString().ShouldContain("details");
+        element.GetProperty("properties").TryGetProperty("inputs", out _).ShouldBeFalse();
+    }
+
+    [Fact] void should_reject_proxy_property_collisions_instead_of_binding_two_values_to_one_input()
+    {
+        var element = Command(Context(commandProperties: [.. CommandProperties, CommandProperties[0] with
+        {
+            Id = SemanticId.Create(SemanticAddress.ForApplication(ApplicationIdentity.Create("CollidingCommandProperty"))),
+            Name = "project_id"
+        }]));
+        element.GetProperty("componentName").GetString().ShouldEqual("core:text");
+        element.GetProperty("properties").GetProperty("text").GetString().ShouldContain("collision 'projectId'");
+    }
+
+    SemanticProperty[] CommandProperties => [.. _registerProject.Commands.Single().Properties];
+    static JsonElement Command(SemanticApplicationContext context) => Elements(context).Single(_ => _.GetProperty("id").GetString() == "RegisterProject");
+
     SemanticKeyedQuery Query => _projectLookup.Queries.Single();
     SemanticProperty NonKey => _projectLookup.ReadModels.Single().Properties.Single(_ => _.Id != Query.KeyProperty);
 
@@ -77,7 +117,7 @@ public class when_selecting_editable_lookups : a_register_project_render_request
 
     SemanticProperty Result(SemanticTypeReference type) => NonKey with { Type = type };
 
-    SemanticApplicationContext Context(SemanticKeyedQuery? query = null, SemanticProperty? result = null, bool onlyKey = false, bool noQuery = false, bool noCommands = false, bool reverse = false, bool additional = false)
+    SemanticApplicationContext Context(SemanticKeyedQuery? query = null, SemanticProperty? result = null, bool onlyKey = false, bool noQuery = false, bool noCommands = false, bool reverse = false, bool additional = false, SemanticProperty[]? commandProperties = null)
     {
         var readModel = _projectLookup.ReadModels.Single();
         var properties = readModel.Properties.Where(_ => !onlyKey || _.Id == Query.KeyProperty)
@@ -98,7 +138,7 @@ public class when_selecting_editable_lookups : a_register_project_render_request
             Queries = noQuery ? [] : [query ?? Query],
             ReadModels = [readModel with { Properties = [.. reverse ? properties.Reverse() : properties] }]
         };
-        var registration = _registerProject with { Commands = noCommands ? [] : _registerProject.Commands, Specifications = [] };
+        var registration = _registerProject with { Commands = noCommands ? [] : [.. _registerProject.Commands.Select(_ => _ with { Properties = commandProperties is null ? _.Properties : [.. commandProperties] })], Specifications = [] };
         var feature = _feature with { Slices = [registration, lookup] };
         var application = _model.Application with { Modules = [_module with { Features = [feature] }] };
         var request = new ArtifactRenderRequest(ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, application), _executionPlan, _request.Profile, _request.Scope);

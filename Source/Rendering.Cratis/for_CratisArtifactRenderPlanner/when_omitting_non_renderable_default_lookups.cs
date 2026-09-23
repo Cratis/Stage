@@ -78,7 +78,17 @@ public class when_omitting_non_renderable_default_lookups : a_register_project_r
 
         using var scene = JsonDocument.Parse(Text(plan.Artifacts.Single(_ => _.RelativePath == SceneCompositionInput.RelativePath)));
         var elements = scene.RootElement.GetProperty("screens")[0].GetProperty("slotContent").GetProperty(DefaultLayout.ContentSlotName).EnumerateArray().ToArray();
-        elements.Count(_ => _.GetProperty("componentName").GetString() == "Cratis.Components:commandForm").ShouldEqual(1);
+
+        // A required Guid plus a Date/DateTime/composite cannot use either Scene's all-String/Guid
+        // explicit mode or its default-only auto mode. Preserve its screen position as a visible
+        // diagnostic rather than mounting an incomplete native command form.
+        var command = elements.Single(_ => _.GetProperty("id").GetString() == "RegisterProject");
+        var supported = resultType.Equals("String", StringComparison.Ordinal) || resultType.Equals("Uuid", StringComparison.Ordinal);
+        command.GetProperty("componentName").GetString().ShouldEqual(supported ? "Cratis.Components:commandForm" : "core:text");
+        if (!supported)
+        {
+            command.GetProperty("properties").GetProperty("text").GetString().ShouldContain("value");
+        }
         elements.Any(_ => _.GetProperty("componentName").GetString() == "Cratis.Components:queryInputForm").ShouldEqual(expectLookup);
         if (expectLookup)
         {

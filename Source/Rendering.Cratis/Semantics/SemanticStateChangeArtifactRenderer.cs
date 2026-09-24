@@ -71,7 +71,7 @@ internal static class SemanticStateChangeArtifactRenderer
             return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
         });
 
-        var destination = (SemanticResolvedExpression)produced.Destination!;
+        var destination = (SemanticResolvedExpression)SemanticDestinations.Of(command, produced)!;
         var destinationProperty = command.Properties.Single(_ => _.Id == destination.Target);
         var destinationExpression = types.EventSourceExpression(Identifiers.ToPascalCase(destinationProperty.Name), destinationProperty.Type);
 

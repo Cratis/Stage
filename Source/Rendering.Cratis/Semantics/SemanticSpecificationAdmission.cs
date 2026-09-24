@@ -24,7 +24,8 @@ internal static class SemanticSpecificationAdmission
     {
         foreach (var specification in slice.Specifications)
         {
-            var valid = context.Commands.TryGetValue(specification.When.Command, out var command) &&
+            var valid = specification.When is not null &&
+                context.Commands.TryGetValue(specification.When.Command, out var command) &&
                 specification.GivenEvents.IsEmpty && specification.GivenReadModels.IsEmpty &&
                 ValuesMatch(specification.When.Values, command?.Properties ?? []) &&
                 HasOneOutcome(specification) && HasSupportedCounts(specification) &&
@@ -33,7 +34,8 @@ internal static class SemanticSpecificationAdmission
                 specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
                     HasExpectedProjectionEvent(context, specification, expected)) &&
                 specification.ThenQueries.All(expected => QueryMatches(context, expected)) &&
-                specification.ThenErrors.All(_ => _.Code is null);
+                specification.ThenErrors.All(_ => _.Code is null) &&
+                HasRenderableEventSources(specification);
 
             if (!valid)
             {
@@ -44,6 +46,20 @@ internal static class SemanticSpecificationAdmission
                     specification.Id));
             }
         }
+    }
+
+    // An explicit ESM v2 source is asserted on the appended event, so an accepted specification that states one
+    // must also expect that event, and every source it states must name the same stream. A rejection appends
+    // nothing, so the reference runner never compares its command source.
+    static bool HasRenderableEventSources(SemanticSpecification specification)
+    {
+        if (!specification.ThenErrors.IsEmpty)
+        {
+            return true;
+        }
+
+        var sources = SemanticDestinations.Explicit(specification).Distinct().ToArray();
+        return sources.Length == 0 || (sources.Length == 1 && !specification.ThenEvents.IsEmpty && sources.All(_ => IsScalar(_.Value)));
     }
 
     static bool HasOneOutcome(SemanticSpecification specification)

@@ -25,7 +25,23 @@ public class when_classifying_semantic_members
     [Fact] public void should_classify_every_validation_rule_kind() => AssertCoverage(
         [SemanticValidationRuleKind.NotEmpty],
         [SemanticValidationRuleKind.Unknown, SemanticValidationRuleKind.Maximum, SemanticValidationRuleKind.Minimum,
-            SemanticValidationRuleKind.Equal, SemanticValidationRuleKind.NotEqual]);
+            SemanticValidationRuleKind.Equal, SemanticValidationRuleKind.NotEqual, SemanticValidationRuleKind.GreaterThan,
+            SemanticValidationRuleKind.GreaterThanOrEqual, SemanticValidationRuleKind.LessThan,
+            SemanticValidationRuleKind.LessThanOrEqual, SemanticValidationRuleKind.Length, SemanticValidationRuleKind.AllGreaterThan,
+            SemanticValidationRuleKind.AllGreaterThanOrEqual, SemanticValidationRuleKind.Matches]);
+
+    // A failure rejects at every severity, but only the default error severity renders as stated.
+    [Fact] public void should_classify_every_validation_severity() => AssertCoverage(
+        [SemanticValidationSeverity.Error],
+        [SemanticValidationSeverity.Information, SemanticValidationSeverity.Warning]);
+
+    // Command occurrence values have no exact realization in a command handler; the event-source identity is
+    // read from the event context by projections, which the first read capability does not render yet.
+    [Fact] public void should_classify_every_event_context_value_kind() => AssertCoverage(
+        [],
+        [SemanticEventContextValueKind.Unknown, SemanticEventContextValueKind.EventSourceIdentity,
+            SemanticEventContextValueKind.Occurred, SemanticEventContextValueKind.CausedBySubject,
+            SemanticEventContextValueKind.CausedByName, SemanticEventContextValueKind.CausedByUserName]);
 
     // Mapping expressions only support resolved properties; specification values are rendered separately.
     [Fact] public void should_classify_every_mapping_expression_kind() => AssertCoverage(

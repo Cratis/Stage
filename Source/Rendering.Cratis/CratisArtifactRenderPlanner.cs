@@ -107,18 +107,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         foreach (var located in slices)
         {
-            var file = located.Slice.Kind switch
-            {
-                SemanticSliceKind.StateChange => SemanticStateChangeArtifactRenderer.Render(located, context),
-                SemanticSliceKind.StateView => SemanticStateViewArtifactRenderer.Render(located, context),
-                _ => throw UnsupportedSemanticRendering.For(nameof(SemanticSliceKind), located.Slice.Kind)
-            };
-            artifacts.Add(Artifact(file));
-
-            foreach (var specification in located.Slice.Specifications)
-            {
-                artifacts.AddRange(SemanticSpecificationArtifactRenderer.Render(specification, context).Select(Artifact));
-            }
+            var renderer = SemanticSliceArtifactRenderers.Ordered.FirstOrDefault(_ => _.Handles(located)) ??
+                throw UnsupportedSemanticRendering.For(nameof(SemanticSliceKind), located.Slice.Kind);
+            artifacts.AddRange(renderer.Render(located, context).Select(Artifact));
         }
 
         return CreatePlan(request, artifacts, diagnostics);

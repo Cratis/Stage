@@ -39,7 +39,13 @@ internal static class SemanticCommandSpecificationRenderer
             builder.Using($"{context.RootNamespace}.Common");
         }
 
-        foreach (var expected in specification.ThenEvents)
+        if (!specification.GivenEvents.IsEmpty)
+        {
+            builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
+                .Using("Cratis.Chronicle.Events");
+        }
+
+        foreach (var expected in specification.GivenEvents.Concat(specification.ThenEvents))
         {
             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(expected.EventContract).Path);
             if (!string.Equals(eventNamespace, SliceNaming.Namespace(context.RootNamespace, located.Path), StringComparison.Ordinal))
@@ -59,8 +65,35 @@ internal static class SemanticCommandSpecificationRenderer
         builder.OpenBlock($"public class {behavior} : Specification, IDisposable")
             .Line($"readonly CommandScenario<{commandName}> _scenario = new();")
             .Line("CommandResult _result = null!;")
-            .BlankLine()
-            .Line($"async Task Because() => _result = await _scenario.Execute(new {commandName}({string.Join(", ", arguments)}));")
+            .BlankLine();
+
+        if (!specification.GivenEvents.IsEmpty)
+        {
+            builder.OpenBlock("void Establish()");
+        }
+
+        foreach (var given in specification.GivenEvents)
+        {
+            var @event = context.Events[given.EventContract];
+            var source = given.EventSource!;
+            if (SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
+                @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
+                    given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
+            {
+                builder.Using($"{context.RootNamespace}.Common");
+            }
+
+            var eventArguments = @event.Properties.Select(property =>
+                types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+            builder.Line($"_scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)}));");
+        }
+
+        if (!specification.GivenEvents.IsEmpty)
+        {
+            builder.EndBlock().BlankLine();
+        }
+
+        builder.Line($"async Task Because() => _result = await _scenario.Execute(new {commandName}({string.Join(", ", arguments)}));")
             .BlankLine();
 
         if (!specification.ThenErrors.IsEmpty)

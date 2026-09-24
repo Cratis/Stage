@@ -52,8 +52,8 @@ public class when_planning_a_captured_register_project_application : a_register_
             .Select(_ => Convert.ToHexString(SHA256.HashData(_.Bytes.AsSpan())).ToLowerInvariant()));
     }
 
-    [Fact] void should_capture_both_canonical_physical_forms() => Corpus.SourceForms.Select(_ => _.Name).ShouldEqual("single", "folder");
-    [Fact] void should_admit_both_semantic_compilations() => _compilations.Count.ShouldEqual(2);
+    [Fact] void should_capture_every_canonical_physical_form() => Corpus.SourceForms.Select(_ => _.Name).ShouldEqual("single", "folder", "reordered", "relocated");
+    [Fact] void should_admit_every_semantic_compilation() => _compilations.Count.ShouldEqual(4);
     [Fact] void should_keep_the_canonical_corpus_identity() => Corpus.Name.ShouldEqual("register-project/v1-legacy");
     [Fact] void should_keep_the_corpus_application_identity_in_both_catalogs() => _compilations.TrueForAll(_ => _.Documents.IdentityCatalog.Application == Corpus.ApplicationIdentity).ShouldBeTrue();
     [Fact] void should_preserve_the_catalog_assigned_application_identity() => _capturedModels.Zip(_compilations).All(pair => pair.First.Application.Id == pair.Second.Documents.IdentityCatalog.ResolveSemantic(SemanticAddress.ForApplication(Corpus.ApplicationIdentity))).ShouldBeTrue();
@@ -75,9 +75,9 @@ public class when_planning_a_captured_register_project_application : a_register_
     [Fact] void should_match_each_direct_plans_hashes() => Assert.True(
         _capturedPlans.Zip(_directPlans).All(pair => pair.First.Artifacts.Select(_ => _.Sha256).SequenceEqual(pair.Second.Artifacts.Select(_ => _.Sha256))),
         DescribeArtifactMismatches());
-    [Fact] void should_match_ordered_paths_across_captured_physical_forms() => _capturedPlans[0].Artifacts.Select(_ => _.RelativePath).SequenceEqual(_capturedPlans[1].Artifacts.Select(_ => _.RelativePath)).ShouldBeTrue();
-    [Fact] void should_match_raw_bytes_across_captured_physical_forms() => _capturedPlans[0].Artifacts.Zip(_capturedPlans[1].Artifacts).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
-    [Fact] void should_match_hashes_across_captured_physical_forms() => _capturedPlans[0].Artifacts.Select(_ => _.Sha256).SequenceEqual(_capturedPlans[1].Artifacts.Select(_ => _.Sha256)).ShouldBeTrue();
+    [Fact] void should_match_ordered_paths_across_captured_physical_forms() => _capturedPlans.Skip(1).All(plan => plan.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_capturedPlans[0].Artifacts.Select(_ => _.RelativePath))).ShouldBeTrue();
+    [Fact] void should_match_raw_bytes_across_captured_physical_forms() => _capturedPlans.Skip(1).All(plan => plan.Artifacts.Length == _capturedPlans[0].Artifacts.Length && plan.Artifacts.Zip(_capturedPlans[0].Artifacts).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes))).ShouldBeTrue();
+    [Fact] void should_match_hashes_across_captured_physical_forms() => _capturedPlans.Skip(1).All(plan => plan.Artifacts.Select(_ => _.Sha256).SequenceEqual(_capturedPlans[0].Artifacts.Select(_ => _.Sha256))).ShouldBeTrue();
     [Fact] void should_hash_the_actual_emitted_bytes() => _calculatedHashes.SequenceEqual(_capturedPlans.Concat(_directPlans).SelectMany(_ => _.Artifacts).Select(_ => _.Sha256)).ShouldBeTrue();
 
     string DescribeArtifactMismatches() => string.Join(Environment.NewLine, _capturedPlans.Zip(_directPlans).Select((pair, index) =>

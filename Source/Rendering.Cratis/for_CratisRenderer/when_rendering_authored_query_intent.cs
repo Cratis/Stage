@@ -99,10 +99,9 @@ public class when_rendering_authored_query_intent : a_multi_slice_application
                   query EmptyInvoices => InvoiceSummary[]
                     authorize Readers
                     performer
-                      csharp
-                        ```
-                        return Array.Empty<InvoiceSummary>().AsQueryable();
-                        ```
+                      ```csharp
+                      return Array.Empty<InvoiceSummary>().AsQueryable();
+                      ```
             """;
         var query = Compile(source, "EmptyInvoices");
         query.Filters.ShouldBeEmpty();
@@ -111,7 +110,7 @@ public class when_rendering_authored_query_intent : a_multi_slice_application
         query.Performer.Code!.Language.ShouldEqual("csharp");
         query.Performer.Code.Code.ShouldEqual("return Array.Empty<InvoiceSummary>().AsQueryable();");
         AssertLocation(source, query.Performer.Location, "performer", 9);
-        AssertLocation(source, query.Performer.Code.Location, "csharp", 11);
+        AssertLocation(source, query.Performer.Code.Location, "```csharp", 11);
 
         await RejectSelected(query, UnsupportedQueryIntentReason.InlinePerformer, query.Performer.Code.Location);
     }

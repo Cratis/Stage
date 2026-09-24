@@ -40,7 +40,7 @@ public class when_admitting_authored_query_intent
     [Fact]
     void should_reject_inline_behavior_without_parsing_or_exposing_it()
     {
-        var query = Compile("performer\n  csharp\n    ```\n    return Array.Empty<InvoiceSummary>().AsQueryable();\n    ```");
+        var query = Compile("performer\n  ```csharp\n  return Array.Empty<InvoiceSummary>().AsQueryable();\n  ```");
         RejectEveryShape(query, UnsupportedQueryIntentReason.InlinePerformer, query.Performer!.Code!.Location);
     }
 

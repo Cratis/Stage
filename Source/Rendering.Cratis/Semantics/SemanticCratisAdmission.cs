@@ -113,6 +113,12 @@ internal static class SemanticCratisAdmission
         }
 
         var command = slice.Commands[0];
+        if (command.Authorization is not null)
+        {
+            diagnostics.Add(Error("STAGE-ESM-015", $"Command '{command.Name}' is authorized by a policy, which the Cratis ESM planner does not render yet. Rendering it would let every caller execute it.", command.Id));
+            return;
+        }
+
         if (slice.Events.Any(@event => @event.Revision != EventContractRevision.Initial ||
                 @event.Properties.Any(property => !TypeExists(context, property.Type) || property.Type.IsOptional)) ||
             command.Properties.Any(_ => !TypeExists(context, _.Type)) ||
@@ -170,7 +176,11 @@ internal static class SemanticCratisAdmission
             diagnostics.Add(Error("STAGE-ESM-009", $"Projection '{projection.Name}' cannot preserve its affected instance with model-bound Cratis projection semantics.", projection.Id));
         }
 
-        if (slice.Queries.SingleOrDefault() is { } query)
+        if (slice.Queries.SingleOrDefault() is { Authorization: not null } authorized)
+        {
+            diagnostics.Add(Error("STAGE-ESM-015", $"Query '{authorized.Name}' is authorized by a policy, which the Cratis ESM planner does not render yet. The rendered query allows anonymous callers.", authorized.Id));
+        }
+        else if (slice.Queries.SingleOrDefault() is { } query)
         {
             var identifiers = readModel.Properties.Where(_ => _.IsIdentifier).ToArray();
             if (query.ReadModel != readModel.Id || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||

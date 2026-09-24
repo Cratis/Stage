@@ -27,9 +27,10 @@ internal static class SemanticReadModelSpecificationRenderer
     {
         var readModel = context.ReadModels[expected.ReadModel];
         var projection = context.Projections.Values.Single(_ => _.ReadModel == readModel.Id);
-        var transition = projection.Transitions.Single();
-        var @event = context.Events[transition.EventContract];
-        var expectedEvent = specification.ThenEvents.Single(_ => _.EventContract == @event.Id);
+        var expectedEvent = projection.Scope is { } scope
+            ? specification.ThenEvents.Single(expected => scope.From.Any(from => from.EventContract == expected.EventContract))
+            : specification.ThenEvents.Single(expected => expected.EventContract == projection.Transitions.Single().EventContract);
+        var @event = context.Events[expectedEvent.EventContract];
         var command = context.Commands[specification.When!.Command];
         var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.First(_ => _.EventContract == @event.Id));
         var located = context.DeclaringSlice(specification.Id);
@@ -67,9 +68,12 @@ internal static class SemanticReadModelSpecificationRenderer
             .EndBlock()
             .BlankLine();
         var keyProperty = readModel.Properties.Single(_ => _.IsIdentifier);
-        var instance = specification.GivenEvents.IsEmpty && expected.Values.Any(_ => _.TargetProperty == keyProperty.Id)
-            ? "_scenario.Instance!"
-            : $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
+        var instance = $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
+        if (expected.Values.IsEmpty)
+        {
+            builder.Line($"[Fact] void should_project_the_expected_instance() => {instance}.ShouldNotBeNull();");
+        }
+
         foreach (var value in expected.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
         {
             var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);

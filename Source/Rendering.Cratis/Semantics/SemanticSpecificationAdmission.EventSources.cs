@@ -46,11 +46,11 @@ internal static partial class SemanticSpecificationAdmission
             var value = property is null ? null : specification.When!.Values.SingleOrDefault(_ => _.TargetProperty == property.Id)?.Value;
             var source = specification.When!.EventSource;
             var expected = specification.ThenEventsInAnyOrder
-                ? specification.ThenEvents.FirstOrDefault(_ => _.EventContract == item.produced.EventContract)
-                : specification.ThenEvents[item.index];
+                ? specification.ThenEvents.Where(_ => _.EventContract == item.produced.EventContract)
+                : [specification.ThenEvents[item.index]];
             return property is not null && value is not null && IsLosslessEventSource(context, property.Type) &&
                 (source is null || (source.Type == property.Type && Equals(source.Value, value))) &&
-                (expected?.EventSource is null || (expected.EventSource.Type == property.Type && Equals(expected.EventSource.Value, value)));
+                expected.All(_ => _.EventSource is null || (_.EventSource.Type == property.Type && Equals(_.EventSource.Value, value)));
         });
     }
 

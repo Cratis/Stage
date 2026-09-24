@@ -224,6 +224,12 @@ internal static class SemanticCommandSpecificationRenderer
             builder.Line("[Fact] void should_append_exactly_one_new_event() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(1);");
         }
 
+        if (specification.ThenEventsInAnyOrder && specification.ThenEvents.Length > 1)
+        {
+            RenderUnorderedEvents(builder, specification, context, types, seedInLog);
+            return;
+        }
+
         foreach (var (expected, index) in specification.ThenEvents.Select((value, index) => (value, index)))
         {
             var @event = context.Events[expected.EventContract];
@@ -255,6 +261,49 @@ internal static class SemanticCommandSpecificationRenderer
                 builder.Line($"[Fact] void {name}_at_position_{index + 1}() => ({appended}.Event.Context.EventSourceId == {sourceValue} && {appended}.Event.Content is {Identifiers.ToPascalCase(@event.Name)} @event && {predicate}).ShouldBeTrue();");
             }
         }
+    }
+
+    static void RenderUnorderedEvents(
+        CSharpCodeBuilder builder,
+        SemanticSpecification specification,
+        SemanticApplicationContext context,
+        SemanticTypeSystem types,
+        bool seedInLog)
+    {
+        builder.OpenBlock("[Fact] void should_append_the_expected_event_multiset()")
+            .Line(seedInLog
+                ? "var remaining = _scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).Skip(_givenEventCount).ToList();"
+                : "var remaining = _scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).ToList();")
+            .Line($"remaining.Count.ShouldEqual({specification.ThenEvents.Length});");
+        foreach (var (expected, index) in specification.ThenEvents.Select((value, index) => (value, index)))
+        {
+            var @event = context.Events[expected.EventContract];
+            var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(expected.EventContract).Path);
+            builder.Using(eventNamespace);
+            var predicates = @event.Properties.Select(property =>
+            {
+                var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
+                if (SemanticTypeSystem.ValueNeedsCommon(value, property.Type))
+                {
+                    builder.Using($"{context.RootNamespace}.Common");
+                }
+
+                return $"@event.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value, property.Type)}";
+            });
+            var source = expected.EventSource is { } identity
+                ? $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}"
+                : string.Empty;
+            if (expected.EventSource is { } typedSource && SemanticTypeSystem.ValueNeedsCommon(typedSource.Value, typedSource.Type))
+            {
+                builder.Using($"{context.RootNamespace}.Common");
+            }
+
+            builder.Line($"var match{index} = remaining.FindIndex(entry => entry.Event.Content is {Identifiers.ToPascalCase(@event.Name)} @event{source}{string.Concat(predicates.Select(predicate => $" && {predicate}"))});")
+                .Line($"(match{index} >= 0).ShouldBeTrue();")
+                .Line($"remaining.RemoveAt(match{index});");
+        }
+
+        builder.EndBlock();
     }
 
     static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";

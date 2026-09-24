@@ -97,16 +97,14 @@ public class when_rendering_scoped_projections : a_generated_application
                   lastSeen = $eventSourceId
                 remove with ProjectRemoved
                 nested info
-                  from ProjectInfoChanged
+                  from ProjectRegistered key projectId
                     name = name
-                  clear with ProjectInfoCleared
                 children notes identified by noteId
                   from ProjectNoted key noteId
                     parent projectId
                     name = name
                   remove with ProjectNoteRemoved key noteId
                     parent projectId
-                  remove via join on ProjectNoteRemovedViaJoin key noteId
         """;
 
     ArtifactRenderPlan _plan = null!;
@@ -142,7 +140,7 @@ public class when_rendering_scoped_projections : a_generated_application
     [Fact] void should_emit_identified_children() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.IdentifiedBy(item => item.NoteId)");
     [Fact] void should_emit_increment_mappings() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("Increment(model => model.Visits)");
     [Fact] void should_emit_several_read_models_and_queries() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("ProjectDetailsById");
-    [Fact] void should_emit_nested_and_clear_blocks() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("nested.RemovedWith<ProjectInfoCleared>");
+    [Fact] void should_emit_nested_blocks() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("nested.From<ProjectRegistered>");
     [Fact] void should_emit_every_and_removal_blocks() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.FromEvery(every =>");
-    [Fact] void should_emit_child_join_removals() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.RemovedWithJoin<ProjectNoteRemovedViaJoin>");
+    [Fact] void should_emit_child_removals() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.RemovedWith<ProjectNoteRemoved>");
 }

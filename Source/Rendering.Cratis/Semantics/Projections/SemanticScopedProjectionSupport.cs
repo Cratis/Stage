@@ -43,6 +43,16 @@ internal static class SemanticScopedProjectionSupport
             return "The Chronicle fluent projection builder does not include root join removals or all-event subscriptions in its built definition.";
         }
 
+        if (child && scope.JoinRemovals.Length > 0)
+        {
+            return "Child join removals cannot render: Chronicle's in-memory projection sink retains matching children on other parents.";
+        }
+
+        if (scope.Nested.Any(nested => nested.Scope.Removals.Length > 0))
+        {
+            return "Nested clear cannot render: Chronicle fails to restore a nested value after a matching root from event.";
+        }
+
         if (isNested && scope.JoinRemovals.Length > 0)
         {
             return "Join removals inside nested are blocked by Chronicle#4125.";
@@ -84,7 +94,12 @@ internal static class SemanticScopedProjectionSupport
             scope.Joins.Select(_ => _.EventContract).Distinct().Count() != scope.Joins.Length ||
             scope.Removals.Select(_ => _.EventContract).Distinct().Count() != scope.Removals.Length)
         {
-            return "A scope must have distinct from and join event contracts.";
+            return "A scope must have distinct from, join, and removal event contracts.";
+        }
+
+        if (!child && !isNested && RootRoleConflict(scope, context) is { } conflict)
+        {
+            return conflict;
         }
 
         if (child && (scope.Children.Length > 0 || scope.Joins.Length > 0))
@@ -165,6 +180,47 @@ internal static class SemanticScopedProjectionSupport
 
         return null;
     }
+
+    static string? RootRoleConflict(SemanticProjectionScope scope, SemanticApplicationContext context)
+    {
+        var roots = scope.From.ToDictionary(from => from.EventContract);
+        var roles = scope.From.Select(from => (from.EventContract, Role: "root", from.Key))
+            .Concat(scope.Joins.Select(join => (join.EventContract, Role: "join", Key: SemanticProjectionKey.EventSourceIdentity)))
+            .Concat(scope.Removals.Select(removal => (removal.EventContract, Role: "removal", removal.Key)))
+            .Concat(NestedRoles(scope));
+        foreach (var group in roles.GroupBy(role => role.EventContract))
+        {
+            var occurrences = group.ToArray();
+            if (occurrences.Length == 1 && occurrences[0].Role != "nested")
+            {
+                continue;
+            }
+
+            var name = context.Events[group.Key].Name;
+            if (!roots.TryGetValue(group.Key, out var root) ||
+                occurrences.Count(role => role.Role == "root") != 1 ||
+                occurrences.Count(role => role.Role == "nested") != occurrences.Length - 1 ||
+                occurrences.Count(role => role.Role == "nested") > 1 ||
+                !occurrences.All(role => SameKey(role.Key, root.Key)))
+            {
+                return $"Event '{name}' is used in incompatible projection roles ({string.Join(", ", occurrences.Select(role => role.Role))}); a nested from or clear requires a root from for the same contract and identical key.";
+            }
+        }
+
+        return null;
+    }
+
+    static IEnumerable<(SemanticId EventContract, string Role, SemanticProjectionKey Key)> NestedRoles(SemanticProjectionScope scope) =>
+        scope.Nested.SelectMany(nested => nested.Scope.From.Select(from => (from.EventContract, Role: "nested", from.Key))
+            .Concat(nested.Scope.Removals.Select(removal => (removal.EventContract, Role: "nested", removal.Key)))
+            .Concat(NestedRoles(nested.Scope)));
+
+    static bool SameKey(SemanticProjectionKey left, SemanticProjectionKey right) => (left, right) switch
+    {
+        (SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }, SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }) => true,
+        (SemanticProjectionValueKey { Value: SemanticProjectionEventProperty a }, SemanticProjectionValueKey { Value: SemanticProjectionEventProperty b }) => a.Path.SequenceEqual(b.Path),
+        _ => false
+    };
 
     static bool EveryMappingsSupported(IEnumerable<SemanticProjectionMapping> mappings, IReadOnlyList<SemanticProperty> targets, SemanticApplicationContext context) =>
         mappings.Select(mapping => string.Join('.', mapping.Target)).Distinct().Count() == mappings.Count() &&

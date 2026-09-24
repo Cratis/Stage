@@ -108,7 +108,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticQueryDelivery", rendered, "Snapshot");
         Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown Live");
 
-        // Supported scoped blocks render; unsupported variants fail admission with STAGE-ESM-017.
+        // Supported scoped blocks render; conflicting roles and nested from without a matching root
+        // from and identical key fail STAGE-ESM-017. Nested clear and child join removal are rejected:
+        // Chronicle's in-memory projection sink diverges from the reference on those event sequences.
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
@@ -119,7 +121,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
         Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
         Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");
-        Add(entries, "SemanticProjectionJoinRemoval", rendered, "EventContract Key");
+        Add(entries, "SemanticProjectionJoinRemoval", rejected("STAGE-ESM-017"), "EventContract Key");
         Add(entries, "SemanticProjectionKey", rendered, "Kind");
         Add(entries, "SemanticProjectionKeyKind", rendered, "Value");
         Add(entries, "SemanticProjectionKeyKind", rejected("STAGE-ESM-017"), "Unknown Composite");
@@ -135,7 +137,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionValueKind", rendered, "EventProperty EventSourceIdentity");
         Add(entries, "SemanticProjectionValueKind", rejected("STAGE-ESM-017"), "Unknown EventContext Literal");
 
-        // Specifications only render command actions with exact scalar fixtures and supported outcomes.
+        // Specifications render command actions with exact scalar fixtures and supported outcomes.
+        // Given events that violate an admitted constraint fail STAGE-ESM-011 before log seeding.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenCaller ThenEvents ThenReadModels ThenQueries ThenErrors ThenDenied When");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "GivenReadModels WhenAppended ThenEventsInAnyOrder");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
@@ -159,6 +162,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticNullValue", rendered, "$type");
 
         // Portable authorization runs through Arc; caller fixtures and command denial are checked by its pipeline.
+        // Role claim URIs cannot preserve the separate Screenplay roles/claims boundary (011/015).
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
@@ -181,7 +185,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticLogicalCondition", rendered, "Left Operator Right");
         Add(entries, "SemanticLogicalOperator", rendered, "And Or");
 
-        // Append-time constraints apply across selected slices even when declared elsewhere.
+        // Append-time constraints apply across selected slices even when declared elsewhere. A unique
+        // value target requires a non-null command input and rejects intra-command multi-event changes
+        // to one constraint (STAGE-ESM-014). Chronicle#4123 maintains indexes after commit: storage
+        // failures cannot provide an atomic index-update guarantee, even for admitted constraints.
         Add(entries, "SemanticConstraint", rendered, "IgnoreCasing Kind Message Name ReleasedBy Scope Targets");
         Add(entries, "SemanticConstraintTarget", rendered, "EventContract Properties");
         Add(entries, "SemanticConstraintKind", rendered, "UniquePropertyValue UniqueEventOccurrence");

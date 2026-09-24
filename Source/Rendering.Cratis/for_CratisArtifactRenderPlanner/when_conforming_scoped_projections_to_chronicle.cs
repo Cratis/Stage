@@ -73,6 +73,8 @@ public class when_conforming_scoped_projections_to_chronicle
             expectedBlocks[key] = "$eventSourceId";
         }
 
+        Assert.Equal("name", generatedBlocks["From.ProjectRegistered+1.name"]);
+        Assert.Equal("name", generatedBlocks["Nested.info.From.ProjectRegistered+1.name"]);
         Assert.True(expectedBlocks.SequenceEqual(generatedBlocks),
             $"Expected: {string.Join("; ", expectedBlocks.Select(_ => $"{_.Key}={_.Value}"))}\nGenerated: {string.Join("; ", generatedBlocks.Select(_ => $"{_.Key}={_.Value}"))}");
     }
@@ -178,6 +180,7 @@ public class when_conforming_scoped_projections_to_chronicle
         {
             if (Property(scope, kind) is not IDictionary definitions)
             {
+                Assert.NotEqual(string.Empty, prefix);
                 continue;
             }
 

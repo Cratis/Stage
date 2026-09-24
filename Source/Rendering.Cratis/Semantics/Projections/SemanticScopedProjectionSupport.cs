@@ -33,24 +33,29 @@ internal static class SemanticScopedProjectionSupport
             return "Joins and children inside nested are blocked by Chronicle#4125: the engine drops their subscriptions.";
         }
 
+        if (scope.Every is { SubscribesToAllEvents: true })
+        {
+            return "All-event subscriptions cannot render: Chronicle v19.4.7 FromAll stores mappings but ProjectionBuilderFor.Build omits SubscribesToAllEvents, so unrelated event types are not observed.";
+        }
+
         if (scope.Every is { IncludeChildren: true } && (scope.Children.Length > 0 || scope.Nested.Length > 0))
         {
             return "Every with IncludeChildren is blocked by Chronicle#4125: the engine double-applies the mappings.";
         }
 
-        if ((scope.JoinRemovals.Length > 0 && !child) || scope.Every is { SubscribesToAllEvents: true })
+        if (scope.JoinRemovals.Length > 0 && !child && !isNested)
         {
-            return "The Chronicle fluent projection builder does not include root join removals or all-event subscriptions in its built definition.";
+            return "Root remove via join is blocked by Chronicle#4125: the engine removes a child at the root path instead of deleting matching root instances.";
         }
 
         if (child && scope.JoinRemovals.Length > 0)
         {
-            return "Child join removals cannot render: Chronicle's in-memory projection sink retains matching children on other parents.";
+            return "Child remove via join cannot render: Chronicle v19.4.7 ReadModelScenario retains the matching child in the second parent after removal across two parents; the MongoDB sink has not been verified against the reference.";
         }
 
         if (scope.Nested.Any(nested => nested.Scope.Removals.Length > 0))
         {
-            return "Nested clear cannot render: Chronicle fails to restore a nested value after a matching root from event.";
+            return "Nested clear cannot render: Chronicle v19.4.7 ReadModelScenario does not restore the nested object after clear followed by a matching root from event; the MongoDB sink has not been verified against the reference.";
         }
 
         if (isNested && scope.JoinRemovals.Length > 0)
@@ -64,6 +69,13 @@ internal static class SemanticScopedProjectionSupport
              !EveryMappingsSupported(every.Mappings, properties, context)))
         {
             return "Every mappings need a Chronicle fluent equivalent for each bound value and operation.";
+        }
+
+        if (scope.From.Any(from => from.Key is SemanticProjectionCompositeKey || from.ParentKey is SemanticProjectionCompositeKey) ||
+            scope.Removals.Any(removal => removal.Key is SemanticProjectionCompositeKey || removal.ParentKey is SemanticProjectionCompositeKey) ||
+            scope.JoinRemovals.Any(removal => removal.Key is SemanticProjectionCompositeKey))
+        {
+            return "Composite keys cannot render: Chronicle v19.4.7's fluent UsingCompositeKey omits the type token emitted by its declaration visitor; the resulting definition and reference identity have not been proven equivalent in execution.";
         }
 
         if (child && identity is null)

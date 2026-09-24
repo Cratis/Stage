@@ -29,6 +29,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("nested-mismatched-key")]
     [InlineData("nested-clear-with-root-from")]
     [InlineData("child-join-removal")]
+    [InlineData("composite-key")]
     public void should_fail_closed_for_unsupported_blocks(string variant)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
@@ -39,6 +40,14 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 .Replace("join project on projectId", "    label = \"fixed\"\n        join project on projectId", StringComparison.Ordinal);
         }
 
+        if (variant == "composite-key")
+        {
+            source = source.Replace("type ProjectInfo\n", "type ProjectKey\n  projectId ProjectId\ntype ProjectInfo\n", StringComparison.Ordinal)
+                .Replace("readmodel ProjectDetails\n        projectId ProjectId", "readmodel ProjectDetails\n        projectId ProjectKey", StringComparison.Ordinal)
+                .Replace("by projectId ProjectId\n      projection ProjectDetailsProjection", "by projectId ProjectKey\n      projection ProjectDetailsProjection", StringComparison.Ordinal)
+                .Replace("from ProjectRegistered key projectId\n          name = name\n      projection ProjectSummaryProjection", "from ProjectRegistered\n          key ProjectKey\n            projectId = projectId\n          name = name\n        from ProjectRenamed\n          key ProjectKey\n            projectId = projectId\n          name = name\n      projection ProjectSummaryProjection", StringComparison.Ordinal);
+        }
+
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success);
@@ -46,13 +55,20 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
         var view = feature.Slices.Single(_ => _.Kind == SemanticSliceKind.StateView);
-        var projection = view.Projections.Single(_ => _.Name == "ProjectSummaryProjection");
+        var projection = view.Projections.Single(_ => _.Name == (variant == "composite-key" ? "ProjectDetailsProjection" : "ProjectSummaryProjection"));
         var scope = projection.Scope!;
+        if (variant == "composite-key")
+        {
+            Assert.Contains("key ProjectKey", source, StringComparison.Ordinal);
+            Assert.NotNull(scope);
+            Assert.IsType<SemanticProjectionCompositeKey>(scope.From[0].Key);
+        }
+
         scope = variant switch
         {
-            "literal" => scope,
+            "literal" or "composite-key" => scope,
             "every-including-children" => scope with { Every = new(true, false, []) },
-            "all-events" => scope with { Every = new(true, true, []) },
+            "all-events" => scope with { Every = new(true, true, []), Children = [], Nested = [], Removals = [] },
             "root-join-removal" => scope with { JoinRemovals = [new(
                 original.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events)
                     .Single(@event => @event.Name == "ProjectNoteRemovedViaJoin").Id,
@@ -126,9 +142,34 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Contains("Chronicle#4124", diagnostic.Message, StringComparison.Ordinal);
         }
 
-        if (variant == "every-including-children" || variant == "nested-join")
+        if (variant == "every-including-children" || variant == "nested-join" || variant == "root-join-removal")
         {
             Assert.Contains("Chronicle#4125", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "all-events")
+        {
+            Assert.Contains("SubscribesToAllEvents", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "composite-key")
+        {
+            Assert.Contains("UsingCompositeKey", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "child-join-removal" || variant == "nested-clear-with-root-from")
+        {
+            Assert.Contains("ReadModelScenario", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "all-events" || variant == "composite-key")
+        {
+            var changedExecution = SemanticExecutionPlan.Compile(model);
+            Assert.True(changedExecution.Success, string.Join(Environment.NewLine, changedExecution.Issues));
+            var blocked = CratisRendering.Plan(model, changedExecution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), options);
+            Assert.False(blocked.Success);
+            Assert.Empty(blocked.Artifacts);
+            Assert.Contains(blocked.Diagnostics, item => item.Code == "STAGE-ESM-017");
         }
     }
 

@@ -67,16 +67,14 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticTypeReferenceKind", rejected("STAGE-ESM-003"), "Unknown");
         Add(entries, "SemanticPrimitiveType", rendered, "Uuid Text WholeNumber DecimalNumber Boolean Date DateTime");
         Add(entries, "SemanticPrimitiveType", rejected("STAGE-ESM-002"), "Unknown");
-        Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity");
-        Add(entries, "SemanticValidationRule", rejected("STAGE-ESM-005"), "Operand");
-        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty");
-        Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches");
+        Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
+        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches");
+        Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown");
         Add(entries, "SemanticValidationSeverity", rendered, "Error");
         Add(entries, "SemanticValidationSeverity", rejected("STAGE-ESM-005"), "Information Warning");
 
         // State change: exactly one simple command and one unconditional, untagged mapped event.
-        Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination");
-        Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "Requirements");
+        Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements");
         Add(entries, "SemanticCommand", rejected("STAGE-ESM-015"), "Authorization");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition Tags When");
@@ -160,10 +158,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValueKind", rejected("STAGE-ESM-011"), "Unknown Composite");
         Add(entries, "SemanticNullValue", rendered, "$type");
 
-        // Caller policies and conditional requirements do not run in generated code.
+        // Caller policies remain unsupported; command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rejected("STAGE-ESM-015"), "$type");
         Add(entries, "SemanticAuthorization", rejected("STAGE-ESM-015"), "$type");
-        Add(entries, "SemanticCondition", rejected("STAGE-ESM-005"), "$type");
+        Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rejected("STAGE-ESM-015"), "$type");
         Add(entries, "SemanticProjectionEventSourceIdentity", rejected("STAGE-ESM-008"), "$type");
         Add(entries, "SemanticCaller", rejected("STAGE-ESM-011"), "Authenticated Claims Roles");
@@ -175,12 +173,12 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticRoleCondition", rejected("STAGE-ESM-015"), "Role");
         Add(entries, "SemanticLogicalAuthorization", rejected("STAGE-ESM-015"), "Left Operator Right");
         Add(entries, "SemanticLogicalPolicyCondition", rejected("STAGE-ESM-015"), "Left Operator Right");
-        Add(entries, "SemanticRequirement", rejected("STAGE-ESM-005"), "Condition Message Severity");
-        Add(entries, "SemanticComparison", rejected("STAGE-ESM-005"), "Left Operator Right");
-        Add(entries, "SemanticComparisonOperator", rejected("STAGE-ESM-005"), "Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual");
-        Add(entries, "SemanticConditionOperand", rejected("STAGE-ESM-005"), "Property Value");
-        Add(entries, "SemanticLogicalCondition", rejected("STAGE-ESM-005"), "Left Operator Right");
-        Add(entries, "SemanticLogicalOperator", rejected("STAGE-ESM-005"), "And Or");
+        Add(entries, "SemanticRequirement", rendered, "Condition Message Severity");
+        Add(entries, "SemanticComparison", rendered, "Left Operator Right");
+        Add(entries, "SemanticComparisonOperator", rendered, "Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual");
+        Add(entries, "SemanticConditionOperand", rendered, "Property Value");
+        Add(entries, "SemanticLogicalCondition", rendered, "Left Operator Right");
+        Add(entries, "SemanticLogicalOperator", rendered, "And Or");
 
         // Append-time constraints apply across selected slices even when declared elsewhere.
         Add(entries, "SemanticConstraint", rejected("STAGE-ESM-014"), "IgnoreCasing Kind Message Name ReleasedBy Scope Targets");

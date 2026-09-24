@@ -106,12 +106,15 @@ internal static class SemanticCommonArtifactRenderer
             .OpenBlock($"public {name}Validator()");
         foreach (var rule in concept.Validations)
         {
-            var message = string.IsNullOrWhiteSpace(rule.Message)
-                ? string.Empty
-                : $".WithMessage({CSharpCodeBuilder.StringLiteral(rule.Message)})";
-            builder.Line($"RuleFor(_ => _.Value).NotEmpty(){message};");
+            SemanticValidationRendering.Render(builder, rule, "Value", concept.Primitive, false, true);
         }
 
-        builder.EndBlock().EndBlock();
+        builder.EndBlock();
+        if (concept.Validations.Any(_ => _.Kind == SemanticValidationRuleKind.Matches))
+        {
+            SemanticValidationRendering.RenderMatchHelper(builder);
+        }
+
+        builder.EndBlock();
     }
 }

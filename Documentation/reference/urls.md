@@ -76,7 +76,7 @@ Every read model in the model gets two queries by convention — one for a singl
 — named `Get<ReadModel>ById` and `All<ReadModels>`, kebab-cased into the route:
 
 ```text
-GET /api/<module>/<feature>[/<sub-feature>]/<slice>/get-<read-model>-by-id?id=<guid>
+GET /api/<module>/<feature>[/<sub-feature>]/<slice>/get-<read-model>-by-id?id=<id>
 GET /api/<module>/<feature>[/<sub-feature>]/<slice>/all-<read-models>
 ```
 
@@ -87,21 +87,56 @@ curl "http://localhost:9090/api/invoicing/invoice-management/invoice-list/all-in
 curl "http://localhost:9090/api/invoicing/invoice-management/invoice-list/get-invoice-list-read-model-by-id?id=$ID"
 ```
 
-Each answers with Arc's `QueryResult` envelope. Modeled query performers currently deny authorization and expose
-no data because Stage does not yet receive Screenplay's executable query authorization semantics. The relevant
-fields therefore report a fail-closed result:
+Both queries read the documents the modeled projection built in the session's Chronicle, using the first 500
+instances of the read model. `All<ReadModels>` returns that window. `Get<ReadModel>ById` searches the same window
+for an instance whose identity matches `id` (compared case-insensitively) and returns `data: null` when none does,
+including an instance that exists beyond the first 500.
+
+Each answers with Arc's `QueryResult` envelope. On success, `isAuthorized` is `true` and `data` holds the
+instances — an array for `All<ReadModels>`, a single object for `Get<ReadModel>ById`. Each instance carries its
+identity as `id` next to the properties the projection wrote:
 
 ```json
 {
-    "data": null,
-    "isAuthorized": false
+    "data": [
+        {
+            "id": "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1",
+            "name": "Test item"
+        }
+    ],
+    "isAuthorized": true
 }
 ```
 
+**Pass the `id` a previous response returned, URL-encoded — do not assume it is a GUID.** Stage reads the identity
+from the kernel document and normalizes it to text:
+
+| Kernel identity                   | Returned `id`                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| String                            | The string, unchanged (it can be empty)                                                                |
+| Number                            | Invariant text, so `42.0` is `42`                                                                      |
+| Boolean                           | `True` or `False`                                                                                      |
+| Composite object of scalar values | The values joined with `_`, ordered by property name, so `{"region":"west","number":42}` is `42_west` |
+
+When a document has a lowercase `id`, only that field binds the identity; a modeled property named `Id` or `ID` stays
+an ordinary property. A document without a lowercase `id` falls back to a legacy uppercase `Id`.
+
+A document Stage cannot read fails the **whole** query with `InvalidStageReadModelDocument` rather than being
+silently dropped from the result. That covers a document that is not a JSON object or is not valid JSON, a missing
+or `null` identity, and an identity that is an array or a composite containing a `null` or array value.
+Arc returns it as an error result (`hasExceptions`, HTTP 500).
+
+**Modeled query authorization is not enforced yet.** Stage does not yet receive Screenplay's executable query authorization, so a modeled `authorize` on a query is not
+evaluated: a session's queries allow anonymous access and answer anyone who can reach the port. The session is a
+disposable sandbox holding only the events it appended, but treat it as unprotected — bind its published ports to
+loopback or reach it only through an authenticated proxy. Filters in Arc's query pipeline can still reject a
+query; a rejected query answers `403` with `isAuthorized: false` and no data, without reading Chronicle.
+
 Every query endpoint also accepts the HTTP `QUERY` method, carrying its arguments in a JSON body instead of the
 query string — useful when arguments are too large or too structured for a URL. The alternate method has the same
-fail-closed behavior. Set `Cratis:Arc:GeneratedApis:EnableQueryHttpMethod` to `false` to disable `QUERY` on both
-canonical paths and compatibility aliases without disabling `GET`. Canonical query names are always included.
+outcomes as `GET`: the same data, the same errors, and the same pipeline rejections. Set
+`Cratis:Arc:GeneratedApis:EnableQueryHttpMethod` to `false` to disable `QUERY` on both canonical paths and
+compatibility aliases without disabling `GET`. Canonical query names are always included.
 OpenAPI describes the `GET` operation; Arc keeps the alternate `QUERY` transport out of API description while
 mapping it at the same canonical path when enabled.
 
@@ -208,12 +243,12 @@ The surface above is mapped and described, but runtime semantics are intentional
   Chronicle, and echoes the payload as the response. The modeled command validation rules and authorization
   policies are not yet enforced on the runtime HTTP surface, so this sandbox path must not be treated as a
   production security boundary.
-- A **query** is mapped but currently fails closed: authorization is denied, its performer is not executed, and
-  no data is returned. Reading projected documents waits for the Screenplay-owned executable query and
-  authorization model rather than relying on invented Stage semantics.
+- A **query** reads the first 500 projected documents of its read model from Chronicle and returns them, or the
+  one matching `id`. Modeled query authorization is not yet enforced; only Arc query-pipeline filters can reject
+  a query. A document Stage cannot read fails the whole query with `InvalidStageReadModelDocument`.
 - The **specification runner** checks modeled facts and expectations, but that verification is model-level. It is
   not a substitute for executing every slice through the runtime or a rendered application.
-- The separate **Cratis renderer** writes reviewable backend source. It preserves role-only alternatives and
+- The separate **legacy syntax-based renderer** writes reviewable backend source. It preserves role-only alternatives and
   authenticated-only authorization exactly on each generated query method. Unsupported authorization raises
   `STAGE-AUTH-001` and faults the render operation. Because output is currently written directly, a failed target
   is unsafe and incomplete: stale files, including a prior copy of a blocked artifact, can remain physically

@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Cratis.Chronicle;
 using Cratis.Chronicle.Contracts;
 using Cratis.Stage.Runtime;
@@ -106,38 +106,72 @@ public sealed class StageQueryPerformer : IQueryPerformer
             : instances.Find(instance => string.Equals((instance as DynamicReadModel)?.Id, id, StringComparison.OrdinalIgnoreCase));
     }
 
-    List<object> Parse(IEnumerable<string> instances)
+    internal List<object> Parse(IEnumerable<string> instances)
     {
         var parsed = new List<object>();
         foreach (var instance in instances)
         {
             try
             {
-                if (JsonNode.Parse(instance) is not JsonObject document)
+                using var document = JsonDocument.Parse(instance);
+                if (document.RootElement.ValueKind != JsonValueKind.Object)
                 {
-                    continue;
+                    throw new InvalidStageReadModelDocument(_readModelIdentifier);
                 }
 
-                // The kernel keeps its own bookkeeping on the document. It says nothing about the model, so it has
-                // no business being rendered as one of the read model's properties.
-                foreach (var property in document.Select(property => property.Key).Where(key => key.StartsWith("__", StringComparison.Ordinal)).ToArray())
+                var root = document.RootElement;
+                var identityName = root.TryGetProperty("id", out var identity) ? "id" : "Id";
+                if (identityName == "Id" && !root.TryGetProperty("Id", out identity))
                 {
-                    document.Remove(property);
+                    throw new InvalidStageReadModelDocument(_readModelIdentifier);
                 }
 
-                if (document.Deserialize(ReadModelType) is { } typed)
+                var id = Identity(identity);
+                if (JsonSerializer.Deserialize(JsonSerializer.Serialize(new { Id = id }), ReadModelType) is not DynamicReadModel typed)
                 {
-                    parsed.Add(typed);
+                    throw new InvalidStageReadModelDocument(_readModelIdentifier);
                 }
+
+                foreach (var property in root.EnumerateObject().Where(property => property.Name != identityName && !property.Name.StartsWith("__", StringComparison.Ordinal)))
+                {
+                    typed.Values[property.Name] = property.Value.Clone();
+                }
+
+                parsed.Add(typed);
             }
-            catch (JsonException)
+            catch (JsonException exception)
             {
-                // A document the kernel cannot hand back as JSON says nothing about the rest of them; showing the
-                // ones that did parse beats failing the whole query.
+                throw new InvalidStageReadModelDocument(_readModelIdentifier, exception);
             }
         }
 
         return parsed;
+    }
+
+    string Identity(JsonElement identity) => identity.ValueKind switch
+    {
+        JsonValueKind.String => identity.GetString()!,
+        JsonValueKind.Number => Number(identity),
+        JsonValueKind.True => bool.TrueString,
+        JsonValueKind.False => bool.FalseString,
+        JsonValueKind.Object => string.Join('_', identity.EnumerateObject().OrderBy(property => property.Name).Select(property => Identity(property.Value))),
+        _ => throw new InvalidStageReadModelDocument(_readModelIdentifier)
+    };
+
+    string Number(JsonElement value)
+    {
+        var raw = value.GetRawText();
+        if (decimal.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var decimalValue))
+        {
+            return decimalValue.ToString("G29", CultureInfo.InvariantCulture);
+        }
+
+        if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var doubleValue) && double.IsFinite(doubleValue))
+        {
+            return doubleValue.ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        throw new InvalidStageReadModelDocument(_readModelIdentifier);
     }
 
     async Task<List<object>> Instances(QueryContext context)

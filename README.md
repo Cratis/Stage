@@ -108,6 +108,20 @@ image instead of relying on the metapackage's transitive Chronicle 19.4.2. The f
 uses the same Arc era with Components 4.13.1, Scene 4.1.0, and Fundamentals 7.19.4. It emits no repository
 marker, floating version, random identifier, or destination-specific value.
 
+The scaffold leaves an unmanaged `Customizations/` seam for hand-written code. `Program.cs` calls optional
+`ConfigureServices` and `ConfigureApplication` partial methods, the project imports
+`Customizations/Dependencies.props` when it exists, and the frontend loads `Customizations/styles.css` after the
+managed `@cratis/components/tokens` and `styles` imports (the scaffold does not import `theme`). No plan contains a
+`Customizations/` path and the planner never reads one. See
+[Customize a rendered application](Documentation/guides/customize-rendered-application.md).
+
+A profile may also carry one authored `scene.json`. Before planning, its version must equal the Cratis target
+version; its bytes must be valid UTF-8 JSON with no duplicate member names; the root must hold `uiProfiles`,
+`themes`, `layouts`, `screenTemplates`, `dialogTemplates`, and `screens` arrays; and every screen must be an object
+with a string `name` and a `slotContent` object whose slots are arrays of objects. A violation fails with
+`STAGE-CRATIS-001` and no candidate artifacts. This checks wire shape only: it does not resolve components or
+bindings, or prove that the Scene matches the modeled revision.
+
 The generated compose contract intentionally binds local ports `27017` and `35000`. Start it with
 `docker compose up --detach`, run the generated project, and probe `/healthz`; stop it with
 `docker compose down --volumes`. Isolated automation can instead map both container ports to Docker-assigned
@@ -230,6 +244,8 @@ their parent folder. Input errors exit with code `1` without writing results; an
 Full container, URL, specification-result, and render-plan documentation lives in
 [Documentation](Documentation/index.md). Framework maintainers can use the
 [renderer target guide](Documentation/guides/build-renderer-target.md) to implement another deterministic Screenplay-to-code target.
+Application developers can [customize a rendered application](Documentation/guides/customize-rendered-application.md)
+without editing managed files.
 
 ## Building
 

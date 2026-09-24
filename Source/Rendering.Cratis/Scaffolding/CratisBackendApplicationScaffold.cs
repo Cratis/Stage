@@ -119,6 +119,7 @@ public sealed class CratisBackendApplicationScaffold
               <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             </PackageReference>
           </ItemGroup>
+          <Import Project="Customizations/Dependencies.props" Condition="Exists('Customizations/Dependencies.props')" />
         </Project>
         """;
     }
@@ -135,6 +136,7 @@ public sealed class CratisBackendApplicationScaffold
         builder.AddCratis(
             configureArcBuilder: arc => arc.WithMongoDB(),
             configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
+        ConfigureServices(builder);
 
         var app = builder.Build();
         app.UseDefaultFiles();
@@ -142,8 +144,16 @@ public sealed class CratisBackendApplicationScaffold
         app.UseCratis();
         app.MapHealthChecks("/healthz");
         app.MapFallbackToFile("/index.html");
+        ConfigureApplication(app);
 
         await app.RunAsync();
+
+        // Optional partial methods disappear when Customizations/Program.cs supplies no implementation.
+        public partial class Program
+        {
+            static partial void ConfigureServices(WebApplicationBuilder builder);
+            static partial void ConfigureApplication(WebApplication app);
+        }
         """;
 
     static string AppSettings(CratisBackendApplicationScaffoldRequest request) =>

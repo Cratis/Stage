@@ -23,7 +23,7 @@ internal static class SemanticSpecificationArtifactRenderer
     {
         if (SemanticSpecificationAdmission.CanSeedQueryOnly(specification, context))
         {
-            return [SemanticQuerySpecificationRenderer.RenderSeededQuery(specification, specification.ThenQueries[0], context)];
+            return [SemanticQuerySpecificationRenderer.RenderSeededQuery(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];
         }
 
         var files = new List<RenderedFile>
@@ -35,6 +35,6 @@ internal static class SemanticSpecificationArtifactRenderer
             SemanticReadModelSpecificationRenderer.Render(specification, _, context)));
         files.AddRange(specification.ThenQueries.Select(_ =>
             SemanticQuerySpecificationRenderer.Render(specification, _, context)));
-        return files;
+        return [.. files.Select(file => file with { Sources = [specification.Id] })];
     }
 }

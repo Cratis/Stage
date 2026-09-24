@@ -89,7 +89,11 @@ internal static class SemanticStateViewArtifactRenderer
         }
 
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
-        return new(path, builder.ToString());
+        return new(path, builder.ToString())
+        {
+            Sources = [located.Slice.Id, .. located.Slice.ReadModels.Select(_ => _.Id),
+                .. located.Slice.Projections.Select(_ => _.Id), .. located.Slice.Queries.Select(_ => _.Id)]
+        };
     }
 
     static IEnumerable<SemanticId> ScopeEvents(SemanticProjectionScope scope) =>

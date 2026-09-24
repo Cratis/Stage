@@ -31,7 +31,7 @@ internal static class SemanticCommonArtifactRenderer
             RenderConcept(builder, concept, name, context.IdentifierConcepts.Contains(concept.Id));
         }
 
-        return new(Path.Combine("Common", $"{name}.cs"), builder.ToString());
+        return new(Path.Combine("Common", $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ internal static class SemanticCommonArtifactRenderer
             .Namespace($"{context.RootNamespace}.Common")
             .Summary($"Represents {Identifiers.ToWords(type.Name)}.")
             .Line($"public record {name}({parameters});");
-        return new(Path.Combine("Common", $"{name}.cs"), builder.ToString());
+        return new(Path.Combine("Common", $"{name}.cs"), builder.ToString()) { Sources = [type.Id] };
     }
 
     static void RenderEnum(CSharpCodeBuilder builder, SemanticConcept concept, string name)

@@ -67,7 +67,11 @@ internal static class SemanticConstraintArtifactRenderer
         }
 
         builder.EndBlock().EndBlock();
-        return new(Path.Combine([.. SliceNaming.FolderPath(location.Path), $"{className}.cs"]), builder.ToString());
+        return new(Path.Combine([.. SliceNaming.FolderPath(location.Path), $"{className}.cs"]), builder.ToString())
+        {
+            // Constraints have no SemanticId in ESM v1; attribute the artifact to its owning slice and target events.
+            Sources = [slice.Id, .. constraint.Targets.Select(_ => _.EventContract)]
+        };
     }
 
     static string TypeName(SemanticEventContract @event, SemanticApplicationContext context) =>

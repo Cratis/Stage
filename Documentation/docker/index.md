@@ -138,14 +138,20 @@ The opt-in engine evaluates validation, requirements, authorization, conditional
 before accepting a command. Accepted facts are appended to Chronicle as one batch; a failed append does not
 commit the in-process read-model state. `GET /stage/semantic/admission` lists the model's admitted and
 unsupported artifacts. `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
-executable plan, or the Chronicle event log is nonempty when Stage starts, the host returns
-`state: "unsupported"` with issues; `/api/**` responds with HTTP 501 instead of performing a partial model.
+executable plan, the host returns `state: "unsupported"` with issues; `/api/**` responds with HTTP 501
+instead of performing a partial model. On restart with a nonempty Chronicle log, Stage waits for its
+mirrored projections, reads all facts and mirrored read models, checks the history against modeled
+constraints, and rebuilds the validated semantic world. This includes the exit-42 warm handoff:
+the Stage process restarts, but the Chronicle kernel and its event log stay alive.
 
 Commands retain their slice-qualified `/api/…` route and legacy alias. The semantic engine also exposes one
 query by its modeled name. Compatibility `Get…ById` and `All…` queries are available only for read models with at least one keyed query and no authorization on any keyed query targeting that read model. Otherwise, the compatibility routes are not mapped, so callers cannot bypass a modeled query policy.
-The world cannot be rebuilt from Chronicle: restart only with an empty log. Simple, complete flat
-projections are mirrored into Chronicle for the Workbench. Other projections are marked `notMirrored` in
-admission, and their Workbench state is not a substitute for the in-process query results. The default engine
+Only a model whose **every projection** has `mirrored` admission status can restart from a nonempty
+log. Unknown or revised events, schema mismatches, unverified historical constraint claims, mirror
+failures, and projection lag cause `Unsupported(World)` with a specific issue rather than a partial
+world. Simple, complete flat projections are mirrored into Chronicle for the Workbench. Other
+projections are marked `notMirrored` in admission, and their Workbench state is not a substitute for
+the in-process query results. The default engine
 continues to register its own Chronicle projections. Commands that require
 allocation of a new event-source identity return `Unsupported(IdentityAllocation)`; explicitly name a
 `produces … for` destination to make them executable. Unsupported event revisions or duplicate event names
@@ -159,7 +165,8 @@ A denied command responds with HTTP 403. Failed validation and constraints respo
 constraint result includes its name in `reasonDetail`. An unsupported command responds with HTTP 501 and
 `Stage-Unsupported-Capability` and `Stage-Unsupported-Artifact` headers. `/validate` evaluates the same
 model without appending facts. Semantic queries require a modeled snapshot lookup; the compatibility All/ById
-queries read the in-process world, not Chronicle's Workbench mirror. If an append's outcome cannot be established, Stage faults the session and returns `Unsupported(World)` for subsequent commands and queries; `/stage/status` then reports `unsupported`. Stage does not resume from the Chronicle log.
+queries read the in-process world, not Chronicle's Workbench mirror. If an append's outcome cannot be established, Stage faults the session and returns `Unsupported(World)` for subsequent commands and queries; `/stage/status` then reports `unsupported`. Restart can rebuild from the Chronicle log only when its
+mirror and history pass the same strict admission checks.
 
 The sandbox constructs caller identities from Arc's unsigned `x-ms-client-principal` request headers. Clients that can reach the host can forge those headers; modeled authorization is not a security boundary here. Restrict access at a trusted proxy and keep the session private. An anonymous semantic caller has empty audit identity fields (`subject`, `name`, `userName`), not an invented `unknown` identity; the default EventModel path omits those identity values entirely.
 

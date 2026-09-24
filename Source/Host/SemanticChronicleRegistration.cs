@@ -7,6 +7,7 @@ using Cratis.Chronicle.Contracts.Commands;
 using Cratis.Chronicle.Contracts.EventStores;
 using Cratis.Chronicle.Contracts.Queries;
 using Cratis.Chronicle.EventSequences;
+using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Semantics;
 using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
@@ -21,7 +22,7 @@ internal static class SemanticChronicleRegistration
 {
     internal static bool IsEmpty(ulong tail) => tail == ulong.MaxValue;
 
-    internal static async Task<bool> Register(IChronicleClient client, string name, SemanticExecutionPlan plan)
+    internal static async Task<SemanticWorld> Register(IChronicleClient client, string name, SemanticExecutionPlan plan)
     {
         var store = await client.GetEventStore(name);
         await store.Connection.Connect();
@@ -35,7 +36,7 @@ internal static class SemanticChronicleRegistration
         })).EnsureSuccess().SequenceNumber;
         if (!IsEmpty(tail))
         {
-            return false;
+            EnsureMirrored(plan);
         }
 
         var registrations = plan.Events.Values.Select(@event =>
@@ -82,6 +83,114 @@ internal static class SemanticChronicleRegistration
             });
         }
 
-        return true;
+        return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, plan, tail);
+    }
+
+    internal static void EnsureMirrored(SemanticExecutionPlan plan)
+    {
+        foreach (var projection in plan.Projections.Values)
+        {
+            if (!SemanticProjectionMirrors.TryLower(plan, projection, out _, out _, out var reason))
+            {
+                throw new SemanticWorldRebuildRefused($"Projection '{projection.Name}' is not mirrored exactly into Chronicle: {reason}");
+            }
+        }
+    }
+
+    static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, ulong tail)
+    {
+        var mirrorIds = plan.Projections.Values.Select(projection =>
+        {
+            SemanticProjectionMirrors.TryLower(plan, projection, out _, out var mirror, out _);
+            return mirror!.Identifier;
+        }).ToHashSet(StringComparer.Ordinal);
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+        while (mirrorIds.Count > 0)
+        {
+            var observers = (await accessor.Services.Observers.GetObservers(new Cratis.Chronicle.Contracts.Observation.AllObserversRequest
+            {
+                EventStore = name,
+                Namespace = EventStoreNamespaceName.Default
+            })).Where(observer => mirrorIds.Contains(observer.Id)).ToArray();
+            if (observers.Length == mirrorIds.Count && observers.All(observer => observer.LastHandledEventSequenceNumber >= tail))
+            {
+                break;
+            }
+
+            await EnsureNoFailedPartitions(accessor, name, mirrorIds);
+            if (DateTimeOffset.UtcNow >= deadline)
+            {
+                throw new SemanticWorldRebuildRefused($"Mirror projections have not reached event-log tail {tail}: {string.Join(", ", observers.Select(observer => $"{observer.Id}={observer.LastHandledEventSequenceNumber}/{observer.IsSubscribed}"))}.");
+            }
+
+            await Task.Delay(100);
+        }
+
+        await EnsureNoFailedPartitions(accessor, name, mirrorIds);
+
+        var events = (await accessor.Services.Sequences.FromSequenceNumber(new ChronicleSequences.FromSequenceNumberRequest
+        {
+            EventStore = name,
+            Namespace = EventStoreNamespaceName.Default,
+            EventSequenceId = EventSequenceId.Log,
+            FromEventSequenceNumber = 0
+        })).EnsureSuccess().ToArray();
+        var instances = new Dictionary<SemanticId, IReadOnlyList<string>>();
+        foreach (var readModel in plan.ReadModels.Values.Where(model => plan.Projections.Values.Any(projection => projection.ReadModel == model.Id)))
+        {
+            var mirror = plan.Projections.Values.Single(projection => projection.ReadModel == readModel.Id);
+            SemanticProjectionMirrors.TryLower(plan, mirror, out var definition, out _, out _);
+            var identifier = definition!.Type.Identifier;
+            var rows = new List<string>();
+            for (var page = 0; ; page++)
+            {
+                var result = await accessor.Services.ReadModels.GetInstances(new ChronicleReadModels.GetInstancesRequest
+                {
+                    EventStore = name,
+                    Namespace = EventStoreNamespaceName.Default,
+                    ReadModel = identifier,
+                    Page = page,
+                    PageSize = 100
+                });
+                rows.AddRange(result.Instances);
+                if (rows.Count >= result.TotalCount)
+                {
+                    break;
+                }
+            }
+
+            instances.Add(readModel.Id, rows);
+        }
+
+        var after = (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
+        {
+            EventStore = name,
+            Namespace = EventStoreNamespaceName.Default,
+            EventSequenceId = EventSequenceId.Log
+        })).EnsureSuccess().SequenceNumber;
+        if (after != tail)
+        {
+            throw new SemanticWorldRebuildRefused("The Chronicle event-log tail changed during world reconstruction.");
+        }
+
+        return SemanticWorldRebuilder.Create(plan, events, instances, tail);
+    }
+
+    static async Task EnsureNoFailedPartitions(IChronicleServicesAccessor accessor, string name, HashSet<string> mirrorIds)
+    {
+        var failed = await accessor.Services.FailedPartitions.GetFailedPartitions(new Cratis.Chronicle.Contracts.Observation.GetFailedPartitionsRequest
+        {
+            EventStore = name,
+            Namespace = EventStoreNamespaceName.Default
+        });
+        EnsureNoFailures(failed, mirrorIds);
+    }
+
+    internal static void EnsureNoFailures(IEnumerable<Cratis.Chronicle.Contracts.Observation.FailedPartition> failed, IReadOnlySet<string> mirrorIds)
+    {
+        if (failed.Any(partition => mirrorIds.Contains(partition.ObserverId) && !partition.IsResolved))
+        {
+            throw new SemanticWorldRebuildRefused("The Chronicle mirror has failed partitions.");
+        }
     }
 }

@@ -3,6 +3,7 @@
 
 using Cratis.Arc.Commands;
 using Cratis.Chronicle;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Scene;
@@ -41,6 +42,7 @@ internal static class SemanticHost
         }
 
         var eventStore = ContainerEventStoreName.Resolve();
+        var world = SemanticWorld.Empty;
         var builder = WebApplication.CreateBuilder(args);
         builder.Configuration.AddJsonFile(
             Environment.GetEnvironmentVariable("STAGE_CONFIG") is { Length: > 0 } configuredPath
@@ -54,7 +56,7 @@ internal static class SemanticHost
         builder.Services.AddSingleton(new StageEventStoreName(eventStore));
         if (surface is not null)
         {
-            SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan);
+            SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, () => world);
             builder.Services.AddSingleton<DynamicTypeFactory>();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddControllers();
@@ -86,10 +88,7 @@ internal static class SemanticHost
 
         try
         {
-            if (!await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded!.Plan))
-            {
-                issues.Add(new StageUnsupportedIssue("World", "model", "The Chronicle event log is not empty; the semantic world cannot be reconstructed."));
-            }
+            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded!.Plan);
         }
         catch (Exception exception)
         {

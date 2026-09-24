@@ -23,10 +23,11 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
     readonly SemanticEvaluator _evaluator = new();
     SemanticWorld _world = SemanticWorld.Empty;
 
-    internal SemanticRuntime(SemanticExecutionPlan plan, IAppendSemanticFacts appender)
+    internal SemanticRuntime(SemanticExecutionPlan plan, IAppendSemanticFacts appender, SemanticWorld? world = null)
     {
         Plan = plan;
         _appender = appender;
+        _world = world ?? SemanticWorld.Empty;
     }
 
     /// <inheritdoc/>

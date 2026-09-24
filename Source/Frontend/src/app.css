@@ -26,8 +26,16 @@ button { font: inherit; }
     border-bottom: 1px solid #2a354d;
     display: flex;
     gap: 2rem;
+    justify-content: space-between;
     min-height: 3.5rem;
     padding: 0.65rem 1rem;
+}
+.stage-locale {
+    background: #222d45;
+    border: 1px solid #3b4966;
+    border-radius: 0.4rem;
+    color: inherit;
+    padding: 0.35rem 0.5rem;
 }
 .stage-sidebar {
     background: #10151f;

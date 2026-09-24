@@ -16,6 +16,9 @@ public class an_invoice_model : Specification
     protected ExecutableSemanticModel _model = null!;
     protected ArtifactRenderPlan _plan = null!;
 
+    protected const string Policy = "policy Clerks\n  require authenticated\n";
+    protected const string Caller = "given caller\n          authenticated\n        when IssueInvoice\n";
+
     protected static string Invoices => invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource);
 
     protected void Plan(string source)

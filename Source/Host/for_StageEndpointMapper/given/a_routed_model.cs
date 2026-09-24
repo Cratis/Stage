@@ -57,6 +57,7 @@ public class a_routed_model : Specification
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddOpenApi(options => options.AddDocumentTransformer<StageOnlyOperationsDocumentTransformer>());
         builder.Services.AddSingleton(Substitute.For<IHttpRequestContextAccessor>());
+        arc_authorization.Register(builder.Services);
         var correlation = Substitute.For<ICorrelationIdAccessor>();
         correlation.Current.Returns(CorrelationId.New());
         builder.Services.AddSingleton(correlation);

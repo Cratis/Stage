@@ -24,7 +24,9 @@ internal static class SemanticSpecificationAdmission
     {
         foreach (var specification in slice.Specifications)
         {
-            var valid = specification.When is not null &&
+            // A caller fixture and a denial assertion only mean something against rendered authorization, which
+            // admission rejects. An appended-event action has no command, so it has no When either.
+            var valid = specification.When is not null && specification.GivenCaller is null && !specification.ThenDenied &&
                 context.Commands.TryGetValue(specification.When.Command, out var command) &&
                 specification.GivenEvents.IsEmpty && specification.GivenReadModels.IsEmpty &&
                 ValuesMatch(specification.When.Values, command?.Properties ?? []) &&

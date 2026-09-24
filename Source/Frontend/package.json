@@ -11,9 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cratis/scene.model": "4.1.1",
-    "@cratis/scene.react": "4.1.0",
-    "@cratis/scene.primereact": "4.1.0",
+    "@cratis/scene.model": "4.2.0",
+    "@cratis/scene.react": "4.2.0",
+    "@cratis/scene.primereact": "4.2.0",
     "@primereact/core": "11.1.0",
     "@primereact/headless": "11.1.0",
     "primereact": "11.1.0",

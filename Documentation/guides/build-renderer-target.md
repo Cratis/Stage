@@ -254,7 +254,7 @@ A model that uses an ESM v2 construct arrives as language and semantic version `
 - **Command occurrence values.** A `$context.occurred` or `$context.identity.*` mapping fails admission with `STAGE-ESM-013`. Chronicle assigns the occurrence when it appends the event, so a Cratis command cannot put the same value in the event payload.
 - **Event-source context in projections.** A projection keyed on the event source, which reads the identity with `$eventSourceId`, binds to the scoped projection shape. The Cratis renderer does not admit that shape yet and reports `STAGE-ESM-008`.
 
-The Cratis renderer also rejects command requirements (`STAGE-ESM-005`), guarded productions and event tags (`STAGE-ESM-006`), and append-time constraints that govern a selected command (`STAGE-ESM-014`). It renders none of them yet, and an application without them would append events the reference evaluator rejects or tags differently.
+The Cratis renderer also rejects command requirements (`STAGE-ESM-005`), guarded productions and event tags (`STAGE-ESM-006`), append-time constraints that govern a selected command (`STAGE-ESM-014`), and commands or queries authorized by a policy (`STAGE-ESM-015`). A specification with a `given caller` fixture or a `then denied` outcome fails with `STAGE-ESM-011`. It renders none of them yet. Without them, the application would append events the reference evaluator rejects, tag them differently, or let any caller through.
 
 Build target-local indexes keyed by `SemanticId`. Use `ExecutableSemanticModel` and `SemanticExecutionPlan` mappings for command production, destinations, properties, projection transitions, affected-instance keys, queries, and typed specification values. Never join artifacts by a short or display name.
 

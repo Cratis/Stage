@@ -102,10 +102,10 @@ Application scope adds exactly eight deterministic backend scaffold artifacts: `
 `appsettings.json`, and `docker-compose.yml`. The local MSBuild and central-package boundaries isolate the generated
 application from parent repositories. `Program.cs` remains active in Debug beside inline generated specifications;
 the project locally suppresses only their expected CS7022 entry-point warning. The profile pins .NET 10,
-Cratis/Arc 22.22.0, the verified specification dependencies, an explicit Cratis.Chronicle 19.4.4 client
-reference, and `cratis/chronicle:19.4.4-development`. The explicit client reference keeps the client matched to the
+Cratis/Arc 22.23.0, the verified specification dependencies, an explicit Cratis.Chronicle 19.4.7 client
+reference, and `cratis/chronicle:19.4.7-development`. The explicit client reference keeps the client matched to the
 image instead of relying on the metapackage's transitive Chronicle 19.4.2. The frontend scaffold
-uses the same Arc era with Components 4.13.1, Scene 4.1.0, and Fundamentals 7.19.4. It emits no repository
+uses the same Arc era with Components 4.13.1, Scene 4.2.0, and Fundamentals 7.19.4. It emits no repository
 marker, floating version, random identifier, or destination-specific value.
 
 The scaffold leaves an unmanaged `Customizations/` seam for hand-written code. `Program.cs` calls optional
@@ -172,7 +172,7 @@ navigation works for translated navigation intents. For canvas models without ex
 synthesizes query views and command forms using the routes registered by Arc. Default scenes with
 String/Guid scalar commands declare exact proxy-named inputs (including required Guid identifiers) and a submit
 action; unsupported combinations show a diagnostic rather than a partial form. Authored screens take precedence.
-The standalone generated frontend pins Scene 4.1.0 for explicit command inputs, but native builds do not
+The standalone generated frontend pins Scene 4.2.0 for explicit command inputs, but native builds do not
 prove browser command submission or readback. This playback frontend is distinct from a standalone generated
 application and does not imply complete modeled UI or authorization support.
 

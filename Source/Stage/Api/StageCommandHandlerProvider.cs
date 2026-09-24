@@ -3,8 +3,10 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Cratis.Arc.Commands;
+using Cratis.Arc.Tenancy;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Runtime;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cratis.Stage.Api;
 
@@ -16,10 +18,8 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
     readonly List<ICommandHandler> _handlers = [];
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="StageCommandHandlerProvider"/> class. Arc discovers this
-    /// provider in every host that references the Stage assembly, but only the Stage host registers an event model
-    /// to run — so the dependencies are taken as optional collections and the provider exposes no handlers when no
-    /// event model is present.
+    /// Initializes a new instance of the <see cref="StageCommandHandlerProvider"/> class whose commands run under the
+    /// default tenant.
     /// </summary>
     /// <param name="models">The event model the engine runs, when one is registered.</param>
     /// <param name="typeFactories">The factory used to emit a runtime type per command, when one is registered.</param>
@@ -30,12 +30,35 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
         IEnumerable<DynamicTypeFactory> typeFactories,
         IEnumerable<IAppendProducedEvents> appenders,
         IEnumerable<IProvideStageIdentity> identities)
+        : this(models, typeFactories, appenders, identities, [DefaultTenantIdAccessor.Instance])
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StageCommandHandlerProvider"/> class. Arc discovers this
+    /// provider in every host that references the Stage assembly, but only the Stage host registers an event model
+    /// to run — so the dependencies are taken as optional collections and the provider exposes no handlers when no
+    /// event model is present.
+    /// </summary>
+    /// <param name="models">The event model the engine runs, when one is registered.</param>
+    /// <param name="typeFactories">The factory used to emit a runtime type per command, when one is registered.</param>
+    /// <param name="appenders">The system appending the events a command produces, when one is registered.</param>
+    /// <param name="identities">The system resolving the identity behind a command, when one is registered.</param>
+    /// <param name="tenants">The accessor for the current tenant, when one is registered.</param>
+    [ActivatorUtilitiesConstructor]
+    public StageCommandHandlerProvider(
+        IEnumerable<EventModel> models,
+        IEnumerable<DynamicTypeFactory> typeFactories,
+        IEnumerable<IAppendProducedEvents> appenders,
+        IEnumerable<IProvideStageIdentity> identities,
+        IEnumerable<ITenantIdAccessor> tenants)
     {
         var model = models.FirstOrDefault();
         var typeFactory = typeFactories.FirstOrDefault();
         var appender = appenders.FirstOrDefault();
         var identity = identities.FirstOrDefault();
-        if (model is null || typeFactory is null || appender is null || identity is null)
+        var tenant = tenants.FirstOrDefault();
+        if (model is null || typeFactory is null || appender is null || identity is null || tenant is null)
         {
             return;
         }
@@ -48,7 +71,7 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
             }
 
             var commandType = typeFactory.CreateCommandType(located.TypeNamespace, ModelNaming.ToIdentifier(command.Name));
-            _handlers.Add(new StageCommandHandler(commandType, located.CanonicalLocation, command, appender, identity));
+            _handlers.Add(new StageCommandHandler(commandType, located.CanonicalLocation, command, appender, identity, tenant));
         }
     }
 

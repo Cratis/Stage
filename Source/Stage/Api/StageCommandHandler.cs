@@ -4,6 +4,8 @@
 using System.Reflection;
 using System.Text.Json;
 using Cratis.Arc.Commands;
+using Cratis.Arc.Tenancy;
+using Cratis.Arc.Validation;
 using Cratis.Stage.Contracts.Commands;
 using Cratis.Stage.Runtime;
 
@@ -18,13 +20,33 @@ namespace Cratis.Stage.Api;
 /// <param name="definition">The modeled command being handled.</param>
 /// <param name="appender">The system appending the produced events.</param>
 /// <param name="identity">The system resolving the identity behind the command.</param>
+/// <param name="tenants">The accessor for the command's current tenant.</param>
 public sealed class StageCommandHandler(
     Type commandType,
     IReadOnlyList<string> location,
     CommandDefinition definition,
     IAppendProducedEvents appender,
-    IProvideStageIdentity identity) : ICommandHandler
+    IProvideStageIdentity identity,
+    ITenantIdAccessor tenants) : ICommandHandler
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StageCommandHandler"/> class that runs under the default tenant.
+    /// </summary>
+    /// <param name="commandType">The runtime type bound to the modeled command.</param>
+    /// <param name="location">The location the command is exposed at.</param>
+    /// <param name="definition">The modeled command being handled.</param>
+    /// <param name="appender">The system appending the produced events.</param>
+    /// <param name="identity">The system resolving the identity behind the command.</param>
+    public StageCommandHandler(
+        Type commandType,
+        IReadOnlyList<string> location,
+        CommandDefinition definition,
+        IAppendProducedEvents appender,
+        IProvideStageIdentity identity)
+        : this(commandType, location, definition, appender, identity, DefaultTenantIdAccessor.Instance)
+    {
+    }
+
     /// <inheritdoc/>
     public IEnumerable<string> Location => location;
 
@@ -62,7 +84,13 @@ public sealed class StageCommandHandler(
 
         var caller = identity.Current();
         var values = payload.AsReadOnly();
-        var events = ProducedEventPayloads.Build(definition.Produces, values, DateTimeOffset.UtcNow, caller);
+        var tenant = tenants.Current;
+        var events = ProducedEventPayloads.Build(
+            definition.Produces,
+            values,
+            DateTimeOffset.UtcNow,
+            caller,
+            tenant.IsDefault ? TenantId.Default.Value : tenant.Value);
 
         await appender.Append(EventSourceId(values), events, caller);
     }

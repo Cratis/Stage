@@ -70,9 +70,29 @@ public static class ProducedValueConverter
             return (ProducedValueKind.Occurred, string.Empty);
         }
 
-        return path.StartsWith("identity.", StringComparison.OrdinalIgnoreCase)
-            ? (ProducedValueKind.Identity, path["identity.".Length..])
-            : (ProducedValueKind.Unsupported, path);
+        if (path.Equals("tenant", StringComparison.OrdinalIgnoreCase))
+        {
+            return (ProducedValueKind.Tenant, string.Empty);
+        }
+
+        if (path.StartsWith("identity.", StringComparison.OrdinalIgnoreCase))
+        {
+            return (ProducedValueKind.Identity, path["identity.".Length..]);
+        }
+
+        if (path.StartsWith("causedBy.", StringComparison.OrdinalIgnoreCase))
+        {
+            var member = path["causedBy.".Length..];
+            return member.ToLowerInvariant() switch
+            {
+                "subject" => (ProducedValueKind.Identity, "id"),
+                "name" => (ProducedValueKind.Identity, "name"),
+                "username" => (ProducedValueKind.Identity, "userName"),
+                _ => (ProducedValueKind.Unsupported, path)
+            };
+        }
+
+        return (ProducedValueKind.Unsupported, path);
     }
 
     static (ProducedValueKind Kind, string Expression) EventContext(string path) =>

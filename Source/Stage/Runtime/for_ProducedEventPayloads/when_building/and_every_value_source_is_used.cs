@@ -25,6 +25,7 @@ public class and_every_value_source_is_used : given.a_command_payload
                     new ProducedEventProperty("status", ProducedValueKind.Literal, "\"draft\""),
                     new ProducedEventProperty("registeredAt", ProducedValueKind.Occurred, string.Empty),
                     new ProducedEventProperty("registeredBy", ProducedValueKind.Identity, "name"),
+                    new ProducedEventProperty("registeredFor", ProducedValueKind.Tenant, string.Empty),
                     new ProducedEventProperty("source", ProducedValueKind.Environment, EnvironmentVariable),
                     new ProducedEventProperty("label", ProducedValueKind.Template, "${invoiceNumber} (${currency})"),
                     new ProducedEventProperty("missing", ProducedValueKind.CommandProperty, "notOnThePayload"),
@@ -35,7 +36,8 @@ public class and_every_value_source_is_used : given.a_command_payload
         ],
         _command,
         _occurred,
-        _identity);
+        _identity,
+        "Default");
 
     void Destroy() => Environment.SetEnvironmentVariable(EnvironmentVariable, null);
 
@@ -46,6 +48,7 @@ public class and_every_value_source_is_used : given.a_command_payload
     [Fact] void should_write_a_literal() => Value("status").ShouldEqual("draft");
     [Fact] void should_write_the_occurred_time() => Value("registeredAt").ShouldEqual("2026-07-30T12:00:00.0000000Z");
     [Fact] void should_write_the_identity_value() => Value("registeredBy").ShouldEqual("Some One");
+    [Fact] void should_write_the_tenant() => Value("registeredFor").ShouldEqual("Default");
     [Fact] void should_write_the_environment_variable() => Value("source").ShouldEqual("invoicing-service");
     [Fact] void should_interpolate_a_template() => Value("label").ShouldEqual("INV-000001 (USD)");
     [Fact] void should_leave_out_a_property_the_caller_did_not_send() => _events[0].Content.ContainsKey("missing").ShouldBeFalse();

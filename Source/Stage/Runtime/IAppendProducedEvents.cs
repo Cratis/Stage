@@ -15,5 +15,7 @@ public interface IAppendProducedEvents
     /// <param name="events">The events to append, in order.</param>
     /// <param name="identity">The identity that caused the command, recorded as the causing identity of the events.</param>
     /// <returns>Awaitable task.</returns>
+    /// <exception cref="ProducedEventConstraintRejected">A constraint rejected the events; nothing was appended.</exception>
+    /// <exception cref="ProducedEventAppendRejected">The event store rejected the events for any other reason; nothing was appended.</exception>
     Task Append(string eventSourceId, IReadOnlyList<ProducedEventPayload> events, IReadOnlyDictionary<string, string> identity);
 }

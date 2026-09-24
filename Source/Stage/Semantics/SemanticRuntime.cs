@@ -7,6 +7,7 @@ using System.Text.Json;
 using Cratis.DependencyInjection;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Runtime;
 
 namespace Cratis.Stage.Semantics;
 
@@ -14,8 +15,9 @@ namespace Cratis.Stage.Semantics;
 /// Maintains the isolated semantic world for one Stage session.
 /// </summary>
 [IgnoreConvention]
-internal sealed class SemanticRuntime : ISemanticRuntime, IDisposable
+internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus, IDisposable
 {
+    static readonly TimeSpan _appendTimeout = TimeSpan.FromSeconds(15);
     readonly IAppendSemanticFacts _appender;
     readonly SemaphoreSlim _gate = new(1, 1);
     readonly SemanticEvaluator _evaluator = new();
@@ -31,6 +33,9 @@ internal sealed class SemanticRuntime : ISemanticRuntime, IDisposable
     public SemanticExecutionPlan Plan { get; }
 
     /// <inheritdoc/>
+    public string? FaultReason { get; private set; }
+
+    /// <inheritdoc/>
     public void Dispose() => _gate.Dispose();
 
     /// <inheritdoc/>
@@ -44,10 +49,58 @@ internal sealed class SemanticRuntime : ISemanticRuntime, IDisposable
         await _gate.WaitAsync();
         try
         {
+            if (FaultReason is not null)
+            {
+                return Faulted();
+            }
+
             var result = Evaluate(command, payload, principal, occurrence);
             if (!validateOnly && result is SemanticAccepted accepted)
             {
-                await _appender.Append(accepted.Facts, occurrence);
+                if (_appender is not ISemanticFactTail tail)
+                {
+                    FaultReason = "The fact appender cannot verify Chronicle's event-log tail.";
+                    return Faulted();
+                }
+
+                ulong before;
+                try
+                {
+                    before = await tail.Tail().WaitAsync(_appendTimeout);
+                }
+                catch (Exception exception)
+                {
+                    FaultReason = $"Cannot read the event-log tail before append: {exception.Message}";
+                    return Faulted();
+                }
+
+                try
+                {
+                    await _appender.Append(accepted.Facts, occurrence).WaitAsync(_appendTimeout);
+                }
+                catch (Exception exception)
+                {
+                    try
+                    {
+                        var after = await tail.Tail().WaitAsync(_appendTimeout);
+                        if (after != before || exception is not ProducedEventConstraintRejected)
+                        {
+                            FaultReason = $"Append outcome is unknown (tail {before} -> {after}): {exception.Message}";
+                        }
+                    }
+                    catch (Exception tailFailure)
+                    {
+                        FaultReason = $"Append outcome is unknown; the event-log tail cannot be read: {tailFailure.Message}";
+                    }
+
+                    if (FaultReason is not null)
+                    {
+                        return Faulted();
+                    }
+
+                    throw;
+                }
+
                 _world = accepted.World;
             }
 
@@ -65,6 +118,11 @@ internal sealed class SemanticRuntime : ISemanticRuntime, IDisposable
         await _gate.WaitAsync();
         try
         {
+            if (FaultReason is not null)
+            {
+                return Faulted();
+            }
+
             var request = SemanticExecutionRequest.ForQueries([new(query.Id, key)]) with { Caller = SemanticCallers.From(principal) };
             return _evaluator.Execute(Plan, _world, request);
         }
@@ -80,7 +138,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, IDisposable
         await _gate.WaitAsync();
         try
         {
-            return [.. _world.ReadModels.Where(instance => instance.ReadModel == model)];
+            return FaultReason is null ? [.. _world.ReadModels.Where(instance => instance.ReadModel == model)] : [];
         }
         finally
         {
@@ -88,9 +146,11 @@ internal sealed class SemanticRuntime : ISemanticRuntime, IDisposable
         }
     }
 
+    SemanticUnsupported Faulted() => new(_world, SemanticExecutionCapability.Unknown, FaultReason!);
+
     SemanticExecutionResult Evaluate(SemanticCommand command, IReadOnlyDictionary<string, JsonElement> payload, ClaimsPrincipal principal, SemanticCommandOccurrence occurrence)
     {
-        var unknown = payload.Keys.FirstOrDefault(key => command.Properties.All(property => property.Name != key));
+        var unknown = payload.Keys.FirstOrDefault(key => command.Properties.All(property => !string.Equals(property.Name, key, StringComparison.OrdinalIgnoreCase)));
         try
         {
             var values = SemanticJsonValues.Bind(command.Properties, payload, Plan.Model);

@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Runtime;
 
 namespace Cratis.Stage.Semantics;
 
@@ -18,10 +19,18 @@ internal static class SemanticJsonValues
     internal static ImmutableArray<SemanticPropertyValue> Bind(
         IEnumerable<SemanticProperty> properties,
         IReadOnlyDictionary<string, JsonElement> payload,
-        ExecutableSemanticModel model) =>
-        [.. properties.Select(property => new SemanticPropertyValue(
+        ExecutableSemanticModel model)
+    {
+        var ambiguous = payload.Keys.GroupBy(key => key, StringComparer.OrdinalIgnoreCase).FirstOrDefault(group => group.Count() > 1);
+        if (ambiguous is not null)
+        {
+            throw new UnsupportedSemanticValue($"Ambiguous command property '{ambiguous.Key}'.");
+        }
+
+        return [.. properties.Select(property => new SemanticPropertyValue(
             property.Id,
-            payload.TryGetValue(property.Name, out var value) ? Bind(value, property.Type, model) : SemanticValue.Null))];
+            CommandPayloadValues.Lookup(payload, property.Name) is { } value ? Bind(value, property.Type, model) : SemanticValue.Null))];
+    }
 
     internal static SemanticValue Bind(JsonElement value, SemanticTypeReference type, ExecutableSemanticModel model)
     {
@@ -41,7 +50,7 @@ internal static class SemanticJsonValues
         {
             var properties = model.Application.Types.Single(candidate => candidate.Id == type.Target).Properties;
             var members = value.EnumerateObject().ToDictionary(item => item.Name, item => item.Value);
-            var unknown = members.Keys.FirstOrDefault(name => properties.All(property => property.Name != name));
+            var unknown = members.Keys.FirstOrDefault(name => properties.All(property => !string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)));
             if (unknown is not null)
             {
                 throw new UnsupportedSemanticValue($"Unknown composite property '{unknown}'.");

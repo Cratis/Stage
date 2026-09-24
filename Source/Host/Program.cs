@@ -84,15 +84,7 @@ app.UseForwardedHeaders();
 if (!warmMode)
 {
     app.UseDefaultFiles();
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        OnPrepareResponse = context =>
-        {
-            context.Context.Response.Headers.CacheControl = context.Context.Request.Path.StartsWithSegments("/assets")
-                ? "public,max-age=31536000,immutable"
-                : "no-store";
-        }
-    });
+    app.UseStaticFiles(StageStaticFileOptions.Create());
 }
 app.UseRouting();
 app.UseCratisChronicle();

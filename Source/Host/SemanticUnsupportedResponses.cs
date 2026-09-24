@@ -7,8 +7,6 @@ using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
 
-public sealed class UnsupportedSemanticResponse() : Exception("The Arc response for an unsupported semantic operation is not JSON.");
-
 internal static class SemanticUnsupportedResponses
 {
     internal static async Task Rewrite(HttpContext context, Func<Task> next)
@@ -49,3 +47,5 @@ internal static class SemanticUnsupportedResponses
         }
     }
 }
+
+internal sealed class UnsupportedSemanticResponse() : Exception("The Arc response for an unsupported semantic operation is not JSON.");

@@ -27,7 +27,8 @@ public class a_bound_semantic_model : a_routed_model
             throw new Exception(string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
         }
         var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
-        _facts = Substitute.For<IAppendSemanticFacts>();
+        _facts = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
+        ((ISemanticFactTail)_facts).Tail().Returns(ulong.MaxValue);
         if (!plan.Success)
         {
             throw new Exception(string.Join("; ", plan.Issues.Select(issue => issue.Details)));
@@ -72,5 +73,24 @@ public class a_bound_semantic_model : a_routed_model
               event ProjectRegistered
                 projectId ProjectId
                 name ProjectName
+            slice StateView ProjectLookup
+              readmodel ProjectSummary
+                projectId ProjectId
+                name ProjectName
+              query ProjectById => ProjectSummary?
+                by projectId ProjectId
+                authorize Staff
+              projection ProjectSummaryProjection => ProjectSummary
+                from ProjectRegistered key projectId
+                  name = name
+            slice StateView PublicLookup
+              readmodel PublicSummary
+                projectId ProjectId
+                name ProjectName
+              query PublicById => PublicSummary?
+                by projectId ProjectId
+              projection PublicSummaryProjection => PublicSummary
+                from ProjectRegistered key projectId
+                  name = name
         """;
 }

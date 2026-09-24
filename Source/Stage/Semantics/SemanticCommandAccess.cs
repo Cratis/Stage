@@ -22,9 +22,9 @@ internal static class SemanticCommandAccess
 
         occurrence = new(
             DateTimeOffset.UtcNow,
-            principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? "unknown",
-            principal.FindFirstValue(ClaimTypes.Name) ?? "unknown",
-            principal.Identity?.Name ?? "unknown");
+            principal.Identity?.IsAuthenticated == true ? principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty : string.Empty,
+            principal.Identity?.IsAuthenticated == true ? principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty : string.Empty,
+            principal.Identity?.IsAuthenticated == true ? principal.Identity.Name ?? string.Empty : string.Empty);
         context.Values[OccurrenceKey] = occurrence;
         return occurrence;
     }

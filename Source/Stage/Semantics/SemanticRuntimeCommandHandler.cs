@@ -14,10 +14,16 @@ using Microsoft.AspNetCore.Http;
 namespace Cratis.Stage.Semantics;
 
 /// <summary>
+/// The exception that is thrown when a semantic command cannot complete.
+/// </summary>
+/// <param name="message">The execution failure.</param>
+public sealed class SemanticCommandExecutionFailed(string message) : Exception(message);
+
+/// <summary>
 /// Handles one semantic command after the Arc filter's non-mutating check.
 /// </summary>
 [IgnoreConvention]
-public sealed class SemanticRuntimeCommandHandler : ICommandHandler
+internal sealed class SemanticRuntimeCommandHandler : ICommandHandler
 {
     readonly SemanticCommand _command;
     readonly ISemanticRuntime _runtime;
@@ -74,5 +80,3 @@ public sealed class SemanticRuntimeCommandHandler : ICommandHandler
         throw new SemanticCommandExecutionFailed(string.Join("; ", result.ExceptionMessages));
     }
 }
-
-public sealed class SemanticCommandExecutionFailed(string message) : Exception(message);

@@ -26,6 +26,12 @@ internal sealed class StageHttpSurface
 
     internal IReadOnlyList<StageHttpOperation> Operations { get; }
 
+    /// <summary>
+    /// Admits the legacy EventModel routes before emitting dynamic types.
+    /// </summary>
+    /// <param name="model">The modeled application.</param>
+    /// <param name="routeOptions">Optional route settings.</param>
+    /// <returns>The admitted HTTP surface.</returns>
     internal static StageHttpSurface Create(EventModel model, StageHttpRouteOptions? routeOptions = null) =>
         Create([.. StageModelWalker.Slices(model).SelectMany(ArtifactsFor)], routeOptions);
 
@@ -33,7 +39,8 @@ internal sealed class StageHttpSurface
     {
         var slices = SemanticHostModelWalker.Slices(model).ToArray();
         var readModels = slices.SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
-        return Create([.. slices.SelectMany(located => ArtifactsFor(located, readModels))], routeOptions);
+        var queries = slices.SelectMany(located => located.Slice.Queries).ToArray();
+        return Create([.. slices.SelectMany(located => ArtifactsFor(located, readModels, queries))], routeOptions);
     }
 
     internal string? AliasFor(string method, string canonicalPath) =>
@@ -79,6 +86,7 @@ internal sealed class StageHttpSurface
             throw conflicts[0];
         }
 
+        // Legacy/legacy conflicts have no canonical owner; omit the alias rather than choosing arbitrarily.
         var aliases = claims.Where(group => !group.Any(claim => claim.Canonical) &&
                 group.Select(claim => claim.Operation).Distinct().Count() == 1)
             .Select(group => group.First().Operation)
@@ -100,7 +108,7 @@ internal sealed class StageHttpSurface
         }
     }
 
-    static IEnumerable<Artifact> ArtifactsFor(LocatedSemanticSlice located, Dictionary<SemanticId, SemanticReadModel> readModels)
+    static IEnumerable<Artifact> ArtifactsFor(LocatedSemanticSlice located, Dictionary<SemanticId, SemanticReadModel> readModels, SemanticKeyedQuery[] allQueries)
     {
         foreach (var command in located.Slice.Commands)
         {
@@ -116,7 +124,9 @@ internal sealed class StageHttpSurface
                 Guid.Empty,
                 ModelNaming.ToIdentifier(readModel.Name),
                 false,
-                [.. located.Slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => ModelNaming.ToIdentifier(query.Name))]);
+                [.. located.Slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => ModelNaming.ToIdentifier(query.Name))],
+                allQueries.Any(query => query.ReadModel == readModel.Id) &&
+                allQueries.Where(query => query.ReadModel == readModel.Id).All(query => query.Authorization is null));
         }
 
         foreach (var queries in located.Slice.Queries.Where(query => located.Slice.ReadModels.All(readModel => readModel.Id != query.ReadModel))

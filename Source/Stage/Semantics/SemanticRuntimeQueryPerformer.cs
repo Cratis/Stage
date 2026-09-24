@@ -13,10 +13,26 @@ using Microsoft.AspNetCore.Http;
 namespace Cratis.Stage.Semantics;
 
 /// <summary>
+/// The exception that is thrown when a semantic query is rejected.
+/// </summary>
+/// <param name="message">The rejection details.</param>
+public sealed class SemanticQueryRejected(string message) : Exception(message), IValidationFailure
+{
+    /// <inheritdoc/>
+    public ValidationResult ValidationResult => Cratis.Arc.Validation.ValidationResult.Error(Message);
+}
+
+/// <summary>
+/// The exception that is thrown when a semantic query cannot run.
+/// </summary>
+/// <param name="message">The unsupported details.</param>
+public sealed class SemanticQueryUnsupported(string message) : Exception(message);
+
+/// <summary>
 /// Serves a semantic snapshot query or a compatibility lookup from the in-process world.
 /// </summary>
 [IgnoreConvention]
-public sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
+internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
 {
     readonly ISemanticRuntime _runtime;
     readonly SemanticReadModel _model;
@@ -80,6 +96,11 @@ public sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
     /// <inheritdoc/>
     public bool IsAuthorized(QueryContext context)
     {
+        if (_runtime is ISemanticRuntimeStatus { FaultReason: not null })
+        {
+            return true;
+        }
+
         if (_query is null)
         {
             return true;
@@ -98,6 +119,11 @@ public sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
     /// <inheritdoc/>
     public async ValueTask<object?> Perform(QueryContext context)
     {
+        if (_runtime is ISemanticRuntimeStatus { FaultReason: { } reason })
+        {
+            throw UnsupportedWorld(reason);
+        }
+
         var argumentName = _query?.Argument.Name ?? "id";
         var key = context.Arguments?.TryGetValue(argumentName, out var value) == true ? value?.ToString() : null;
         if (_query is not null)
@@ -112,7 +138,13 @@ public sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
             };
         }
 
-        var instances = (await _runtime.ReadModels(_model.Id)).Select(Convert).ToArray();
+        var snapshot = await _runtime.ReadModels(_model.Id);
+        if (_runtime is ISemanticRuntimeStatus { FaultReason: { } fault })
+        {
+            throw UnsupportedWorld(fault);
+        }
+
+        var instances = snapshot.Select(Convert).ToArray();
         return _byId
             ? instances.FirstOrDefault(instance => instance is DynamicReadModel model && string.Equals(model.Id, key, StringComparison.OrdinalIgnoreCase))
             : instances;
@@ -125,17 +157,23 @@ public sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         return SemanticQueryKeys.From(text, argument.Type, _runtime.Plan.Model.Application);
     }
 
-    SemanticQueryUnsupported Unsupported(SemanticUnsupported unsupported)
+    SemanticQueryUnsupported UnsupportedWorld(string reason) => UnsupportedResponse("World", reason);
+
+    SemanticQueryUnsupported Unsupported(SemanticUnsupported unsupported) => UnsupportedResponse(
+        unsupported.Capability == SemanticExecutionCapability.Unknown ? "World" : unsupported.Capability.ToString(), unsupported.Details);
+
+    SemanticQueryUnsupported UnsupportedResponse(string capability, string details)
     {
+        var artifact = _query?.Id.ToString() ?? _model.Id.ToString();
         if (_context.HttpContext is { } context)
         {
             context.Items[SemanticRuntimeMarkers.Unsupported] = true;
-            context.Items[SemanticRuntimeMarkers.UnsupportedMessage] = $"Unsupported({unsupported.Capability}) {_query!.Id}: {unsupported.Details}";
-            context.Response.Headers["Stage-Unsupported-Capability"] = unsupported.Capability.ToString();
-            context.Response.Headers["Stage-Unsupported-Artifact"] = _query!.Id.ToString();
+            context.Items[SemanticRuntimeMarkers.UnsupportedMessage] = $"Unsupported({capability}) {artifact}: {details}";
+            context.Response.Headers["Stage-Unsupported-Capability"] = capability;
+            context.Response.Headers["Stage-Unsupported-Artifact"] = artifact;
         }
 
-        return new SemanticQueryUnsupported(unsupported.Details);
+        return new SemanticQueryUnsupported(details);
     }
 
     object Convert(SemanticReadModelInstance instance)
@@ -151,11 +189,3 @@ public sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         return result;
     }
 }
-
-public sealed class SemanticQueryRejected(string message) : Exception(message), IValidationFailure
-{
-    /// <inheritdoc/>
-    public ValidationResult ValidationResult => Cratis.Arc.Validation.ValidationResult.Error(Message);
-}
-
-public sealed class SemanticQueryUnsupported(string message) : Exception(message);

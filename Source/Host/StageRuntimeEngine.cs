@@ -15,7 +15,7 @@ internal static class StageRuntimeEngineSelection
     {
         var configured = arguments.FirstOrDefault(argument => argument.StartsWith("--engine=", StringComparison.Ordinal))?[9..]
             ?? Environment.GetEnvironmentVariable("Stage__Runtime__Engine") ?? "eventmodel";
-        return configured.ToLowerInvariant() switch
+        return (string.IsNullOrWhiteSpace(configured) ? "eventmodel" : configured.Trim().ToLowerInvariant()) switch
         {
             "eventmodel" => StageRuntimeEngine.EventModel,
             "semantic" => StageRuntimeEngine.Semantic,

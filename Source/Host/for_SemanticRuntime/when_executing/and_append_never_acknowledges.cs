@@ -13,13 +13,16 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_executing;
 
-public class and_chronicle_rejects_the_append : a_semantic_runtime
+public class and_append_never_acknowledges : a_semantic_runtime
 {
     SemanticExecutionResult _result = null!;
 
-    void Establish() => ((IAppendSemanticFacts)_appender)
-        .Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
-        .Returns(Task.FromException(new SemanticCommandExecutionFailed("Chronicle refused the append.")));
+    void Establish()
+    {
+        var acknowledgment = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ((IAppendSemanticFacts)_appender).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
+            .Returns(acknowledgment.Task);
+    }
 
     async Task Because() => _result = await _runtime.Execute(
         _command,
@@ -32,6 +35,5 @@ public class and_chronicle_rejects_the_append : a_semantic_runtime
         new(DateTimeOffset.UtcNow, "subject", "name", "user"),
         false);
 
-    [Fact] void should_fault_on_an_indeterminate_rejection() => _result.ShouldBeOfExactType<SemanticUnsupported>();
-    [Fact] async Task should_not_commit_a_read_model() => (await _runtime.ReadModels(_runtime.Plan.ReadModels.Keys.Single())).ShouldBeEmpty();
+    [Fact] void should_fault_even_if_the_tail_has_not_yet_advanced() => _result.ShouldBeOfExactType<SemanticUnsupported>();
 }

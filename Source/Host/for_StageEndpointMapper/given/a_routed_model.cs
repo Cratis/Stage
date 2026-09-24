@@ -39,6 +39,7 @@ public class a_routed_model : Specification
     protected readonly List<QueryContext> _queries = [];
     protected readonly List<string> _readModelRequests = [];
     protected bool _rejectQueries;
+    protected ISemanticRuntime? _semanticRuntime;
     protected readonly List<(Type BoundType, string EventSourceId, IReadOnlyList<ProducedEventPayload> Events)> _appends = [];
     protected WebApplication _app = null!;
     protected ICommandHandlerProviders _commandProviders = null!;
@@ -54,15 +55,15 @@ public class a_routed_model : Specification
     protected void MapSemanticModel(EventModel model, SemanticExecutionPlan plan, IAppendSemanticFacts appender)
     {
         _semantic = true;
-        var runtime = SemanticRuntimeHosting.Create(plan, appender);
-        MapModel(model, semanticRuntime: runtime);
+        _semanticRuntime = SemanticRuntimeHosting.Create(plan, appender);
+        MapModel(model, semanticRuntime: _semanticRuntime);
     }
 
     protected void MapModel(EventModel model, bool enableQueryHttpMethod = true, ISemanticRuntime? semanticRuntime = null)
     {
         // Deliberately match Program's ordering. A rejected model cannot reach type construction or mapping.
         var routes = new StageHttpRouteOptions(enableQueryHttpMethod);
-        _surface = StageHttpSurface.Create(model, routes);
+        _surface = semanticRuntime is null ? StageHttpSurface.Create(model, routes) : StageHttpSurface.Create(semanticRuntime.Plan.Model, routes);
         var builder = WebApplication.CreateBuilder();
         builder.Services.Configure<ArcOptions>(options => options.GeneratedApis = routes.Canonical);
         StageHttpRouteOptions.AlignIntrospection(builder.Services);
@@ -96,7 +97,9 @@ public class a_routed_model : Specification
         var commands = semanticRuntime is null
             ? (ICommandHandlerProvider)new StageCommandHandlerProvider([model], [types], [appender], [identity], [tenant])
             : new SemanticRuntimeCommandHandlerProvider([semanticRuntime], [types], [_httpContext!]);
-        var queries = new StageQueryPerformerProvider([model], [types]);
+        IQueryPerformerProvider queries = semanticRuntime is null
+            ? new StageQueryPerformerProvider([model], [types])
+            : new SemanticRuntimeQueryPerformerProvider([semanticRuntime], [types], [_httpContext!]);
         _commandProviders = new CommandHandlerProviders(Instances<ICommandHandlerProvider>(commands));
         _queryProviders = new QueryPerformerProviders(Instances<IQueryPerformerProvider>(queries));
         builder.Services.AddSingleton(_commandProviders);

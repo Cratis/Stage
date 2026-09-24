@@ -5,6 +5,7 @@ using System.Text.Json;
 using Cratis.Chronicle;
 using Cratis.Chronicle.Contracts;
 using Cratis.Chronicle.Contracts.Commands;
+using Cratis.Chronicle.Contracts.Queries;
 using Cratis.Chronicle.EventSequences;
 using Cratis.DependencyInjection;
 using Cratis.Screenplay.Semantics;
@@ -28,9 +29,35 @@ public interface IAppendSemanticFacts
     Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence);
 }
 
-[IgnoreConvention]
-internal sealed class SemanticFactAppender(IChronicleClient client, StageEventStoreName eventStore, SemanticExecutionPlan plan) : IAppendSemanticFacts
+/// <summary>
+/// Reads Chronicle's event-log tail to distinguish a rejected append from an indeterminate one.
+/// </summary>
+public interface ISemanticFactTail
 {
+    /// <summary>
+    /// Reads the current Chronicle event-log tail before or after an append.
+    /// </summary>
+    /// <returns>The sequence number, including the empty-log sentinel.</returns>
+    Task<ulong> Tail();
+}
+
+[IgnoreConvention]
+internal sealed class SemanticFactAppender(IChronicleClient client, StageEventStoreName eventStore, SemanticExecutionPlan plan) : IAppendSemanticFacts, ISemanticFactTail
+{
+    public async Task<ulong> Tail()
+    {
+        var store = await client.GetEventStore(eventStore.Value);
+        await store.Connection.Connect();
+        var accessor = (IChronicleServicesAccessor)store.Connection;
+        var response = await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
+        {
+            EventStore = store.Name,
+            Namespace = EventStoreNamespaceName.Default,
+            EventSequenceId = EventSequenceId.Log
+        });
+        return response.EnsureSuccess().SequenceNumber;
+    }
+
     public async Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence)
     {
         if (facts.Count == 0)

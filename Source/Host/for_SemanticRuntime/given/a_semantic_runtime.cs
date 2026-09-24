@@ -21,7 +21,8 @@ public class a_semantic_runtime : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("project-model"), "project-model", "RegisterProject.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
-        var appender = Substitute.For<IAppendSemanticFacts>();
+        var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
+        ((ISemanticFactTail)appender).Tail().Returns(ulong.MaxValue);
         _appender = appender;
         _runtime = SemanticRuntimeHosting.Create(plan.Plan!, appender);
         _command = plan.Plan!.Commands.Values.Single();
@@ -42,9 +43,13 @@ public class a_semantic_runtime : Specification
                   for projectId
                   projectId = projectId
                   name = name
+                  registeredAt = $context.occurred
+                  registeredBy = $context.causedBy.subject
               event ProjectRegistered
                 projectId ProjectId
                 name ProjectName
+                registeredAt DateTime
+                registeredBy String
             slice StateView ProjectLookup
               readmodel ProjectSummary
                 projectId ProjectId

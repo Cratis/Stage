@@ -31,14 +31,15 @@ internal static class SemanticCommandOutcome
 
     static CommandResult Unsupported(SemanticUnsupported unsupported, HttpContext? context, string artifact)
     {
+        var capability = unsupported.Capability == SemanticExecutionCapability.Unknown ? "World" : unsupported.Capability.ToString();
         if (context is not null)
         {
             context.Items[SemanticRuntimeMarkers.Unsupported] = true;
-            context.Items[SemanticRuntimeMarkers.UnsupportedMessage] = $"Unsupported({unsupported.Capability}) {artifact}: {unsupported.Details}";
-            context.Response.Headers["Stage-Unsupported-Capability"] = unsupported.Capability.ToString();
+            context.Items[SemanticRuntimeMarkers.UnsupportedMessage] = $"Unsupported({capability}) {artifact}: {unsupported.Details}";
+            context.Response.Headers["Stage-Unsupported-Capability"] = capability;
             context.Response.Headers["Stage-Unsupported-Artifact"] = artifact;
         }
 
-        return new CommandResult { ExceptionMessages = [$"Unsupported({unsupported.Capability}) {artifact}: {unsupported.Details}"] };
+        return new CommandResult { ExceptionMessages = [$"Unsupported({capability}) {artifact}: {unsupported.Details}"] };
     }
 }

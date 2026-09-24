@@ -18,10 +18,12 @@ using Cratis.Chronicle.Connections;
 using Cratis.Chronicle.Contracts;
 using Cratis.Chronicle.Contracts.ReadModels;
 using Cratis.Execution;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Runtime;
+using Cratis.Stage.Semantics;
 using Cratis.Traces;
 using Cratis.Types;
 using Microsoft.AspNetCore.Routing;
@@ -37,6 +39,7 @@ public class a_routed_model : Specification
     protected readonly List<QueryContext> _queries = [];
     protected readonly List<string> _readModelRequests = [];
     protected bool _rejectQueries;
+    protected ISemanticRuntime? _semanticRuntime;
     protected readonly List<(Type BoundType, string EventSourceId, IReadOnlyList<ProducedEventPayload> Events)> _appends = [];
     protected WebApplication _app = null!;
     protected ICommandHandlerProviders _commandProviders = null!;
@@ -46,12 +49,21 @@ public class a_routed_model : Specification
     protected bool _createdTypes;
     private protected StageHttpSurface _surface = null!;
     RequestDelegate _request = null!;
+    bool _semantic;
+    IHttpContextAccessor? _httpContext;
 
-    protected void MapModel(EventModel model, bool enableQueryHttpMethod = true)
+    protected void MapSemanticModel(EventModel model, SemanticExecutionPlan plan, IAppendSemanticFacts appender)
+    {
+        _semantic = true;
+        _semanticRuntime = SemanticRuntimeHosting.Create(plan, appender);
+        MapModel(model, semanticRuntime: _semanticRuntime);
+    }
+
+    protected void MapModel(EventModel model, bool enableQueryHttpMethod = true, ISemanticRuntime? semanticRuntime = null)
     {
         // Deliberately match Program's ordering. A rejected model cannot reach type construction or mapping.
         var routes = new StageHttpRouteOptions(enableQueryHttpMethod);
-        _surface = StageHttpSurface.Create(model, routes);
+        _surface = semanticRuntime is null ? StageHttpSurface.Create(model, routes) : StageHttpSurface.Create(semanticRuntime.Plan.Model, routes);
         var builder = WebApplication.CreateBuilder();
         builder.Services.Configure<ArcOptions>(options => options.GeneratedApis = routes.Canonical);
         StageHttpRouteOptions.AlignIntrospection(builder.Services);
@@ -77,8 +89,17 @@ public class a_routed_model : Specification
             });
         var tenant = Substitute.For<ITenantIdAccessor>();
         tenant.Current.Returns(TenantId.Default);
-        var commands = new StageCommandHandlerProvider([model], [types], [appender], [identity], [tenant]);
-        var queries = new StageQueryPerformerProvider([model], [types]);
+        _httpContext = semanticRuntime is null ? null : new HttpContextAccessor();
+        if (_httpContext is not null)
+        {
+            builder.Services.AddSingleton(_httpContext);
+        }
+        var commands = semanticRuntime is null
+            ? (ICommandHandlerProvider)new StageCommandHandlerProvider([model], [types], [appender], [identity], [tenant])
+            : new SemanticRuntimeCommandHandlerProvider([semanticRuntime], [types], [_httpContext!]);
+        IQueryPerformerProvider queries = semanticRuntime is null
+            ? new StageQueryPerformerProvider([model], [types])
+            : new SemanticRuntimeQueryPerformerProvider([semanticRuntime], [types], [_httpContext!]);
         _commandProviders = new CommandHandlerProviders(Instances<ICommandHandlerProvider>(commands));
         _queryProviders = new QueryPerformerProviders(Instances<IQueryPerformerProvider>(queries));
         builder.Services.AddSingleton(_commandProviders);
@@ -86,7 +107,7 @@ public class a_routed_model : Specification
         builder.Services.AddSingleton(Instances<IQueryRequestReader>(new QueryStringQueryRequestReader(), new BodyQueryRequestReader()));
         builder.Services.AddSingleton(Substitute.For<IObservableQueryHandler>());
 
-        ConfigureCommandPipeline(builder.Services, correlation);
+        ConfigureCommandPipeline(builder.Services, correlation, semanticRuntime);
         ConfigureQueryPipeline(builder.Services, correlation);
         _app = builder.Build();
         _introspection = new IntrospectionService(
@@ -107,6 +128,10 @@ public class a_routed_model : Specification
         // Native selection is essential: invoking RequestDelegate on a chosen endpoint misses ambiguity in routing.
         var pipeline = new ApplicationBuilder(_app.Services);
         pipeline.UseRouting();
+        if (_semantic)
+        {
+            pipeline.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
+        }
         pipeline.UseEndpoints(endpoints =>
         {
             foreach (var source in ((IEndpointRouteBuilder)_app).DataSources)
@@ -131,6 +156,7 @@ public class a_routed_model : Specification
         context.Request.ContentLength = requestBody.Length;
         context.Request.Body = requestBody;
         context.Response.Body = responseBody;
+        _httpContext?.HttpContext = context;
         await _request(context);
 
         return (context.Response.StatusCode, Encoding.UTF8.GetString(responseBody.ToArray()), context.GetEndpoint()?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName);
@@ -144,14 +170,15 @@ public class a_routed_model : Specification
         return result;
     }
 
-    void ConfigureCommandPipeline(IServiceCollection services, ICorrelationIdAccessor correlation)
+    void ConfigureCommandPipeline(IServiceCollection services, ICorrelationIdAccessor correlation, ISemanticRuntime? semanticRuntime)
     {
         var filters = Substitute.For<ICommandFilters>();
-        filters.OnExecution(Arg.Any<CommandContext>()).Returns(call =>
+        var semanticFilter = semanticRuntime is null ? null : new SemanticRuntimeCommandFilter([semanticRuntime], [_httpContext!]);
+        filters.OnExecution(Arg.Any<CommandContext>()).Returns(async call =>
         {
             var context = call.Arg<CommandContext>();
             _commands.Add(context);
-            return Task.FromResult(CommandResult.Success(context.CorrelationId));
+            return semanticFilter is null ? CommandResult.Success(context.CorrelationId) : await semanticFilter.OnExecution(context);
         });
         var values = Substitute.For<ICommandContextValuesBuilder>();
         values.Build(Arg.Any<object>()).Returns(CommandContextValues.Empty);

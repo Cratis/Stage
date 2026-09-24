@@ -14,7 +14,16 @@ public sealed record StageLoadFile(string Path, string Content);
 
 public sealed record StageLoadRequest(Guid HandoffId, IReadOnlyList<StageLoadFile> Files);
 
-public sealed record StageStatus(string State, StageStatusModel? Model, Guid? HandoffId);
+public sealed record StageUnsupportedIssue(string Capability, string Artifact, string Details);
+
+public sealed record StageStatus(string State, StageStatusModel? Model, Guid? HandoffId)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? Engine { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<StageUnsupportedIssue>? Issues { get; init; }
+}
 
 public sealed record StageStatusModel(string Name);
 
@@ -31,7 +40,12 @@ public sealed class WarmStageHandoff(string modelDirectory) : IDisposable
         return File.Exists(path) && Guid.TryParse(File.ReadAllText(path), out var handoffId) ? handoffId : null;
     }
 
-    public StageStatus GetStatus() => new(_accepted ? "loading" : "warm", null, _accepted ? ReadHandoffId() : null);
+    public StageStatus GetStatus() => new(_accepted ? "loading" : "warm", null, _accepted ? ReadHandoffId() : null)
+    {
+        Engine = string.Equals(Environment.GetEnvironmentVariable("Stage__Runtime__Engine"), "semantic", StringComparison.OrdinalIgnoreCase)
+            ? "semantic"
+            : null
+    };
 
     public async Task<StageHandoffResult> Load(
         StageLoadRequest request,

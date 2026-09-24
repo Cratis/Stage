@@ -11,8 +11,18 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticCratisAdmission
 {
-    static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics) =>
-        ValidateAuthorization(context, command.Authorization, command.Id, command.Name, diagnostics);
+    static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        // The reference evaluator selects the first supplied identifier, not necessarily the first declared
+        // identifier. A generated command record cannot distinguish omitted values from defaulted values.
+        if (command.Authorization is not null && command.Properties.Count(property => property.IsIdentifier) != 1)
+        {
+            diagnostics.Add(Error("STAGE-ESM-015", $"Authorized command '{command.Name}' needs exactly one identifier to preserve the reference subject.", command.Id));
+            return false;
+        }
+
+        return ValidateAuthorization(context, command.Authorization, command.Id, command.Name, diagnostics);
+    }
 
     static bool ValidateQueryAuthorization(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics) =>
         ValidateAuthorization(context, query.Authorization, query.Id, query.Name, diagnostics);

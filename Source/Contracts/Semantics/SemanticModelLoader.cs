@@ -24,7 +24,11 @@ public static class SemanticModelLoader
     /// Compiles a Screenplay source set and optional authoritative identity catalog.
     /// </summary>
     /// <param name="path">A .play file or a folder searched recursively for .play sources.</param>
-    /// <param name="catalogPath">An optional canonical Screenplay identity catalog JSON file.</param>
+    /// <param name="catalogPath">An optional canonical Screenplay identity catalog JSON file whose document keys match the UTF-8 hex encoding of relative .play paths.</param>
+    /// <remarks>
+    /// Without a workspace envelope, the input file or folder name becomes the application name. The caller must
+    /// preserve that name, the source paths, and any identity catalog to retain the same semantic identities.
+    /// </remarks>
     /// <returns>The executable model and plan.</returns>
     /// <exception cref="InvalidSemanticModel">Input is absent, malformed, or not executable.</exception>
     public static async Task<LoadedSemanticModel> LoadFromPathAsync(string path, string? catalogPath = null)

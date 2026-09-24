@@ -17,6 +17,7 @@ CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 
+var engine = StageRuntimeEngineSelection.Read(args);
 var modelPath = args.FirstOrDefault(argument => !argument.StartsWith('-'));
 var warmMode = args.Contains("--warm", StringComparer.Ordinal) ||
                (modelPath is null && bool.TryParse(Environment.GetEnvironmentVariable("STAGE_WARM"), out var warm) && warm);
@@ -24,6 +25,12 @@ var warmMode = args.Contains("--warm", StringComparer.Ordinal) ||
 if (!warmMode && modelPath is null)
 {
     throw new MissingModelArgument();
+}
+
+if (!warmMode && engine == StageRuntimeEngine.Semantic)
+{
+    await SemanticHost.Run(args, modelPath!);
+    return;
 }
 
 var stageApplication = warmMode ? null : await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath!);

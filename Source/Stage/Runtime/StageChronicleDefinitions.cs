@@ -94,7 +94,7 @@ public static class StageChronicleDefinitions
         })];
     }
 
-    static ChronicleReadModels.ReadModelDefinition BuildReadModel(ReadModelDefinition readModel, string readModelIdentifier, string projectionIdentifier) =>
+    internal static ChronicleReadModels.ReadModelDefinition BuildReadModel(ReadModelDefinition readModel, string readModelIdentifier, string projectionIdentifier) =>
         new()
         {
             Type = new() { Identifier = readModelIdentifier, Generation = FirstGeneration },
@@ -109,7 +109,7 @@ public static class StageChronicleDefinitions
             Source = ChronicleReadModels.ReadModelSource.User,
         };
 
-    static ChronicleProjections.ProjectionDefinition BuildProjection(ProjectionDefinition projection, string projectionIdentifier, string readModelIdentifier, string eventSequenceId) =>
+    internal static ChronicleProjections.ProjectionDefinition BuildProjection(ProjectionDefinition projection, string projectionIdentifier, string readModelIdentifier, string eventSequenceId) =>
         new()
         {
             EventSequenceId = eventSequenceId,
@@ -131,6 +131,13 @@ public static class StageChronicleDefinitions
             Nested = ChildrenMap(projection.Nested ?? new Dictionary<string, ChildrenDefinition>()),
             SubscribesToAllEvents = projection.SubscribesToAllEvents,
         };
+
+    internal static Guid DeterministicGuid(string value)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+
+        return new Guid(hash[..16]);
+    }
 
     /// <summary>
     /// Ensures the read model's schema declares the property its documents are identified by.
@@ -175,13 +182,6 @@ public static class StageChronicleDefinitions
         {
             return schema;
         }
-    }
-
-    static Guid DeterministicGuid(string value)
-    {
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
-
-        return new Guid(hash[..16]);
     }
 
     static ChronicleEvents.EventType EventType(string name) =>

@@ -2,8 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Arc.Http;
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
+using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
 
@@ -24,16 +26,21 @@ internal sealed class StageHttpSurface
 
     internal IReadOnlyList<StageHttpOperation> Operations { get; }
 
-    /// <summary>
-    /// Plans routes from modeled occurrences, not emitted types: collection/type collisions must remain visible.
-    /// </summary>
-    /// <param name="model">The model to admit.</param>
-    /// <param name="routeOptions">The host's startup route options, or the default contract.</param>
-    /// <returns>The admitted canonical surface and its uniquely owned compatibility aliases.</returns>
-    /// <exception cref="AmbiguousStageHttpSurface">Canonical, CLR, or foreign canonical/legacy ownership conflicts.</exception>
-    internal static StageHttpSurface Create(EventModel model, StageHttpRouteOptions? routeOptions = null)
+    internal static StageHttpSurface Create(EventModel model, StageHttpRouteOptions? routeOptions = null) =>
+        Create([.. StageModelWalker.Slices(model).SelectMany(ArtifactsFor)], routeOptions);
+
+    internal static StageHttpSurface Create(ExecutableSemanticModel model, StageHttpRouteOptions? routeOptions = null)
     {
-        var artifacts = StageModelWalker.Slices(model).SelectMany(ArtifactsFor).ToArray();
+        var slices = SemanticHostModelWalker.Slices(model).ToArray();
+        var readModels = slices.SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
+        return Create([.. slices.SelectMany(located => ArtifactsFor(located, readModels))], routeOptions);
+    }
+
+    internal string? AliasFor(string method, string canonicalPath) =>
+        _aliases.TryGetValue((method.ToUpperInvariant(), canonicalPath), out var alias) ? alias : null;
+
+    static StageHttpSurface Create(Artifact[] artifacts, StageHttpRouteOptions? routeOptions)
+    {
         var operationsByArtifact = Describe(artifacts, routeOptions ?? new StageHttpRouteOptions());
         var operations = operationsByArtifact.SelectMany(pair => pair.Operations)
             .OrderBy(operation => operation.Method, StringComparer.Ordinal)
@@ -53,8 +60,6 @@ internal sealed class StageHttpSurface
             new Claim(operation, operation.LegacyPath, false)
         }).GroupBy(claim => (claim.Operation.Method, claim.Path)).ToArray();
 
-        // Legacy/legacy conflicts alone are omitted, never resolved by declaration order. A canonical route may
-        // not take over somebody else's historical URL, even if that historical URL itself was ambiguous.
         var routeConflicts = claims.Where(group => group.Any(claim => claim.Canonical) &&
                 (group.Count(claim => claim.Canonical) > 1 || group.Select(claim => claim.Operation).Distinct().Count() > 1))
             .Select(group => new AmbiguousStageHttpSurface(group.Key.Method, group.Key.Path, group.Select(claim => claim.Operation).Distinct().Select(operation => operation.Description)));
@@ -82,19 +87,50 @@ internal sealed class StageHttpSurface
         return new StageHttpSurface(operations, aliases);
     }
 
-    internal string? AliasFor(string method, string canonicalPath) =>
-        _aliases.TryGetValue((method.ToUpperInvariant(), canonicalPath), out var alias) ? alias : null;
-
     static IEnumerable<Artifact> ArtifactsFor(LocatedSlice located)
     {
         if (located.Slice.Command is { } command)
         {
-            yield return new Artifact(located, ModelNaming.ToIdentifier(command.Name), true);
+            yield return new(located.Location, located.CanonicalLocation, located.TypeNamespace, located.Slice.Id, ModelNaming.ToIdentifier(command.Name), true);
         }
 
         if (located.Slice.ReadModel is { } readModel)
         {
-            yield return new Artifact(located, ModelNaming.ToIdentifier(readModel.Name), false);
+            yield return new(located.Location, located.CanonicalLocation, located.TypeNamespace, located.Slice.Id, ModelNaming.ToIdentifier(readModel.Name), false);
+        }
+    }
+
+    static IEnumerable<Artifact> ArtifactsFor(LocatedSemanticSlice located, Dictionary<SemanticId, SemanticReadModel> readModels)
+    {
+        foreach (var command in located.Slice.Commands)
+        {
+            yield return new(located.Location, located.CanonicalLocation, located.TypeNamespace, Guid.Empty, ModelNaming.ToIdentifier(command.Name), true);
+        }
+
+        foreach (var readModel in located.Slice.ReadModels)
+        {
+            yield return new(
+                located.Location,
+                located.CanonicalLocation,
+                located.TypeNamespace,
+                Guid.Empty,
+                ModelNaming.ToIdentifier(readModel.Name),
+                false,
+                [.. located.Slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => ModelNaming.ToIdentifier(query.Name))]);
+        }
+
+        foreach (var queries in located.Slice.Queries.Where(query => located.Slice.ReadModels.All(readModel => readModel.Id != query.ReadModel))
+            .GroupBy(query => query.ReadModel))
+        {
+            yield return new(
+                located.Location,
+                located.CanonicalLocation,
+                located.TypeNamespace,
+                Guid.Empty,
+                ModelNaming.ToIdentifier(readModels[queries.Key].Name),
+                false,
+                [.. queries.Select(query => ModelNaming.ToIdentifier(query.Name))],
+                false);
         }
     }
 
@@ -103,41 +139,46 @@ internal sealed class StageHttpSurface
         var canonical = routeOptions.Canonical;
         var legacy = routeOptions.Legacy;
         var commandsByLocation = EndpointRouteHelper.GroupByNamespace(
-            artifacts.Where(artifact => artifact.Command), artifact => artifact.Located.Location, legacy.SegmentsToSkipForRoute);
+            artifacts.Where(artifact => artifact.Command), artifact => artifact.Location, legacy.SegmentsToSkipForRoute);
 
         return [.. artifacts.Select(artifact =>
         {
-            var located = artifact.Located;
             var includeLegacyName = !artifact.Command || EndpointRouteHelper.ShouldIncludeNameInRoute(
-                legacy.IncludeCommandNameInRoute, located.Location.Skip(legacy.SegmentsToSkipForRoute), commandsByLocation);
-            string[] names = artifact.Command
-                ? [artifact.Name]
-                : [$"Get{artifact.Name}ById", $"All{ModelNaming.Pluralize(artifact.Name)}"];
+                legacy.IncludeCommandNameInRoute, artifact.Location.Skip(legacy.SegmentsToSkipForRoute), commandsByLocation);
+            string[] names = artifact.Command ? [artifact.Name] : [.. artifact.Queries ?? []];
+            if (!artifact.Command && artifact.Compatibility)
+            {
+                names = [$"Get{artifact.Name}ById", $"All{ModelNaming.Pluralize(artifact.Name)}", .. names];
+            }
             var operations = names.SelectMany(IEnumerable<StageHttpOperation> (string name) =>
             {
-                var canonicalPath = EndpointRouteHelper.BuildRouteUrl(canonical, located.CanonicalLocation, canonical.SegmentsToSkipForRoute, name, true);
-                var legacyPath = EndpointRouteHelper.BuildRouteUrl(legacy, located.Location, legacy.SegmentsToSkipForRoute, name, includeLegacyName);
+                var canonicalPath = EndpointRouteHelper.BuildRouteUrl(canonical, artifact.CanonicalLocation, canonical.SegmentsToSkipForRoute, name, true);
+                var legacyPath = EndpointRouteHelper.BuildRouteUrl(legacy, artifact.Location, legacy.SegmentsToSkipForRoute, name, includeLegacyName);
                 if (artifact.Command)
                 {
                     return
                     [
-                        new StageHttpOperation("POST", canonicalPath, legacyPath, "Execute", located.Slice.Id, artifact.TypeName),
-                        new StageHttpOperation("POST", $"{canonicalPath}/validate", $"{legacyPath}/validate", "Validate", located.Slice.Id, artifact.TypeName)
+                        new StageHttpOperation("POST", canonicalPath, legacyPath, "Execute", artifact.SliceId, artifact.TypeName),
+                        new StageHttpOperation("POST", $"{canonicalPath}/validate", $"{legacyPath}/validate", "Validate", artifact.SliceId, artifact.TypeName)
                     ];
                 }
 
-                var kind = name.StartsWith("Get", StringComparison.Ordinal) ? "QueryById" : "QueryAll";
+                var kind = artifact.Queries?.Contains(name) == true ? "QueryKeyed" : "QueryAll";
+                if (kind == "QueryAll" && name.StartsWith("Get", StringComparison.Ordinal))
+                {
+                    kind = "QueryById";
+                }
                 var methods = canonical.EnableQueryHttpMethod ? _queryMethods : _getMethods;
-                return methods.Select(method => new StageHttpOperation(method, canonicalPath, legacyPath, kind, located.Slice.Id, $"{artifact.TypeName}.{name}"));
+                return methods.Select(method => new StageHttpOperation(method, canonicalPath, legacyPath, kind, artifact.SliceId, $"{artifact.TypeName}.{name}"));
             }).ToArray();
 
             return (artifact, operations);
         })];
     }
 
-    sealed record Artifact(LocatedSlice Located, string Name, bool Command)
+    sealed record Artifact(IReadOnlyList<string> Location, IReadOnlyList<string> CanonicalLocation, string TypeNamespace, Guid SliceId, string Name, bool Command, IReadOnlyList<string>? Queries = null, bool Compatibility = true)
     {
-        internal string TypeName => $"{Located.TypeNamespace}.{Name}";
+        internal string TypeName => $"{TypeNamespace}.{Name}";
     }
 
     sealed record Claim(StageHttpOperation Operation, string Path, bool Canonical);

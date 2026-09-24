@@ -1,0 +1,33 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using Cratis.Screenplay.Semantics.Execution;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Cratis.Stage.Semantics;
+
+/// <summary>
+/// Registers an admitted semantic plan without making the implementation discoverable by unrelated Cratis hosts.
+/// </summary>
+public static class SemanticRuntimeHosting
+{
+    /// <summary>
+    /// Registers the in-process runtime and Chronicle fact appender for one Stage session.
+    /// </summary>
+    /// <param name="services">The host service collection.</param>
+    /// <param name="plan">The admitted plan.</param>
+    public static void Add(IServiceCollection services, SemanticExecutionPlan plan)
+    {
+        services.AddSingleton(plan);
+        services.AddSingleton<IAppendSemanticFacts, SemanticFactAppender>();
+        services.AddSingleton<ISemanticRuntime>(provider => new SemanticRuntime(plan, provider.GetRequiredService<IAppendSemanticFacts>()));
+    }
+
+    /// <summary>
+    /// Creates a runtime with a supplied atomic fact appender for an isolated session.
+    /// </summary>
+    /// <param name="plan">The admitted plan.</param>
+    /// <param name="appender">The fact appender.</param>
+    /// <returns>An isolated runtime.</returns>
+    public static ISemanticRuntime Create(SemanticExecutionPlan plan, IAppendSemanticFacts appender) => new SemanticRuntime(plan, appender);
+}

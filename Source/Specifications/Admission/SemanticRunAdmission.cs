@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Security.Claims;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
@@ -24,35 +25,36 @@ internal static class SemanticRunAdmission
         if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Seeded read-model state requires a per-run projection engine.");
         if (!specification.ThenReadModels.IsEmpty) return Block(StageExecutionCapability.Projection, specification.ThenReadModels[0].ReadModel, "Read-model assertions require a per-run projection engine.");
         if (!specification.ThenQueries.IsEmpty) return Block(StageExecutionCapability.Query, specification.ThenQueries[0].Query, "Keyed queries require a per-run projection engine.");
-        if (specification.GivenCaller is not null || specification.ThenDenied) return Block(StageExecutionCapability.Authorization, specification.Id, "Caller and denial semantics are not admitted.");
-        if (specification.WhenAppended is not null) return Block(StageExecutionCapability.Occurrence, specification.WhenAppended.EventContract, "Direct append is not a command.");
+        if (specification.GivenCaller?.Claims.Any(claim => string.Equals(claim.Type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase)) == true)
+        {
+            return Block(StageExecutionCapability.Authorization, specification.Id, "Role-URI claim types cannot be used as claims; roles and claims are separate in Screenplay.");
+        }
+        if (specification.WhenAppended is { } appended)
+        {
+            if (appended.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, appended.EventContract, "Direct append requires an explicit event source.");
+            if (!plan.Events.TryGetValue(appended.EventContract, out var appendedContract)) return Block(StageExecutionCapability.PlanIssue, appended.EventContract, "The appended event is not in the plan.");
+            if (appendedContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Occurrence, appended.EventContract, "Only scalar appended event values are admitted.");
+        }
         foreach (var given in specification.GivenEvents)
         {
             if (given.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, given.EventContract, "Given events require an explicit event source.");
             if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
             if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");
         }
-        if (specification.When is not { } when) return Block(StageExecutionCapability.Specification, specification.Id, "Only command specifications are admitted.");
+        if (specification.WhenAppended is not null) return ProjectionBlock(plan, specification, [specification.WhenAppended.EventContract]);
+        if (specification.When is not { } when) return Block(StageExecutionCapability.Specification, specification.Id, "Only command or direct-append specifications are admitted.");
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
-        if (command.Authorization is not null) return Block(StageExecutionCapability.Authorization, command.Id, "Command authorization is not admitted.");
-        if (!command.Requirements.IsEmpty) return Block(StageExecutionCapability.Requirement, command.Id, "Command requirements are not admitted.");
-        if (plan.Constraints.Count > 0) return Block(StageExecutionCapability.Constraint, command.Id, "Append-time constraints are not admitted.");
-        if (plan.Model.Application.Concepts.Any(concept => !concept.Validations.IsEmpty) && command.Properties.Any(property => property.Type.Kind == SemanticTypeReferenceKind.Concept))
+        if (command.Properties.Any(property => property.Type.Kind == SemanticTypeReferenceKind.Concept &&
+            plan.Model.Application.Concepts.Single(concept => concept.Id == property.Type.Target).Validations.Any(rule => !SupportedRule(rule.Kind))))
         {
-            return Block(StageExecutionCapability.Command, command.Id, "Concept validation is not admitted.");
+            return Block(StageExecutionCapability.Command, command.Id, "A concept validation rule is not admitted.");
         }
 
         // The reference projects given events while establishing the world, and produced facts only when the command
         // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
-        var produced = specification.ThenErrors.IsEmpty ? command.Produces.Select(produce => produce.EventContract) : [];
+        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? command.Produces.Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
-        var consumingProjection = plan.Projections.Values.FirstOrDefault(projection =>
-            (projection.Scope is not null && reachableEvents.Count > 0) ||
-            projection.Transitions.Any(transition => reachableEvents.Contains(transition.EventContract)));
-        if (consumingProjection is not null)
-        {
-            return Block(StageExecutionCapability.Projection, consumingProjection.Id, "A projection consumes events in this specification but per-run projection execution is not available.");
-        }
+        if (ProjectionBlock(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
         if (command.Properties.Any(property => !Scalar(property.Type)) ||
             command.Produces.Any(produced => !plan.Events.TryGetValue(produced.EventContract, out var eventContract) || eventContract.Properties.Any(property => !Scalar(property.Type))))
@@ -60,9 +62,9 @@ internal static class SemanticRunAdmission
             return Block(StageExecutionCapability.Command, command.Id, "Only scalar command and event values are admitted.");
         }
 
-        if (command.Validations.Any(rule => rule.Kind is not (SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Minimum or SemanticValidationRuleKind.Maximum) || rule.Message is null || rule.Severity != SemanticValidationSeverity.Error))
+        if (command.Validations.Any(rule => !SupportedRule(rule.Kind)))
         {
-            return Block(StageExecutionCapability.Command, command.Id, "Only explicit-message NotEmpty, Minimum and Maximum rules are admitted.");
+            return Block(StageExecutionCapability.Command, command.Id, "A command validation rule is not admitted.");
         }
 
         if (command.Produces.Any(produced => produced.Condition is not null || produced.When is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }))))
@@ -81,6 +83,20 @@ internal static class SemanticRunAdmission
         }
         return null;
     }
+
+    static SemanticUnsupportedCapability? ProjectionBlock(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents)
+    {
+        var reachable = specification.GivenEvents.Select(given => given.EventContract).Concat(reachableEvents).ToHashSet();
+        var projection = plan.Projections.Values.FirstOrDefault(value =>
+            (value.Scope is not null && reachable.Count > 0) || value.Transitions.Any(transition => reachable.Contains(transition.EventContract)));
+        return projection is null ? null : new(StageExecutionCapability.Projection, projection.Id.ToString(), "A projection consumes events in this specification but per-run projection execution is not available.");
+    }
+
+    static bool SupportedRule(SemanticValidationRuleKind kind) => kind is
+        SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
+        SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
+        SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or
+        SemanticValidationRuleKind.LessThanOrEqual or SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches;
 
     static bool Scalar(SemanticTypeReference type)
     {

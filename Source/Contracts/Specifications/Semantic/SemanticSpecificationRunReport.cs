@@ -133,7 +133,13 @@ public sealed record SemanticExecutionTrace(
     IReadOnlyList<SemanticTraceFact> Facts,
     IReadOnlyDictionary<string, string> ReadModels,
     IReadOnlyDictionary<string, string> Queries,
-    string? Rejection);
+    string? Rejection)
+{
+    /// <summary>
+    /// Gets the stable rejection code (the constraint name for append-time violations).
+    /// </summary>
+    public string? RejectionCode { get; init; }
+}
 
 /// <summary>
 /// The result of executing one Screenplay specification.

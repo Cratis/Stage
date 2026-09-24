@@ -9,22 +9,30 @@ namespace Cratis.Stage.Specifications.Comparison;
 internal static class SemanticExpectationComparer
 {
     // Mirrors SemanticSpecificationRunner.Compare/CompareFacts for the admitted fact/error subset.
-    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, IReadOnlyList<SemanticValue> destinations, string? rejection)
+    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, IReadOnlyList<SemanticValue> destinations, string? rejection, string? rejectionCode = null, bool denied = false)
     {
         var failures = new List<string>();
+        if (expected.ThenDenied)
+        {
+            if (!denied) failures.Add($"Expected Unauthorized, got {(rejection is null ? "Accepted" : "Rejected (Validation)")}.");
+            return failures;
+        }
         if (expected.ThenErrors.Length > 0)
         {
-            if (rejection is null)
+            if (rejection is null || denied)
             {
                 failures.Add("Expected Rejected, got Accepted.");
             }
-            else if (expected.ThenErrors[0].Code is not null)
+            else
             {
-                failures.Add($"Expected rejection code '{expected.ThenErrors[0].Code}', got ''.");
-            }
-            else if (expected.ThenErrors[0].Message is { } message && message != rejection)
-            {
-                failures.Add($"Expected rejection message '{message}', got '{rejection}' (string key: {rejection.StartsWith("$strings.", StringComparison.Ordinal)}).");
+                if (expected.ThenErrors[0].Code is { } code && code != rejectionCode)
+                {
+                    failures.Add($"Expected rejection code '{code}', got '{rejectionCode}'.");
+                }
+                if (expected.ThenErrors[0].Message is { } message && message != rejection)
+                {
+                    failures.Add($"Expected rejection message '{message}', got '{rejection}' (string key: {rejection.StartsWith("$strings.", StringComparison.Ordinal)}).");
+                }
             }
 
             return failures;
@@ -35,6 +43,8 @@ internal static class SemanticExpectationComparer
             failures.Add("Expected Accepted, got Rejected.");
             return failures;
         }
+
+        if (expected.WhenAppended is not null && expected.ThenEvents.IsEmpty) return failures;
 
         if (expected.ThenEvents.Length != actual.Count)
         {

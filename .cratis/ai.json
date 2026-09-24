@@ -10,9 +10,19 @@
   ],
   "profiles": [
     "cratis/documentation",
-    "cratis/engineering/csharp"
+    "cratis/engineering/csharp",
+    "cratis/engineering/typescript",
+    "cratis/engineering/react",
+    "cratis/modeling/screenplay-stage",
+    "cratis/arc/core",
+    "cratis/chronicle/core",
+    "cratis/chronicle/client-dotnet",
+    "cratis/components",
+    "cratis/specifications/dotnet",
+    "cratis/review"
   ],
   "languages": [
-    "csharp"
+    "csharp",
+    "typescript"
   ]
 }

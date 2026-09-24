@@ -23,6 +23,11 @@ public class StateChangeSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        if (slice.Slice.Commands.Any())
+        {
+            LegacyEnclosingAuthorization.EnsureRenderable(slice, applicationSet, $"Command '{slice.Slice.Commands.First().Name}'");
+        }
+
         foreach (var fileCommand in slice.Slice.Commands)
         {
             if (fileCommand.Handler?.File is { } file)

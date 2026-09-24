@@ -6,7 +6,6 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_planning_newer_semantic_constructs;
 
-// A requirement rejects the command, so an application without it would append what the reference rejects.
 public class with_a_command_requirement : given.an_invoice_model
 {
     void Because() => Plan(Invoices.Replace(
@@ -14,7 +13,7 @@ public class with_a_command_requirement : given.an_invoice_model
         "        validate\n          require description != \"rejected\"\n        produces InvoiceIssued\n",
         StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_unrendered_semantic() => ErrorCodes.ShouldContain("STAGE-ESM-005");
-    [Fact] void should_not_plan_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_render_the_requirement_as_a_command_rejection() => Artifact("Issue.cs").ShouldContain("Must(command => (!object.Equals(command.Description, \"rejected\")))");
+    [Fact] void should_render_the_reference_default_message() => Artifact("Issue.cs").ShouldContain(".WithMessage(\"Command requirement was not met.\")");
 }

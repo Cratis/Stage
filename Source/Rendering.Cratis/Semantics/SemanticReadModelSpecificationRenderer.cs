@@ -43,16 +43,35 @@ internal static class SemanticReadModelSpecificationRenderer
         builder.OpenBlock($"public class {behavior} : Specification")
             .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
             .BlankLine()
-            .Line("async Task Establish() => await _scenario.Given")
-            .Line($"    .ForEventSource({types.Value(source.Value, source.Type)})")
-            .Line($"    .Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)}));")
-            .BlankLine();
-        foreach (var property in readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal))
+            .OpenBlock("async Task Establish()");
+        foreach (var given in specification.GivenEvents)
         {
-            var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
+            var givenEvent = context.Events[given.EventContract];
+            var givenNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(given.EventContract).Path);
+            if (!string.Equals(givenNamespace, SliceNaming.Namespace(context.RootNamespace, located.Path), StringComparison.Ordinal))
+            {
+                builder.Using(givenNamespace);
+            }
+
+            var givenArguments = givenEvent.Properties.Select(property =>
+                types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+            var givenSource = given.EventSource!;
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {Identifiers.ToPascalCase(givenEvent.Name)}({string.Join(", ", givenArguments)}));");
+        }
+
+        builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)}));")
+            .EndBlock()
+            .BlankLine();
+        var keyProperty = readModel.Properties.Single(_ => _.IsIdentifier);
+        var instance = specification.GivenEvents.IsEmpty && expected.Values.Any(_ => _.TargetProperty == keyProperty.Id)
+            ? "_scenario.Instance!"
+            : $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
+        foreach (var value in expected.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
+        {
+            var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);
             builder.Line(
                 $"[Fact] void should_project_{Identifiers.ToSnakeCase(property.Name)}() => " +
-                $"_scenario.Instance!.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value, property.Type)});");
+                $"{instance}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
         }
 
         builder.EndBlock();

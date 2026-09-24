@@ -17,11 +17,11 @@ public class when_executing_specifications_with_an_explicit_root_namespace(conte
 {
     [Fact] void should_build_the_debug_application_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_the_release_application_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
-    [Fact] void should_execute_every_generated_fact() => fixture.Results.Length.ShouldEqual(7);
+    [Fact] void should_execute_every_generated_fact() => fixture.Results.Length.ShouldEqual(8);
     [Fact] void should_pass_every_generated_fact() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
     [Fact] void should_execute_only_the_explicit_namespace() => fixture.Results.All(_ => _.Name.StartsWith("Acme.projectAPI.", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_execute_command_acceptance() => fixture.Results.Any(_ => _.Name.EndsWith(".should_succeed", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_execute_command_rejection() => new[] { "should_not_succeed", "should_have_validation_errors" }.All(fact => fixture.Results.Any(_ => _.Name.EndsWith($".{fact}", StringComparison.Ordinal))).ShouldBeTrue();
+    [Fact] void should_execute_command_rejection() => new[] { "should_not_succeed", "should_have_validation_errors", "should_report_the_expected_first_error" }.All(fact => fixture.Results.Any(_ => _.Name.EndsWith($".{fact}", StringComparison.Ordinal))).ShouldBeTrue();
     [Fact] void should_execute_projection_assertions() => fixture.Results.Any(_ => _.Name.Contains(".should_project_", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_execute_the_query_assertion() => fixture.Results.Any(_ => _.Name.EndsWith(".should_return_the_expected_read_model", StringComparison.Ordinal)).ShouldBeTrue();
 

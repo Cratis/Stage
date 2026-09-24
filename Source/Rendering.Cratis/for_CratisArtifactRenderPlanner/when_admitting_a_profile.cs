@@ -36,7 +36,7 @@ public class when_admitting_a_profile : a_register_project_render_request
         var first = profile.Inputs[0];
         var changed = ArtifactRenderInput.Create(first.Name, first.Version, [.. first.Bytes, (byte)'x']);
         _changedInput = Plan(Profile(inputs: [changed, .. profile.Inputs.Skip(1)]));
-        var wrongVersion = ArtifactRenderInput.Create(first.Name, "2", first.Bytes);
+        var wrongVersion = ArtifactRenderInput.Create(first.Name, "1", first.Bytes);
         _wrongInputVersion = Plan(Profile(inputs: [wrongVersion, .. profile.Inputs.Skip(1)]));
     }
 

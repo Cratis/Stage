@@ -23,7 +23,7 @@ internal static partial class SemanticCratisAdmission
         }
 
         var command = slice.Commands[0];
-        if (!ValidateCommandAuthorization(command, diagnostics))
+        if (!ValidateCommandAuthorization(context, command, diagnostics))
         {
             return;
         }
@@ -31,8 +31,21 @@ internal static partial class SemanticCratisAdmission
         if (slice.Events.Any(@event => @event.Revision != EventContractRevision.Initial ||
                 @event.Properties.Any(property => !TypeExists(context, property.Type) || property.Type.IsOptional)) ||
             command.Properties.Any(_ => !TypeExists(context, _.Type)) ||
-            !command.Validations.All(IsRenderableValidation) ||
-            !command.Requirements.IsEmpty ||
+            !command.Validations.All(SemanticValidationRendering.CanRender) ||
+            command.Validations.Any(rule => command.Properties.Single(property => property.Id == rule.Property).Type is
+                { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } type &&
+                context.Concepts[type.Target].Primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean) ||
+            !command.Requirements.All(_ => SemanticRequirementRendering.CanRender(_, command, context)) ||
+            (!command.Requirements.IsEmpty && command.Properties.Any(_ => HasValidatedConcept(context, _.Type, []))) ||
+            command.Validations.Any(_ =>
+            {
+                var property = command.Properties.Single(p => p.Id == _.Property);
+                return property.Type.Kind == SemanticTypeReferenceKind.Concept && !context.Concepts[property.Type.Target].Values.IsEmpty;
+            }) ||
+            command.Properties.Any(_ =>
+                (_.Type.Kind == SemanticTypeReferenceKind.Concept && _.Type.IsOptional &&
+                 !context.Concepts[_.Type.Target].Validations.IsEmpty) ||
+                (_.Type.Kind == SemanticTypeReferenceKind.CompositeType && HasOptionalRequiredConcept(context, _.Type, []))) ||
             command.Produces.Length != 1)
         {
             diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' exceeds the first Cratis command capability.", command.Id));
@@ -54,5 +67,27 @@ internal static partial class SemanticCratisAdmission
         {
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }
+    }
+
+    static bool HasValidatedConcept(SemanticApplicationContext context, SemanticTypeReference type, HashSet<SemanticId> visited) =>
+        type.Kind switch
+        {
+            SemanticTypeReferenceKind.Concept => !context.Concepts[type.Target].Validations.IsEmpty,
+            SemanticTypeReferenceKind.CompositeType when visited.Add(type.Target) =>
+                context.Types[type.Target].Properties.Any(_ => HasValidatedConcept(context, _.Type, visited)),
+            _ => false
+        };
+
+    static bool HasOptionalRequiredConcept(SemanticApplicationContext context, SemanticTypeReference type, HashSet<SemanticId> visited)
+    {
+        if (type.Kind != SemanticTypeReferenceKind.CompositeType || !visited.Add(type.Target))
+        {
+            return false;
+        }
+
+        return context.Types[type.Target].Properties.Any(property =>
+            (property.Type.Kind == SemanticTypeReferenceKind.Concept && property.Type.IsOptional &&
+             !context.Concepts[property.Type.Target].Validations.IsEmpty) ||
+            HasOptionalRequiredConcept(context, property.Type, visited));
     }
 }

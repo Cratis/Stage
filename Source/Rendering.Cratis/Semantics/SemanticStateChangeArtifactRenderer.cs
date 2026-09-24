@@ -50,7 +50,7 @@ internal static class SemanticStateChangeArtifactRenderer
             RenderEvent(builder, declaredEvent, types);
         }
 
-        RenderValidator(builder, command);
+        RenderValidator(builder, command, context);
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
         return new(path, builder.ToString());
     }
@@ -96,9 +96,9 @@ internal static class SemanticStateChangeArtifactRenderer
             .BlankLine();
     }
 
-    static void RenderValidator(CSharpCodeBuilder builder, SemanticCommand command)
+    static void RenderValidator(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context)
     {
-        if (command.Validations.IsEmpty)
+        if (command.Validations.IsEmpty && command.Requirements.IsEmpty)
         {
             return;
         }
@@ -110,12 +110,21 @@ internal static class SemanticStateChangeArtifactRenderer
         foreach (var rule in command.Validations)
         {
             var property = command.Properties.Single(_ => _.Id == rule.Property);
-            var message = string.IsNullOrWhiteSpace(rule.Message)
-                ? string.Empty
-                : $".WithMessage({CSharpCodeBuilder.StringLiteral(rule.Message)})";
-            builder.Line($"RuleFor(_ => _.{Identifiers.ToPascalCase(property.Name)}).NotEmpty(){message};");
+            var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
+            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional);
         }
 
-        builder.EndBlock().EndBlock();
+        foreach (var requirement in command.Requirements)
+        {
+            SemanticRequirementRendering.Render(builder, requirement, command, context);
+        }
+
+        builder.EndBlock();
+        if (command.Validations.Any(_ => _.Kind == SemanticValidationRuleKind.Matches))
+        {
+            SemanticValidationRendering.RenderMatchHelper(builder);
+        }
+
+        builder.EndBlock();
     }
 }

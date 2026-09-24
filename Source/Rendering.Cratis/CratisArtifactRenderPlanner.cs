@@ -6,6 +6,7 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -103,6 +104,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
             artifacts.AddRange(context.Application.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
             artifacts.AddRange(context.Application.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
+            if (slices.Any(slice => slice.Slice.Commands.Any(command => command.Authorization is not null) ||
+                slice.Slice.Queries.Any(query => query.Authorization is not null)))
+            {
+                artifacts.Add(Artifact(SemanticPolicyArtifactRenderer.Render(context, slices)));
+            }
         }
 
         foreach (var located in slices)

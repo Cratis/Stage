@@ -22,6 +22,7 @@ public class when_creating_a_zoo_project : Specification
             "Directory.Build.props",
             "Directory.Build.targets",
             "Directory.Packages.props",
+            "GeneratedPolicyRegistration.cs",
             "Program.cs",
             "Zoo.csproj",
             "Zoo.slnx",

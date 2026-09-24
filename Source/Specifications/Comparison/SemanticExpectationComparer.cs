@@ -9,7 +9,7 @@ namespace Cratis.Stage.Specifications.Comparison;
 internal static class SemanticExpectationComparer
 {
     // Mirrors SemanticSpecificationRunner.Compare/CompareFacts for the admitted fact/error subset.
-    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, string? rejection)
+    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, IReadOnlyList<SemanticValue> destinations, string? rejection)
     {
         var failures = new List<string>();
         if (expected.ThenErrors.Length > 0)
@@ -55,7 +55,7 @@ internal static class SemanticExpectationComparer
             if (expected.ThenEventsInAnyOrder && match >= 0) remaining.RemoveAt(match);
         }
 
-        if (expected.When?.EventSource is { } source && actual.Any(fact => fact.EventSource is null || SemanticRunContext.Canonical(fact.EventSource.Value) != SemanticRunContext.Canonical(source.Value)))
+        if (expected.When?.EventSource is { } source && destinations.Any(destination => !AreEqual(destination, source.Value)))
         {
             failures.Add("Produced fact destination does not match the specification command event source.");
         }
@@ -63,8 +63,21 @@ internal static class SemanticExpectationComparer
         return failures;
     }
 
-    static bool Matches(SemanticSpecificationEvent expected, SemanticSpecificationEvent actual) =>
+    internal static bool Matches(SemanticSpecificationEvent expected, SemanticSpecificationEvent actual) =>
         expected.EventContract == actual.EventContract && expected.Values.Length == actual.Values.Length &&
-        expected.Values.All(value => actual.Values.Any(candidate => candidate.TargetProperty == value.TargetProperty && SemanticRunContext.Canonical(candidate.Value) == SemanticRunContext.Canonical(value.Value))) &&
-        (expected.EventSource is null || (actual.EventSource is not null && expected.EventSource.Type == actual.EventSource.Type && SemanticRunContext.Canonical(expected.EventSource.Value) == SemanticRunContext.Canonical(actual.EventSource.Value)));
+        expected.Values.All(value => actual.Values.Any(candidate => candidate.TargetProperty == value.TargetProperty && AreEqual(candidate.Value, value.Value))) &&
+        (expected.EventSource is null || (actual.EventSource is not null && expected.EventSource.Type == actual.EventSource.Type && AreEqual(expected.EventSource.Value, actual.EventSource.Value)));
+
+    // Match Screenplay v4.24.0 SemanticValueRules.AreEqual, including numeric scale and nested values.
+    internal static bool AreEqual(SemanticValue left, SemanticValue right) => (left, right) switch
+    {
+        (SemanticNullValue, SemanticNullValue) => true,
+        (SemanticTextValue a, SemanticTextValue b) => string.Equals(a.Value, b.Value, StringComparison.Ordinal),
+        (SemanticNumberValue a, SemanticNumberValue b) => a.Value == b.Value,
+        (SemanticBooleanValue a, SemanticBooleanValue b) => a.Value == b.Value,
+        (SemanticArrayValue a, SemanticArrayValue b) => a.Values.Length == b.Values.Length && a.Values.Zip(b.Values).All(pair => AreEqual(pair.First, pair.Second)),
+        (SemanticCompositeValue a, SemanticCompositeValue b) => a.Properties.Length == b.Properties.Length &&
+            a.Properties.All(property => b.Properties.Any(candidate => candidate.TargetProperty == property.TargetProperty && AreEqual(property.Value, candidate.Value))),
+        _ => false
+    };
 }

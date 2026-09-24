@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Cratis.Arc.Testing.Commands;
 using Cratis.Arc.Validation;
@@ -24,6 +25,7 @@ namespace Cratis.Stage.Specifications;
 public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecutor
 {
     static readonly SemaphoreSlim _processGate = new(1, 1);
+    static readonly ConditionalWeakTable<SemanticExecutionPlan, SemanticRuntimeTypes> _types = [];
 
     /// <inheritdoc/>
     public async Task<SemanticSpecificationRunReport> Run(SemanticExecutionPlan plan, SemanticSpecificationSelection selection, SemanticSpecificationRunOptions options, CancellationToken cancellationToken = default)
@@ -38,11 +40,12 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             }
         }
 
-        foreach (var (slice, specification) in selected)
+        for (var index = 0; index < selected.Length; index++)
         {
+            var (slice, specification) = selected[index];
             if (cancellationToken.IsCancellationRequested)
             {
-                results.Add(Record(slice, specification, SemanticSpecificationOutcome.Cancelled));
+                results.AddRange(selected.Skip(index).Select(item => Record(item.Slice, item.Specification, SemanticSpecificationOutcome.Cancelled)));
                 break;
             }
 
@@ -67,7 +70,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                results.Add(Record(slice, specification, SemanticSpecificationOutcome.Cancelled));
+                results.AddRange(selected.Skip(index).Select(item => Record(item.Slice, item.Specification, SemanticSpecificationOutcome.Cancelled)));
                 break;
             }
             catch (Exception exception)
@@ -83,8 +86,8 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
     {
         var when = specification.When!;
         var command = plan.Commands[when.Command];
-        var factory = new DynamicTypeFactory();
-        var runtimeType = factory.CreateCommandType("Stage.Semantic.Run", command.Name);
+        var runtimeTypes = _types.GetValue(plan, static key => new SemanticRuntimeTypes(key));
+        var runtimeType = runtimeTypes.ForCommand(command);
         var instance = (DynamicCommand)Activator.CreateInstance(runtimeType)!;
         foreach (var value in when.Values)
         {
@@ -92,10 +95,9 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             instance.Data[property.Name] = JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value));
         }
 
-        var runtimeTypes = new SemanticRuntimeTypes(plan);
         var eventTypes = specification.GivenEvents.Select(given => given.EventContract).Concat(command.Produces.Select(produced => produced.EventContract)).Distinct().Select(runtimeTypes.For).ToArray();
         var eventStore = new EventStoreForTesting(null, new SemanticClientArtifactsProvider(eventTypes));
-        var context = new SemanticRunContext(runtimeType, command, specification, options, runtimeTypes, eventStore);
+        var context = new SemanticRunContext(runtimeType, command, specification, options, runtimeTypes, eventStore, plan.Model.SemanticVersion);
 
         // A new Chronicle-backed event log and scenario are created for each specification.
         foreach (var given in specification.GivenEvents)
@@ -106,6 +108,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         scenario.Services.AddSingleton(context);
         scenario.Services.AddSingleton<IDiscoverableValidators>(new SemanticCommandValidators(context));
         var result = await scenario.Execute(instance, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         if (result.HasExceptions || !result.IsAuthorized)
         {
             return Record(slice, specification, SemanticSpecificationOutcome.Failed, failures: [.. result.ExceptionMessages, .. !result.IsAuthorized ? [result.AuthorizationFailureReason] : Array.Empty<string>()]);
@@ -119,9 +122,10 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         }
 
         var facts = context.Facts.Skip(specification.GivenEvents.Length).ToArray();
-        var failures = SemanticExpectationComparer.Compare(specification, facts, rejection);
+        var destinations = context.Destinations.Skip(specification.GivenEvents.Length).ToArray();
+        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, rejection);
         var trace = new SemanticExecutionTrace(
-            [.. facts.Select(fact => new SemanticTraceFact(fact.EventContract.ToString(), fact.EventSource?.Type.Kind == SemanticTypeReferenceKind.Concept ? fact.EventSource.Type.Target.ToString() : fact.EventSource?.Type.Primitive.ToString(), fact.EventSource is null ? "null" : SemanticRunContext.Canonical(fact.EventSource.Value), fact.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))],
+            [.. facts.Select((fact, index) => new SemanticTraceFact(fact.EventContract.ToString(), fact.EventSource?.Type.Kind == SemanticTypeReferenceKind.Concept ? fact.EventSource.Type.Target.ToString() : fact.EventSource?.Type.Primitive.ToString(), SemanticRunContext.Canonical(destinations[index]), fact.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))],
             new Dictionary<string, string>(),
             new Dictionary<string, string>(),
             rejection);
@@ -132,10 +136,10 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         new(specification.Id.ToString(), specification.Name, slice.Id.ToString(), slice.Kind.ToString(), outcome, kind, unsupported, failures ?? [], trace);
 
     static bool ContainsScope(SemanticApplication application, SemanticId scope) =>
-        scope == application.Id || application.Modules.Any(module => module.Id == scope || SelectFeatures(module.Features, [scope], false).Any() || ContainsFeature(module.Features, scope));
+        scope == application.Id || application.Modules.Any(module => module.Id == scope || ContainsFeature(module.Features, scope));
 
     static bool ContainsFeature(IEnumerable<SemanticFeature> features, SemanticId scope) =>
-        features.Any(feature => feature.Id == scope || ContainsFeature(feature.Features, scope));
+        features.Any(feature => feature.Id == scope || feature.Slices.Any(slice => slice.Id == scope || slice.Specifications.Any(specification => specification.Id == scope)) || ContainsFeature(feature.Features, scope));
 
     static IEnumerable<(SemanticSlice Slice, SemanticSpecification Specification)> Select(SemanticApplication application, SemanticSpecificationSelection selection)
     {

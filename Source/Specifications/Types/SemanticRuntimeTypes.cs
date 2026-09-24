@@ -17,10 +17,11 @@ namespace Cratis.Stage.Specifications.Types;
 /// Emits CLR event types for the scalar contracts admitted by the in-memory runner.
 /// </summary>
 /// <param name="plan">The semantic contract plan.</param>
-public sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
+internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
 {
     readonly DynamicTypeFactory _factory = new();
     readonly Dictionary<SemanticId, Type> _events = [];
+    readonly Dictionary<SemanticId, Type> _commands = [];
 
     internal static object? ConvertValue(SemanticValue value, Type target) => value switch
     {
@@ -34,6 +35,17 @@ public sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         SemanticBooleanValue boolean => boolean.Value,
         _ => throw new UnsupportedSemanticMapping()
     };
+
+    internal Type ForCommand(SemanticCommand command)
+    {
+        if (!_commands.TryGetValue(command.Id, out var type))
+        {
+            type = _factory.CreateCommandType("Stage.Semantic.Run", $"Command_{_commands.Count}");
+            _commands.Add(command.Id, type);
+        }
+
+        return type;
+    }
 
     internal object Materialize(SemanticSpecificationEvent fact)
     {

@@ -11,7 +11,7 @@ namespace Cratis.Stage.Specifications.Commands;
 /// Supplies an Arc handler only inside a semantic specification scenario.
 /// </summary>
 /// <param name="contexts">The current run context, if one was registered.</param>
-public sealed class SemanticCommandHandlerProvider(IEnumerable<SemanticRunContext> contexts) : ICommandHandlerProvider
+internal sealed class SemanticCommandHandlerProvider(IEnumerable<SemanticRunContext> contexts) : ICommandHandlerProvider
 {
     readonly ICommandHandler[] _handlers = [.. contexts.Select(context => (ICommandHandler)new SemanticHandler(context))];
 
@@ -38,7 +38,8 @@ public sealed class SemanticCommandHandlerProvider(IEnumerable<SemanticRunContex
             commandContext.CancellationToken.ThrowIfCancellationRequested();
             foreach (var produced in context.Command.Produces)
             {
-                await context.Append(context.Produce(produced), commandContext.CancellationToken);
+                var (fact, destination) = context.Produce(produced);
+                await context.Append(fact, destination, commandContext.CancellationToken);
             }
 
             return null;

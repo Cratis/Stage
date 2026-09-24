@@ -7,6 +7,7 @@ using System.Text.Json;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.Testing.Events;
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Specifications.Types;
 
 namespace Cratis.Stage.Specifications.Commands;
@@ -24,14 +25,17 @@ namespace Cratis.Stage.Specifications.Commands;
 /// <param name="options">The execution options.</param>
 /// <param name="runtimeTypes">The runtime event contracts.</param>
 /// <param name="eventStore">The fresh Chronicle in-memory event store.</param>
-public sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, EventStoreForTesting eventStore)
+/// <param name="version">The model's semantic version.</param>
+internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, EventStoreForTesting eventStore, SemanticVersion version)
 {
     readonly List<SemanticSpecificationEvent> _facts = [];
+    readonly List<SemanticValue> _destinations = [];
 
     internal Type CommandType => commandType;
     internal SemanticCommand Command => command;
     internal SemanticSpecification Specification => specification;
     internal IReadOnlyList<SemanticSpecificationEvent> Facts => _facts;
+    internal IReadOnlyList<SemanticValue> Destinations => _destinations;
     internal DateTimeOffset Occurred => options.Clock.GetUtcNow();
     internal string Tenant => options.Tenant;
 
@@ -53,11 +57,13 @@ public sealed class SemanticRunContext(Type commandType, SemanticCommand command
         _ => throw new UnsupportedSemanticMapping()
     };
 
-    internal async Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken)
+    internal Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken) => Append(fact, fact.EventSource?.Value ?? throw new UnsupportedSemanticMapping(), cancellationToken);
+
+    internal async Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var instance = runtimeTypes.Materialize(fact);
-        var source = fact.EventSource?.Value switch
+        var source = destination switch
         {
             SemanticTextValue text => text.Value,
             SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
@@ -71,35 +77,19 @@ public sealed class SemanticRunContext(Type commandType, SemanticCommand command
         }
 
         _facts.Add(fact);
+        _destinations.Add(destination);
     }
 
-    internal SemanticSpecificationEvent Produce(SemanticProducedEvent produced)
+    internal (SemanticSpecificationEvent Fact, SemanticValue Destination) Produce(SemanticProducedEvent produced)
     {
         var inputs = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
         var expression = produced.Destination ?? command.Destination?.Value;
         var destination = expression is null ? specification.When.EventSource!.Value : Evaluate(expression, inputs);
-        var identityType = specification.When.EventSource?.Type ?? command.Destination?.Type;
-        var identity = identityType is null ? null : new SemanticEventSourceIdentity(identityType, destination);
+        var identityType = expression is SemanticResolvedExpression resolved
+            ? command.Properties.Single(property => property.Id == resolved.Target).Type
+            : command.Destination?.Type ?? specification.When.EventSource?.Type;
+        var identity = version == SemanticVersion.V2 && identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
         var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, Evaluate(mapping.Source, inputs))).ToImmutableArray();
-        return new(produced.EventContract, values) { EventSource = identity };
-    }
-}
-
-/// <summary>
-/// The exception that is thrown when an in-memory append fails.
-/// </summary>
-/// <param name="message">The append failure.</param>
-public sealed class SemanticAppendFailed(string message) : Exception(message);
-
-/// <summary>
-/// The exception that is thrown when an expression escaped admission.
-/// </summary>
-public sealed class UnsupportedSemanticMapping : Exception
-{
-    /// <summary>
-    /// Creates the failure when a mapping escapes admission.
-    /// </summary>
-    public UnsupportedSemanticMapping() : base("A mapping escaped semantic admission.")
-    {
+        return (new(produced.EventContract, values) { EventSource = identity }, destination);
     }
 }

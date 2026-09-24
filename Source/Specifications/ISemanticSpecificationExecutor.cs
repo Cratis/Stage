@@ -9,7 +9,9 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 namespace Cratis.Stage.Specifications;
 
 /// <summary>
-/// Executes selected semantic specifications in isolated memory.
+/// Executes selected semantic specifications in isolated memory. Arc's scenario replaces the process-wide
+/// Internals.ServiceProvider and leaves it pointing at a disposed provider; run this executor in its own
+/// process until Arc offers a scoped alternative. Serializing executor calls does not isolate a host.
 /// </summary>
 public interface ISemanticSpecificationExecutor
 {
@@ -61,7 +63,7 @@ public sealed record SemanticSpecificationRunOptions
     public TimeProvider Clock { get; init; } = new FixedSemanticClock();
 
     /// <summary>
-    /// Gets the identity allocator (implicit allocation is not yet admitted).
+    /// Reserved for future identity allocation. Implicit destinations are currently Unsupported(IdentityAllocation).
     /// </summary>
     public ISemanticIdentityAllocator Identities { get; init; } = new DeterministicSemanticIdentityAllocator();
 
@@ -71,7 +73,7 @@ public sealed record SemanticSpecificationRunOptions
     public SemanticCaller? DefaultCaller { get; init; }
 
     /// <summary>
-    /// Gets the tenant scope of this run.
+    /// Reserved for future tenant-scoped execution. The in-memory runner does not apply tenant isolation.
     /// </summary>
     public string Tenant { get; init; } = "default";
 }

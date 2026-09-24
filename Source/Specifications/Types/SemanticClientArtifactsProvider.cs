@@ -9,7 +9,7 @@ namespace Cratis.Stage.Specifications.Types;
 /// Restricts Chronicle's in-process event store to the event contracts of this semantic run.
 /// </summary>
 /// <param name="eventTypes">Runtime-emitted event contract types.</param>
-public sealed class SemanticClientArtifactsProvider(IReadOnlyList<Type> eventTypes) : IClientArtifactsProvider
+internal sealed class SemanticClientArtifactsProvider(IReadOnlyList<Type> eventTypes) : IClientArtifactsProvider
 {
     /// <inheritdoc/>
     public IEnumerable<Type> EventTypes => eventTypes;

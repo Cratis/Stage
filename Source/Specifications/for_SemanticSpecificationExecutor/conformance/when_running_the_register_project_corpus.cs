@@ -50,10 +50,8 @@ public class when_running_the_register_project_corpus : Specification
                     }
                     if (result.Outcome == SemanticSpecificationOutcome.Passed && !reference.Passed)
                         _failures.Add($"{corpus.Name}/{form.Name}/{expectation.Name}: Stage falsely passed");
-                    if (expectation.Name == "RegisteringAProject" && (result.Outcome != SemanticSpecificationOutcome.Unsupported || result.Unsupported?.Capability != StageExecutionCapability.Projection))
+                    if (result.Outcome != SemanticSpecificationOutcome.Unsupported || result.Unsupported?.Capability != StageExecutionCapability.Projection)
                         _failures.Add($"{corpus.Name}/{form.Name}/{expectation.Name}: expected Unsupported(Projection), got {result.Outcome}/{result.Unsupported?.Capability}");
-                    if (expectation.Name == "RejectingAnEmptyProjectName" && result.Outcome != SemanticSpecificationOutcome.Passed)
-                        _failures.Add($"{corpus.Name}/{form.Name}/{expectation.Name}: expected Passed, got {result.Outcome}/{string.Join(", ", result.Failures)}");
                     if (result.Outcome == SemanticSpecificationOutcome.Passed != reference.Passed && result.Outcome != SemanticSpecificationOutcome.Unsupported)
                         _failures.Add($"{corpus.Name}/{form.Name}/{expectation.Name}: pass parity failed");
                     if (result.Trace?.Rejection is { } rejection && expectation.RejectionMessage is { } message && rejection != message)

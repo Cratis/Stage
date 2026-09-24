@@ -10,7 +10,7 @@ namespace Cratis.Stage.Specifications.Admission;
 /// <summary>
 /// Checks the entire reachable behavior before allowing a specification to execute.
 /// </summary>
-public static class SemanticRunAdmission
+internal static class SemanticRunAdmission
 {
     /// <summary>
     /// Returns the first unsupported construct in deterministic precedence order.
@@ -29,7 +29,8 @@ public static class SemanticRunAdmission
         foreach (var given in specification.GivenEvents)
         {
             if (given.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, given.EventContract, "Given events require an explicit event source.");
-            if (!plan.Events.ContainsKey(given.EventContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
+            if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
+            if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");
         }
         if (specification.When is not { } when) return Block(StageExecutionCapability.Specification, specification.Id, "Only command specifications are admitted.");
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
@@ -39,6 +40,15 @@ public static class SemanticRunAdmission
         if (plan.Model.Application.Concepts.Any(concept => !concept.Validations.IsEmpty) && command.Properties.Any(property => property.Type.Kind == SemanticTypeReferenceKind.Concept))
         {
             return Block(StageExecutionCapability.Command, command.Id, "Concept validation is not admitted.");
+        }
+
+        var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(command.Produces.Select(produced => produced.EventContract)).ToHashSet();
+        var consumingProjection = plan.Projections.Values.FirstOrDefault(projection =>
+            (projection.Scope is not null && reachableEvents.Count > 0) ||
+            projection.Transitions.Any(transition => reachableEvents.Contains(transition.EventContract)));
+        if (consumingProjection is not null)
+        {
+            return Block(StageExecutionCapability.Projection, consumingProjection.Id, "A projection consumes events in this specification but per-run projection execution is not available.");
         }
 
         if (command.Properties.Any(property => !Scalar(property.Type)) ||

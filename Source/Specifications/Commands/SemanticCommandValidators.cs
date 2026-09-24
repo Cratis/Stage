@@ -14,7 +14,7 @@ namespace Cratis.Stage.Specifications.Commands;
 /// Exposes only the reference-compatible command validation subset to Arc's validation pipeline.
 /// </summary>
 /// <param name="context">The admitted specification context.</param>
-public sealed class SemanticCommandValidators(SemanticRunContext context) : IDiscoverableValidators
+internal sealed class SemanticCommandValidators(SemanticRunContext context) : IDiscoverableValidators
 {
     readonly IValidator _validator = new Validator(context);
 

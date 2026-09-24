@@ -6,5 +6,6 @@
         <Project Path="Source/Stage/Stage.csproj" />
         <Project Path="Source/Host/Host.csproj" />
         <Project Path="Source/SpecRunner/SpecRunner.csproj" />
+        <Project Path="Source/Specifications/Specifications.csproj" />
     </Folder>
 </Solution>

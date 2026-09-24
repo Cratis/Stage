@@ -13,6 +13,36 @@ namespace Cratis.Stage.SpecRunner;
 public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? SliceId, Guid? SpecificationId)
 {
     /// <summary>
+    /// Gets the requested engine; structural remains the default.
+    /// </summary>
+    public string Engine { get; init; } = "structural";
+
+    /// <summary>
+    /// Gets whether either structural-only filter was supplied, even if its GUID is invalid.
+    /// </summary>
+    public bool HasStructuralFilter { get; init; }
+
+    /// <summary>
+    /// Gets the semantic specification scope.
+    /// </summary>
+    public string? Specification { get; init; }
+
+    /// <summary>
+    /// Gets additional comma-separated semantic identity scopes.
+    /// </summary>
+    public string? Scope { get; init; }
+
+    /// <summary>
+    /// Gets the optional Screenplay catalog path.
+    /// </summary>
+    public string? CatalogPath { get; init; }
+
+    /// <summary>
+    /// Gets an optional application name to preserve identity across input layouts.
+    /// </summary>
+    public string? ApplicationName { get; init; }
+
+    /// <summary>
     /// Parses the supplied command-line arguments.
     /// </summary>
     /// <param name="args">The raw command-line arguments (for example <c language="csharp">--model path --output path</c>).</param>
@@ -38,6 +68,14 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
             modelPath,
             outputPath,
             values.TryGetValue("slice", out var slice) && Guid.TryParse(slice, out var sliceId) ? sliceId : null,
-            values.TryGetValue("spec", out var spec) && Guid.TryParse(spec, out var specId) ? specId : null);
+            values.TryGetValue("spec", out var spec) && Guid.TryParse(spec, out var specId) ? specId : null)
+        {
+            Engine = values.GetValueOrDefault("engine") ?? "structural",
+            HasStructuralFilter = values.ContainsKey("slice") || values.ContainsKey("spec"),
+            Specification = values.GetValueOrDefault("specification"),
+            Scope = values.GetValueOrDefault("scope"),
+            CatalogPath = values.GetValueOrDefault("catalog"),
+            ApplicationName = values.GetValueOrDefault("application")
+        };
     }
 }

@@ -42,7 +42,10 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 
         if (variant == "composite-key")
         {
-            source = source.Replace("type ProjectInfo\n", "type ProjectKey\n  projectId ProjectId\ntype ProjectInfo\n", StringComparison.Ordinal)
+            // The seeded lookup states a scalar key, which a composite key cannot accept.
+            var lookup = source.LastIndexOf('\n', source.IndexOf("specification LookingUpPinnedProject", StringComparison.Ordinal)) + 1;
+            var end = source.LastIndexOf('\n', source.IndexOf("slice StateView ProjectLookup", StringComparison.Ordinal)) + 1;
+            source = source.Remove(lookup, end - lookup).Replace("type ProjectInfo\n", "type ProjectKey\n  projectId ProjectId\ntype ProjectInfo\n", StringComparison.Ordinal)
                 .Replace("readmodel ProjectDetails\n        projectId ProjectId", "readmodel ProjectDetails\n        projectId ProjectKey", StringComparison.Ordinal)
                 .Replace("by projectId ProjectId\n      projection ProjectDetailsProjection", "by projectId ProjectKey\n      projection ProjectDetailsProjection", StringComparison.Ordinal)
                 .Replace("from ProjectRegistered key projectId\n          name = name\n      projection ProjectSummaryProjection", "from ProjectRegistered\n          key ProjectKey\n            projectId = projectId\n          name = name\n        from ProjectRenamed\n          key ProjectKey\n            projectId = projectId\n          name = name\n      projection ProjectSummaryProjection", StringComparison.Ordinal);

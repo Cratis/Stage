@@ -61,6 +61,7 @@ public class when_planning_an_application_without_screens : a_register_project_r
     [Fact] void should_admit_upper_and_lower_case_dashed_guids() => new[] { "11223344-5566-7788-99aa-bbccddeeff00", "11223344-5566-7788-99AA-BBCCDDEEFF00" }.All(MatchesPattern).ShouldBeTrue();
     [Fact] void should_reject_malformed_nonempty_keys_before_execution() => new[] { "not-a-guid", "112233445566778899aabbccddeeff00", "{11223344-5566-7788-99aa-bbccddeeff00}", "11223344-5566-7788-99aa-bbccddeeff00\n", " 11223344-5566-7788-99aa-bbccddeeff00" }.Any(MatchesPattern).ShouldBeFalse();
     [Fact] void should_not_mutate_the_profile() => _request.Profile.Inputs.Select(_ => _.Sha256).SequenceEqual(_profileHashes).ShouldBeTrue();
+
     /// <summary>
     /// The frozen bytes changed because every element now carries its interactions, which serialize as an
     /// empty collection when a document attached none - the same way its slots already serialized as an empty

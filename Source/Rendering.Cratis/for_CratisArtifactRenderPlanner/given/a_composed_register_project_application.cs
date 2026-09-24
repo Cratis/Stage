@@ -35,8 +35,6 @@ public class a_composed_register_project_application : a_register_project_render
         _request = new(_model, _executionPlan, profile, new(ArtifactRenderScopeKind.Application, _model.Application.Id));
     }
 
-    void Because() => _plan = _planner.Plan(_request);
-
     protected PlannedArtifact? Artifact(string relativePath) =>
         _plan.Artifacts.FirstOrDefault(_ => string.Equals(_.RelativePath, relativePath, StringComparison.Ordinal));
 

@@ -17,7 +17,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// stricter analyser settings than this repository uses. A using nobody uses is a warning in that build and a
 /// change request in that review, and the author cannot fix it by editing the file.
 /// </remarks>
-public class when_planning_generated_code_quality : a_register_project_render_request
+public partial class when_planning_generated_code_quality : a_register_project_render_request
 {
     ArtifactRenderPlan _plan = null!;
 
@@ -30,14 +30,13 @@ public class when_planning_generated_code_quality : a_register_project_render_re
     /// </summary>
     [Fact] void should_not_declare_the_globalization_namespace_without_using_it() =>
         Sources()
-            .Where(_ => _.text.Contains("using System.Globalization;", StringComparison.Ordinal))
-            .Any(_ => !_.text.Contains("CultureInfo", StringComparison.Ordinal))
+            .Any(_ => _.Text.Contains("using System.Globalization;", StringComparison.Ordinal) && !_.Text.Contains("CultureInfo", StringComparison.Ordinal))
             .ShouldBeFalse();
 
     [Fact] void should_not_declare_a_namespace_twice_in_one_file() =>
         Sources()
-            .Any(_ => Regex.Matches(_.text, @"(?m)^using ([A-Za-z0-9_.]+);")
-                .Select(match => match.Groups[1].Value)
+            .Any(_ => UsingDirective.Matches(_.Text)
+                .Select(match => match.Groups["namespace"].Value)
                 .GroupBy(namespaceName => namespaceName, StringComparer.Ordinal)
                 .Any(group => group.Count() > 1))
             .ShouldBeFalse();
@@ -46,17 +45,20 @@ public class when_planning_generated_code_quality : a_register_project_render_re
         Sources()
             .Any(_ =>
             {
-                var declared = Regex.Matches(_.text, @"(?m)^using ([A-Za-z0-9_.]+);")
-                    .Select(match => match.Groups[1].Value)
+                var declared = UsingDirective.Matches(_.Text)
+                    .Select(match => match.Groups["namespace"].Value)
                     .ToArray();
                 return !declared.SequenceEqual(declared.Order(StringComparer.Ordinal));
             })
             .ShouldBeFalse();
 
     [Fact] void should_leave_no_blank_line_at_the_end_of_a_file() =>
-        Sources().Any(_ => _.text.EndsWith("\n\n", StringComparison.Ordinal)).ShouldBeFalse();
+        Sources().Any(_ => _.Text.EndsWith("\n\n", StringComparison.Ordinal)).ShouldBeFalse();
 
-    IEnumerable<(string path, string text)> Sources() =>
+    [GeneratedRegex("(?m)^using (?<namespace>[A-Za-z0-9_.]+);", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex UsingDirective { get; }
+
+    IEnumerable<(string Path, string Text)> Sources() =>
         _plan.Artifacts
             .Where(_ => _.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
             .Select(_ => (_.RelativePath, Text(_)));

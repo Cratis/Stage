@@ -24,6 +24,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 public class when_building_root_string_queries(context fixture) : IClassFixture<context>
 {
     [Fact] void should_build_the_fixed_and_declared_queries_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
+
     /// <summary>
     /// A raw key is declared as the event source id, not as the string it is stored as.
     /// </summary>

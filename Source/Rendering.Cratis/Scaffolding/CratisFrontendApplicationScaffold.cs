@@ -35,7 +35,7 @@ public sealed class CratisFrontendApplicationScaffold
         {
             (".frontend/index.css", IndexCss()),
             (".frontend/index.html", IndexHtml(request)),
-            (".frontend/main.tsx", Main()),
+            (".frontend/main.tsx", MainModule()),
             (".frontend/tsconfig.json", FrontendTsConfig()),
             (".frontend/tsconfig.node.json", NodeTsConfig()),
             (".frontend/vite.config.ts", ViteConfig()),
@@ -160,7 +160,7 @@ public sealed class CratisFrontendApplicationScaffold
         </html>
         """;
 
-    static string Main() =>
+    static string MainModule() =>
         """
         import 'reflect-metadata';
         import './index.css';

@@ -31,7 +31,17 @@ public static class SemanticModelLoader
     /// </remarks>
     /// <returns>The executable model and plan.</returns>
     /// <exception cref="InvalidSemanticModel">Input is absent, malformed, or not executable.</exception>
-    public static async Task<LoadedSemanticModel> LoadFromPathAsync(string path, string? catalogPath = null)
+    public static Task<LoadedSemanticModel> LoadFromPathAsync(string path, string? catalogPath = null) => LoadFromPathAsync(path, catalogPath, null);
+
+    /// <summary>
+    /// Compiles a source set using an explicit application name when supplied.
+    /// </summary>
+    /// <param name="path">A .play file or directory.</param>
+    /// <param name="catalogPath">An optional authoritative identity catalog.</param>
+    /// <param name="applicationName">The application name; defaults to the folder or file name.</param>
+    /// <returns>The executable model and plan.</returns>
+    /// <exception cref="InvalidSemanticModel">The source cannot compile into an executable plan.</exception>
+    public static async Task<LoadedSemanticModel> LoadFromPathAsync(string path, string? catalogPath, string? applicationName)
     {
         var isFolder = Directory.Exists(path);
         if (!isFolder && (!File.Exists(path) || !string.Equals(Path.GetExtension(path), ".play", StringComparison.OrdinalIgnoreCase)))
@@ -46,7 +56,7 @@ public static class SemanticModelLoader
         }
 
         var root = isFolder ? path : Path.GetDirectoryName(Path.GetFullPath(path))!;
-        var name = isFolder ? new DirectoryInfo(path).Name : Path.GetFileNameWithoutExtension(path);
+        var name = applicationName ?? (isFolder ? new DirectoryInfo(path).Name : Path.GetFileNameWithoutExtension(path));
         var catalog = catalogPath is null
             ? SemanticIdentityCatalog.Empty(ApplicationIdentity.Create(name))
             : SemanticIdentityCatalogSerializer.Deserialize(await File.ReadAllBytesAsync(catalogPath));

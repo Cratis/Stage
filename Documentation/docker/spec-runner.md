@@ -30,7 +30,12 @@ The image defaults to the two mounted folders, so the invocation above needs no 
 | `--model <file-or-folder>` | `/model` | One `.play` file, or a folder searched recursively for `.play` files and compiled as one application. |
 | `--output <file>` | `/output/results.json` | The file the results are written to. |
 | `--slice <guid>` | — | Limit the run to a single slice. |
-| `--spec <guid>` | — | Limit the run to a single specification. |
+| `--spec <guid>` | — | Limit the structural run to a single specification. |
+| `--engine semantic` | `structural` | Opt in to executable semantic specifications and the versioned semantic report. |
+| `--specification <semantic-id>` | — | Select a semantic specification (semantic engine only). |
+| `--scope <semantic-id>[,<semantic-id>...]` | — | Select application, module, feature, slice or specification identities (semantic engine only). |
+| `--catalog <file>` | — | Use an authoritative semantic identity catalog (semantic engine only). |
+| `--application <name>` | Input folder/file name | Preserve the application name across input layouts (semantic engine only). |
 
 Override either default by passing arguments after the image name. To compile just one file, mount only that
 file read-only; no host parent-folder mount is needed:
@@ -107,3 +112,35 @@ Executing the slice behaviorally against a live Chronicle is a follow-up, and ea
 
 The types behind the file live in `Cratis.Stage.Contracts` (`SpecificationRunResults`,
 `SpecificationRunResultsFile`), so tooling should deserialize with those rather than reading the JSON by hand.
+
+## Opt in to semantic execution
+
+The semantic engine is experimental and opt-in. Use `--engine semantic` when you need behavior rather than the default structural check:
+
+```bash
+dotnet run --project Source/SpecRunner -- \
+    --engine semantic --model /path/to/Projects.play \
+    --output /path/to/semantic-results.json \
+    --application Projects
+```
+
+The output is **not** the legacy Guid-keyed `results.json`. Read it with
+`SemanticSpecificationRunReportFile`: schema `stage-spec-run/1` contains semantic IDs, a revision, and
+per-spec `Passed`, `Failed`, `Unsupported`, or `Cancelled` outcomes. An unsupported capability carries its
+kind, the offending semantic construct ID and a reason. Do not feed this file to a legacy structural-results
+reader. The process returns `0` after writing the report even when a specification failed or was blocked;
+read its outcomes. Invalid semantic IDs or engine names return `2`.
+
+This first semantic engine runs admitted command specifications through Arc's in-memory command pipeline,
+with a fresh Chronicle in-memory event log per specification. It admits explicit-source Given events, unconditional produced
+facts with literal or command-property mappings, and explicit-message `NotEmpty`, `Minimum`, or `Maximum`
+command validation. Event assertions (including any-order assertions) and validation rejection messages
+are compared. The clock, tenant, caller and identity allocator are injectable through the in-process API;
+implicit identity allocation and caller authorization are **not** admitted yet.
+
+Read-model assertions, seeded read models and keyed queries return typed `Unsupported` before execution:
+Chronicle 19.4.7 does not offer per-run projection execution through its public scenario APIs. Other
+unimplemented behavior (authorization, requirements, constraints, conditional production, direct append,
+external effects and unsupported expression or value shapes) is also blocked rather than reported as a
+pass. This is not a live Chronicle integration check. Keep the structural engine for existing Studio jobs
+until consumers explicitly migrate to the new report schema.

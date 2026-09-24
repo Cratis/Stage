@@ -2,8 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Running;
+using Cratis.Stage.Specifications;
 using Cratis.Stage.SpecRunner;
 
 return await Program.Run(args, Console.Out, Console.Error);
@@ -38,6 +42,17 @@ public static partial class Program
             return 2;
         }
 
+        if (arguments.Engine == "semantic")
+        {
+            return await RunSemantic(arguments, output, error);
+        }
+
+        if (arguments.Engine != "structural")
+        {
+            await error.WriteLineAsync($"Unknown engine '{arguments.Engine}'.");
+            return 2;
+        }
+
         EventModel model;
         try
         {
@@ -55,5 +70,35 @@ public static partial class Program
         await output.WriteLineAsync($"Ran {results.Results.Count} specification(s) for event model '{model.Name}'. Results written to {arguments.OutputPath}.");
 
         return 0;
+    }
+
+    static async Task<int> RunSemantic(SpecRunnerArguments arguments, TextWriter output, TextWriter error)
+    {
+        var scopes = new List<SemanticId>();
+        foreach (var scope in new[] { arguments.Specification }.Concat((arguments.Scope ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries)))
+        {
+            if (scope is null) continue;
+            if (!SemanticId.TryParse(scope, out var id))
+            {
+                await error.WriteLineAsync($"Invalid semantic identity '{scope}'.");
+                return 2;
+            }
+
+            scopes.Add(id);
+        }
+
+        try
+        {
+            var loaded = await SemanticModelLoader.LoadFromPathAsync(arguments.ModelPath, arguments.CatalogPath, arguments.ApplicationName);
+            var result = await new SemanticSpecificationExecutor().Run(loaded.Plan, new SemanticSpecificationSelection([.. scopes]), new SemanticSpecificationRunOptions());
+            await SemanticSpecificationRunReportFile.WriteToFile(result, arguments.OutputPath);
+            await output.WriteLineAsync($"Ran {result.Results.Count} semantic specification(s). Results written to {arguments.OutputPath}.");
+            return 0;
+        }
+        catch (InvalidSemanticModel exception)
+        {
+            await error.WriteLineAsync(exception.Message);
+            return 1;
+        }
     }
 }

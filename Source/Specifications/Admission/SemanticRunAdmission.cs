@@ -42,7 +42,10 @@ internal static class SemanticRunAdmission
             return Block(StageExecutionCapability.Command, command.Id, "Concept validation is not admitted.");
         }
 
-        var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(command.Produces.Select(produced => produced.EventContract)).ToHashSet();
+        // The reference projects given events while establishing the world, and produced facts only when the command
+        // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
+        var produced = specification.ThenErrors.IsEmpty ? command.Produces.Select(produce => produce.EventContract) : [];
+        var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
         var consumingProjection = plan.Projections.Values.FirstOrDefault(projection =>
             (projection.Scope is not null && reachableEvents.Count > 0) ||
             projection.Transitions.Any(transition => reachableEvents.Contains(transition.EventContract)));

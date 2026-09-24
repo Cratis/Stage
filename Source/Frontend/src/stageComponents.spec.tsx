@@ -1,11 +1,20 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as renderWithoutProvider, screen, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
+import { PrimeReactProvider } from '@primereact/core';
 import { StageAction, StageTable } from './stageComponents';
 import { element } from './testElements';
+
+// PrimeReact 11's components read their configuration from a `PrimeReactProvider` up the tree - without
+// one they throw rather than render unstyled, so every spec needs one even though none of them assert
+// anything about theming.
+function render(ui: ReactElement) {
+    return renderWithoutProvider(<PrimeReactProvider>{ui}</PrimeReactProvider>);
+}
 
 describe('a synthesized table', () => {
     beforeEach(() => {
@@ -61,6 +70,7 @@ describe('a synthesized action', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
         fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
         fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
+        fireEvent.blur(screen.getByLabelText('amount'));
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
         await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('api/sales/invoices/register-invoice', expect.objectContaining({

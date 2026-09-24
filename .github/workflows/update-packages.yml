@@ -2,7 +2,8 @@ name: Update Packages
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    # Offset from the hour so it does not queue behind every other repository's scheduled jobs.
+    - cron: '23 5 * * *'
   workflow_dispatch:
 
 jobs:

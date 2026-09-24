@@ -137,7 +137,7 @@ in-memory event log per specification. It supports explicit-source Given events 
 events, unconditional command production with literal or command-property mappings, and event assertions
 (including any-order assertions). It evaluates portable command authorization before dispatch: `given caller`
 sets an Arc principal, while authenticated, role, claim (literal, subject or artifact), and/or policies follow
-Screenplay's reference semantics (nested artifact paths requiring composite command values remain unsupported). `then denied` checks Unauthorized and appends no new facts. Roles and claims
+Screenplay's reference semantics. Nested artifact paths cannot reach composite values, because composite command values are not admitted. `then denied` checks Unauthorized and appends no new facts. Roles and claims
 remain distinct; a role-URI claim is blocked as `Unsupported(Authorization)` rather than treated as a role.
 
 Command rules (`NotEmpty`, `Minimum`, `Maximum`, `Equal`, `NotEqual`, `GreaterThan`,
@@ -155,8 +155,8 @@ Facts are compared against Stage's recorded occurrences; Chronicle's persisted l
 The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
 and do not affect this run; implicit identity allocation remains unsupported.
 
-Read-model assertions, seeded read models, keyed queries, and specifications whose Given or produced events
-feed a projection (including scoped projections) return typed `Unsupported` before execution: Chronicle 19.4.7
+Read-model assertions, seeded read models, keyed queries, and specifications whose Given, produced or directly
+appended events feed a projection (including scoped projections) return typed `Unsupported` before execution: Chronicle 19.4.7
 does not offer per-run projection execution through its public scenario APIs. Other
 unimplemented behavior (conditional production, implicit event-source identity allocation,
 external effects and unsupported expression or value shapes) is also blocked rather than reported as a

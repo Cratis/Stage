@@ -76,6 +76,10 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
                 results.AddRange(selected.Skip(index).Select(item => Record(item.Slice, item.Specification, SemanticSpecificationOutcome.Cancelled)));
                 break;
             }
+            catch (UnsupportedSemanticMapping exception)
+            {
+                results.Add(Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.Command, specification.Id.ToString(), exception.Message)));
+            }
             catch (Exception exception)
             {
                 results.Add(Record(slice, specification, SemanticSpecificationOutcome.Failed, failures: [exception.Message]));
@@ -132,6 +136,14 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         {
             return Rejected(slice, specification, failure);
         }
+
+        // The reference reaches identity allocation after validation: an accepted command whose events have no
+        // destination and no stated source needs an allocated identity, which this engine does not provide.
+        if (allowed && when!.EventSource is null && command.Destination?.Value is null && command.Produces.Any(produced => produced.Destination is null))
+        {
+            return Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.IdentityAllocation, command.Id.ToString(), "An accepted command requires an explicit destination."));
+        }
+
         if (allowed)
         {
             var candidates = command.Produces.Select(context.Produce)

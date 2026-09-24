@@ -1,13 +1,20 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Layout, SceneElement, Screen, ScreenTemplate } from '@cratis/scene.model';
 import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
+import { evaluateFlowArrangement } from '@cratis/scene.engine';
 import { InteractionScope, SceneElementView, createBrowserDispatcher } from '@cratis/scene.react';
 import { useStageRoutes } from './stageRoutes';
 import { stageComponents } from './stageComponents';
+import { useSizeClass } from './useSizeClass';
+import { FlowArrangementView } from './FlowArrangementView';
 import './app.css';
+
+function isFlowArrangement(arrangement: unknown): arrangement is Parameters<typeof evaluateFlowArrangement>[0] {
+    return !!arrangement && typeof arrangement === 'object' && 'root' in arrangement;
+}
 
 export interface StageSceneApplication {
     layouts: Layout[];
@@ -134,34 +141,98 @@ export function App() {
 
     return (
         <InteractionScope dispatcher={dispatcher} context={{ resolve: () => undefined }} attachments={[]} onFindings={reportFindings}>
-        <div className='stage-application'>
-            <header className='stage-header'>
-                <strong>Cratis Stage</strong>
-                <nav aria-label='Modeled screens'>
-                    {scene.screens.map(candidate => (
-                        <button
-                            key={candidate.name}
-                            type='button'
-                            className={candidate.name === screen.name ? 'selected' : ''}
-                            onClick={() => { setSelectedScreen(candidate.name); setActivity(''); }}>
-                            {candidate.name}
-                        </button>
-                    ))}
-                </nav>
-            </header>
-            <main className='stage-screen' data-screen={screen.name}>
-                {Object.entries(screen.slotContent).map(([slot, elements]) => (
-                    <section className='stage-slot' data-slot={slot} key={slot}>
-                        {elements.map(element => <SceneContent key={element.id} element={element} />)}
-                    </section>
-                ))}
-                {activity && <p className='stage-activity' role='status'>{activity}</p>}
-            </main>
-        </div>
+            <StageShell scene={scene} screen={screen} selectedScreen={screen.name} onSelectScreen={name => { setSelectedScreen(name); setActivity(''); }} activity={activity} />
         </InteractionScope>
     );
 }
 
 function SceneContent({ element }: { element: SceneElement }) {
     return <SceneElementView element={element} registry={stageComponents} resolveBinding={() => undefined} />;
+}
+
+interface StageShellProps {
+    scene: StageSceneApplication;
+    screen: Screen;
+    selectedScreen: string;
+    onSelectScreen: (name: string) => void;
+    activity: string;
+}
+
+/**
+ * Renders a screen inside its application `Layout`, and its own content inside its `ScreenTemplate` when
+ * it has one - both positioned by the arrangement each one actually declares, via the shared engine, not
+ * flat-stacked regardless of what the document said. A layout or template without a `flow` arrangement
+ * (none declared, or a `freeform` one - not yet rendered here) falls back to a plain stack, which is what
+ * every screen rendered as before this.
+ */
+function StageShell({ scene, screen, selectedScreen, onSelectScreen, activity }: StageShellProps) {
+    const sizeClass = useSizeClass();
+    const layout = useMemo(() => scene.layouts.find(candidate => candidate.name === screen.layout), [scene.layouts, screen.layout]);
+    const template = useMemo(
+        () => (screen.screenTemplate ? scene.screenTemplates.find(candidate => candidate.name === screen.screenTemplate) : undefined),
+        [scene.screenTemplates, screen.screenTemplate],
+    );
+
+    const contentSlots = useMemo(() => {
+        const slots: Record<string, ReactNode> = {};
+        for (const [slotName, elements] of Object.entries(screen.slotContent)) {
+            slots[slotName] = elements.map(element => <SceneContent key={element.id} element={element} />);
+        }
+        return slots;
+    }, [screen.slotContent]);
+
+    const content = template?.arrangement && isFlowArrangement(template.arrangement)
+        ? <FlowArrangementView node={evaluateFlowArrangement(template.arrangement, sizeClass)} slots={contentSlots} />
+        : (
+            <div className='stage-slots-fallback'>
+                {Object.entries(contentSlots).map(([slotName, node]) => (
+                    <section className='stage-slot' data-slot={slotName} key={slotName}>{node}</section>
+                ))}
+            </div>
+        );
+
+    const shellSlots: Record<string, ReactNode> = {
+        topbar: <StageTopbar />,
+        sidebar: <StageSidebar screens={scene.screens} selectedScreen={selectedScreen} onSelectScreen={onSelectScreen} />,
+        content: <main className='stage-screen' data-screen={screen.name}>{content}{activity && <p className='stage-activity' role='status'>{activity}</p>}</main>,
+        footer: null,
+    };
+
+    if (layout?.arrangement && isFlowArrangement(layout.arrangement)) {
+        return <div className='stage-application'><FlowArrangementView node={evaluateFlowArrangement(layout.arrangement, sizeClass)} slots={shellSlots} /></div>;
+    }
+
+    return (
+        <div className='stage-application'>
+            <StageTopbar />
+            <div className='stage-body'>
+                <StageSidebar screens={scene.screens} selectedScreen={selectedScreen} onSelectScreen={onSelectScreen} />
+                {shellSlots.content}
+            </div>
+        </div>
+    );
+}
+
+function StageTopbar() {
+    return (
+        <header className='stage-header'>
+            <strong>Cratis Stage</strong>
+        </header>
+    );
+}
+
+function StageSidebar({ screens, selectedScreen, onSelectScreen }: { screens: Screen[]; selectedScreen: string; onSelectScreen: (name: string) => void }) {
+    return (
+        <nav className='stage-sidebar' aria-label='Modeled screens'>
+            {screens.map(candidate => (
+                <button
+                    key={candidate.name}
+                    type='button'
+                    className={candidate.name === selectedScreen ? 'selected' : ''}
+                    onClick={() => onSelectScreen(candidate.name)}>
+                    {candidate.name}
+                </button>
+            ))}
+        </nav>
+    );
 }

@@ -2,10 +2,26 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { useCallback, useEffect, useState } from 'react';
+import type React from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { coreComponents } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
+import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
+import { InputNumber } from 'primereact/inputnumber';
+import type { InputNumberRootValueChangeEvent } from 'primereact/inputnumber';
+import { PrimeDataTable, PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
+
+/**
+ * Builds the minimal `ExternalComponent` PrimeReact's v11 adapters need - they read configuration off
+ * `element.properties` and children off `element.slots`, so a real query result or a form's fields have
+ * to arrive wearing that shape to reach them. Stage keeps owning the fetch/execute logic; this is only
+ * the seam between raw data and the polished widget rendering it.
+ */
+function syntheticElement(id: string, properties: Record<string, unknown>, slots: Record<string, SceneElement[]> = {}): ExternalComponent {
+    return { id, componentName: '', properties, slots } as ExternalComponent;
+}
 
 interface RegisteredProps {
     element: ExternalComponent;
@@ -78,32 +94,19 @@ export function StageTable({ element, slots }: RegisteredProps) {
         );
     }
 
+    // Columns is unused directly here now - PrimeDataTable derives its own from `element.slots.columns` (the
+    // model, not the rendered React nodes) or, absent that, the shape of the first row. `columns` above still
+    // drives the "no query exposed" fallback and stays the single place that reads the modeled column list.
+    void columns;
+
+    const tableElement = syntheticElement(element.id, { ...element.properties, rows }, element.slots);
+
     return (
         <section className='stage-table' data-scene-id={element.id}>
-            {error && <p className='stage-note stage-note--error'>{error}</p>}
-            <table>
-                <thead>
-                    <tr>{columns.map(column => <th key={column.property}>{column.label || column.property}</th>)}</tr>
-                </thead>
-                <tbody>
-                    {rows.length === 0 && (
-                        <tr><td colSpan={Math.max(columns.length, 1)} className='stage-empty'>Nothing recorded yet</td></tr>
-                    )}
-                    {rows.map((row, index) => (
-                        <tr key={String(row.id ?? index)}>
-                            {columns.map(column => <td key={column.property}>{format(row[column.property])}</td>)}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            {error && <PrimeMessage element={syntheticElement(`${element.id}-error`, { severity: 'error', text: error })} slots={{}} />}
+            <PrimeDataTable element={tableElement} slots={{}} />
         </section>
     );
-}
-
-function format(value: unknown): string {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
 }
 
 interface SchemaProperty {
@@ -130,13 +133,12 @@ export function StageAction({ element, interactions }: RegisteredProps) {
     const label = text(element, 'label', text(element, 'command'));
     const route = text(element, 'route');
     const properties = schemaProperties(element);
-    const [open, setOpen] = useState(false);
     const [values, setValues] = useState<Record<string, string>>({});
     const [messages, setMessages] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
 
     if (!route) {
-        return <button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</button>;
+        return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
     const execute = async () => {
@@ -165,7 +167,9 @@ export function StageAction({ element, interactions }: RegisteredProps) {
                 return;
             }
 
-            setOpen(false);
+            // PrimeDialog owns its own open/close state once shown (v11's compositional Dialog is driven by
+            // its own trigger, not this element's `visible` seed past first render) - a successful command
+            // clears the fields so the next open starts fresh, but cannot also close a dialog it does not own.
             setValues({});
             globalThis.dispatchEvent(new CustomEvent(DATA_CHANGED));
         } catch (reason) {
@@ -175,27 +179,39 @@ export function StageAction({ element, interactions }: RegisteredProps) {
         }
     };
 
+    const form = (
+        <form
+            key='form'
+            className='stage-form'
+            onSubmit={event => { event.preventDefault(); void execute(); }}>
+            {properties.map(property => (
+                <label key={property.name} className='stage-form-field'>
+                    <span>{property.name}</span>
+                    {property.type === 'number' ? (
+                        <InputNumber.Root
+                            value={values[property.name] ? Number(values[property.name]) : undefined}
+                            onValueChange={(event: InputNumberRootValueChangeEvent) => setValues({ ...values, [property.name]: event.value === undefined || event.value === null ? '' : String(event.value) })}>
+                            <InputNumber.Input />
+                        </InputNumber.Root>
+                    ) : (
+                        <InputText
+                            value={values[property.name] ?? ''}
+                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setValues({ ...values, [property.name]: event.target.value })}
+                        />
+                    )}
+                </label>
+            ))}
+            {messages.map(message => <PrimeMessage key={message} element={syntheticElement(`${element.id}-message`, { severity: 'error', text: message })} slots={{}} />)}
+            <Button type='submit' disabled={busy}>{busy ? 'Working…' : `Execute ${label}`}</Button>
+        </form>
+    );
+
     return (
         <div className='stage-action' data-scene-id={element.id}>
-            <button type='button' onClick={() => setOpen(value => !value)}>{label}</button>
-            {open && (
-                <form
-                    className='stage-form'
-                    onSubmit={event => { event.preventDefault(); void execute(); }}>
-                    {properties.map(property => (
-                        <label key={property.name}>
-                            <span>{property.name}</span>
-                            <input
-                                type={property.type}
-                                value={values[property.name] ?? ''}
-                                onChange={event => setValues({ ...values, [property.name]: event.target.value })}
-                            />
-                        </label>
-                    ))}
-                    {messages.map(message => <p key={message} className='stage-note stage-note--error'>{message}</p>)}
-                    <button type='submit' disabled={busy}>{busy ? 'Working…' : `Execute ${label}`}</button>
-                </form>
-            )}
+            <PrimeDialog
+                element={syntheticElement(element.id, { visible: open, header: label, triggerLabel: label })}
+                slots={{ content: [form] }}
+            />
         </div>
     );
 }

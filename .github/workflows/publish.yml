@@ -218,6 +218,10 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm64
           push: true
+          # STAGE_PRIMEUI_LICENSE only matters to the Host image's frontend stage (see its Dockerfile) -
+          # harmless as an unconsumed build arg on SpecRunner's, which declares no such ARG.
+          build-args: |
+            STAGE_PRIMEUI_LICENSE=${{ secrets.PRIMEUI_LICENSE }}
           tags: |
             ${{ matrix.image }}:${{ needs.release.outputs.version }}
             ${{ matrix.image }}:latest

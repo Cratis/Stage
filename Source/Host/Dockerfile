@@ -14,6 +14,15 @@ WORKDIR /frontend
 COPY Source/Frontend/package.json Source/Frontend/package-lock.json ./
 RUN npm ci
 COPY Source/Frontend/ ./
+
+# The PrimeUI license key - the same PRIMEUI_LICENSE GitHub secret Direct and Studio already build with,
+# passed in as a build arg (see dockerize.sh and publish.yml). It only ever exists in this discarded
+# `frontend` build stage, baked into Vite's `import.meta.env` at bundle time and gone from the final image -
+# the multi-stage build below copies out `/frontend/dist`, not this stage's filesystem or its ARG/ENV.
+# Empty by default: an unlicensed build still renders, just with PrimeReact's own "Invalid PrimeUI License"
+# banner - see main.tsx.
+ARG STAGE_PRIMEUI_LICENSE=""
+ENV STAGE_PRIMEUI_LICENSE=$STAGE_PRIMEUI_LICENSE
 RUN npm run build
 
 # The Chronicle base image is the kernel (Cratis.Chronicle.Server in /app). Storage is fully in-memory, so no

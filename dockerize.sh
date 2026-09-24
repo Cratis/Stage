@@ -73,11 +73,17 @@ if [ -n "${PLATFORM:-}" ]; then
     PLATFORM_ARGS=(--platform "${PLATFORM}")
 fi
 
+# Same PRIMEUI_LICENSE GitHub secret Direct and Studio already build with. Locally this picks up whatever
+# a shell profile already exports under that bare name; CI supplies it explicitly (see publish.yml). Left
+# empty, the frontend still builds and runs - just with PrimeReact's own unlicensed banner.
+STAGE_PRIMEUI_LICENSE="${STAGE_PRIMEUI_LICENSE:-${PRIMEUI_LICENSE:-}}"
+
 echo "Building ${STAGE_IMAGE}:${STAGE_TAG}"
 docker build \
     --file "${REPO_ROOT}/Source/Host/Dockerfile" \
     --tag "${STAGE_IMAGE}:${STAGE_TAG}" \
     --tag "${STAGE_IMAGE}:${VERSION}" \
+    --build-arg "STAGE_PRIMEUI_LICENSE=${STAGE_PRIMEUI_LICENSE}" \
     "${PLATFORM_ARGS[@]}" \
     "$@" \
     "${REPO_ROOT}"

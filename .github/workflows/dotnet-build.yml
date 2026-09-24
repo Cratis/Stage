@@ -51,6 +51,10 @@ jobs:
         run: python3 Verification/verify-stage-entrypoint.py
 
       - name: Build and test frontend
+        env:
+          # Same PRIMEUI_LICENSE GitHub secret Direct and Studio already build with. A fork PR without
+          # secret access just builds unlicensed - see main.tsx and vite.config.ts for the fallback.
+          STAGE_PRIMEUI_LICENSE: ${{ secrets.PRIMEUI_LICENSE }}
         run: |
           npm ci --prefix Source/Frontend
           npm test --prefix Source/Frontend

@@ -13,7 +13,13 @@
 body { margin: 0; min-width: 20rem; min-height: 100vh; }
 button { font: inherit; }
 
-.stage-application { min-height: 100vh; }
+.stage-application { display: flex; flex-direction: column; min-height: 100vh; }
+.flow-container { display: flex; min-width: 0; min-height: 0; }
+.flow-container--row { flex-direction: row; }
+.flow-container--column { flex-direction: column; }
+.flow-container--grid { display: grid; }
+.flow-child { display: flex; min-width: 0; min-height: 0; }
+.stage-body { display: flex; flex: 1 1 auto; min-height: 0; }
 .stage-header {
     align-items: center;
     background: #151c2d;
@@ -23,8 +29,17 @@ button { font: inherit; }
     min-height: 3.5rem;
     padding: 0.65rem 1rem;
 }
-.stage-header nav { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.stage-sidebar {
+    background: #10151f;
+    border-right: 1px solid #2a354d;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 12rem;
+    padding: 1rem 0.75rem;
+}
 .stage-header button,
+.stage-sidebar button,
 .stage-screen button {
     background: #222d45;
     border: 1px solid #3b4966;
@@ -32,11 +47,12 @@ button { font: inherit; }
     color: inherit;
     cursor: pointer;
     padding: 0.45rem 0.7rem;
+    text-align: left;
 }
-.stage-header button.selected { background: #5b54e8; border-color: #817cf2; }
-.stage-screen { margin: 0 auto; max-width: 76rem; padding: 1.5rem; }
-.stage-slot { display: grid; gap: 1rem; }
-.stage-slot + .stage-slot { margin-top: 1rem; }
+.stage-sidebar button.selected { background: #5b54e8; border-color: #817cf2; }
+.stage-screen { flex: 1 1 auto; margin: 0 auto; max-width: 76rem; overflow: auto; padding: 1.5rem; width: 100%; }
+.stage-slots-fallback { display: grid; gap: 1rem; }
+.stage-slots-fallback .stage-slot + .stage-slot { margin-top: 1rem; }
 .stage-slot section { border-color: #3b4966 !important; }
 .stage-message { display: grid; min-height: 100vh; padding: 2rem; place-content: center; text-align: center; }
 .stage-activity { background: #222d45; border-radius: 0.4rem; margin-top: 1rem; padding: 0.75rem; }

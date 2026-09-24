@@ -18,6 +18,11 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
     public string Engine { get; init; } = "structural";
 
     /// <summary>
+    /// Gets whether either structural-only filter was supplied, even if its GUID is invalid.
+    /// </summary>
+    public bool HasStructuralFilter { get; init; }
+
+    /// <summary>
     /// Gets the semantic specification scope.
     /// </summary>
     public string? Specification { get; init; }
@@ -66,6 +71,7 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
             values.TryGetValue("spec", out var spec) && Guid.TryParse(spec, out var specId) ? specId : null)
         {
             Engine = values.GetValueOrDefault("engine") ?? "structural",
+            HasStructuralFilter = values.ContainsKey("slice") || values.ContainsKey("spec"),
             Specification = values.GetValueOrDefault("specification"),
             Scope = values.GetValueOrDefault("scope"),
             CatalogPath = values.GetValueOrDefault("catalog"),

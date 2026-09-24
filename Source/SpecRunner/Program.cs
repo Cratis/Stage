@@ -42,12 +42,12 @@ public static partial class Program
             return 2;
         }
 
-        if (arguments.Engine == "semantic")
+        if (string.Equals(arguments.Engine, "semantic", StringComparison.OrdinalIgnoreCase))
         {
             return await RunSemantic(arguments, output, error);
         }
 
-        if (arguments.Engine != "structural")
+        if (!string.Equals(arguments.Engine, "structural", StringComparison.OrdinalIgnoreCase))
         {
             await error.WriteLineAsync($"Unknown engine '{arguments.Engine}'.");
             return 2;
@@ -74,6 +74,12 @@ public static partial class Program
 
     static async Task<int> RunSemantic(SpecRunnerArguments arguments, TextWriter output, TextWriter error)
     {
+        if (arguments.HasStructuralFilter)
+        {
+            await error.WriteLineAsync("--slice and --spec are structural-only; use --scope or --specification with --engine semantic.");
+            return 2;
+        }
+
         var scopes = new List<SemanticId>();
         foreach (var scope in new[] { arguments.Specification }.Concat((arguments.Scope ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries)))
         {
@@ -95,7 +101,7 @@ public static partial class Program
             await output.WriteLineAsync($"Ran {result.Results.Count} semantic specification(s). Results written to {arguments.OutputPath}.");
             return 0;
         }
-        catch (InvalidSemanticModel exception)
+        catch (Exception exception) when (exception is InvalidSemanticModel or InvalidSemanticContract or IOException or UnauthorizedAccessException or System.Text.Json.JsonException or ArgumentException)
         {
             await error.WriteLineAsync(exception.Message);
             return 1;

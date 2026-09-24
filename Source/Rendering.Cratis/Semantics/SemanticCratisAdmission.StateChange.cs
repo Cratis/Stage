@@ -46,24 +46,24 @@ internal static partial class SemanticCratisAdmission
                 (_.Type.Kind == SemanticTypeReferenceKind.Concept && _.Type.IsOptional &&
                  !context.Concepts[_.Type.Target].Validations.IsEmpty) ||
                 (_.Type.Kind == SemanticTypeReferenceKind.CompositeType && HasOptionalRequiredConcept(context, _.Type, []))) ||
-            command.Produces.Length != 1)
+            command.Produces.IsEmpty)
         {
             diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' exceeds the first Cratis command capability.", command.Id));
             return;
         }
 
-        var produced = command.Produces[0];
-        if (produced.Mappings.Any(_ => _.Source is SemanticEventContextExpression))
+        if (command.Produces.Any(produced => produced.Mappings.Any(_ => _.Source is SemanticEventContextExpression)))
         {
             diagnostics.Add(Error("STAGE-ESM-013", $"Produced event of command '{command.Name}' maps a command occurrence value ($context). Chronicle assigns the occurrence when it appends, so a Cratis command cannot put the same value in the event payload.", command.Id));
             return;
         }
 
-        if (!context.Events.TryGetValue(produced.EventContract, out var @event) || produced.Condition is not null ||
+        if (command.Produces.Any(produced =>
+            !context.Events.TryGetValue(produced.EventContract, out var @event) || produced.Condition is not null ||
             produced.When is not null || !produced.Tags.IsEmpty || !@event.Tags.IsEmpty ||
             !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, command.Properties.Where(_ => _.IsIdentifier).Select(_ => _.Id)) ||
             @event.Revision != EventContractRevision.Initial || @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
-            !MappingsMatch(produced.Mappings, @event.Properties, command.Properties, SemanticExpressionRootKind.Command))
+            !MappingsMatch(produced.Mappings, @event.Properties, command.Properties, SemanticExpressionRootKind.Command)))
         {
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }

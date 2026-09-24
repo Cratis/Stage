@@ -42,10 +42,9 @@ internal static class SemanticDestinations
         SemanticCommand command,
         SemanticProducedEvent produced)
     {
-        // Admission guarantees every explicit source of one specification agrees, so the first one is the stream.
-        if (Explicit(specification).FirstOrDefault() is { } source)
+        if (command.Produces.Length == 1 && Explicit(specification).FirstOrDefault() is { } stated)
         {
-            return source;
+            return stated;
         }
 
         var destination = (SemanticResolvedExpression)Of(command, produced)!;

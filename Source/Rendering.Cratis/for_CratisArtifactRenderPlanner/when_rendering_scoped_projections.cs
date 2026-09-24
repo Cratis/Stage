@@ -21,6 +21,8 @@ public class when_rendering_scoped_projections : a_generated_application
         type ProjectNote
           noteId ProjectId
           name ProjectName
+        type ProjectInfo
+          name ProjectName
         module Projects
           feature Registration
             slice StateChange RegisterProject
@@ -43,6 +45,15 @@ public class when_rendering_scoped_projections : a_generated_application
                 noteId ProjectId
                 projectId ProjectId
                 name ProjectName
+              event ProjectNoteRemoved
+                noteId ProjectId
+                projectId ProjectId
+              event ProjectNoteRemovedViaJoin
+                noteId ProjectId
+              event ProjectInfoChanged
+                name ProjectName
+              event ProjectInfoCleared
+              event ProjectRemoved
               specification RegisteringAProject
                 when RegisterProject
                   projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
@@ -56,6 +67,8 @@ public class when_rendering_scoped_projections : a_generated_application
                 name ProjectName
                 notes ProjectNote[]
                 visits Decimal?
+                lastSeen ProjectId?
+                info ProjectInfo?
               query ProjectById => ProjectSummary?
                 by projectId ProjectId
               query ProjectByKey => ProjectSummary?
@@ -79,10 +92,19 @@ public class when_rendering_scoped_projections : a_generated_application
                   with ProjectNamed
                     no automap
                     name = name
+                every
+                  exclude children
+                  lastSeen = $eventSourceId
+                remove with ProjectRemoved
+                nested info
+                  from ProjectRegistered key projectId
+                    name = name
                 children notes identified by noteId
                   from ProjectNoted key noteId
                     parent projectId
                     name = name
+                  remove with ProjectNoteRemoved key noteId
+                    parent projectId
         """;
 
     ArtifactRenderPlan _plan = null!;
@@ -118,4 +140,7 @@ public class when_rendering_scoped_projections : a_generated_application
     [Fact] void should_emit_identified_children() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.IdentifiedBy(item => item.NoteId)");
     [Fact] void should_emit_increment_mappings() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("Increment(model => model.Visits)");
     [Fact] void should_emit_several_read_models_and_queries() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("ProjectDetailsById");
+    [Fact] void should_emit_nested_blocks() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("nested.From<ProjectRegistered>");
+    [Fact] void should_emit_every_and_removal_blocks() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.FromEvery(every =>");
+    [Fact] void should_emit_child_removals() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.RemovedWith<ProjectNoteRemoved>");
 }

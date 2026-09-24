@@ -6,11 +6,11 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_planning_newer_semantic_constructs;
 
-// A caller fixture only means something against authorization, which the planner does not render.
 public class with_a_caller_fixture : given.an_invoice_model
 {
     void Because() => Plan(Invoices.Replace("when IssueInvoice\n", Caller, StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_reject_the_specifications() => ErrorCodes.ShouldContainOnly(["STAGE-ESM-011", "STAGE-ESM-011"]);
+    [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_render_each_caller_fixture() => _plan.Artifacts.Count(_ => _.RelativePath.EndsWith("when_issuing_first_invoice.cs", StringComparison.Ordinal) || _.RelativePath.EndsWith("when_issuing_second_invoice.cs", StringComparison.Ordinal)).ShouldEqual(2);
+    [Fact] void should_use_the_principal_override() => Artifact("when_issuing_first_invoice.cs").ShouldContain("principalOverride.BeginScope(principal)");
 }

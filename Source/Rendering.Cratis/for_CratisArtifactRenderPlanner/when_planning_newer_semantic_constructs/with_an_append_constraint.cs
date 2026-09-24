@@ -6,10 +6,10 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_planning_newer_semantic_constructs;
 
-// Chronicle enforces a constraint at append; an application without it accepts appends the reference rejects.
+// Chronicle #4122 indexes null as an empty-string claim, so an optional unique property is not portable.
 public class with_an_append_constraint : given.an_invoice_model
 {
-    void Because() => Plan(Invoices.Replace(
+    void Because() => Plan(Invoices.Replace("description String", "description String?", StringComparison.Ordinal).Replace(
         "      event InvoiceIssued\n",
         "      constraint UniqueDescription\n        unique description on InvoiceIssued\n      event InvoiceIssued\n",
         StringComparison.Ordinal));

@@ -51,8 +51,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
-        Add(entries, "SemanticSlice", rendered, "Commands Events Id Kind Name Projections Queries ReadModels Specifications");
-        Add(entries, "SemanticSlice", rejected("STAGE-ESM-014"), "Constraints");
+        Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications");
         Add(entries, "SemanticSliceKind", rendered, "StateChange StateView");
         Add(entries, "SemanticSliceKind", rejected("STAGE-ESM-001"), "Unknown");
 
@@ -72,7 +71,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationSeverity", rendered, "Error");
         Add(entries, "SemanticValidationSeverity", rejected("STAGE-ESM-005"), "Information Warning");
 
-        // State change: exactly one simple command and one unconditional, untagged mapped event.
+        // State change: one command with unconditional, untagged mapped events in declaration order.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition Tags When");
@@ -109,14 +108,16 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticQueryDelivery", rendered, "Snapshot");
         Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown Live");
 
-        // Scoped from/join/children are rendered; unsupported scope shapes fail admission with STAGE-ESM-017.
-        Add(entries, "SemanticProjectionScope", rendered, "Children From Joins");
-        Add(entries, "SemanticProjectionScope", rejected("STAGE-ESM-017"), "Every JoinRemovals Nested Removals");
+        // Supported scoped blocks render; conflicting roles and nested from without a matching root
+        // from and identical key fail STAGE-ESM-017. Nested clear and child join removal are rejected:
+        // Chronicle's in-memory projection sink diverges from the reference on those event sequences.
+        Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
         Add(entries, "SemanticProjectionEventContextValue", rejected("STAGE-ESM-017"), "Path");
         Add(entries, "SemanticProjectionEventProperty", rendered, "Path");
-        Add(entries, "SemanticProjectionEvery", rejected("STAGE-ESM-017"), "IncludeChildren Mappings SubscribesToAllEvents");
+        Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings");
+        Add(entries, "SemanticProjectionEvery", rejected("STAGE-ESM-017"), "SubscribesToAllEvents");
         Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
         Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
         Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");
@@ -127,19 +128,19 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionKeyPart", rejected("STAGE-ESM-017"), "Property Value");
         Add(entries, "SemanticProjectionLiteral", rejected("STAGE-ESM-017"), "Value");
         Add(entries, "SemanticProjectionMapping", rendered, "Operation Source Target");
-        Add(entries, "SemanticProjectionNested", rejected("STAGE-ESM-017"), "Property Scope");
+        Add(entries, "SemanticProjectionNested", rendered, "Property Scope");
         Add(entries, "SemanticProjectionOperation", rendered, "Set Add Subtract Increment Decrement Clear");
         Add(entries, "SemanticProjectionOperation", rejected("STAGE-ESM-017"), "Unknown");
-        Add(entries, "SemanticProjectionRemoval", rejected("STAGE-ESM-017"), "EventContract Key ParentKey");
+        Add(entries, "SemanticProjectionRemoval", rendered, "EventContract Key ParentKey");
         Add(entries, "SemanticProjectionValue", rendered, "Kind");
         Add(entries, "SemanticProjectionValueKey", rendered, "Value");
         Add(entries, "SemanticProjectionValueKind", rendered, "EventProperty EventSourceIdentity");
         Add(entries, "SemanticProjectionValueKind", rejected("STAGE-ESM-017"), "Unknown EventContext Literal");
 
-        // Specifications only render command actions with exact scalar fixtures and supported outcomes.
-        Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents ThenEvents ThenReadModels ThenQueries ThenErrors When");
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "GivenCaller GivenReadModels ThenDenied WhenAppended");
-        Add(entries, "SemanticSpecification", ignored("At most one expected event is admitted, so event order has no observable effect."), "ThenEventsInAnyOrder");
+        // Specifications render command actions with exact scalar fixtures and supported outcomes.
+        // Given events that violate an admitted constraint fail STAGE-ESM-011 before log seeding.
+        Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenCaller ThenEvents ThenReadModels ThenQueries ThenErrors ThenDenied When");
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "GivenReadModels WhenAppended ThenEventsInAnyOrder");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");
@@ -147,7 +148,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecificationReadModel", rendered, "Exactly");
         Add(entries, "SemanticSpecificationQueryResult", rendered, "Key Query Results Exactly");
         Add(entries, "SemanticSpecificationError", rendered, "Message");
-        Add(entries, "SemanticSpecificationError", rejected("STAGE-ESM-011"), "Code");
+        Add(entries, "SemanticSpecificationError", rejected("STAGE-ESM-011"), "Code"); // Codes naming a rendered constraint are admitted.
         Add(entries, "SemanticPropertyValue", rendered, "TargetProperty Value");
         Add(entries, "SemanticEventSourceIdentity", rendered, "Type Value");
         Add(entries, "SemanticValue", rendered, "Kind");
@@ -160,15 +161,16 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValueKind", rejected("STAGE-ESM-011"), "Unknown Composite");
         Add(entries, "SemanticNullValue", rendered, "$type");
 
-        // Portable authorization runs through Arc; caller fixtures and denied specifications remain blocked.
+        // Portable authorization runs through Arc; caller fixtures and command denial are checked by its pipeline.
+        // Role claim URIs cannot preserve the separate Screenplay roles/claims boundary (011/015).
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rendered, "$type");
         Add(entries, "SemanticProjectionEventSourceIdentity", rendered, "$type");
-        Add(entries, "SemanticCaller", rejected("STAGE-ESM-011"), "Authenticated Claims Roles");
-        Add(entries, "SemanticCallerClaim", rejected("STAGE-ESM-011"), "Type Value");
+        Add(entries, "SemanticCaller", rendered, "Authenticated Claims Roles");
+        Add(entries, "SemanticCallerClaim", rendered, "Type Value");
         Add(entries, "SemanticPolicy", rendered, "Condition Name");
         Add(entries, "SemanticPolicyReference", rendered, "Name");
         Add(entries, "SemanticClaimCondition", rendered, "Claim TargetKind Value");
@@ -183,11 +185,16 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticLogicalCondition", rendered, "Left Operator Right");
         Add(entries, "SemanticLogicalOperator", rendered, "And Or");
 
-        // Append-time constraints apply across selected slices even when declared elsewhere.
-        Add(entries, "SemanticConstraint", rejected("STAGE-ESM-014"), "IgnoreCasing Kind Message Name ReleasedBy Scope Targets");
-        Add(entries, "SemanticConstraintTarget", rejected("STAGE-ESM-014"), "EventContract Properties");
-        Add(entries, "SemanticConstraintKind", rejected("STAGE-ESM-014"), "Unknown UniquePropertyValue UniqueEventOccurrence");
-        Add(entries, "SemanticConstraintScope", rejected("STAGE-ESM-014"), "Unknown EventSequence");
+        // Append-time constraints apply across selected slices even when declared elsewhere. A unique
+        // value target requires a non-null command input and rejects intra-command multi-event changes
+        // to one constraint (STAGE-ESM-014). Chronicle#4123 maintains indexes after commit: storage
+        // failures cannot provide an atomic index-update guarantee, even for admitted constraints.
+        Add(entries, "SemanticConstraint", rendered, "IgnoreCasing Kind Message Name ReleasedBy Scope Targets");
+        Add(entries, "SemanticConstraintTarget", rendered, "EventContract Properties");
+        Add(entries, "SemanticConstraintKind", rendered, "UniquePropertyValue UniqueEventOccurrence");
+        Add(entries, "SemanticConstraintKind", rejected("STAGE-ESM-014"), "Unknown");
+        Add(entries, "SemanticConstraintScope", rendered, "EventSequence");
+        Add(entries, "SemanticConstraintScope", rejected("STAGE-ESM-014"), "Unknown");
 
         return entries;
     }

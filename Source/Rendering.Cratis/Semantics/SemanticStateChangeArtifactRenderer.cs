@@ -76,7 +76,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var destinationExpression = types.EventSourceExpression(Identifiers.ToPascalCase(destinationProperty.Name), destinationProperty.Type);
 
         builder.Attribute("Command")
-            .Attribute("AllowAnonymous")
+            .Attribute(SemanticAuthorizationAttributes.For(command))
             .OpenBlock($"public record {name}({parameters}) : ICanProvideEventSourceId")
             .Line("/// <inheritdoc/>")
             .ExpressionMember("public EventSourceId GetEventSourceId()", destinationExpression)

@@ -96,7 +96,7 @@ internal static class SemanticStateViewArtifactRenderer
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
         var argumentName = Identifiers.EscapeKeyword(Identifiers.ToCamelCase(query.Argument.Name));
         builder.BlankLine()
-            .Attribute("AllowAnonymous")
+            .Attribute(SemanticAuthorizationAttributes.For(query))
             .ExpressionMember(
                 $"public static async Task<{readModelName}?> {Identifiers.ToPascalCase(query.Name)}(IReadModels readModels, {types.Type(query.Argument.Type)} {argumentName})",
                 $"await readModels.GetInstanceById<{readModelName}>((EventSourceId){argumentName})");

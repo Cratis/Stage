@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>
 /// Admits semantic specifications the generated Cratis scenario family can preserve.
 /// </summary>
-internal static class SemanticSpecificationAdmission
+internal static partial class SemanticSpecificationAdmission
 {
     /// <summary>
     /// Validates the specifications declared by one slice.
@@ -24,12 +24,9 @@ internal static class SemanticSpecificationAdmission
     {
         foreach (var specification in slice.Specifications)
         {
-            // A caller fixture and a denial assertion only mean something against rendered authorization, which
-            // admission rejects. An appended-event action has no command, so it has no When either.
-            var valid = specification.When is not null && specification.GivenCaller is null && !specification.ThenDenied &&
-                context.Commands.TryGetValue(specification.When.Command, out var command) &&
+            var valid = HasRenderableCallerAndCommand(context, specification, out var command) &&
                 specification.GivenEvents.IsEmpty && specification.GivenReadModels.IsEmpty &&
-                ValuesMatch(specification.When.Values, command?.Properties ?? []) &&
+                ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
                 HasOneOutcome(specification) && HasSupportedCounts(specification) &&
                 specification.ThenEvents.All(expected => EventMatches(context, expected) &&
                     command!.Produces.Any(produced => produced.EventContract == expected.EventContract)) &&
@@ -49,97 +46,4 @@ internal static class SemanticSpecificationAdmission
             }
         }
     }
-
-    // An explicit ESM v2 source is asserted on the appended event, so an accepted specification that states one
-    // must also expect that event, and every source it states must name the same stream. A rejection appends
-    // nothing, so the reference runner never compares its command source.
-    // The reference runner compares a stated source with the fact's typed destination, so the stated type must be
-    // the destination property's type, and it must convert to a Chronicle event source id without losing identity.
-    static bool HasRenderableEventSources(
-        SemanticApplicationContext context,
-        SemanticSpecification specification,
-        SemanticCommand command)
-    {
-        if (!specification.ThenErrors.IsEmpty)
-        {
-            return true;
-        }
-
-        var sources = SemanticDestinations.Explicit(specification).Distinct().ToArray();
-        if (sources.Length == 0)
-        {
-            return true;
-        }
-
-        var destination = command.Produces.Length == 1 ? SemanticDestinations.Of(command, command.Produces[0]) as SemanticResolvedExpression : null;
-        var property = command.Properties.SingleOrDefault(_ => _.Id == destination?.Target);
-        return sources.Length == 1 && !specification.ThenEvents.IsEmpty && property is not null &&
-            sources[0].Type == property.Type && IsScalar(sources[0].Value) && IsLosslessEventSource(context, property.Type);
-    }
-
-    static bool IsLosslessEventSource(SemanticApplicationContext context, SemanticTypeReference type)
-    {
-        var primitive = type.Kind switch
-        {
-            SemanticTypeReferenceKind.Primitive => type.Primitive,
-            SemanticTypeReferenceKind.Concept when context.Concepts.TryGetValue(type.Target, out var concept) => concept.Primitive,
-            _ => SemanticPrimitiveType.Unknown
-        };
-        return primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid;
-    }
-
-    static bool HasOneOutcome(SemanticSpecification specification)
-    {
-        var rejects = !specification.ThenErrors.IsEmpty;
-        var succeeds = !specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty;
-        return rejects != succeeds;
-    }
-
-    static bool HasSupportedCounts(SemanticSpecification specification) =>
-        specification.ThenEvents.Length <= 1 && specification.ThenReadModels.Length <= 1 &&
-        specification.ThenQueries.Length <= 1 && specification.ThenErrors.Length <= 1;
-
-    static bool HasExpectedProjectionEvent(
-        SemanticApplicationContext context,
-        SemanticSpecification specification,
-        SemanticSpecificationReadModel expected)
-    {
-        var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == expected.ReadModel);
-        return projection?.Transitions.Length == 1 &&
-            specification.ThenEvents.Any(_ => _.EventContract == projection.Transitions[0].EventContract);
-    }
-
-    static bool EventMatches(SemanticApplicationContext context, SemanticSpecificationEvent expected) =>
-        context.Events.TryGetValue(expected.EventContract, out var @event) && ValuesMatch(expected.Values, @event.Properties);
-
-    static bool ReadModelMatches(SemanticApplicationContext context, SemanticSpecificationReadModel expected) =>
-        context.ReadModels.TryGetValue(expected.ReadModel, out var readModel) &&
-        ValuesMatch(expected.Values, readModel.Properties) && IsScalar(expected.Key);
-
-    static bool QueryMatches(SemanticApplicationContext context, SemanticSpecificationQueryResult expected) =>
-        context.Queries.TryGetValue(expected.Query, out var query) && IsScalar(expected.Key) && expected.Results.Length == 1 &&
-        expected.Results.All(result => result.ReadModel == query.ReadModel && ReadModelMatches(context, result));
-
-    static bool ValuesMatch(
-        System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> values,
-        System.Collections.Immutable.ImmutableArray<SemanticProperty> properties) =>
-        values.Length == properties.Length && properties.All(property =>
-            values.Any(value => value.TargetProperty == property.Id && IsCompatible(value.Value, property.Type)));
-
-    static bool IsCompatible(SemanticValue value, SemanticTypeReference type)
-    {
-        if (value is SemanticNullValue)
-        {
-            return type.IsOptional;
-        }
-
-        if (type.IsCollection)
-        {
-            return value is SemanticArrayValue array && array.Values.All(IsScalar);
-        }
-
-        return IsScalar(value);
-    }
-
-    static bool IsScalar(SemanticValue value) => value is SemanticTextValue or SemanticNumberValue or SemanticBooleanValue;
 }

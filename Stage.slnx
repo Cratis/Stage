@@ -1,5 +1,6 @@
 <Solution>
     <Folder Name="/Source/">
+        <Project Path="Source/Conformance.Specs/Conformance.Specs.csproj" />
         <Project Path="Source/Contracts/Contracts.csproj" />
         <Project Path="Source/Rendering.Cratis/Rendering.Cratis.csproj" />
         <Project Path="Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj" />

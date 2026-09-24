@@ -10,7 +10,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.conforma
 // Screenplay v4.24.0's billing validation vector, compiled from source instead of hand-building ESM.
 public class when_running_inline_billing_validation : Specification
 {
-    const string Source =
+    public const string Source =
         """
         concept InvoiceId : Uuid
         concept InvoiceNumber : String

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.Conformance.Specs</AssemblyName>
+        <RootNamespace>Cratis.Stage.Rendering.Cratis</RootNamespace>
+        <!-- Type discovery emits deprecated structural names from the Stage reference in Debug. -->
+        <NoWarn Condition="'$(Configuration)' == 'Debug'">$(NoWarn);CS0618</NoWarn>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <ProjectReference Include="../Rendering.Cratis/Rendering.Cratis.csproj" />
+        <ProjectReference Include="../Specifications/Specifications.csproj" />
+        <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
+    </ItemGroup>
+</Project>

@@ -139,8 +139,8 @@ internal static class SemanticSurfaceLedger
 
         // Specifications render command actions with exact scalar fixtures and supported outcomes.
         // Given events that violate an admitted constraint fail STAGE-ESM-011 before log seeding.
-        Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenCaller ThenEvents ThenReadModels ThenQueries ThenErrors ThenDenied When");
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "GivenReadModels WhenAppended ThenEventsInAnyOrder");
+        Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenAppended");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");

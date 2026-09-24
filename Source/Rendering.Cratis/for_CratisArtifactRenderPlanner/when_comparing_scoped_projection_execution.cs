@@ -69,7 +69,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         var module = _model.Application.Modules.Single();
         var feature = module.Features.Single();
         var source = feature.Slices.Single(slice => slice.Commands.Any());
-        var originalSpec = source.Specifications.Single();
+        var originalSpec = source.Specifications.Single(specification => specification.Name == "RegisteringAProject");
         var type = source.Commands.Single().Properties.Single(property => property.IsIdentifier).Type;
         var events = feature.Slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Name);
         var givens = facts.Select(fact => new SemanticSpecificationEvent(

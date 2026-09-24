@@ -27,5 +27,5 @@ public class with_a_given_read_model : Specification
 
     [Fact] void should_reject_unreproducible_pinned_state() => _errors.ShouldContain("STAGE-ESM-011");
     [Fact] void should_emit_no_partial_artifacts() => _artifacts.ShouldEqual(0);
-    [Fact] void should_explain_why_seeded_read_model_state_is_not_equivalent() => _reasons.Any(_ => _.Contains("only seeds lookup interception", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_explain_why_seeded_read_model_state_is_not_equivalent() => _reasons.Any(_ => _.Contains("cannot initialize each projected instance", StringComparison.Ordinal)).ShouldBeTrue();
 }

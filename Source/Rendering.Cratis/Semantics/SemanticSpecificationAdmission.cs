@@ -24,25 +24,25 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in slice.Specifications)
         {
-            var valid = HasRenderableCallerAndCommand(context, specification, out var command) &&
-                HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
-                !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
-                ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
-                HasOneOutcome(specification) && HasSupportedCounts(specification) &&
-                (!specification.ThenEventsInAnyOrder || specification.ThenEvents.Length <= 1) &&
-                (specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == command!.Produces.Length) &&
-                specification.ThenEvents.All(expected => EventMatches(context, expected)) &&
-                (specification.ThenDenied || !specification.ThenErrors.IsEmpty ||
-                    (specification.ThenEventsInAnyOrder
-                        ? specification.ThenEvents.GroupBy(_ => _.EventContract).All(group =>
-                            command!.Produces.Count(_ => _.EventContract == group.Key) == group.Count())
-                        : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(command!.Produces.Select(_ => _.EventContract)))) &&
-                specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
-                    HasExpectedProjectionEvent(context, specification, expected)) &&
-                specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
-                    HasExpectedProjectionEvent(context, specification, expected.Results.Single())) &&
-                HasRenderableErrors(context, specification, command) &&
-                HasRenderableEventSources(context, specification, command!);
+            var valid = (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
+                (HasRenderableCallerAndCommand(context, specification, out var command) &&
+                    HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
+                    !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
+                    ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
+                    HasOneOutcome(specification) && HasSupportedCounts(specification) &&
+                    (specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == command!.Produces.Length) &&
+                    specification.ThenEvents.All(expected => EventMatches(context, expected)) &&
+                    (specification.ThenDenied || !specification.ThenErrors.IsEmpty ||
+                        (specification.ThenEventsInAnyOrder
+                            ? specification.ThenEvents.GroupBy(_ => _.EventContract).All(group =>
+                                command!.Produces.Count(_ => _.EventContract == group.Key) == group.Count())
+                            : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(command!.Produces.Select(_ => _.EventContract)))) &&
+                    specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
+                        HasExpectedProjectionEvent(context, specification, expected)) &&
+                    specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
+                        HasExpectedProjectionEvent(context, specification, expected.Results.Single())) &&
+                    HasRenderableErrors(context, specification, command) &&
+                    HasRenderableEventSources(context, specification, command!));
 
             if (!valid)
             {
@@ -58,9 +58,27 @@ internal static partial class SemanticSpecificationAdmission
 
     static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {
+        if (specification.ThenReadModels.Any(_ => CannotCompareScopedPresence(context, _.ReadModel, _.Exactly, _.Values)) ||
+            specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) &&
+                (CannotCompareScopedPresence(context, query.ReadModel, _.Exactly, []) ||
+                    _.Results.Any(result => CannotCompareScopedPresence(context, query.ReadModel, result.Exactly, result.Values)))))
+        {
+            return "An exactly or null comparison of a scoped projection must distinguish unset properties from CLR defaults; the generated ReadModelScenario exposes only the materialized record.";
+        }
+
+        if (specification.ThenDenied && specification.When is null)
+        {
+            return "A denied query must be executed through Arc's query pipeline to assert Unauthorized and no returned data; a direct read-model lookup does not evaluate its policy.";
+        }
+
+        if (specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) && query.Authorization is not null))
+        {
+            return "A protected query must run through Arc's query pipeline with the fixture caller; direct invocation bypasses the generated authorization policy.";
+        }
+
         if (!specification.GivenReadModels.IsEmpty)
         {
-            return "Given read-model state replaces projected state in the reference world, but a Chronicle ReadModelScenario only seeds lookup interception, not the projection's initial state.";
+            return "Given read-model state replaces projected state before the action in the reference world. Chronicle's scenario seed serves lookup interception but cannot initialize each projected instance for subsequent command events; only a query-only lookup of one complete seeded record is supported.";
         }
 
         if (specification.GivenEvents.Any(_ => _.EventSource is null))
@@ -78,14 +96,6 @@ internal static partial class SemanticSpecificationAdmission
             return "A caller claim using the role claim URI conflates separate Screenplay roles and claims in Arc.";
         }
 
-        if (specification.ThenReadModels.Any(_ => context.Projections.Values.Any(projection => projection.ReadModel == _.ReadModel && projection.Scope is not null)) ||
-            specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) && context.Projections.Values.Any(projection => projection.ReadModel == query.ReadModel && projection.Scope is not null)))
-        {
-            return "Scoped projection specifications need event replay that reproduces the reference projection scope; flat transition replay is not equivalent.";
-        }
-
-        return specification.ThenEventsInAnyOrder && specification.ThenEvents.Length > 1
-            ? "Unordered expectations need an exact multiset comparison, including duplicate events and event sources."
-            : "The scenario cannot preserve all of its declared fixtures or expectations.";
+        return "The scenario cannot preserve all of its declared fixtures or expectations.";
     }
 }

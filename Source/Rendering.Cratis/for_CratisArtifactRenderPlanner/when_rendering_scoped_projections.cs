@@ -55,12 +55,35 @@ public class when_rendering_scoped_projections : a_generated_application
               event ProjectInfoCleared
               event ProjectRemoved
               specification RegisteringAProject
+                given ProjectRegistered
+                  for "4fa85f64-5717-4562-b3fc-2c963f66afa7"
+                  projectId = "4fa85f64-5717-4562-b3fc-2c963f66afa7"
+                  name = "Earlier"
                 when RegisterProject
                   projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   name = "Screenplay"
                 then ProjectRegistered
                   projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   name = "Screenplay"
+                then readmodel ProjectSummary
+                  projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  name = "Screenplay"
+                then query ProjectById
+                  arguments
+                    projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  result
+                    projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    name = "Screenplay"
+              specification LookingUpPinnedProject
+                given readmodel ProjectDetails
+                  projectId = "4fa85f64-5717-4562-b3fc-2c963f66afa7"
+                  name = "Pinned"
+                then query ProjectDetailsById
+                  arguments
+                    projectId = "4fa85f64-5717-4562-b3fc-2c963f66afa7"
+                  result
+                    projectId = "4fa85f64-5717-4562-b3fc-2c963f66afa7"
+                    name = "Pinned"
             slice StateView ProjectLookup
               readmodel ProjectSummary
                 projectId ProjectId
@@ -135,7 +158,9 @@ public class when_rendering_scoped_projections : a_generated_application
 
     [Fact] void should_build_debug_warning_free() => BuildWarnings(_debug).ShouldEqual(string.Empty);
     [Fact] void should_build_release_warning_free() => BuildWarnings(_release).ShouldEqual(string.Empty);
-    [Fact] void should_pass_the_generated_command_specification() => _specifications.ShouldContain("Passed!");
+    [Fact] void should_pass_the_generated_command_and_scoped_read_specifications() => _specifications.ShouldContain("Passed!");
+    [Fact] void should_emit_scoped_projection_specification() => ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_aproject_is_projected.cs").ShouldContain("ReadModelScenario<ProjectSummary>");
+    [Fact] void should_emit_a_seeded_query_specification() => ReadGeneratedFile("Projects/Registration/RegisterProject/when_looking_up_pinned_project_is_queried.cs").ShouldContain(".ReadModel(new ProjectDetails");
     [Fact] void should_emit_two_from_events_and_a_join() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.From<ProjectRenamed>");
     [Fact] void should_emit_identified_children() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.IdentifiedBy(item => item.NoteId)");
     [Fact] void should_emit_increment_mappings() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("Increment(model => model.Visits)");

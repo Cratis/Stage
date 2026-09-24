@@ -39,6 +39,13 @@ internal static partial class SemanticSpecificationAdmission
                 sources[0].Type == property.Type && IsScalar(sources[0].Value) && IsLosslessEventSource(context, property.Type);
         }
 
+        if (specification.ThenEventsInAnyOrder && command.Produces.GroupBy(_ => _.EventContract)
+            .Any(group => group.Count() > 1 && group.Select(produced =>
+                SemanticDestinations.ForSpecification(specification, command, produced)).Distinct().Count() != 1))
+        {
+            return false;
+        }
+
         return command.Produces.Select((produced, index) => (produced, index)).All(item =>
         {
             var destination = SemanticDestinations.Of(command, item.produced) as SemanticResolvedExpression;
@@ -46,11 +53,11 @@ internal static partial class SemanticSpecificationAdmission
             var value = property is null ? null : specification.When!.Values.SingleOrDefault(_ => _.TargetProperty == property.Id)?.Value;
             var source = specification.When!.EventSource;
             var expected = specification.ThenEventsInAnyOrder
-                ? specification.ThenEvents.FirstOrDefault(_ => _.EventContract == item.produced.EventContract)
-                : specification.ThenEvents[item.index];
+                ? specification.ThenEvents.Where(_ => _.EventContract == item.produced.EventContract)
+                : [specification.ThenEvents[item.index]];
             return property is not null && value is not null && IsLosslessEventSource(context, property.Type) &&
                 (source is null || (source.Type == property.Type && Equals(source.Value, value))) &&
-                (expected?.EventSource is null || (expected.EventSource.Type == property.Type && Equals(expected.EventSource.Value, value)));
+                expected.All(_ => _.EventSource is null || (_.EventSource.Type == property.Type && Equals(_.EventSource.Value, value)));
         });
     }
 

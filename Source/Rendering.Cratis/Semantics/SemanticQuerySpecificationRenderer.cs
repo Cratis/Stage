@@ -28,11 +28,9 @@ internal static class SemanticQuerySpecificationRenderer
         var query = context.Queries[expected.Query];
         var readModel = context.ReadModels[query.ReadModel];
         var result = expected.Results.Single();
-        var transition = context.Projections.Values.Single(_ => _.ReadModel == readModel.Id).Transitions.Single();
-        var @event = context.Events[transition.EventContract];
-        var produced = specification.ThenEvents.Single(_ => _.EventContract == @event.Id);
+        var projection = context.Projections.Values.Single(_ => _.ReadModel == readModel.Id);
         var command = context.Commands[specification.When!.Command];
-        var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.First(_ => _.EventContract == @event.Id));
+        var replay = SemanticProjectionSpecificationEvents.Replay(specification, projection, command);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
@@ -60,10 +58,13 @@ internal static class SemanticQuerySpecificationRenderer
         });
         var predicate = $"_result is not null{string.Concat(predicates.Select(_ => $" && {_}"))}";
         var key = types.Value(expected.Key, query.Argument.Type);
-        var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path);
-        if (!string.Equals(eventNamespace, queryNamespace, StringComparison.Ordinal))
+        foreach (var (produced, _) in replay)
         {
-            builder.Using(eventNamespace);
+            var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(produced.EventContract).Path);
+            if (!string.Equals(eventNamespace, queryNamespace, StringComparison.Ordinal))
+            {
+                builder.Using(eventNamespace);
+            }
         }
 
         foreach (var given in specification.GivenEvents)
@@ -90,10 +91,16 @@ internal static class SemanticQuerySpecificationRenderer
             builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {Identifiers.ToPascalCase(givenEvent.Name)}({string.Join(", ", givenArguments)}));");
         }
 
-        var eventArguments = @event.Properties.Select(property =>
-            types.Value(produced.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-        builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)}));")
-            .Line($"_readModels.GetInstanceById<{readModelName}>((EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((EventSourceId){key})!);")
+        foreach (var (produced, expectedEvent) in replay)
+        {
+            var @event = context.Events[produced.EventContract];
+            var source = SemanticDestinations.ForSpecification(specification, command, produced);
+            var arguments = @event.Properties.Select(property =>
+                types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)}));");
+        }
+
+        builder.Line($"_readModels.GetInstanceById<{readModelName}>((EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((EventSourceId){key})!);")
             .EndBlock()
             .BlankLine()
             .Line($"async Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")
@@ -105,6 +112,70 @@ internal static class SemanticQuerySpecificationRenderer
 
         // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
         // parse needs the namespace, and emitting it regardless leaves an unused using in every file.
+        var content = builder.ToString();
+        if (SpecificationValues.NeedsGlobalization(content))
+        {
+            content = builder.Using("System.Globalization").ToString();
+        }
+
+        return new(path, Conditional(content));
+    }
+
+    /// <summary>
+    /// Renders a query-only lookup of a complete pre-seeded read model. This uses the exact store
+    /// read by the generated query; it does not simulate projection initial state.
+    /// </summary>
+    /// <param name="specification">The query-only specification.</param>
+    /// <param name="expected">The query result to compare.</param>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <returns>The generated query specification source.</returns>
+    internal static RenderedFile RenderSeededQuery(
+        SemanticSpecification specification,
+        SemanticSpecificationQueryResult expected,
+        SemanticApplicationContext context)
+    {
+        var query = context.Queries[expected.Query];
+        var readModel = context.ReadModels[query.ReadModel];
+        var given = specification.GivenReadModels.Single();
+        var result = expected.Results.Single();
+        var located = context.DeclaringSlice(specification.Id);
+        var types = new SemanticTypeSystem(context);
+        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
+        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var builder = new CSharpCodeBuilder()
+            .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
+            .Using("Cratis.Chronicle.Events")
+            .Using("Cratis.Chronicle.Testing.ReadModels")
+            .Using("Cratis.Specifications")
+            .Using("Xunit")
+            .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path));
+        var key = types.Value(given.Key, query.Argument.Type);
+        var values = readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal)
+            .Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
+        var predicates = result.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal).Select(value =>
+        {
+            var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);
+            return $"_result.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value.Value, property.Type)}";
+        });
+        var predicate = $"_result is not null{string.Concat(predicates.Select(_ => $" && {_}"))}";
+        if (SemanticTypeSystem.ValueNeedsCommon(given.Key, query.Argument.Type) ||
+            given.Values.Any(value => SemanticTypeSystem.ValueNeedsCommon(value.Value, readModel.Properties.Single(_ => _.Id == value.TargetProperty).Type)) ||
+            result.Values.Any(value => SemanticTypeSystem.ValueNeedsCommon(value.Value, readModel.Properties.Single(_ => _.Id == value.TargetProperty).Type)))
+        {
+            builder.Using($"{context.RootNamespace}.Common");
+        }
+
+        builder.OpenBlock($"public class {behavior} : Specification")
+            .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
+            .Line($"{readModelName}? _result;")
+            .BlankLine()
+            .Line($"void Establish() => _scenario.Given.ForEventSourceId((EventSourceId){key}).ReadModel(new {readModelName}({string.Join(", ", values)}));")
+            .BlankLine()
+            .Line($"async Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_scenario.ReadModels, {key});")
+            .BlankLine()
+            .Line($"[Fact] void should_return_the_seeded_read_model() => ({predicate}).ShouldBeTrue();")
+            .EndBlock();
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
         var content = builder.ToString();
         if (SpecificationValues.NeedsGlobalization(content))
         {

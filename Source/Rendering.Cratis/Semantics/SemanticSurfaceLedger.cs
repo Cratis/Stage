@@ -109,8 +109,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown Live");
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
-        // from and identical key fail STAGE-ESM-017. Nested clear and child join removal are rejected:
-        // Chronicle's in-memory projection sink diverges from the reference on those event sequences.
+        // from and identical key fail STAGE-ESM-017. Composite keys and all-event subscriptions remain
+        // rejected: v19.4.7 fluent composite keys differ from the declaration definition, and FromAll
+        // omits the all-event subscription. Root join removal is blocked by Chronicle#4125; nested clear
+        // and child join removal diverge from
+        // the reference in ReadModelScenario, and have not been verified against the MongoDB sink.
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
@@ -138,9 +141,12 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionValueKind", rejected("STAGE-ESM-017"), "Unknown EventContext Literal");
 
         // Specifications render command actions with exact scalar fixtures and supported outcomes.
+        // Scoped read-model/query expectations replay every produced event in production order;
+        // incomplete or ambiguous unordered duplicate replay fails STAGE-ESM-011. Unordered event
+        // assertions compare the produced stream even when the expected fact omits its source.
         // Given events that violate an admitted constraint fail STAGE-ESM-011 before log seeding.
-        Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenCaller ThenEvents ThenReadModels ThenQueries ThenErrors ThenDenied When");
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "GivenReadModels WhenAppended ThenEventsInAnyOrder");
+        Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenAppended");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");

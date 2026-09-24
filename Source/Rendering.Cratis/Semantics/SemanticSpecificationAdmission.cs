@@ -28,11 +28,13 @@ internal static partial class SemanticSpecificationAdmission
                 HasRenderableGivenEvents(context, specification) && specification.GivenReadModels.IsEmpty &&
                 ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
                 HasOneOutcome(specification) && HasSupportedCounts(specification) &&
+                (!specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == command!.Produces.Length) &&
                 specification.ThenEvents.All(expected => EventMatches(context, expected) &&
                     command!.Produces.Any(produced => produced.EventContract == expected.EventContract)) &&
                 specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
                     HasExpectedProjectionEvent(context, specification, expected)) &&
-                specification.ThenQueries.All(expected => QueryMatches(context, expected)) &&
+                specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
+                    HasExpectedProjectionEvent(context, specification, expected.Results.Single())) &&
                 specification.ThenErrors.All(_ => _.Code is null) &&
                 HasRenderableEventSources(context, specification, command!);
 

@@ -144,8 +144,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Key ReadModel Values");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Exactly");
-        Add(entries, "SemanticSpecificationQueryResult", rendered, "Key Query Results");
-        Add(entries, "SemanticSpecificationQueryResult", ignored("A single result for an optional lookup is the only admitted query outcome."), "Exactly");
+        Add(entries, "SemanticSpecificationQueryResult", rendered, "Key Query Results Exactly");
         Add(entries, "SemanticSpecificationError", ignored("Generated rejection specs assert validation failure, not the error message."), "Message");
         Add(entries, "SemanticSpecificationError", rejected("STAGE-ESM-011"), "Code");
         Add(entries, "SemanticPropertyValue", rendered, "TargetProperty Value");

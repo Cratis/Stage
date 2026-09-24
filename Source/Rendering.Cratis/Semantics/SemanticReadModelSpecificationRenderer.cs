@@ -63,7 +63,7 @@ internal static class SemanticReadModelSpecificationRenderer
             .EndBlock()
             .BlankLine();
         var keyProperty = readModel.Properties.Single(_ => _.IsIdentifier);
-        var instance = specification.GivenEvents.IsEmpty
+        var instance = specification.GivenEvents.IsEmpty && expected.Values.Any(_ => _.TargetProperty == keyProperty.Id)
             ? "_scenario.Instance!"
             : $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
         foreach (var value in expected.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))

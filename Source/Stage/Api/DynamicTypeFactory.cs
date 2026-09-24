@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using System.Reflection.Emit;
+using Cratis.Chronicle.Events;
 
 namespace Cratis.Stage.Api;
 
@@ -41,6 +42,69 @@ public sealed class DynamicTypeFactory
     /// <param name="name">The simple name of the read model.</param>
     /// <returns>The emitted read model type.</returns>
     public Type CreateReadModelType(string @namespace, string name) => CreateType($"{@namespace}.{name}", typeof(DynamicReadModel));
+
+    /// <summary>
+    /// Creates a CLR event contract with typed properties and a stable Chronicle event type identity.
+    /// </summary>
+    /// <param name="namespace">The emitted namespace.</param>
+    /// <param name="name">The event name.</param>
+    /// <param name="eventTypeId">The persisted event contract identity.</param>
+    /// <param name="properties">The named CLR property types.</param>
+    /// <returns>The emitted CLR type.</returns>
+    public Type CreateEventType(string @namespace, string name, string eventTypeId, IReadOnlyDictionary<string, Type> properties) =>
+        CreateTypedType($"{@namespace}.{name}", properties, eventTypeId);
+
+    /// <summary>
+    /// Creates a CLR read model with typed properties.
+    /// </summary>
+    /// <param name="namespace">The emitted namespace.</param>
+    /// <param name="name">The read-model name.</param>
+    /// <param name="properties">The named CLR property types.</param>
+    /// <returns>The emitted CLR type.</returns>
+    public Type CreateReadModelType(string @namespace, string name, IReadOnlyDictionary<string, Type> properties) =>
+        CreateTypedType($"{@namespace}.{name}", properties, null);
+
+    Type CreateTypedType(string fullName, IReadOnlyDictionary<string, Type> properties, string? eventTypeId)
+    {
+        lock (_lock)
+        {
+            if (_types.TryGetValue(fullName, out var existing))
+            {
+                return existing;
+            }
+
+            var builder = _module.DefineType(fullName, TypeAttributes.Public);
+            builder.DefineDefaultConstructor(MethodAttributes.Public);
+            if (eventTypeId is not null)
+            {
+                var constructor = typeof(EventTypeAttribute).GetConstructor([typeof(string), typeof(uint)])!;
+                builder.SetCustomAttribute(new CustomAttributeBuilder(constructor, [eventTypeId, 1u]));
+            }
+
+            foreach (var (propertyName, propertyType) in properties)
+            {
+                var field = builder.DefineField($"_{propertyName}", propertyType, FieldAttributes.Private);
+                var property = builder.DefineProperty(propertyName, PropertyAttributes.None, propertyType, null);
+                var getter = builder.DefineMethod($"get_{propertyName}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, propertyType, Type.EmptyTypes);
+                var getIl = getter.GetILGenerator();
+                getIl.Emit(OpCodes.Ldarg_0);
+                getIl.Emit(OpCodes.Ldfld, field);
+                getIl.Emit(OpCodes.Ret);
+                var setter = builder.DefineMethod($"set_{propertyName}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, null, [propertyType]);
+                var setIl = setter.GetILGenerator();
+                setIl.Emit(OpCodes.Ldarg_0);
+                setIl.Emit(OpCodes.Ldarg_1);
+                setIl.Emit(OpCodes.Stfld, field);
+                setIl.Emit(OpCodes.Ret);
+                property.SetGetMethod(getter);
+                property.SetSetMethod(setter);
+            }
+
+            var type = builder.CreateType();
+            _types[fullName] = type;
+            return type;
+        }
+    }
 
     Type CreateType(string fullName, Type baseType)
     {

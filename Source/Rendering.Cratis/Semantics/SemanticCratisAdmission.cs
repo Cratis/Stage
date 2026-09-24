@@ -22,7 +22,17 @@ internal static partial class SemanticCratisAdmission
         SemanticApplicationContext context,
         IReadOnlyList<LocatedSemanticSlice> slices)
     {
+        // Keep the audited surface available in Release as well as in the Debug-only specifications.
+        _ = SemanticSurfaceLedger.Entries;
         var diagnostics = new List<ArtifactRenderDiagnostic>();
+        var model = context.Request.Model;
+        if ((model.LanguageVersion != LanguageVersion.V1 && model.LanguageVersion != LanguageVersion.V2) ||
+            (model.SemanticVersion != SemanticVersion.V1 && model.SemanticVersion != SemanticVersion.V2))
+        {
+            diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", model.Application.Id));
+            return [.. diagnostics];
+        }
+
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
 

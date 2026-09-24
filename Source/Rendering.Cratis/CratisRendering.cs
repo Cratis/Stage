@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -78,7 +79,24 @@ public static class CratisRendering
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
-        Contracts.Scene.SceneApplication? scene)
+        Contracts.Scene.SceneApplication? scene) => CreateProfile(applicationName, options, scene, null, null);
+
+    /// <summary>
+    /// Creates the profile with validated locale resources from companion Screenplay strings files.
+    /// </summary>
+    /// <param name="applicationName">The semantic application name.</param>
+    /// <param name="options">The explicit project and namespace choices.</param>
+    /// <param name="scene">The optional composed Scene.</param>
+    /// <param name="stringsFiles">Relative file names and original contents of companion .strings files, or null for no catalog.</param>
+    /// <param name="defaultLocale">The locale required to contain every referenced message key.</param>
+    /// <returns>The immutable Cratis render profile.</returns>
+    /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the options or strings input is invalid.</exception>
+    public static ArtifactRenderProfile CreateProfile(
+        string applicationName,
+        CratisRenderingOptions options,
+        Contracts.Scene.SceneApplication? scene,
+        IReadOnlyDictionary<string, string>? stringsFiles,
+        string? defaultLocale)
     {
         if (options is null)
         {
@@ -101,9 +119,17 @@ public static class CratisRendering
                     Dependencies.CratisPackageVersion,
                     CanonicalSceneJson.Serialize(scene))
             };
+        if ((stringsFiles is null) != (defaultLocale is null))
+        {
+            throw new InvalidCratisBackendApplicationScaffold("Both strings files and a default locale are required together.");
+        }
+
+        var strings = stringsFiles is null ? Enumerable.Empty<ArtifactRenderInput>() :
+            [StringsCatalogInput.Create(stringsFiles, defaultLocale!)];
         var inputs = backend
             .Concat(frontend)
             .Concat(composed)
+            .Concat(strings)
             .OrderBy(input => input.Name, StringComparer.Ordinal)
             .ToImmutableArray();
 

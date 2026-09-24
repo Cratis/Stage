@@ -17,7 +17,7 @@ internal static partial class SemanticCratisAdmission
         {
             if (concept.Primitive == SemanticPrimitiveType.Unknown ||
                 (concept.Values.Length > 0 && (concept.Primitive != SemanticPrimitiveType.Text || !concept.Validations.IsEmpty)) ||
-                !concept.Validations.All(SemanticValidationRendering.CanRender))
+                !concept.Validations.All(rule => SemanticValidationRendering.CanRender(rule, context)))
             {
                 diagnostics.Add(Error("STAGE-ESM-002", $"Concept '{concept.Name}' uses unsupported values or validation.", concept.Id));
             }

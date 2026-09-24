@@ -24,16 +24,30 @@ internal static class SemanticValidationRendering
     internal static bool SafeMessage(string? message) => message is null ||
         (!message.StartsWith("$strings.", StringComparison.Ordinal) && !message.Any(_ => char.IsControl(_) || char.IsSurrogate(_) || (_ is '{' or '}')));
 
+    internal static bool CanResolve(string? message, SemanticApplicationContext context) =>
+        SafeMessage(message) || (message?.StartsWith("$strings.", StringComparison.Ordinal) == true && context.Strings is not null);
+
+    internal static bool CanRender(SemanticValidationRule rule, SemanticApplicationContext context) =>
+        (CanRender(rule) || (rule.Message?.StartsWith("$strings.", StringComparison.Ordinal) == true &&
+        CanRender(rule with { Message = "Localized validation message" }))) && CanResolve(rule.Message, context);
+
     internal static bool SafeOperand(SemanticValidationRule rule) => rule.Operand is not SemanticTextValue text ||
         (!text.Value.Any(_ => char.IsControl(_) || char.IsSurrogate(_)) && (rule.Message is not null || rule.Kind is not (SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) ||
         !text.Value.Any(_ => _ is '{' or '}')));
 
-    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false)
+    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null)
     {
         var value = concept ? "_.Value" : $"_.{Identifiers.ToPascalCase(property)}";
         var predicate = Predicate(rule, primitive, collection, wrapped && collection, optional);
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
-        builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)});");
+        if (message.StartsWith("$strings.", StringComparison.Ordinal))
+        {
+            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage(_ => {rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)});");
+        }
+        else
+        {
+            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)});");
+        }
     }
 
     internal static SemanticPrimitiveType UnderlyingPrimitive(SemanticTypeReference type, SemanticApplicationContext context) =>

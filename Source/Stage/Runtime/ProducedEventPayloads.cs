@@ -16,6 +16,22 @@ namespace Cratis.Stage.Runtime;
 public static class ProducedEventPayloads
 {
     /// <summary>
+    /// Builds the payloads for the events a command produces, under the default tenant.
+    /// </summary>
+    /// <param name="produces">The modeled produced events, in declaration order.</param>
+    /// <param name="command">The command payload the request bound into.</param>
+    /// <param name="occurred">The time to use for properties sourced from the occurred time.</param>
+    /// <param name="identity">The identity that caused the command, used for identity-sourced properties.</param>
+    /// <returns>One <see cref="ProducedEventPayload"/> per event whose condition holds, in declaration order.</returns>
+    /// <exception cref="UnsupportedProducedValue">A produced property has no runtime equivalent.</exception>
+    public static IReadOnlyList<ProducedEventPayload> Build(
+        IReadOnlyList<ProducedEvent> produces,
+        IReadOnlyDictionary<string, JsonElement> command,
+        DateTimeOffset occurred,
+        IReadOnlyDictionary<string, string> identity) =>
+        Build(produces, command, occurred, identity, DefaultTenantIdAccessor.Instance.Current.Value);
+
+    /// <summary>
     /// Builds the payload for every event the command produces for the given input.
     /// </summary>
     /// <param name="produces">The modeled produced events, in declaration order.</param>

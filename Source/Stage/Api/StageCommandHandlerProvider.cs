@@ -6,6 +6,7 @@ using Cratis.Arc.Commands;
 using Cratis.Arc.Tenancy;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Runtime;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cratis.Stage.Api;
 
@@ -15,6 +16,23 @@ namespace Cratis.Stage.Api;
 public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
 {
     readonly List<ICommandHandler> _handlers = [];
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StageCommandHandlerProvider"/> class whose commands run under the
+    /// default tenant.
+    /// </summary>
+    /// <param name="models">The event model the engine runs, when one is registered.</param>
+    /// <param name="typeFactories">The factory used to emit a runtime type per command, when one is registered.</param>
+    /// <param name="appenders">The system appending the events a command produces, when one is registered.</param>
+    /// <param name="identities">The system resolving the identity behind a command, when one is registered.</param>
+    public StageCommandHandlerProvider(
+        IEnumerable<EventModel> models,
+        IEnumerable<DynamicTypeFactory> typeFactories,
+        IEnumerable<IAppendProducedEvents> appenders,
+        IEnumerable<IProvideStageIdentity> identities)
+        : this(models, typeFactories, appenders, identities, [DefaultTenantIdAccessor.Instance])
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StageCommandHandlerProvider"/> class. Arc discovers this
@@ -27,6 +45,7 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
     /// <param name="appenders">The system appending the events a command produces, when one is registered.</param>
     /// <param name="identities">The system resolving the identity behind a command, when one is registered.</param>
     /// <param name="tenants">The accessor for the current tenant, when one is registered.</param>
+    [ActivatorUtilitiesConstructor]
     public StageCommandHandlerProvider(
         IEnumerable<EventModel> models,
         IEnumerable<DynamicTypeFactory> typeFactories,

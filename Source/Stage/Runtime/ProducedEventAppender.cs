@@ -27,11 +27,11 @@ public sealed class ProducedEventAppender(IChronicleClient client, StageEventSto
     const uint FirstGeneration = 1;
 
     /// <inheritdoc/>
-    public async Task<ArcCommandResult?> Append(string eventSourceId, IReadOnlyList<ProducedEventPayload> events, IReadOnlyDictionary<string, string> identity)
+    public async Task Append(string eventSourceId, IReadOnlyList<ProducedEventPayload> events, IReadOnlyDictionary<string, string> identity)
     {
         if (events.Count == 0)
         {
-            return null;
+            return;
         }
 
         var store = await client.GetEventStore(eventStore.Value);
@@ -63,9 +63,8 @@ public sealed class ProducedEventAppender(IChronicleClient client, StageEventSto
                 eventSourceId,
                 string.Join("; ", rejection.ValidationResults.Select(result => $"{result.ReasonDetail}: {result.Message}")
                     .Concat(rejection.ExceptionMessages)));
+            throw ExceptionFor(rejection);
         }
-
-        return rejection;
     }
 
     internal static ArcCommandResult? Rejection(ChronicleSequences.AppendManyResponse response)
@@ -99,6 +98,22 @@ public sealed class ProducedEventAppender(IChronicleClient client, StageEventSto
             ValidationResults = validation,
             ExceptionMessages = otherErrors
         };
+    }
+
+    // A rejected append appended nothing, so the command must not report success. Constraint violations carry their
+    // name and message back as a validation failure; every other rejection is an error.
+    internal static Exception ExceptionFor(ArcCommandResult rejection)
+    {
+        if (rejection.ExceptionMessages.Any())
+        {
+            return new ProducedEventAppendRejected(string.Join("; ", rejection.ExceptionMessages));
+        }
+
+        var violations = rejection.ValidationResults.ToArray();
+        return new ProducedEventConstraintRejected(ValidationResult.Error(
+            string.Join("; ", violations.Select(violation => violation.Message)),
+            reason: ValidationResultReason.ConstraintViolation,
+            reasonDetail: string.Join(", ", violations.Select(violation => violation.ReasonDetail))));
     }
 
     static ChronicleSequences.EventToAppend ToAppend(ProducedEventPayload @event)

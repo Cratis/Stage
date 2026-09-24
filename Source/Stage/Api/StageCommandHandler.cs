@@ -29,6 +29,24 @@ public sealed class StageCommandHandler(
     IProvideStageIdentity identity,
     ITenantIdAccessor tenants) : ICommandHandler
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StageCommandHandler"/> class that runs under the default tenant.
+    /// </summary>
+    /// <param name="commandType">The runtime type bound to the modeled command.</param>
+    /// <param name="location">The location the command is exposed at.</param>
+    /// <param name="definition">The modeled command being handled.</param>
+    /// <param name="appender">The system appending the produced events.</param>
+    /// <param name="identity">The system resolving the identity behind the command.</param>
+    public StageCommandHandler(
+        Type commandType,
+        IReadOnlyList<string> location,
+        CommandDefinition definition,
+        IAppendProducedEvents appender,
+        IProvideStageIdentity identity)
+        : this(commandType, location, definition, appender, identity, DefaultTenantIdAccessor.Instance)
+    {
+    }
+
     /// <inheritdoc/>
     public IEnumerable<string> Location => location;
 
@@ -52,29 +70,16 @@ public sealed class StageCommandHandler(
             return null;
         }
 
-        var rejection = await AppendProducedEvents(command.Data);
-        if (rejection is not null)
-        {
-            if (rejection.ExceptionMessages.Any())
-            {
-                throw new ProducedEventAppendRejected(string.Join("; ", rejection.ExceptionMessages));
-            }
-
-            var violations = rejection.ValidationResults.ToArray();
-            throw new ProducedEventConstraintRejected(ValidationResult.Error(
-                string.Join("; ", violations.Select(violation => violation.Message)),
-                reason: ValidationResultReason.ConstraintViolation,
-                reasonDetail: string.Join(", ", violations.Select(violation => violation.ReasonDetail))));
-        }
+        await AppendProducedEvents(command.Data);
 
         return command.Data;
     }
 
-    async Task<CommandResult?> AppendProducedEvents(IDictionary<string, JsonElement> payload)
+    async Task AppendProducedEvents(IDictionary<string, JsonElement> payload)
     {
         if (definition.Produces.Count == 0)
         {
-            return null;
+            return;
         }
 
         var caller = identity.Current();
@@ -87,7 +92,7 @@ public sealed class StageCommandHandler(
             caller,
             tenant.IsDefault ? TenantId.Default.Value : tenant.Value);
 
-        return await appender.Append(EventSourceId(values), events, caller);
+        await appender.Append(EventSourceId(values), events, caller);
     }
 
     // The model names the property carrying the event source id, so successive commands for the same entity land on

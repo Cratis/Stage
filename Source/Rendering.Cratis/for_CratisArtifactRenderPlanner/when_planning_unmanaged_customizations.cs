@@ -36,6 +36,9 @@ public class when_planning_unmanaged_customizations : a_register_project_render_
         }
     }
 
+    [Fact] void should_admit_both_plans() => (_first.Success && _second.Success).ShouldBeTrue();
+    [Fact] void should_plan_managed_artifacts() => _first.Artifacts.ShouldNotBeEmpty();
+    [Fact] void should_keep_the_managed_artifact_count() => _second.Artifacts.Length.ShouldEqual(_first.Artifacts.Length);
     [Fact] void should_not_plan_unmanaged_paths() => _second.Artifacts.Any(artifact => artifact.RelativePath.StartsWith("Customizations/", StringComparison.Ordinal)).ShouldBeFalse();
     [Fact] void should_repeat_the_managed_bytes() => _second.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.RelativePath == pair.Second.RelativePath && pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
     [Fact] void should_leave_stylesheet_bytes_outside_the_plan_unchanged() => _files["Customizations/styles.css"].SequenceEqual(_customStyles).ShouldBeTrue();

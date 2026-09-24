@@ -123,8 +123,10 @@ with a string `name` and a `slotContent` object whose slots are arrays of object
 bindings, or prove that the Scene matches the modeled revision.
 
 The generated compose contract intentionally binds local ports `27017` and `35000`. Start it with
-`docker compose up --detach`, run the generated project, and probe `/healthz`; stop it with
-`docker compose down --volumes`. Isolated automation can instead map both container ports to Docker-assigned
+`docker compose up --detach`, run the generated project, and probe `/healthz`. The event store keeps its data in the
+named volumes `chronicle-data` and `chronicle-config`, so events and read models survive `docker compose down` and
+`up`, container recreation, and regenerating the application into the same folder. Only
+`docker compose down --volumes` deletes them; use it when you want to start from an empty store. Isolated automation can instead map both container ports to Docker-assigned
 loopback ports and override `Cratis__MongoDB__Server` and `Cratis__Chronicle__ConnectionString` for the generated
 host. This avoids colliding with an existing MongoDB or Chronicle service without changing the generated compose
 contract.

@@ -48,6 +48,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");
     [Fact] void should_activate_cratis_and_the_health_endpoint_before_running() => ProgramSemantics().ShouldEqual("True|True|True");
     [Fact] void should_emit_the_exact_arc_chronicle_and_mongodb_settings() => AppSettingsSemantics().ShouldEqual("api|False|1|MyApp|chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000|mongodb://localhost:27017|MyApp");
+    [Fact] void should_keep_event_store_data_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-data:/data/db");
+    [Fact] void should_keep_event_store_configuration_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-config:/data/configdb");
     [Fact] void should_pin_the_compatible_development_chronicle_image() => Content("docker-compose.yml").ShouldContain("image: cratis/chronicle:19.4.7-development");
     [Fact] void should_expose_only_the_required_chronicle_and_mongodb_ports() => ComposePorts().ShouldEqual("27017:27017|35000:35000");
     [Fact] void should_not_emit_wildcard_range_latest_or_random_guid_values() => HasForbiddenValues().ShouldBeFalse();

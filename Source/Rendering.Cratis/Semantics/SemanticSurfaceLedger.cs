@@ -109,8 +109,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown Live");
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
-        // from and identical key fail STAGE-ESM-017. Nested clear and child join removal are rejected:
-        // Chronicle's in-memory projection sink diverges from the reference on those event sequences.
+        // from and identical key fail STAGE-ESM-017. Composite keys and all-event subscriptions remain
+        // rejected: v19.4.7 fluent composite keys differ from the declaration definition, and FromAll
+        // omits the all-event subscription. Root join removal is blocked by Chronicle#4125; nested clear
+        // and child join removal diverge from
+        // the reference in ReadModelScenario, and have not been verified against the MongoDB sink.
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");

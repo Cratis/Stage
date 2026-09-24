@@ -60,7 +60,7 @@ public class when_planning_the_register_project_application : a_register_project
     [Fact] void should_repeat_the_same_artifact_bytes() => _second.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_semantic_sources() => _second.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.Sources.SequenceEqual(pair.Second.Sources)).ShouldBeTrue();
     [Fact] void should_leave_scaffold_sources_empty() => _first.Artifacts.Where(_ => _.RelativePath != "scene.json" && _request.Profile.Inputs.Any(input => input.Name.EndsWith(_.RelativePath, StringComparison.Ordinal))).All(_ => _.Sources.IsEmpty).ShouldBeTrue();
-    [Fact] void should_source_the_scene_composition() => _first.Artifacts.Where(_ => _.RelativePath == "scene.json").All(_ => _.Sources.SequenceEqual([_model.Application.Id])).ShouldBeTrue();
+    [Fact] void should_source_the_scene_composition() => _first.Artifacts.Single(_ => _.RelativePath == "scene.json").Sources.SequenceEqual([_model.Application.Id]).ShouldBeTrue();
     [Fact] void should_source_every_semantic_artifact() => _first.Artifacts.Where(_ => _.RelativePath == "scene.json" || !_request.Profile.Inputs.Any(input => input.Name.EndsWith(_.RelativePath, StringComparison.Ordinal))).All(_ => !_.Sources.IsEmpty).ShouldBeTrue();
     [Fact] void should_reference_only_model_identities() => _first.Artifacts.SelectMany(_ => _.Sources).All(id => ModelIds().Contains(id)).ShouldBeTrue();
     [Fact] void should_realize_every_slice_concept_and_specification() => RequiredIds().All(id => _first.Artifacts.Any(_ => _.Sources.Contains(id)) || _first.Diagnostics.Any(_ => _.Artifact == id)).ShouldBeTrue();

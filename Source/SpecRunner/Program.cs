@@ -53,6 +53,8 @@ public static partial class Program
             return 2;
         }
 
+        await error.WriteLineAsync("The structural specification engine is deprecated; use --engine semantic. It will be removed in the next major version.");
+
         EventModel model;
         try
         {
@@ -64,8 +66,11 @@ public static partial class Program
             return 1;
         }
 
+        // The default remains structural in this minor version for existing results.json consumers.
+#pragma warning disable CS0618 // Compatibility path until the next major version removes the structural engine.
         var runner = new SpecificationRunner();
         var results = runner.Run(model, arguments.SliceId, arguments.SpecificationId);
+#pragma warning restore CS0618
         await SpecificationRunResultsFile.WriteToFile(results, arguments.OutputPath);
         await output.WriteLineAsync($"Ran {results.Results.Count} specification(s) for event model '{model.Name}'. Results written to {arguments.OutputPath}.");
 

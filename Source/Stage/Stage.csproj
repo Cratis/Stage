@@ -5,6 +5,8 @@
         <AssemblyName>Cratis.Stage</AssemblyName>
         <RootNamespace>Cratis.Stage</RootNamespace>
         <IsPackable>true</IsPackable>
+        <!-- Type discovery emits references to the deprecated structural types; retain them through the next major. -->
+        <NoWarn>$(NoWarn);CS0618</NoWarn>
         <Description>The Cratis Stage engine — materializes an authored event model into a live Cratis application at runtime.</Description>
     </PropertyGroup>
 

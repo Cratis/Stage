@@ -9,6 +9,7 @@ namespace Cratis.Stage.Running;
 /// <summary>
 /// Runs specifications for state change slices (command appends events).
 /// </summary>
+[Obsolete("Use the semantic engine (--engine semantic / ISemanticSpecificationExecutor); the structural runner is removed in the next major version.")]
 public sealed class StateChangeRunStrategy : ISpecificationRunStrategy
 {
     const string Note =

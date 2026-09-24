@@ -4,6 +4,8 @@
         <OutputType>Exe</OutputType>
         <AssemblyName>Cratis.Stage.SpecRunner</AssemblyName>
         <RootNamespace>Cratis.Stage.SpecRunner</RootNamespace>
+        <!-- Type discovery emits references to deprecated structural types while compatibility remains. -->
+        <NoWarn>$(NoWarn);CS0618</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

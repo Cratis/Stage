@@ -99,7 +99,7 @@ public class when_running_file_and_folder_inputs : Specification
 
     [Fact] void should_complete_the_file_run() => _fromFile.ExitCode.ShouldEqual(0);
     [Fact] void should_complete_the_folder_run() => _fromFolder.ExitCode.ShouldEqual(0);
-    [Fact] void should_not_report_input_errors_for_completed_runs() => (_fromFile.Error + _fromFolder.Error).ShouldBeEmpty();
+    [Fact] void should_report_one_deprecation_notice_per_structural_run() => new[] { _fromFile, _fromFolder, _withInvalidFilters }.All(result => result.Error == "The structural specification engine is deprecated; use --engine semantic. It will be removed in the next major version." + Environment.NewLine).ShouldBeTrue();
     [Fact] void should_announce_nonempty_completed_runs() => new[] { _fromFile, _fromFolder }.All(result => result.Output.Contains("Ran 2 specification(s)", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_preserve_the_structured_model_and_all_outcomes_between_file_and_folder() => JsonNode.DeepEquals(_fileJson, _folderJson).ShouldBeTrue();
     [Fact] void should_write_a_nonempty_model_identity() => (_fileJson["eventModelId"]!.GetValue<Guid>() != Guid.Empty).ShouldBeTrue();

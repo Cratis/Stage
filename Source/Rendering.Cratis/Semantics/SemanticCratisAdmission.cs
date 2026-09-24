@@ -24,6 +24,7 @@ internal static class SemanticCratisAdmission
     {
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         ValidateTypes(context, diagnostics);
+        ValidateConstraints(context, slices, diagnostics);
 
         foreach (var located in slices)
         {
@@ -83,6 +84,23 @@ internal static class SemanticCratisAdmission
         }
     }
 
+    // Chronicle enforces a constraint when an event is appended, so one declared anywhere governs every selected
+    // command producing its events. The planner renders no Chronicle constraints yet, and an application without
+    // them accepts appends the reference evaluator rejects.
+    static void ValidateConstraints(
+        SemanticApplicationContext context,
+        IReadOnlyList<LocatedSemanticSlice> slices,
+        List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var selected = slices.Select(_ => _.Slice.Id).ToHashSet();
+        var produced = slices.SelectMany(_ => _.Slice.Commands).SelectMany(_ => _.Produces).Select(_ => _.EventContract).ToHashSet();
+        foreach (var (slice, constraint) in context.Constraints.Where(_ =>
+            selected.Contains(_.Slice.Id) || _.Constraint.Targets.Any(target => produced.Contains(target.EventContract))))
+        {
+            diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' is enforced at append time, which the Cratis ESM planner does not render yet.", slice.Id));
+        }
+    }
+
     static void ValidateStateChange(
         SemanticApplicationContext context,
         SemanticSlice slice,
@@ -99,6 +117,7 @@ internal static class SemanticCratisAdmission
                 @event.Properties.Any(property => !TypeExists(context, property.Type) || property.Type.IsOptional)) ||
             command.Properties.Any(_ => !TypeExists(context, _.Type)) ||
             !command.Validations.All(IsRenderableValidation) ||
+            !command.Requirements.IsEmpty ||
             command.Produces.Length != 1)
         {
             diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' exceeds the first Cratis command capability.", command.Id));
@@ -113,6 +132,7 @@ internal static class SemanticCratisAdmission
         }
 
         if (!context.Events.TryGetValue(produced.EventContract, out var @event) || produced.Condition is not null ||
+            produced.When is not null || !produced.Tags.IsEmpty || !@event.Tags.IsEmpty ||
             !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, command.Properties.Where(_ => _.IsIdentifier).Select(_ => _.Id)) ||
             @event.Revision != EventContractRevision.Initial || @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
             !MappingsMatch(produced.Mappings, @event.Properties, command.Properties, SemanticExpressionRootKind.Command))

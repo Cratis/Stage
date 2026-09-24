@@ -5,6 +5,9 @@ using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
+/// <summary>
+/// Checks specification outcomes and rejection counts.
+/// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
     static bool HasOneOutcome(SemanticSpecification specification)

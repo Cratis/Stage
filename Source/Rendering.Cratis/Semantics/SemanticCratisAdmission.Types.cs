@@ -6,6 +6,9 @@ using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
+/// <summary>
+/// Admits semantic type declarations.
+/// </summary>
 internal static partial class SemanticCratisAdmission
 {
     static void ValidateTypes(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)

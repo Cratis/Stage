@@ -6,6 +6,9 @@ using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
+/// <summary>
+/// Rejects authorization that cannot be rendered safely.
+/// </summary>
 internal static partial class SemanticCratisAdmission
 {
     static bool ValidateCommandAuthorization(SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)

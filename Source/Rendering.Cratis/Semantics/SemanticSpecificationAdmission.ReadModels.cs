@@ -5,6 +5,9 @@ using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
+/// <summary>
+/// Checks read-model and query expectations.
+/// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
     static bool HasExpectedProjectionEvent(

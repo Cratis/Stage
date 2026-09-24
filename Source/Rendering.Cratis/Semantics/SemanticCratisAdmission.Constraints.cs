@@ -5,6 +5,9 @@ using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
+/// <summary>
+/// Rejects append-time constraints that have no rendered equivalent.
+/// </summary>
 internal static partial class SemanticCratisAdmission
 {
     // Chronicle enforces a constraint when an event is appended, so one declared anywhere governs every selected

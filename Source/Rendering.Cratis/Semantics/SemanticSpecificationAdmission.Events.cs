@@ -5,6 +5,9 @@ using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
+/// <summary>
+/// Checks event expectations and property values.
+/// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
     static bool EventMatches(SemanticApplicationContext context, SemanticSpecificationEvent expected) =>

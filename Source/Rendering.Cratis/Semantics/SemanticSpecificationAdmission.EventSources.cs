@@ -5,6 +5,9 @@ using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
+/// <summary>
+/// Checks specification event-source identity assertions.
+/// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
     // An explicit ESM v2 source is asserted on the appended event, so an accepted specification that states one

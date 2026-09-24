@@ -6,6 +6,9 @@ using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
+/// <summary>
+/// Admits the supported state-view shape.
+/// </summary>
 internal static partial class SemanticCratisAdmission
 {
     static void ValidateStateView(

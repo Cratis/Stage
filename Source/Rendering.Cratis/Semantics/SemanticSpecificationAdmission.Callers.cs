@@ -5,6 +5,9 @@ using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
+/// <summary>
+/// Checks caller fixtures and supported specification actions.
+/// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
     // A caller fixture and a denial assertion only mean something against rendered authorization, which

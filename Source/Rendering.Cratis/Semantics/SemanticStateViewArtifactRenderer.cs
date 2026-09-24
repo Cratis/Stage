@@ -95,7 +95,10 @@ internal static class SemanticStateViewArtifactRenderer
     static IEnumerable<SemanticId> ScopeEvents(SemanticProjectionScope scope) =>
         scope.From.Select(_ => _.EventContract)
             .Concat(scope.Joins.Select(_ => _.EventContract))
-            .Concat(scope.Children.SelectMany(_ => ScopeEvents(_.Scope))).Distinct();
+            .Concat(scope.Removals.Select(_ => _.EventContract))
+            .Concat(scope.JoinRemovals.Select(_ => _.EventContract))
+            .Concat(scope.Children.SelectMany(_ => ScopeEvents(_.Scope)))
+            .Concat(scope.Nested.SelectMany(_ => ScopeEvents(_.Scope))).Distinct();
 
     static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries) =>
         string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>

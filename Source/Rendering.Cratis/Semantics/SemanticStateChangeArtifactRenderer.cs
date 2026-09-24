@@ -22,8 +22,6 @@ internal static class SemanticStateChangeArtifactRenderer
     {
         var types = new SemanticTypeSystem(context);
         var command = located.Slice.Commands.Single();
-        var produced = command.Produces.Single();
-        var @event = context.Events[produced.EventContract];
         var ownNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
         var builder = new CSharpCodeBuilder()
             .Namespace(ownNamespace)
@@ -31,20 +29,26 @@ internal static class SemanticStateChangeArtifactRenderer
             .Using("Cratis.Arc.Commands.ModelBound")
             .Using("Cratis.Arc.Validation")
             .Using("Cratis.Chronicle.Events");
+        if (command.Produces.Length > 1)
+        {
+            builder.Using("Cratis.Chronicle.EventSequences");
+        }
         if (command.Properties.Concat(located.Slice.Events.SelectMany(_ => _.Properties))
             .Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)))
         {
             builder.Using($"{context.RootNamespace}.Common");
         }
 
-        var eventSlice = context.DeclaringSlice(@event.Id);
-        var eventNamespace = SliceNaming.Namespace(context.RootNamespace, eventSlice.Path);
-        if (!string.Equals(ownNamespace, eventNamespace, StringComparison.Ordinal))
+        foreach (var eventContract in command.Produces.Select(_ => context.Events[_.EventContract]))
         {
-            builder.Using(eventNamespace);
+            var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(eventContract.Id).Path);
+            if (!string.Equals(ownNamespace, eventNamespace, StringComparison.Ordinal))
+            {
+                builder.Using(eventNamespace);
+            }
         }
 
-        RenderCommand(builder, command, produced, @event, types);
+        RenderCommand(builder, command, context, types);
         foreach (var declaredEvent in located.Slice.Events)
         {
             RenderEvent(builder, declaredEvent, types);
@@ -58,20 +62,12 @@ internal static class SemanticStateChangeArtifactRenderer
     static void RenderCommand(
         CSharpCodeBuilder builder,
         SemanticCommand command,
-        SemanticProducedEvent produced,
-        SemanticEventContract @event,
+        SemanticApplicationContext context,
         SemanticTypeSystem types)
     {
         var name = Identifiers.ToPascalCase(command.Name);
         var parameters = string.Join(", ", command.Properties.Select(_ => $"{types.Type(_.Type)} {Identifiers.ToPascalCase(_.Name)}"));
-        var arguments = @event.Properties.Select(property =>
-        {
-            var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
-            var source = (SemanticResolvedExpression)mapping.Source;
-            return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
-        });
-
-        var destination = (SemanticResolvedExpression)SemanticDestinations.Of(command, produced)!;
+        var destination = (SemanticResolvedExpression)SemanticDestinations.Of(command, command.Produces[0])!;
         var destinationProperty = command.Properties.Single(_ => _.Id == destination.Target);
         var destinationExpression = types.EventSourceExpression(Identifiers.ToPascalCase(destinationProperty.Name), destinationProperty.Type);
 
@@ -80,10 +76,38 @@ internal static class SemanticStateChangeArtifactRenderer
             .OpenBlock($"public record {name}({parameters}) : ICanProvideEventSourceId")
             .Line("/// <inheritdoc/>")
             .ExpressionMember("public EventSourceId GetEventSourceId()", destinationExpression)
-            .BlankLine()
-            .ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", $"new({string.Join(", ", arguments)})")
-            .EndBlock()
             .BlankLine();
+        if (command.Produces.Length == 1)
+        {
+            var @event = context.Events[command.Produces[0].EventContract];
+            var arguments = @event.Properties.Select(property =>
+            {
+                var mapping = command.Produces[0].Mappings.Single(_ => _.TargetProperty == property.Id);
+                var source = (SemanticResolvedExpression)mapping.Source;
+                return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
+            });
+            builder.ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", $"new({string.Join(", ", arguments)})");
+        }
+        else
+        {
+            var events = command.Produces.Select(produced =>
+            {
+                var @event = context.Events[produced.EventContract];
+                var arguments = @event.Properties.Select(property =>
+                {
+                    var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
+                    var source = (SemanticResolvedExpression)mapping.Source;
+                    return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
+                });
+                var value = $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)})";
+                var target = (SemanticResolvedExpression)SemanticDestinations.Of(command, produced)!;
+                var targetProperty = command.Properties.Single(_ => _.Id == target.Target);
+                return $"new EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {value})";
+            });
+            builder.ExpressionMember("public IEnumerable<EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
+        }
+
+        builder.EndBlock().BlankLine();
     }
 
     static void RenderEvent(CSharpCodeBuilder builder, SemanticEventContract @event, SemanticTypeSystem types)
@@ -98,7 +122,15 @@ internal static class SemanticStateChangeArtifactRenderer
 
     static void RenderValidator(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context)
     {
-        if (command.Validations.IsEmpty && command.Requirements.IsEmpty)
+        var constrained = context.Constraints.Select(_ => _.Constraint)
+            .Where(constraint => constraint.Kind == SemanticConstraintKind.UniquePropertyValue)
+            .SelectMany(constraint => constraint.Targets)
+            .SelectMany(target => command.Produces.Where(produced => produced.EventContract == target.EventContract)
+                .SelectMany(produced => produced.Mappings.Where(mapping => target.Properties.Contains(mapping.TargetProperty))))
+            .Select(mapping => ((SemanticResolvedExpression)mapping.Source).Target).Distinct()
+            .Where(id => !command.Validations.Any(rule => rule.Property == id && rule.Kind == SemanticValidationRuleKind.NotEmpty))
+            .ToArray();
+        if (command.Validations.IsEmpty && command.Requirements.IsEmpty && constrained.Length == 0)
         {
             return;
         }
@@ -112,6 +144,12 @@ internal static class SemanticStateChangeArtifactRenderer
             var property = command.Properties.Single(_ => _.Id == rule.Property);
             var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
             SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional);
+        }
+
+        foreach (var id in constrained)
+        {
+            var property = command.Properties.Single(candidate => candidate.Id == id);
+            builder.Line($"RuleFor(_ => _.{Identifiers.ToPascalCase(property.Name)}).NotNull().WithMessage(\"A constrained value is required.\");");
         }
 
         foreach (var requirement in command.Requirements)

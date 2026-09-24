@@ -69,6 +69,53 @@ internal static class SemanticScopedProjectionRenderer
             code.EndBlock().Line(");");
         }
 
+        if (scope.Every is { } every)
+        {
+            code.OpenBlock($"{receiver}.FromEvery(every =>");
+            if (!every.IncludeChildren)
+            {
+                code.Line("every.ExcludeChildProjections();");
+            }
+
+            foreach (var mapping in every.Mappings)
+            {
+                code.Line($"every.Set(model => model.{Path(mapping.Target, properties, context)}).ToEventSourceId();");
+            }
+
+            code.EndBlock().Line(");");
+        }
+
+        foreach (var removal in scope.Removals)
+        {
+            var @event = context.Events[removal.EventContract];
+            code.OpenBlock($"{receiver}.RemovedWith<{Identifiers.ToPascalCase(@event.Name)}>(removed =>");
+            RenderKey(code, removal.Key, @event, context, "removed", "UsingKey");
+            if (removal.ParentKey is not null)
+            {
+                RenderKey(code, removal.ParentKey, @event, context, "removed", "UsingParentKey");
+            }
+
+            code.EndBlock().Line(");");
+        }
+
+        foreach (var removal in scope.JoinRemovals)
+        {
+            var @event = context.Events[removal.EventContract];
+            code.OpenBlock($"{receiver}.RemovedWithJoin<{Identifiers.ToPascalCase(@event.Name)}>(removed =>");
+            RenderKey(code, removal.Key, @event, context, "removed", "UsingKey");
+            code.EndBlock().Line(");");
+        }
+
+        foreach (var nested in scope.Nested)
+        {
+            var property = properties.Single(_ => _.Id == nested.Property);
+            var type = context.Types[property.Type.Target];
+            code.OpenBlock($"{receiver}.Nested<{Identifiers.ToPascalCase(type.Name)}>(model => model.{Identifiers.ToPascalCase(property.Name)}, nested =>")
+                .Line("nested.NoAutoMap();");
+            RenderScope(code, nested.Scope, context, type.Properties, "nested");
+            code.EndBlock().Line(");");
+        }
+
         foreach (var children in scope.Children)
         {
             var property = properties.Single(_ => _.Id == children.Property);

@@ -32,10 +32,14 @@ internal static class SemanticQuerySpecificationRenderer
         var @event = context.Events[transition.EventContract];
         var produced = specification.ThenEvents.Single(_ => _.EventContract == @event.Id);
         var command = context.Commands[specification.When!.Command];
-        var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.Single());
+        var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.First(_ => _.EventContract == @event.Id));
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
+        if (specification.ThenQueries.Length > 1)
+        {
+            behavior += $"_through_{Identifiers.ToSnakeCase(query.Name)}";
+        }
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
         var queryNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path);
         var builder = new CSharpCodeBuilder()

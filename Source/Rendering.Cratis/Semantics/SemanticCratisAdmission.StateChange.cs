@@ -23,7 +23,7 @@ internal static partial class SemanticCratisAdmission
         }
 
         var command = slice.Commands[0];
-        if (!ValidateCommandAuthorization(command, diagnostics))
+        if (!ValidateCommandAuthorization(context, command, diagnostics))
         {
             return;
         }

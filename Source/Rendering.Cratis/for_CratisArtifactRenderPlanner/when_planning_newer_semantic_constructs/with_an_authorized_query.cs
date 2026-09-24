@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_planning_newer_semantic_constructs;
 
-// The rendered query allows anonymous callers, so a policy on it cannot be dropped.
+// Authorization is admitted; this older fixture still has an unsupported projection identity.
 public class with_an_authorized_query : given.an_invoice_model
 {
     const string Lookup = """
@@ -25,5 +25,6 @@ public class with_an_authorized_query : given.an_invoice_model
     void Because() => Plan(Policy + Invoices + Lookup);
 
     [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_unrendered_authorization() => ErrorCodes.ShouldContain("STAGE-ESM-015");
+    [Fact] void should_report_the_unrenderable_projection() => ErrorCodes.ShouldContain("STAGE-ESM-009");
+    [Fact] void should_not_reject_portable_authorization() => ErrorCodes.ShouldNotContain("STAGE-ESM-015");
 }

@@ -15,7 +15,7 @@ public sealed class CratisBackendApplicationScaffold
     /// Creates the complete backend application scaffold without writing to a file system.
     /// </summary>
     /// <param name="request">The validated scaffold request.</param>
-    /// <returns>Eight normalized UTF-8 text inputs in ordinal relative-path order.</returns>
+    /// <returns>Nine normalized UTF-8 text inputs in ordinal relative-path order.</returns>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the request is missing.</exception>
     public ImmutableArray<ArtifactRenderInput> Create(CratisBackendApplicationScaffoldRequest request)
     {
@@ -32,7 +32,8 @@ public sealed class CratisBackendApplicationScaffold
             ("Directory.Packages.props", DirectoryPackagesProps()),
             ($"{request.ProjectName}.csproj", Project(request)),
             ($"{request.ProjectName}.slnx", Solution(request)),
-            ("Program.cs", Program()),
+            ("Program.cs", Program(request)),
+            ("GeneratedPolicyRegistration.cs", PolicyRegistration(request)),
             ("appsettings.json", AppSettings(request)),
             ("docker-compose.yml", DockerCompose(profile))
         };
@@ -124,8 +125,8 @@ public sealed class CratisBackendApplicationScaffold
         """;
     }
 
-    static string Program() =>
-        """
+    static string Program(CratisBackendApplicationScaffoldRequest request) =>
+        $$"""
         // Copyright (c) Cratis. All rights reserved.
         // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
@@ -136,6 +137,7 @@ public sealed class CratisBackendApplicationScaffold
         builder.AddCratis(
             configureArcBuilder: arc => arc.WithMongoDB(),
             configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
+        {{request.RootNamespace}}.GeneratedPolicies.Registration.Register(builder.Services);
         ConfigureServices(builder);
 
         var app = builder.Build();
@@ -153,6 +155,30 @@ public sealed class CratisBackendApplicationScaffold
         {
             static partial void ConfigureServices(WebApplicationBuilder builder);
             static partial void ConfigureApplication(WebApplication app);
+        }
+        """;
+
+    static string PolicyRegistration(CratisBackendApplicationScaffoldRequest request) =>
+        $$"""
+        // Copyright (c) Cratis. All rights reserved.
+        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+        using Microsoft.Extensions.DependencyInjection;
+
+        namespace {{request.RootNamespace}}.GeneratedPolicies;
+
+        /// <summary>
+        /// Registers the policies generated from the Screenplay application.
+        /// </summary>
+        public static partial class Registration
+        {
+            /// <summary>
+            /// Registers generated policies when the application contains protected operations.
+            /// </summary>
+            /// <param name="services">The application's services.</param>
+            public static void Register(IServiceCollection services) => RegisterGenerated(services);
+
+            static partial void RegisterGenerated(IServiceCollection services);
         }
         """;
 

@@ -108,28 +108,28 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticQueryDelivery", rendered, "Snapshot");
         Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown Live");
 
-        // Scoped from/join/children are rendered; unsupported scope shapes fail admission with STAGE-ESM-017.
-        Add(entries, "SemanticProjectionScope", rendered, "Children From Joins");
-        Add(entries, "SemanticProjectionScope", rejected("STAGE-ESM-017"), "Every JoinRemovals Nested Removals");
+        // Supported scoped blocks render; unsupported variants fail admission with STAGE-ESM-017.
+        Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
         Add(entries, "SemanticProjectionEventContextValue", rejected("STAGE-ESM-017"), "Path");
         Add(entries, "SemanticProjectionEventProperty", rendered, "Path");
-        Add(entries, "SemanticProjectionEvery", rejected("STAGE-ESM-017"), "IncludeChildren Mappings SubscribesToAllEvents");
+        Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings");
+        Add(entries, "SemanticProjectionEvery", rejected("STAGE-ESM-017"), "SubscribesToAllEvents");
         Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
         Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
         Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");
-        Add(entries, "SemanticProjectionJoinRemoval", rejected("STAGE-ESM-017"), "EventContract Key");
+        Add(entries, "SemanticProjectionJoinRemoval", rendered, "EventContract Key");
         Add(entries, "SemanticProjectionKey", rendered, "Kind");
         Add(entries, "SemanticProjectionKeyKind", rendered, "Value");
         Add(entries, "SemanticProjectionKeyKind", rejected("STAGE-ESM-017"), "Unknown Composite");
         Add(entries, "SemanticProjectionKeyPart", rejected("STAGE-ESM-017"), "Property Value");
         Add(entries, "SemanticProjectionLiteral", rejected("STAGE-ESM-017"), "Value");
         Add(entries, "SemanticProjectionMapping", rendered, "Operation Source Target");
-        Add(entries, "SemanticProjectionNested", rejected("STAGE-ESM-017"), "Property Scope");
+        Add(entries, "SemanticProjectionNested", rendered, "Property Scope");
         Add(entries, "SemanticProjectionOperation", rendered, "Set Add Subtract Increment Decrement Clear");
         Add(entries, "SemanticProjectionOperation", rejected("STAGE-ESM-017"), "Unknown");
-        Add(entries, "SemanticProjectionRemoval", rejected("STAGE-ESM-017"), "EventContract Key ParentKey");
+        Add(entries, "SemanticProjectionRemoval", rendered, "EventContract Key ParentKey");
         Add(entries, "SemanticProjectionValue", rendered, "Kind");
         Add(entries, "SemanticProjectionValueKey", rendered, "Value");
         Add(entries, "SemanticProjectionValueKind", rendered, "EventProperty EventSourceIdentity");

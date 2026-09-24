@@ -19,6 +19,9 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("literal")]
     [InlineData("every-including-children")]
     [InlineData("child-join")]
+    [InlineData("nested-join")]
+    [InlineData("all-events")]
+    [InlineData("root-join-removal")]
     public void should_fail_closed_for_unsupported_blocks(string variant)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
@@ -42,6 +45,15 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         {
             "literal" => scope,
             "every-including-children" => scope with { Every = new(true, false, []) },
+            "all-events" => scope with { Every = new(true, true, []) },
+            "root-join-removal" => scope with { JoinRemovals = [new(scope.Children[0].Scope.JoinRemovals[0].EventContract, SemanticProjectionKey.EventSourceIdentity)] },
+            "nested-join" => scope with
+            {
+                Nested = [.. scope.Nested.Select(nested => nested with
+                {
+                    Scope = nested.Scope with { Joins = [new(scope.Joins[0].EventContract, nested.Scope.From[0].Mappings[0].Target[0], [])] }
+                })]
+            },
             "child-join" => scope with
             {
                 Children = [.. scope.Children.Select(children => children with
@@ -68,7 +80,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Contains("Chronicle#4124", diagnostic.Message, StringComparison.Ordinal);
         }
 
-        if (variant == "every-including-children")
+        if (variant == "every-including-children" || variant == "nested-join")
         {
             Assert.Contains("Chronicle#4125", diagnostic.Message, StringComparison.Ordinal);
         }

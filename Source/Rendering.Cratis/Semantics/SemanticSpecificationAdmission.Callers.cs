@@ -10,15 +10,17 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
-    // A caller fixture and a denial assertion only mean something against rendered authorization, which
-    // admission rejects. An appended-event action has no command, so it has no When either.
+    // The command scenario evaluates the generated Arc policy with the fixture's principal.
+    // An appended-event or query-only action has no command scenario to execute.
     static bool HasRenderableCallerAndCommand(
         SemanticApplicationContext context,
         SemanticSpecification specification,
         out SemanticCommand? command)
     {
         command = null;
-        return specification.When is not null && specification.GivenCaller is null && !specification.ThenDenied &&
-            context.Commands.TryGetValue(specification.When.Command, out command);
+        return specification.When is not null &&
+            context.Commands.TryGetValue(specification.When.Command, out command) &&
+            (!specification.ThenDenied || (specification.ThenQueries.IsEmpty && command.Authorization is not null && specification.GivenCaller is not null)) &&
+            specification.ThenQueries.All(_ => context.Queries.TryGetValue(_.Query, out var query) && query.Authorization is null);
     }
 }

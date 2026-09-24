@@ -28,9 +28,14 @@ internal static partial class SemanticSpecificationAdmission
                 HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) && specification.GivenReadModels.IsEmpty &&
                 ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
                 HasOneOutcome(specification) && HasSupportedCounts(specification) &&
-                (!specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == command!.Produces.Length) &&
-                specification.ThenEvents.All(expected => EventMatches(context, expected) &&
-                    command!.Produces.Any(produced => produced.EventContract == expected.EventContract)) &&
+                (!specification.ThenEventsInAnyOrder || specification.ThenEvents.Length <= 1) &&
+                (specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == command!.Produces.Length) &&
+                specification.ThenEvents.All(expected => EventMatches(context, expected)) &&
+                (specification.ThenDenied || !specification.ThenErrors.IsEmpty ||
+                    (specification.ThenEventsInAnyOrder
+                        ? specification.ThenEvents.GroupBy(_ => _.EventContract).All(group =>
+                            command!.Produces.Count(_ => _.EventContract == group.Key) == group.Count())
+                        : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(command!.Produces.Select(_ => _.EventContract)))) &&
                 specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
                     HasExpectedProjectionEvent(context, specification, expected)) &&
                 specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
@@ -40,12 +45,36 @@ internal static partial class SemanticSpecificationAdmission
 
             if (!valid)
             {
+                var reason = RejectionReason(context, specification);
                 diagnostics.Add(new(
                     "STAGE-ESM-011",
                     ArtifactRenderDiagnosticSeverity.Error,
-                    $"Specification '{specification.Name}' exceeds the first generated Cratis specification capability.",
+                    $"Specification '{specification.Name}' cannot render: {reason}",
                     specification.Id));
             }
         }
+    }
+
+    static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (!specification.GivenReadModels.IsEmpty)
+        {
+            return "Given read-model state replaces projected state in the reference world, but a Chronicle ReadModelScenario only seeds lookup interception, not the projection's initial state.";
+        }
+
+        if (specification.GivenEvents.Any(_ => _.EventSource is null))
+        {
+            return "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id.";
+        }
+
+        if (specification.ThenReadModels.Any(_ => context.Projections.Values.Any(projection => projection.ReadModel == _.ReadModel && projection.Scope is not null)) ||
+            specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) && context.Projections.Values.Any(projection => projection.ReadModel == query.ReadModel && projection.Scope is not null)))
+        {
+            return "Scoped projection specifications need event replay that reproduces the reference projection scope; flat transition replay is not equivalent.";
+        }
+
+        return specification.ThenEventsInAnyOrder && specification.ThenEvents.Length > 1
+            ? "Unordered expectations need an exact multiset comparison, including duplicate events and event sources."
+            : "The scenario cannot preserve all of its declared fixtures or expectations.";
     }
 }

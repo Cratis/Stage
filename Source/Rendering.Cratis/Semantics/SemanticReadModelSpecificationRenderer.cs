@@ -31,10 +31,14 @@ internal static class SemanticReadModelSpecificationRenderer
         var @event = context.Events[transition.EventContract];
         var expectedEvent = specification.ThenEvents.Single(_ => _.EventContract == @event.Id);
         var command = context.Commands[specification.When!.Command];
-        var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.Single(_ => _.EventContract == @event.Id));
+        var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.First(_ => _.EventContract == @event.Id));
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
+        if (specification.ThenReadModels.Length > 1)
+        {
+            behavior += $"_into_{Identifiers.ToSnakeCase(readModel.Name)}";
+        }
         var builder = Builder(behavior, located, readModel, @event, context);
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
         var eventArguments = @event.Properties.Select(property =>

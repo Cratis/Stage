@@ -22,7 +22,7 @@ internal static partial class SemanticSpecificationAdmission
     {
         var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == expected.ReadModel);
         return projection?.Transitions.Length == 1 &&
-            specification.ThenEvents.Any(_ => _.EventContract == projection.Transitions[0].EventContract);
+            specification.ThenEvents.Count(_ => _.EventContract == projection.Transitions[0].EventContract) == 1;
     }
 
     static bool ReadModelMatches(SemanticApplicationContext context, SemanticSpecificationReadModel expected) =>

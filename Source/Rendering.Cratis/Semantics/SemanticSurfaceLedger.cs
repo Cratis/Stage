@@ -51,8 +51,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
-        Add(entries, "SemanticSlice", rendered, "Commands Events Id Kind Name Projections Queries ReadModels Specifications");
-        Add(entries, "SemanticSlice", rejected("STAGE-ESM-014"), "Constraints");
+        Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications");
         Add(entries, "SemanticSliceKind", rendered, "StateChange StateView");
         Add(entries, "SemanticSliceKind", rejected("STAGE-ESM-001"), "Unknown");
 
@@ -146,7 +145,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecificationReadModel", rendered, "Exactly");
         Add(entries, "SemanticSpecificationQueryResult", rendered, "Key Query Results Exactly");
         Add(entries, "SemanticSpecificationError", rendered, "Message");
-        Add(entries, "SemanticSpecificationError", rejected("STAGE-ESM-011"), "Code");
+        Add(entries, "SemanticSpecificationError", rejected("STAGE-ESM-011"), "Code"); // Codes naming a rendered constraint are admitted.
         Add(entries, "SemanticPropertyValue", rendered, "TargetProperty Value");
         Add(entries, "SemanticEventSourceIdentity", rendered, "Type Value");
         Add(entries, "SemanticValue", rendered, "Kind");
@@ -183,10 +182,12 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticLogicalOperator", rendered, "And Or");
 
         // Append-time constraints apply across selected slices even when declared elsewhere.
-        Add(entries, "SemanticConstraint", rejected("STAGE-ESM-014"), "IgnoreCasing Kind Message Name ReleasedBy Scope Targets");
-        Add(entries, "SemanticConstraintTarget", rejected("STAGE-ESM-014"), "EventContract Properties");
-        Add(entries, "SemanticConstraintKind", rejected("STAGE-ESM-014"), "Unknown UniquePropertyValue UniqueEventOccurrence");
-        Add(entries, "SemanticConstraintScope", rejected("STAGE-ESM-014"), "Unknown EventSequence");
+        Add(entries, "SemanticConstraint", rendered, "IgnoreCasing Kind Message Name ReleasedBy Scope Targets");
+        Add(entries, "SemanticConstraintTarget", rendered, "EventContract Properties");
+        Add(entries, "SemanticConstraintKind", rendered, "UniquePropertyValue UniqueEventOccurrence");
+        Add(entries, "SemanticConstraintKind", rejected("STAGE-ESM-014"), "Unknown");
+        Add(entries, "SemanticConstraintScope", rendered, "EventSequence");
+        Add(entries, "SemanticConstraintScope", rejected("STAGE-ESM-014"), "Unknown");
 
         return entries;
     }

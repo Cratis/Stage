@@ -40,7 +40,7 @@ internal static partial class SemanticSpecificationAdmission
                     HasExpectedProjectionEvent(context, specification, expected)) &&
                 specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
                     HasExpectedProjectionEvent(context, specification, expected.Results.Single())) &&
-                specification.ThenErrors.All(_ => _.Code is null && SemanticValidationRendering.SafeMessage(_.Message)) &&
+                HasRenderableErrors(context, specification, command) &&
                 HasRenderableEventSources(context, specification, command!);
 
             if (!valid)

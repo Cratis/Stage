@@ -6,6 +6,7 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis;
@@ -118,6 +119,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             artifacts.AddRange(renderer.Render(located, context).Select(Artifact));
         }
 
+        artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
+            .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
         return CreatePlan(request, artifacts, diagnostics);
     }
 

@@ -76,7 +76,7 @@ internal static class SemanticCommandSpecificationRenderer
 
         if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
         {
-            builder.OpenBlock("void Establish()");
+            builder.OpenBlock(SemanticSpecificationAdmission.ConstraintName(context, specification) is not null ? "async Task Establish()" : "void Establish()");
             if (command.Authorization is not null)
             {
                 builder.Line($"{context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
@@ -96,7 +96,11 @@ internal static class SemanticCommandSpecificationRenderer
 
             var eventArguments = @event.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"_scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)}));");
+            var eventSource = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
+            var eventValue = $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)})";
+            builder.Line(SemanticSpecificationAdmission.ConstraintName(context, specification) is not null
+                ? $"await _scenario.EventScenario.Given.ForEventSource({eventSource}).Events({eventValue});"
+                : $"_scenario.Given.ForEventSource({eventSource}).Events({eventValue});");
         }
 
         if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
@@ -137,6 +141,8 @@ internal static class SemanticCommandSpecificationRenderer
             {
                 builder.Line($"[Fact] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});");
             }
+
+            RenderConstraintViolation(builder, specification, context);
         }
         else
         {
@@ -158,6 +164,14 @@ internal static class SemanticCommandSpecificationRenderer
         }
 
         return new(path, Conditional(content));
+    }
+
+    static void RenderConstraintViolation(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context)
+    {
+        if (SemanticSpecificationAdmission.ConstraintName(context, specification) is { } constraintName)
+        {
+            builder.Line($"[Fact] void should_report_the_constraint_violation() => _result.ShouldHaveConstraintViolationFor({CSharpCodeBuilder.StringLiteral(constraintName)});");
+        }
     }
 
     static void RenderAccepted(

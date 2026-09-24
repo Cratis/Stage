@@ -121,7 +121,11 @@ internal static class SemanticHost
 
         var routes = new StageSceneRoutes(scene, app.Services, app.Logger);
         var strings = new StageStrings(modelPath);
-        app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(loaded!.Model.Application.Name), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" });
+
+        // The EventModel visitor names the application after its first modeled module (or EventModel
+        // when none is declared), rather than after the source folder used by the semantic compiler.
+        var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
+        app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(modelName), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" });
         app.MapGet("/stage/scene", () => Results.Json(routes.Scene, StageJson.Options));
         app.MapGet("/stage/routes", () => Results.Json(new StageRoutes(routes.CommandRoutes, routes.QueryRoutes), StageJson.Options));
         app.MapGet("/stage/locales", () => Results.Json(strings.Locales(), StageJson.Options));

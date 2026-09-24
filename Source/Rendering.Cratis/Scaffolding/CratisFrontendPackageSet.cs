@@ -26,7 +26,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// NuGet counterpart at all.
 /// </para>
 /// <para>
-/// The Scene family is pinned at exact 4.1.0 for editable keyed lookups, explicit command inputs and
+/// The Scene family is pinned at exact 4.2.0 for editable keyed lookups, explicit command inputs and
 /// identity-aware bindings, with Components 4.13.1 supplying the optional native-form footer. Frontend
 /// installation and native consumer verification use those published packages as a separate gate;
 /// C# rendering checks alone do not establish it.
@@ -198,9 +198,9 @@ public sealed class CratisFrontendPackageSet
     public string TypesNodePackageVersion { get; }
 
     internal static CratisFrontendPackageSet Current { get; } = new(
-        "22.22.0",
-        "22.22.0",
-        "22.22.0",
+        "22.23.0",
+        "22.23.0",
+        "22.23.0",
         "7.19.4",
         "7.8.2",
         "4.10.0",
@@ -214,7 +214,7 @@ public sealed class CratisFrontendPackageSet
         "19.3.0",
         "19.3.0",
         "4.13.1",
-        "4.1.0",
+        "4.2.0",
         "11.1.0",
         "8.0.1",
         "3.0.1",

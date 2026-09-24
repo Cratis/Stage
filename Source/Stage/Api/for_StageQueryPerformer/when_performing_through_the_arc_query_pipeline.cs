@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Cratis.Arc.Http;
 using Cratis.Arc.Queries;
 using Cratis.Arc.Queries.Filters;
 using Cratis.Arc.Validation;
@@ -10,6 +11,7 @@ using Cratis.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Api.for_StageQueryPerformer.given;
 using Cratis.Traces;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
 
@@ -22,6 +24,7 @@ public class when_performing_through_the_arc_query_pipeline : a_stage_query_perf
     IQueryRenderers _renderers = null!;
     QueryPipeline _pipeline = null!;
     QueryResult _result = null!;
+    ServiceProvider _services = null!;
 
     void Establish()
     {
@@ -45,6 +48,11 @@ public class when_performing_through_the_arc_query_pipeline : a_stage_query_perf
             Substitute.For<IReadModelInterceptors>(),
             Substitute.For<IDiscoverableValidators>(),
             activitySource);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(Substitute.For<IHttpRequestContextAccessor>());
+        arc_authorization.Register(services);
+        _services = services.BuildServiceProvider();
     }
 
     async Task Because() =>
@@ -53,9 +61,13 @@ public class when_performing_through_the_arc_query_pipeline : a_stage_query_perf
             QueryArguments.Empty,
             Paging.NotPaged,
             Sorting.None,
-            Substitute.For<IServiceProvider>());
+            _services);
 
-    void Destroy() => _activitySource.Dispose();
+    void Destroy()
+    {
+        _services.Dispose();
+        _activitySource.Dispose();
+    }
 
     [Fact] void should_authorize_the_query() => _result.IsAuthorized.ShouldBeTrue();
     [Fact] void should_execute_the_performer() => _trackingPerformer.WasPerformed.ShouldBeTrue();

@@ -100,6 +100,13 @@ public class when_conforming_scoped_projections_to_chronicle
                 }
             }
 
+            foreach (var nested in level.Nested)
+            {
+                var property = properties.Single(_ => _.Id == nested.Property);
+                var type = application.Types.Single(_ => _.Id == property.Type.Target);
+                Expand(nested.Scope, type.Properties, $"{prefix}Nested.{property.Name}.");
+            }
+
             foreach (var child in level.Children)
             {
                 var property = properties.Single(_ => _.Id == child.Property);
@@ -144,13 +151,44 @@ public class when_conforming_scoped_projections_to_chronicle
             }
         }
 
-        foreach (DictionaryEntry entry in (IDictionary)Property(scope, "Children")!)
+        var every = Property(scope, "All") ?? Property(scope, "FromEvery");
+        shape[$"{prefix}Every.IncludeChildren"] = Property(every!, "IncludeChildren")!.ToString()!;
+        foreach (DictionaryEntry mapping in (IDictionary)Property(every!, "Properties")!)
         {
-            var path = $"{prefix}Children.{entry.Key}.";
-            shape[$"{path}IdentifiedBy"] = Property(entry.Value!, "IdentifiedBy")!.ToString()!;
-            ReadScope(entry.Value!, path, shape);
+            shape[$"{prefix}Every.{mapping.Key}"] = mapping.Value!.ToString()!;
+        }
+
+        foreach (var kind in new[] { "RemovedWith", "RemovedWithJoin" })
+        {
+            foreach (DictionaryEntry entry in (IDictionary)Property(scope, kind)!)
+            {
+                var id = entry.Key.GetType().GetProperty("Id")?.GetValue(entry.Key);
+                var generation = entry.Key.GetType().GetProperty("Generation")?.GetValue(entry.Key);
+                var eventName = id is string ? $"{id}+{generation}" : entry.Key.ToString()!;
+                var path = $"{prefix}{kind}.{eventName}";
+                shape[$"{path}.Key"] = Property(entry.Value!, "Key")?.ToString() ?? string.Empty;
+                if (kind == "RemovedWith")
+                {
+                    shape[$"{path}.ParentKey"] = Property(entry.Value!, "ParentKey")?.ToString() ?? string.Empty;
+                }
+            }
+        }
+
+        foreach (var kind in new[] { "Children", "Nested" })
+        {
+            if (Property(scope, kind) is not IDictionary definitions)
+            {
+                continue;
+            }
+
+            foreach (DictionaryEntry entry in definitions)
+            {
+                var path = $"{prefix}{kind}.{entry.Key}.";
+                shape[$"{path}IdentifiedBy"] = Property(entry.Value!, "IdentifiedBy")!.ToString()!;
+                ReadScope(entry.Value!, path, shape);
+            }
         }
     }
 
-    static object? Property(object value, string name) => value.GetType().GetProperty(name)!.GetValue(value);
+    static object? Property(object value, string name) => value.GetType().GetProperty(name)?.GetValue(value);
 }

@@ -14,6 +14,8 @@ public class when_rejecting_incomplete_scoped_projections
     [Theory]
     [InlineData("missing-root-property")]
     [InlineData("missing-child-property")]
+    [InlineData("missing-nested-property")]
+    [InlineData("every-overwrites-identity")]
     [InlineData("overwritten-root-identity")]
     [InlineData("overwritten-child-identity")]
     [InlineData("whole-number-arithmetic")]
@@ -36,11 +38,14 @@ public class when_rejecting_incomplete_scoped_projections
         var child = scope.Children.Single();
         var note = original.Application.Types.Single(type => type.Name == "ProjectNote");
         var childName = note.Properties.Single(property => property.Name == "name").Id;
+        var rootIdentity = readModel.Properties.Single(property => property.IsIdentifier).Id;
 
         scope = variant switch
         {
             "missing-root-property" => scope with { From = [.. scope.From.Select(subscription => subscription with { Mappings = [.. subscription.Mappings.Where(mapping => mapping.Target[0] != name)] })] },
             "missing-child-property" => scope with { Children = [child with { Scope = child.Scope with { From = [.. child.Scope.From.Select(subscription => subscription with { Mappings = [.. subscription.Mappings.Where(mapping => mapping.Target[0] != childName)] })] } }] },
+            "missing-nested-property" => scope with { Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with { From = [.. nested.Scope.From.Select(subscription => subscription with { Mappings = [] })] } })] },
+            "every-overwrites-identity" => scope with { Every = scope.Every! with { Mappings = [new([rootIdentity], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)] } },
             "overwritten-root-identity" => scope with { From = [scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }, .. scope.From.Skip(1)] },
             "overwritten-child-identity" => scope with { Children = [child with { Scope = child.Scope with { From = [child.Scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }] } }] },
             "whole-number-arithmetic" => scope,

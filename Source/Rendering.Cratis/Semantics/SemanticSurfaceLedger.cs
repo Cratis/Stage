@@ -136,14 +136,14 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionValueKind", rejected("STAGE-ESM-008"), "Unknown EventContext EventProperty EventSourceIdentity Literal");
 
         // Specifications only render command actions with exact scalar fixtures and supported outcomes.
-        Add(entries, "SemanticSpecification", rendered, "Id Name ThenEvents ThenReadModels ThenQueries ThenErrors When");
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "GivenCaller GivenEvents GivenReadModels ThenDenied WhenAppended");
+        Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents ThenEvents ThenReadModels ThenQueries ThenErrors When");
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "GivenCaller GivenReadModels ThenDenied WhenAppended");
         Add(entries, "SemanticSpecification", ignored("At most one expected event is admitted, so event order has no observable effect."), "ThenEventsInAnyOrder");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Key ReadModel Values");
-        Add(entries, "SemanticSpecificationReadModel", ignored("Admission requires all model properties, making subset and exact comparison equivalent."), "Exactly");
+        Add(entries, "SemanticSpecificationReadModel", rendered, "Exactly");
         Add(entries, "SemanticSpecificationQueryResult", rendered, "Key Query Results");
         Add(entries, "SemanticSpecificationQueryResult", ignored("A single result for an optional lookup is the only admitted query outcome."), "Exactly");
         Add(entries, "SemanticSpecificationError", ignored("Generated rejection specs assert validation failure, not the error message."), "Message");

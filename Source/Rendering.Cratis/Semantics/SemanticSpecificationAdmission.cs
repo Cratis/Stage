@@ -25,7 +25,7 @@ internal static partial class SemanticSpecificationAdmission
         foreach (var specification in slice.Specifications)
         {
             var valid = HasRenderableCallerAndCommand(context, specification, out var command) &&
-                specification.GivenEvents.IsEmpty && specification.GivenReadModels.IsEmpty &&
+                HasRenderableGivenEvents(context, specification) && specification.GivenReadModels.IsEmpty &&
                 ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
                 HasOneOutcome(specification) && HasSupportedCounts(specification) &&
                 specification.ThenEvents.All(expected => EventMatches(context, expected) &&

@@ -22,9 +22,10 @@ internal static partial class SemanticSpecificationAdmission
 
     static bool ReadModelMatches(SemanticApplicationContext context, SemanticSpecificationReadModel expected) =>
         context.ReadModels.TryGetValue(expected.ReadModel, out var readModel) &&
-        ValuesMatch(expected.Values, readModel.Properties) && IsScalar(expected.Key);
+        ValuesMatch(expected.Values, readModel.Properties, expected.Exactly) && IsScalar(expected.Key);
 
     static bool QueryMatches(SemanticApplicationContext context, SemanticSpecificationQueryResult expected) =>
         context.Queries.TryGetValue(expected.Query, out var query) && IsScalar(expected.Key) && expected.Results.Length == 1 &&
-        expected.Results.All(result => result.ReadModel == query.ReadModel && ReadModelMatches(context, result));
+        expected.Results.All(result => result.ReadModel == query.ReadModel &&
+            ValuesMatch(result.Values, context.ReadModels[query.ReadModel].Properties) && IsScalar(result.Key));
 }

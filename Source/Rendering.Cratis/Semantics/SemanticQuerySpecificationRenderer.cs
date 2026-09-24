@@ -29,12 +29,8 @@ internal static class SemanticQuerySpecificationRenderer
         var readModel = context.ReadModels[query.ReadModel];
         var result = expected.Results.Single();
         var projection = context.Projections.Values.Single(_ => _.ReadModel == readModel.Id);
-        var produced = projection.Scope is { } scope
-            ? specification.ThenEvents.Single(expectedEvent => scope.From.Any(from => from.EventContract == expectedEvent.EventContract))
-            : specification.ThenEvents.Single(expectedEvent => expectedEvent.EventContract == projection.Transitions.Single().EventContract);
-        var @event = context.Events[produced.EventContract];
         var command = context.Commands[specification.When!.Command];
-        var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.First(_ => _.EventContract == @event.Id));
+        var replay = SemanticProjectionSpecificationEvents.Replay(specification, projection, command);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
@@ -62,10 +58,13 @@ internal static class SemanticQuerySpecificationRenderer
         });
         var predicate = $"_result is not null{string.Concat(predicates.Select(_ => $" && {_}"))}";
         var key = types.Value(expected.Key, query.Argument.Type);
-        var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path);
-        if (!string.Equals(eventNamespace, queryNamespace, StringComparison.Ordinal))
+        foreach (var (produced, _) in replay)
         {
-            builder.Using(eventNamespace);
+            var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(produced.EventContract).Path);
+            if (!string.Equals(eventNamespace, queryNamespace, StringComparison.Ordinal))
+            {
+                builder.Using(eventNamespace);
+            }
         }
 
         foreach (var given in specification.GivenEvents)
@@ -92,10 +91,16 @@ internal static class SemanticQuerySpecificationRenderer
             builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {Identifiers.ToPascalCase(givenEvent.Name)}({string.Join(", ", givenArguments)}));");
         }
 
-        var eventArguments = @event.Properties.Select(property =>
-            types.Value(produced.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-        builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)}));")
-            .Line($"_readModels.GetInstanceById<{readModelName}>((EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((EventSourceId){key})!);")
+        foreach (var (produced, expectedEvent) in replay)
+        {
+            var @event = context.Events[produced.EventContract];
+            var source = SemanticDestinations.ForSpecification(specification, command, produced);
+            var arguments = @event.Properties.Select(property =>
+                types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)}));");
+        }
+
+        builder.Line($"_readModels.GetInstanceById<{readModelName}>((EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((EventSourceId){key})!);")
             .EndBlock()
             .BlankLine()
             .Line($"async Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")

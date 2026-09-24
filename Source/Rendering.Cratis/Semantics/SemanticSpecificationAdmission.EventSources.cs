@@ -39,6 +39,13 @@ internal static partial class SemanticSpecificationAdmission
                 sources[0].Type == property.Type && IsScalar(sources[0].Value) && IsLosslessEventSource(context, property.Type);
         }
 
+        if (specification.ThenEventsInAnyOrder && command.Produces.GroupBy(_ => _.EventContract)
+            .Any(group => group.Count() > 1 && group.Select(produced =>
+                SemanticDestinations.ForSpecification(specification, command, produced)).Distinct().Count() != 1))
+        {
+            return false;
+        }
+
         return command.Produces.Select((produced, index) => (produced, index)).All(item =>
         {
             var destination = SemanticDestinations.Of(command, item.produced) as SemanticResolvedExpression;

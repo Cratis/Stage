@@ -226,7 +226,7 @@ internal static class SemanticCommandSpecificationRenderer
 
         if (specification.ThenEventsInAnyOrder && specification.ThenEvents.Length > 1)
         {
-            RenderUnorderedEvents(builder, specification, context, types, seedInLog);
+            RenderUnorderedEvents(builder, specification, command, context, types, seedInLog);
             return;
         }
 
@@ -242,7 +242,7 @@ internal static class SemanticCommandSpecificationRenderer
                 builder.Using($"{context.RootNamespace}.Common");
             }
 
-            var predicate = string.Join(" && ", @event.Properties.Select(property =>
+            var predicate = @event.Properties.IsEmpty ? "true" : string.Join(" && ", @event.Properties.Select(property =>
             {
                 var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
                 return $"@event.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value, property.Type)}";
@@ -266,6 +266,7 @@ internal static class SemanticCommandSpecificationRenderer
     static void RenderUnorderedEvents(
         CSharpCodeBuilder builder,
         SemanticSpecification specification,
+        SemanticCommand command,
         SemanticApplicationContext context,
         SemanticTypeSystem types,
         bool seedInLog)
@@ -290,10 +291,10 @@ internal static class SemanticCommandSpecificationRenderer
 
                 return $"@event.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value, property.Type)}";
             });
-            var source = expected.EventSource is { } identity
-                ? $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}"
-                : string.Empty;
-            if (expected.EventSource is { } typedSource && SemanticTypeSystem.ValueNeedsCommon(typedSource.Value, typedSource.Type))
+            var produced = command.Produces.First(_ => _.EventContract == expected.EventContract);
+            var identity = SemanticDestinations.ForSpecification(specification, command, produced);
+            var source = $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}";
+            if (SemanticTypeSystem.ValueNeedsCommon(identity.Value, identity.Type))
             {
                 builder.Using($"{context.RootNamespace}.Common");
             }

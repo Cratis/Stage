@@ -31,10 +31,17 @@ internal static partial class SemanticSpecificationAdmission
         var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == expected.ReadModel);
         if (projection?.Scope is { } scope)
         {
-            // A produced root-from event creates the instance being compared. Other scoped events are
-            // replayed from the given world, never synthesized from a flat transition.
-            return specification.ThenEvents.Count(expectedEvent =>
-                scope.From.Any(from => from.EventContract == expectedEvent.EventContract)) == 1;
+            // A scoped projection observes every produced fact, not just the root-from fact. Unordered
+            // duplicate contracts cannot be paired with their production occurrences unambiguously.
+            var command = context.Commands[specification.When!.Command];
+            return specification.ThenEvents.Length == command.Produces.Length &&
+                scope.From.Any(from => specification.ThenEvents.Any(@event => @event.EventContract == from.EventContract)) &&
+                (!specification.ThenEventsInAnyOrder ||
+                    specification.ThenEvents.Select(@event => @event.EventContract).Distinct().Count() == specification.ThenEvents.Length) &&
+                command.Produces.All(produced => SemanticDestinations.Of(command, produced) is SemanticResolvedExpression destination &&
+                    Equals(
+                        SemanticDestinations.ForSpecification(specification, command, produced).Value,
+                        specification.When.Values.Single(_ => _.TargetProperty == destination.Target).Value));
         }
 
         return projection?.Transitions.Length == 1 &&

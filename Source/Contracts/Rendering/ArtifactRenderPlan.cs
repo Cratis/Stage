@@ -112,7 +112,7 @@ public sealed class PlannedArtifact
     /// <param name="relativePath">The portable relative path.</param>
     /// <param name="content">The text content.</param>
     /// <returns>The planned artifact.</returns>
-    /// <exception cref="InvalidArtifactRenderContract"></exception>
+    /// <exception cref="InvalidArtifactRenderContract">The path, content or a semantic source is not a valid artifact contract.</exception>
     public static PlannedArtifact CreateText(string relativePath, string content)
     {
         if (content is null)
@@ -131,7 +131,7 @@ public sealed class PlannedArtifact
     /// <param name="content">The text content.</param>
     /// <param name="sources">The semantic identities realized by this artifact.</param>
     /// <returns>The planned artifact.</returns>
-    /// <exception cref="InvalidArtifactRenderContract"></exception>
+    /// <exception cref="InvalidArtifactRenderContract">The path, content or a semantic source is not a valid artifact contract.</exception>
     public static PlannedArtifact CreateText(string relativePath, string content, ImmutableArray<SemanticId> sources) =>
         CreateText(relativePath, content).WithSources(sources);
 
@@ -151,7 +151,7 @@ public sealed class PlannedArtifact
     /// <param name="bytes">The exact bytes.</param>
     /// <param name="sources">The semantic identities realized by this artifact.</param>
     /// <returns>The planned artifact.</returns>
-    /// <exception cref="InvalidArtifactRenderContract"></exception>
+    /// <exception cref="InvalidArtifactRenderContract">The path, content or a semantic source is not a valid artifact contract.</exception>
     public static PlannedArtifact CreateBinary(string relativePath, ImmutableArray<byte> bytes, ImmutableArray<SemanticId> sources) =>
         CreateBinary(relativePath, bytes).WithSources(sources);
 
@@ -292,7 +292,7 @@ public sealed class ArtifactRenderPlan
     /// <param name="artifacts">The target artifacts.</param>
     /// <param name="diagnostics">The typed diagnostics.</param>
     /// <returns>The complete deterministic plan.</returns>
-    /// <exception cref="InvalidArtifactRenderContract"></exception>
+    /// <exception cref="InvalidArtifactRenderContract">The path, content or a semantic source is not a valid artifact contract.</exception>
     public static ArtifactRenderPlan Create(
         ArtifactRenderRequest request,
         ImmutableArray<PlannedArtifact> artifacts,

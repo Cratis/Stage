@@ -30,6 +30,13 @@ public class StateViewSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        // Every rendered read model exposes queries - declared ones, or the synthesized all/by-id pair - so the
+        // inherited authorization is checked whether or not the slice declares a query.
+        LegacyEnclosingAuthorization.EnsureRenderable(
+            slice,
+            applicationSet,
+            slice.Slice.Queries.FirstOrDefault() is { } query ? $"Query '{query.Name}'" : $"Read model queries of slice '{slice.Slice.Name}'");
+
         QueryAdmission.EnsureSupported(slice.Slice.Queries, string.Join('.', slice.FullPath));
 
         // A slice may declare several projections. Only the first is rendered; the ones left out are reported by

@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -21,12 +22,7 @@ internal static class SemanticStateViewArtifactRenderer
     public static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicationContext context)
     {
         var types = new SemanticTypeSystem(context);
-        var readModel = located.Slice.ReadModels.Single();
-        var projection = located.Slice.Projections.Single();
-        var transition = projection.Transitions.Single();
-        var @event = context.Events[transition.EventContract];
         var ownNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
-        var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path);
         var builder = new CSharpCodeBuilder()
             .Namespace(ownNamespace)
             .Using("Cratis.Arc.Authorization")
@@ -34,38 +30,76 @@ internal static class SemanticStateViewArtifactRenderer
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels");
-        if (readModel.Properties.Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)) ||
+        if (located.Slice.ReadModels.SelectMany(_ => _.Properties).Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)) ||
             located.Slice.Queries.Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Argument.Type)))
         {
             builder.Using($"{context.RootNamespace}.Common");
         }
 
-        if (!string.Equals(ownNamespace, eventNamespace, StringComparison.Ordinal))
+        foreach (var projection in located.Slice.Projections)
         {
-            builder.Using(eventNamespace);
+            var eventIds = projection.Scope is { } scope
+                ? ScopeEvents(scope)
+                : projection.Transitions.Select(_ => _.EventContract);
+            foreach (var eventId in eventIds)
+            {
+                var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(eventId).Path);
+                if (!string.Equals(ownNamespace, eventNamespace, StringComparison.Ordinal))
+                {
+                    builder.Using(eventNamespace);
+                }
+            }
         }
 
-        var keyedQuery = located.Slice.Queries.SingleOrDefault();
-        if (keyedQuery is not null)
+        if (located.Slice.Queries.Length > 0 || located.Slice.Projections.Any(_ => _.Scope is not null))
         {
-            // The model states which property the key matches, so the read model can say so itself rather than
-            // leaving the key implicit in the event source. An instance handed to a frontend is then
-            // self-identifying, which is what every hand-written Cratis read model does.
             builder.Using("Cratis.Chronicle.Keys");
         }
 
-        builder.Attribute($"FromEvent<{Identifiers.ToPascalCase(@event.Name)}>")
-            .Attribute("ReadModel")
-            .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(readModel, transition, @event, types, keyedQuery)})");
-        if (keyedQuery is { } query)
+        var firstModel = true;
+        foreach (var readModel in located.Slice.ReadModels)
         {
-            RenderQuery(builder, query, readModel, types);
+            if (!firstModel)
+            {
+                builder.BlankLine();
+            }
+
+            firstModel = false;
+            var projection = located.Slice.Projections.Single(_ => _.ReadModel == readModel.Id);
+            var transition = projection.Scope is null ? projection.Transitions.Single() : null;
+            var @event = transition is null ? null : context.Events[transition.EventContract];
+            var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
+            if (@event is not null)
+            {
+                builder.Attribute($"FromEvent<{Identifiers.ToPascalCase(@event.Name)}>");
+            }
+
+            builder.Attribute("ReadModel")
+                .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault()))})");
+            foreach (var query in queries)
+            {
+                RenderQuery(builder, query, readModel, types);
+            }
+
+            builder.EndBlock();
+            if (projection.Scope is { } scope)
+            {
+                builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
+            }
         }
 
-        builder.EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
         return new(path, builder.ToString());
     }
+
+    static IEnumerable<SemanticId> ScopeEvents(SemanticProjectionScope scope) =>
+        scope.From.Select(_ => _.EventContract)
+            .Concat(scope.Joins.Select(_ => _.EventContract))
+            .Concat(scope.Children.SelectMany(_ => ScopeEvents(_.Scope))).Distinct();
+
+    static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries) =>
+        string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
+            $"{(property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id) ? "[Key] " : string.Empty)}{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
 
     static string Parameters(
         SemanticReadModel readModel,

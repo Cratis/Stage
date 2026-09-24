@@ -62,7 +62,7 @@ public class when_building_root_string_queries(context fixture) : IClassFixture<
             scaffold.Success.ShouldBeTrue();
             scaffold.Diagnostics.ShouldBeEmpty();
             Assert.Equal(profile.Inputs.Select(input => input.Sha256).Order(), scaffold.Artifacts.Select(artifact => artifact.Sha256).Order());
-            Assert.Equal(["Program.cs"], scaffold.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath));
+            Assert.Equal(["GeneratedPolicyRegistration.cs", "Program.cs"], scaffold.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath));
 
             var syntax = new NativeScreenplayCompiler().Compile("""
                 policy Readers

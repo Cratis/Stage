@@ -23,14 +23,13 @@ public class when_classifying_semantic_members
         [SemanticPrimitiveType.Unknown]);
 
     [Fact] public void should_classify_every_validation_rule_kind() => AssertCoverage(
-        [SemanticValidationRuleKind.NotEmpty],
-        [SemanticValidationRuleKind.Unknown, SemanticValidationRuleKind.Maximum, SemanticValidationRuleKind.Minimum,
+        [SemanticValidationRuleKind.NotEmpty, SemanticValidationRuleKind.Maximum, SemanticValidationRuleKind.Minimum,
             SemanticValidationRuleKind.Equal, SemanticValidationRuleKind.NotEqual, SemanticValidationRuleKind.GreaterThan,
             SemanticValidationRuleKind.GreaterThanOrEqual, SemanticValidationRuleKind.LessThan,
             SemanticValidationRuleKind.LessThanOrEqual, SemanticValidationRuleKind.Length, SemanticValidationRuleKind.AllGreaterThan,
-            SemanticValidationRuleKind.AllGreaterThanOrEqual, SemanticValidationRuleKind.Matches]);
+            SemanticValidationRuleKind.AllGreaterThanOrEqual, SemanticValidationRuleKind.Matches],
+        [SemanticValidationRuleKind.Unknown]);
 
-    // A failure rejects at every severity, but only the default error severity renders as stated.
     [Fact] public void should_classify_every_validation_severity() => AssertCoverage(
         [SemanticValidationSeverity.Error],
         [SemanticValidationSeverity.Information, SemanticValidationSeverity.Warning]);

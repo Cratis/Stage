@@ -73,12 +73,6 @@ internal static partial class SemanticCratisAdmission
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind)
     };
 
-    // Only an unconditional NotEmpty rule at the default error severity renders exactly. Screenplay reports a
-    // warning or information failure at that severity while still rejecting, which the rendered validator cannot
-    // state, so those are admitted only once the renderer carries the severity.
-    static bool IsRenderableValidation(SemanticValidationRule rule) =>
-        rule.Kind == SemanticValidationRuleKind.NotEmpty && rule.Operand is null && rule.Severity == SemanticValidationSeverity.Error;
-
     static bool MappingsMatch(
         ImmutableArray<SemanticPropertyMapping> mappings,
         ImmutableArray<SemanticProperty> targets,

@@ -1,0 +1,17 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using Cratis.Specifications;
+using Xunit;
+
+namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_planning_newer_semantic_constructs;
+
+public class with_an_optional_required_concept : given.an_invoice_model
+{
+    void Because() => Plan(("concept Display : String\n  validate\n    not empty\n" + Invoices)
+        .Replace("        produces InvoiceIssued\n", "        display Display?\n        produces InvoiceIssued\n", StringComparison.Ordinal)
+        .Replace("          streamReference = ", "          display = \"xy\"\n          streamReference = ", StringComparison.Ordinal));
+
+    [Fact] void should_reject_a_null_concept_that_arc_graph_validation_skips() => ErrorCodes.ShouldContainOnly(["STAGE-ESM-005"]);
+    [Fact] void should_not_plan_any_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+}

@@ -26,8 +26,7 @@ internal static partial class SemanticCratisAdmission
         _ = SemanticSurfaceLedger.Entries;
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         var model = context.Request.Model;
-        if ((model.LanguageVersion != LanguageVersion.V1 && model.LanguageVersion != LanguageVersion.V2) ||
-            (model.SemanticVersion != SemanticVersion.V1 && model.SemanticVersion != SemanticVersion.V2))
+        if (!EsmSchemaV3Support.Supports(model.LanguageVersion, model.SemanticVersion))
         {
             diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", model.Application.Id));
             return [.. diagnostics];
@@ -38,6 +37,12 @@ internal static partial class SemanticCratisAdmission
 
         foreach (var located in slices)
         {
+            if (!located.Slice.Reducers.IsEmpty)
+            {
+                diagnostics.Add(Error("STAGE-ESM-018", $"Slice '{located.Slice.Name}' has reducer implementation bodies; Stage cannot render reducer transitions.", located.Slice.Id));
+                continue;
+            }
+
             switch (located.Slice.Kind)
             {
                 case SemanticSliceKind.StateChange:

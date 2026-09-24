@@ -1,0 +1,4 @@
+
+[mcp_servers.screenplay]
+command = "cratis"
+args = ["screenplay", "mcp", "--project-root", "."]

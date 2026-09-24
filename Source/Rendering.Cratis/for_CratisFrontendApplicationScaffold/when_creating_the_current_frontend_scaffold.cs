@@ -35,6 +35,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_end_every_input_with_exactly_one_line_feed_byte() => _first.All(EndsWithExactlyOneLineFeed).ShouldBeTrue();
     [Fact] void should_reject_a_missing_request_with_the_project_exception() => Catch.Exception(() => new CratisFrontendApplicationScaffold().Create(null!)).ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
     [Fact] void should_pin_every_dependency_exactly() => DependencyVersions().ShouldEqual(ExpectedDependencyVersions());
+
     /// <summary>
     /// The shell declares what a composed screen imports.
     /// </summary>
@@ -45,7 +46,11 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_reference_the_component_stack() => _first.Any(input => Text(input).Contains("@cratis/components", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_reference_the_scene_packages() => _first.Any(input => Text(input).Contains("@cratis/scene.components", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_mount_the_arc_provider() => Content(".frontend/main.tsx").ShouldContain("<Arc>");
-    [Fact] void should_import_the_published_component_styles_before_local_overrides() => Content(".frontend/index.css").Split('\n')[0].ShouldEqual("@import '@cratis/components/styles';");
+    [Fact] void should_import_published_tokens_before_styles_and_local_overrides() => Content(".frontend/index.css").StartsWith("@import '@cratis/components/tokens';\n@import '@cratis/components/styles';\n", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_not_apply_a_product_theme_implicitly() => Content(".frontend/index.css").ShouldNotContain("@cratis/components/theme");
+    [Fact] void should_discover_optional_unmanaged_styles_before_rendering() => Content(".frontend/main.tsx").ShouldContain("import.meta.glob('../Customizations/styles.css');");
+    [Fact] void should_wait_for_the_optional_unmanaged_styles() => Content(".frontend/main.tsx").ShouldContain("await Object.values(customStyles)[0]?.();");
+    [Fact] void should_await_unmanaged_styles_before_rendering() => Content(".frontend/main.tsx").IndexOf("await Object.values(customStyles)[0]?.();", StringComparison.Ordinal).ShouldBeLessThan(Content(".frontend/main.tsx").IndexOf("ReactDOM.createRoot", StringComparison.Ordinal));
 
     /// <summary>
     /// The composed screen renders through the component library, which the maintained reference application

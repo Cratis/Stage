@@ -218,6 +218,7 @@ The [Cratis CLI](/cli/reference/run) wraps this in `cratis run`, so you rarely t
 ## Where to go next
 
 - [Build a renderer target](guides/build-renderer-target.md) — implement a deterministic Screenplay-to-code target with the Stage planning contracts.
+- [Customize a rendered application](guides/customize-rendered-application.md) — register services, add dependencies, and restyle the frontend from unmanaged files.
 - [The Stage container](docker/index.md) — what is inside the image, how it boots, its ports, mount points, and configuration.
 - [The specification runner](docker/spec-runner.md) — running a model's specifications as a container job.
 - [URLs of a running Stage](reference/urls.md) — the runtime endpoints and their current behavior.

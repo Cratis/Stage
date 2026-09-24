@@ -185,6 +185,10 @@ public sealed class CratisFrontendApplicationScaffold
         const elements = screen ? Object.values(screen.slotContent).flat() : [];
         const components = { ...coreComponents, ...cratisComponentsPackage.components };
 
+        // A lazy CSS import orders user-owned tokens after the managed styles, before React renders.
+        const customStyles = import.meta.glob('../Customizations/styles.css');
+        await Object.values(customStyles)[0]?.();
+
         ReactDOM.createRoot(document.getElementById('root')!).render(
             <React.StrictMode>
                 <CratisComponentsProvider>
@@ -206,6 +210,7 @@ public sealed class CratisFrontendApplicationScaffold
 
     static string IndexCss() =>
         """
+        @import '@cratis/components/tokens';
         @import '@cratis/components/styles';
 
         :root {

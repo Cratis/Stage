@@ -1,14 +1,25 @@
 # Samples
 
-Complete Screenplay applications, kept compiling by the build.
+Screenplay applications and product-owned customization examples.
 
-Each sample is a folder, and a folder is one application — every `.play` file inside it describes part of the
+For the Screenplay samples, each folder is one application — every `.play` file inside it describes part of the
 same document, and names resolve across all of them. That is not a convention this folder invented; it is what
 `PlayFileCompiler.CompileFolder` means.
 
 | Sample | What it is |
 | --- | --- |
 | [`Billing`](Billing) | An invoicing application, and the broadest exercise of the language in this repository. |
+| [`Customization`](Customization) | C# and CSS fragments to copy into a rendered application, not a standalone Screenplay application. |
+
+## Customization
+
+Copy `Customization/Customizations/` into a rendered application's root. The sample registers an HTTP catalog
+adapter, adds `/api/catalog/products/{id}`, and overrides product tokens without editing managed files. Set
+`ProductCatalog__BaseAddress` to your catalog's base URL; the adapter expects `products/{id}` to return JSON with a
+`name` property or HTTP 404. The fragments must be compiled in the rendered host, not run on their own.
+
+See [Customize a rendered application](../Documentation/guides/customize-rendered-application.md) for the hook
+signatures, configuration, dependency imports, and ownership limits.
 
 ## Billing
 
@@ -25,7 +36,7 @@ Billing/
     Invoices/
       Invoices.play                the feature
       RegisterInvoice/             StateChange - command, event, constraint, specifications, screen
-      IssueInvoice/                StateChange - reads state, conditional produces, reducer
+      IssueInvoice/                StateChange - reads state, requirements, state projection
       CancelInvoice/               StateChange - authorization, context mapping
       InvoiceList/                 StateView - readmodel, projection, queries, two screens
     Reminders/
@@ -59,7 +70,7 @@ demonstrates the mechanism and four more would be repetition rather than coverag
 screenplay Samples/Billing
 
 # Serve it: the modeled backend, and the frontend translated to Scene
-docker run --rm -p 9090:9090 -p 35000:35000 -v "$PWD/Samples/Billing":/eventmodel:ro cratis/stage:latest
+docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 -v "$PWD/Samples/Billing":/eventmodel:ro cratis/stage:latest
 ```
 
 ### It is kept honest by the build

@@ -1,0 +1,6 @@
+/* Product-owned tokens are loaded after the generated component tokens and styles. */
+:root {
+  --ds-surface-ground: #eef4f5;
+  --cratis-surface-ground: var(--ds-surface-ground);
+  font-family: system-ui, sans-serif;
+}

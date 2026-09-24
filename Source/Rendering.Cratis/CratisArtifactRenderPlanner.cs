@@ -178,6 +178,15 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             }
         }
 
+        if (unique.Exists(artifact => artifact.RelativePath.StartsWith("Customizations/", StringComparison.OrdinalIgnoreCase)))
+        {
+            diagnostics.Add(Error(
+                "STAGE-CRATIS-005",
+                "The top-level Customizations directory is reserved for user-owned files. Rename the modeled module or feature that would render into it.",
+                request.Model.Application.Id));
+            return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
+        }
+
         return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics]);
     }
 

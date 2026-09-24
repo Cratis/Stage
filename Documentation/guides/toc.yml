@@ -1,2 +1,4 @@
 - name: Build a renderer target
   href: build-renderer-target.md
+- name: Customize a rendered application
+  href: customize-rendered-application.md

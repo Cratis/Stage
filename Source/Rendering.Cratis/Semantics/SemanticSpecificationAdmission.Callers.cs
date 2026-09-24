@@ -20,6 +20,7 @@ internal static partial class SemanticSpecificationAdmission
         command = null;
         return specification.When is not null &&
             context.Commands.TryGetValue(specification.When.Command, out command) &&
+            specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true &&
             (!specification.ThenDenied || (specification.ThenQueries.IsEmpty && command.Authorization is not null && specification.GivenCaller is not null)) &&
             specification.ThenQueries.All(_ => context.Queries.TryGetValue(_.Query, out var query) && query.Authorization is null);
     }

@@ -122,7 +122,15 @@ internal static class SemanticStateChangeArtifactRenderer
 
     static void RenderValidator(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context)
     {
-        if (command.Validations.IsEmpty && command.Requirements.IsEmpty)
+        var constrained = context.Constraints.Select(_ => _.Constraint)
+            .Where(constraint => constraint.Kind == SemanticConstraintKind.UniquePropertyValue)
+            .SelectMany(constraint => constraint.Targets)
+            .SelectMany(target => command.Produces.Where(produced => produced.EventContract == target.EventContract)
+                .SelectMany(produced => produced.Mappings.Where(mapping => target.Properties.Contains(mapping.TargetProperty))))
+            .Select(mapping => ((SemanticResolvedExpression)mapping.Source).Target).Distinct()
+            .Where(id => !command.Validations.Any(rule => rule.Property == id && rule.Kind == SemanticValidationRuleKind.NotEmpty))
+            .ToArray();
+        if (command.Validations.IsEmpty && command.Requirements.IsEmpty && constrained.Length == 0)
         {
             return;
         }
@@ -136,6 +144,12 @@ internal static class SemanticStateChangeArtifactRenderer
             var property = command.Properties.Single(_ => _.Id == rule.Property);
             var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
             SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional);
+        }
+
+        foreach (var id in constrained)
+        {
+            var property = command.Properties.Single(candidate => candidate.Id == id);
+            builder.Line($"RuleFor(_ => _.{Identifiers.ToPascalCase(property.Name)}).NotNull().WithMessage(\"A constrained value is required.\");");
         }
 
         foreach (var requirement in command.Requirements)

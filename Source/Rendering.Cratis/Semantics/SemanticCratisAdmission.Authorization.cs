@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Security.Claims;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 
@@ -11,6 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticCratisAdmission
 {
+    internal static bool IsRoleClaim(string type) => string.Equals(type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase);
+
     static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {
         // The reference evaluator selects the first supplied identifier, not necessarily the first declared
@@ -45,12 +48,13 @@ internal static partial class SemanticCratisAdmission
 
         // Arc's Authorize attribute requires an authenticated principal even when its named policy would
         // accept an unauthenticated caller. Admit only expressions that already require authentication.
-        if (CanRender(authorization, context.Application.Policies) && RequiresAuthentication(authorization, context.Application.Policies))
+        if (CanRender(authorization, context.Application.Policies) && RequiresAuthentication(authorization, context.Application.Policies) &&
+            !Claims(authorization, context.Application.Policies).Any(claim => IsRoleClaim(claim.Claim)))
         {
             return true;
         }
 
-        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' cannot be rendered exactly with Arc's authenticated policy boundary, or contains an unresolved or non-portable policy.", id));
+        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' cannot be rendered exactly with Arc's authenticated policy boundary, contains a role claim URI, or has an unresolved or non-portable policy.", id));
         return false;
     }
 

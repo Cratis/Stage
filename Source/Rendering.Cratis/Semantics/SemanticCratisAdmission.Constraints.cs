@@ -41,6 +41,17 @@ internal static partial class SemanticCratisAdmission
                 continue;
             }
 
+            // Chronicle#4123 updates the constraint index after commit. A storage failure can leave an
+            // accepted event unindexed; admission cannot make that infrastructure failure atomic.
+            foreach (var command in slices.SelectMany(selected => selected.Slice.Commands))
+            {
+                var affected = constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy).ToHashSet();
+                if (command.Produces.Count(produced => affected.Contains(produced.EventContract)) > 1)
+                {
+                    diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' cannot preserve changes to multiple claims or releases in one command '{command.Name}' batch.", command.Id));
+                }
+            }
+
             foreach (var target in constraint.Targets)
             {
                 var @event = context.Events[target.EventContract];

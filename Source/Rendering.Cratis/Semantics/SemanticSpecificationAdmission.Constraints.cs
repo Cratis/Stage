@@ -28,6 +28,58 @@ internal static partial class SemanticSpecificationAdmission
         return matches.Length == 1 ? matches[0] : null;
     }
 
+    static bool GivenEventsViolateConstraints(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        foreach (var constraint in context.Constraints.Select(_ => _.Constraint))
+        {
+            var claims = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var given in specification.GivenEvents)
+            {
+                if (given.EventSource?.Value is not SemanticTextValue source)
+                {
+                    continue;
+                }
+
+                var target = constraint.Targets.FirstOrDefault(candidate => candidate.EventContract == given.EventContract);
+                if (target is null && !constraint.ReleasedBy.Contains(given.EventContract))
+                {
+                    continue;
+                }
+
+                if (target is not null && constraint.Kind == SemanticConstraintKind.UniqueEventOccurrence && claims.ContainsKey(source.Value))
+                {
+                    return true;
+                }
+
+                string? value = null;
+                if (target is not null)
+                {
+                    if (constraint.Kind == SemanticConstraintKind.UniqueEventOccurrence)
+                    {
+                        value = source.Value;
+                    }
+                    else if (given.Values.FirstOrDefault(property => property.TargetProperty == target.Properties.FirstOrDefault())?.Value is SemanticTextValue text)
+                    {
+                        value = constraint.IgnoreCasing ? text.Value.ToLowerInvariant() : text.Value;
+                    }
+                }
+                if (value is not null && constraint.Kind == SemanticConstraintKind.UniquePropertyValue &&
+                    claims.Any(claim => claim.Key != source.Value && claim.Value == value))
+                {
+                    return true;
+                }
+
+                claims.Remove(source.Value);
+                if (value is not null)
+                {
+                    claims.Add(source.Value, value);
+                }
+            }
+        }
+
+        return false;
+    }
+
     static bool HasRenderableErrors(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand? command) =>
         specification.ThenErrors.All(error => SemanticValidationRendering.SafeMessage(error.Message) &&
             (error.Code is null || IsConstraintViolation(context, specification, command, error)));

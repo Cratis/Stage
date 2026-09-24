@@ -65,18 +65,29 @@ internal static class SemanticCommandSpecificationRenderer
         var arguments = command.Properties.Select(property =>
             types.Value(when.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
 
+        var constrainedEvents = context.Constraints.Select(_ => _.Constraint)
+            .SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy)).ToHashSet();
+        var seedInLog = !specification.GivenEvents.IsEmpty &&
+            (specification.GivenEvents.Any(given => constrainedEvents.Contains(given.EventContract)) ||
+             command.Produces.Any(produced => constrainedEvents.Contains(produced.EventContract)));
+
         // The scenario owns a service provider and disposes it, so the specification that owns the scenario
         // has to dispose it in turn. Generated code is built in someone else's repository, frequently with
         // analysis as errors, and an undisposed owned resource is a build failure there that they cannot fix
         // by editing the file.
         builder.OpenBlock($"public class {behavior} : Specification, IDisposable")
             .Line($"readonly CommandScenario<{commandName}> _scenario = new();")
-            .Line("CommandResult _result = null!;")
-            .BlankLine();
+            .Line("CommandResult _result = null!;");
+        if (seedInLog || specification.ThenDenied || !specification.ThenErrors.IsEmpty)
+        {
+            builder.Line("int _givenEventCount = 0;");
+        }
+
+        builder.BlankLine();
 
         if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
         {
-            builder.OpenBlock(SemanticSpecificationAdmission.ConstraintName(context, specification) is not null ? "async Task Establish()" : "void Establish()");
+            builder.OpenBlock(seedInLog ? "async Task Establish()" : "void Establish()");
             if (command.Authorization is not null)
             {
                 builder.Line($"{context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
@@ -98,13 +109,18 @@ internal static class SemanticCommandSpecificationRenderer
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var eventSource = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
             var eventValue = $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)})";
-            builder.Line(SemanticSpecificationAdmission.ConstraintName(context, specification) is not null
+            builder.Line(seedInLog
                 ? $"await _scenario.EventScenario.Given.ForEventSource({eventSource}).Events({eventValue});"
                 : $"_scenario.Given.ForEventSource({eventSource}).Events({eventValue});");
         }
 
         if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
         {
+            if (seedInLog || specification.ThenDenied || !specification.ThenErrors.IsEmpty)
+            {
+                builder.Line("_givenEventCount = _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess);");
+            }
+
             builder.EndBlock().BlankLine();
         }
 
@@ -129,9 +145,18 @@ internal static class SemanticCommandSpecificationRenderer
 
         if (specification.ThenDenied)
         {
+            var policy = $"{context.RootNamespace}.GeneratedPolicies.StagePolicy_{command.Id.ToString().Replace('-', '_').Replace(':', '_')}";
             builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
+                .Using("Cratis.Arc.Authorization")
+                .Using("Microsoft.Extensions.DependencyInjection")
                 .Line("[Fact] void should_be_denied() => _result.IsAuthorized.ShouldBeFalse();")
-                .Line("[Fact] void should_not_append_events() => _scenario.AppendedEvents.ShouldBeEmpty();");
+                .Line("[Fact] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);")
+                .OpenBlock("[Fact] void should_resolve_the_registered_policy()")
+                .Line($"_scenario.Services.Any(registration => registration.ImplementationInstance is AuthorizationPolicyRegistration policy && policy.Name == nameof({policy}) && policy.PolicyType == typeof({policy})).ShouldBeTrue();")
+                .Line("using var provider = _scenario.Services.BuildServiceProvider();")
+                .Line("using var scope = provider.CreateScope();")
+                .Line($"scope.ServiceProvider.GetRequiredService<{policy}>().ShouldNotBeNull();")
+                .EndBlock();
         }
         else if (!specification.ThenErrors.IsEmpty)
         {
@@ -142,11 +167,13 @@ internal static class SemanticCommandSpecificationRenderer
                 builder.Line($"[Fact] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});");
             }
 
+            builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
+                .Line("[Fact] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);");
             RenderConstraintViolation(builder, specification, context);
         }
         else
         {
-            RenderAccepted(builder, specification, command, commandName, context, types);
+            RenderAccepted(builder, specification, command, context, types, seedInLog);
         }
 
         builder.BlankLine()
@@ -178,16 +205,23 @@ internal static class SemanticCommandSpecificationRenderer
         CSharpCodeBuilder builder,
         SemanticSpecification specification,
         SemanticCommand command,
-        string commandName,
         SemanticApplicationContext context,
-        SemanticTypeSystem types)
+        SemanticTypeSystem types,
+        bool seedInLog)
     {
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
             .Using("Cratis.Chronicle.Events")
             .Line("[Fact] void should_succeed() => _result.ShouldBeSuccessful();");
         if (specification.ThenEvents.Length > 1)
         {
-            builder.Line($"[Fact] void should_append_exactly_{specification.ThenEvents.Length}_events() => _scenario.AppendedEvents.Count.ShouldEqual({specification.ThenEvents.Length});");
+            builder.Line(seedInLog
+                ? $"[Fact] void should_append_exactly_{specification.ThenEvents.Length}_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual({specification.ThenEvents.Length});"
+                : $"[Fact] void should_append_exactly_{specification.ThenEvents.Length}_events() => _scenario.AppendedEvents.Count.ShouldEqual({specification.ThenEvents.Length});");
+        }
+
+        if (seedInLog && specification.ThenEvents.Length == 1)
+        {
+            builder.Line("[Fact] void should_append_exactly_one_new_event() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(1);");
         }
 
         foreach (var (expected, index) in specification.ThenEvents.Select((value, index) => (value, index)))
@@ -209,13 +243,16 @@ internal static class SemanticCommandSpecificationRenderer
             }));
             var sourceValue = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
             var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
-            if (specification.ThenEvents.Length == 1)
+            if (specification.ThenEvents.Length == 1 && !seedInLog)
             {
-                builder.Line($"[Fact] async Task {name}() => await _scenario.ShouldHaveAppendedEvent<{commandName}, {Identifiers.ToPascalCase(@event.Name)}>({sourceValue}, @event => {predicate});");
+                builder.Line($"[Fact] async Task {name}() => await _scenario.ShouldHaveAppendedEvent<{Identifiers.ToPascalCase(command.Name)}, {Identifiers.ToPascalCase(@event.Name)}>({sourceValue}, @event => {predicate});");
             }
             else
             {
-                builder.Line($"[Fact] void {name}_at_position_{index + 1}() => (_scenario.AppendedEvents[{index}].Event.Context.EventSourceId == {sourceValue} && _scenario.AppendedEvents[{index}].Event.Content is {Identifiers.ToPascalCase(@event.Name)} @event && {predicate}).ShouldBeTrue();");
+                var appended = seedInLog
+                    ? $"_scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).ToArray()[_givenEventCount + {index}]"
+                    : $"_scenario.AppendedEvents[{index}]";
+                builder.Line($"[Fact] void {name}_at_position_{index + 1}() => ({appended}.Event.Context.EventSourceId == {sourceValue} && {appended}.Event.Content is {Identifiers.ToPascalCase(@event.Name)} @event && {predicate}).ShouldBeTrue();");
             }
         }
     }

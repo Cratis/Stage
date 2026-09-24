@@ -17,7 +17,7 @@ public class when_executing_specifications_with_an_explicit_root_namespace(conte
 {
     [Fact] void should_build_the_debug_application_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_the_release_application_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
-    [Fact] void should_execute_every_generated_fact() => fixture.Results.Length.ShouldEqual(8);
+    [Fact] void should_execute_every_generated_fact() => fixture.Results.Length.ShouldEqual(9);
     [Fact] void should_pass_every_generated_fact() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
     [Fact] void should_execute_only_the_explicit_namespace() => fixture.Results.All(_ => _.Name.StartsWith("Acme.projectAPI.", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_execute_command_acceptance() => fixture.Results.Any(_ => _.Name.EndsWith(".should_succeed", StringComparison.Ordinal)).ShouldBeTrue();

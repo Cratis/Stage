@@ -15,7 +15,7 @@ public class with_concept_rules(context fixture) : IClassFixture<context>
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_acceptance_and_rejection_specifications() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_execute_every_specification() => fixture.Results.Length.ShouldEqual(10);
+    [Fact] void should_execute_every_specification() => fixture.Results.Length.ShouldEqual(12);
     [Fact] void should_render_the_reference_default_message() => fixture.ConceptGenerated.ShouldContain(".WithMessage(\"A value must be at least 2 characters long.\")");
 
     public class context : a_generated_invoice_application

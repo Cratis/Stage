@@ -25,7 +25,8 @@ internal static partial class SemanticSpecificationAdmission
         foreach (var specification in slice.Specifications)
         {
             var valid = HasRenderableCallerAndCommand(context, specification, out var command) &&
-                HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) && specification.GivenReadModels.IsEmpty &&
+                HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
+                !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
                 ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
                 HasOneOutcome(specification) && HasSupportedCounts(specification) &&
                 (!specification.ThenEventsInAnyOrder || specification.ThenEvents.Length <= 1) &&
@@ -65,6 +66,16 @@ internal static partial class SemanticSpecificationAdmission
         if (specification.GivenEvents.Any(_ => _.EventSource is null))
         {
             return "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id.";
+        }
+
+        if (GivenEventsViolateConstraints(context, specification))
+        {
+            return "Given events violate a selected append-time constraint and cannot be seeded faithfully into Chronicle's event log.";
+        }
+
+        if (specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) == true)
+        {
+            return "A caller claim using the role claim URI conflates separate Screenplay roles and claims in Arc.";
         }
 
         if (specification.ThenReadModels.Any(_ => context.Projections.Values.Any(projection => projection.ReadModel == _.ReadModel && projection.Scope is not null)) ||

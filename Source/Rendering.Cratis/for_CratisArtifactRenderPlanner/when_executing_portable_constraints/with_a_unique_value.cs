@@ -15,7 +15,7 @@ public class with_a_unique_value(context fixture) : IClassFixture<context>
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_generated_specs() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_execute_violation_and_nonviolating_cases() => fixture.Results.Length.ShouldEqual(8);
+    [Fact] void should_execute_violation_and_nonviolating_cases() => fixture.Results.Length.ShouldEqual(11);
 
     public class context : a_generated_invoice_application
     {
@@ -44,7 +44,36 @@ public class with_a_unique_value(context fixture) : IClassFixture<context>
             """ + "\n",
                 StringComparison.Ordinal);
 
-        Task Because() => VerifyGeneratedApplication();
+        async Task Because()
+        {
+            AddGeneratedSpecification("Billing/Invoicing/Issue/when_null_description.cs", """
+                // Copyright (c) Cratis. All rights reserved.
+                // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+                #if DEBUG
+                using Cratis.Arc.Chronicle.Testing.Commands;
+                using Cratis.Arc.Testing.Commands;
+                using Cratis.Specifications;
+                using Xunit;
+
+                namespace Invoices.Billing.Invoicing.Issue;
+
+                public class when_null_description : Specification, IDisposable
+                {
+                    readonly CommandScenario<IssueInvoice> _scenario = new();
+                    Cratis.Arc.Commands.CommandResult _result = null!;
+
+                    async Task Because() => _result = await _scenario.Execute(new IssueInvoice(null!, "invoice-three"));
+
+                    [Fact] void should_reject_null_before_append() => _result.ShouldHaveValidationErrors();
+                    [Fact] void should_not_append_an_event() => _scenario.AppendedEvents.ShouldBeEmpty();
+
+                    public void Dispose() => _scenario.Dispose();
+                }
+                #endif
+                """);
+            await VerifyGeneratedApplication();
+        }
     }
 }
 #endif

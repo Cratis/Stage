@@ -9,8 +9,10 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public class when_planning_a_composed_application : a_composed_register_project_application
+public partial class when_planning_a_composed_application : a_composed_register_project_application
 {
+    void Because() => _plan = _planner.Plan(_request);
+
     [Fact] void should_plan_without_errors() => _plan.Diagnostics.ShouldBeEmpty();
 
     [Fact] void should_carry_the_composed_scene() => Artifact(SceneCompositionInput.RelativePath).ShouldNotBeNull();
@@ -48,8 +50,11 @@ public class when_planning_a_composed_application : a_composed_register_project_
     /// </remarks>
     [Fact] void should_never_embed_an_http_route_in_emitted_application_typescript() =>
         _plan.Artifacts
-            .Where(_ => _.RelativePath.EndsWith(".ts", StringComparison.Ordinal) || _.RelativePath.EndsWith(".tsx", StringComparison.Ordinal))
-            .Where(_ => !_.RelativePath.StartsWith(".frontend/", StringComparison.Ordinal))
-            .Any(_ => Regex.IsMatch(Text(_), @"['""]/[a-z]", RegexOptions.IgnoreCase))
+            .Any(_ => (_.RelativePath.EndsWith(".ts", StringComparison.Ordinal) || _.RelativePath.EndsWith(".tsx", StringComparison.Ordinal)) &&
+                !_.RelativePath.StartsWith(".frontend/", StringComparison.Ordinal) &&
+                QuotedRootPath.IsMatch(Text(_)))
             .ShouldBeFalse();
+
+    [GeneratedRegex("['\"]/[a-z]", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex QuotedRootPath { get; }
 }

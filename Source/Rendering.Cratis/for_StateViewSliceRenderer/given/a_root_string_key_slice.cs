@@ -14,6 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer.given;
 public class a_root_string_key_slice : Specification
 {
     protected const string Global = "from OrderCreated\n  key literal \"global\"\n  total = total";
+    const string ProjectionLevelKeyWarning = "PLAY0381";
     protected ApplicationSet _context = null!;
     protected SliceSyntax _slice = null!;
 
@@ -43,7 +44,12 @@ public class a_root_string_key_slice : Specification
             .Replace("QUERIES", queries.Replace("\n", "\n      ", StringComparison.Ordinal), StringComparison.Ordinal);
         var compilation = new NativeScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, $"{string.Join(Environment.NewLine, compilation.Diagnostics)}{Environment.NewLine}{source}");
-        compilation.Diagnostics.ShouldBeEmpty();
+
+        // A deliberately declared projection-level key is exactly what Screenplay warns about (PLAY0381: it
+        // does not route events). Stage must still reject it on its own terms, so only that warning is expected.
+        compilation.Diagnostics
+            .Where(_ => projectionKey.Length == 0 || _.Code != ProjectionLevelKeyWarning)
+            .ShouldBeEmpty();
         _context = new([compilation.Value!]);
         _slice = _context.Slices.Single().Slice;
     }

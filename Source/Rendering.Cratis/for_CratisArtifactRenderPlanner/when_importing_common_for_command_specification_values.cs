@@ -28,7 +28,7 @@ public class when_importing_common_for_command_specification_values : Specificat
     {
         var source = "concept Note : String\n" + invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource)
             .Replace("command IssueInvoice\n", "command IssueInvoice\n        note Note?\n        notes Note[]?\n", StringComparison.Ordinal)
-            .Replace("when IssueInvoice\n", "when IssueInvoice\n          note = null\n          notes = null\n", StringComparison.Ordinal) +
+            .Replace("when IssueInvoice\n", "when IssueInvoice\n          note = \"placeholder\"\n          notes = [\"placeholder\"]\n", StringComparison.Ordinal) +
             "\n      event NoteRecorded\n        note Note\n";
         var model = invoice_model.Compile(source);
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
@@ -44,7 +44,9 @@ public class when_importing_common_for_command_specification_values : Specificat
         _notes = command.Properties.Single(_ => _.Name == "notes");
         _unusedEvent = _context.Events.Values.Single(_ => _.Name == "NoteRecorded");
 
-        // Empty array source literals are not admitted by the pinned binder; this test targets rendering values.
+        // Screenplay rejects null specification command values (PLAY0350) and empty array literals at binding,
+        // so the placeholders are replaced here: this specification targets how Stage renders those values.
+        _specification = WithCommandValue(_note.Id, SemanticValue.Null);
         _specification = WithCommandValue(_notes.Id, SemanticValue.Array([]));
     }
 

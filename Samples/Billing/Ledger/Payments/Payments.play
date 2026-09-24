@@ -70,6 +70,8 @@ module Ledger
       specification RecordingAPaymentShowsUpInTheList
         given readmodel PaymentSummary
           paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
           amount = 500
         then readmodel PaymentSummary
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
           amount = 500

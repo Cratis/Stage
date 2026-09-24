@@ -45,6 +45,7 @@ public class when_invoking_root_string_lookups : given.a_root_string_key_slice
             model.GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(property => property.Name).ShouldContainOnly("Total");
             Assert.Single(model.GetConstructors()).GetParameters().Select(parameter => parameter.Name).ShouldContainOnly("Total");
             var method = model.GetMethod(query.Length == 0 ? "OrderReadModelById" : "OrderById", BindingFlags.Public | BindingFlags.Static)!;
+
             // Declared as the event source id, not the string it is stored as: Arc validates the argument it
             // coerces to the declared parameter type, so a raw string parameter would reach the lookup
             // unvalidated (ARC0015). Exact forwarding of the literal is unchanged, asserted below.

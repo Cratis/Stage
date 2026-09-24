@@ -30,10 +30,8 @@ internal static class SemanticReadModelSpecificationRenderer
         var transition = projection.Transitions.Single();
         var @event = context.Events[transition.EventContract];
         var expectedEvent = specification.ThenEvents.Single(_ => _.EventContract == @event.Id);
-        var command = context.Commands[specification.When.Command];
-        var destination = (SemanticResolvedExpression)command.Produces.Single(_ => _.EventContract == @event.Id).Destination!;
-        var destinationProperty = command.Properties.Single(_ => _.Id == destination.Target);
-        var destinationValue = specification.When.Values.Single(_ => _.TargetProperty == destination.Target).Value;
+        var command = context.Commands[specification.When!.Command];
+        var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.Single(_ => _.EventContract == @event.Id));
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
@@ -46,7 +44,7 @@ internal static class SemanticReadModelSpecificationRenderer
             .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
             .BlankLine()
             .Line("async Task Establish() => await _scenario.Given")
-            .Line($"    .ForEventSource({types.Value(destinationValue, destinationProperty.Type)})")
+            .Line($"    .ForEventSource({types.Value(source.Value, source.Type)})")
             .Line($"    .Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)}));")
             .BlankLine();
         foreach (var property in readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal))

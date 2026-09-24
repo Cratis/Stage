@@ -24,6 +24,7 @@ internal static class SemanticCratisAdmission
     {
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         ValidateTypes(context, diagnostics);
+        ValidateConstraints(context, slices, diagnostics);
 
         foreach (var located in slices)
         {
@@ -68,7 +69,7 @@ internal static class SemanticCratisAdmission
         {
             if (concept.Primitive == SemanticPrimitiveType.Unknown ||
                 (concept.Values.Length > 0 && concept.Primitive != SemanticPrimitiveType.Text) ||
-                concept.Validations.Any(_ => _.Kind != SemanticValidationRuleKind.NotEmpty || _.Operand is not null))
+                !concept.Validations.All(IsRenderableValidation))
             {
                 diagnostics.Add(Error("STAGE-ESM-002", $"Concept '{concept.Name}' uses unsupported values or validation.", concept.Id));
             }
@@ -80,6 +81,23 @@ internal static class SemanticCratisAdmission
             {
                 diagnostics.Add(Error("STAGE-ESM-003", $"Property '{property.Name}' of '{type.Name}' has an unresolved type.", type.Id));
             }
+        }
+    }
+
+    // Chronicle enforces a constraint when an event is appended, so one declared anywhere governs every selected
+    // command producing its events. The planner renders no Chronicle constraints yet, and an application without
+    // them accepts appends the reference evaluator rejects.
+    static void ValidateConstraints(
+        SemanticApplicationContext context,
+        IReadOnlyList<LocatedSemanticSlice> slices,
+        List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var selected = slices.Select(_ => _.Slice.Id).ToHashSet();
+        var produced = slices.SelectMany(_ => _.Slice.Commands).SelectMany(_ => _.Produces).Select(_ => _.EventContract).ToHashSet();
+        foreach (var (slice, constraint) in context.Constraints.Where(_ =>
+            selected.Contains(_.Slice.Id) || _.Constraint.Targets.Any(target => produced.Contains(target.EventContract))))
+        {
+            diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' is enforced at append time, which the Cratis ESM planner does not render yet.", slice.Id));
         }
     }
 
@@ -98,7 +116,8 @@ internal static class SemanticCratisAdmission
         if (slice.Events.Any(@event => @event.Revision != EventContractRevision.Initial ||
                 @event.Properties.Any(property => !TypeExists(context, property.Type) || property.Type.IsOptional)) ||
             command.Properties.Any(_ => !TypeExists(context, _.Type)) ||
-            command.Validations.Any(_ => _.Kind != SemanticValidationRuleKind.NotEmpty || _.Operand is not null) ||
+            !command.Validations.All(IsRenderableValidation) ||
+            !command.Requirements.IsEmpty ||
             command.Produces.Length != 1)
         {
             diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' exceeds the first Cratis command capability.", command.Id));
@@ -106,8 +125,15 @@ internal static class SemanticCratisAdmission
         }
 
         var produced = command.Produces[0];
+        if (produced.Mappings.Any(_ => _.Source is SemanticEventContextExpression))
+        {
+            diagnostics.Add(Error("STAGE-ESM-013", $"Produced event of command '{command.Name}' maps a command occurrence value ($context). Chronicle assigns the occurrence when it appends, so a Cratis command cannot put the same value in the event payload.", command.Id));
+            return;
+        }
+
         if (!context.Events.TryGetValue(produced.EventContract, out var @event) || produced.Condition is not null ||
-            !IsProperty(produced.Destination, SemanticExpressionRootKind.Command, command.Properties.Where(_ => _.IsIdentifier).Select(_ => _.Id)) ||
+            produced.When is not null || !produced.Tags.IsEmpty || !@event.Tags.IsEmpty ||
+            !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, command.Properties.Where(_ => _.IsIdentifier).Select(_ => _.Id)) ||
             @event.Revision != EventContractRevision.Initial || @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
             !MappingsMatch(produced.Mappings, @event.Properties, command.Properties, SemanticExpressionRootKind.Command))
         {
@@ -178,13 +204,19 @@ internal static class SemanticCratisAdmission
         }
 
         var producers = context.Commands.Values.SelectMany(command =>
-            command.Produces.Where(produced => produced.EventContract == @event.Id)).ToArray();
+            command.Produces.Where(produced => produced.EventContract == @event.Id).Select(produced => (Command: command, Produced: produced))).ToArray();
         return producers.Length > 0 && producers.All(producer =>
-            producer.Destination is SemanticResolvedExpression destination &&
-            producer.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == eventKey)?.Source is SemanticResolvedExpression source &&
+            SemanticDestinations.Of(producer.Command, producer.Produced) is SemanticResolvedExpression destination &&
+            producer.Produced.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == eventKey)?.Source is SemanticResolvedExpression source &&
             destination.Root == SemanticExpressionRootKind.Command && source.Root == SemanticExpressionRootKind.Command &&
             destination.Target == source.Target);
     }
+
+    // Only an unconditional NotEmpty rule at the default error severity renders exactly. Screenplay reports a
+    // warning or information failure at that severity while still rejecting, which the rendered validator cannot
+    // state, so those are admitted only once the renderer carries the severity.
+    static bool IsRenderableValidation(SemanticValidationRule rule) =>
+        rule.Kind == SemanticValidationRuleKind.NotEmpty && rule.Operand is null && rule.Severity == SemanticValidationSeverity.Error;
 
     static bool MappingsMatch(
         ImmutableArray<SemanticPropertyMapping> mappings,

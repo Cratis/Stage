@@ -41,6 +41,7 @@ internal sealed class SemanticApplicationContext
         Queries = _slices.Values.SelectMany(_ => _.Slice.Queries).ToDictionary(_ => _.Id);
         Specifications = _slices.Values.SelectMany(_ => _.Slice.Specifications).ToDictionary(_ => _.Id);
         IdentifierConcepts = FindIdentifierConcepts();
+        Constraints = [.. _slices.Values.SelectMany(located => located.Slice.Constraints.Select(constraint => (located.Slice, constraint)))];
     }
 
     /// <summary>
@@ -102,6 +103,11 @@ internal sealed class SemanticApplicationContext
     /// Gets concept identities used as modeled runtime identifiers.
     /// </summary>
     public IReadOnlySet<SemanticId> IdentifierConcepts { get; }
+
+    /// <summary>
+    /// Gets every append-time constraint in the application with the slice declaring it.
+    /// </summary>
+    public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
 
     /// <summary>
     /// Gets the slices selected by the request scope in deterministic model order.

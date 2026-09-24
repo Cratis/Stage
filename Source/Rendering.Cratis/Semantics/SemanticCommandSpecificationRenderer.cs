@@ -21,7 +21,8 @@ internal static class SemanticCommandSpecificationRenderer
     /// <returns>The generated specification source.</returns>
     public static RenderedFile Render(SemanticSpecification specification, SemanticApplicationContext context)
     {
-        var command = context.Commands[specification.When.Command];
+        var when = specification.When!;
+        var command = context.Commands[when.Command];
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
@@ -33,7 +34,7 @@ internal static class SemanticCommandSpecificationRenderer
             .Using("Cratis.Specifications")
             .Using("Xunit");
         if (command.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
-            specification.When.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
+            when.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
         {
             builder.Using($"{context.RootNamespace}.Common");
         }
@@ -49,7 +50,7 @@ internal static class SemanticCommandSpecificationRenderer
 
         var commandName = Identifiers.ToPascalCase(command.Name);
         var arguments = command.Properties.Select(property =>
-            types.Value(specification.When.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+            types.Value(when.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
 
         // The scenario owns a service provider and disposes it, so the specification that owns the scenario
         // has to dispose it in turn. Generated code is built in someone else's repository, frequently with
@@ -97,10 +98,7 @@ internal static class SemanticCommandSpecificationRenderer
         SemanticApplicationContext context,
         SemanticTypeSystem types)
     {
-        var produced = command.Produces.Single();
-        var destination = (SemanticResolvedExpression)produced.Destination!;
-        var destinationProperty = command.Properties.Single(_ => _.Id == destination.Target);
-        var destinationValue = specification.When.Values.Single(_ => _.TargetProperty == destination.Target).Value;
+        var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.Single());
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
             .Using("Cratis.Chronicle.Events")
             .Line("[Fact] void should_succeed() => _result.ShouldBeSuccessful();");
@@ -108,7 +106,7 @@ internal static class SemanticCommandSpecificationRenderer
         foreach (var expected in specification.ThenEvents)
         {
             var @event = context.Events[expected.EventContract];
-            if (SemanticTypeSystem.ValueNeedsCommon(destinationValue, destinationProperty.Type) ||
+            if (SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
                 @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     expected.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
             {
@@ -123,7 +121,7 @@ internal static class SemanticCommandSpecificationRenderer
             builder.Line(
                 $"[Fact] async Task should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}() => " +
                 $"await _scenario.ShouldHaveAppendedEvent<{commandName}, {Identifiers.ToPascalCase(@event.Name)}>(" +
-                $"{types.EventSourceExpression(types.Value(destinationValue, destinationProperty.Type), destinationProperty.Type)}, @event => {predicate});");
+                $"{types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}, @event => {predicate});");
         }
     }
 

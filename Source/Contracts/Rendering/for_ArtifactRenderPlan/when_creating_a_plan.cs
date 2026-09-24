@@ -16,7 +16,7 @@ public class when_creating_a_plan : given.an_artifact_render_request
         _plan = ArtifactRenderPlan.Create(
             _request,
             [
-                PlannedArtifact.CreateText("z\\Project.cs", "first\r\nsecond\r"),
+                PlannedArtifact.CreateText("z\\Project.cs", "first\r\nsecond\r", [_request.Model.Application.Id, _request.Model.Application.Id]),
                 PlannedArtifact.CreateBinary("a/logo.bin", [2, 1])
             ],
             [
@@ -32,5 +32,7 @@ public class when_creating_a_plan : given.an_artifact_render_request
     [Fact] void should_order_artifacts_by_normalized_path() => _plan.Artifacts.Select(_ => _.RelativePath).SequenceEqual(["a/logo.bin", "z/Project.cs"]).ShouldBeTrue();
     [Fact] void should_normalize_text_to_utf8_lf() => Encoding.UTF8.GetString(_plan.Artifacts.Single(_ => _.Kind == PlannedArtifactKind.Text).Bytes.AsSpan()).ShouldEqual("first\nsecond\n");
     [Fact] void should_hash_every_artifact() => _plan.Artifacts.All(_ => _.Sha256.Length == 64).ShouldBeTrue();
+    [Fact] void should_deduplicate_semantic_sources() => _plan.Artifacts.Single(_ => _.Kind == PlannedArtifactKind.Text).Sources.SequenceEqual([_request.Model.Application.Id]).ShouldBeTrue();
+    [Fact] void should_leave_unsourced_scaffold_artifacts_empty() => _plan.Artifacts.Single(_ => _.Kind == PlannedArtifactKind.Binary).Sources.IsEmpty.ShouldBeTrue();
     [Fact] void should_order_diagnostics_deterministically() => _plan.Diagnostics.Select(_ => _.Code).SequenceEqual(["CRATIS0001", "CRATIS0002"]).ShouldBeTrue();
 }

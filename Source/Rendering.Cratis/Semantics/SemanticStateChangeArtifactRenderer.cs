@@ -56,7 +56,10 @@ internal static class SemanticStateChangeArtifactRenderer
 
         RenderValidator(builder, command, context);
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
-        return new(path, builder.ToString());
+        return new(path, builder.ToString())
+        {
+            Sources = [located.Slice.Id, .. located.Slice.Commands.Select(_ => _.Id), .. located.Slice.Events.Select(_ => _.Id)]
+        };
     }
 
     static void RenderCommand(

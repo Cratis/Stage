@@ -93,14 +93,16 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             {
                 artifacts.Add(PlannedArtifact.CreateText(
                     SceneCompositionInput.RelativePath,
-                    CanonicalSceneJson.Serialize(composed)));
+                    CanonicalSceneJson.Serialize(composed),
+                    [context.Application.Id]));
             }
 
             if (composed is not null || SceneCompositionInput.IsCarriedBy(request.Profile))
             {
                 artifacts.Add(PlannedArtifact.CreateText(
                     SceneBindingsRenderer.RelativePath,
-                    SceneBindingsRenderer.Render(context)));
+                    SceneBindingsRenderer.Render(context),
+                    [context.Application.Id]));
             }
 
             artifacts.AddRange(context.Application.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
@@ -139,7 +141,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             if (CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact))
             {
-                artifacts.Add(artifact!);
+                artifacts.Add(artifact!.RelativePath == SceneCompositionInput.RelativePath
+                    ? PlannedArtifact.CreateText(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), [request.Model.Application.Id])
+                    : artifact);
                 count++;
             }
             else
@@ -190,7 +194,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics]);
     }
 
-    static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content);
+    static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content, file.Sources);
 
     static ArtifactRenderDiagnostic Error(string code, string message, SemanticId artifact) =>
         new(code, ArtifactRenderDiagnosticSeverity.Error, message, artifact);

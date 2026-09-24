@@ -86,7 +86,12 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("return path == argument ? Text(key) : Path(key, path[(argument.Length + 1)..]);")
             .EndBlock()
             .EndBlock();
-        return new(Path.Combine("GeneratedPolicies", "Policies.cs"), builder.ToString());
+
+        // ESM policies are named rules without SemanticIds; the generated registrations realize protected operations.
+        return new(Path.Combine("GeneratedPolicies", "Policies.cs"), builder.ToString())
+        {
+            Sources = [.. operations.Select(_ => _.Id)]
+        };
     }
 
     static string Authorization(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies, bool command, string argument, string subject) => authorization switch

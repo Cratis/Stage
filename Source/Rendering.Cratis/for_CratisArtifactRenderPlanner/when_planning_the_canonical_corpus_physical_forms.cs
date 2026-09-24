@@ -37,4 +37,5 @@ public class when_planning_the_canonical_corpus_physical_forms : a_register_proj
     [Fact] void should_plan_identical_artifact_paths_for_every_physical_form() => _otherFormPlans.All(plan => plan.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_singleFormPlan.Artifacts.Select(_ => _.RelativePath))).ShouldBeTrue();
     [Fact] void should_plan_identical_artifact_bytes_for_every_physical_form() => _otherFormPlans.All(plan => plan.Artifacts.Length == _singleFormPlan.Artifacts.Length && plan.Artifacts.Zip(_singleFormPlan.Artifacts).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes))).ShouldBeTrue();
     [Fact] void should_plan_identical_artifact_hashes_for_every_physical_form() => _otherFormPlans.All(plan => plan.Artifacts.Select(_ => _.Sha256).SequenceEqual(_singleFormPlan.Artifacts.Select(_ => _.Sha256))).ShouldBeTrue();
+    [Fact] void should_plan_identical_semantic_sources_for_every_physical_form() => _otherFormPlans.All(plan => plan.Artifacts.Zip(_singleFormPlan.Artifacts).All(pair => pair.First.Sources.SequenceEqual(pair.Second.Sources))).ShouldBeTrue();
 }

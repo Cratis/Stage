@@ -160,6 +160,12 @@ var mobile = plan.Targets.Where(target => target.Profile.TargetPlatform is "ios"
 The split belongs at emission, where the artifacts genuinely differ — not back at compilation, where they do
 not.
 
+## Artifact manifest for code rendering
+
+`ArtifactRenderPlan` is the separate, destination-independent code-rendering contract (not the Scene `RenderPlan` above). Its `Artifacts` are ordered by normalized relative path. Each `PlannedArtifact` carries exact `Bytes`, their lowercase `Sha256`, and `Sources`: sorted, distinct `SemanticId`s of the model elements that file realizes. Scaffold files have empty `Sources` because they realize no semantic element; a Scene composition carried as a profile input is the exception and names the application identity. The plan carries the model's `SemanticRevision`; SHA-256 hashes only artifact bytes, not sources or plan metadata. Use path, sources, and hash together when recording a mapping from model elements to generated files.
+
+Screenplay ESM v1 gives constraints and named policies no individual semantic identities. Cratis maps constraint files to their owning slice and target event identities, and generated policy registrations to the protected command/query identities.
+
 ## What a plan does not decide
 
 - **It emits nothing.** A plan is the resolved input an emitter consumes; producing a static web bundle or a

@@ -1,6 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using Cratis.Screenplay.Semantics;
+
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
 /// <summary>
@@ -16,4 +19,9 @@ public sealed record RenderedFile(string RelativePath, string Content)
     /// emitted; these say where it is thinner than the Screenplay document it came from.
     /// </summary>
     public IReadOnlyList<string> Diagnostics { get; init; } = [];
+
+    /// <summary>
+    /// Gets the semantic identities realized in this generated file.
+    /// </summary>
+    public ImmutableArray<SemanticId> Sources { get; init; } = [];
 }

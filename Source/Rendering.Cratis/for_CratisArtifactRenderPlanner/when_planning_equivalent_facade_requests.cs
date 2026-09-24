@@ -43,10 +43,12 @@ public class when_planning_equivalent_facade_requests : a_register_project_rende
     [Fact] void should_plan_identical_artifact_paths() => _second.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_first.Artifacts.Select(_ => _.RelativePath)).ShouldBeTrue();
     [Fact] void should_plan_identical_artifact_bytes() => _second.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
     [Fact] void should_plan_identical_artifact_hashes() => _second.Artifacts.Select(_ => _.Sha256).SequenceEqual(_first.Artifacts.Select(_ => _.Sha256)).ShouldBeTrue();
+    [Fact] void should_plan_identical_semantic_sources() => _second.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.Sources.SequenceEqual(pair.Second.Sources)).ShouldBeTrue();
     [Fact] void should_admit_a_permuted_profile_input_enumeration() => _permuted.Success.ShouldBeTrue();
     [Fact] void should_make_permuted_profile_inputs_produce_identical_paths() => _permuted.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_first.Artifacts.Select(_ => _.RelativePath)).ShouldBeTrue();
     [Fact] void should_make_permuted_profile_inputs_produce_identical_bytes() => _permuted.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
     [Fact] void should_make_permuted_profile_inputs_produce_identical_hashes() => _permuted.Artifacts.Select(_ => _.Sha256).SequenceEqual(_first.Artifacts.Select(_ => _.Sha256)).ShouldBeTrue();
+    [Fact] void should_make_permuted_profile_inputs_produce_identical_sources() => _permuted.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.Sources.SequenceEqual(pair.Second.Sources)).ShouldBeTrue();
 
     static string ProfileIdentity(ArtifactRenderProfile profile) => $"{profile.Target}|{profile.TargetVersion}|{profile.Renderer}|{profile.RendererVersion}";
 }

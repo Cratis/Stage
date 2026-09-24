@@ -102,12 +102,17 @@ public sealed class PlannedArtifact
     public string Sha256 { get; }
 
     /// <summary>
+    /// Gets the sorted, distinct semantic identities realized by this artifact. Scaffold artifacts have no sources.
+    /// </summary>
+    public ImmutableArray<SemanticId> Sources { get; init; } = [];
+
+    /// <summary>
     /// Creates, normalizes, encodes, and hashes one text artifact.
     /// </summary>
     /// <param name="relativePath">The portable relative path.</param>
     /// <param name="content">The text content.</param>
     /// <returns>The planned artifact.</returns>
-    /// <exception cref="InvalidArtifactRenderContract"></exception>
+    /// <exception cref="InvalidArtifactRenderContract">The path, content or a semantic source is not a valid artifact contract.</exception>
     public static PlannedArtifact CreateText(string relativePath, string content)
     {
         if (content is null)
@@ -120,6 +125,17 @@ public sealed class PlannedArtifact
     }
 
     /// <summary>
+    /// Creates and hashes one text artifact with its semantic sources.
+    /// </summary>
+    /// <param name="relativePath">The portable relative path.</param>
+    /// <param name="content">The text content.</param>
+    /// <param name="sources">The semantic identities realized by this artifact.</param>
+    /// <returns>The planned artifact.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The path, content or a semantic source is not a valid artifact contract.</exception>
+    public static PlannedArtifact CreateText(string relativePath, string content, ImmutableArray<SemanticId> sources) =>
+        CreateText(relativePath, content).WithSources(sources);
+
+    /// <summary>
     /// Creates, normalizes, and hashes one binary artifact.
     /// </summary>
     /// <param name="relativePath">The portable relative path.</param>
@@ -127,6 +143,27 @@ public sealed class PlannedArtifact
     /// <returns>The planned artifact.</returns>
     public static PlannedArtifact CreateBinary(string relativePath, ImmutableArray<byte> bytes) =>
         Create(PlannedArtifactKind.Binary, relativePath, bytes);
+
+    /// <summary>
+    /// Creates and hashes one binary artifact with its semantic sources.
+    /// </summary>
+    /// <param name="relativePath">The portable relative path.</param>
+    /// <param name="bytes">The exact bytes.</param>
+    /// <param name="sources">The semantic identities realized by this artifact.</param>
+    /// <returns>The planned artifact.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The path, content or a semantic source is not a valid artifact contract.</exception>
+    public static PlannedArtifact CreateBinary(string relativePath, ImmutableArray<byte> bytes, ImmutableArray<SemanticId> sources) =>
+        CreateBinary(relativePath, bytes).WithSources(sources);
+
+    internal static ImmutableArray<SemanticId> NormalizeSources(ImmutableArray<SemanticId> sources)
+    {
+        if (sources.IsDefault || sources.Any(_ => !_.IsSet))
+        {
+            throw new InvalidArtifactRenderContract("Artifact semantic sources must be set identities.");
+        }
+
+        return [.. sources.Distinct().OrderBy(_ => _.ToString(), StringComparer.Ordinal)];
+    }
 
     internal static PlannedArtifact Create(PlannedArtifactKind kind, string relativePath, ImmutableArray<byte> bytes)
     {
@@ -161,6 +198,11 @@ public sealed class PlannedArtifact
 
         return normalized;
     }
+
+    internal PlannedArtifact WithSources(ImmutableArray<SemanticId> sources) => new(Kind, RelativePath, Bytes, Sha256)
+    {
+        Sources = NormalizeSources(sources)
+    };
 }
 
 /// <summary>
@@ -250,7 +292,7 @@ public sealed class ArtifactRenderPlan
     /// <param name="artifacts">The target artifacts.</param>
     /// <param name="diagnostics">The typed diagnostics.</param>
     /// <returns>The complete deterministic plan.</returns>
-    /// <exception cref="InvalidArtifactRenderContract"></exception>
+    /// <exception cref="InvalidArtifactRenderContract">The path, content or a semantic source is not a valid artifact contract.</exception>
     public static ArtifactRenderPlan Create(
         ArtifactRenderRequest request,
         ImmutableArray<PlannedArtifact> artifacts,
@@ -266,7 +308,7 @@ public sealed class ArtifactRenderPlan
         }
 
         var normalized = artifacts
-            .Select(artifact => PlannedArtifact.Create(artifact.Kind, artifact.RelativePath, artifact.Bytes))
+            .Select(artifact => PlannedArtifact.Create(artifact.Kind, artifact.RelativePath, artifact.Bytes).WithSources(artifact.Sources))
             .OrderBy(_ => _.RelativePath, StringComparer.Ordinal)
             .ToImmutableArray();
         if (normalized.Select(_ => _.RelativePath).Distinct(StringComparer.Ordinal).Count() != normalized.Length)

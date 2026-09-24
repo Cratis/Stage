@@ -75,7 +75,7 @@ public class when_building_an_unfiltered_legacy_query(context fixture) : IClassF
 
             // Equality to every package input hash proves the plan adds no canonical or other semantic artifact.
             Assert.Equal(profile.Inputs.Select(input => input.Sha256).Order(), scaffold.Artifacts.Select(artifact => artifact.Sha256).Order());
-            Assert.Equal(["Program.cs"], scaffold.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath));
+            Assert.Equal(["GeneratedPolicyRegistration.cs", "Program.cs"], scaffold.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath));
             scaffold.Artifacts.ShouldContain(artifact => artifact.RelativePath == "LegacyQueryControl.csproj");
 
             var syntax = new NativeScreenplayCompiler().Compile(LegacySource);

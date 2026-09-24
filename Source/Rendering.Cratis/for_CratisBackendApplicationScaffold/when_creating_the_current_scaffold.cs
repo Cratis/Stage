@@ -19,6 +19,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         "Directory.Build.props",
         "Directory.Build.targets",
         "Directory.Packages.props",
+        "GeneratedPolicyRegistration.cs",
         "MyApp.csproj",
         "MyApp.slnx",
         "Program.cs",
@@ -27,7 +28,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     ];
 
     [Fact] void should_create_the_exact_backend_roster_in_ordinal_order() => _first.Select(PathOf).SequenceEqual(_expectedPaths).ShouldBeTrue();
-    [Fact] void should_version_every_input_with_the_scaffold_contract() => _first.All(input => input.Version == "1").ShouldBeTrue();
+    [Fact] void should_version_every_input_with_the_scaffold_contract() => _first.All(input => input.Version == "2").ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_names() => _second.Select(input => input.Name).SequenceEqual(_first.Select(input => input.Name)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_hashes() => _second.Select(input => input.Sha256).SequenceEqual(_first.Select(input => input.Sha256)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_bytes() => _second.Zip(_first).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
@@ -37,7 +38,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_stop_inheriting_parent_build_properties() => Content("Directory.Build.props").ShouldEqual("<Project />\n");
     [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");
     [Fact] void should_disable_inherited_central_package_management() => DirectoryPackagesPropsDisablesCentralPackageManagement().ShouldBeTrue();
-    [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("1|net10.0|22.23.0|22.23.0|22.23.0|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.4.7");
+    [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("2|net10.0|22.23.0|22.23.0|22.23.0|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.4.7");
     [Fact] void should_expose_only_the_verified_current_profile_as_public_static_surface() => PublicStaticProfileMethods().ShouldContainOnly("get_Current");
     [Fact] void should_emit_the_solution_without_a_guid() => SolutionSemantics().ShouldEqual("MyApp.csproj|False");
     [Fact] void should_emit_only_the_exact_package_versions() => PackageVersions().ShouldEqual(ExpectedPackageVersions());

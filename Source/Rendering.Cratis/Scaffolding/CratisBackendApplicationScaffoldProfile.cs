@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// </summary>
 public sealed class CratisBackendApplicationScaffoldProfile
 {
-    const string CurrentVersion = "1";
+    const string CurrentVersion = "2";
 
     CratisBackendApplicationScaffoldProfile(
         string version,

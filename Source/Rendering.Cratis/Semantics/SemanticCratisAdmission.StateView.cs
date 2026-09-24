@@ -40,7 +40,7 @@ internal static partial class SemanticCratisAdmission
             diagnostics.Add(Error("STAGE-ESM-009", $"Projection '{projection.Name}' cannot preserve its affected instance with model-bound Cratis projection semantics.", projection.Id));
         }
 
-        if (slice.Queries.SingleOrDefault() is { } query && ValidateQueryAuthorization(query, diagnostics))
+        if (slice.Queries.SingleOrDefault() is { } query && ValidateQueryAuthorization(context, query, diagnostics))
         {
             var identifiers = readModel.Properties.Where(_ => _.IsIdentifier).ToArray();
             if (query.ReadModel != readModel.Id || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||

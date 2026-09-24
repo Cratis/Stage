@@ -48,8 +48,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticId", ignored("Identity validity is guaranteed by Screenplay; identity indexes references rather than source members."), "IsSet");
         Add(entries, "EventContractId", ignored("Stable contract identity is already validated by Screenplay; the generated event uses its name."), "IsSet");
         Add(entries, "EventContractRevision", rejected("STAGE-ESM-005"), "IsValid Value");
-        Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types");
-        Add(entries, "SemanticApplication", rejected("STAGE-ESM-015"), "Policies");
+        Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
         Add(entries, "SemanticSlice", rendered, "Commands Events Id Kind Name Projections Queries ReadModels Specifications");
@@ -77,7 +76,7 @@ internal static class SemanticSurfaceLedger
         // State change: exactly one simple command and one unconditional, untagged mapped event.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination");
         Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "Requirements");
-        Add(entries, "SemanticCommand", rejected("STAGE-ESM-015"), "Authorization");
+        Add(entries, "SemanticCommand", rendered, "Authorization");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition Tags When");
         Add(entries, "SemanticEventContract", rendered, "Id Name Properties");
@@ -106,7 +105,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "AffectedInstanceCardinality", rendered, "One");
         Add(entries, "AffectedInstanceCardinality", rejected("STAGE-ESM-009"), "Unknown Many ZeroOrOne");
         Add(entries, "SemanticKeyedQuery", rendered, "Argument Cardinality Delivery Id KeyProperty Name ReadModel");
-        Add(entries, "SemanticKeyedQuery", rejected("STAGE-ESM-015"), "Authorization");
+        Add(entries, "SemanticKeyedQuery", rendered, "Authorization");
         Add(entries, "SemanticReadModelQueryArgument", rendered, "Id Name Type");
         Add(entries, "SemanticQueryCardinality", rendered, "ZeroOrOne");
         Add(entries, "SemanticQueryCardinality", rejected("STAGE-ESM-010"), "Unknown One Many");
@@ -160,21 +159,21 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValueKind", rejected("STAGE-ESM-011"), "Unknown Composite");
         Add(entries, "SemanticNullValue", rendered, "$type");
 
-        // Caller policies and conditional requirements do not run in generated code.
-        Add(entries, "SemanticAuthenticatedCondition", rejected("STAGE-ESM-015"), "$type");
-        Add(entries, "SemanticAuthorization", rejected("STAGE-ESM-015"), "$type");
+        // Portable authorization runs through Arc; caller fixtures and denied specifications remain blocked.
+        Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
+        Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rejected("STAGE-ESM-005"), "$type");
-        Add(entries, "SemanticPolicyCondition", rejected("STAGE-ESM-015"), "$type");
+        Add(entries, "SemanticPolicyCondition", rendered, "$type");
         Add(entries, "SemanticProjectionEventSourceIdentity", rejected("STAGE-ESM-008"), "$type");
         Add(entries, "SemanticCaller", rejected("STAGE-ESM-011"), "Authenticated Claims Roles");
         Add(entries, "SemanticCallerClaim", rejected("STAGE-ESM-011"), "Type Value");
-        Add(entries, "SemanticPolicy", rejected("STAGE-ESM-015"), "Condition Name");
-        Add(entries, "SemanticPolicyReference", rejected("STAGE-ESM-015"), "Name");
-        Add(entries, "SemanticClaimCondition", rejected("STAGE-ESM-015"), "Claim TargetKind Value");
-        Add(entries, "SemanticClaimTargetKind", rejected("STAGE-ESM-015"), "Literal Subject Artifact");
-        Add(entries, "SemanticRoleCondition", rejected("STAGE-ESM-015"), "Role");
-        Add(entries, "SemanticLogicalAuthorization", rejected("STAGE-ESM-015"), "Left Operator Right");
-        Add(entries, "SemanticLogicalPolicyCondition", rejected("STAGE-ESM-015"), "Left Operator Right");
+        Add(entries, "SemanticPolicy", rendered, "Condition Name");
+        Add(entries, "SemanticPolicyReference", rendered, "Name");
+        Add(entries, "SemanticClaimCondition", rendered, "Claim TargetKind Value");
+        Add(entries, "SemanticClaimTargetKind", rendered, "Literal Subject Artifact");
+        Add(entries, "SemanticRoleCondition", rendered, "Role");
+        Add(entries, "SemanticLogicalAuthorization", rendered, "Left Operator Right");
+        Add(entries, "SemanticLogicalPolicyCondition", rendered, "Left Operator Right");
         Add(entries, "SemanticRequirement", rejected("STAGE-ESM-005"), "Condition Message Severity");
         Add(entries, "SemanticComparison", rejected("STAGE-ESM-005"), "Left Operator Right");
         Add(entries, "SemanticComparisonOperator", rejected("STAGE-ESM-005"), "Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual");

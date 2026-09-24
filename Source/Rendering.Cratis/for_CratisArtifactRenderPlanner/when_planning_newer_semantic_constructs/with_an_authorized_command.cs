@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_planning_newer_semantic_constructs;
 
-// A rendered command without its policy would let every caller execute it.
+// Caller fixtures remain blocked until generated specifications can inject a principal.
 public class with_an_authorized_command : given.an_invoice_model
 {
     void Because() => Plan(Policy + Invoices
@@ -14,6 +14,6 @@ public class with_an_authorized_command : given.an_invoice_model
         .Replace("when IssueInvoice\n", Caller, StringComparison.Ordinal));
 
     [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_unrendered_authorization() => ErrorCodes.ShouldContain("STAGE-ESM-015");
+    [Fact] void should_report_the_unsupported_caller_fixture() => ErrorCodes.ShouldContain("STAGE-ESM-011");
     [Fact] void should_not_plan_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

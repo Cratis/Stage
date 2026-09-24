@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Runtime.CompilerServices;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Cratis.Arc.Testing.Commands;
 using Cratis.Arc.Validation;
@@ -25,7 +25,7 @@ namespace Cratis.Stage.Specifications;
 public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecutor
 {
     static readonly SemaphoreSlim _processGate = new(1, 1);
-    static readonly ConditionalWeakTable<SemanticExecutionPlan, SemanticRuntimeTypes> _types = [];
+    static readonly ConcurrentDictionary<SemanticRevision, SemanticRuntimeTypes> _types = [];
 
     /// <inheritdoc/>
     public async Task<SemanticSpecificationRunReport> Run(SemanticExecutionPlan plan, SemanticSpecificationSelection selection, SemanticSpecificationRunOptions options, CancellationToken cancellationToken = default)
@@ -86,7 +86,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
     {
         var when = specification.When!;
         var command = plan.Commands[when.Command];
-        var runtimeTypes = _types.GetValue(plan, static key => new SemanticRuntimeTypes(key));
+        var runtimeTypes = _types.GetOrAdd(plan.Revision, static (_, source) => new SemanticRuntimeTypes(source), plan);
         var runtimeType = runtimeTypes.ForCommand(command);
         var instance = (DynamicCommand)Activator.CreateInstance(runtimeType)!;
         foreach (var value in when.Values)

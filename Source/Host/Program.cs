@@ -149,6 +149,7 @@ if (!ReferenceEquals(synthesized, scene))
 // application starts, so asking for them during configuration finds an empty endpoint set and every element
 // ends up without the route it is backed by.
 var sceneRoutes = new StageSceneRoutes(synthesized, app.Services, app.Logger);
+var stageStrings = new StageStrings(modelPath!);
 
 app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(model.Name), WarmStageHandoff.ReadHandoffId(modelPath!)));
 
@@ -164,6 +165,12 @@ app.MapGet("/stage/scene", () => Results.Json(sceneRoutes.Scene, StageJson.Optio
 app.MapGet("/stage/routes", () => Results.Json(
     new StageRoutes(sceneRoutes.CommandRoutes, sceneRoutes.QueryRoutes),
     StageJson.Options));
+
+// The locales at least one .strings file next to the model declares, and the merged dictionary for one
+// of them - a frontend fetches the list to offer a switcher, then a dictionary each time the active
+// locale changes, resolving $strings.<key> references at render time rather than compiling them in.
+app.MapGet("/stage/locales", () => Results.Json(stageStrings.Locales(), StageJson.Options));
+app.MapGet("/stage/strings/{locale}", (string locale) => Results.Json(stageStrings.Dictionary(locale), StageJson.Options));
 app.MapFallbackToFile("index.html");
 app.Lifetime.ApplicationStarted.Register(() =>
     _ = StageRuntimeRegistrar.RegisterAsync(app.Services, eventStore, model, app.Logger));

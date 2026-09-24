@@ -1,0 +1,4 @@
+invoice.registerTitle = "Register invoice"
+invoice.register      = "Register"
+
+validation.invoiceNumberRequired = "An invoice needs a number"

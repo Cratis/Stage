@@ -1,0 +1,8 @@
+invoice.listTitle    = "Invoices"
+invoice.detailsTitle = "Invoice details"
+invoice.number       = "Invoice #"
+invoice.customer     = "Customer"
+invoice.amount       = "Amount"
+invoice.status       = "Status"
+invoice.issue        = "Issue invoice"
+invoice.confirmCancel = "Cancel this invoice? The customer will need a new one issued."

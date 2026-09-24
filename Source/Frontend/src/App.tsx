@@ -3,12 +3,13 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Layout, SceneElement, Screen, ScreenTemplate } from '@cratis/scene.model';
-import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
-import { evaluateFlowArrangement } from '@cratis/scene.engine';
+import type { CommandOutcome, InteractionFinding, StringsDictionary } from '@cratis/scene.engine';
+import { evaluateFlowArrangement, resolveStringsInElement } from '@cratis/scene.engine';
 import { InteractionScope, SceneElementView, createBrowserDispatcher } from '@cratis/scene.react';
 import { useStageRoutes } from './stageRoutes';
 import { stageComponents } from './stageComponents';
 import { useSizeClass } from './useSizeClass';
+import { useStrings } from './useStrings';
 import { FlowArrangementView } from './FlowArrangementView';
 import './app.css';
 
@@ -35,6 +36,7 @@ const endpoint = 'stage/scene';
 export function App() {
     const [scene, setScene] = useState<StageSceneApplication>();
     const routes = useStageRoutes();
+    const strings = useStrings();
     const [selectedScreen, setSelectedScreen] = useState('');
     const [error, setError] = useState('');
     const [activity, setActivity] = useState('');
@@ -141,13 +143,20 @@ export function App() {
 
     return (
         <InteractionScope dispatcher={dispatcher} context={{ resolve: () => undefined }} attachments={[]} onFindings={reportFindings}>
-            <StageShell scene={scene} screen={screen} selectedScreen={screen.name} onSelectScreen={name => { setSelectedScreen(name); setActivity(''); }} activity={activity} />
+            <StageShell
+                scene={scene}
+                screen={screen}
+                selectedScreen={screen.name}
+                onSelectScreen={name => { setSelectedScreen(name); setActivity(''); }}
+                activity={activity}
+                strings={strings}
+            />
         </InteractionScope>
     );
 }
 
-function SceneContent({ element }: { element: SceneElement }) {
-    return <SceneElementView element={element} registry={stageComponents} resolveBinding={() => undefined} />;
+function SceneContent({ element, dictionary }: { element: SceneElement; dictionary: StringsDictionary }) {
+    return <SceneElementView element={resolveStringsInElement(element, dictionary)} registry={stageComponents} resolveBinding={() => undefined} />;
 }
 
 interface StageShellProps {
@@ -156,6 +165,7 @@ interface StageShellProps {
     selectedScreen: string;
     onSelectScreen: (name: string) => void;
     activity: string;
+    strings: ReturnType<typeof useStrings>;
 }
 
 /**
@@ -165,7 +175,7 @@ interface StageShellProps {
  * (none declared, or a `freeform` one - not yet rendered here) falls back to a plain stack, which is what
  * every screen rendered as before this.
  */
-function StageShell({ scene, screen, selectedScreen, onSelectScreen, activity }: StageShellProps) {
+function StageShell({ scene, screen, selectedScreen, onSelectScreen, activity, strings }: StageShellProps) {
     const sizeClass = useSizeClass();
     const layout = useMemo(() => scene.layouts.find(candidate => candidate.name === screen.layout), [scene.layouts, screen.layout]);
     const template = useMemo(
@@ -176,10 +186,10 @@ function StageShell({ scene, screen, selectedScreen, onSelectScreen, activity }:
     const contentSlots = useMemo(() => {
         const slots: Record<string, ReactNode> = {};
         for (const [slotName, elements] of Object.entries(screen.slotContent)) {
-            slots[slotName] = elements.map(element => <SceneContent key={element.id} element={element} />);
+            slots[slotName] = elements.map(element => <SceneContent key={element.id} element={element} dictionary={strings.dictionary} />);
         }
         return slots;
-    }, [screen.slotContent]);
+    }, [screen.slotContent, strings.dictionary]);
 
     const content = template?.arrangement && isFlowArrangement(template.arrangement)
         ? <FlowArrangementView node={evaluateFlowArrangement(template.arrangement, sizeClass)} slots={contentSlots} />
@@ -192,7 +202,7 @@ function StageShell({ scene, screen, selectedScreen, onSelectScreen, activity }:
         );
 
     const shellSlots: Record<string, ReactNode> = {
-        topbar: <StageTopbar />,
+        topbar: <StageTopbar strings={strings} />,
         sidebar: <StageSidebar screens={scene.screens} selectedScreen={selectedScreen} onSelectScreen={onSelectScreen} />,
         content: <main className='stage-screen' data-screen={screen.name}>{content}{activity && <p className='stage-activity' role='status'>{activity}</p>}</main>,
         footer: null,
@@ -204,7 +214,7 @@ function StageShell({ scene, screen, selectedScreen, onSelectScreen, activity }:
 
     return (
         <div className='stage-application'>
-            <StageTopbar />
+            <StageTopbar strings={strings} />
             <div className='stage-body'>
                 <StageSidebar screens={scene.screens} selectedScreen={selectedScreen} onSelectScreen={onSelectScreen} />
                 {shellSlots.content}
@@ -213,10 +223,19 @@ function StageShell({ scene, screen, selectedScreen, onSelectScreen, activity }:
     );
 }
 
-function StageTopbar() {
+function StageTopbar({ strings }: { strings: ReturnType<typeof useStrings> }) {
     return (
         <header className='stage-header'>
             <strong>Cratis Stage</strong>
+            {strings.locales.length > 1 && (
+                <select
+                    className='stage-locale'
+                    aria-label='Locale'
+                    value={strings.locale}
+                    onChange={event => strings.setLocale(event.target.value)}>
+                    {strings.locales.map(locale => <option key={locale} value={locale}>{locale}</option>)}
+                </select>
+            )}
         </header>
     );
 }

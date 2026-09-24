@@ -20,7 +20,7 @@
     "primeicons": "8.0.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "@cratis/scene.engine": "4.1.0"
+    "@cratis/scene.engine": "4.2.0"
   },
   "devDependencies": {
     "@types/node": "26.6.2",

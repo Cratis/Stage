@@ -1,0 +1,3 @@
+payment.listTitle = "Payments"
+payment.reference = "Reference"
+invoice.amount    = "Amount"

@@ -151,7 +151,7 @@
       "type": "object",
       "description": "Where the event source a produced event is appended to comes from. Carries no property name, unlike ProducedEventProperty: the value identifies the stream rather than filling a property of the payload.",
       "properties": {
-        "Kind": { "type": "string", "enum": ["CommandProperty", "Literal", "Occurred", "Identity", "Environment", "Template", "Unsupported"] },
+        "Kind": { "type": "string", "enum": ["CommandProperty", "Literal", "Occurred", "Identity", "Environment", "Template", "Unsupported", "Tenant"] },
         "Expression": { "type": "string", "description": "The source, interpreted according to Kind." }
       },
       "additionalProperties": false
@@ -162,7 +162,7 @@
       "required": ["Property"],
       "properties": {
         "Property": { "type": "string", "description": "The name of the property on the event payload." },
-        "Kind": { "type": "string", "enum": ["CommandProperty", "Literal", "Occurred", "Identity", "Environment", "Template", "Unsupported"] },
+        "Kind": { "type": "string", "enum": ["CommandProperty", "Literal", "Occurred", "Identity", "Environment", "Template", "Unsupported", "Tenant"] },
         "Expression": { "type": "string", "description": "The source, interpreted according to Kind - a command property name, JSON literal text, an identity path, an environment variable name or a template." }
       },
       "additionalProperties": false

@@ -39,7 +39,12 @@ public enum ProducedValueKind
     Template = 5,
 
     /// <summary>
-    /// The modeled expression has no runtime equivalent, so the property is left off the event payload.
+    /// The modeled expression has no runtime equivalent and the event must not be appended.
     /// </summary>
-    Unsupported = 6
+    Unsupported = 6,
+
+    /// <summary>
+    /// The value is the tenant under which the command runs.
+    /// </summary>
+    Tenant = 7
 }

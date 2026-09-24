@@ -42,7 +42,7 @@ internal static class SemanticValidationRendering
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
-            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage(_ => {rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)});");
+            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage(_ => global::{rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)});");
         }
         else
         {

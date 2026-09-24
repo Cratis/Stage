@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using System.Text;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
@@ -14,8 +15,11 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_executing_localized_rejection_specifications : a_generated_invoice_application
 {
     bool _hostUsesRequestLocalization;
+    bool _validatorsUseQualifiedResolver;
+    bool _catalogEscapesSeparators;
 
     protected override string InvoiceSource => invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource)
+        .Replace("module Billing", "module Invoices", StringComparison.Ordinal)
         .Replace(
             "        produces InvoiceIssued\n",
             "        validate\n          description not empty message $strings.invoice.descriptionRequired\n          require description == \"First payload\"\n            message $strings.invoice.mustBeFirst\n        produces InvoiceIssued\n",
@@ -33,7 +37,7 @@ public class when_executing_localized_rejection_specifications : a_generated_inv
             null,
             new Dictionary<string, string>
             {
-                ["invoices.en.strings"] = "invoice.descriptionRequired = \"Description is required\"\ninvoice.mustBeFirst = \"Must be the first payload\"\n",
+                ["invoices.en.strings"] = "invoice.descriptionRequired = \"Description is required\"\ninvoice.mustBeFirst = \"Must be the first payload\"\ninvoice.B = \"Upper\"\ninvoice.a = \"Lower\"\ninvoice_c = \"Underscore\"\ninvoice.separator = \"First\u2028Second\u2029Third\"\n",
                 ["invoices.nb.strings"] = "invoice.descriptionRequired = \"Beskrivelse kreves\"\n"
             },
             "en");
@@ -47,6 +51,9 @@ public class when_executing_localized_rejection_specifications : a_generated_inv
     async Task Because()
     {
         _hostUsesRequestLocalization = ReadGeneratedFile("Program.cs").Contains("app.UseRequestLocalization(", StringComparison.Ordinal);
+        _validatorsUseQualifiedResolver = CreatePlan().Artifacts.Any(artifact =>
+            Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("global::Invoices.GeneratedStrings.Resolve", StringComparison.Ordinal));
+        _catalogEscapesSeparators = ReadGeneratedFile("GeneratedStrings.cs").Contains("First\\u2028Second\\u2029Third", StringComparison.Ordinal);
         AddGeneratedSpecification("GeneratedStringsSpecifications.cs", """
             // Copyright (c) Cratis. All rights reserved.
             // Licensed under the MIT license. See LICENSE file in the project root for full license information.
@@ -70,6 +77,7 @@ public class when_executing_localized_rejection_specifications : a_generated_inv
                         Assert.Equal("Must be the first payload", GeneratedStrings.Resolve("$strings.invoice.mustBeFirst"));
                         CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("fr-FR");
                         Assert.Equal("Description is required", GeneratedStrings.Resolve("$strings.invoice.descriptionRequired"));
+                        Assert.Equal("First\u2028Second\u2029Third", GeneratedStrings.Resolve("$strings.invoice.separator"));
                     }
                     finally
                     {
@@ -83,6 +91,8 @@ public class when_executing_localized_rejection_specifications : a_generated_inv
     }
 
     [Fact] void should_configure_request_culture() => _hostUsesRequestLocalization.ShouldBeTrue();
+    [Fact] void should_qualify_the_resolver_across_nested_namespaces() => _validatorsUseQualifiedResolver.ShouldBeTrue();
+    [Fact] void should_escape_line_separators_in_generated_catalog() => _catalogEscapesSeparators.ShouldBeTrue();
     [Fact] void should_build_without_debug_warnings() => DebugWarnings.ShouldBeEmpty();
     [Fact] void should_build_without_release_warnings() => ReleaseWarnings.ShouldBeEmpty();
     [Fact] void should_pass_all_generated_specifications() => Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();

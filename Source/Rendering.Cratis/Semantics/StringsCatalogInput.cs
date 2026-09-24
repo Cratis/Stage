@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -29,7 +28,7 @@ internal static partial class StringsCatalogInput
 
     internal static ArtifactRenderInput Create(IReadOnlyDictionary<string, string> files, string defaultLocale)
     {
-        if (!LocalePattern.IsMatch(defaultLocale) || !CultureExists(defaultLocale) || files.Count == 0)
+        if (!LocalePattern.IsMatch(defaultLocale) || files.Count == 0)
         {
             throw Invalid();
         }
@@ -46,12 +45,17 @@ internal static partial class StringsCatalogInput
 
             var stem = file[..^".strings".Length];
             var separator = stem.LastIndexOf('.');
-            if (separator <= 0 || !LocalePattern.IsMatch(stem[(separator + 1)..]) || !CultureExists(stem[(separator + 1)..]))
+            if (separator <= 0 || !LocalePattern.IsMatch(stem[(separator + 1)..]))
             {
                 throw Invalid();
             }
 
             var locale = stem[(separator + 1)..];
+            if (locales.Keys.Any(existing => string.Equals(existing, locale, StringComparison.OrdinalIgnoreCase) && existing != locale))
+            {
+                throw Invalid();
+            }
+
             if (!locales.TryGetValue(locale, out var entries))
             {
                 entries = new(StringComparer.Ordinal);
@@ -93,13 +97,24 @@ internal static partial class StringsCatalogInput
 
         try
         {
-            var value = JsonSerializer.Deserialize<Catalog>(new UTF8Encoding(false, true).GetString(input.Bytes.AsSpan()));
-            if (value is null || value.Locales is null || !LocalePattern.IsMatch(value.DefaultLocale) || !CultureExists(value.DefaultLocale) ||
-                !value.Locales.ContainsKey(value.DefaultLocale) ||
-                value.Locales.Any(locale => !LocalePattern.IsMatch(locale.Key) || !CultureExists(locale.Key) || locale.Value?.Any(entry => !KeyPattern.IsMatch(entry.Key) ||
+            var serialized = JsonSerializer.Deserialize<DictionaryCatalog>(new UTF8Encoding(false, true).GetString(input.Bytes.AsSpan()));
+            if (serialized is null || serialized.Locales is null || !LocalePattern.IsMatch(serialized.DefaultLocale) ||
+                !serialized.Locales.ContainsKey(serialized.DefaultLocale) ||
+                serialized.Locales.Keys.Distinct(StringComparer.OrdinalIgnoreCase).Count() != serialized.Locales.Count ||
+                serialized.Locales.Any(locale => !LocalePattern.IsMatch(locale.Key) || locale.Value?.Any(entry => !KeyPattern.IsMatch(entry.Key) ||
                     entry.Value?.Any(character => char.IsControl(character) || char.IsSurrogate(character)) != false ||
-                    !StringsFileEntryValid(entry.Key, entry.Value)) != false) ||
-                !input.Bytes.SequenceEqual(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(value))))
+                    !StringsFileEntryValid(entry.Key, entry.Value)) != false))
+            {
+                return false;
+            }
+
+            var value = new Catalog(serialized.DefaultLocale, new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal));
+            foreach (var (locale, entries) in serialized.Locales)
+            {
+                value.Locales.Add(locale, new SortedDictionary<string, string>(entries, StringComparer.Ordinal));
+            }
+
+            if (!input.Bytes.SequenceEqual(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(value))))
             {
                 return false;
             }
@@ -125,7 +140,7 @@ internal static partial class StringsCatalogInput
         }
 
         var supported = string.Join(", ", catalog.Locales.Keys.Select(locale => $"System.Globalization.CultureInfo.GetCultureInfo({CSharpCodeBuilder.StringLiteral(locale)})"));
-        var localization = $"app.UseRequestLocalization(new Microsoft.AspNetCore.Builder.RequestLocalizationOptions\n{{\n    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture({CSharpCodeBuilder.StringLiteral(catalog.DefaultLocale)}),\n    SupportedCultures = [{supported}],\n    SupportedUICultures = [{supported}]\n}});\n";
+        var localization = $"app.UseRequestLocalization(new Microsoft.AspNetCore.Builder.RequestLocalizationOptions\n{{\n    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(System.Globalization.CultureInfo.InvariantCulture, System.Globalization.CultureInfo.GetCultureInfo({CSharpCodeBuilder.StringLiteral(catalog.DefaultLocale)})),\n    SupportedCultures = [System.Globalization.CultureInfo.InvariantCulture],\n    SupportedUICultures = [{supported}]\n}});\n";
         return source.Replace(marker, localization + marker, StringComparison.Ordinal);
     }
 
@@ -163,19 +178,6 @@ internal static partial class StringsCatalogInput
         return builder.ToString();
     }
 
-    static bool CultureExists(string name)
-    {
-        try
-        {
-            _ = CultureInfo.GetCultureInfo(name);
-            return true;
-        }
-        catch (CultureNotFoundException)
-        {
-            return false;
-        }
-    }
-
     static bool StringsFileEntryValid(string key, string value)
     {
         try
@@ -194,4 +196,6 @@ internal static partial class StringsCatalogInput
     {
         internal bool Contains(string reference) => Locales[DefaultLocale].ContainsKey(reference["$strings.".Length..]);
     }
+
+    sealed record DictionaryCatalog(string DefaultLocale, Dictionary<string, Dictionary<string, string>> Locales);
 }

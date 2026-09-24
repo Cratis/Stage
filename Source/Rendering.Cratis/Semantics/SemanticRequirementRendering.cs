@@ -23,7 +23,7 @@ internal static class SemanticRequirementRendering
         var message = requirement.Message ?? "Command requirement was not met.";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
-            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage(_ => {context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)});");
+            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage(_ => global::{context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)});");
         }
         else
         {

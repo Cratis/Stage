@@ -11,6 +11,7 @@ namespace Cratis.Stage.Running;
 /// Shared helpers used by the <see cref="ISpecificationRunStrategy"/> implementations to verify the
 /// structural consistency of a specification against its slice.
 /// </summary>
+[Obsolete("Use the semantic engine (--engine semantic / ISemanticSpecificationExecutor); the structural runner is removed in the next major version.")]
 public static class SpecificationVerification
 {
     /// <summary>

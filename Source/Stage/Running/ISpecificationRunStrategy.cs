@@ -9,6 +9,7 @@ namespace Cratis.Stage.Running;
 /// <summary>
 /// Runs a single specification against a slice of a particular <see cref="SliceType"/>.
 /// </summary>
+[Obsolete("Use the semantic engine (--engine semantic / ISemanticSpecificationExecutor); the structural runner is removed in the next major version.")]
 public interface ISpecificationRunStrategy
 {
     /// <summary>

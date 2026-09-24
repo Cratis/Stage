@@ -38,6 +38,32 @@ public class a_command_only_plan : Specification
         return Replace(model, slice, specification);
     }
 
+    protected SemanticExecutionPlan WithBehavior(SemanticSpecification specification, SemanticCommand? command = null, SemanticConstraint? constraint = null, SemanticPolicy? policy = null, bool keepProjections = false)
+    {
+        var model = keepProjections ? _originalModel : _plan.Model;
+        var module = model.Application.Modules.Single();
+        var feature = module.Features.Single();
+        var originalSlice = feature.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateChange);
+        SemanticSpecification Adapt(SemanticSpecification value)
+        {
+            if (value.Id == specification.Id) return specification;
+            if (policy is not null && value.When?.Command == command?.Id) return value with { GivenCaller = new SemanticCaller(true, ["Registrar"], []) };
+            return value;
+        }
+        var updatedSlice = originalSlice with
+        {
+            Commands = command is null ? originalSlice.Commands : [.. originalSlice.Commands.Select(value => value.Id == command.Id ? command : value)],
+            Constraints = constraint is null ? originalSlice.Constraints : [constraint],
+            Specifications = [.. originalSlice.Specifications.Select(Adapt)]
+        };
+        var application = model.Application with
+        {
+            Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice.Id == originalSlice.Id ? updatedSlice : slice)] }] }],
+            Policies = policy is null ? model.Application.Policies : [.. model.Application.Policies, policy]
+        };
+        return SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
+    }
+
     protected SemanticExecutionPlan WithProjection(SemanticSpecification specification) => Replace(_originalModel, _originalModel.Application.Modules.Single().Features.Single().Slices.Single(candidate => candidate.Kind == SemanticSliceKind.StateChange), specification, false);
 
     static SemanticExecutionPlan Replace(ExecutableSemanticModel model, SemanticSlice slice, SemanticSpecification specification, bool removeProjections = true)

@@ -132,18 +132,33 @@ reader. The process returns `0` after writing the report even when a specificati
 read its outcomes. Invalid semantic IDs, engine names, or structural-only flags with `--engine semantic` return `2`.
 Missing or invalid catalog/model inputs return `1` with a diagnostic.
 
-This first semantic engine runs admitted command specifications through Arc's in-memory command pipeline,
-with a fresh Chronicle in-memory event log per specification. It admits explicit-source Given events, unconditional produced
-facts with literal or command-property mappings, and explicit-message `NotEmpty`, `Minimum`, or `Maximum`
-command validation. Event assertions (including any-order assertions) and validation rejection messages
-are compared against Stage's recorded facts; Chronicle's persisted log is checked for fact count only.
-The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
-and do not affect this run; implicit identity allocation and caller authorization are **not** admitted yet.
+The semantic engine runs admitted commands through Arc's in-memory command pipeline, with a fresh Chronicle
+in-memory event log per specification. It supports explicit-source Given events and direct `when appended`
+events, unconditional command production with literal or command-property mappings, and event assertions
+(including any-order assertions). It evaluates portable command authorization before dispatch: `given caller`
+sets an Arc principal, while authenticated, role, claim (literal, subject or artifact), and/or policies follow
+Screenplay's reference semantics. Nested artifact paths cannot reach composite values, because composite command values are not admitted. `then denied` checks Unauthorized and appends no new facts. Roles and claims
+remain distinct; a role-URI claim is blocked as `Unsupported(Authorization)` rather than treated as a role.
 
-Read-model assertions, seeded read models, keyed queries, and specifications whose Given or produced events
-feed a projection (including scoped projections) return typed `Unsupported` before execution: Chronicle 19.4.7
+Command rules (`NotEmpty`, `Minimum`, `Maximum`, `Equal`, `NotEqual`, `GreaterThan`,
+`GreaterThanOrEqual`, `LessThan`, `LessThanOrEqual`, `Length`, `Matches`), scalar concept rules,
+and command requirements reject on every failed severity (including warning and information). The first
+rejection message follows reference order: command rules, concept rules, requirements; authored messages
+and Screenplay's default messages are preserved. Collection-only rule kinds and non-scalar values remain
+unsupported. Unique-value and unique-event constraints are checked before append, including prior Given
+facts, releases, casing and replacement within a batch; a violation is an atomic rejection with the
+constraint name in `trace.rejectionCode` and the reference message in `trace.rejection`. Direct append enforces the same constraints but
+does not run command authorization or validation. Conflict outcomes cannot be reached from these admitted
+specifications: the Screenplay v4.24.0 reference evaluator declares `SemanticConflict` but never produces it.
+
+Facts are compared against Stage's recorded occurrences; Chronicle's persisted log is checked for fact count.
+The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
+and do not affect this run; implicit identity allocation remains unsupported.
+
+Read-model assertions, seeded read models, keyed queries, and specifications whose Given, produced or directly
+appended events feed a projection (including scoped projections) return typed `Unsupported` before execution: Chronicle 19.4.7
 does not offer per-run projection execution through its public scenario APIs. Other
-unimplemented behavior (authorization, requirements, constraints, conditional production, direct append,
+unimplemented behavior (conditional production, implicit event-source identity allocation,
 external effects and unsupported expression or value shapes) is also blocked rather than reported as a
 pass. Run the semantic executor in its **own process**: Arc's scenario replaces the process-wide
 `Internals.ServiceProvider` and leaves it pointing at a disposed provider. Serializing calls does not protect

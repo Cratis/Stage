@@ -63,6 +63,9 @@ public class a_generated_application : a_register_project_render_request
 
     protected string ReadGeneratedFile(string relativePath) => File.ReadAllText(Path.Combine(_application!.FullName, relativePath));
 
+    protected void AddGeneratedSpecification(string name, string content) =>
+        File.WriteAllText(Path.Combine(_application!.FullName, name), content);
+
     protected async Task<string> Run(string logName, params string[] arguments)
     {
         var startInfo = new ProcessStartInfo("dotnet")

@@ -27,7 +27,7 @@ internal static class SemanticPolicyArtifactRenderer
         var operations = slices.SelectMany(slice => slice.Slice.Commands.Where(command => command.Authorization is not null)
                 .Select(command => (command.Id, Authorization: command.Authorization!, IsCommand: true, Argument: string.Empty, Subject: command.Properties.Single(property => property.IsIdentifier).Name)))
             .Concat(slices.SelectMany(slice => slice.Slice.Queries.Where(query => query.Authorization is not null)
-                .Select(query => (query.Id, Authorization: query.Authorization!, IsCommand: false, Argument: query.Argument.Name, Subject: query.Argument.Name))))
+                .Select(query => (query.Id, Authorization: query.Authorization!, IsCommand: false, Argument: Identifiers.ToCamelCase(query.Argument.Name), Subject: Identifiers.ToCamelCase(query.Argument.Name)))))
             .OrderBy(operation => operation.Id.ToString(), StringComparer.Ordinal).ToArray();
 
         builder.Summary("Registers every generated authorization policy with Arc.")
@@ -81,7 +81,8 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("return Text(value);")
             .EndBlock()
             .OpenBlock("public static string? Query(AuthorizationPolicyContext context, string argument, string path)")
-            .Line("if (context.Resource is not QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
+            .Line("if (context.Target is not MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, StringComparison.Ordinal)) ||")
+            .Line("    context.Resource is not QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
             .Line("return path == argument ? Text(key) : Path(key, path[(argument.Length + 1)..]);")
             .EndBlock()
             .EndBlock();
@@ -123,8 +124,8 @@ internal static class SemanticPolicyArtifactRenderer
     static string PascalPath(string path) => string.Join('.', path.Split('.').Select(Identifiers.ToPascalCase));
 
     static string QueryPath(string path) => path.Split('.') is { Length: > 1 } parts
-        ? $"{parts[0]}.{PascalPath(string.Join('.', parts.Skip(1)))}"
-        : path;
+        ? $"{Identifiers.ToCamelCase(parts[0])}.{PascalPath(string.Join('.', parts.Skip(1)))}"
+        : Identifiers.ToCamelCase(path);
 
     static string Literal(string value) => JsonSerializer.Serialize(value);
 }

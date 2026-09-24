@@ -30,6 +30,11 @@ public class StateViewSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        if (slice.Slice.Queries.Any())
+        {
+            LegacyEnclosingAuthorization.EnsureRenderable(slice, applicationSet, $"Query '{slice.Slice.Queries.First().Name}'");
+        }
+
         QueryAdmission.EnsureSupported(slice.Slice.Queries, string.Join('.', slice.FullPath));
 
         // A slice may declare several projections. Only the first is rendered; the ones left out are reported by

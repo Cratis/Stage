@@ -21,11 +21,20 @@ internal static partial class SemanticCratisAdmission
             return false;
         }
 
-        return ValidateAuthorization(context, command.Authorization, command.Id, command.Name, diagnostics);
+        return ValidateAuthorization(context, command.Authorization, command.Id, command.Name, diagnostics) &&
+            ValidateClaimTargets(context, command.Authorization, command.Properties, command.Properties.SingleOrDefault(property => property.IsIdentifier), command.Id, command.Name, diagnostics);
     }
 
     static bool ValidateQueryAuthorization(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics) =>
-        ValidateAuthorization(context, query.Authorization, query.Id, query.Name, diagnostics);
+        ValidateAuthorization(context, query.Authorization, query.Id, query.Name, diagnostics) &&
+        ValidateClaimTargets(
+            context,
+            query.Authorization,
+            [new(query.Argument.Id, query.Argument.Name, query.Argument.Type, false)],
+            new(query.Argument.Id, query.Argument.Name, query.Argument.Type, false),
+            query.Id,
+            query.Name,
+            diagnostics);
 
     static bool ValidateAuthorization(SemanticApplicationContext context, SemanticAuthorization? authorization, SemanticId id, string name, List<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -43,6 +52,65 @@ internal static partial class SemanticCratisAdmission
 
         diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' cannot be rendered exactly with Arc's authenticated policy boundary, or contains an unresolved or non-portable policy.", id));
         return false;
+    }
+
+    static bool ValidateClaimTargets(
+        SemanticApplicationContext context,
+        SemanticAuthorization? authorization,
+        IReadOnlyList<SemanticProperty> properties,
+        SemanticProperty? subject,
+        SemanticId id,
+        string name,
+        List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (authorization is null)
+        {
+            return true;
+        }
+
+        var paths = Claims(authorization, context.Application.Policies).Where(claim => claim.TargetKind != SemanticClaimTargetKind.Literal)
+            .Select(claim => claim.TargetKind == SemanticClaimTargetKind.Subject ? subject?.Name : claim.Value);
+        if (paths.All(path => path is not null && IsTextPath(context, properties, path)))
+        {
+            return true;
+        }
+
+        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' compares a claim with a non-text artifact value.", id));
+        return false;
+    }
+
+    static IEnumerable<SemanticClaimCondition> Claims(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch
+    {
+        SemanticPolicyReference reference => Conditions(policies.Single(policy => policy.Name == reference.Name).Condition),
+        SemanticLogicalAuthorization logical => Claims(logical.Left, policies).Concat(Claims(logical.Right, policies)),
+        _ => []
+    };
+
+    static IEnumerable<SemanticClaimCondition> Conditions(SemanticPolicyCondition condition) => condition switch
+    {
+        SemanticClaimCondition claim => [claim],
+        SemanticLogicalPolicyCondition logical => Conditions(logical.Left).Concat(Conditions(logical.Right)),
+        _ => []
+    };
+
+    static bool IsTextPath(SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string path)
+    {
+        SemanticProperty? property = null;
+        foreach (var segment in path.Split('.'))
+        {
+            property = properties.SingleOrDefault(candidate => candidate.Name == segment);
+            if (property is null)
+            {
+                return false;
+            }
+
+            properties = property.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(property.Type.Target, out var composite)
+                ? composite.Properties : [];
+        }
+
+        return property is { Type.IsCollection: false } && (property.Type.Kind == SemanticTypeReferenceKind.Primitive
+            ? property.Type.Primitive == SemanticPrimitiveType.Text
+            : property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts[property.Type.Target].Primitive == SemanticPrimitiveType.Text);
     }
 
     static bool RequiresAuthentication(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch

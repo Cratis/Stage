@@ -94,8 +94,8 @@ public class when_rendering_portable_authorization : Specification
         services.Count(service => service.ServiceType == typeof(AuthorizationPolicyRegistration)).ShouldEqual(2);
     }
 
-    [Fact] void should_mark_the_command_with_its_named_policy() => _command.GetCustomAttributes<AuthorizeAttribute>().Single().Policy.ShouldNotBeNull();
-    [Fact] void should_mark_the_query_with_its_named_policy() => _query.GetMethod("InvoiceById")!.GetCustomAttributes<AuthorizeAttribute>().Single().Policy.ShouldNotBeNull();
+    [Fact] void should_mark_the_command_with_its_registered_policy() => _command.GetCustomAttributes<AuthorizeAttribute>().Single().Policy.ShouldEqual(_commandPolicy.GetType().Name);
+    [Fact] void should_mark_the_query_with_its_registered_policy() => _query.GetMethod("InvoiceById")!.GetCustomAttributes<AuthorizeAttribute>().Single().Policy.ShouldEqual(_queryPolicy.GetType().Name);
     [Fact] void should_deny_anonymous_callers() => Allows(_commandPolicy, _command, _commandResource, Principal(false, "Staff", "invoice-one", "North")).ShouldBeFalse();
     [Fact] void should_allow_matching_role_claim_and_subject() => Allows(_commandPolicy, _command, _commandResource, Principal(true, "Staff", "invoice-one", "North")).ShouldBeTrue();
     [Fact] void should_allow_the_alternative_department_claim() => Allows(_commandPolicy, _command, _commandResource, Principal(true, null, "invoice-one", "North", "Sales")).ShouldBeTrue();

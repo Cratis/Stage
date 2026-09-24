@@ -72,7 +72,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationSeverity", rendered, "Error");
         Add(entries, "SemanticValidationSeverity", rejected("STAGE-ESM-005"), "Information Warning");
 
-        // State change: exactly one simple command and one unconditional, untagged mapped event.
+        // State change: one command with unconditional, untagged mapped events in declaration order.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition Tags When");
@@ -137,9 +137,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionValueKind", rejected("STAGE-ESM-017"), "Unknown EventContext Literal");
 
         // Specifications only render command actions with exact scalar fixtures and supported outcomes.
-        Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents ThenEvents ThenReadModels ThenQueries ThenErrors When");
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "GivenCaller GivenReadModels ThenDenied WhenAppended");
-        Add(entries, "SemanticSpecification", ignored("At most one expected event is admitted, so event order has no observable effect."), "ThenEventsInAnyOrder");
+        Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenCaller ThenEvents ThenReadModels ThenQueries ThenErrors ThenDenied When");
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "GivenReadModels WhenAppended ThenEventsInAnyOrder");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");
@@ -160,15 +159,15 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValueKind", rejected("STAGE-ESM-011"), "Unknown Composite");
         Add(entries, "SemanticNullValue", rendered, "$type");
 
-        // Portable authorization runs through Arc; caller fixtures and denied specifications remain blocked.
+        // Portable authorization runs through Arc; caller fixtures and command denial are checked by its pipeline.
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rendered, "$type");
         Add(entries, "SemanticProjectionEventSourceIdentity", rendered, "$type");
-        Add(entries, "SemanticCaller", rejected("STAGE-ESM-011"), "Authenticated Claims Roles");
-        Add(entries, "SemanticCallerClaim", rejected("STAGE-ESM-011"), "Type Value");
+        Add(entries, "SemanticCaller", rendered, "Authenticated Claims Roles");
+        Add(entries, "SemanticCallerClaim", rendered, "Type Value");
         Add(entries, "SemanticPolicy", rendered, "Condition Name");
         Add(entries, "SemanticPolicyReference", rendered, "Name");
         Add(entries, "SemanticClaimCondition", rendered, "Claim TargetKind Value");

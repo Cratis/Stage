@@ -39,6 +39,13 @@ internal static class SemanticCommandSpecificationRenderer
             builder.Using($"{context.RootNamespace}.Common");
         }
 
+        if (specification.GivenCaller is not null)
+        {
+            builder.Using("Cratis.Arc.Authorization")
+                .Using("Cratis.Arc.Http")
+                .Using("System.Security.Claims");
+        }
+
         if (!specification.GivenEvents.IsEmpty)
         {
             builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
@@ -67,9 +74,13 @@ internal static class SemanticCommandSpecificationRenderer
             .Line("CommandResult _result = null!;")
             .BlankLine();
 
-        if (!specification.GivenEvents.IsEmpty)
+        if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
         {
             builder.OpenBlock("void Establish()");
+            if (command.Authorization is not null)
+            {
+                builder.Line($"{context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
+            }
         }
 
         foreach (var given in specification.GivenEvents)
@@ -88,15 +99,37 @@ internal static class SemanticCommandSpecificationRenderer
             builder.Line($"_scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)}));");
         }
 
-        if (!specification.GivenEvents.IsEmpty)
+        if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
         {
             builder.EndBlock().BlankLine();
         }
 
-        builder.Line($"async Task Because() => _result = await _scenario.Execute(new {commandName}({string.Join(", ", arguments)}));")
-            .BlankLine();
+        if (specification.GivenCaller is { } caller)
+        {
+            var claims = caller.Roles.Select(role => $"new Claim(ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+                .Concat(caller.Claims.Select(claim => $"new Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+            var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
+            builder.OpenBlock("async Task Because()")
+                .Line($"var principal = new ClaimsPrincipal(new ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
+                .Line("var principalOverride = new CurrentPrincipalAccessor(new HttpRequestContextAccessor());")
+                .Line("using var scope = principalOverride.BeginScope(principal);")
+                .Line($"_result = await _scenario.Execute(new {commandName}({string.Join(", ", arguments)}));")
+                .EndBlock()
+                .BlankLine();
+        }
+        else
+        {
+            builder.Line($"async Task Because() => _result = await _scenario.Execute(new {commandName}({string.Join(", ", arguments)}));")
+                .BlankLine();
+        }
 
-        if (!specification.ThenErrors.IsEmpty)
+        if (specification.ThenDenied)
+        {
+            builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
+                .Line("[Fact] void should_be_denied() => _result.IsAuthorized.ShouldBeFalse();")
+                .Line("[Fact] void should_not_append_events() => _scenario.AppendedEvents.ShouldBeEmpty();");
+        }
+        else if (!specification.ThenErrors.IsEmpty)
         {
             builder.Line("[Fact] void should_not_succeed() => _result.ShouldNotBeSuccessful();")
                 .Line("[Fact] void should_have_validation_errors() => _result.ShouldHaveValidationErrors();");
@@ -135,14 +168,19 @@ internal static class SemanticCommandSpecificationRenderer
         SemanticApplicationContext context,
         SemanticTypeSystem types)
     {
-        var source = SemanticDestinations.ForSpecification(specification, command, command.Produces.Single());
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
             .Using("Cratis.Chronicle.Events")
             .Line("[Fact] void should_succeed() => _result.ShouldBeSuccessful();");
+        if (specification.ThenEvents.Length > 1)
+        {
+            builder.Line($"[Fact] void should_append_exactly_{specification.ThenEvents.Length}_events() => _scenario.AppendedEvents.Count.ShouldEqual({specification.ThenEvents.Length});");
+        }
 
-        foreach (var expected in specification.ThenEvents)
+        foreach (var (expected, index) in specification.ThenEvents.Select((value, index) => (value, index)))
         {
             var @event = context.Events[expected.EventContract];
+            var produced = command.Produces[index];
+            var source = SemanticDestinations.ForSpecification(specification, command, produced);
             if (SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
                 @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     expected.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
@@ -155,10 +193,16 @@ internal static class SemanticCommandSpecificationRenderer
                 var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
                 return $"@event.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value, property.Type)}";
             }));
-            builder.Line(
-                $"[Fact] async Task should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}() => " +
-                $"await _scenario.ShouldHaveAppendedEvent<{commandName}, {Identifiers.ToPascalCase(@event.Name)}>(" +
-                $"{types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}, @event => {predicate});");
+            var sourceValue = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
+            var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
+            if (specification.ThenEvents.Length == 1)
+            {
+                builder.Line($"[Fact] async Task {name}() => await _scenario.ShouldHaveAppendedEvent<{commandName}, {Identifiers.ToPascalCase(@event.Name)}>({sourceValue}, @event => {predicate});");
+            }
+            else
+            {
+                builder.Line($"[Fact] void {name}_at_position_{index + 1}() => (_scenario.AppendedEvents[{index}].Event.Context.EventSourceId == {sourceValue} && _scenario.AppendedEvents[{index}].Event.Content is {Identifiers.ToPascalCase(@event.Name)} @event && {predicate}).ShouldBeTrue();");
+            }
         }
     }
 

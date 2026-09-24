@@ -98,7 +98,7 @@ internal static class SemanticSurfaceLedger
         // State view: one transition keyed by the produced event source and an optional snapshot lookup.
         Add(entries, "SemanticReadModel", rendered, "Id Name Properties");
         Add(entries, "SemanticProjection", rendered, "Id Name ReadModel Transitions");
-        Add(entries, "SemanticProjection", rejected("STAGE-ESM-008"), "Scope");
+        Add(entries, "SemanticProjection", rendered, "Scope");
         Add(entries, "SemanticProjectionTransition", rendered, "AffectedInstance EventContract Mappings");
         Add(entries, "SemanticAffectedInstance", rendered, "Cardinality Key");
         Add(entries, "AffectedInstanceCardinality", rendered, "One");
@@ -111,27 +111,32 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticQueryDelivery", rendered, "Snapshot");
         Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown Live");
 
-        // Full declarative projection scopes are not implemented by the first model-bound projection.
-        Add(entries, "SemanticProjectionScope", rejected("STAGE-ESM-008"), "Children Every From JoinRemovals Joins Nested Removals");
-        Add(entries, "SemanticProjectionChildren", rejected("STAGE-ESM-008"), "IdentifiedBy Property Scope");
-        Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-008"), "Parts Type");
-        Add(entries, "SemanticProjectionEventContextValue", rejected("STAGE-ESM-008"), "Path");
-        Add(entries, "SemanticProjectionEventProperty", rejected("STAGE-ESM-008"), "Path");
-        Add(entries, "SemanticProjectionEvery", rejected("STAGE-ESM-008"), "IncludeChildren Mappings SubscribesToAllEvents");
-        Add(entries, "SemanticProjectionFrom", rejected("STAGE-ESM-008"), "EventContract Key Mappings ParentKey");
-        Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-008"), "EventContract Key Mappings On");
-        Add(entries, "SemanticProjectionJoinRemoval", rejected("STAGE-ESM-008"), "EventContract Key");
-        Add(entries, "SemanticProjectionKey", rejected("STAGE-ESM-008"), "Kind");
-        Add(entries, "SemanticProjectionKeyKind", rejected("STAGE-ESM-008"), "Unknown Value Composite");
-        Add(entries, "SemanticProjectionKeyPart", rejected("STAGE-ESM-008"), "Property Value");
-        Add(entries, "SemanticProjectionLiteral", rejected("STAGE-ESM-008"), "Value");
-        Add(entries, "SemanticProjectionMapping", rejected("STAGE-ESM-008"), "Operation Source Target");
-        Add(entries, "SemanticProjectionNested", rejected("STAGE-ESM-008"), "Property Scope");
-        Add(entries, "SemanticProjectionOperation", rejected("STAGE-ESM-008"), "Unknown Set Add Subtract Increment Decrement Clear");
-        Add(entries, "SemanticProjectionRemoval", rejected("STAGE-ESM-008"), "EventContract Key ParentKey");
-        Add(entries, "SemanticProjectionValue", rejected("STAGE-ESM-008"), "Kind");
-        Add(entries, "SemanticProjectionValueKey", rejected("STAGE-ESM-008"), "Value");
-        Add(entries, "SemanticProjectionValueKind", rejected("STAGE-ESM-008"), "Unknown EventContext EventProperty EventSourceIdentity Literal");
+        // Scoped from/join/children are rendered; unsupported scope shapes fail admission with STAGE-ESM-017.
+        Add(entries, "SemanticProjectionScope", rendered, "Children From Joins");
+        Add(entries, "SemanticProjectionScope", rejected("STAGE-ESM-017"), "Every JoinRemovals Nested Removals");
+        Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
+        Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
+        Add(entries, "SemanticProjectionEventContextValue", rejected("STAGE-ESM-017"), "Path");
+        Add(entries, "SemanticProjectionEventProperty", rendered, "Path");
+        Add(entries, "SemanticProjectionEvery", rejected("STAGE-ESM-017"), "IncludeChildren Mappings SubscribesToAllEvents");
+        Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
+        Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
+        Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");
+        Add(entries, "SemanticProjectionJoinRemoval", rejected("STAGE-ESM-017"), "EventContract Key");
+        Add(entries, "SemanticProjectionKey", rendered, "Kind");
+        Add(entries, "SemanticProjectionKeyKind", rendered, "Value");
+        Add(entries, "SemanticProjectionKeyKind", rejected("STAGE-ESM-017"), "Unknown Composite");
+        Add(entries, "SemanticProjectionKeyPart", rejected("STAGE-ESM-017"), "Property Value");
+        Add(entries, "SemanticProjectionLiteral", rejected("STAGE-ESM-017"), "Value");
+        Add(entries, "SemanticProjectionMapping", rendered, "Operation Source Target");
+        Add(entries, "SemanticProjectionNested", rejected("STAGE-ESM-017"), "Property Scope");
+        Add(entries, "SemanticProjectionOperation", rendered, "Set Add Subtract Increment Decrement Clear");
+        Add(entries, "SemanticProjectionOperation", rejected("STAGE-ESM-017"), "Unknown");
+        Add(entries, "SemanticProjectionRemoval", rejected("STAGE-ESM-017"), "EventContract Key ParentKey");
+        Add(entries, "SemanticProjectionValue", rendered, "Kind");
+        Add(entries, "SemanticProjectionValueKey", rendered, "Value");
+        Add(entries, "SemanticProjectionValueKind", rendered, "EventProperty EventSourceIdentity");
+        Add(entries, "SemanticProjectionValueKind", rejected("STAGE-ESM-017"), "Unknown EventContext Literal");
 
         // Specifications only render command actions with exact scalar fixtures and supported outcomes.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents ThenEvents ThenReadModels ThenQueries ThenErrors When");
@@ -162,7 +167,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticAuthorization", rejected("STAGE-ESM-015"), "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rejected("STAGE-ESM-015"), "$type");
-        Add(entries, "SemanticProjectionEventSourceIdentity", rejected("STAGE-ESM-008"), "$type");
+        Add(entries, "SemanticProjectionEventSourceIdentity", rendered, "$type");
         Add(entries, "SemanticCaller", rejected("STAGE-ESM-011"), "Authenticated Claims Roles");
         Add(entries, "SemanticCallerClaim", rejected("STAGE-ESM-011"), "Type Value");
         Add(entries, "SemanticPolicy", rejected("STAGE-ESM-015"), "Condition Name");

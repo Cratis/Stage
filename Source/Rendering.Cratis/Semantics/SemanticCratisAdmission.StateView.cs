@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -16,34 +17,56 @@ internal static partial class SemanticCratisAdmission
         SemanticSlice slice,
         List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (slice.ReadModels.Length != 1 || slice.Projections.Length != 1 || slice.Queries.Length > 1)
+        if (slice.ReadModels.Length == 0 || slice.Projections.Length != slice.ReadModels.Length ||
+            slice.Projections.Select(_ => _.ReadModel).Distinct().Count() != slice.ReadModels.Length ||
+            slice.Projections.Any(_ => !slice.ReadModels.Any(model => model.Id == _.ReadModel)))
         {
-            diagnostics.Add(Error("STAGE-ESM-007", $"State-view slice '{slice.Name}' exceeds the first Cratis read capability.", slice.Id));
+            diagnostics.Add(Error("STAGE-ESM-007", $"State-view slice '{slice.Name}' needs exactly one projection for each read model.", slice.Id));
             return;
         }
 
-        var readModel = slice.ReadModels[0];
-        var projection = slice.Projections[0];
-        if (projection.ReadModel != readModel.Id || projection.Scope is not null || projection.Transitions.Length != 1 || readModel.Properties.Any(_ => !TypeExists(context, _.Type)))
+        foreach (var readModel in slice.ReadModels)
         {
-            diagnostics.Add(Error("STAGE-ESM-008", $"Projection '{projection.Name}' does not have one resolvable read-model transition.", projection.Id));
-            return;
+            var projection = slice.Projections.Single(_ => _.ReadModel == readModel.Id);
+            if (readModel.Properties.Any(_ => !TypeExists(context, _.Type)) || readModel.Properties.Count(_ => _.IsIdentifier) != 1)
+            {
+                diagnostics.Add(Error("STAGE-ESM-008", $"Projection '{projection.Name}' needs a resolvable read model with one identifier.", projection.Id));
+                continue;
+            }
+
+            if (projection.Scope is { } scope)
+            {
+                var rejection = SemanticScopedProjectionSupport.Rejection(scope, context, readModel.Properties);
+                if (rejection is not null || !projection.Transitions.IsEmpty)
+                {
+                    diagnostics.Add(Error("STAGE-ESM-017", $"Projection '{projection.Name}' cannot render: {rejection ?? "A scope cannot also have flat transitions."}", projection.Id));
+                }
+
+                continue;
+            }
+
+            if (projection.Transitions.Length != 1)
+            {
+                diagnostics.Add(Error("STAGE-ESM-008", $"Projection '{projection.Name}' does not have one resolvable read-model transition.", projection.Id));
+                continue;
+            }
+
+            var transition = projection.Transitions[0];
+            if (!context.Events.TryGetValue(transition.EventContract, out var @event) ||
+                transition.AffectedInstance.Cardinality != AffectedInstanceCardinality.One ||
+                !IsProperty(transition.AffectedInstance.Key, SemanticExpressionRootKind.Event, @event.Properties.Select(_ => _.Id)) ||
+                !MappingsMatch(transition.Mappings, readModel.Properties, @event.Properties, SemanticExpressionRootKind.Event) ||
+                !UsesEventSourceIdentity(context, transition, @event, readModel))
+            {
+                diagnostics.Add(Error("STAGE-ESM-009", $"Projection '{projection.Name}' cannot preserve its affected instance with model-bound Cratis projection semantics.", projection.Id));
+            }
         }
 
-        var transition = projection.Transitions[0];
-        if (!context.Events.TryGetValue(transition.EventContract, out var @event) ||
-            transition.AffectedInstance.Cardinality != AffectedInstanceCardinality.One ||
-            !IsProperty(transition.AffectedInstance.Key, SemanticExpressionRootKind.Event, @event.Properties.Select(_ => _.Id)) ||
-            !MappingsMatch(transition.Mappings, readModel.Properties, @event.Properties, SemanticExpressionRootKind.Event) ||
-            !UsesEventSourceIdentity(context, transition, @event, readModel))
+        foreach (var query in slice.Queries.Where(query => ValidateQueryAuthorization(query, diagnostics)))
         {
-            diagnostics.Add(Error("STAGE-ESM-009", $"Projection '{projection.Name}' cannot preserve its affected instance with model-bound Cratis projection semantics.", projection.Id));
-        }
-
-        if (slice.Queries.SingleOrDefault() is { } query && ValidateQueryAuthorization(query, diagnostics))
-        {
-            var identifiers = readModel.Properties.Where(_ => _.IsIdentifier).ToArray();
-            if (query.ReadModel != readModel.Id || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
+            var readModel = slice.ReadModels.SingleOrDefault(_ => _.Id == query.ReadModel);
+            var identifiers = readModel?.Properties.Where(_ => _.IsIdentifier).ToArray() ?? [];
+            if (query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
                 query.Delivery != SemanticQueryDelivery.Snapshot || identifiers.Length != 1 ||
                 query.KeyProperty != identifiers[0].Id || !TypeExists(context, query.Argument.Type))
             {

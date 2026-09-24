@@ -100,7 +100,7 @@ internal static class SemanticSurfaceLedger
         // State view: one transition keyed by the produced event source and an optional snapshot lookup.
         Add(entries, "SemanticReadModel", rendered, "Id Name Properties");
         Add(entries, "SemanticProjection", rendered, "Id Name ReadModel Transitions");
-        Add(entries, "SemanticProjection", ignored("Scope-only projections fail the transition-count check; if a legacy transition coexists with Scope, the renderer uses that transition and does not inspect Scope."), "Scope");
+        Add(entries, "SemanticProjection", rejected("STAGE-ESM-008"), "Scope");
         Add(entries, "SemanticProjectionTransition", rendered, "AffectedInstance EventContract Mappings");
         Add(entries, "SemanticAffectedInstance", rendered, "Cardinality Key");
         Add(entries, "AffectedInstanceCardinality", rendered, "One");

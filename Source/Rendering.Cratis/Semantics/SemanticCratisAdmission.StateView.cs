@@ -24,7 +24,7 @@ internal static partial class SemanticCratisAdmission
 
         var readModel = slice.ReadModels[0];
         var projection = slice.Projections[0];
-        if (projection.ReadModel != readModel.Id || projection.Transitions.Length != 1 || readModel.Properties.Any(_ => !TypeExists(context, _.Type)))
+        if (projection.ReadModel != readModel.Id || projection.Scope is not null || projection.Transitions.Length != 1 || readModel.Properties.Any(_ => !TypeExists(context, _.Type)))
         {
             diagnostics.Add(Error("STAGE-ESM-008", $"Projection '{projection.Name}' does not have one resolvable read-model transition.", projection.Id));
             return;

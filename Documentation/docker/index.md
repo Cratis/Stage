@@ -141,8 +141,9 @@ unsupported artifacts. `GET /stage/status` includes `engine: "semantic"`. If Scr
 executable plan, the host returns `state: "unsupported"` with issues; `/api/**` responds with HTTP 501
 instead of performing a partial model. On restart with a nonempty Chronicle log, Stage waits for its
 mirrored projections, reads all facts and mirrored read models, checks the history against modeled
-constraints, and rebuilds the validated semantic world. This includes the exit-42 warm handoff:
-the Stage process restarts, but the Chronicle kernel and its event log stay alive.
+constraints, and rebuilds the validated semantic world. During an exit-42 warm handoff, Stage resets
+kernel state before restarting with the newly loaded model. Subsequent host-only restarts retain that
+session's Chronicle log and use the same rebuild checks.
 
 Commands retain their slice-qualified `/api/…` route and legacy alias. The semantic engine also exposes one
 query by its modeled name. Compatibility `Get…ById` and `All…` queries are available only for read models with at least one keyed query and no authorization on any keyed query targeting that read model. Otherwise, the compatibility routes are not mapped, so callers cannot bypass a modeled query policy.

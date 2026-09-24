@@ -97,6 +97,14 @@ internal static class SemanticChronicleRegistration
         }
     }
 
+    internal static void EnsureNoFailures(IEnumerable<Cratis.Chronicle.Contracts.Observation.FailedPartition> failed, IReadOnlySet<string> mirrorIds)
+    {
+        if (failed.Any(partition => mirrorIds.Contains(partition.ObserverId) && !partition.IsResolved))
+        {
+            throw new SemanticWorldRebuildRefused("The Chronicle mirror has failed partitions.");
+        }
+    }
+
     static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, ulong tail)
     {
         var mirrorIds = plan.Projections.Values.Select(projection =>
@@ -142,6 +150,7 @@ internal static class SemanticChronicleRegistration
             SemanticProjectionMirrors.TryLower(plan, mirror, out var definition, out _, out _);
             var identifier = definition!.Type.Identifier;
             var rows = new List<string>();
+            long? total = null;
             for (var page = 0; ; page++)
             {
                 var result = await accessor.Services.ReadModels.GetInstances(new ChronicleReadModels.GetInstancesRequest
@@ -152,8 +161,16 @@ internal static class SemanticChronicleRegistration
                     Page = page,
                     PageSize = 100
                 });
+                if (result.TotalCount < 0 || (total is not null && total != result.TotalCount) ||
+                    result.Instances.Count > 100 || rows.Count + result.Instances.Count > result.TotalCount ||
+                    (result.Instances.Count == 0 && rows.Count < result.TotalCount))
+                {
+                    throw new SemanticWorldRebuildRefused($"Chronicle mirror for '{readModel.Name}' returned an incomplete or inconsistent page.");
+                }
+
+                total = result.TotalCount;
                 rows.AddRange(result.Instances);
-                if (rows.Count >= result.TotalCount)
+                if (rows.Count == total)
                 {
                     break;
                 }
@@ -184,13 +201,5 @@ internal static class SemanticChronicleRegistration
             Namespace = EventStoreNamespaceName.Default
         });
         EnsureNoFailures(failed, mirrorIds);
-    }
-
-    internal static void EnsureNoFailures(IEnumerable<Cratis.Chronicle.Contracts.Observation.FailedPartition> failed, IReadOnlySet<string> mirrorIds)
-    {
-        if (failed.Any(partition => mirrorIds.Contains(partition.ObserverId) && !partition.IsResolved))
-        {
-            throw new SemanticWorldRebuildRefused("The Chronicle mirror has failed partitions.");
-        }
     }
 }

@@ -32,7 +32,9 @@ public class a_rebuildable_world : Specification
             new(_command.Properties.Single(property => property.Name == "projectId").Id, SemanticValue.Text("3fa85f64-5717-4562-b3fc-2c963f66afa6")),
             new(_command.Properties.Single(property => property.Name == "name").Id, SemanticValue.Text("Screenplay"))
         ];
-        var result = new SemanticEvaluator().Execute(_plan, SemanticWorld.Empty,
+        var result = new SemanticEvaluator().Execute(
+            _plan,
+            SemanticWorld.Empty,
             SemanticExecutionRequest.Create(_command.Id, _commandValues, []) with
             {
                 Occurrence = new(new DateTimeOffset(2026, 9, 24, 12, 0, 0, TimeSpan.Zero), "owner", "Owner", "owner")
@@ -42,9 +44,9 @@ public class a_rebuildable_world : Specification
         var eventContract = _plan.Events[fact.EventContract];
         _event = new AppendedEventResponse
         {
-            Context = new EventContext
+            Context = new Cratis.Chronicle.Contracts.Sequences.EventContext
             {
-                EventType = new EventType { Id = eventContract.Name, Generation = 1 },
+                EventType = new Cratis.Chronicle.Contracts.Sequences.EventType { Id = eventContract.Name, Generation = 1 },
                 EventSourceId = "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                 SequenceNumber = 0,
                 Occurred = new() { Value = "2026-09-24T12:00:00.0000000+00:00" },
@@ -83,6 +85,15 @@ public class a_rebuildable_world : Specification
               event ProjectRegistered
                 projectId ProjectId
                 name ProjectName
+              specification ARegisteredProject
+                when RegisterProject
+                  for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  name = "Screenplay"
+                then ProjectRegistered
+                  for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  name = "Screenplay"
             slice StateView ProjectLookup
               readmodel ProjectSummary
                 projectId ProjectId

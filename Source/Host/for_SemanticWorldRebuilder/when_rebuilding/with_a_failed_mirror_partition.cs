@@ -12,8 +12,9 @@ public class with_a_failed_mirror_partition : Specification
     Exception? _error;
 
     void Because() => _error = Catch.Exception(() => SemanticChronicleRegistration.EnsureNoFailures(
-        [new FailedPartition { ObserverId = "mirror", IsResolved = false }],
+        [new Cratis.Chronicle.Contracts.Observation.FailedPartition { ObserverId = "mirror", IsResolved = false }],
         new HashSet<string> { "mirror" }));
 
-    [Fact] void should_refuse_the_failed_partition() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>().Message.ShouldContain("failed partitions");
+    [Fact] void should_refuse_the_failed_partition() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
+    [Fact] void should_name_the_failed_partition() => _error!.Message.ShouldContain("failed partitions");
 }

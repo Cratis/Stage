@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
-using Cratis.Stage.Semantics;
 using Cratis.Stage.Host.for_SemanticWorldRebuilder.given;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticWorldRebuilder.when_rebuilding;

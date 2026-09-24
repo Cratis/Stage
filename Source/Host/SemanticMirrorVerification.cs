@@ -66,7 +66,7 @@ internal static class SemanticMirrorVerification
             _ => false
         };
 
-        public int GetHashCode(SemanticValue value) => value switch
+        public int GetHashCode(SemanticValue obj) => obj switch
         {
             SemanticTextValue text => text.Value.GetHashCode(StringComparison.Ordinal),
             SemanticNumberValue number => number.Value.GetHashCode(),

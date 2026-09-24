@@ -69,12 +69,12 @@ internal static class SemanticWorldRebuilder
         }
 
         var contract = contracts[0];
-        var destinations = plan.Commands.Values.SelectMany(command => command.Produces
+        var producers = plan.Commands.Values.SelectMany(command => command.Produces
             .Where(produced => produced.EventContract == contract.Id)
-            .Select(produced => produced.Destination is SemanticResolvedExpression resolved
-                ? command.Properties.Single(property => property.Id == resolved.Target).Type
-                : command.Destination?.Type))
-            .Distinct().ToArray();
+            .Select(produced => (Command: command, Produced: produced))).ToArray();
+        var destinations = producers.Select(producer => producer.Produced.Destination is SemanticResolvedExpression resolved
+            ? producer.Command.Properties.Single(property => property.Id == resolved.Target).Type
+            : producer.Command.Destination?.Type).Distinct().ToArray();
         if (destinations is not [{ IsOptional: false, IsCollection: false }])
         {
             throw new SemanticWorldRebuildRefused($"Event '{contract.Name}' has no unambiguous typed destination.");
@@ -82,17 +82,55 @@ internal static class SemanticWorldRebuilder
 
         var destinationType = destinations[0]!;
         var destination = Text(context.EventSourceId, destinationType, plan.Model.Application);
-        if (!((DateTimeOffset?)context.Occurred).HasValue)
+        if ((DateTimeOffset?)context.Occurred is not { } occurred)
         {
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has no occurrence time.");
         }
 
         using var content = JsonDocument.Parse(stored.Content);
-        return new SemanticFact(contract.Id, destination, Values(content.RootElement, contract.Properties, plan.Model.Application))
+        var values = Values(content.RootElement, contract.Properties, plan.Model.Application);
+        if (!producers.Any(producer => ProductionMatches(producer.Produced, contract, values, context, occurred)))
+        {
+            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has tags or occurrence values inconsistent with every modeled production of '{contract.Name}'.");
+        }
+
+        return new SemanticFact(contract.Id, destination, values)
         {
             Context = plan.Model.SemanticVersion == SemanticVersion.V2 ? new(new(destinationType, destination)) : null,
             Tags = [.. context.Tags]
         };
+    }
+
+    static bool ProductionMatches(
+        SemanticProducedEvent produced,
+        SemanticEventContract contract,
+        ImmutableArray<SemanticPropertyValue> values,
+        Cratis.Chronicle.Contracts.Sequences.EventContext context,
+        DateTimeOffset occurred)
+    {
+        if (!contract.Tags.AddRange(produced.Tags).SequenceEqual(context.Tags))
+        {
+            return false;
+        }
+
+        foreach (var mapping in produced.Mappings.Where(mapping => mapping.Source is SemanticEventContextExpression))
+        {
+            var actual = values.Single(value => value.TargetProperty == mapping.TargetProperty).Value;
+            var expected = ((SemanticEventContextExpression)mapping.Source).Value switch
+            {
+                SemanticEventContextValueKind.Occurred => occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture),
+                SemanticEventContextValueKind.CausedBySubject => context.CausedBy?.Subject,
+                SemanticEventContextValueKind.CausedByName => context.CausedBy?.Name,
+                SemanticEventContextValueKind.CausedByUserName => context.CausedBy?.UserName,
+                _ => null
+            };
+            if (expected is null || actual is not SemanticTextValue text || text.Value != expected)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     static ImmutableArray<SemanticPropertyValue> MirrorValues(JsonElement json, SemanticReadModel model, SemanticApplication application)
@@ -116,7 +154,7 @@ internal static class SemanticWorldRebuilder
         return Values(semantic, model.Properties, application);
     }
 
-    internal static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
+    static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
     {
         if (json.ValueKind != JsonValueKind.Object || json.EnumerateObject().Count() != properties.Length ||
             json.EnumerateObject().Any(entry => properties.Count(property => property.Name == entry.Name) != 1))

@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Cratis.Arc.Commands;
+using Cratis.Arc.Tenancy;
 using Cratis.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Commands;
@@ -28,12 +29,22 @@ public class a_command_handler : Specification
             .Returns(call =>
             {
                 _eventSourceId = (string)call[0];
-                return Task.CompletedTask;
+                return Task.FromResult<CommandResult?>(null);
             });
     }
 
     protected StageCommandHandler HandlerFor(string? identifier) =>
-        new(typeof(DynamicCommand), [], Definition(identifier), _appender, _identity);
+        new(typeof(DynamicCommand), [], Definition(identifier), _appender, _identity, TenantAccessor());
+
+    protected StageCommandHandler HandlerProducing(ProducedEvent produced) =>
+        new(typeof(DynamicCommand), [], Definition("invoiceId") with { Produces = [produced] }, _appender, _identity, TenantAccessor());
+
+    static ITenantIdAccessor TenantAccessor()
+    {
+        var accessor = Substitute.For<ITenantIdAccessor>();
+        accessor.Current.Returns(TenantId.Default);
+        return accessor;
+    }
 
     protected static CommandContext ContextFor(string payload) =>
         new(

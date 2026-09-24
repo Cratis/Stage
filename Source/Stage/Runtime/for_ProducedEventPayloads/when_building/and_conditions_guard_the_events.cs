@@ -31,7 +31,8 @@ public class and_conditions_guard_the_events : given.a_command_payload
         ],
         _command,
         _occurred,
-        _identity);
+        _identity,
+        "Default");
 
     [Fact] void should_produce_only_the_events_whose_condition_holds() =>
         _events.Select(@event => @event.EventType).ShouldContainOnly(

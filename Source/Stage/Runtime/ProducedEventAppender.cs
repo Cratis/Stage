@@ -1,14 +1,15 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Arc.Validation;
 using Cratis.Chronicle;
 using Cratis.Chronicle.Contracts;
 using Cratis.Chronicle.Contracts.Commands;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Chronicle.Identities;
 using Microsoft.Extensions.Logging;
-using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
-using ChronicleIdentities = Cratis.Chronicle.Contracts.Sequences;
+
+using ArcCommandResult = Cratis.Arc.Commands.CommandResult;
 using ChronicleSequences = Cratis.Chronicle.Contracts.Sequences;
 
 namespace Cratis.Stage.Runtime;
@@ -26,11 +27,11 @@ public sealed class ProducedEventAppender(IChronicleClient client, StageEventSto
     const uint FirstGeneration = 1;
 
     /// <inheritdoc/>
-    public async Task Append(string eventSourceId, IReadOnlyList<ProducedEventPayload> events, IReadOnlyDictionary<string, string> identity)
+    public async Task<ArcCommandResult?> Append(string eventSourceId, IReadOnlyList<ProducedEventPayload> events, IReadOnlyDictionary<string, string> identity)
     {
         if (events.Count == 0)
         {
-            return;
+            return null;
         }
 
         var store = await client.GetEventStore(eventStore.Value);
@@ -54,13 +55,50 @@ public sealed class ProducedEventAppender(IChronicleClient client, StageEventSto
         });
         response.EnsureSuccess();
 
-        if (response.Response.ConstraintViolations.Any())
+        var rejection = Rejection(response.Response);
+        if (rejection is not null)
         {
             ProducedEventAppenderLogging.ConstraintViolations(
                 logger,
                 eventSourceId,
-                string.Join("; ", response.Response.ConstraintViolations.Select(violation => $"{violation.ConstraintName}: {violation.Message}")));
+                string.Join("; ", rejection.ValidationResults.Select(result => $"{result.ReasonDetail}: {result.Message}")
+                    .Concat(rejection.ExceptionMessages)));
         }
+
+        return rejection;
+    }
+
+    internal static ArcCommandResult? Rejection(ChronicleSequences.AppendManyResponse response)
+    {
+        if (response.IsSuccess && !response.HasConstraintViolations && !response.HasConcurrencyViolations && !response.HasErrors &&
+            !response.ConstraintViolations.Any() && !response.ConcurrencyViolations.Any() && !response.Errors.Any())
+        {
+            return null;
+        }
+
+        var constraints = response.ConstraintViolations.ToArray();
+        var errors = response.Errors.ToArray();
+        var validation = constraints
+            .Where(violation => !violation.ConstraintName.Equals("SchemaValidation", StringComparison.OrdinalIgnoreCase))
+            .Select(violation => ValidationResult.Error(violation.Message, reason: ValidationResultReason.ConstraintViolation, reasonDetail: violation.ConstraintName))
+            .ToArray();
+        var otherErrors = constraints
+            .Where(violation => violation.ConstraintName.Equals("SchemaValidation", StringComparison.OrdinalIgnoreCase))
+            .Select(violation => $"{violation.ConstraintName}: {violation.Message}")
+            .Concat(errors)
+            .Concat(response.ConcurrencyViolations.Select(_ => "Concurrency violation while appending produced events."))
+            .ToArray();
+
+        if (validation.Length == 0 && otherErrors.Length == 0)
+        {
+            otherErrors = ["Chronicle rejected the produced events without a reason."];
+        }
+
+        return new ArcCommandResult
+        {
+            ValidationResults = validation,
+            ExceptionMessages = otherErrors
+        };
     }
 
     static ChronicleSequences.EventToAppend ToAppend(ProducedEventPayload @event)

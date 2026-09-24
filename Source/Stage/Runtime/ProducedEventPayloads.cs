@@ -22,18 +22,21 @@ public static class ProducedEventPayloads
     /// <param name="command">The command payload the request bound into.</param>
     /// <param name="occurred">The time to use for properties sourced from the occurred time.</param>
     /// <param name="identity">The identity that caused the command, used for identity-sourced properties.</param>
+    /// <param name="tenant">The tenant under which the command runs.</param>
     /// <returns>One <see cref="ProducedEventPayload"/> per event whose condition holds, in declaration order.</returns>
+    /// <exception cref="UnsupportedProducedValue">A produced property has no runtime equivalent.</exception>
     public static IReadOnlyList<ProducedEventPayload> Build(
         IReadOnlyList<ProducedEvent> produces,
         IReadOnlyDictionary<string, JsonElement> command,
         DateTimeOffset occurred,
-        IReadOnlyDictionary<string, string> identity) =>
+        IReadOnlyDictionary<string, string> identity,
+        string tenant) =>
     [
         .. produces
             .Where(produced => ProducedEventConditions.Holds(produced.When, command))
             .Select(produced => new ProducedEventPayload(
                 produced.Event,
-                Payload(produced, command, occurred, identity),
+                Payload(produced, command, occurred, identity, tenant),
                 produced.Tags))
     ];
 
@@ -41,13 +44,14 @@ public static class ProducedEventPayloads
         ProducedEvent produced,
         IReadOnlyDictionary<string, JsonElement> command,
         DateTimeOffset occurred,
-        IReadOnlyDictionary<string, string> identity)
+        IReadOnlyDictionary<string, string> identity,
+        string tenant)
     {
         var payload = new JsonObject();
 
         foreach (var property in produced.Properties)
         {
-            if (Value(property, command, occurred, identity) is { } value)
+            if (Value(property, command, occurred, identity, tenant) is { } value)
             {
                 payload[property.Property] = value;
             }
@@ -60,7 +64,8 @@ public static class ProducedEventPayloads
         ProducedEventProperty property,
         IReadOnlyDictionary<string, JsonElement> command,
         DateTimeOffset occurred,
-        IReadOnlyDictionary<string, string> identity) =>
+        IReadOnlyDictionary<string, string> identity,
+        string tenant) =>
         property.Kind switch
         {
             ProducedValueKind.CommandProperty => CommandPayloadValues.Lookup(command, property.Expression) is { } element
@@ -73,9 +78,10 @@ public static class ProducedEventPayloads
             // were modeled optional - so an unresolved identity value or environment variable is an empty string
             // rather than an absent property, which the kernel would reject at append time.
             ProducedValueKind.Identity => JsonValue.Create(identity.TryGetValue(property.Expression, out var value) ? value : string.Empty),
+            ProducedValueKind.Tenant => JsonValue.Create(tenant),
             ProducedValueKind.Environment => JsonValue.Create(Environment.GetEnvironmentVariable(property.Expression) ?? string.Empty),
             ProducedValueKind.Template => JsonValue.Create(Interpolate(property.Expression, command)),
-            _ => null
+            _ => throw new UnsupportedProducedValue(property.Expression, property.Property)
         };
 
     static string Interpolate(string template, IReadOnlyDictionary<string, JsonElement> command)

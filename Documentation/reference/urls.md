@@ -52,6 +52,17 @@ curl -X POST http://localhost:9090/api/invoicing/invoice-management/adjustments/
 The **`/validate`** variant next to every command takes the same body and runs the command through the pipeline
 without executing it — that is what a client's form validation calls.
 
+For produced event mappings, `$context.tenant` is the Arc tenant ID for the command, and
+`$context.causedBy.subject`, `.name`, and `.userName` resolve from the caller's identity (`subject` uses the
+same ID as `$context.identity.id`). An anonymous caller has no ID, so identity-sourced event properties receive
+empty strings. The default tenant is `Default`: a mapping to a `Uuid` concept cannot accept that string.
+Use a tenant concept whose underlying type matches the tenant IDs configured for your session.
+
+Stage reports a rejected Chronicle append as an unsuccessful command, not as a successful response with no
+read-model changes. Constraint rejections return validation results with the constraint name and message;
+schema or other append failures return an error result. A produced property sourced from an unsupported
+`$context` path also fails the command instead of appending a partial event.
+
 The body is the command's modeled payload, and the reply is Arc's standard `CommandResult` envelope:
 
 ```json

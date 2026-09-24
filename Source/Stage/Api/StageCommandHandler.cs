@@ -4,6 +4,8 @@
 using System.Reflection;
 using System.Text.Json;
 using Cratis.Arc.Commands;
+using Cratis.Arc.Tenancy;
+using Cratis.Arc.Validation;
 using Cratis.Stage.Contracts.Commands;
 using Cratis.Stage.Runtime;
 
@@ -18,12 +20,14 @@ namespace Cratis.Stage.Api;
 /// <param name="definition">The modeled command being handled.</param>
 /// <param name="appender">The system appending the produced events.</param>
 /// <param name="identity">The system resolving the identity behind the command.</param>
+/// <param name="tenants">The accessor for the command's current tenant.</param>
 public sealed class StageCommandHandler(
     Type commandType,
     IReadOnlyList<string> location,
     CommandDefinition definition,
     IAppendProducedEvents appender,
-    IProvideStageIdentity identity) : ICommandHandler
+    IProvideStageIdentity identity,
+    ITenantIdAccessor tenants) : ICommandHandler
 {
     /// <inheritdoc/>
     public IEnumerable<string> Location => location;
@@ -48,23 +52,42 @@ public sealed class StageCommandHandler(
             return null;
         }
 
-        await AppendProducedEvents(command.Data);
+        var rejection = await AppendProducedEvents(command.Data);
+        if (rejection is not null)
+        {
+            if (rejection.ExceptionMessages.Any())
+            {
+                throw new ProducedEventAppendRejected(string.Join("; ", rejection.ExceptionMessages));
+            }
+
+            var violations = rejection.ValidationResults.ToArray();
+            throw new ProducedEventConstraintRejected(ValidationResult.Error(
+                string.Join("; ", violations.Select(violation => violation.Message)),
+                reason: ValidationResultReason.ConstraintViolation,
+                reasonDetail: string.Join(", ", violations.Select(violation => violation.ReasonDetail))));
+        }
 
         return command.Data;
     }
 
-    async Task AppendProducedEvents(IDictionary<string, JsonElement> payload)
+    async Task<CommandResult?> AppendProducedEvents(IDictionary<string, JsonElement> payload)
     {
         if (definition.Produces.Count == 0)
         {
-            return;
+            return null;
         }
 
         var caller = identity.Current();
         var values = payload.AsReadOnly();
-        var events = ProducedEventPayloads.Build(definition.Produces, values, DateTimeOffset.UtcNow, caller);
+        var tenant = tenants.Current;
+        var events = ProducedEventPayloads.Build(
+            definition.Produces,
+            values,
+            DateTimeOffset.UtcNow,
+            caller,
+            tenant.IsDefault ? TenantId.Default.Value : tenant.Value);
 
-        await appender.Append(EventSourceId(values), events, caller);
+        return await appender.Append(EventSourceId(values), events, caller);
     }
 
     // The model names the property carrying the event source id, so successive commands for the same entity land on

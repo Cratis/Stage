@@ -11,6 +11,7 @@ using Cratis.Arc.Http;
 using Cratis.Arc.Introspection;
 using Cratis.Arc.Queries;
 using Cratis.Arc.Queries.Filters;
+using Cratis.Arc.Tenancy;
 using Cratis.Arc.Validation;
 using Cratis.Chronicle;
 using Cratis.Chronicle.Connections;
@@ -72,9 +73,11 @@ public class a_routed_model : Specification
             .Returns(call =>
             {
                 _appends.Add((_commands[^1].Type, call.Arg<string>(), call.Arg<IReadOnlyList<ProducedEventPayload>>()));
-                return Task.CompletedTask;
+                return Task.FromResult<CommandResult?>(null);
             });
-        var commands = new StageCommandHandlerProvider([model], [types], [appender], [identity]);
+        var tenant = Substitute.For<ITenantIdAccessor>();
+        tenant.Current.Returns(TenantId.Default);
+        var commands = new StageCommandHandlerProvider([model], [types], [appender], [identity], [tenant]);
         var queries = new StageQueryPerformerProvider([model], [types]);
         _commandProviders = new CommandHandlerProviders(Instances<ICommandHandlerProvider>(commands));
         _queryProviders = new QueryPerformerProviders(Instances<IQueryPerformerProvider>(queries));

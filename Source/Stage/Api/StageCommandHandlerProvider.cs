@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Cratis.Arc.Commands;
+using Cratis.Arc.Tenancy;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Runtime;
 
@@ -25,17 +26,20 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
     /// <param name="typeFactories">The factory used to emit a runtime type per command, when one is registered.</param>
     /// <param name="appenders">The system appending the events a command produces, when one is registered.</param>
     /// <param name="identities">The system resolving the identity behind a command, when one is registered.</param>
+    /// <param name="tenants">The accessor for the current tenant, when one is registered.</param>
     public StageCommandHandlerProvider(
         IEnumerable<EventModel> models,
         IEnumerable<DynamicTypeFactory> typeFactories,
         IEnumerable<IAppendProducedEvents> appenders,
-        IEnumerable<IProvideStageIdentity> identities)
+        IEnumerable<IProvideStageIdentity> identities,
+        IEnumerable<ITenantIdAccessor> tenants)
     {
         var model = models.FirstOrDefault();
         var typeFactory = typeFactories.FirstOrDefault();
         var appender = appenders.FirstOrDefault();
         var identity = identities.FirstOrDefault();
-        if (model is null || typeFactory is null || appender is null || identity is null)
+        var tenant = tenants.FirstOrDefault();
+        if (model is null || typeFactory is null || appender is null || identity is null || tenant is null)
         {
             return;
         }
@@ -48,7 +52,7 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
             }
 
             var commandType = typeFactory.CreateCommandType(located.TypeNamespace, ModelNaming.ToIdentifier(command.Name));
-            _handlers.Add(new StageCommandHandler(commandType, located.CanonicalLocation, command, appender, identity));
+            _handlers.Add(new StageCommandHandler(commandType, located.CanonicalLocation, command, appender, identity, tenant));
         }
     }
 

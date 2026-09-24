@@ -100,6 +100,10 @@ internal static class SemanticCommandSpecificationRenderer
         {
             builder.Line("[Fact] void should_not_succeed() => _result.ShouldNotBeSuccessful();")
                 .Line("[Fact] void should_have_validation_errors() => _result.ShouldHaveValidationErrors();");
+            if (specification.ThenErrors[0].Message is { } message)
+            {
+                builder.Line($"[Fact] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});");
+            }
         }
         else
         {

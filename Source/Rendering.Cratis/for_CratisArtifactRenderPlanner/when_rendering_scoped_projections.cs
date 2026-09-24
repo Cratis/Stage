@@ -55,7 +55,7 @@ public class when_rendering_scoped_projections : a_generated_application
                 projectId ProjectId
                 name ProjectName
                 notes ProjectNote[]
-                visits Int?
+                visits Decimal?
               query ProjectById => ProjectSummary?
                 by projectId ProjectId
               query ProjectByKey => ProjectSummary?
@@ -69,7 +69,10 @@ public class when_rendering_scoped_projections : a_generated_application
                 from ProjectRegistered key projectId
                   name = name
               projection ProjectSummaryProjection => ProjectSummary
-                from ProjectRegistered, ProjectRenamed key projectId
+                from ProjectRegistered key projectId
+                  name = name
+                  increment visits
+                from ProjectRenamed key projectId
                   name = name
                   increment visits
                 join project on projectId

@@ -25,7 +25,7 @@ internal static partial class SemanticSpecificationAdmission
         foreach (var specification in slice.Specifications)
         {
             var valid = HasRenderableCallerAndCommand(context, specification, out var command) &&
-                HasRenderableGivenEvents(context, specification) && specification.GivenReadModels.IsEmpty &&
+                HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) && specification.GivenReadModels.IsEmpty &&
                 ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
                 HasOneOutcome(specification) && HasSupportedCounts(specification) &&
                 (!specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == command!.Produces.Length) &&
@@ -35,7 +35,7 @@ internal static partial class SemanticSpecificationAdmission
                     HasExpectedProjectionEvent(context, specification, expected)) &&
                 specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
                     HasExpectedProjectionEvent(context, specification, expected.Results.Single())) &&
-                specification.ThenErrors.All(_ => _.Code is null) &&
+                specification.ThenErrors.All(_ => _.Code is null && SemanticValidationRendering.SafeMessage(_.Message)) &&
                 HasRenderableEventSources(context, specification, command!);
 
             if (!valid)

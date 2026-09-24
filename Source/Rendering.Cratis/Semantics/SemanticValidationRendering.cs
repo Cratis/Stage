@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticValidationRendering
 {
     internal static bool CanRender(SemanticValidationRule rule) =>
-        SafeMessage(rule.Message) && SafeOperand(rule) && rule.Severity == SemanticValidationSeverity.Error && rule.Kind is
+        SafeMessage(rule.Message) && SafeOperand(rule) && !(rule.Operand is SemanticNullValue && rule.Kind is SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) && rule.Severity == SemanticValidationSeverity.Error && rule.Kind is
             SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
             SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
             SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or

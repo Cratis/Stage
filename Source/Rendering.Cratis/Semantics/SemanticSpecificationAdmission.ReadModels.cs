@@ -10,6 +10,11 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
+    internal static bool CanCompareQueryResult(
+        IEnumerable<SemanticPropertyValue> values,
+        IReadOnlyList<SemanticProperty> properties) =>
+        values.All(value => !properties.Single(property => property.Id == value.TargetProperty).Type.IsCollection);
+
     static bool HasExpectedProjectionEvent(
         SemanticApplicationContext context,
         SemanticSpecification specification,
@@ -32,5 +37,7 @@ internal static partial class SemanticSpecificationAdmission
         context.ReadModels.TryGetValue(query.ReadModel, out var readModel) && IsScalar(expected.Key) &&
         expected.Results.Length == 1 && expected.Results.All(result => result.ReadModel == query.ReadModel &&
             Equals(result.Key, expected.Key) &&
-            ValuesMatch(result.Values, readModel.Properties, result.Exactly || expected.Exactly) && IsScalar(result.Key));
+            ValuesMatch(result.Values, readModel.Properties, result.Exactly || expected.Exactly) &&
+            CanCompareQueryResult(result.Values, readModel.Properties) &&
+            IsScalar(result.Key));
 }

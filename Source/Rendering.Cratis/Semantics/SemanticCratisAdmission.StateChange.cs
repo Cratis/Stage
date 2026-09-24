@@ -32,6 +32,9 @@ internal static partial class SemanticCratisAdmission
                 @event.Properties.Any(property => !TypeExists(context, property.Type) || property.Type.IsOptional)) ||
             command.Properties.Any(_ => !TypeExists(context, _.Type)) ||
             !command.Validations.All(SemanticValidationRendering.CanRender) ||
+            command.Validations.Any(rule => command.Properties.Single(property => property.Id == rule.Property).Type is
+                { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } type &&
+                context.Concepts[type.Target].Primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean) ||
             !command.Requirements.All(_ => SemanticRequirementRendering.CanRender(_, command, context)) ||
             (!command.Requirements.IsEmpty && command.Properties.Any(_ => HasValidatedConcept(context, _.Type, []))) ||
             command.Validations.Any(_ =>

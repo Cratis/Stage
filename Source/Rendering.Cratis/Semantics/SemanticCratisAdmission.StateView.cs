@@ -68,7 +68,8 @@ internal static partial class SemanticCratisAdmission
             var identifiers = readModel?.Properties.Where(_ => _.IsIdentifier).ToArray() ?? [];
             if (query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
                 query.Delivery != SemanticQueryDelivery.Snapshot || identifiers.Length != 1 ||
-                query.KeyProperty != identifiers[0].Id || !TypeExists(context, query.Argument.Type))
+                query.KeyProperty != identifiers[0].Id || !TypeExists(context, query.Argument.Type) ||
+                HasValidatedConcept(context, query.Argument.Type, []))
             {
                 diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is not an optional snapshot lookup by the read-model identifier.", query.Id));
             }

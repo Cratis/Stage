@@ -15,18 +15,21 @@ public class with_all_declarative_rules(context fixture) : IClassFixture<context
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_the_acceptance_and_every_rejection() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_execute_each_modeled_specification() => fixture.Results.Length.ShouldEqual((17 * 2) + 4);
+    [Fact] void should_execute_each_modeled_specification() => fixture.Results.Length.ShouldEqual((17 * 3) + 4);
     [Fact] void should_render_each_authored_rejection_message() => Rules.Where(_ => _.Rule.Length > 0).All(_ => fixture.Generated.Contains($".WithMessage(\"{_.Message}\")", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_assert_the_first_rejection_message() => fixture.GeneratedRejection.ShouldContain("_result.ValidationResults.First().Message.ShouldEqual(\"minimum must be less than maximum\")");
     [Fact] void should_match_with_the_reference_regex_options_and_timeout() => fixture.Generated.ShouldContain("RegexOptions.ECMAScript | System.Text.RegularExpressions.RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)");
 
     public class context : a_generated_invoice_application
     {
         public string Generated { get; private set; } = null!;
+        public string GeneratedRejection { get; private set; } = null!;
         protected override string InvoiceSource => ValidationSource();
 
         async Task Because()
         {
             Generated = ReadGeneratedFile("Billing/Invoicing/Issue/Issue.cs");
+            GeneratedRejection = ReadGeneratedFile("Billing/Invoicing/Issue/when_rejecting_requirement.cs");
             await VerifyGeneratedApplication();
         }
     }

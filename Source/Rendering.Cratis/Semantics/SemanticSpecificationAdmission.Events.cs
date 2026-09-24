@@ -19,6 +19,14 @@ internal static partial class SemanticSpecificationAdmission
         specification.GivenEvents.All(given => given.EventSource is { } source &&
             IsScalar(source.Value) && IsLosslessEventSource(context, source.Type) && EventMatches(context, given));
 
+    static bool GivenKeysMatchProjectedProperties(SemanticApplicationContext context, SemanticSpecification specification) =>
+        specification.GivenEvents.All(given => context.Projections.Values
+            .SelectMany(projection => projection.Transitions)
+            .Where(transition => transition.EventContract == given.EventContract)
+            .All(transition => transition.AffectedInstance.Key is SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event } key &&
+                given.Values.SingleOrDefault(value => value.TargetProperty == key.Target)?.Value is { } propertyValue &&
+                given.EventSource is { } source && Equals(propertyValue, source.Value)));
+
     static bool ValuesMatch(
         System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> values,
         System.Collections.Immutable.ImmutableArray<SemanticProperty> properties,

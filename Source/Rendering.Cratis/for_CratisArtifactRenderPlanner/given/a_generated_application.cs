@@ -28,7 +28,10 @@ public class a_generated_application : a_register_project_render_request
             _application.Create();
             File.WriteAllText(Path.Combine(_evidence.FullName, "lifecycle.log"), $"Created: {_application.FullName}\nStarted: {DateTimeOffset.UtcNow:O}\n");
             var plan = CreatePlan();
-            plan.Success.ShouldBeTrue();
+            if (!AllowBlockedPlan)
+            {
+                plan.Success.ShouldBeTrue();
+            }
             foreach (var artifact in plan.Artifacts)
             {
                 var path = Path.Combine(_application.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -45,6 +48,8 @@ public class a_generated_application : a_register_project_render_request
             throw;
         }
     }
+
+    protected virtual bool AllowBlockedPlan => false;
 
     protected virtual ArtifactRenderPlan CreatePlan() =>
         CratisRendering.Plan(_model, _executionPlan, _request.Scope, new("BackendHost", "Acme.projectAPI"));
@@ -66,7 +71,10 @@ public class a_generated_application : a_register_project_render_request
     protected void AddGeneratedSpecification(string name, string content) =>
         File.WriteAllText(Path.Combine(_application!.FullName, name), content);
 
-    protected async Task<string> Run(string logName, params string[] arguments)
+    protected Task<string> Run(string logName, params string[] arguments) => Run(logName, false, arguments);
+
+    // A parity vector with an intentionally wrong expectation must still yield a complete TRX result.
+    protected async Task<string> Run(string logName, bool allowFailedTests, params string[] arguments)
     {
         var startInfo = new ProcessStartInfo("dotnet")
         {
@@ -115,7 +123,7 @@ public class a_generated_application : a_register_project_render_request
             actualHash.ShouldEqual(expectedHash);
         }
 
-        if (timedOut || truncated || process.ExitCode != 0)
+        if (timedOut || truncated || (process.ExitCode != 0 && !(allowFailedTests && process.ExitCode == 1)))
         {
             throw new GeneratedApplicationVerificationFailed(command, logPath, output);
         }

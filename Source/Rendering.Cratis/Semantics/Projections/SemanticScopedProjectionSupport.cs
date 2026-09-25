@@ -50,12 +50,12 @@ internal static class SemanticScopedProjectionSupport
 
         if (child && scope.JoinRemovals.Length > 0)
         {
-            return "Child remove via join cannot render: Chronicle v19.4.7 ReadModelScenario retains the matching child in the second parent after removal across two parents; the MongoDB sink has not been verified against the reference.";
+            return "Child remove via join cannot render: Chronicle v19.4.7 ReadModelScenario retains a matching child in one of two parents, although the MongoDB sink removes both; generated specifications would fail against the reference.";
         }
 
         if (scope.Nested.Any(nested => nested.Scope.Removals.Length > 0))
         {
-            return "Nested clear cannot render: Chronicle v19.4.7 ReadModelScenario does not restore the nested object after clear followed by a matching root from event; the MongoDB sink has not been verified against the reference.";
+            return "Nested clear cannot render: after clear and a matching root from, Chronicle v19.4.7 ReadModelScenario throws NullReferenceException, while the MongoDB sink fails the projection with write error 28 (cannot create a nested field in a null object); the reference recreates the nested object.";
         }
 
         if (isNested && scope.JoinRemovals.Length > 0)

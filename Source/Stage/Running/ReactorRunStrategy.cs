@@ -10,6 +10,7 @@ namespace Cratis.Stage.Running;
 /// Runs specifications for automation and translator slices (a reactor reacts to events and produces side
 /// effects or follow-up events). The reactor logic itself is not modeled, so verification is structural.
 /// </summary>
+[Obsolete("Use the semantic engine (--engine semantic / ISemanticSpecificationExecutor); the structural runner is removed in the next major version.")]
 public sealed class ReactorRunStrategy : ISpecificationRunStrategy
 {
     const string Note =

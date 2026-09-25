@@ -14,6 +14,7 @@ namespace Cratis.Stage.Running;
 /// on its slice and that the modeled command rules are consistent with the modeled Then errors. Behavioral
 /// execution against a live Chronicle is intended to be a drop-in implementation behind this same interface.
 /// </remarks>
+[Obsolete("Use the semantic engine (--engine semantic / ISemanticSpecificationExecutor); the structural runner is removed in the next major version.")]
 public interface ISpecificationRunner
 {
     /// <summary>

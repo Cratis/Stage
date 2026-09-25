@@ -106,7 +106,7 @@ internal static class SemanticStateViewArtifactRenderer
 
     static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries) =>
         string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
-            $"{(property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id) ? "[Key] " : string.Empty)}{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
+            $"{((property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty)}{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
 
     static string Parameters(
         SemanticReadModel readModel,
@@ -124,7 +124,7 @@ internal static class SemanticStateViewArtifactRenderer
             var attribute = string.Equals(targetName, sourceName, StringComparison.Ordinal)
                 ? string.Empty
                 : $"[SetFrom<{Identifiers.ToPascalCase(@event.Name)}>(nameof({Identifiers.ToPascalCase(@event.Name)}.{sourceName}))] ";
-            var key = keyedQuery?.KeyProperty == property.Id ? "[Key] " : string.Empty;
+            var key = keyedQuery?.KeyProperty == property.Id && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty;
             return $"{key}{attribute}{types.Type(property.Type)} {targetName}";
         }));
 

@@ -56,7 +56,40 @@ public class with_opaque_v3_bodies : a_semantic_runtime
     [Fact] void should_report_reducer_as_unsupported() => (_reducer is SemanticUnsupported { Capability: SemanticExecutionCapability.Projection }).ShouldBeTrue();
     [Fact] void should_report_reducer_queries_as_unsupported() => (_reducerQuery is SemanticUnsupported { Capability: SemanticExecutionCapability.Projection }).ShouldBeTrue();
 
-    async Task<SemanticExecutionResult> Execute(Func<SemanticSlice, SemanticSlice> change, Func<SemanticApplication, SemanticApplication>? changeApplication = null, bool query = false)
+    [Fact]
+    async Task should_report_a_reached_opaque_command_policy_as_unsupported()
+    {
+        static SemanticSlice Protect(SemanticSlice slice) => slice with
+        {
+            Commands = [slice.Commands.Single() with { Authorization = new SemanticPolicyReference("UnusedOpaquePolicy") }]
+        };
+        var result = await Execute(Protect, authenticated: true);
+        Assert.IsType<SemanticUnsupported>(result);
+        Assert.Equal(SemanticExecutionCapability.Authorization, ((SemanticUnsupported)result).Capability);
+    }
+
+    [Fact]
+    async Task should_report_a_reached_opaque_query_policy_as_unsupported()
+    {
+        static SemanticApplication Protect(SemanticApplication application) => application with
+        {
+            Modules = [.. application.Modules.Select(module => module with
+            {
+                Features = [.. module.Features.Select(feature => feature with
+                {
+                    Slices = [.. feature.Slices.Select(slice => slice with
+                    {
+                        Queries = [.. slice.Queries.Select(query => query with { Authorization = new SemanticPolicyReference("UnusedOpaquePolicy") })]
+                    })]
+                })]
+            })]
+        };
+        var result = await Execute(slice => slice, Protect, query: true, authenticated: true);
+        Assert.IsType<SemanticUnsupported>(result);
+        Assert.Equal(SemanticExecutionCapability.Authorization, ((SemanticUnsupported)result).Capability);
+    }
+
+    async Task<SemanticExecutionResult> Execute(Func<SemanticSlice, SemanticSlice> change, Func<SemanticApplication, SemanticApplication>? changeApplication = null, bool query = false, bool authenticated = false)
     {
         var application = _runtime.Plan.Model.Application;
         var module = application.Modules.Single();
@@ -70,8 +103,9 @@ public class with_opaque_v3_bodies : a_semantic_runtime
         var model = ExecutableSemanticModel.Create(LanguageVersion.V3, SemanticVersion.V3, changeApplication is null ? application : changeApplication(application));
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
         using var runtime = SemanticRuntimeHosting.Create(plan, (IAppendSemanticFacts)_appender) as IDisposable;
+        var principal = authenticated ? new ClaimsPrincipal(new ClaimsIdentity([], "fixture")) : new ClaimsPrincipal();
         return query
-            ? await ((ISemanticRuntime)runtime!).Query(plan.Queries.Values.Single(), SemanticValue.Text("id"), new ClaimsPrincipal())
-            : await ((ISemanticRuntime)runtime!).Execute(plan.Commands.Values.Single(), new Dictionary<string, JsonElement>(), new ClaimsPrincipal(), new(DateTimeOffset.UtcNow, "subject", "name", "user"), true);
+            ? await ((ISemanticRuntime)runtime!).Query(plan.Queries.Values.Single(), SemanticValue.Text("id"), principal)
+            : await ((ISemanticRuntime)runtime!).Execute(plan.Commands.Values.Single(), new Dictionary<string, JsonElement>(), principal, new(DateTimeOffset.UtcNow, "subject", "name", "user"), true);
     }
 }

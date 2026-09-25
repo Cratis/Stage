@@ -46,6 +46,16 @@ internal static partial class SemanticCratisAdmission
             return true;
         }
 
+        // The ESM carries a requirement id, not its executable body. Neither the render request nor Arc's
+        // authorization context supplies the attachment or the received-at occurrence of PolicyContext v1.
+        // Never emit a policy with a fabricated occurrence or a predicate that silently denies.
+        var opaque = OpaquePolicies(authorization, context.Application.Policies).FirstOrDefault();
+        if (opaque is not null)
+        {
+            diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' references opaque policy '{opaque}'; Stage cannot render PolicyContext.Occurred (the received-at time) or resolve its implementation attachment from the artifact render request.", id));
+            return false;
+        }
+
         // Arc's Authorize attribute requires an authenticated principal even when its named policy would
         // accept an unauthenticated caller. Admit only expressions that already require authentication.
         if (CanRender(authorization, context.Application.Policies) && RequiresAuthentication(authorization, context.Application.Policies) &&
@@ -82,6 +92,13 @@ internal static partial class SemanticCratisAdmission
         diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' compares a claim with a non-text artifact value.", id));
         return false;
     }
+
+    static IEnumerable<string> OpaquePolicies(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch
+    {
+        SemanticPolicyReference reference => policies.SingleOrDefault(policy => policy.Name == reference.Name)?.Condition is SemanticOpaquePolicyCondition ? [reference.Name] : [],
+        SemanticLogicalAuthorization logical => OpaquePolicies(logical.Left, policies).Concat(OpaquePolicies(logical.Right, policies)),
+        _ => []
+    };
 
     static IEnumerable<SemanticClaimCondition> Claims(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch
     {

@@ -86,7 +86,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCodeValidation", rejected("STAGE-ESM-005"), "RequirementId");
 
         // The compiler exposes attachment metadata separately from the executable model. The planner
-        // never receives it; a referenced opaque body is rejected by its owning command, concept or reducer.
+        // never receives it; a referenced opaque body is rejected by its owning command, concept, reducer
+        // or policy. PolicyContext.Occurred is also absent at Arc's authorization boundary.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler-only attachment metadata; owning opaque behavior is rejected before rendering."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition Tags When");
@@ -182,7 +183,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValueKind", rejected("STAGE-ESM-011"), "Unknown Composite");
         Add(entries, "SemanticNullValue", rendered, "$type");
 
-        // Portable authorization runs through Arc; caller fixtures and command denial are checked by its pipeline.
+        // Portable authorization runs through Arc; opaque policy predicates fail STAGE-ESM-015 because
+        // their attachment and exact PolicyContext.Occurred cannot be supplied. Caller fixtures and command denial are checked by Arc's pipeline.
         // Role claim URIs cannot preserve the separate Screenplay roles/claims boundary (011/015).
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");

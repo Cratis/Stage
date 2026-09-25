@@ -246,7 +246,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 Caller = SemanticCallers.From(principal),
                 Occurrence = occurrence
             });
-            return authorization is SemanticRejected { Category: SemanticRejectionCategory.Unauthorized }
+            return authorization is SemanticRejected { Category: SemanticRejectionCategory.Unauthorized } or SemanticUnsupported
                 ? authorization
                 : new SemanticRejected(_world, SemanticRejectionCategory.Contract, null, exception.Message);
         }

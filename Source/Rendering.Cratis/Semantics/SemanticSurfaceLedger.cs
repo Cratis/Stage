@@ -85,10 +85,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "CodeValidations");
         Add(entries, "SemanticCodeValidation", rejected("STAGE-ESM-005"), "RequirementId");
 
-        // The compiler exposes attachment metadata separately from the executable model. The planner
-        // never receives it; a referenced opaque body is rejected by its owning command, concept, reducer
-        // or policy. PolicyContext.Occurred is also absent at Arc's authorization boundary.
-        Add(entries, "SemanticImplementationRequirement", ignored("Compiler-only attachment metadata; owning opaque behavior is rejected before rendering."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
+        // The render request now carries compiler requirements and resolved bodies by requirement id.
+        // Their content hashes are checked before rendering. The runtime context for opaque validation,
+        // reducers and policies still cannot be supplied exactly at their respective Arc boundaries.
+        Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition Tags When");
         Add(entries, "SemanticEventContract", rendered, "Id Name Properties");
@@ -184,7 +184,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticNullValue", rendered, "$type");
 
         // Portable authorization runs through Arc; opaque policy predicates fail STAGE-ESM-015 because
-        // their attachment and exact PolicyContext.Occurred cannot be supplied. Caller fixtures and command denial are checked by Arc's pipeline.
+        // PolicyContext.Occurred cannot be supplied. Caller fixtures and command denial are checked by Arc's pipeline.
         // Role claim URIs cannot preserve the separate Screenplay roles/claims boundary (011/015).
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");

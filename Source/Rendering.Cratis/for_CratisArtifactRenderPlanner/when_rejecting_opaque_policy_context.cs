@@ -16,7 +16,7 @@ public class when_rejecting_opaque_policy_context
         """;
 
     [Fact]
-    public void should_name_the_missing_occurrence_and_attachment_for_a_command()
+    public void should_name_the_missing_occurrence_for_a_command()
     {
         var invoice = invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource);
         var source = Policy + "\n" + invoice[..invoice.IndexOf("      specification", StringComparison.Ordinal)]
@@ -25,7 +25,7 @@ public class when_rejecting_opaque_policy_context
     }
 
     [Fact]
-    public void should_name_the_missing_occurrence_and_attachment_for_a_query()
+    public void should_name_the_missing_occurrence_for_a_query()
     {
         var source = when_rendering_portable_authorization.Source.Replace(
             "policy OwnQuery\n  require claim \"owner\" matches subject",
@@ -41,6 +41,6 @@ public class when_rejecting_opaque_policy_context
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-015" &&
             diagnostic.Message.Contains(operation, StringComparison.Ordinal) &&
             diagnostic.Message.Contains("PolicyContext.Occurred", StringComparison.Ordinal) &&
-            diagnostic.Message.Contains("implementation attachment", StringComparison.Ordinal));
+            diagnostic.Message.Contains("Arc's authorization boundary", StringComparison.Ordinal));
     }
 }

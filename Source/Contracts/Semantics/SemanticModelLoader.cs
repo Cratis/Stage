@@ -1,10 +1,14 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Text;
+using Cratis.Screenplay;
+using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
+using Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Semantics;
 
@@ -13,7 +17,14 @@ namespace Cratis.Stage.Contracts.Semantics;
 /// </summary>
 /// <param name="Model">The executable semantic model.</param>
 /// <param name="Plan">The execution plan.</param>
-public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, SemanticExecutionPlan Plan);
+public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, SemanticExecutionPlan Plan)
+{
+    /// <summary>Requirements emitted by the compilation.</summary>
+    public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
+
+    /// <summary>Resolved inline and file bodies keyed by requirement identity.</summary>
+    public ImmutableDictionary<string, string> ImplementationContents { get; init; } = [];
+}
 
 /// <summary>
 /// Loads portable Screenplay semantic execution from one file or a folder of source documents.
@@ -71,7 +82,9 @@ public static class SemanticModelLoader
             documents.Add(SemanticSourceDocument.Create(catalog.ResolveDocument(key), key, relative, await File.ReadAllTextAsync(file)));
         }
 
-        var compiled = new SemanticModelCompiler().Compile(name, SemanticDocumentSet.Create([.. documents], catalog));
+        var sourceDocuments = documents.ToImmutableArray();
+        var attachments = AttachmentFiles.Load(root, sourceDocuments);
+        var compiled = new SemanticModelCompiler().Compile(name, SemanticDocumentSet.Create(sourceDocuments, catalog, attachments.Contents));
         if (!compiled.Success)
         {
             throw new InvalidSemanticModel([.. compiled.Diagnostics.Select(diagnostic => $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column}): {diagnostic.Message}")]);
@@ -84,6 +97,50 @@ public static class SemanticModelLoader
             throw new InvalidSemanticModel([.. plan.Issues.Select(issue => $"{issue.Artifact}: {issue.Details}")]);
         }
 
-        return new(model, plan.Plan!);
+        var bodies = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+        foreach (var requirement in compiled.ImplementationRequirements)
+        {
+            if (requirement.File is { } file)
+            {
+                if (AttachmentFiles.TryNormalize(file, out var key, out _) && attachments.Contents.TryGetValue(key, out var content))
+                {
+                    bodies[requirement.RequirementId] = content;
+                }
+
+                continue;
+            }
+
+            var document = sourceDocuments.SingleOrDefault(candidate => candidate.Id == requirement.Source.Span.Document);
+            if (document is null || new ScreenplayCompiler().Parse(document.Text, document.DisplayPath).Value is not { } syntax)
+            {
+                continue;
+            }
+
+            var collector = new InlineBodies();
+            collector.VisitApplication(syntax);
+            var body = collector.Bodies.Where(code => code.Location.Line == requirement.Source.Span.StartLine &&
+                code.Location.Column == requirement.Source.Span.StartColumn).ToArray();
+            if (body.Length == 1)
+            {
+                bodies[requirement.RequirementId] = body[0].Code;
+            }
+        }
+
+        return new(model, plan.Plan!)
+        {
+            ImplementationRequirements = compiled.ImplementationRequirements,
+            ImplementationContents = bodies.ToImmutable()
+        };
+    }
+
+    sealed class InlineBodies : ScreenplaySyntaxWalker
+    {
+        public List<CodeBlockSyntax> Bodies { get; } = [];
+
+        public override void VisitCodeBlock(CodeBlockSyntax syntax)
+        {
+            Bodies.Add(syntax);
+            base.VisitCodeBlock(syntax);
+        }
     }
 }

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 
@@ -68,4 +69,11 @@ public sealed record ArtifactRenderRequest(
     ExecutableSemanticModel Model,
     SemanticExecutionPlan ExecutionPlan,
     ArtifactRenderProfile Profile,
-    ArtifactRenderScope Scope);
+    ArtifactRenderScope Scope)
+{
+    /// <summary>Compiler requirements for the model; the planner verifies their content revisions before using a body.</summary>
+    public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
+
+    /// <summary>Resolved implementation bodies keyed by stable requirement identity, not by file path.</summary>
+    public ImmutableDictionary<string, string> ImplementationContents { get; init; } = [];
+}

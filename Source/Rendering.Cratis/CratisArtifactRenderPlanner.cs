@@ -67,6 +67,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     {
         var artifacts = new List<PlannedArtifact>();
         var diagnostics = new List<ArtifactRenderDiagnostic>();
+        diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
+        if (diagnostics.Count > 0)
+        {
+            return CreatePlan(request, [], diagnostics);
+        }
         var context = new SemanticApplicationContext(request, options);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticCratisAdmission.Evaluate(context, slices));

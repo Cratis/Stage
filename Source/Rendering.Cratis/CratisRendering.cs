@@ -165,4 +165,29 @@ public static class CratisRendering
 
         return new CratisArtifactRenderPlanner().Plan(request);
     }
+
+    /// <summary>Plans artifacts with compiler requirements and resolved implementation bodies.</summary>
+    /// <param name="model">The executable semantic model.</param>
+    /// <param name="executionPlan">The admitted execution plan.</param>
+    /// <param name="scope">The requested semantic scope.</param>
+    /// <param name="options">The project and namespace options.</param>
+    /// <param name="requirements">The requirements emitted for this compilation.</param>
+    /// <param name="contents">Resolved bodies keyed by requirement identity.</param>
+    /// <returns>The deterministic render plan, or diagnostics if an attachment is stale or missing.</returns>
+    public static ArtifactRenderPlan Plan(
+        ExecutableSemanticModel model,
+        SemanticExecutionPlan executionPlan,
+        ArtifactRenderScope scope,
+        CratisRenderingOptions options,
+        ImmutableArray<SemanticImplementationRequirement> requirements,
+        ImmutableDictionary<string, string> contents)
+    {
+        var profile = CreateProfile(model.Application.Name, options);
+        var request = new ArtifactRenderRequest(model, executionPlan, profile, scope)
+        {
+            ImplementationRequirements = requirements,
+            ImplementationContents = contents
+        };
+        return new CratisArtifactRenderPlanner().Plan(request);
+    }
 }

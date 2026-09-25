@@ -43,10 +43,10 @@ public class with_opaque_validation : Specification
         }));
     }
 
-    [Fact] void should_reject_code_validation_without_artifacts() => Rejected(_code).ShouldBeTrue();
-    [Fact] void should_reject_rule_predicate_without_artifacts() => Rejected(_predicate).ShouldBeTrue();
-    [Fact] void should_reject_concept_code_validation_without_artifacts() => Rejected(_concept).ShouldBeTrue();
+    [Fact] void should_reject_code_validation_without_an_envelope() => Rejected(_code).ShouldBeTrue();
+    [Fact] void should_reject_rule_predicate_without_an_envelope() => Rejected(_predicate).ShouldBeTrue();
+    [Fact] void should_reject_concept_code_validation_without_an_envelope() => Rejected(_concept).ShouldBeTrue();
 
     static bool Rejected(ArtifactRenderPlan plan) => !plan.Success && plan.Artifacts.IsEmpty &&
-        plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-005" && diagnostic.Message.Contains("implementation bodies", StringComparison.Ordinal));
+        plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains("no verified requirement/body", StringComparison.Ordinal));
 }

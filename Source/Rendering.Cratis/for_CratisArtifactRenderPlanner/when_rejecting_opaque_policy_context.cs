@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
@@ -16,31 +18,54 @@ public class when_rejecting_opaque_policy_context
         """;
 
     [Fact]
-    public void should_name_the_missing_occurrence_and_attachment_for_a_command()
+    public void should_name_the_missing_occurrence_for_a_command()
     {
         var invoice = invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource);
         var source = Policy + "\n" + invoice[..invoice.IndexOf("      specification", StringComparison.Ordinal)]
             .Replace("command IssueInvoice\n", "command IssueInvoice\n        authorize CustomAccess\n", StringComparison.Ordinal);
-        AssertRejected(invoice_model.Plan(invoice_model.Compile(source)), "IssueInvoice");
+        AssertRejected(PlanWithAttachments(source), "IssueInvoice");
     }
 
     [Fact]
-    public void should_name_the_missing_occurrence_and_attachment_for_a_query()
+    public void should_name_the_missing_occurrence_for_a_query()
     {
         var source = when_rendering_portable_authorization.Source.Replace(
             "policy OwnQuery\n  require claim \"owner\" matches subject",
             Policy.Replace("CustomAccess", "OwnQuery", StringComparison.Ordinal),
             StringComparison.Ordinal);
-        AssertRejected(invoice_model.Plan(invoice_model.Compile(source)), "InvoiceById");
+        AssertRejected(PlanWithAttachments(source), "InvoiceById");
     }
 
-    static void AssertRejected(global::Cratis.Stage.Contracts.Rendering.ArtifactRenderPlan plan, string operation)
+    static ArtifactRenderPlan PlanWithAttachments(string source)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"stage-policy-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        try
+        {
+            File.WriteAllText(Path.Combine(folder, "Invoices.play"), source);
+            var loaded = SemanticModelLoader.LoadFromPathAsync(folder, null, "InvoiceModel").GetAwaiter().GetResult();
+            return CratisRendering.Plan(
+                loaded.Model,
+                loaded.Plan,
+                new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id),
+                new("InvoiceApp", "Invoices"),
+                loaded.ImplementationRequirements,
+                loaded.ImplementationContents,
+                loaded.AttachmentDiagnostics);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    static void AssertRejected(ArtifactRenderPlan plan, string operation)
     {
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-015" &&
             diagnostic.Message.Contains(operation, StringComparison.Ordinal) &&
             diagnostic.Message.Contains("PolicyContext.Occurred", StringComparison.Ordinal) &&
-            diagnostic.Message.Contains("implementation attachment", StringComparison.Ordinal));
+            diagnostic.Message.Contains("Arc's authorization boundary", StringComparison.Ordinal));
     }
 }

@@ -1,10 +1,15 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Text;
+using Cratis.Screenplay;
+using Cratis.Screenplay.Diagnostics;
+using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
+using Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Semantics;
 
@@ -13,7 +18,18 @@ namespace Cratis.Stage.Contracts.Semantics;
 /// </summary>
 /// <param name="Model">The executable semantic model.</param>
 /// <param name="Plan">The execution plan.</param>
-public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, SemanticExecutionPlan Plan);
+/// <remarks>Added attachment collections use the collection's reference equality in record comparisons.</remarks>
+public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, SemanticExecutionPlan Plan)
+{
+    /// <summary>Requirements emitted by the compilation.</summary>
+    public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
+
+    /// <summary>Resolved inline and file bodies keyed by requirement identity.</summary>
+    public ImmutableDictionary<string, string> ImplementationContents { get; init; } = [];
+
+    /// <summary>Warnings from the attachment loader, including PLAY043x reasons for refused files.</summary>
+    public ImmutableArray<Diagnostic> AttachmentDiagnostics { get; init; } = [];
+}
 
 /// <summary>
 /// Loads portable Screenplay semantic execution from one file or a folder of source documents.
@@ -23,7 +39,7 @@ public static class SemanticModelLoader
     /// <summary>
     /// Compiles a Screenplay source set and optional authoritative identity catalog.
     /// </summary>
-    /// <param name="path">A .play file or a folder searched recursively for .play sources.</param>
+    /// <param name="path">A .play file or a folder searched recursively for .play sources. For a single file, its parent directory is the attachment root.</param>
     /// <param name="catalogPath">An optional canonical Screenplay identity catalog JSON file whose document keys match the UTF-8 hex encoding of relative .play paths.</param>
     /// <remarks>
     /// Without a workspace envelope, the input file or folder name becomes the application name. The caller must
@@ -71,7 +87,9 @@ public static class SemanticModelLoader
             documents.Add(SemanticSourceDocument.Create(catalog.ResolveDocument(key), key, relative, await File.ReadAllTextAsync(file)));
         }
 
-        var compiled = new SemanticModelCompiler().Compile(name, SemanticDocumentSet.Create([.. documents], catalog));
+        var sourceDocuments = documents.ToImmutableArray();
+        var attachments = AttachmentFiles.Load(root, sourceDocuments);
+        var compiled = new SemanticModelCompiler().Compile(name, SemanticDocumentSet.Create(sourceDocuments, catalog, attachments.Contents));
         if (!compiled.Success)
         {
             throw new InvalidSemanticModel([.. compiled.Diagnostics.Select(diagnostic => $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column}): {diagnostic.Message}")]);
@@ -84,6 +102,65 @@ public static class SemanticModelLoader
             throw new InvalidSemanticModel([.. plan.Issues.Select(issue => $"{issue.Artifact}: {issue.Details}")]);
         }
 
-        return new(model, plan.Plan!);
+        var bodies = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+        var inlineBodies = new Dictionary<(DocumentId Document, int Line, int Column), List<string>>();
+        foreach (var document in sourceDocuments)
+        {
+            if (new ScreenplayCompiler().Parse(document.Text, document.DisplayPath).Value is not { } syntax)
+            {
+                continue;
+            }
+
+            var collector = new InlineBodies();
+            collector.VisitApplication(syntax);
+            foreach (var block in collector.Bodies)
+            {
+                var key = (document.Id, block.Location.Line, block.Location.Column);
+                if (!inlineBodies.TryGetValue(key, out var matches))
+                {
+                    inlineBodies[key] = matches = [];
+                }
+
+                matches.Add(block.Code);
+            }
+        }
+
+        foreach (var requirement in compiled.ImplementationRequirements)
+        {
+            if (requirement.File is { } file)
+            {
+                if (AttachmentFiles.TryNormalize(file, out var key, out _) && attachments.Contents.TryGetValue(key, out var content))
+                {
+                    bodies[requirement.RequirementId] = content;
+                }
+
+                continue;
+            }
+
+            if (inlineBodies.TryGetValue(
+                (requirement.Source.Span.Document, requirement.Source.Span.StartLine, requirement.Source.Span.StartColumn),
+                out var matches) && matches.Count == 1)
+            {
+                bodies[requirement.RequirementId] = matches[0];
+            }
+        }
+
+        return new(model, plan.Plan!)
+        {
+            ImplementationRequirements = compiled.ImplementationRequirements,
+            ImplementationContents = bodies.ToImmutable(),
+            AttachmentDiagnostics = attachments.Diagnostics
+        };
+    }
+
+    sealed class InlineBodies : ScreenplaySyntaxWalker
+    {
+        public List<CodeBlockSyntax> Bodies { get; } = [];
+
+        public override void VisitCodeBlock(CodeBlockSyntax syntax)
+        {
+            Bodies.Add(syntax);
+            base.VisitCodeBlock(syntax);
+        }
     }
 }

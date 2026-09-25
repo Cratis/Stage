@@ -82,4 +82,6 @@ internal static class SemanticPolicyEvaluator
     }
 }
 
+// A private control signal must not become part of the Specifications assembly's public exception API.
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "The authorization signal is internal to the specification executor.")]
 internal sealed class OpaquePolicyReached(string policy) : Exception($"Policy '{policy}' requires a target to evaluate its implementation body.");

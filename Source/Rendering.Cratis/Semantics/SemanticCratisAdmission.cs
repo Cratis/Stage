@@ -32,6 +32,7 @@ internal static partial class SemanticCratisAdmission
             return [.. diagnostics];
         }
 
+        ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
 
@@ -60,6 +61,40 @@ internal static partial class SemanticCratisAdmission
         }
 
         return [.. diagnostics];
+    }
+
+    /// <summary>
+    /// Checks referenced localized messages before generating any artifacts.
+    /// </summary>
+    /// <param name="context">The semantic application.</param>
+    /// <param name="slices">The selected slices.</param>
+    /// <param name="diagnostics">The blocking diagnostics.</param>
+    internal static void ValidateStrings(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (context.Strings is null)
+        {
+            return;
+        }
+
+        var messages = context.Application.Concepts.SelectMany(concept => concept.Validations.Select(rule => (rule.Message, concept.Id)))
+            .Concat(slices.SelectMany(located => located.Slice.Commands.SelectMany(command =>
+                command.Validations.Select(rule => (rule.Message, command.Id))
+                    .Concat(command.Requirements.Select(requirement => (requirement.Message, command.Id))))));
+        foreach (var (message, artifact) in messages.Where(_ => _.Message?.StartsWith("$strings.", StringComparison.Ordinal) == true))
+        {
+            var key = message!["$strings.".Length..];
+            if (!context.Strings.Locales[context.Strings.DefaultLocale].ContainsKey(key))
+            {
+                diagnostics.Add(Error("STAGE-ESM-018", $"String key '{message}' is missing from the default locale '{context.Strings.DefaultLocale}'.", artifact));
+                continue;
+            }
+
+            if (context.Strings.Locales.Values.Any(locale => locale.TryGetValue(key, out var value) &&
+                value.Any(character => character is '{' or '}' || char.IsControl(character) || char.IsSurrogate(character))))
+            {
+                diagnostics.Add(Error("STAGE-ESM-018", $"String key '{message}' contains formatting or control characters the Cratis validator cannot preserve.", artifact));
+            }
+        }
     }
 
     /// <summary>

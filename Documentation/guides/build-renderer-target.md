@@ -163,6 +163,31 @@ static bool Supports(ArtifactRenderProfile profile)
 
 Accepted input bytes must be parsed or copied deterministically wherever they affect output. `ArtifactRenderPlan` carries target and renderer versions but does not repeat input provenance, so the target's profile contract and support matrix must document the accepted roster.
 
+### Localized Cratis validation messages
+
+Screenplay retains `$strings.<key>` in the ESM as a **key**, not display text. If a model uses these messages on command or concept validation rules or command `require` guards, pass its companion `.strings` file contents to the additive `CratisRendering.CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale)` overload. `stringsFiles` maps relative `<base>.<locale>.strings` paths (using `/`, not `\`) to original file contents; choose an explicit `defaultLocale` present in that set. Locale tags are checked syntactically without consulting the planner host's installed culture data. The generated application must run with culture data (such as ICU) that supports the selected locales; it resolves them at startup. The caller reads files **before** planning; the planner only consumes validated, hashed profile bytes. Without the optional catalog, `STAGE-ESM-002`/`STAGE-ESM-005` still reject these messages.
+
+```csharp
+var profile = CratisRendering.CreateProfile(
+    model.Application.Name,
+    new CratisRenderingOptions("Invoices", "Invoices"),
+    scene: null,
+    stringsFiles: new Dictionary<string, string>
+    {
+        ["invoicing.en.strings"] = "invoices.reasonRequired = \"Reason is required\"\n",
+        ["invoicing.nb.strings"] = "invoices.reasonRequired = \"Begrunnelse kreves\"\n"
+    },
+    defaultLocale: "en");
+var request = new ArtifactRenderRequest(
+    model,
+    executionPlan,
+    profile,
+    new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id));
+var plan = new CratisArtifactRenderPlanner().Plan(request);
+```
+
+The profile validates file names and assignments with Screenplay's `StringsFile.Parse`, merges disjoint keys by locale, and rejects duplicate keys and locale tags that differ only by case rather than depending on discovery order. It emits `GeneratedStrings.cs` from the catalog contents. With a catalog, generated `Program.cs` enables ASP.NET Core request localization before Arc, so the request's `Accept-Language` UI culture reaches validators while the formatting culture remains invariant. Generated validators resolve text at **validation time** using `CultureInfo.CurrentUICulture`: first the requested locale, then its parent locales, then the declared default. A missing translation in a non-default locale falls back; a referenced key absent from the default locale blocks planning with `STAGE-ESM-018` and **zero artifacts**. Referenced values containing braces (FluentValidation message placeholders) fail with `STAGE-ESM-018` instead of silently changing the text. Control characters and surrogate code units in **any** catalog value cause `CreateProfile` to throw `InvalidCratisBackendApplicationScaffold`, even if no rule references the key; this also excludes emoji represented by surrogate pairs. Line separators (U+2028 and U+2029) and other non-printable characters that the catalog accepts are escaped in generated C# string literals. Arc's validation-result `Message` contains localized text; `State` retains the original `$strings.<key>`. Generated `then error "$strings.<key>"` specifications assert `State`, matching the reference evaluator's key comparison rather than pinning a process locale. Literal and generated-default messages remain unchanged. This is a backend validation-message realization, not a general-purpose strings resolver for screen labels or constraint errors.
+
 ## Implement a pure planner
 
 `IArtifactRenderPlanner.Plan(...)` is a pure planning boundary. Given the same immutable request, it must return the same plan or the same contract failure. It must not:

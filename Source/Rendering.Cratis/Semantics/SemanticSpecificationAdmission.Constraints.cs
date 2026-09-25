@@ -81,7 +81,12 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static bool HasRenderableErrors(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand? command) =>
-        specification.ThenErrors.All(error => SemanticValidationRendering.SafeMessage(error.Message) &&
+        specification.ThenErrors.All(error => (SemanticValidationRendering.SafeMessage(error.Message) ||
+            (error.Code is null && error.Message?.StartsWith("$strings.", StringComparison.Ordinal) == true &&
+             context.Strings?.Contains(error.Message) == true && command is not null &&
+             (command.Validations.Any(rule => rule.Message == error.Message) ||
+              command.Requirements.Any(requirement => requirement.Message == error.Message) ||
+              context.Application.Concepts.Any(concept => concept.Validations.Any(rule => rule.Message == error.Message))))) &&
             (error.Code is null || IsConstraintViolation(context, specification, command, error)));
 
     static string MessageFor(SemanticConstraint constraint) => constraint.Message ?? (constraint.Kind == SemanticConstraintKind.UniquePropertyValue

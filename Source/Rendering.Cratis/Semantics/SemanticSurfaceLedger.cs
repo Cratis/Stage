@@ -70,6 +70,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticTypeReferenceKind", rejected("STAGE-ESM-003"), "Unknown");
         Add(entries, "SemanticPrimitiveType", rendered, "Uuid Text WholeNumber DecimalNumber Boolean Date DateTime");
         Add(entries, "SemanticPrimitiveType", rejected("STAGE-ESM-002"), "Unknown");
+
+        // Message includes localized $strings keys only with a validated catalog; missing default keys block as STAGE-ESM-018.
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
         Add(entries, "SemanticValidationRule", rejected("STAGE-ESM-005"), "Name RequirementId");
         Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches");
@@ -78,6 +80,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationSeverity", rejected("STAGE-ESM-005"), "Information Warning");
 
         // State change: one command with unconditional, untagged mapped events in declaration order.
+        // Requirements use the same catalog-backed message resolution as property and concept validation.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
         Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "CodeValidations");
         Add(entries, "SemanticCodeValidation", rejected("STAGE-ESM-005"), "RequirementId");

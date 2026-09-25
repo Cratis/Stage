@@ -41,5 +41,5 @@ public class with_an_engine_log : a_rebuildable_world
     [Fact] void should_return_the_restored_row_for_a_keyed_query() => ((SemanticAccepted)_lookup).Queries.Single().Results.Single().Key.ShouldEqual(_commandValues[0].Value);
     [Fact] void should_reject_a_duplicate_constraint_claim() => ((SemanticRejected)_duplicate).Category.ShouldEqual(SemanticRejectionCategory.Constraint);
     [Fact] void should_accept_a_new_registration() => _newRegistration.ShouldBeOfExactType<SemanticAccepted>();
-    [Fact] void should_append_only_the_new_registration() => _appender.Received(1).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>());
+    [Fact] void should_append_only_the_new_registration() => _appender.Received(1).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
 }

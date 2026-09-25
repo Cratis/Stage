@@ -28,5 +28,5 @@ public class with_valid_payload : a_semantic_runtime
         false);
 
     [Fact] void should_accept_the_command() => (_result is SemanticAccepted).ShouldBeTrue();
-    [Fact] async Task should_append_the_fact_once() => await ((IAppendSemanticFacts)_appender).Received(1).Append(Arg.Is<IReadOnlyList<SemanticFact>>(facts => facts.Count == 1), Arg.Any<SemanticCommandOccurrence>(), ulong.MaxValue);
+    [Fact] async Task should_append_the_fact_once() => await ((IAppendSemanticFacts)_appender).Received(1).Append(Arg.Is<IReadOnlyList<SemanticFact>>(facts => facts.Count == 1), Arg.Any<SemanticCommandOccurrence>());
 }

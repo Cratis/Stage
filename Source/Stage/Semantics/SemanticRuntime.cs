@@ -102,7 +102,16 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 {
                     if (accepted.Facts.Length > 0)
                     {
-                        await _appender.Append(accepted.Facts, occurrence, expectedTail).WaitAsync(_appendTimeout);
+                        if (_appender is IAppendSemanticFactsAtTail guarded)
+                        {
+                            await guarded.Append(accepted.Facts, occurrence, expectedTail).WaitAsync(_appendTimeout);
+                        }
+                        else
+                        {
+                            // Legacy custom appenders retain their preflight tail check, but cannot close the
+                            // external-append race without implementing the guarded capability.
+                            await _appender.Append(accepted.Facts, occurrence).WaitAsync(_appendTimeout);
+                        }
                     }
                     else
                     {

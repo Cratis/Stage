@@ -25,7 +25,22 @@ public interface IAppendSemanticFacts
     /// </summary>
     /// <param name="facts">The accepted facts.</param>
     /// <param name="occurrence">The shared occurrence metadata.</param>
-    /// <param name="expectedTail">The event-log tail captured before evaluation (ulong.MaxValue for an empty log).</param>
+    /// <returns>The append operation.</returns>
+    Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence);
+}
+
+/// <summary>
+/// Appends semantic facts only if the event-log tail still matches the tail captured before evaluation.
+/// The built-in Chronicle appender supports this capability; legacy custom appenders need not implement it.
+/// </summary>
+public interface IAppendSemanticFactsAtTail
+{
+    /// <summary>
+    /// Appends facts atomically against the expected event-log tail.
+    /// </summary>
+    /// <param name="facts">The accepted facts.</param>
+    /// <param name="occurrence">The shared occurrence metadata.</param>
+    /// <param name="expectedTail">The captured tail (ulong.MaxValue for an empty log).</param>
     /// <returns>The append operation.</returns>
     Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ulong expectedTail);
 }
@@ -49,7 +64,7 @@ internal sealed class SemanticFactTailChanged(ulong actualTail) : Exception("The
 }
 
 [IgnoreConvention]
-internal sealed class SemanticFactAppender(IChronicleClient client, StageEventStoreName eventStore, SemanticExecutionPlan plan) : IAppendSemanticFacts, ISemanticFactTail
+internal sealed class SemanticFactAppender(IChronicleClient client, StageEventStoreName eventStore, SemanticExecutionPlan plan) : IAppendSemanticFacts, IAppendSemanticFactsAtTail, ISemanticFactTail
 {
     // The key is only a label when EventSourceId is false; even an identically named fact source does not narrow the lookup.
     const string TailScopeLabel = "__stage:event-log-tail__";
@@ -68,7 +83,23 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
         return response.EnsureSuccess().SequenceNumber;
     }
 
-    public async Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ulong expectedTail)
+    // Keep the public, unguarded append contract available for existing consumers.
+    public Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence) => AppendCore(facts, occurrence, null);
+
+    public Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ulong expectedTail) =>
+        AppendCore(facts, occurrence, new ChronicleSequences.EventSourceConcurrencyScope
+        {
+            EventSourceId = TailScopeLabel,
+            Scope = new ChronicleSequences.ConcurrencyScope
+            {
+                EventSourceId = false,
+                EventTypes = [],
+                SequenceNumber = expectedTail,
+                ExpectsNoMatchingEvent = expectedTail == ulong.MaxValue
+            }
+        });
+
+    async Task AppendCore(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ChronicleSequences.EventSourceConcurrencyScope? scope)
     {
         if (facts.Count == 0)
         {
@@ -83,20 +114,7 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
             EventStore = store.Name,
             Namespace = EventStoreNamespaceName.Default,
             EventSequenceId = EventSequenceId.Log,
-            ConcurrencyScopes =
-            [
-                new ChronicleSequences.EventSourceConcurrencyScope
-                {
-                    EventSourceId = TailScopeLabel,
-                    Scope = new ChronicleSequences.ConcurrencyScope
-                    {
-                        EventSourceId = false,
-                        EventTypes = [],
-                        SequenceNumber = expectedTail,
-                        ExpectsNoMatchingEvent = expectedTail == ulong.MaxValue
-                    }
-                }
-            ],
+            ConcurrencyScopes = scope is null ? null : [scope],
             CausedBy = new ChronicleSequences.Identity
             {
                 Subject = occurrence.Subject,

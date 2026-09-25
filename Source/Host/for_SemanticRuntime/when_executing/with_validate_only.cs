@@ -28,6 +28,6 @@ public class with_validate_only : a_semantic_runtime
         true);
 
     [Fact] void should_accept_the_dry_run() => (_result is SemanticAccepted).ShouldBeTrue();
-    [Fact] async Task should_not_append() => await ((IAppendSemanticFacts)_appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>());
+    [Fact] async Task should_not_append() => await ((IAppendSemanticFacts)_appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
     [Fact] async Task should_leave_the_world_empty() => (await _runtime.ReadModels(_runtime.Plan.ReadModels.Keys.Single())).ShouldBeEmpty();
 }

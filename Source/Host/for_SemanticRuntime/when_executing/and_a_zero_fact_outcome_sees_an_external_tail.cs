@@ -55,5 +55,5 @@ public class and_a_zero_fact_outcome_sees_an_external_tail : a_semantic_runtime
 
     [Fact] void should_fault_instead_of_reporting_the_stale_world_as_current() => _result.ShouldBeOfExactType<SemanticUnsupported>();
     [Fact] void should_report_the_external_writer() => ((ISemanticRuntimeStatus)_zeroFactRuntime).FaultReason.ShouldContain("outside this session");
-    [Fact] async Task should_not_append() => await _emptyAppender.DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>());
+    [Fact] async Task should_not_append() => await _emptyAppender.DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
 }

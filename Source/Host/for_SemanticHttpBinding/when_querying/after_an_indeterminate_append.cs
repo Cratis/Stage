@@ -22,7 +22,7 @@ public class after_an_indeterminate_append : a_bound_semantic_model
     {
         var tail = ulong.MaxValue;
         ((ISemanticFactTail)_facts).Tail().Returns(_ => tail);
-        _facts.Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>())
+        _facts.Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
             .Returns(_ =>
             {
                 tail = 0;

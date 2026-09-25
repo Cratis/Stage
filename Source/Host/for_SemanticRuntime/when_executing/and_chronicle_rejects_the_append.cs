@@ -18,7 +18,7 @@ public class and_chronicle_rejects_the_append : a_semantic_runtime
     SemanticExecutionResult _result = null!;
 
     void Establish() => ((IAppendSemanticFacts)_appender)
-        .Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>())
+        .Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
         .Returns(Task.FromException(new SemanticCommandExecutionFailed("Chronicle refused the append.")));
 
     async Task Because() => _result = await _runtime.Execute(

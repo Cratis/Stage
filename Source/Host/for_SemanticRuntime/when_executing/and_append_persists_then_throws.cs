@@ -23,7 +23,7 @@ public class and_append_persists_then_throws : a_semantic_runtime
     {
         var tail = ulong.MaxValue;
         ((ISemanticFactTail)_appender).Tail().Returns(_ => tail);
-        ((IAppendSemanticFacts)_appender).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>())
+        ((IAppendSemanticFacts)_appender).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
             .Returns(_ =>
             {
                 tail = 0;

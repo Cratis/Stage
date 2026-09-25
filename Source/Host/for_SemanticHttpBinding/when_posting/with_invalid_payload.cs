@@ -17,5 +17,5 @@ public class with_invalid_payload : a_bound_semantic_model
 
     [Fact] void should_reject_the_value() => _status.ShouldEqual(400);
     [Fact] void should_report_the_modeled_message() => _body.ShouldContain("Project name is required");
-    [Fact] async Task should_not_append() => await _facts.DidNotReceive().Append(Arg.Any<IReadOnlyList<Cratis.Screenplay.Semantics.Execution.SemanticFact>>(), Arg.Any<Cratis.Screenplay.Semantics.Execution.SemanticCommandOccurrence>(), Arg.Any<ulong>());
+    [Fact] async Task should_not_append() => await _facts.DidNotReceive().Append(Arg.Any<IReadOnlyList<Cratis.Screenplay.Semantics.Execution.SemanticFact>>(), Arg.Any<Cratis.Screenplay.Semantics.Execution.SemanticCommandOccurrence>());
 }

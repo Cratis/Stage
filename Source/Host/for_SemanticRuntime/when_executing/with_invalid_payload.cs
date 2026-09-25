@@ -28,5 +28,5 @@ public class with_invalid_payload : a_semantic_runtime
         false);
 
     [Fact] void should_reject_with_the_authored_message() => ((SemanticRejected)_result).ValidationFailures.Single().Message.ShouldEqual("Project name is required");
-    [Fact] async Task should_not_append() => await ((IAppendSemanticFacts)_appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>());
+    [Fact] async Task should_not_append() => await ((IAppendSemanticFacts)_appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
 }

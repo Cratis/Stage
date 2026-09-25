@@ -31,7 +31,9 @@ internal static class SemanticPolicyEvaluator
 
     static bool Authorization(SemanticAuthorization authorization, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties) => authorization switch
     {
-        SemanticPolicyReference reference => Condition(plan.Model.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, plan, caller, principal, artifact, subject, properties),
+        SemanticPolicyReference reference => plan.Model.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is SemanticOpaquePolicyCondition
+            ? throw new OpaquePolicyReached(reference.Name)
+            : Condition(plan.Model.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, plan, caller, principal, artifact, subject, properties),
         SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => Authorization(logical.Left, plan, caller, principal, artifact, subject, properties) && Authorization(logical.Right, plan, caller, principal, artifact, subject, properties),
         SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => Authorization(logical.Left, plan, caller, principal, artifact, subject, properties) || Authorization(logical.Right, plan, caller, principal, artifact, subject, properties),
         _ => throw new UnsupportedSemanticMapping()
@@ -79,3 +81,7 @@ internal static class SemanticPolicyEvaluator
         return value;
     }
 }
+
+// A private control signal must not become part of the Specifications assembly's public exception API.
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "The authorization signal is internal to the specification executor.")]
+internal sealed class OpaquePolicyReached(string policy) : Exception($"Policy '{policy}' requires a target to evaluate its implementation body.");

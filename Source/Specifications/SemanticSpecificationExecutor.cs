@@ -76,6 +76,10 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
                 results.AddRange(selected.Skip(index).Select(item => Record(item.Slice, item.Specification, SemanticSpecificationOutcome.Cancelled)));
                 break;
             }
+            catch (OpaquePolicyReached exception)
+            {
+                results.Add(Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.Authorization, specification.Id.ToString(), exception.Message)));
+            }
             catch (UnsupportedSemanticMapping exception)
             {
                 results.Add(Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.Command, specification.Id.ToString(), exception.Message)));

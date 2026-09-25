@@ -22,6 +22,11 @@ internal static class SemanticRunAdmission
     public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification)
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
+        var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
+        var reducer = slices.SelectMany(slice => slice.Reducers).FirstOrDefault();
+        if (reducer is not null) return Block(StageExecutionCapability.Projection, reducer.ReadModel, "Reducer implementation bodies cannot be executed by Stage.");
+        var opaqueConcept = plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Validations.Any(rule => OpaqueRule(rule.Kind)));
+        if (opaqueConcept is not null) return Block(StageExecutionCapability.Command, opaqueConcept.Id, "Validation implementation bodies cannot be executed by Stage.");
         if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Seeded read-model state requires a per-run projection engine.");
         if (!specification.ThenReadModels.IsEmpty) return Block(StageExecutionCapability.Projection, specification.ThenReadModels[0].ReadModel, "Read-model assertions require a per-run projection engine.");
         if (!specification.ThenQueries.IsEmpty) return Block(StageExecutionCapability.Query, specification.ThenQueries[0].Query, "Keyed queries require a per-run projection engine.");
@@ -44,6 +49,10 @@ internal static class SemanticRunAdmission
         if (specification.WhenAppended is not null) return ProjectionBlock(plan, specification, [specification.WhenAppended.EventContract]);
         if (specification.When is not { } when) return Block(StageExecutionCapability.Specification, specification.Id, "Only command or direct-append specifications are admitted.");
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
+        if (!command.CodeValidations.IsEmpty || command.Validations.Any(rule => OpaqueRule(rule.Kind)))
+        {
+            return Block(StageExecutionCapability.Command, command.Id, "Validation implementation bodies cannot be executed by Stage.");
+        }
         if (command.Properties.Any(property => property.Type.Kind == SemanticTypeReferenceKind.Concept &&
             plan.Model.Application.Concepts.Single(concept => concept.Id == property.Type.Target).Validations.Any(rule => !SupportedRule(rule.Kind))))
         {
@@ -91,6 +100,12 @@ internal static class SemanticRunAdmission
             (value.Scope is not null && reachable.Count > 0) || value.Transitions.Any(transition => reachable.Contains(transition.EventContract)));
         return projection is null ? null : new(StageExecutionCapability.Projection, projection.Id.ToString(), "A projection consumes events in this specification but per-run projection execution is not available.");
     }
+
+    static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
+        feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
+
+    static bool OpaqueRule(SemanticValidationRuleKind kind) =>
+        kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
 
     static bool SupportedRule(SemanticValidationRuleKind kind) => kind is
         SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or

@@ -28,6 +28,12 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
+        if (!command.CodeValidations.IsEmpty || command.Validations.Any(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))
+        {
+            diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' contains validation implementation bodies that Stage cannot execute or render.", command.Id));
+            return;
+        }
+
         if (slice.Events.Any(@event => @event.Revision != EventContractRevision.Initial ||
                 @event.Properties.Any(property => !TypeExists(context, property.Type) || property.Type.IsOptional)) ||
             command.Properties.Any(_ => !TypeExists(context, _.Type)) ||

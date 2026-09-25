@@ -39,7 +39,7 @@ internal static partial class SemanticCratisAdmission
         {
             if (!located.Slice.Reducers.IsEmpty)
             {
-                diagnostics.Add(Error("STAGE-ESM-018", $"Slice '{located.Slice.Name}' has reducer implementation bodies; Stage cannot render reducer transitions.", located.Slice.Id));
+                diagnostics.Add(Error("STAGE-ESM-019", $"Slice '{located.Slice.Name}' has reducer implementation bodies; Stage cannot render reducer transitions.", located.Slice.Id));
                 continue;
             }
 

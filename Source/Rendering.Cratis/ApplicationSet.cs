@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Stage.Contracts.Screenplay;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -19,6 +20,11 @@ public class ApplicationSet
     /// <param name="applications">The compiled applications to merge.</param>
     public ApplicationSet(IReadOnlyList<ApplicationSyntax> applications)
     {
+        foreach (var slice in applications.SelectMany(application => application.Locate()))
+        {
+            EventGenerationAdmission.EnsureSupported(slice.Slice.Events, string.Join('.', slice.FullPath));
+        }
+
         Applications = applications;
         Concepts = BuildLookup(applications.SelectMany(application => application.Concepts), concept => concept.Name);
         Policies = BuildLookup(applications.SelectMany(application => application.Policies), policy => policy.Name);

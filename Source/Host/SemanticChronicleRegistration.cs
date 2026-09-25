@@ -123,11 +123,22 @@ internal static class SemanticChronicleRegistration
         var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
         while (mirrorIds.Count > 0)
         {
-            var observers = (await accessor.Services.Observers.GetObservers(new Cratis.Chronicle.Contracts.Observation.AllObserversRequest
+            var registered = (await accessor.Services.Observers.GetObservers(new Cratis.Chronicle.Contracts.Observation.AllObserversRequest
             {
                 EventStore = name,
                 Namespace = EventStoreNamespaceName.Default
             })).Where(observer => mirrorIds.Contains(observer.Id)).ToArray();
+
+            // GetObservers reads stored definitions/state and does not populate IsSubscribed.
+            // Query each live observer grain before trusting its subscription or progress.
+            var observers = await Task.WhenAll(registered.Select(observer => accessor.Services.Observers.GetObserverInformation(
+                new Cratis.Chronicle.Contracts.Observation.GetObserverInformationRequest
+                {
+                    EventStore = name,
+                    Namespace = EventStoreNamespaceName.Default,
+                    ObserverId = observer.Id,
+                    EventSequenceId = observer.EventSequenceId
+                })));
             if (observers.Length == mirrorIds.Count)
             {
                 var caughtUp = true;

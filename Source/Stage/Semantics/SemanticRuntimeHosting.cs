@@ -36,7 +36,7 @@ public static class SemanticRuntimeHosting
     {
         services.AddSingleton(plan);
         services.AddSingleton<IAppendSemanticFacts, SemanticFactAppender>();
-        services.AddSingleton<ISemanticRuntime>(provider => new SemanticRuntime(plan, provider.GetRequiredService<IAppendSemanticFacts>(), world()));
+        services.AddSingleton<ISemanticRuntime>(provider => new SemanticRuntime(plan, provider.GetRequiredService<IAppendSemanticFacts>(), world));
     }
 
     /// <summary>

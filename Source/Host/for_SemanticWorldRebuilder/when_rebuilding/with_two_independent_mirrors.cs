@@ -62,10 +62,19 @@ public class with_two_independent_mirrors : a_rebuildable_world
         services.Observers.GetObservers(Arg.Any<AllObserversRequest>()).Returns([.. mirrors.Select(mirror => new ObserverInformation
         {
             Id = mirror.Definition.Identifier,
-            IsSubscribed = true,
-            RunningState = Cratis.Chronicle.Contracts.Observation.ObserverRunningState.Active,
-            LastHandledEventSequenceNumber = mirror.Projection.Name == "ProjectSummaryProjection" ? 0UL : 1UL
+            EventSequenceId = EventSequenceId.Log
         })]);
+        services.Observers.GetObserverInformation(Arg.Any<GetObserverInformationRequest>()).Returns(call =>
+        {
+            var mirror = mirrors.Single(candidate => candidate.Definition.Identifier == call.Arg<GetObserverInformationRequest>().ObserverId);
+            return new ObserverInformation
+            {
+                Id = mirror.Definition.Identifier,
+                IsSubscribed = true,
+                RunningState = Cratis.Chronicle.Contracts.Observation.ObserverRunningState.Active,
+                LastHandledEventSequenceNumber = mirror.Projection.Name == "ProjectSummaryProjection" ? 0UL : 1UL
+            };
+        });
         var requests = new List<string>();
         services.Sequences.TailSequenceNumber(Arg.Any<TailSequenceNumberRequest>()).Returns(call =>
         {

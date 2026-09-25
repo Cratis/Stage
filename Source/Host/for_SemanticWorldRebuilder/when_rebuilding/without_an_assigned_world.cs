@@ -14,14 +14,15 @@ public class without_an_assigned_world : a_rebuildable_world
 {
     Exception? _error;
 
-    void Because()
+    async Task Because()
     {
         var services = new ServiceCollection();
         SemanticRuntimeHosting.Add(services, _plan, SemanticHost.WorldProvider(() => null));
         services.AddSingleton(Substitute.For<IAppendSemanticFacts>());
-        using var provider = services.BuildServiceProvider();
-        _error = Catch.Exception(() => provider.GetRequiredService<ISemanticRuntime>());
+        await using var provider = services.BuildServiceProvider();
+        var runtime = provider.GetRequiredService<ISemanticRuntime>();
+        _error = await Catch.Exception(() => runtime.ReadModels(_readModel.Id));
     }
 
-    [Fact] void should_refuse_premature_runtime_resolution() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
+    [Fact] void should_refuse_premature_world_use() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
 }

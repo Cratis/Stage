@@ -88,27 +88,7 @@ internal static class SemanticHost
 
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
-        app.Use(async (context, next) =>
-        {
-            if (context.Request.Path.StartsWithSegments("/api") && (world is null || issues.Count > 0))
-            {
-                if (issues.Count > 0)
-                {
-                    var issue = issues[0];
-                    context.Response.Headers["Stage-Unsupported-Capability"] = issue.Capability;
-                    context.Response.Headers["Stage-Unsupported-Artifact"] = issue.Artifact;
-                    await Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented).ExecuteAsync(context);
-                }
-                else
-                {
-                    context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                }
-
-                return;
-            }
-
-            await next(context);
-        });
+        UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();
         app.MapControllers();
@@ -155,6 +135,28 @@ internal static class SemanticHost
 
         await app.WaitForShutdownAsync();
     }
+
+    internal static void UseReadinessGate(IApplicationBuilder app, Func<SemanticWorld?> world, List<StageUnsupportedIssue> issues) => app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api") && (world() is null || issues.Count > 0))
+        {
+            if (issues.Count > 0)
+            {
+                var issue = issues[0];
+                context.Response.Headers["Stage-Unsupported-Capability"] = issue.Capability;
+                context.Response.Headers["Stage-Unsupported-Artifact"] = issue.Artifact;
+                await Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented).ExecuteAsync(context);
+            }
+            else
+            {
+                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            }
+
+            return;
+        }
+
+        await next(context);
+    });
 
     internal static Func<SemanticWorld> WorldProvider(Func<SemanticWorld?> world) =>
         () => world() ?? throw new SemanticWorldRebuildRefused("The semantic world has not been reconstructed yet.");

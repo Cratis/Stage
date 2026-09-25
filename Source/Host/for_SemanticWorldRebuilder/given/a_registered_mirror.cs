@@ -28,10 +28,15 @@ public class a_registered_mirror : a_rebuildable_world
         _services.Observers.GetObservers(Arg.Any<AllObserversRequest>()).Returns([new ObserverInformation
         {
             Id = _mirrorId,
+            EventSequenceId = EventSequenceId.Log
+        }]);
+        _services.Observers.GetObserverInformation(Arg.Any<GetObserverInformationRequest>()).Returns(new ObserverInformation
+        {
+            Id = _mirrorId,
             IsSubscribed = true,
             RunningState = Cratis.Chronicle.Contracts.Observation.ObserverRunningState.Active,
             LastHandledEventSequenceNumber = 0
-        }]);
+        });
         _services.Sequences.TailSequenceNumber(Arg.Any<TailSequenceNumberRequest>()).Returns(
             QueryResult<EventSequenceTailResponse>.Success(Guid.Empty, new() { SequenceNumber = 0 }));
         _services.Sequences.FromSequenceNumber(Arg.Any<FromSequenceNumberRequest>()).Returns(

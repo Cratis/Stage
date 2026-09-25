@@ -22,6 +22,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
     readonly SemaphoreSlim _gate = new(1, 1);
     readonly SemanticEvaluator _evaluator = new();
     SemanticWorld _world = SemanticWorld.Empty;
+    Func<SemanticWorld>? _worldProvider;
     ulong _knownTail;
 
     internal SemanticRuntime(SemanticExecutionPlan plan, IAppendSemanticFacts appender, SemanticWorld? world = null)
@@ -32,6 +33,11 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
 
         // Rebuild admits only a contiguous history from sequence zero through the captured tail.
         _knownTail = _world.Facts.Length == 0 ? ulong.MaxValue : (ulong)_world.Facts.Length - 1;
+    }
+
+    internal SemanticRuntime(SemanticExecutionPlan plan, IAppendSemanticFacts appender, Func<SemanticWorld> world) : this(plan, appender)
+    {
+        _worldProvider = world;
     }
 
     /// <inheritdoc/>
@@ -54,6 +60,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         await _gate.WaitAsync();
         try
         {
+            InitializeWorld();
             if (FaultReason is not null)
             {
                 return Faulted();
@@ -138,6 +145,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         await _gate.WaitAsync();
         try
         {
+            InitializeWorld();
             if (FaultReason is not null)
             {
                 return Faulted();
@@ -163,6 +171,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         await _gate.WaitAsync();
         try
         {
+            InitializeWorld();
             return FaultReason is null ? [.. _world.ReadModels.Where(instance => instance.ReadModel == model)] : [];
         }
         finally
@@ -194,6 +203,19 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         }
 
         return null;
+    }
+
+    void InitializeWorld()
+    {
+        if (_worldProvider is not { } provider)
+        {
+            return;
+        }
+
+        var world = provider();
+        _world = world;
+        _knownTail = world.Facts.Length == 0 ? ulong.MaxValue : (ulong)world.Facts.Length - 1;
+        _worldProvider = null;
     }
 
     SemanticExecutionResult Evaluate(SemanticCommand command, IReadOnlyDictionary<string, JsonElement> payload, ClaimsPrincipal principal, SemanticCommandOccurrence occurrence)

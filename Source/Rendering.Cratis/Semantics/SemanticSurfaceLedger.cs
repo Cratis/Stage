@@ -21,7 +21,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.30.0 (ESM v1–v3).
+/// Inventories the executable semantic surface audited against Screenplay 4.35.0 (ESM v1–v3).
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
 internal static class SemanticSurfaceLedger
@@ -42,6 +42,7 @@ internal static class SemanticSurfaceLedger
         // the revision is a semantic input fingerprint, not generated source.
         Add(entries, "ExecutableSemanticModel", rendered, "Application LanguageVersion SemanticVersion");
         Add(entries, "ExecutableSemanticModel", ignored("Canonical input fingerprint; the plan has its own fingerprint."), "Revision");
+        Add(entries, "ExecutableSemanticModel", ignored("Compiler-owned deprecation warnings (PLAY0445), not executable projection behavior."), "DeprecationDiagnostics");
         Add(entries, "LanguageVersion", rendered, "Major Minor");
         Add(entries, "SemanticVersion", rendered, "Major Minor");
         Add(entries, "SemanticRevision", ignored("Canonical model revision, not an application artifact."), "IsSet");

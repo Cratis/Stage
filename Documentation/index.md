@@ -64,6 +64,14 @@ publication rather than producing a thinner application.
 
 The published syntax-based `IRenderer` remains available through an explicit compatibility adapter. That legacy
 path still renders its existing broader `ApplicationSyntax` surface and writes directly to a target directory.
+Screenplay 4.35.0 supports event generation markers in syntax, but not executable lineage (binding reports
+`PLAY0449`). Stage's syntax-based model conversion and legacy Cratis rendering reject any marked or multiply
+declared event with `STAGE-EVENT-001` naming the event rather than selecting an older shape. The semantic
+planner accepts only executable models; it does not infer generations from syntax. Reaction trigger `reads`
+(Screenplay decision 0006) carry no runtime meaning yet and add no behavior to legacy rendered reactors.
+Stage does not evaluate child joins itself: semantic planning rejects them (`STAGE-ESM-017`), while legacy
+projection output delegates matching to Chronicle. Screenplay's reference evaluator now matches children by
+identity, not the join's `on` property (4.33.0); Stage does not duplicate that matching logic.
 Legacy inline command handlers support only C# (`csharp`) bodies proven not to bind to the generated `context`
 parameter. Context-independent bodies such as `return Array.Empty<object>();` remain supported and are emitted
 as authored, with the renderer's normal indentation. Screenplay and Arc have different command contexts; no

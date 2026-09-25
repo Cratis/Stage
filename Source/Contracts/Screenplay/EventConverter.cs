@@ -27,7 +27,9 @@ public static class EventConverter
         SchemaSynthesizer schema,
         string slicePath)
     {
-        var definitions = events.Select(@event => new EventDefinition(
+        var declarations = events.ToArray();
+        EventGenerationAdmission.EnsureSupported(declarations, slicePath);
+        var definitions = declarations.Select(@event => new EventDefinition(
             DeterministicId.From($"{slicePath}.event.{@event.Name}"),
             @event.Name,
             string.Empty,

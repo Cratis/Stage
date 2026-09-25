@@ -3,12 +3,14 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Screenplay;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Emission;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Specifications;
+using InvalidEventModel = Cratis.Stage.Contracts.InvalidEventModel;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -185,7 +187,17 @@ public class CratisRenderer : IRenderer
             return;
         }
 
-        var applicationSet = new ApplicationSet(applications);
+        ApplicationSet applicationSet;
+        try
+        {
+            applicationSet = new ApplicationSet(applications);
+        }
+        catch (InvalidEventModel exception)
+        {
+            await RecordFailure("render events", exception, error, failures);
+            await Complete(targetDirectory, output, error, failures);
+            return;
+        }
 
         foreach (var concept in applicationSet.Concepts.Values)
         {
@@ -260,6 +272,7 @@ public class CratisRenderer : IRenderer
         RenderedFile file;
         try
         {
+            EventGenerationAdmission.EnsureSupported(slice.Slice.Events, slicePath);
             file = renderer.Render(slice, applicationSet, rootNamespace);
         }
         catch (Exception exception)

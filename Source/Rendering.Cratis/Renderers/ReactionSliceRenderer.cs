@@ -19,7 +19,8 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// the triggering event so the block can reference its properties by bare name (matching the authored
 /// convention observed in Screenplay's own samples). A trigger with a <c language="csharp">file</c> reference is stubbed — the
 /// referenced file is not read or copied in this pass. A trigger with neither is Screenplay's own documented
-/// "statement of intent" — a stub is emitted, not an error.
+/// "statement of intent" — a stub is emitted, not an error. Trigger <c language="csharp">reads</c> do not bind at
+/// runtime yet (Screenplay decision 0006); they add no runtime behavior to the rendered reactor.
 /// <para>
 /// Only an event sets off a Chronicle reactor. Screenplay 3 lets a reaction be set off by the clock or by a
 /// trigger an integration provides, and Chronicle has no handler shape for either, so those are reported

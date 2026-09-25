@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Contracts.Screenplay;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Types;
@@ -30,6 +31,7 @@ public static class EventRenderer
         ICollection<string> diagnostics,
         IEnumerable<ConstraintSyntax>? constraints = null)
     {
+        EventGenerationAdmission.EnsureSupported([@event], @event.Name);
         var declared = constraints ?? [];
         var typeName = Identifiers.ToPascalCase(@event.Name);
         var parameters = string.Join(", ", @event.Properties.Select(property => RenderParameter(property, @event.Name, applicationSet, diagnostics, declared)));

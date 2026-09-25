@@ -15,6 +15,11 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
     /// <inheritdoc/>
     public EventModel Visit(ApplicationSyntax syntax)
     {
+        foreach (var slice in syntax.Modules.SelectMany(module => Slices(module.Features)))
+        {
+            EventGenerationAdmission.EnsureSupported(slice.Events, slice.Name);
+        }
+
         var concepts = syntax.Concepts
             .GroupBy(concept => concept.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);

@@ -30,6 +30,22 @@ public interface IAppendSemanticFacts
 }
 
 /// <summary>
+/// Appends semantic facts only if the event-log tail still matches the tail captured before evaluation.
+/// The built-in Chronicle appender supports this capability; legacy custom appenders need not implement it.
+/// </summary>
+public interface IAppendSemanticFactsAtTail
+{
+    /// <summary>
+    /// Appends facts atomically against the expected event-log tail.
+    /// </summary>
+    /// <param name="facts">The accepted facts.</param>
+    /// <param name="occurrence">The shared occurrence metadata.</param>
+    /// <param name="expectedTail">The captured tail (ulong.MaxValue for an empty log).</param>
+    /// <returns>The append operation.</returns>
+    Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ulong expectedTail);
+}
+
+/// <summary>
 /// Reads Chronicle's event-log tail to distinguish a rejected append from an indeterminate one.
 /// </summary>
 public interface ISemanticFactTail
@@ -41,9 +57,18 @@ public interface ISemanticFactTail
     Task<ulong> Tail();
 }
 
-[IgnoreConvention]
-internal sealed class SemanticFactAppender(IChronicleClient client, StageEventStoreName eventStore, SemanticExecutionPlan plan) : IAppendSemanticFacts, ISemanticFactTail
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "This exception is only an internal outcome marker between the fact appender and runtime.")]
+internal sealed class SemanticFactTailChanged(ulong actualTail) : Exception("The event-log tail changed outside this session.")
 {
+    public ulong ActualTail { get; } = actualTail;
+}
+
+[IgnoreConvention]
+internal sealed class SemanticFactAppender(IChronicleClient client, StageEventStoreName eventStore, SemanticExecutionPlan plan) : IAppendSemanticFacts, IAppendSemanticFactsAtTail, ISemanticFactTail
+{
+    // The key is only a label when EventSourceId is false; even an identically named fact source does not narrow the lookup.
+    const string TailScopeLabel = "__stage:event-log-tail__";
+
     public async Task<ulong> Tail()
     {
         var store = await client.GetEventStore(eventStore.Value);
@@ -58,7 +83,23 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
         return response.EnsureSuccess().SequenceNumber;
     }
 
-    public async Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence)
+    // Keep the public, unguarded append contract available for existing consumers.
+    public Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence) => AppendCore(facts, occurrence, null);
+
+    public Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ulong expectedTail) =>
+        AppendCore(facts, occurrence, new ChronicleSequences.EventSourceConcurrencyScope
+        {
+            EventSourceId = TailScopeLabel,
+            Scope = new ChronicleSequences.ConcurrencyScope
+            {
+                EventSourceId = false,
+                EventTypes = [],
+                SequenceNumber = expectedTail,
+                ExpectsNoMatchingEvent = expectedTail == ulong.MaxValue
+            }
+        });
+
+    async Task AppendCore(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ChronicleSequences.EventSourceConcurrencyScope? scope)
     {
         if (facts.Count == 0)
         {
@@ -73,6 +114,7 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
             EventStore = store.Name,
             Namespace = EventStoreNamespaceName.Default,
             EventSequenceId = EventSequenceId.Log,
+            ConcurrencyScopes = scope is null ? null : [scope],
             CausedBy = new ChronicleSequences.Identity
             {
                 Subject = occurrence.Subject,
@@ -95,6 +137,13 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
             })]
         });
         response.EnsureSuccess();
+        var violation = response.Response.ConcurrencyViolations.FirstOrDefault();
+        if (violation is not null)
+        {
+            // Chronicle rejected the entire batch before appending anything; the outcome is known.
+            throw new SemanticFactTailChanged(violation.ActualSequenceNumber);
+        }
+
         var rejection = ProducedEventAppender.Rejection(response.Response);
         if (rejection is not null)
         {

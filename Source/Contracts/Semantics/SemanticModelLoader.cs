@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Text;
 using Cratis.Screenplay;
+using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -17,6 +18,7 @@ namespace Cratis.Stage.Contracts.Semantics;
 /// </summary>
 /// <param name="Model">The executable semantic model.</param>
 /// <param name="Plan">The execution plan.</param>
+/// <remarks>Added attachment collections use the collection's reference equality in record comparisons.</remarks>
 public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, SemanticExecutionPlan Plan)
 {
     /// <summary>Requirements emitted by the compilation.</summary>
@@ -24,6 +26,9 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
 
     /// <summary>Resolved inline and file bodies keyed by requirement identity.</summary>
     public ImmutableDictionary<string, string> ImplementationContents { get; init; } = [];
+
+    /// <summary>Warnings from the attachment loader, including PLAY043x reasons for refused files.</summary>
+    public ImmutableArray<Diagnostic> AttachmentDiagnostics { get; init; } = [];
 }
 
 /// <summary>
@@ -34,7 +39,7 @@ public static class SemanticModelLoader
     /// <summary>
     /// Compiles a Screenplay source set and optional authoritative identity catalog.
     /// </summary>
-    /// <param name="path">A .play file or a folder searched recursively for .play sources.</param>
+    /// <param name="path">A .play file or a folder searched recursively for .play sources. For a single file, its parent directory is the attachment root.</param>
     /// <param name="catalogPath">An optional canonical Screenplay identity catalog JSON file whose document keys match the UTF-8 hex encoding of relative .play paths.</param>
     /// <remarks>
     /// Without a workspace envelope, the input file or folder name becomes the application name. The caller must
@@ -98,6 +103,28 @@ public static class SemanticModelLoader
         }
 
         var bodies = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+        var inlineBodies = new Dictionary<(DocumentId Document, int Line, int Column), List<string>>();
+        foreach (var document in sourceDocuments)
+        {
+            if (new ScreenplayCompiler().Parse(document.Text, document.DisplayPath).Value is not { } syntax)
+            {
+                continue;
+            }
+
+            var collector = new InlineBodies();
+            collector.VisitApplication(syntax);
+            foreach (var block in collector.Bodies)
+            {
+                var key = (document.Id, block.Location.Line, block.Location.Column);
+                if (!inlineBodies.TryGetValue(key, out var matches))
+                {
+                    inlineBodies[key] = matches = [];
+                }
+
+                matches.Add(block.Code);
+            }
+        }
+
         foreach (var requirement in compiled.ImplementationRequirements)
         {
             if (requirement.File is { } file)
@@ -110,26 +137,19 @@ public static class SemanticModelLoader
                 continue;
             }
 
-            var document = sourceDocuments.SingleOrDefault(candidate => candidate.Id == requirement.Source.Span.Document);
-            if (document is null || new ScreenplayCompiler().Parse(document.Text, document.DisplayPath).Value is not { } syntax)
+            if (inlineBodies.TryGetValue(
+                (requirement.Source.Span.Document, requirement.Source.Span.StartLine, requirement.Source.Span.StartColumn),
+                out var matches) && matches.Count == 1)
             {
-                continue;
-            }
-
-            var collector = new InlineBodies();
-            collector.VisitApplication(syntax);
-            var body = collector.Bodies.Where(code => code.Location.Line == requirement.Source.Span.StartLine &&
-                code.Location.Column == requirement.Source.Span.StartColumn).ToArray();
-            if (body.Length == 1)
-            {
-                bodies[requirement.RequirementId] = body[0].Code;
+                bodies[requirement.RequirementId] = matches[0];
             }
         }
 
         return new(model, plan.Plan!)
         {
             ImplementationRequirements = compiled.ImplementationRequirements,
-            ImplementationContents = bodies.ToImmutable()
+            ImplementationContents = bodies.ToImmutable(),
+            AttachmentDiagnostics = attachments.Diagnostics
         };
     }
 

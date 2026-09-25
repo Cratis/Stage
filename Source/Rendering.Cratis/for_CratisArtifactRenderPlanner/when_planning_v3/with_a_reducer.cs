@@ -25,7 +25,6 @@ public class with_a_reducer : Specification
         }));
     }
 
-    [Fact] void should_reject_the_reducer_with_019() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-019");
-    [Fact] void should_name_the_missing_context_contract() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-019").Message.ShouldContain("per-transition typed context descriptor for State and Event (ContextVersion 1, ResultVersion 1)");
+    [Fact] void should_reject_the_unverified_reducer_with_020() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-020");
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

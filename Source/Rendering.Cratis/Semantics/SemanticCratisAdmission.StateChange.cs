@@ -33,7 +33,7 @@ internal static partial class SemanticCratisAdmission
             var ids = command.CodeValidations.Select(validation => validation.RequirementId)
                 .Concat(command.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation)
                     .Select(rule => rule.RequirementId));
-            diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' contains validation implementation bodies ({string.Join(", ", ids)}): Arc's validation boundary cannot supply RuleContext.Tenant, RuleContext.CausedBy and RuleContext.Occurred exactly as Screenplay specifies.", command.Id));
+            diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' contains validation implementation bodies ({string.Join(", ", ids)}): Arc does not supply RuleContext.Occurred (received-at) to a generated validator, and Stage does not yet enforce the pure capability.", command.Id));
             return;
         }
 

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
@@ -181,12 +182,32 @@ public static class CratisRendering
         CratisRenderingOptions options,
         ImmutableArray<SemanticImplementationRequirement> requirements,
         ImmutableDictionary<string, string> contents)
+        => Plan(model, executionPlan, scope, options, requirements, contents, []);
+
+    /// <summary>Plans with the loader's attachment diagnostics preserved for refused files.</summary>
+    /// <param name="model">The executable semantic model.</param>
+    /// <param name="executionPlan">The admitted execution plan.</param>
+    /// <param name="scope">The requested semantic scope.</param>
+    /// <param name="options">The project and namespace options.</param>
+    /// <param name="requirements">The compilation's requirements.</param>
+    /// <param name="contents">Resolved bodies keyed by requirement identity.</param>
+    /// <param name="attachmentDiagnostics">The attachment loader's diagnostics.</param>
+    /// <returns>The render plan or blocking diagnostics.</returns>
+    public static ArtifactRenderPlan Plan(
+        ExecutableSemanticModel model,
+        SemanticExecutionPlan executionPlan,
+        ArtifactRenderScope scope,
+        CratisRenderingOptions options,
+        ImmutableArray<SemanticImplementationRequirement> requirements,
+        ImmutableDictionary<string, string> contents,
+        ImmutableArray<Diagnostic> attachmentDiagnostics)
     {
         var profile = CreateProfile(model.Application.Name, options);
         var request = new ArtifactRenderRequest(model, executionPlan, profile, scope)
         {
             ImplementationRequirements = requirements,
-            ImplementationContents = contents
+            ImplementationContents = contents,
+            AttachmentDiagnostics = attachmentDiagnostics
         };
         return new CratisArtifactRenderPlanner().Plan(request);
     }

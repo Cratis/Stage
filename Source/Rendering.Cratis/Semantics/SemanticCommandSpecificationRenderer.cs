@@ -164,7 +164,9 @@ internal static class SemanticCommandSpecificationRenderer
                 .Line("[Fact] void should_have_validation_errors() => _result.ShouldHaveValidationErrors();");
             if (specification.ThenErrors[0].Message is { } message)
             {
-                builder.Line($"[Fact] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});");
+                builder.Line(message.StartsWith("$strings.", StringComparison.Ordinal)
+                    ? $"[Fact] void should_report_the_expected_first_error_key() => _result.ValidationResults.First().State.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});"
+                    : $"[Fact] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});");
             }
 
             builder.Using("Cratis.Arc.Chronicle.Testing.Commands")

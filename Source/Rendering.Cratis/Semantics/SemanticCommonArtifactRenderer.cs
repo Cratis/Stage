@@ -28,7 +28,7 @@ internal static class SemanticCommonArtifactRenderer
         }
         else
         {
-            RenderConcept(builder, concept, name, context.IdentifierConcepts.Contains(concept.Id));
+            RenderConcept(builder, concept, name, context.IdentifierConcepts.Contains(concept.Id), context.RootNamespace);
         }
 
         return new(Path.Combine("Common", $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
@@ -63,7 +63,7 @@ internal static class SemanticCommonArtifactRenderer
         builder.EndBlock();
     }
 
-    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, bool isIdentifier)
+    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, bool isIdentifier, string rootNamespace)
     {
         var primitive = SemanticTypeSystem.Primitive(concept.Primitive);
         builder.Using("Cratis.Concepts");
@@ -89,10 +89,10 @@ internal static class SemanticCommonArtifactRenderer
         }
 
         builder.Line($"public static implicit operator {name}({primitive} value) => new(value);").EndBlock();
-        RenderValidator(builder, concept, name);
+        RenderValidator(builder, concept, name, rootNamespace);
     }
 
-    static void RenderValidator(CSharpCodeBuilder builder, SemanticConcept concept, string name)
+    static void RenderValidator(CSharpCodeBuilder builder, SemanticConcept concept, string name, string rootNamespace)
     {
         if (concept.Validations.IsEmpty)
         {
@@ -106,7 +106,7 @@ internal static class SemanticCommonArtifactRenderer
             .OpenBlock($"public {name}Validator()");
         foreach (var rule in concept.Validations)
         {
-            SemanticValidationRendering.Render(builder, rule, "Value", concept.Primitive, false, true);
+            SemanticValidationRendering.Render(builder, rule, "Value", concept.Primitive, false, true, rootNamespace: rootNamespace);
         }
 
         builder.EndBlock();

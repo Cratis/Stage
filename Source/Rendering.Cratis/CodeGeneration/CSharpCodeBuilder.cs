@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using System.Text;
 
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -22,8 +23,29 @@ public class CSharpCodeBuilder
     /// </summary>
     /// <param name="value">The value to escape.</param>
     /// <returns>The escaped text, without the surrounding quotes.</returns>
-    public static string Escape(string value) =>
-        value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+    public static string Escape(string value)
+    {
+        var escaped = new StringBuilder();
+        foreach (var character in value)
+        {
+            var category = char.GetUnicodeCategory(character);
+            if (char.IsControl(character) || category is UnicodeCategory.Format or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator or UnicodeCategory.Surrogate or UnicodeCategory.OtherNotAssigned)
+            {
+                escaped.Append($"\\u{(int)character:X4}");
+            }
+            else
+            {
+                escaped.Append(character switch
+                {
+                    '\\' => "\\\\",
+                    '"' => "\\\"",
+                    _ => character.ToString()
+                });
+            }
+        }
+
+        return escaped.ToString();
+    }
 
     /// <summary>
     /// Renders a value as a quoted C# string literal.

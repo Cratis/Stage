@@ -29,11 +29,13 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         ("root_removal_and_recreation", [new("ProjectRegistered", First, First, "First"), new("ProjectRemoved", First), new("ProjectRegistered", First, First, "Second")]),
         ("child_removal_existing_and_missing", [new("ProjectRegistered", First, First, "First"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoteRemoved", Note, First, null, Note), new("ProjectNoteRemoved", OtherNote, First, null, OtherNote)]),
         ("two_parents_with_distinct_children", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", OtherNote, Second, "B", OtherNote)]),
-        ("every_on_from_and_join", [new("ProjectRegistered", First, First, "First"), new("ProjectNamed", First, null, "Joined"), new("ProjectRenamed", First, First, "Renamed")])
+        ("every_on_from_and_join", [new("ProjectRegistered", First, First, "First"), new("ProjectNamed", First, null, "Joined"), new("ProjectRenamed", First, First, "Renamed")]),
+        ("local_after_join_keeps_joined_name", [new("ProjectNamed", First, null, "Joined"), new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Renamed")])
     ];
     ExecutableSemanticModel _model = null!;
     SemanticExecutionPlan _execution = null!;
     string _testOutput = null!;
+    string _localAfterJoinExpected = null!;
 
     protected override ArtifactRenderPlan CreatePlan()
     {
@@ -55,6 +57,11 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         foreach (var (name, facts) in _cases)
         {
             var expected = Reference(facts);
+            if (name == "local_after_join_keeps_joined_name")
+            {
+                _localAfterJoinExpected = expected;
+            }
+
             AddGeneratedSpecification($"Projects/Registration/ProjectLookup/when_{name}.cs", GeneratedSpecification(name, facts, expected));
         }
 
@@ -63,6 +70,9 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     }
 
     [Fact] void should_match_all_reference_snapshots() => _testOutput.ShouldContain("Passed!");
+
+    // Screenplay backfills the earlier join after each local from-mapping; Chronicle's generated spec must agree.
+    [Fact] void should_keep_joined_name_after_a_later_local_write() => _localAfterJoinExpected.ShouldContain("\"name\":\"Joined\"");
 
     string Reference(Fact[] facts)
     {

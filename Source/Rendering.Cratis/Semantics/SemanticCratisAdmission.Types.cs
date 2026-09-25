@@ -15,9 +15,15 @@ internal static partial class SemanticCratisAdmission
     {
         foreach (var concept in context.Application.Concepts)
         {
+            if (concept.Validations.Any(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))
+            {
+                diagnostics.Add(Error("STAGE-ESM-005", $"Concept '{concept.Name}' contains validation implementation bodies that Stage cannot execute or render.", concept.Id));
+                continue;
+            }
+
             if (concept.Primitive == SemanticPrimitiveType.Unknown ||
                 (concept.Values.Length > 0 && (concept.Primitive != SemanticPrimitiveType.Text || !concept.Validations.IsEmpty)) ||
-                !concept.Validations.All(SemanticValidationRendering.CanRender))
+                !concept.Validations.All(rule => SemanticValidationRendering.CanRender(rule, context)))
             {
                 diagnostics.Add(Error("STAGE-ESM-002", $"Concept '{concept.Name}' uses unsupported values or validation.", concept.Id));
             }

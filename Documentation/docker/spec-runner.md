@@ -159,7 +159,7 @@ The clock is injectable through the in-process API. The tenant and identity allo
 and do not affect this run; implicit identity allocation remains unsupported.
 
 Read-model assertions, seeded read models, keyed queries, and specifications whose Given, produced or directly
-appended events feed a projection (including scoped projections) return typed `Unsupported` before execution: Chronicle 19.4.7
+appended events feed a projection (including scoped projections) return typed `Unsupported` before execution: Chronicle 19.4.8
 does not offer per-run projection execution through its public scenario APIs. Other
 unimplemented behavior (conditional production, implicit event-source identity allocation,
 external effects and unsupported expression or value shapes) is also blocked rather than reported as a

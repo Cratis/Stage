@@ -21,7 +21,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.24.0.
+/// Inventories the executable semantic surface audited against Screenplay 4.30.0 (ESM v1–v3).
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
 internal static class SemanticSurfaceLedger
@@ -52,6 +52,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
         Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications");
+        Add(entries, "SemanticSlice", rejected("STAGE-ESM-019"), "Reducers");
+        Add(entries, "SemanticReducer", rejected("STAGE-ESM-019"), "Name ReadModel Transitions Key InitialState Result");
+        Add(entries, "SemanticReducerTransition", rejected("STAGE-ESM-019"), "EventContract RequirementId");
+        Add(entries, "SemanticReducerKey", rejected("STAGE-ESM-019"), "EventSourceId");
+        Add(entries, "SemanticReducerResult", rejected("STAGE-ESM-019"), "StateOrDelete");
         Add(entries, "SemanticSliceKind", rendered, "StateChange StateView");
         Add(entries, "SemanticSliceKind", rejected("STAGE-ESM-001"), "Unknown");
 
@@ -65,14 +70,24 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticTypeReferenceKind", rejected("STAGE-ESM-003"), "Unknown");
         Add(entries, "SemanticPrimitiveType", rendered, "Uuid Text WholeNumber DecimalNumber Boolean Date DateTime");
         Add(entries, "SemanticPrimitiveType", rejected("STAGE-ESM-002"), "Unknown");
+
+        // Message includes localized $strings keys only with a validated catalog; missing default keys block as STAGE-ESM-018.
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
+        Add(entries, "SemanticValidationRule", rejected("STAGE-ESM-005"), "Name RequirementId");
         Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches");
-        Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown");
+        Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown RulePredicate CodeValidation");
         Add(entries, "SemanticValidationSeverity", rendered, "Error");
         Add(entries, "SemanticValidationSeverity", rejected("STAGE-ESM-005"), "Information Warning");
 
         // State change: one command with unconditional, untagged mapped events in declaration order.
+        // Requirements use the same catalog-backed message resolution as property and concept validation.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
+        Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "CodeValidations");
+        Add(entries, "SemanticCodeValidation", rejected("STAGE-ESM-005"), "RequirementId");
+
+        // The compiler exposes attachment metadata separately from the executable model. The planner
+        // never receives it; a referenced opaque body is rejected by its owning command, concept or reducer.
+        Add(entries, "SemanticImplementationRequirement", ignored("Compiler-only attachment metadata; owning opaque behavior is rejected before rendering."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition Tags When");
         Add(entries, "SemanticEventContract", rendered, "Id Name Properties");
@@ -174,6 +189,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rendered, "$type");
+        Add(entries, "SemanticOpaquePolicyCondition", rejected("STAGE-ESM-015"), "RequirementId");
         Add(entries, "SemanticProjectionEventSourceIdentity", rendered, "$type");
         Add(entries, "SemanticCaller", rendered, "Authenticated Claims Roles");
         Add(entries, "SemanticCallerClaim", rendered, "Type Value");

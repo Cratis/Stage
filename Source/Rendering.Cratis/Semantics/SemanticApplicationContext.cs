@@ -23,6 +23,7 @@ internal sealed class SemanticApplicationContext
         Request = request;
         Application = request.Model.Application;
         RootNamespace = options.RootNamespace;
+        Strings = StringsCatalogInput.From(request.Profile);
         Concepts = Application.Concepts.ToDictionary(_ => _.Id);
         Types = Application.Types.ToDictionary(_ => _.Id);
 
@@ -58,6 +59,11 @@ internal sealed class SemanticApplicationContext
     /// Gets the destination-independent application namespace.
     /// </summary>
     public string RootNamespace { get; }
+
+    /// <summary>
+    /// Gets the optional validated locale catalog.
+    /// </summary>
+    public StringsCatalogInput.Catalog? Strings { get; }
 
     /// <summary>
     /// Gets concepts by semantic identity.

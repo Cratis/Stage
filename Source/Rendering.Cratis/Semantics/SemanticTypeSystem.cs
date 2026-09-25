@@ -99,6 +99,15 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     }
 
     /// <summary>
+    /// Whether the rendered type already carries Chronicle's event-source identity.
+    /// </summary>
+    /// <param name="type">The semantic type reference.</param>
+    /// <returns>Whether the generated type derives from an event-source identity.</returns>
+    public bool IsEventSourceIdentifier(SemanticTypeReference type) =>
+        !type.IsCollection && type.Kind == SemanticTypeReferenceKind.Concept &&
+        context.IdentifierConcepts.Contains(type.Target) && context.Concepts[type.Target].Values.IsEmpty;
+
+    /// <summary>
     /// Renders a concrete semantic value according to its declared type.
     /// </summary>
     /// <param name="value">The semantic value.</param>

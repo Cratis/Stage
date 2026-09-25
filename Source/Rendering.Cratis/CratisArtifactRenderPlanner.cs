@@ -75,7 +75,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return CreatePlan(request, [], diagnostics);
         }
 
-        AddScaffold(request, artifacts, diagnostics);
+        AddScaffold(request, context, artifacts, diagnostics);
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {
             return CreatePlan(request, [], diagnostics);
@@ -105,6 +105,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                     [context.Application.Id]));
             }
 
+            if (context.Strings is { } strings)
+            {
+                artifacts.Add(PlannedArtifact.CreateText(StringsCatalogInput.RelativePath, StringsCatalogInput.Render(strings, context.RootNamespace), [context.Application.Id]));
+            }
+
             artifacts.AddRange(context.Application.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
             artifacts.AddRange(context.Application.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
             if (slices.Any(slice => slice.Slice.Commands.Any(command => command.Authorization is not null) ||
@@ -128,6 +133,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
     static void AddScaffold(
         ArtifactRenderRequest request,
+        SemanticApplicationContext context,
         List<PlannedArtifact> artifacts,
         List<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -139,11 +145,24 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var count = 0;
         foreach (var input in request.Profile.Inputs)
         {
+            if (input.Name == StringsCatalogInput.Name)
+            {
+                continue;
+            }
+
             if (CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact))
             {
-                artifacts.Add(artifact!.RelativePath == SceneCompositionInput.RelativePath
-                    ? PlannedArtifact.CreateText(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), [request.Model.Application.Id])
-                    : artifact);
+                if (artifact!.RelativePath == "Program.cs" && context.Strings is { } strings)
+                {
+                    var source = System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
+                    artifacts.Add(PlannedArtifact.CreateText(artifact.RelativePath, StringsCatalogInput.ConfigureProgram(source, strings)));
+                }
+                else
+                {
+                    artifacts.Add(artifact.RelativePath == SceneCompositionInput.RelativePath
+                        ? PlannedArtifact.CreateText(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), [request.Model.Application.Id])
+                        : artifact);
+                }
                 count++;
             }
             else

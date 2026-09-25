@@ -21,12 +21,12 @@ public class and_append_persists_then_throws : a_semantic_runtime
 
     void Establish()
     {
-        var tail = 0UL;
+        var tail = ulong.MaxValue;
         ((ISemanticFactTail)_appender).Tail().Returns(_ => tail);
         ((IAppendSemanticFacts)_appender).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
             .Returns(_ =>
             {
-                tail++;
+                tail = 0;
                 return Task.FromException(new SemanticCommandExecutionFailed("Acknowledgment lost."));
             });
     }

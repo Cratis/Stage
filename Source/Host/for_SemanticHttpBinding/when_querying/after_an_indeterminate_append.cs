@@ -20,12 +20,12 @@ public class after_an_indeterminate_append : a_bound_semantic_model
 
     void Establish()
     {
-        var tail = 0UL;
+        var tail = ulong.MaxValue;
         ((ISemanticFactTail)_facts).Tail().Returns(_ => tail);
         _facts.Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
             .Returns(_ =>
             {
-                tail++;
+                tail = 0;
                 return Task.FromException(new SemanticCommandExecutionFailed("Acknowledgment lost."));
             });
     }

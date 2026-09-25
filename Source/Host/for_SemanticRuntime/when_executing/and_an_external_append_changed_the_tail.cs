@@ -13,19 +13,11 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_executing;
 
-public class and_tail_cannot_be_reread : a_semantic_runtime
+public class and_an_external_append_changed_the_tail : a_semantic_runtime
 {
     SemanticExecutionResult _result = null!;
 
-    void Establish()
-    {
-        var reads = 0;
-        ((ISemanticFactTail)_appender).Tail().Returns(_ => reads++ == 0
-            ? Task.FromResult(ulong.MaxValue)
-            : Task.FromException<ulong>(new SemanticCommandExecutionFailed("Tail unavailable.")));
-        ((IAppendSemanticFacts)_appender).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
-            .Returns(Task.FromException(new SemanticCommandExecutionFailed("Acknowledgment lost.")));
-    }
+    void Establish() => ((ISemanticFactTail)_appender).Tail().Returns(0UL);
 
     async Task Because() => _result = await _runtime.Execute(
         _command,
@@ -35,9 +27,10 @@ public class and_tail_cannot_be_reread : a_semantic_runtime
             ["name"] = JsonSerializer.SerializeToElement("Screenplay")
         },
         new ClaimsPrincipal(),
-        new(DateTimeOffset.UtcNow, "subject", "name", "user"),
+        new(DateTimeOffset.UtcNow, "owner", "Owner", "owner"),
         false);
 
-    [Fact] void should_fault_when_the_tail_cannot_be_confirmed() => _result.ShouldBeOfExactType<SemanticUnsupported>();
-    [Fact] void should_include_the_tail_failure_in_status() => ((ISemanticRuntimeStatus)_runtime).FaultReason.ShouldContain("Tail unavailable");
+    [Fact] void should_fault_the_runtime() => _result.ShouldBeOfExactType<SemanticUnsupported>();
+    [Fact] void should_explain_the_external_change() => ((ISemanticRuntimeStatus)_runtime).FaultReason.ShouldContain("outside this session");
+    [Fact] void should_not_append_a_fact() => ((IAppendSemanticFacts)_appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
 }

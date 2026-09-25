@@ -86,6 +86,10 @@ internal static class SemanticChronicleRegistration
         return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, plan, tail);
     }
 
+    internal static bool IsCaughtUp(Cratis.Chronicle.Contracts.Observation.ObserverInformation observer, ulong projectionTail) =>
+        observer.IsSubscribed && observer.RunningState == Cratis.Chronicle.Contracts.Observation.ObserverRunningState.Active &&
+        (IsEmpty(projectionTail) || (!IsEmpty(observer.LastHandledEventSequenceNumber) && observer.LastHandledEventSequenceNumber >= projectionTail));
+
     internal static void EnsureMirrored(SemanticExecutionPlan plan)
     {
         foreach (var projection in plan.Projections.Values)
@@ -105,13 +109,17 @@ internal static class SemanticChronicleRegistration
         }
     }
 
-    static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, ulong tail)
+    internal static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, ulong tail)
     {
-        var mirrorIds = plan.Projections.Values.Select(projection =>
-        {
-            SemanticProjectionMirrors.TryLower(plan, projection, out _, out var mirror, out _);
-            return mirror!.Identifier;
-        }).ToHashSet(StringComparer.Ordinal);
+        var mirrorTypes = plan.Projections.Values.ToDictionary(
+            projection =>
+            {
+                SemanticProjectionMirrors.TryLower(plan, projection, out _, out var mirror, out _);
+                return mirror!.Identifier;
+            },
+            projection => projection.Transitions.Select(transition => plan.Events[transition.EventContract].Name).Distinct().ToArray(),
+            StringComparer.Ordinal);
+        var mirrorIds = mirrorTypes.Keys.ToHashSet(StringComparer.Ordinal);
         var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
         while (mirrorIds.Count > 0)
         {
@@ -120,9 +128,25 @@ internal static class SemanticChronicleRegistration
                 EventStore = name,
                 Namespace = EventStoreNamespaceName.Default
             })).Where(observer => mirrorIds.Contains(observer.Id)).ToArray();
-            if (observers.Length == mirrorIds.Count && observers.All(observer => observer.LastHandledEventSequenceNumber >= tail))
+            if (observers.Length == mirrorIds.Count)
             {
-                break;
+                var caughtUp = true;
+                foreach (var observer in observers)
+                {
+                    var projectionTail = (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
+                    {
+                        EventStore = name,
+                        Namespace = EventStoreNamespaceName.Default,
+                        EventSequenceId = EventSequenceId.Log,
+                        EventTypeIds = string.Join(',', mirrorTypes[observer.Id])
+                    })).EnsureSuccess().SequenceNumber;
+                    caughtUp &= IsCaughtUp(observer, projectionTail);
+                }
+
+                if (caughtUp)
+                {
+                    break;
+                }
             }
 
             await EnsureNoFailedPartitions(accessor, name, mirrorIds);

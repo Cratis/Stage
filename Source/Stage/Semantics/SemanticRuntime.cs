@@ -22,12 +22,16 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
     readonly SemaphoreSlim _gate = new(1, 1);
     readonly SemanticEvaluator _evaluator = new();
     SemanticWorld _world = SemanticWorld.Empty;
+    ulong _knownTail;
 
     internal SemanticRuntime(SemanticExecutionPlan plan, IAppendSemanticFacts appender, SemanticWorld? world = null)
     {
         Plan = plan;
         _appender = appender;
         _world = world ?? SemanticWorld.Empty;
+
+        // Rebuild admits only a contiguous history from sequence zero through the captured tail.
+        _knownTail = _world.Facts.Length == 0 ? ulong.MaxValue : (ulong)_world.Facts.Length - 1;
     }
 
     /// <inheritdoc/>
@@ -75,6 +79,12 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                     return Faulted();
                 }
 
+                if (before != _knownTail)
+                {
+                    FaultReason = $"The event-log tail changed outside this session ({_knownTail} -> {before}).";
+                    return Faulted();
+                }
+
                 try
                 {
                     await _appender.Append(accepted.Facts, occurrence).WaitAsync(_appendTimeout);
@@ -103,6 +113,10 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 }
 
                 _world = accepted.World;
+                if (accepted.Facts.Length > 0)
+                {
+                    _knownTail = before == ulong.MaxValue ? (ulong)accepted.Facts.Length - 1 : before + (ulong)accepted.Facts.Length;
+                }
             }
 
             return result;

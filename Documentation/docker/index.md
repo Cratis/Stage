@@ -139,18 +139,26 @@ before accepting a command. Accepted facts are appended to Chronicle as one batc
 commit the in-process read-model state. `GET /stage/semantic/admission` lists the model's admitted and
 unsupported artifacts. `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
 executable plan, the host returns `state: "unsupported"` with issues; `/api/**` responds with HTTP 501
-instead of performing a partial model. On restart with a nonempty Chronicle log, Stage waits for its
-mirrored projections, reads all facts and mirrored read models, checks the history against modeled
-constraints, and rebuilds the validated semantic world. During an exit-42 warm handoff, Stage resets
-kernel state before restarting with the newly loaded model. Subsequent host-only restarts retain that
-session's Chronicle log and use the same rebuild checks.
+instead of performing a partial model. The shipped sandbox cannot rebuild across restarts: when the
+semantic host exits the container stops, and an exit-42 warm handoff resets its in-memory kernel.
+Rebuild applies only to a host running against an external or persistent Chronicle store; that storage
+path is not verified by the sandbox. With a nonempty log, Stage waits for mirrored projections, reads
+facts and mirrored read models, checks history against modeled constraints, and either rebuilds the
+world or refuses it. `/stage/status` reports `loading` while waiting; `/api/**` is unavailable then.
 
 Commands retain their slice-qualified `/api/…` route and legacy alias. The semantic engine also exposes one
 query by its modeled name. Compatibility `Get…ById` and `All…` queries are available only for read models with at least one keyed query and no authorization on any keyed query targeting that read model. Otherwise, the compatibility routes are not mapped, so callers cannot bypass a modeled query policy.
 Only a model whose **every projection** has `mirrored` admission status can restart from a nonempty
 log. Unknown or revised events, schema mismatches, unverified historical constraint claims, mirror
 failures, and projection lag cause `Unsupported(World)` with a specific issue rather than a partial
-world. Simple, complete flat projections are mirrored into Chronicle for the Workbench. Other
+world. A logged event contract with a DateTime or DecimalNumber property also refuses because Chronicle
+storage does not preserve these values exactly. Null optional event values, non-text destination IDs,
+changed `causedBy.name` for the same subject, and duplicate tags can also fail the exact-history check.
+Origin verification compares modeled tags and mapped `$context` values; it does not independently
+verify literal mappings, production conditions, or that a destination matches a mapped event property.
+Do not treat a successful rebuild as proof that another client could not append a plausible event.
+After rebuild, an external append detected before a command faults the runtime instead of committing
+against stale state. Simple, complete flat projections are mirrored into Chronicle for the Workbench. Other
 projections are marked `notMirrored` in admission, and their Workbench state is not a substitute for
 the in-process query results. The default engine
 continues to register its own Chronicle projections. Commands that require

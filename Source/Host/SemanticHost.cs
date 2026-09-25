@@ -42,7 +42,7 @@ internal static class SemanticHost
         }
 
         var eventStore = ContainerEventStoreName.Resolve();
-        var world = SemanticWorld.Empty;
+        SemanticWorld? world = null;
         var builder = WebApplication.CreateBuilder(args);
         builder.Configuration.AddJsonFile(
             Environment.GetEnvironmentVariable("STAGE_CONFIG") is { Length: > 0 } configuredPath
@@ -56,7 +56,7 @@ internal static class SemanticHost
         builder.Services.AddSingleton(new StageEventStoreName(eventStore));
         if (surface is not null)
         {
-            SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, () => world);
+            SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, WorldProvider(() => world));
             builder.Services.AddSingleton<DynamicTypeFactory>();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddControllers();
@@ -86,22 +86,29 @@ internal static class SemanticHost
             return;
         }
 
-        try
+        var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
+        app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
+        app.Use(async (context, next) =>
         {
-            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded!.Plan);
-        }
-        catch (Exception exception)
-        {
-            issues.Add(new StageUnsupportedIssue("World", "model", $"Chronicle initialization failed: {exception.Message}"));
-        }
+            if (context.Request.Path.StartsWithSegments("/api") && (world is null || issues.Count > 0))
+            {
+                if (issues.Count > 0)
+                {
+                    var issue = issues[0];
+                    context.Response.Headers["Stage-Unsupported-Capability"] = issue.Capability;
+                    context.Response.Headers["Stage-Unsupported-Artifact"] = issue.Artifact;
+                    await Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented).ExecuteAsync(context);
+                }
+                else
+                {
+                    context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                }
 
-        if (issues.Count > 0)
-        {
-            MapRefused(app, issues);
-            await app.RunAsync();
-            return;
-        }
+                return;
+            }
 
+            await next(context);
+        });
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();
         app.MapControllers();
@@ -127,14 +134,41 @@ internal static class SemanticHost
 
         // The EventModel visitor names the application after its first modeled module (or EventModel
         // when none is declared), rather than after the source folder used by the semantic compiler.
-        var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
-        app.MapGet("/stage/status", (ISemanticRuntime runtime) => Status(runtime, modelName, modelPath));
         app.MapGet("/stage/scene", () => Results.Json(routes.Scene, StageJson.Options));
         app.MapGet("/stage/routes", () => Results.Json(new StageRoutes(routes.CommandRoutes, routes.QueryRoutes), StageJson.Options));
         app.MapGet("/stage/locales", () => Results.Json(strings.Locales(), StageJson.Options));
         app.MapGet("/stage/strings/{locale}", (string locale) => Results.Json(strings.Dictionary(locale), StageJson.Options));
         app.MapFallbackToFile("index.html");
-        await app.RunAsync();
+        await app.StartAsync();
+        try
+        {
+            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan);
+        }
+        catch (SemanticWorldRebuildRefused exception)
+        {
+            issues.Add(new StageUnsupportedIssue("World", "model", $"World rebuild refused: {exception.Message}"));
+        }
+        catch (Exception exception)
+        {
+            issues.Add(new StageUnsupportedIssue("World", "model", $"Chronicle initialization failed: {exception.Message}"));
+        }
+
+        await app.WaitForShutdownAsync();
+    }
+
+    internal static Func<SemanticWorld> WorldProvider(Func<SemanticWorld?> world) =>
+        () => world() ?? throw new SemanticWorldRebuildRefused("The semantic world has not been reconstructed yet.");
+
+    internal static StageStatus RegistrationStatus(SemanticWorld? world, List<StageUnsupportedIssue> issues, IServiceProvider services, string modelName, string modelPath)
+    {
+        if (issues.Count > 0)
+        {
+            return new StageStatus("unsupported", null, WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic", Issues = issues };
+        }
+
+        return world is null
+            ? new StageStatus("loading", null, WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" }
+            : Status(services.GetRequiredService<ISemanticRuntime>(), modelName, modelPath);
     }
 
     internal static StageStatus Status(ISemanticRuntime runtime, string modelName, string modelPath) => runtime is ISemanticRuntimeStatus { FaultReason: { } reason }
@@ -150,6 +184,11 @@ internal static class SemanticHost
         {
             Engine = "semantic", Issues = issues
         });
+        MapRefusedApi(app, issues);
+    }
+
+    static void MapRefusedApi(WebApplication app, List<StageUnsupportedIssue> issues)
+    {
         app.MapMethods("/api/{**path}", ["GET", "POST", "PUT", "DELETE", "PATCH", "QUERY"], (HttpContext context, string path) =>
         {
             var issue = issues[0];

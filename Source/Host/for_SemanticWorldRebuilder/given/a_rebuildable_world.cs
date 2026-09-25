@@ -67,7 +67,7 @@ public class a_rebuildable_world : Specification
         _mirror = new Dictionary<SemanticId, IReadOnlyList<string>> { [_readModel.Id] = [row] };
     }
 
-    const string Source = """
+    protected const string Source = """
         concept ProjectId : Uuid
         concept ProjectName : String
         module Projects

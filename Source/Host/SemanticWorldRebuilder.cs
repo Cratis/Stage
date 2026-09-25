@@ -69,6 +69,11 @@ internal static class SemanticWorldRebuilder
         }
 
         var contract = contracts[0];
+        foreach (var property in contract.Properties)
+        {
+            EnsureExactStorageType(property.Name, property.Type, plan.Model.Application);
+        }
+
         var producers = plan.Commands.Values.SelectMany(command => command.Produces
             .Where(produced => produced.EventContract == contract.Id)
             .Select(produced => (Command: command, Produced: produced))).ToArray();
@@ -99,6 +104,27 @@ internal static class SemanticWorldRebuilder
             Context = plan.Model.SemanticVersion == SemanticVersion.V2 ? new(new(destinationType, destination)) : null,
             Tags = [.. context.Tags]
         };
+    }
+
+    static void EnsureExactStorageType(string path, SemanticTypeReference type, SemanticApplication application)
+    {
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType)
+        {
+            foreach (var property in application.Types.Single(candidate => candidate.Id == type.Target).Properties)
+            {
+                EnsureExactStorageType($"{path}.{property.Name}", property.Type, application);
+            }
+
+            return;
+        }
+
+        var primitive = type.Kind == SemanticTypeReferenceKind.Concept
+            ? application.Concepts.Single(candidate => candidate.Id == type.Target).Primitive
+            : type.Primitive;
+        if (primitive is SemanticPrimitiveType.DateTime or SemanticPrimitiveType.DecimalNumber)
+        {
+            throw new SemanticWorldRebuildRefused($"Event property '{path}' uses {primitive}, which Chronicle storage cannot round-trip exactly.");
+        }
     }
 
     static bool ProductionMatches(

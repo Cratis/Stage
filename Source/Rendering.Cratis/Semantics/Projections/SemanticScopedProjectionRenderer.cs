@@ -33,7 +33,12 @@ internal static class SemanticScopedProjectionRenderer
         RenderScope(builder, scope, context, readModel.Properties, "builder");
         builder.EndBlock().EndBlock();
         var source = builder.ToString();
-        return source[source.IndexOf("/// <summary>", StringComparison.Ordinal)..].TrimEnd();
+
+        // NoAutoMap makes explicit same-name mappings necessary (CHR0029), and joined fields deliberately
+        // take precedence over local writes when replayed (CHR0042). Both are verified by differential specs.
+        return "#pragma warning disable CHR0029, CHR0042\n" +
+            source[source.IndexOf("/// <summary>", StringComparison.Ordinal)..].TrimEnd() +
+            "\n#pragma warning restore CHR0029, CHR0042";
     }
 
     static void RenderScope(

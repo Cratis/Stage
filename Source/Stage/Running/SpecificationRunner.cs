@@ -11,6 +11,7 @@ namespace Cratis.Stage.Running;
 /// Default <see cref="ISpecificationRunner"/> that walks the model and runs each specification through the
 /// strategy registered for its slice type.
 /// </summary>
+[Obsolete("Use the semantic engine (--engine semantic / ISemanticSpecificationExecutor); the structural runner is removed in the next major version.")]
 public sealed class SpecificationRunner : ISpecificationRunner
 {
     readonly Dictionary<SliceType, ISpecificationRunStrategy> _strategies;

@@ -28,7 +28,7 @@ public class when_classifying_semantic_members
             SemanticValidationRuleKind.GreaterThanOrEqual, SemanticValidationRuleKind.LessThan,
             SemanticValidationRuleKind.LessThanOrEqual, SemanticValidationRuleKind.Length, SemanticValidationRuleKind.AllGreaterThan,
             SemanticValidationRuleKind.AllGreaterThanOrEqual, SemanticValidationRuleKind.Matches],
-        [SemanticValidationRuleKind.Unknown]);
+        [SemanticValidationRuleKind.Unknown, SemanticValidationRuleKind.RulePredicate, SemanticValidationRuleKind.CodeValidation]);
 
     [Fact] public void should_classify_every_validation_severity() => AssertCoverage(
         [SemanticValidationSeverity.Error],

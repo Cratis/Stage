@@ -9,6 +9,7 @@ namespace Cratis.Stage.Running;
 /// <summary>
 /// Runs specifications for state view slices (events project into a read model).
 /// </summary>
+[Obsolete("Use the semantic engine (--engine semantic / ISemanticSpecificationExecutor); the structural runner is removed in the next major version.")]
 public sealed class StateViewRunStrategy : ISpecificationRunStrategy
 {
     const string Note =

@@ -4,6 +4,8 @@
         <OutputType>Exe</OutputType>
         <AssemblyName>Cratis.Stage.Host</AssemblyName>
         <RootNamespace>Cratis.Stage.Host</RootNamespace>
+        <!-- Type discovery emits references to the deprecated structural runner from Stage. -->
+        <NoWarn>$(NoWarn);CS0618</NoWarn>
 
         <NoWarn>$(NoWarn);CS7022</NoWarn>
         <UserSecretsId>f1e2d3c4-b5a6-4789-9012-3456789abcde</UserSecretsId>

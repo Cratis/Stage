@@ -59,6 +59,11 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 return Faulted();
             }
 
+            if (UnsupportedImplementation(command) is { } unsupported)
+            {
+                return unsupported;
+            }
+
             var result = Evaluate(command, payload, principal, occurrence);
             if (!validateOnly && result is SemanticAccepted accepted)
             {
@@ -138,6 +143,11 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 return Faulted();
             }
 
+            if (UnsupportedImplementation() is { } unsupported)
+            {
+                return unsupported;
+            }
+
             var request = SemanticExecutionRequest.ForQueries([new(query.Id, key)]) with { Caller = SemanticCallers.From(principal) };
             return _evaluator.Execute(Plan, _world, request);
         }
@@ -161,7 +171,30 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         }
     }
 
+    static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
+        feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
+
+    static bool OpaqueRule(SemanticValidationRuleKind kind) =>
+        kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
+
     SemanticUnsupported Faulted() => new(_world, SemanticExecutionCapability.Unknown, FaultReason!);
+
+    SemanticUnsupported? UnsupportedImplementation(SemanticCommand? command = null)
+    {
+        var slices = Plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices);
+        if (slices.SelectMany(slice => slice.Reducers).Any())
+        {
+            return new(_world, SemanticExecutionCapability.Projection, "Reducer implementation bodies cannot be executed by Stage.");
+        }
+
+        if (Plan.Model.Application.Concepts.Any(concept => concept.Validations.Any(rule => OpaqueRule(rule.Kind))) ||
+            (command is not null && (!command.CodeValidations.IsEmpty || command.Validations.Any(rule => OpaqueRule(rule.Kind)))))
+        {
+            return new(_world, SemanticExecutionCapability.Command, "Validation implementation bodies cannot be executed by Stage.");
+        }
+
+        return null;
+    }
 
     SemanticExecutionResult Evaluate(SemanticCommand command, IReadOnlyDictionary<string, JsonElement> payload, ClaimsPrincipal principal, SemanticCommandOccurrence occurrence)
     {

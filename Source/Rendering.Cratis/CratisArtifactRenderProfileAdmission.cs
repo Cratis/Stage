@@ -7,6 +7,7 @@ using System.Xml;
 using System.Xml.Linq;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -47,8 +48,8 @@ static class CratisArtifactRenderProfileAdmission
         // A composed Scene is application content, so it is admitted separately rather than compared against the
         // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
         // is still matched byte for byte, and at most one Scene payload may accompany them.
-        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_)).ToArray();
-        if (profile.Inputs.Length - scaffold.Length > 1)
+        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name).ToArray();
+        if (profile.Inputs.Count(IsComposedScene) > 1)
         {
             mismatch = "The Cratis profile carries more than one composed Scene payload.";
             return false;
@@ -57,6 +58,13 @@ static class CratisArtifactRenderProfileAdmission
         var scene = profile.Inputs.SingleOrDefault(IsComposedScene);
         if (scene is not null && !Scene.SceneCompositionAdmission.Matches(scene, out mismatch))
         {
+            return false;
+        }
+
+        var strings = profile.Inputs.Where(_ => _.Name == StringsCatalogInput.Name).ToArray();
+        if (strings.Length > 1 || (strings.Length == 1 && !StringsCatalogInput.TryRead(strings[0], out _)))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate strings catalog.";
             return false;
         }
 

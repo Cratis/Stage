@@ -50,6 +50,14 @@ public class when_auditing_the_executable_model : Specification
     {
         var assembly = typeof(ExecutableSemanticModel).Assembly;
         var types = assembly.GetExportedTypes().Where(type => type.Namespace == typeof(SemanticApplication).Namespace).ToArray();
+
+        // Compilation exposes implementation attachments beside (not inside) the executable model.
+        // Audit their metadata separately without treating compiler source-map types as rendered input.
+        foreach (var property in typeof(SemanticImplementationRequirement).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+        {
+            yield return $"{nameof(SemanticImplementationRequirement)}.{property.Name}";
+        }
+
         var pending = new Queue<Type>([typeof(ExecutableSemanticModel), typeof(SemanticApplication)]);
         var visited = new HashSet<Type>();
         while (pending.TryDequeue(out var type))

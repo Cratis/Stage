@@ -8,7 +8,10 @@ without building anything. `cratis/stage-specrunner` is that run: a **run-to-com
 model, verifies its specifications, writes `results.json`, and exits.
 
 Unlike [the Stage container](index.md), it starts no server and needs no event store. It is meant for a build
-pipeline or an editor's "verify my model" action.
+pipeline or an editor's "verify my model" action. The default structural engine is **deprecated**: it checks
+model consistency, not behavior, and will be removed in the next major version. This minor version retains
+`structural` as the default for existing `results.json` consumers; each structural run prints one deprecation
+notice to standard error. Migrate to `--engine semantic` and the semantic report format described below.
 
 ```bash
 docker run --rm \
@@ -115,7 +118,7 @@ The types behind the file live in `Cratis.Stage.Contracts` (`SpecificationRunRes
 
 ## Opt in to semantic execution
 
-The semantic engine is experimental and opt-in. Use `--engine semantic` when you need behavior rather than the default structural check:
+The semantic engine is opt-in in this minor version. Use `--engine semantic` for behavioral execution rather than the deprecated structural check:
 
 ```bash
 dotnet run --project Source/SpecRunner -- \
@@ -156,7 +159,7 @@ The clock is injectable through the in-process API. The tenant and identity allo
 and do not affect this run; implicit identity allocation remains unsupported.
 
 Read-model assertions, seeded read models, keyed queries, and specifications whose Given, produced or directly
-appended events feed a projection (including scoped projections) return typed `Unsupported` before execution: Chronicle 19.4.7
+appended events feed a projection (including scoped projections) return typed `Unsupported` before execution: Chronicle 19.4.8
 does not offer per-run projection execution through its public scenario APIs. Other
 unimplemented behavior (conditional production, implicit event-source identity allocation,
 external effects and unsupported expression or value shapes) is also blocked rather than reported as a

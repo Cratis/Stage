@@ -146,7 +146,7 @@ internal static class SemanticStateChangeArtifactRenderer
         {
             var property = command.Properties.Single(_ => _.Id == rule.Property);
             var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
-            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional);
+            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional, context.RootNamespace);
         }
 
         foreach (var id in constrained)

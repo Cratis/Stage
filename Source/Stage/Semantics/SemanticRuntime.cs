@@ -71,6 +71,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 return unsupported;
             }
 
+            var expectedTail = _knownTail;
             var result = Evaluate(command, payload, principal, occurrence);
             if (!validateOnly && result is SemanticAccepted accepted)
             {
@@ -91,15 +92,33 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                     return Faulted();
                 }
 
-                if (before != _knownTail)
+                if (before != expectedTail)
                 {
-                    FaultReason = $"The event-log tail changed outside this session ({_knownTail} -> {before}).";
+                    FaultReason = $"The event-log tail changed outside this session ({expectedTail} -> {before}).";
                     return Faulted();
                 }
 
                 try
                 {
-                    await _appender.Append(accepted.Facts, occurrence).WaitAsync(_appendTimeout);
+                    if (accepted.Facts.Length > 0)
+                    {
+                        await _appender.Append(accepted.Facts, occurrence, expectedTail).WaitAsync(_appendTimeout);
+                    }
+                    else
+                    {
+                        // No append reaches Chronicle to enforce a scope; do not report a stale world as current.
+                        var after = await tail.Tail().WaitAsync(_appendTimeout);
+                        if (after != before)
+                        {
+                            FaultReason = $"The event-log tail changed outside this session ({before} -> {after}).";
+                            return Faulted();
+                        }
+                    }
+                }
+                catch (SemanticFactTailChanged exception)
+                {
+                    FaultReason = $"The event-log tail changed outside this session ({before} -> {exception.ActualTail}).";
+                    return Faulted();
                 }
                 catch (Exception exception)
                 {

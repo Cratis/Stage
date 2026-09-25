@@ -32,5 +32,5 @@ public class and_an_external_append_changed_the_tail : a_semantic_runtime
 
     [Fact] void should_fault_the_runtime() => _result.ShouldBeOfExactType<SemanticUnsupported>();
     [Fact] void should_explain_the_external_change() => ((ISemanticRuntimeStatus)_runtime).FaultReason.ShouldContain("outside this session");
-    [Fact] void should_not_append_a_fact() => ((IAppendSemanticFacts)_appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
+    [Fact] void should_not_append_a_fact() => ((IAppendSemanticFacts)_appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>());
 }

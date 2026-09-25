@@ -23,7 +23,7 @@ public class and_tail_cannot_be_reread : a_semantic_runtime
         ((ISemanticFactTail)_appender).Tail().Returns(_ => reads++ == 0
             ? Task.FromResult(ulong.MaxValue)
             : Task.FromException<ulong>(new SemanticCommandExecutionFailed("Tail unavailable.")));
-        ((IAppendSemanticFacts)_appender).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
+        ((IAppendSemanticFacts)_appender).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>())
             .Returns(Task.FromException(new SemanticCommandExecutionFailed("Acknowledgment lost.")));
     }
 

@@ -21,7 +21,7 @@ public class and_append_definitely_rejects : a_semantic_runtime
     SemanticExecutionResult _next = null!;
 
     void Establish() => ((IAppendSemanticFacts)_appender)
-        .Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
+        .Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>())
         .Returns(Task.FromException(new ProducedEventConstraintRejected(ValidationResult.Error("Duplicate project."))));
 
     async Task Because()

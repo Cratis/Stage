@@ -20,7 +20,7 @@ public class and_append_never_acknowledges : a_semantic_runtime
     void Establish()
     {
         var acknowledgment = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        ((IAppendSemanticFacts)_appender).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>())
+        ((IAppendSemanticFacts)_appender).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>())
             .Returns(acknowledgment.Task);
     }
 

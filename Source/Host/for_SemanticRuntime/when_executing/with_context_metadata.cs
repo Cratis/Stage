@@ -24,7 +24,8 @@ public class with_context_metadata : a_semantic_runtime
     {
         ((IAppendSemanticFacts)_appender).Append(
             Arg.Do<IReadOnlyList<SemanticFact>>(facts => _fact = facts.Single()),
-            Arg.Do<SemanticCommandOccurrence>(occurrence => _appendedOccurrence = occurrence)).Returns(Task.CompletedTask);
+            Arg.Do<SemanticCommandOccurrence>(occurrence => _appendedOccurrence = occurrence),
+            Arg.Any<ulong>()).Returns(Task.CompletedTask);
         _result = await _runtime.Execute(
             _command,
             new Dictionary<string, JsonElement>

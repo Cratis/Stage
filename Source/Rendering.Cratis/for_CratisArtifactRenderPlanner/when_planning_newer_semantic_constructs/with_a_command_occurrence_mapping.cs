@@ -14,12 +14,7 @@ public class with_a_command_occurrence_mapping : given.an_invoice_model
         .Replace("then InvoiceIssued\n          description = \"First payload\"", "then InvoiceIssued\n          description = \"First payload\"\n          issuedAt = \"2026-01-01T00:00:00.0000000+00:00\"", StringComparison.Ordinal)
         .Replace("then InvoiceIssued\n          description = \"Second payload\"", "then InvoiceIssued\n          description = \"Second payload\"\n          issuedAt = \"2026-01-01T00:00:00.0000000+00:00\"", StringComparison.Ordinal));
 
-    [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_capture_the_same_occurrence_for_payload_and_context()
-    {
-        var code = Artifact("Issue.cs");
-        code.ShouldContain("var occurred = DateTimeOffset.UtcNow;");
-        code.ShouldContain("new InvoiceIssued(Description, occurred)");
-        code.ShouldContain("Occurred = occurred");
-    }
+    [Fact] void should_reject_fixed_expectations_for_an_uncontrolled_occurrence() => _plan.Success.ShouldBeFalse();
+    [Fact] void should_report_specification_admission() => ErrorCodes.ShouldContain("STAGE-ESM-011");
+    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

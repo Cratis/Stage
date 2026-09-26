@@ -62,6 +62,11 @@ public class when_executing_protected_query_specifications : a_generated_applica
             .Replace("query ProjectById => ProjectSummary?\n", "query ProjectById => ProjectSummary?\n        authorize Clerks\n", StringComparison.Ordinal)
             .Replace("specification RegisteringAProject\n", "specification RegisteringAProject\n        given caller\n          authenticated\n", StringComparison.Ordinal)
             .Replace("specification LookingUpPinnedProject\n", "specification DenyingAnonymousProjectLookup\n        given caller\n          role \"Guest\"\n        then query ProjectById\n          arguments\n            projectId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n        then denied\n      specification LookingUpPinnedProject\n", StringComparison.Ordinal);
+
+        // Arc's protected query scenario can only replay facts from the queried stream.
+        var givenStart = source.LastIndexOf('\n', source.IndexOf("given ProjectRegistered\n", StringComparison.Ordinal)) + 1;
+        var whenStart = source.LastIndexOf('\n', source.IndexOf("when RegisterProject\n", givenStart, StringComparison.Ordinal)) + 1;
+        source = source.Remove(givenStart, whenStart - givenStart);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("queries"), "queries", "Queries.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));

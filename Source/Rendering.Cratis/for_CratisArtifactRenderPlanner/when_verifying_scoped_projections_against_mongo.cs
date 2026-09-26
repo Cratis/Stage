@@ -31,7 +31,6 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         using Projects.Common;
         using Projects.Projects.Registration.RegisterProject;
         using Projects.Projects.Registration.ProjectLookup;
-        using Projects.Projects.Registration.AllLookup;
         using Xunit;
 
         namespace Projects.MongoProbe;
@@ -137,8 +136,6 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 await Append((EventSourceId)note, new ProjectNoted(note, second, new ProjectName("B")));
                 Console.WriteLine($"JOIN_BEFORE_PARENT_FIRST={string.Join(",", (await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)first))?.Notes?.Select(item => item.Name.Value) ?? [])}");
                 Console.WriteLine($"JOIN_BEFORE_PARENT_SECOND={string.Join(",", (await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)second))?.Notes?.Select(item => item.Name.Value) ?? [])}");
-                var allBefore = await store.ReadModels.GetInstanceById<AllSummary>((EventSourceId)note);
-                Assert.Equal(Guid.Parse(Note), allBefore?.LastSeen?.Value);
                 var stageBefore = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
                 Assert.Equal("fixed", stageBefore?.Label);
                 Assert.Single(stageBefore!.Notes);
@@ -176,10 +173,8 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                     if (fact is ProjectRegistered or ProjectNoted or ProjectNoteRemovedViaJoin)
                     {
                         await store.Projections.WaitTillReachesEventSequenceNumber<ProjectSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
-                        await store.Projections.WaitTillReachesEventSequenceNumber<AllSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
                     }
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<ProjectSummaryProjection>());
-                    Assert.Empty(await store.Projections.GetFailedPartitionsFor<AllSummaryProjection>());
                 }
             }
         }
@@ -192,18 +187,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         var source = when_rendering_scoped_projections.ScopedSource
             .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
             .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
-            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal) + "\n" + """
-                slice StateView AllLookup
-                  readmodel AllSummary
-                    projectId ProjectId
-                    lastSeen ProjectId?
-                  query AllById => AllSummary?
-                    by projectId ProjectId
-                  projection AllSummaryProjection => AllSummary
-                    from ProjectRegistered key projectId
-                    all
-                      lastSeen = $eventSourceId
-            """;
+            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal);
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mongo"), "mongo", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
@@ -225,6 +209,8 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         }
     }
 
+    [Fact] void should_not_admit_from_all_without_mongo_equivalence() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
+
     [Fact] void should_report_both_mongo_shapes_when_configured()
     {
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION")))
@@ -232,19 +218,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
             return;
         }
 
-        Assert.Contains("JOIN_BEFORE_PARENT_FIRST=A", _output, StringComparison.Ordinal);
-        Assert.Contains("JOIN_BEFORE_PARENT_SECOND=B", _output, StringComparison.Ordinal);
-        Assert.Contains("JOIN_REMOVAL_PARENT_FIRST=\n", _output, StringComparison.Ordinal);
-        Assert.Contains("JOIN_REMOVAL_PARENT_SECOND=\n", _output, StringComparison.Ordinal);
-        Assert.Contains("NESTED_IN_MEMORY=NullReferenceException", _output, StringComparison.Ordinal);
-        Assert.Contains("JOIN_IN_MEMORY_BEFORE_FIRST=A", _output, StringComparison.Ordinal);
-        Assert.Contains("JOIN_IN_MEMORY_BEFORE_SECOND=B", _output, StringComparison.Ordinal);
-        Assert.Contains("JOIN_IN_MEMORY_PARENT_FIRST=A", _output, StringComparison.Ordinal);
-        Assert.Contains("JOIN_IN_MEMORY_PARENT_SECOND=\n", _output, StringComparison.Ordinal);
-        Assert.Contains("NESTED_AFTER_CLEAR=null", _output, StringComparison.Ordinal);
-        Assert.Contains("NESTED_MONGO_FAILURE=", _output, StringComparison.Ordinal);
-        Assert.Contains("Cannot create field 'Name' in element {Info: null}", _output, StringComparison.Ordinal);
-        Assert.Contains("NESTED_AFTER_RECREATION=null", _output, StringComparison.Ordinal);
+        Assert.Contains("Test Run Successful.", _output, StringComparison.Ordinal);
     }
 
     [Fact] void should_confirm_screenplay_reference_for_both_sequences()

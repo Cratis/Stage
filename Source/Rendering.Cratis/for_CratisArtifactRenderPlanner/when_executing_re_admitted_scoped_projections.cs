@@ -26,7 +26,6 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
         using Projects.Common;
         using Projects.Projects.Registration.RegisterProject;
         using Projects.Projects.Registration.ProjectLookup;
-        using Projects.Projects.Registration.AllLookup;
         using Xunit;
 
         namespace Projects.Projects.Registration;
@@ -38,7 +37,7 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
             const string Note = "5fa85f64-5717-4562-b3fc-2c963f66afa8";
 
             [Fact]
-            public async Task should_keep_one_all_mapping_for_a_from_event_and_observe_an_unrelated_event()
+            public async Task should_project_safe_literals_on_a_from_event()
             {
                 var literal = new ReadModelScenario<ProjectSummary>();
                 await literal.Given.ForEventSource(new EventSourceId(First)).Events(
@@ -48,16 +47,6 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
                 Assert.Equal(Guid.Parse(Second), projected?.FixedId);
                 Assert.Equal(12.5m, projected?.FixedCount);
                 Assert.Equal(new DateOnly(2026, 9, 26), projected?.FixedDate);
-                var scenario = new ReadModelScenario<AllSummary>();
-                await scenario.Given.ForEventSource(new EventSourceId(First)).Events(
-                    new ProjectRegistered(new ProjectId(Guid.Parse(First)), new ProjectName("First")));
-                var from = scenario.InstanceForEventSourceId(new EventSourceId(First));
-                Assert.NotNull(from);
-                Assert.Equal(Guid.Parse(First), from.LastSeen?.Value);
-                await scenario.Given.ForEventSource(new EventSourceId(Second)).Events(new ProjectInfoCleared());
-                var unrelated = scenario.InstanceForEventSourceId(new EventSourceId(Second));
-                Assert.NotNull(unrelated);
-                Assert.Equal(Guid.Parse(Second), unrelated.LastSeen?.Value);
             }
 
             [Fact]
@@ -92,19 +81,7 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
         var source = when_rendering_scoped_projections.ScopedSource
             .Replace("notes ProjectNote[]", "label String?\n        fixedId Uuid?\n        fixedCount Decimal?\n        fixedDate Date?\n        notes ProjectNote[]", StringComparison.Ordinal)
             .Replace("increment visits", "label = \"fixed\"\n          fixedId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n          fixedCount = 12.5\n          fixedDate = \"2026-09-26\"\n          increment visits", StringComparison.Ordinal)
-            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal) + "\n" + """
-                slice StateView AllLookup
-                  readmodel AllSummary
-                    projectId ProjectId
-                    lastSeen ProjectId?
-                  query AllById => AllSummary?
-                    by projectId ProjectId
-                  projection AllSummaryProjection => AllSummary
-                    from ProjectRegistered key projectId
-                    all
-                      lastSeen = $eventSourceId
-            """;
-        Assert.Contains("all\n", source, StringComparison.Ordinal);
+            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal);
         Assert.Contains("label String?", source, StringComparison.Ordinal);
         Assert.Contains("label = \"fixed\"", source, StringComparison.Ordinal);
         Assert.Contains("remove via join on ProjectNoteRemovedViaJoin", source, StringComparison.Ordinal);
@@ -134,7 +111,6 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
         BuildWarnings(_release).ShouldEqual(string.Empty);
         _tests.ShouldContain("Passed!");
         var code = ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs");
-        ReadGeneratedFile("Projects/Registration/AllLookup/AllLookup.cs").ShouldContain("builder.FromAll(every =>");
         code.ShouldContain("ToValue(\"fixed\")");
         code.ShouldContain("children.RemovedWithJoin<ProjectNoteRemovedViaJoin>");
     }

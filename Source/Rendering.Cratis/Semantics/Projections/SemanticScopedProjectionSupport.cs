@@ -31,6 +31,11 @@ internal static partial class SemanticScopedProjectionSupport
             return "Joins and children inside nested are blocked by Chronicle#4125: the engine drops their subscriptions.";
         }
 
+        if (scope.Every is { SubscribesToAllEvents: true })
+        {
+            return "FromAll cannot render: Chronicle v19.8.1 MongoDB does not materialize a read model for an unrelated event source even when its in-memory scenario does.";
+        }
+
         if (scope.Every is { IncludeChildren: true } && (scope.Children.Length > 0 || scope.Nested.Length > 0))
         {
             return "Every with IncludeChildren is blocked by Chronicle#4125: the engine double-applies the mappings.";

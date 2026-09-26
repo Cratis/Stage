@@ -44,18 +44,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         var source = when_rendering_scoped_projections.ScopedSource
             .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
             .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
-            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal) + "\n" + """
-                slice StateView AllLookup
-                  readmodel AllSummary
-                    projectId ProjectId
-                    lastSeen ProjectId?
-                  query AllById => AllSummary?
-                    by projectId ProjectId
-                  projection AllSummaryProjection => AllSummary
-                    from ProjectRegistered key projectId
-                    all
-                      lastSeen = $eventSourceId
-            """;
+            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal);
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
@@ -86,6 +75,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     }
 
     [Fact] void should_match_all_reference_snapshots() => _testOutput.ShouldContain("Passed!");
+    [Fact] void should_not_admit_from_all_when_mongo_cannot_match_reference() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
 
     // Screenplay backfills the earlier join after each local from-mapping; Chronicle's generated spec must agree.
     [Fact] void should_keep_joined_name_after_a_later_local_write() => _localAfterJoinExpected.ShouldContain("\"name\":\"Joined\"");
@@ -158,17 +148,9 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         ]);
         var result = new SemanticSpecificationRunner().Run(reference, spec.Id);
         var accepted = Assert.IsType<SemanticAccepted>(result.Execution);
-        var readModels = feature.Slices.SelectMany(slice => slice.ReadModels).ToDictionary(model => model.Name);
-        var readModel = readModels["ProjectSummary"];
-        var all = readModels["AllSummary"];
-        return JsonSerializer.Serialize(new
-        {
-            project = new[] { First, Second }.Select(key => Snapshot(
-                accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key), readModel, _model)),
-            all = new[] { First, Second }.Select(key =>
-                accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == all.Id && instance.Key is SemanticTextValue value && value.Value == key) is { } instance
-                    ? Text(instance.Values.Single(value => value.TargetProperty == all.Properties.Single(property => property.Name == "lastSeen").Id).Value) : null)
-        });
+        var readModel = feature.Slices.SelectMany(slice => slice.ReadModels).Single(candidate => candidate.Name == "ProjectSummary");
+        return JsonSerializer.Serialize(new[] { First, Second }.Select(key => Snapshot(
+            accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key), readModel, _model)));
     }
 
     static object? Snapshot(SemanticReadModelInstance? instance, SemanticReadModel readModel, ExecutableSemanticModel model)
@@ -204,7 +186,6 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
             using Xunit;
             using Projects.Common;
             using Projects.Projects.Registration.RegisterProject;
-            using Projects.Projects.Registration.AllLookup;
 
             namespace Projects.Projects.Registration.ProjectLookup;
 
@@ -218,27 +199,20 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
                     var scenario = new ReadModelScenario<ProjectSummary>();
             {{seeds}}
                     await scenario.Given.ForEventSource(new EventSourceId("{{Third}}")).Events(new ProjectRegistered(new ProjectId(Guid.Parse("{{Third}}")), new ProjectName("Unused")));
-                    var all = new ReadModelScenario<AllSummary>();
-            {{seeds.Replace("scenario.Given", "all.Given", StringComparison.Ordinal)}}
-                    await all.Given.ForEventSource(new EventSourceId("{{Third}}")).Events(new ProjectRegistered(new ProjectId(Guid.Parse("{{Third}}")), new ProjectName("Unused")));
-                    var actual = new
+                    var actual = _keys.Select(key =>
                     {
-                        project = _keys.Select(key =>
+                        var instance = scenario.InstanceForEventSourceId(new EventSourceId(key));
+                        if (instance is null) return null;
+                        return new
                         {
-                            var instance = scenario.InstanceForEventSourceId(new EventSourceId(key));
-                            if (instance is null) return null;
-                            return new
-                            {
-                                name = instance.Name.Value,
-                                label = instance.Label,
-                                visits = instance.Visits?.ToString(CultureInfo.InvariantCulture),
-                                lastSeen = instance.LastSeen?.Value.ToString(),
-                                info = instance.Info?.Name.Value,
-                                notes = instance.Notes?.Select(note => new { id = note.NoteId.Value.ToString(), name = note.Name.Value }).ToArray()
-                            };
-                        }),
-                        all = _keys.Select(key => all.InstanceForEventSourceId(new EventSourceId(key))?.LastSeen?.Value.ToString())
-                    };
+                            name = instance.Name.Value,
+                            label = instance.Label,
+                            visits = instance.Visits?.ToString(CultureInfo.InvariantCulture),
+                            lastSeen = instance.LastSeen?.Value.ToString(),
+                            info = instance.Info?.Name.Value,
+                            notes = instance.Notes?.Select(note => new { id = note.NoteId.Value.ToString(), name = note.Name.Value }).ToArray()
+                        };
+                    });
                     Assert.Equal({{JsonSerializer.Serialize(expected)}}, JsonSerializer.Serialize(actual));
                 }
             }

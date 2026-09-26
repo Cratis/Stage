@@ -29,6 +29,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("composite-key")]
     [InlineData("every-literal")]
     [InlineData("all-literal")]
+    [InlineData("all-events")]
     [InlineData("unsafe-text-literal")]
     [InlineData("unsafe-text-concept-literal")]
     public void should_fail_closed_for_unsupported_blocks(string variant)
@@ -54,7 +55,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
-        Assert.True(compilation.Success);
+        Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
         var original = compilation.Value!.Model;
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
@@ -73,6 +74,12 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         scope = variant switch
         {
             "composite-key" => scope,
+            "all-events" => scope with
+            {
+                Children = [],
+                Nested = [],
+                Every = scope.Every! with { IncludeChildren = true, SubscribesToAllEvents = true }
+            },
             "every-literal" or "all-literal" => scope with { Every = scope.Every! with
             {
                 SubscribesToAllEvents = variant == "all-literal",
@@ -171,6 +178,33 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Empty(blocked.Artifacts);
             Assert.Contains(blocked.Diagnostics, item => item.Code == "STAGE-ESM-017");
         }
+    }
+
+    internal static void VerifyFromAllAdmission()
+    {
+        var source = when_rendering_scoped_projections.ScopedSource + "\n" + """
+                slice StateView AllLookup
+                  readmodel AllSummary
+                    projectId ProjectId
+                    lastSeen ProjectId?
+                  query AllById => AllSummary?
+                    by projectId ProjectId
+                  projection AllSummaryProjection => AllSummary
+                    from ProjectRegistered key projectId
+                    all
+                      lastSeen = $eventSourceId
+            """;
+        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("all"), "all", "All.play", source);
+        var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
+        Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        var model = compilation.Value!.Model;
+        var execution = SemanticExecutionPlan.Compile(model);
+        Assert.True(execution.Success, string.Join("; ", execution.Issues));
+        var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        Assert.False(plan.Success);
+        Assert.Empty(plan.Artifacts);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Message.Contains("MongoDB", StringComparison.Ordinal));
     }
 
     sealed class UnknownScopeVariant(string name) : Exception($"Unknown projection scope variant '{name}'.");

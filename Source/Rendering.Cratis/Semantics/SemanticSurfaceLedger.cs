@@ -134,6 +134,7 @@ internal static class SemanticSurfaceLedger
         // from and identical key fail STAGE-ESM-017. Composite keys remain rejected because Stage
         // cannot issue keyed lookups for composite read models. Literal mappings in every/all and
         // text literals outside Chronicle's fluent $value grammar also fail STAGE-ESM-017.
+        // FromAll stays rejected: MongoDB does not materialize an unrelated source observed in memory.
         // Child join removal is rendered
         // only for children; root join removal and nested shapes remain blocked by Chronicle#4125.
         // Nested clear/recreation is still blocked by Chronicle#4166.
@@ -142,7 +143,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
         Add(entries, "SemanticProjectionEventContextValue", rejected("STAGE-ESM-017"), "Path");
         Add(entries, "SemanticProjectionEventProperty", rendered, "Path");
-        Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings SubscribesToAllEvents");
+        Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings");
+        Add(entries, "SemanticProjectionEvery", rejected("STAGE-ESM-017"), "SubscribesToAllEvents");
         Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
         Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
         Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");

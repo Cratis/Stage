@@ -191,16 +191,138 @@ public class when_generating_packaged_vectors
             TypedContextDescriptors = [descriptor],
             TypedContextContractRevision = 2
         };
-        Assert.Contains(new CratisArtifactRenderPlanner().Plan(request).Diagnostics, diagnostic =>
+
+        // ESM v4 is checked before the descriptor envelope, even if its revision is invalid.
+        Assert.Contains(new CratisArtifactRenderPlanner().Plan(request).Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-016");
+        Assert.Contains(Plan(model, compilation.ImplementationRequirements, [descriptor], 2).Diagnostics, diagnostic =>
             diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("revision '2'", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void should_refuse_the_unbound_handler_vector()
+    public void should_pin_the_supported_contract_revision()
     {
-        using var vector = JsonDocument.Parse(Vector("unbound-handler-context-v1.json"));
-        Assert.False(vector.RootElement.GetProperty("descriptors")[0].GetProperty("isWrapperReady").GetBoolean());
-        Assert.Equal("CommandHandler", vector.RootElement.GetProperty("descriptors")[0].GetProperty("role").GetString());
+        Assert.Equal(1u, SemanticTypedContextDescriptor.ContractRevision);
+        Assert.Equal(1u, SemanticTypedContextAdmission.SupportedTypedContextContractRevision);
+    }
+
+    [Fact]
+    public void should_refuse_the_unbound_handler_vector_through_stage()
+    {
+        const string unbound = """
+            module Billing
+              feature Invoices
+                slice StateChange ProcessBatch
+                  command ProcessBatch
+                    id Uuid identifier
+                    handler
+                      csharp
+                        ```
+                        return new object[] { context.Identity.Id };
+                        ```
+            """;
+        var failed = Compile(unbound);
+        Assert.False(failed.Success);
+        Assert.Contains(failed.TypedContextDescriptors, descriptor => !descriptor.IsWrapperReady && descriptor.Role == SemanticImplementationRole.CommandHandler);
+        var valid = Bind(Source);
+        var model = valid.Value!.Model;
+        Assert.Contains(Plan(model, failed.ImplementationRequirements, failed.TypedContextDescriptors).Diagnostics,
+            diagnostic => diagnostic.Code == "STAGE-ESM-021");
+    }
+
+    [Fact]
+    public void should_refuse_a_descriptor_from_a_different_model_revision()
+    {
+        var compilation = Bind(Source);
+        var model = compilation.Value!.Model;
+        var changed = ExecutableSemanticModel.Create(
+            model.LanguageVersion,
+            model.SemanticVersion,
+            model.Application with { Name = "ChangedProjects" });
+        Assert.NotEqual(model.Revision, changed.Revision);
+        Assert.Contains(Plan(changed, compilation.ImplementationRequirements, [compilation.TypedContextDescriptors[0]]).Diagnostics,
+            diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("revision", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void should_refuse_a_role_or_context_version_mismatch(bool changeRole)
+    {
+        var compilation = Bind(Source);
+        var descriptor = compilation.TypedContextDescriptors[0];
+        var changed = changeRole
+            ? descriptor with { Role = SemanticImplementationRole.PolicyPredicate }
+            : descriptor with { ContextVersion = 2 };
+        Assert.Contains(Plan(compilation.Value!.Model, compilation.ImplementationRequirements, [changed]).Diagnostics,
+            diagnostic => diagnostic.Code == "STAGE-ESM-021");
+    }
+
+    [Fact]
+    public void should_refuse_missing_arrays_and_duplicate_type_ids_or_query_shapes()
+    {
+        var compilation = Bind(Source);
+        var model = compilation.Value!.Model;
+        var descriptor = compilation.TypedContextDescriptors[0];
+        var malformed = new[]
+        {
+            descriptor with { Types = default },
+            descriptor with { Members = default },
+            descriptor with { Types = [.. descriptor.Types, .. descriptor.Types] }
+        };
+        foreach (var item in malformed)
+        {
+            Assert.Contains(Plan(model, compilation.ImplementationRequirements, [item]).Diagnostics,
+                diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("missing arrays", StringComparison.Ordinal));
+        }
+
+        var query = compilation.TypedContextDescriptors.Single(item => item.Role == SemanticImplementationRole.PolicyPredicate &&
+            item.OperationId == model.Application.Modules.Single().Features.Single().Slices.Single(slice => !slice.Queries.IsEmpty).Queries.Single().Id);
+        var artifact = query.Members.Single(member => member.Name == "Artifact");
+        var duplicateShape = query with { Members = query.Members.Add(artifact) };
+        Assert.Contains(Plan(model, compilation.ImplementationRequirements, [duplicateShape]).Diagnostics,
+            diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("duplicate query shapes", StringComparison.Ordinal));
+    }
+
+    static ArtifactRenderPlan Plan(
+        ExecutableSemanticModel model,
+        ImmutableArray<SemanticImplementationRequirement> requirements,
+        ImmutableArray<SemanticTypedContextDescriptor> descriptors,
+        uint revision = 1)
+    {
+        var modules = model.Application.Modules.Select(module => module with
+        {
+            Features = [.. module.Features.Select(feature => feature with
+            {
+                Slices = [.. feature.Slices.Select(slice => slice with
+                {
+                    Events = [.. slice.Events.Select(@event => @event with
+                    {
+                        Revision = EventContractRevision.Initial,
+                        Predecessor = null,
+                        PriorRevisions = []
+                    })]
+                })]
+            })]
+        });
+        model = ExecutableSemanticModel.Create(LanguageVersion.V3, SemanticVersion.V3, model.Application with { Modules = [.. modules] });
+        var request = new ArtifactRenderRequest(
+            model,
+            SemanticExecutionPlan.Compile(model).Plan!,
+            CratisRendering.CreateProfile(model.Application.Name, new("Projects", "Projects")),
+            new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        {
+            ImplementationRequirements = requirements,
+            TypedContextDescriptors = descriptors,
+            TypedContextContractRevision = revision
+        };
+        return new CratisArtifactRenderPlanner().Plan(request);
+    }
+
+    static CompilationResult<SemanticCompilation> Compile(string source)
+    {
+        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("application-document"), "application-document", "application.play", source);
+        return new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
     }
 
     static byte[] Vector(string name)

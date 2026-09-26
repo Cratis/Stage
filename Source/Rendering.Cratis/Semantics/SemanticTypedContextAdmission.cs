@@ -10,13 +10,15 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Admits only descriptors tied to this compilation's model and implementation envelope.</summary>
 internal static class SemanticTypedContextAdmission
 {
+    internal const uint SupportedTypedContextContractRevision = 1;
+
     internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request)
     {
         var errors = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
         var owner = request.Model.Application.Id;
-        if (request.TypedContextContractRevision != SemanticTypedContextDescriptor.ContractRevision)
+        if (request.TypedContextContractRevision != SupportedTypedContextContractRevision)
         {
-            errors.Add(Error($"Typed-context contract revision '{request.TypedContextContractRevision}' is not admitted (expected {SemanticTypedContextDescriptor.ContractRevision}).", owner));
+            errors.Add(Error($"Typed-context contract revision '{request.TypedContextContractRevision}' is not admitted (expected {SupportedTypedContextContractRevision}).", owner));
             return errors.ToImmutable();
         }
 
@@ -51,20 +53,84 @@ internal static class SemanticTypedContextAdmission
             {
                 errors.Add(Error($"Typed context '{descriptor.RequirementId}' for '{descriptor.OperationId}' is not wrapper-ready from this model compilation (revision {request.Model.Revision}).", owner));
             }
+
+            if (descriptor.Types.IsDefault || descriptor.Members.IsDefault ||
+                (!descriptor.Types.IsDefault && descriptor.Types.Any(type => type is null)) ||
+                (!descriptor.Members.IsDefault && descriptor.Members.Any(member => member is null)) ||
+                (!descriptor.Types.IsDefault && descriptor.Types.Select(type => type.Id).Distinct().Count() != descriptor.Types.Length) ||
+                (!descriptor.Members.IsDefault && descriptor.Members.Any(member => member.Type?.Properties.IsDefault != false)) ||
+                (!descriptor.Types.IsDefault && descriptor.Types.Any(type => type.Properties.IsDefault)))
+            {
+                errors.Add(Error($"Typed context '{descriptor.RequirementId}' contains missing arrays, members or duplicate type identities.", owner));
+            }
+            else
+            {
+                // Only query shapes generate local declarations; repeated use of one would collide.
+                var queryShapes = descriptor.Members.Where(member => member.Type.Shape is { } shape &&
+                    request.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
+                        .SelectMany(slice => slice.Queries).Any(query => query.Id == shape))
+                    .Select(member => member.Type.Shape!.Value).ToArray();
+                if (queryShapes.Distinct().Count() != queryShapes.Length)
+                {
+                    errors.Add(Error($"Typed context '{descriptor.RequirementId}' contains duplicate query shapes.", owner));
+                }
+            }
         }
 
         // A partial sidecar must not let a bound code body silently fall back to an untyped context.
         if (!request.TypedContextDescriptors.IsEmpty)
         {
-            foreach (var requirement in requirements.Where(candidate => candidate.Role != SemanticImplementationRole.PolicyPredicate &&
-                !request.TypedContextDescriptors.Any(descriptor => descriptor is not null && descriptor.RequirementId == candidate.RequirementId)))
+            foreach (var requirement in requirements)
             {
-                errors.Add(Error($"Implementation requirement '{requirement.RequirementId}' has no typed context from this compilation.", owner));
+                var sites = requirement.Role == SemanticImplementationRole.PolicyPredicate
+                    ? PolicySites(request.Model.Application, requirement.RequirementId)
+                    : [];
+                foreach (var site in sites.Distinct())
+                {
+                    if (!request.TypedContextDescriptors.Any(descriptor => descriptor is not null &&
+                        descriptor.RequirementId == requirement.RequirementId && descriptor.OperationId == site))
+                    {
+                        errors.Add(Error($"Implementation requirement '{requirement.RequirementId}' has no typed context for use site '{site}' from this compilation.", owner));
+                    }
+                }
+                if (requirement.Role != SemanticImplementationRole.PolicyPredicate &&
+                    !request.TypedContextDescriptors.Any(descriptor => descriptor is not null && descriptor.RequirementId == requirement.RequirementId))
+                {
+                    errors.Add(Error($"Implementation requirement '{requirement.RequirementId}' has no typed context from this compilation.", owner));
+                }
             }
         }
 
         return errors.ToImmutable();
     }
+
+    static IEnumerable<SemanticId> PolicySites(SemanticApplication application, string requirementId)
+    {
+        var policies = application.Policies.Where(policy => PolicyBodies(policy.Condition).Contains(requirementId))
+            .Select(policy => policy.Name).ToHashSet(StringComparer.Ordinal);
+        return application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
+            .SelectMany(slice => slice.Commands.Select(command => (command.Id, command.Authorization))
+                .Concat(slice.Queries.Select(query => (query.Id, query.Authorization))))
+            .Where(site => site.Authorization is not null && PolicyReferences(site.Authorization).Any(policies.Contains))
+            .Select(site => site.Id);
+    }
+
+    static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
+        feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
+
+    static IEnumerable<string> PolicyReferences(SemanticAuthorization authorization) => authorization switch
+    {
+        SemanticPolicyReference reference => [reference.Name],
+        SemanticLogicalAuthorization logical => PolicyReferences(logical.Left).Concat(PolicyReferences(logical.Right)),
+        _ => []
+    };
+
+    static IEnumerable<string> PolicyBodies(SemanticPolicyCondition condition) => condition switch
+    {
+        SemanticOpaquePolicyCondition opaque => [opaque.RequirementId],
+        SemanticLogicalPolicyCondition logical => PolicyBodies(logical.Left).Concat(PolicyBodies(logical.Right)),
+        _ => []
+    };
 
     static ArtifactRenderDiagnostic Error(string message, SemanticId artifact) =>
         new("STAGE-ESM-021", ArtifactRenderDiagnosticSeverity.Error, message, artifact);

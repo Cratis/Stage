@@ -71,6 +71,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     {
         var artifacts = new List<PlannedArtifact>();
         var diagnostics = new List<ArtifactRenderDiagnostic>();
+        if (!EsmSchemaV3Support.Supports(request.Model.LanguageVersion, request.Model.SemanticVersion))
+        {
+            return CreatePlan(request, [], [Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", request.Model.Application.Id)]);
+        }
         diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
         diagnostics.AddRange(SemanticTypedContextAdmission.Verify(request));
         if (diagnostics.Count > 0)
@@ -79,14 +83,24 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
         var context = new SemanticApplicationContext(request, options);
         var slices = context.SelectedSlices();
-        var wrappers = request.TypedContextDescriptors.Select(descriptor => SemanticTypedContextRenderer.Render(descriptor, context)).ToArray();
         diagnostics.AddRange(SemanticCratisAdmission.Evaluate(context, slices));
+        foreach (var descriptor in request.TypedContextDescriptors)
+        {
+            try
+            {
+                // #119: validate wrappers fail-closed, but emit none until an admitted body consumes one.
+                _ = SemanticTypedContextRenderer.Render(descriptor, context);
+            }
+            catch (InvalidTypedContext exception)
+            {
+                diagnostics.Add(Error("STAGE-ESM-021", exception.Message, request.Model.Application.Id));
+            }
+        }
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {
             return CreatePlan(request, [], diagnostics);
         }
 
-        artifacts.AddRange(wrappers.Select(Artifact));
         AddScaffold(request, context, artifacts, diagnostics);
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {

@@ -5,8 +5,5 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>Signals a descriptor the C# provider cannot interpret without guessing.</summary>
 /// <param name="message">The precise reason.</param>
-public sealed class InvalidTypedContext(string message) : Exception(message)
-{
-    /// <summary>The diagnostic emitted when planning a descriptor that cannot be admitted.</summary>
-    public const string DiagnosticCode = "STAGE-ESM-021";
-}
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "Only the internal renderer throws this diagnostic exception; it is not a public API.")]
+internal sealed class InvalidTypedContext(string message) : Exception(message);

@@ -77,7 +77,7 @@ public sealed record ArtifactRenderRequest(
     public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
 
     /// <summary>The sidecar contract revision declared by the producer. Unknown revisions are refused.</summary>
-    public uint TypedContextContractRevision { get; init; } = SemanticTypedContextDescriptor.ContractRevision;
+    public uint TypedContextContractRevision { get; init; } = 1;
 
     /// <summary>Typed contexts from the compilation that produced <see cref="Model"/> and <see cref="ImplementationRequirements"/>.</summary>
     public ImmutableArray<SemanticTypedContextDescriptor> TypedContextDescriptors { get; init; } = [];

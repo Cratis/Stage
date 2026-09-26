@@ -110,9 +110,15 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         var sourceId = command.Properties.Single(property => property.IsIdentifier).Id;
         var sourceName = command.Properties.Single(property => property.Name == "name").Id;
         var probeProduces = facts.Select(fact => fact.Event).Distinct().Where(name => name != "ProjectRegistered")
-            .Select(name => new SemanticProducedEvent(events[name].Id, null, null,
-                [.. events[name].Properties.Select(property => new SemanticPropertyMapping(property.Id,
-                    new SemanticResolvedExpression(SemanticExpressionRootKind.Command, SemanticExpressionSourceKind.Property,
+            .Select(name => new SemanticProducedEvent(
+                events[name].Id,
+                null,
+                null,
+                [.. events[name].Properties.Select(property => new SemanticPropertyMapping(
+                    property.Id,
+                    new SemanticResolvedExpression(
+                        SemanticExpressionRootKind.Command,
+                        SemanticExpressionSourceKind.Property,
                         property.Name == "name" ? sourceName : sourceId)))]));
         var referenceSource = source with { Commands = [command with { Produces = [.. command.Produces, .. probeProduces] }] };
         var referenceModel = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, _model.Application with

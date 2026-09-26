@@ -142,26 +142,24 @@ executable plan, the host returns `state: "unsupported"` with issues; `/api/**` 
 instead of performing a partial model. The shipped sandbox cannot rebuild across restarts: when the
 semantic host exits the container stops, and an exit-42 warm handoff resets its in-memory kernel.
 Rebuild applies only to a host running against an external or persistent Chronicle store; that storage
-path is not verified by the sandbox. With a nonempty log, Stage waits for mirrored projections, reads
-facts and mirrored read models, checks history against modeled constraints, and either rebuilds the
-world or refuses it. `/stage/status` reports `loading` while waiting; `/api/**` is unavailable then.
+path is not verified by the sandbox. With a nonempty log, Stage reads the complete event history,
+checks its continuity, event schemas, origins and modeled constraints, then reconstructs the in-process
+world using Screenplay semantics. It refuses incomplete or inconsistent history rather than starting
+with partial state. `/stage/status` reports `loading` during rebuild; `/api/**` is unavailable then.
 
 Commands retain their slice-qualified `/api/…` route and legacy alias. The semantic engine also exposes one
 query by its modeled name. Compatibility `Get…ById` and `All…` queries are available only for read models with at least one keyed query and no authorization on any keyed query targeting that read model. Otherwise, the compatibility routes are not mapped, so callers cannot bypass a modeled query policy.
-Only a model whose **every projection** has `mirrored` admission status can restart from a nonempty
-log. Unknown or revised events, schema mismatches, unverified historical constraint claims, mirror
-failures, and projection lag cause `Unsupported(World)` with a specific issue rather than a partial
-world. A logged event contract with a DateTime or DecimalNumber property also refuses because Chronicle
+Unknown or revised events, schema mismatches and unverified historical constraint claims cause
+`Unsupported(World)` with a specific issue rather than a partial world. A logged event contract with a DateTime or DecimalNumber property also refuses because Chronicle
 storage does not preserve these values exactly. Null optional event values, non-text destination IDs,
 changed `causedBy.name` for the same subject, and duplicate tags can also fail the exact-history check.
 Origin verification compares modeled tags and mapped `$context` values; it does not independently
 verify literal mappings, production conditions, or that a destination matches a mapped event property.
 Do not treat a successful rebuild as proof that another client could not append a plausible event.
 After rebuild, an external append detected before a command faults the runtime instead of committing
-against stale state. Simple, complete flat projections are mirrored into Chronicle for the Workbench. Other
-projections are marked `notMirrored` in admission, and their Workbench state is not a substitute for
-the in-process query results. The default engine
-continues to register its own Chronicle projections. Commands that require
+against stale state. The semantic engine does not register Chronicle projection mirrors: its read models
+are available through Stage's in-process queries, not as projection views in the Chronicle Workbench.
+The default EventModel engine continues to register its own Chronicle projections. Commands that require
 allocation of a new event-source identity return `Unsupported(IdentityAllocation)`; explicitly name a
 `produces … for` destination to make them executable. Unsupported event revisions or duplicate event names
 put the running host in refused mode (`state: "unsupported"` and HTTP 501 for `/api/**`). The semantic engine does not execute modeled specifications; use the specification runner
@@ -174,8 +172,8 @@ A denied command responds with HTTP 403. Failed validation and constraints respo
 constraint result includes its name in `reasonDetail`. An unsupported command responds with HTTP 501 and
 `Stage-Unsupported-Capability` and `Stage-Unsupported-Artifact` headers. `/validate` evaluates the same
 model without appending facts. Semantic queries require a modeled snapshot lookup; the compatibility All/ById
-queries read the in-process world, not Chronicle's Workbench mirror. If an append's outcome cannot be established, Stage faults the session and returns `Unsupported(World)` for subsequent commands and queries; `/stage/status` then reports `unsupported`. Restart can rebuild from the Chronicle log only when its
-mirror and history pass the same strict admission checks.
+queries read the in-process world, not Chronicle projections. If an append's outcome cannot be established, Stage faults the session and returns `Unsupported(World)` for subsequent commands and queries; `/stage/status` then reports `unsupported`. Restart rebuilds from the Chronicle log only when its
+history passes the same strict admission checks.
 
 The sandbox constructs caller identities from Arc's unsigned `x-ms-client-principal` request headers. Clients that can reach the host can forge those headers; modeled authorization is not a security boundary here. Restrict access at a trusted proxy and keep the session private. An anonymous semantic caller has empty audit identity fields (`subject`, `name`, `userName`), not an invented `unknown` identity; the default EventModel path omits those identity values entirely.
 

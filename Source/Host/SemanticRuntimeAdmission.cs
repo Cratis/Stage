@@ -62,17 +62,6 @@ internal sealed class SemanticRuntimeAdmission
             entries.Add(new(specification.Id.ToString(), "specification", "unsupported", "Specification", "Live specification execution is not available; use the specification runner."));
         }
 
-        foreach (var projection in plan.Projections.Values)
-        {
-            var mirrored = SemanticProjectionMirrors.TryLower(plan, projection, out _, out _, out var reason);
-            entries.Add(new(
-                projection.Id.ToString(),
-                "projectionMirror",
-                mirrored ? "mirrored" : "notMirrored",
-                mirrored ? null : "Projection",
-                mirrored ? null : reason));
-        }
-
         Entries = entries;
     }
 

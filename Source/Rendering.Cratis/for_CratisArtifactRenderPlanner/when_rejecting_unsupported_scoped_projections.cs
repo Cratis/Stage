@@ -182,7 +182,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 
     internal static void VerifyFromAllAdmission()
     {
-        var source = when_rendering_scoped_projections.ScopedSource + "\n" + """
+        const string source = when_rendering_scoped_projections.ScopedSource + "\n" + """
                 slice StateView AllLookup
                   readmodel AllSummary
                     projectId ProjectId

@@ -20,7 +20,7 @@ public class with_a_protected_query_specification : Specification
         _plan = invoice_model.Plan(invoice_model.Compile(source));
     }
 
-    [Fact] void should_reject_a_query_that_would_bypass_the_arc_pipeline() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-011");
-    [Fact] void should_explain_the_missing_authorization_check() => _plan.Diagnostics.Any(_ => _.Message.Contains("direct invocation bypasses", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_emit_no_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_reject_other_event_sources_in_the_fixture() => _plan.Success.ShouldBeFalse();
+    [Fact] void should_report_specification_admission() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011").ShouldBeTrue();
+    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

@@ -25,6 +25,7 @@ internal static class ChronicleProjectionOracle
         "Core/Projections/Engine/DefinitionLanguage/UnsupportedProjectionSyntax.cs",
         "Concepts/WellKnownExpressions.cs",
         "Concepts/Projections/ProjectionOwner.cs",
+        "Concepts/Projections/ProjectionScope.cs",
         "Concepts/Projections/ProjectionId.cs",
         "Concepts/Projections/PropertyExpression.cs",
         "Concepts/Projections/Definitions/AutoMap.cs",

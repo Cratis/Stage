@@ -76,7 +76,7 @@ internal static class SemanticScopedProjectionRenderer
 
         if (scope.Every is { } every)
         {
-            code.OpenBlock($"{receiver}.FromEvery(every =>");
+            code.OpenBlock($"{receiver}.{(every.SubscribesToAllEvents ? "FromAll" : "FromEvery")}(every =>");
             if (!every.IncludeChildren)
             {
                 code.Line("every.ExcludeChildProjections();");
@@ -84,7 +84,11 @@ internal static class SemanticScopedProjectionRenderer
 
             foreach (var mapping in every.Mappings)
             {
-                code.Line($"every.Set(model => model.{Path(mapping.Target, properties, context)}).ToEventSourceId();");
+                var target = Path(mapping.Target, properties, context);
+                var expression = mapping.Source is SemanticProjectionLiteral literal
+                    ? $"ToValue({Literal(literal, mapping.Target, properties, context)})"
+                    : "ToEventSourceId()";
+                code.Line($"every.Set(model => model.{target}).{expression};");
             }
 
             code.EndBlock().Line(");");
@@ -160,6 +164,7 @@ internal static class SemanticScopedProjectionRenderer
             var expression = mapping.Operation switch
             {
                 SemanticProjectionOperation.Set when mapping.Source is SemanticProjectionEventSourceIdentity => $"Set(model => model.{target}).ToEventSourceId()",
+                SemanticProjectionOperation.Set when mapping.Source is SemanticProjectionLiteral literal => $"Set(model => model.{target}).ToValue({Literal(literal, mapping.Target, targets, context)})",
                 SemanticProjectionOperation.Set => $"Set(model => model.{target}).To({source})",
                 SemanticProjectionOperation.Add => $"Add(model => model.{target}).With({source})",
                 SemanticProjectionOperation.Subtract => $"Subtract(model => model.{target}).With({source})",
@@ -170,6 +175,20 @@ internal static class SemanticScopedProjectionRenderer
             };
             code.Line($"{receiver}.{expression};");
         }
+    }
+
+    static string Literal(SemanticProjectionLiteral literal, System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    {
+        SemanticProperty? target = null;
+        foreach (var id in path)
+        {
+            target = properties.Single(property => property.Id == id);
+            properties = target.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(target.Type.Target, out var composite)
+                ? composite.Properties : [];
+        }
+
+        return new SemanticTypeSystem(context).Value(literal.Value, target!.Type)
+            .Replace("CultureInfo.InvariantCulture", "System.Globalization.CultureInfo.InvariantCulture", StringComparison.Ordinal);
     }
 
     static string Path(System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)

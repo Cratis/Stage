@@ -9,9 +9,9 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticWorldRebuilder.when_rebuilding;
 
-public class with_an_unmirrored_projection : a_rebuildable_world
+public class with_a_projection_chronicle_cannot_mirror : a_rebuildable_world
 {
-    Exception? _error;
+    SemanticWorld _world = null!;
 
     void Because()
     {
@@ -22,8 +22,8 @@ public class with_an_unmirrored_projection : a_rebuildable_world
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics.Select(diagnostic => diagnostic.Message)));
         var plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
         Assert.True(plan.ReadModels.Values.Single().Properties.Single(property => property.Name == "name").Type.IsOptional, source);
-        _error = Catch.Exception(() => SemanticChronicleRegistration.EnsureMirrored(plan));
+        _world = SemanticWorldRebuilder.Create(plan, [_event], 0);
     }
 
-    [Fact] void should_refuse_the_projection_before_rebuild() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
+    [Fact] void should_project_from_the_log_without_a_chronicle_mirror() => _world.ReadModels.Single().Key.ShouldEqual(_commandValues[0].Value);
 }

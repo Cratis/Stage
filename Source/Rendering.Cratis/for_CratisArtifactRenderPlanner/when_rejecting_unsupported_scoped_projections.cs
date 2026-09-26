@@ -16,11 +16,9 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_rejecting_unsupported_scoped_projections : Specification
 {
     [Theory]
-    [InlineData("literal")]
     [InlineData("every-including-children")]
     [InlineData("child-join")]
     [InlineData("nested-join")]
-    [InlineData("all-events")]
     [InlineData("root-join-removal")]
     [InlineData("nested-only-from")]
     [InlineData("nested-only-clear")]
@@ -28,18 +26,16 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("join-removal-overlap")]
     [InlineData("nested-mismatched-key")]
     [InlineData("nested-clear-with-root-from")]
-    [InlineData("child-join-removal")]
     [InlineData("composite-key")]
+    [InlineData("every-literal")]
+    [InlineData("all-literal")]
+    [InlineData("all-events")]
+    [InlineData("unsafe-text-literal")]
+    [InlineData("unsafe-text-concept-literal")]
     public void should_fail_closed_for_unsupported_blocks(string variant)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var source = when_rendering_scoped_projections.ScopedSource;
-        if (variant == "literal")
-        {
-            source = source.Replace("notes ProjectNote[]", "notes ProjectNote[]\n        label String?", StringComparison.Ordinal)
-                .Replace("join project on projectId", "    label = \"fixed\"\n        join project on projectId", StringComparison.Ordinal);
-        }
-
         if (variant == "composite-key")
         {
             // The seeded lookup states a scalar key, which a composite key cannot accept.
@@ -51,9 +47,15 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 .Replace("from ProjectRegistered key projectId\n          name = name\n      projection ProjectSummaryProjection", "from ProjectRegistered\n          key ProjectKey\n            projectId = projectId\n          name = name\n        from ProjectRenamed\n          key ProjectKey\n            projectId = projectId\n          name = name\n      projection ProjectSummaryProjection", StringComparison.Ordinal);
         }
 
+        if (variant == "unsafe-text-literal")
+        {
+            source = source.Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
+                .Replace("name = name\n          increment visits", "name = name\n          label = \"a)b\"\n          increment visits", StringComparison.Ordinal);
+        }
+
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
-        Assert.True(compilation.Success);
+        Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
         var original = compilation.Value!.Model;
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
@@ -67,11 +69,30 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.IsType<SemanticProjectionCompositeKey>(scope.From[0].Key);
         }
 
+        var nameTarget = view.ReadModels.Single(model => model.Name == "ProjectSummary").Properties.Single(property => property.Name == "name").Id;
+        var unsafeLiteral = new SemanticProjectionLiteral(SemanticValue.Text("a)b"));
         scope = variant switch
         {
-            "literal" or "composite-key" => scope,
+            "composite-key" => scope,
+            "all-events" => scope with
+            {
+                Children = [],
+                Nested = [],
+                Every = scope.Every! with { IncludeChildren = true, SubscribesToAllEvents = true }
+            },
+            "every-literal" or "all-literal" => scope with { Every = scope.Every! with
+            {
+                SubscribesToAllEvents = variant == "all-literal",
+                IncludeChildren = variant == "all-literal",
+                Mappings = [new SemanticProjectionMapping([nameTarget], SemanticProjectionOperation.Set, new SemanticProjectionLiteral(SemanticValue.Text("fixed")))]
+            } },
+            "unsafe-text-literal" => scope,
+            "unsafe-text-concept-literal" => scope with { From = [.. scope.From.Select((transition, index) => index == 0 ? transition with
+            {
+                Mappings = [.. transition.Mappings.Select(mapping => mapping.Target.Contains(nameTarget) ? mapping with { Source = unsafeLiteral } : mapping)]
+            } : transition)] },
+
             "every-including-children" => scope with { Every = new(true, false, []) },
-            "all-events" => scope with { Every = new(true, true, []), Children = [], Nested = [], Removals = [] },
             "root-join-removal" => scope with { JoinRemovals = [new(
                 original.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events)
                     .Single(@event => @event.Name == "ProjectNoteRemovedViaJoin").Id,
@@ -112,13 +133,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             {
                 Removals = [new SemanticProjectionRemoval(scope.From[1].EventContract, scope.From[1].Key, null)]
             } })] },
-            "child-join-removal" => scope with { Children = [.. scope.Children.Select(children => children with { Scope = children.Scope with
-            {
-                JoinRemovals = [new SemanticProjectionJoinRemoval(
-                    original.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events)
-                        .Single(@event => @event.Name == "ProjectNoteRemovedViaJoin").Id,
-                    SemanticProjectionKey.EventSourceIdentity)]
-            } })] },
             "child-join" => scope with
             {
                 Children = [.. scope.Children.Select(children => children with
@@ -140,32 +154,22 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = SemanticCratisAdmission.Evaluate(context, context.SelectedSlices());
         var diagnostic = Assert.Single(diagnostics, _ => _.Code == "STAGE-ESM-017");
-        if (variant == "literal")
-        {
-            Assert.Contains("Chronicle#4124", diagnostic.Message, StringComparison.Ordinal);
-        }
-
         if (variant == "every-including-children" || variant == "nested-join" || variant == "root-join-removal")
         {
             Assert.Contains("Chronicle#4125", diagnostic.Message, StringComparison.Ordinal);
         }
 
-        if (variant == "all-events")
+        if (variant == "composite-key")
         {
-            Assert.Contains("SubscribesToAllEvents", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("keyed lookup", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "nested-clear-with-root-from")
+        {
+            Assert.Contains("Chronicle#4166", diagnostic.Message, StringComparison.Ordinal);
         }
 
         if (variant == "composite-key")
-        {
-            Assert.Contains("UsingCompositeKey", diagnostic.Message, StringComparison.Ordinal);
-        }
-
-        if (variant == "child-join-removal" || variant == "nested-clear-with-root-from")
-        {
-            Assert.Contains("ReadModelScenario", diagnostic.Message, StringComparison.Ordinal);
-        }
-
-        if (variant == "all-events" || variant == "composite-key")
         {
             var changedExecution = SemanticExecutionPlan.Compile(model);
             Assert.True(changedExecution.Success, string.Join(Environment.NewLine, changedExecution.Issues));
@@ -174,6 +178,33 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Empty(blocked.Artifacts);
             Assert.Contains(blocked.Diagnostics, item => item.Code == "STAGE-ESM-017");
         }
+    }
+
+    internal static void VerifyFromAllAdmission()
+    {
+        const string source = when_rendering_scoped_projections.ScopedSource + "\n" + """
+                slice StateView AllLookup
+                  readmodel AllSummary
+                    projectId ProjectId
+                    lastSeen ProjectId?
+                  query AllById => AllSummary?
+                    by projectId ProjectId
+                  projection AllSummaryProjection => AllSummary
+                    from ProjectRegistered key projectId
+                    all
+                      lastSeen = $eventSourceId
+            """;
+        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("all"), "all", "All.play", source);
+        var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
+        Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        var model = compilation.Value!.Model;
+        var execution = SemanticExecutionPlan.Compile(model);
+        Assert.True(execution.Success, string.Join("; ", execution.Issues));
+        var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        Assert.False(plan.Success);
+        Assert.Empty(plan.Artifacts);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Message.Contains("MongoDB", StringComparison.Ordinal));
     }
 
     sealed class UnknownScopeVariant(string name) : Exception($"Unknown projection scope variant '{name}'.");

@@ -24,9 +24,11 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in slice.Specifications)
         {
-            var valid = (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
+            var valid = CanDenyQueryOnly(specification, context) ||
+                (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
+                    !AssertsUncontrolledOccurrence(specification, command!) &&
                     !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
                     ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
                     HasOneOutcome(specification) && HasSupportedCounts(specification) &&
@@ -42,7 +44,8 @@ internal static partial class SemanticSpecificationAdmission
                     specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
                         HasExpectedProjectionEvent(context, specification, expected.Results.Single())) &&
                     HasRenderableErrors(context, specification, command) &&
-                    HasRenderableEventSources(context, specification, command!));
+                    HasRenderableEventSources(context, specification, command!) &&
+                    ProtectedQuerySourcesMatch(context, specification, command!));
 
             if (!valid)
             {
@@ -56,8 +59,36 @@ internal static partial class SemanticSpecificationAdmission
         }
     }
 
+    static bool ProtectedQuerySourcesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command)
+    {
+        foreach (var expected in specification.ThenQueries.Where(result =>
+            context.Queries.TryGetValue(result.Query, out var query) && query.Authorization is not null))
+        {
+            // Arc's QueryScenario seeds only the stream identified by the query key, unlike the
+            // unprotected ReadModelScenario. Never admit a fixture whose other streams disappear.
+            if (specification.GivenEvents.Any(given => !Equals(given.EventSource?.Value, expected.Key)) ||
+                command.Produces.Any(produced => !Equals(SemanticDestinations.ForSpecification(specification, command, produced).Value, expected.Key)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static bool AssertsUncontrolledOccurrence(SemanticSpecification specification, SemanticCommand command) =>
+        command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+            mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
+        (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
+
     static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {
+        if (specification.When is { } when && context.Commands.TryGetValue(when.Command, out var command) &&
+            AssertsUncontrolledOccurrence(specification, command))
+        {
+            return "A command maps $context.occurred from its current clock; fixed event or projected values in a specification cannot assert this occurrence without a supplied time.";
+        }
+
         if (specification.ThenReadModels.Any(_ => CannotCompareScopedPresence(context, _.ReadModel, _.Exactly, _.Values)) ||
             specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) &&
                 (CannotCompareScopedPresence(context, query.ReadModel, _.Exactly, []) ||
@@ -74,6 +105,12 @@ internal static partial class SemanticSpecificationAdmission
         if (specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) && query.Authorization is not null))
         {
             return "A protected query must run through Arc's query pipeline with the fixture caller; direct invocation bypasses the generated authorization policy.";
+        }
+
+        if (specification.When is { } action && context.Commands.TryGetValue(action.Command, out var producingCommand) &&
+            !ProtectedQuerySourcesMatch(context, specification, producingCommand))
+        {
+            return "A protected query scenario replays only events from its query key; every seeded and produced event must use that source.";
         }
 
         if (!specification.GivenReadModels.IsEmpty)

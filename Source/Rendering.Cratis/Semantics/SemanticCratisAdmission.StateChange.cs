@@ -61,18 +61,23 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
-        if (command.Produces.Any(produced => produced.Mappings.Any(_ => _.Source is SemanticEventContextExpression)))
+        if (command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+            mapping.Source is SemanticEventContextExpression { Value: not SemanticEventContextValueKind.Occurred })))
         {
-            diagnostics.Add(Error("STAGE-ESM-013", $"Produced event of command '{command.Name}' maps a command occurrence value ($context). Chronicle assigns the occurrence when it appends, so a Cratis command cannot put the same value in the event payload.", command.Id));
+            diagnostics.Add(Error("STAGE-ESM-013", $"Produced event of command '{command.Name}' maps an unsupported command occurrence value ($context); only $context.occurred can be captured at the command boundary.", command.Id));
             return;
         }
 
         if (command.Produces.Any(produced =>
             !context.Events.TryGetValue(produced.EventContract, out var @event) || produced.Condition is not null ||
-            produced.When is not null || !produced.Tags.IsEmpty || !@event.Tags.IsEmpty ||
+            produced.When is not null ||
+            @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() != @event.Tags.Length + produced.Tags.Length ||
             !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, command.Properties.Where(_ => _.IsIdentifier).Select(_ => _.Id)) ||
             @event.Revision != EventContractRevision.Initial || @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
-            !MappingsMatch(produced.Mappings, @event.Properties, command.Properties, SemanticExpressionRootKind.Command)))
+            produced.Mappings.Length != @event.Properties.Length ||
+            !@event.Properties.All(property => produced.Mappings.Any(mapping => mapping.TargetProperty == property.Id &&
+                (IsProperty(mapping.Source, SemanticExpressionRootKind.Command, command.Properties.Select(_ => _.Id)) ||
+                 (mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } occurrence && occurrence.Type == property.Type))))))
         {
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }

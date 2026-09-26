@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.RegularExpressions;
 using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
@@ -8,8 +9,11 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 /// <summary>
 /// Identifies the scoped projection subset that can be lowered without changing its meaning.
 /// </summary>
-internal static class SemanticScopedProjectionSupport
+internal static partial class SemanticScopedProjectionSupport
 {
+    [GeneratedRegex(@"\A[\w ._/:*+-]*\z", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex FluentTextLiteral { get; }
+
     /// <summary>
     /// Returns the first reason a scope cannot be represented by the emitted Chronicle projection.
     /// </summary>
@@ -22,12 +26,6 @@ internal static class SemanticScopedProjectionSupport
     /// <returns>The reason, or null when supported.</returns>
     public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false)
     {
-        if (scope.From.SelectMany(_ => _.Mappings).Concat(scope.Joins.SelectMany(_ => _.Mappings))
-            .Concat(scope.Every?.Mappings ?? []).Any(_ => _.Source is SemanticProjectionLiteral))
-        {
-            return "Literal mappings are blocked by Chronicle#4124: the engine may resolve their values as null.";
-        }
-
         if (scope.Nested.Any(_ => _.Scope.Joins.Length > 0 || _.Scope.Children.Length > 0 || _.Scope.JoinRemovals.Length > 0))
         {
             return "Joins and children inside nested are blocked by Chronicle#4125: the engine drops their subscriptions.";
@@ -35,7 +33,7 @@ internal static class SemanticScopedProjectionSupport
 
         if (scope.Every is { SubscribesToAllEvents: true })
         {
-            return "All-event subscriptions cannot render: Chronicle v19.4.7 FromAll stores mappings but ProjectionBuilderFor.Build omits SubscribesToAllEvents, so unrelated event types are not observed.";
+            return "FromAll cannot render: Chronicle v19.8.1 MongoDB does not materialize a read model for an unrelated event source even when its in-memory scenario does.";
         }
 
         if (scope.Every is { IncludeChildren: true } && (scope.Children.Length > 0 || scope.Nested.Length > 0))
@@ -48,14 +46,9 @@ internal static class SemanticScopedProjectionSupport
             return "Root remove via join is blocked by Chronicle#4125: the engine removes a child at the root path instead of deleting matching root instances.";
         }
 
-        if (child && scope.JoinRemovals.Length > 0)
-        {
-            return "Child remove via join cannot render: Chronicle v19.4.7 ReadModelScenario retains a matching child in one of two parents, although the MongoDB sink removes both; generated specifications would fail against the reference.";
-        }
-
         if (scope.Nested.Any(nested => nested.Scope.Removals.Length > 0))
         {
-            return "Nested clear cannot render: after clear and a matching root from, Chronicle v19.4.7 ReadModelScenario throws NullReferenceException, while the MongoDB sink fails the projection with write error 28 (cannot create a nested field in a null object); the reference recreates the nested object.";
+            return "Nested clear cannot render: after clear and a matching root from, Chronicle v19.8.0 cannot re-create the nested object; Chronicle#4166 remains unreleased.";
         }
 
         if (isNested && scope.JoinRemovals.Length > 0)
@@ -75,7 +68,7 @@ internal static class SemanticScopedProjectionSupport
             scope.Removals.Any(removal => removal.Key is SemanticProjectionCompositeKey || removal.ParentKey is SemanticProjectionCompositeKey) ||
             scope.JoinRemovals.Any(removal => removal.Key is SemanticProjectionCompositeKey))
         {
-            return "Composite keys cannot render: Chronicle v19.4.7's fluent UsingCompositeKey omits the type token emitted by its declaration visitor; the resulting definition and reference identity have not been proven equivalent in execution.";
+            return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Chronicle v19.8.1 resolves projection keys, but Stage cannot look up those instances by their composite key.";
         }
 
         if (child && identity is null)
@@ -276,11 +269,20 @@ internal static class SemanticScopedProjectionSupport
             SemanticProjectionOperation.Clear => target.Type.IsOptional && mapping.Source is null,
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
             SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventSourceIdentity ||
+                (mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)),
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract =>
                 mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context),
             _ => false
         };
+    }
+
+    // Chronicle's fluent ToValue embeds text in an unquoted $value(...) expression. Its resolver is
+    // unanchored, so a closing parenthesis may silently truncate the value before projection.
+    static bool LiteralSupported(SemanticProjectionLiteral literal, SemanticTypeReference target, SemanticApplicationContext context)
+    {
+        var primitive = target.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[target.Target].Primitive : target.Primitive;
+        return primitive != SemanticPrimitiveType.Text || (literal.Value is SemanticTextValue text && FluentTextLiteral.IsMatch(text.Value));
     }
 
     static bool HasOptionalIntermediate(

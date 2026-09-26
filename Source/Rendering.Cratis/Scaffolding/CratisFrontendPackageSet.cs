@@ -198,9 +198,9 @@ public sealed class CratisFrontendPackageSet
     public string TypesNodePackageVersion { get; }
 
     internal static CratisFrontendPackageSet Current { get; } = new(
-        "22.23.0",
-        "22.23.0",
-        "22.23.0",
+        "22.25.0",
+        "22.25.0",
+        "22.25.0",
         "7.19.6",
         "7.8.2",
         "4.10.0",

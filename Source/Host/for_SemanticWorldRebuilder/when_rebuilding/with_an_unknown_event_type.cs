@@ -14,7 +14,7 @@ public class with_an_unknown_event_type : a_rebuildable_world
     void Because()
     {
         _event.Context.EventType.Id = "UnknownEvent";
-        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_plan, [_event], _mirror, 0));
+        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_plan, [_event], 0));
     }
 
     [Fact] void should_refuse_with_the_unknown_type() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();

@@ -29,7 +29,9 @@ internal static class SemanticStateChangeArtifactRenderer
             .Using("Cratis.Arc.Commands.ModelBound")
             .Using("Cratis.Arc.Validation")
             .Using("Cratis.Chronicle.Events");
-        if (command.Produces.Length > 1)
+        if (command.Produces.Length > 1 || command.Produces.Any(produced =>
+            produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }) ||
+            !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty))
         {
             builder.Using("Cratis.Chronicle.EventSequences");
         }
@@ -74,13 +76,62 @@ internal static class SemanticStateChangeArtifactRenderer
         var destinationProperty = command.Properties.Single(_ => _.Id == destination.Target);
         var destinationExpression = types.EventSourceExpression(Identifiers.ToPascalCase(destinationProperty.Name), destinationProperty.Type);
 
-        builder.Attribute("Command")
-            .Attribute(SemanticAuthorizationAttributes.For(command))
+        var severities = command.Validations.Select(rule => rule.Severity)
+            .Concat(command.Requirements.Select(requirement => requirement.Severity))
+            .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
+            .ToArray();
+        builder.Attribute("Command");
+        if (severities.Length > 0)
+        {
+            // Screenplay rejects every validation failure; a caller must not loosen the modeled floor.
+            // Keep this even for Error-only rules: Arc lets an unattributed caller allow errors, and
+            // only attributed commands block Arc's Unknown severity (which Screenplay cannot model).
+            var floor = severities.All(severity => severity == SemanticValidationSeverity.Error) ? "Error" : "Information";
+            builder.Attribute($"BlockOnValidationSeverity(ValidationResultSeverity.{floor})");
+        }
+
+        builder.Attribute(SemanticAuthorizationAttributes.For(command))
             .OpenBlock($"public record {name}({parameters}) : ICanProvideEventSourceId")
             .Line("/// <inheritdoc/>")
             .ExpressionMember("public EventSourceId GetEventSourceId()", destinationExpression)
             .BlankLine();
-        if (command.Produces.Length == 1)
+        var hasOccurrence = command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+            mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
+        var hasTags = command.Produces.Any(produced => !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty);
+        string EventValue(SemanticProducedEvent produced)
+        {
+            var @event = context.Events[produced.EventContract];
+            var arguments = @event.Properties.Select(property =>
+            {
+                var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
+                return mapping.Source is SemanticEventContextExpression ? "occurred" :
+                    Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target).Name);
+            });
+            return $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)})";
+        }
+
+        string WrappedEvent(SemanticProducedEvent produced)
+        {
+            var target = (SemanticResolvedExpression)SemanticDestinations.Of(command, produced)!;
+            var targetProperty = command.Properties.Single(_ => _.Id == target.Target);
+            var @event = context.Events[produced.EventContract];
+            var tags = @event.Tags.Concat(produced.Tags).ToArray();
+            var metadata = new List<string>();
+            if (hasOccurrence)
+            {
+                metadata.Add("Occurred = occurred");
+            }
+
+            if (tags.Length > 0)
+            {
+                metadata.Add($"Tags = [{string.Join(", ", tags.Select(tag => System.Text.Json.JsonSerializer.Serialize(tag)))}]");
+            }
+
+            var wrapper = $"new EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {EventValue(produced)})";
+            return metadata.Count == 0 ? wrapper : $"{wrapper} {{ {string.Join(", ", metadata)} }}";
+        }
+
+        if (command.Produces.Length == 1 && !hasOccurrence && !hasTags)
         {
             var @event = context.Events[command.Produces[0].EventContract];
             var arguments = @event.Properties.Select(property =>
@@ -91,26 +142,50 @@ internal static class SemanticStateChangeArtifactRenderer
             });
             builder.ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", $"new({string.Join(", ", arguments)})");
         }
+        else if (!hasOccurrence)
+        {
+            var events = command.Produces.Select(WrappedEvent);
+            if (command.Produces.Length == 1)
+            {
+                builder.ExpressionMember("public EventForEventSourceId Handle()", events.Single());
+            }
+            else
+            {
+                builder.ExpressionMember("public IEnumerable<EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
+            }
+        }
         else
         {
-            var events = command.Produces.Select(produced =>
-            {
-                var @event = context.Events[produced.EventContract];
-                var arguments = @event.Properties.Select(property =>
-                {
-                    var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
-                    var source = (SemanticResolvedExpression)mapping.Source;
-                    return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
-                });
-                var value = $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)})";
-                var target = (SemanticResolvedExpression)SemanticDestinations.Of(command, produced)!;
-                var targetProperty = command.Properties.Single(_ => _.Id == target.Target);
-                return $"new EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {value})";
-            });
-            builder.ExpressionMember("public IEnumerable<EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
+            var result = command.Produces.Length == 1 ? "EventForEventSourceId" : "IEnumerable<EventForEventSourceId>";
+
+            // Chronicle's MongoDB event context retains UTC milliseconds. Normalize the payload
+            // and append context together so a stored replay sees identical occurrence values.
+            builder.OpenBlock($"public {result} Handle()")
+                .Line("var occurred = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());")
+                .Line($"return {(command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(WrappedEvent))}]")};")
+                .EndBlock();
         }
 
         builder.EndBlock().BlankLine();
+    }
+
+    static IEnumerable<SemanticValidationRule> ReferencedValidations(
+        SemanticTypeReference type,
+        SemanticApplicationContext context,
+        HashSet<SemanticId> visited)
+    {
+        if (type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts.TryGetValue(type.Target, out var concept))
+        {
+            return concept.Validations;
+        }
+
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType && visited.Add(type.Target) &&
+            context.Types.TryGetValue(type.Target, out var composite))
+        {
+            return composite.Properties.SelectMany(property => ReferencedValidations(property.Type, context, visited));
+        }
+
+        return [];
     }
 
     static void RenderEvent(CSharpCodeBuilder builder, SemanticEventContract @event, SemanticTypeSystem types)

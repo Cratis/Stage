@@ -14,20 +14,28 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticRequirementRendering
 {
     internal static bool CanRender(SemanticRequirement requirement, SemanticCommand command, SemanticApplicationContext context) =>
-        SemanticValidationRendering.CanResolve(requirement.Message, context) && requirement.Severity == SemanticValidationSeverity.Error &&
+        SemanticValidationRendering.CanResolve(requirement.Message, context) && Enum.IsDefined(requirement.Severity) &&
         CanRender(requirement.Condition, command, context);
 
     internal static void Render(CSharpCodeBuilder builder, SemanticRequirement requirement, SemanticCommand command, SemanticApplicationContext context)
     {
         var condition = Condition(requirement.Condition, command, context);
         var message = requirement.Message ?? "Command requirement was not met.";
+        var severity = requirement.Severity switch
+        {
+            SemanticValidationSeverity.Error => "Error",
+            SemanticValidationSeverity.Warning => "Warning",
+            SemanticValidationSeverity.Information => "Information",
+            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValidationSeverity), requirement.Severity)
+        };
+        var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity(ValidationResultSeverity.{severity})";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
-            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage(_ => global::{context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)});");
+            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage(_ => global::{context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
         else
         {
-            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage({CSharpCodeBuilder.StringLiteral(message)});");
+            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
     }
 

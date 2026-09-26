@@ -9,5 +9,8 @@
         <ProjectReference Include="../Rendering.Cratis/Rendering.Cratis.csproj" />
         <ProjectReference Include="../Specifications/Specifications.csproj" />
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
+        <!-- Match the renderer's Roslyn assembly and the corpus' Workspaces dependency. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" PrivateAssets="All" />
     </ItemGroup>
 </Project>

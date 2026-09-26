@@ -80,7 +80,7 @@ public class when_conforming_scoped_projections_to_chronicle
     }
 
     [Fact]
-    public void should_not_treat_fluent_from_all_as_an_all_event_subscription()
+    public void should_treat_fluent_from_all_as_an_all_event_subscription()
     {
         var events = Substitute.For<IEventTypes>();
         var builder = new ProjectionBuilderFor<AllEventsProbe>(
@@ -94,7 +94,7 @@ public class when_conforming_scoped_projections_to_chronicle
         var allMappings = (IDictionary)Property(Property(definition, "All")!, "Properties")!;
 
         Assert.Single(allMappings.Keys);
-        Assert.False((bool)Property(definition, "SubscribesToAllEvents")!);
+        Assert.True((bool)Property(definition, "SubscribesToAllEvents")!);
     }
 
     static void ExpandBoundAutoMaps(IDictionary<string, string> shape, ExecutableSemanticModel model)

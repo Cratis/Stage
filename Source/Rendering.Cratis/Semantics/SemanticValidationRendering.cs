@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticValidationRendering
 {
     internal static bool CanRender(SemanticValidationRule rule) =>
-        SafeMessage(rule.Message) && SafeOperand(rule) && !(rule.Operand is SemanticNullValue && rule.Kind is SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) && rule.Severity == SemanticValidationSeverity.Error && rule.Kind is
+        SafeMessage(rule.Message) && SafeOperand(rule) && !(rule.Operand is SemanticNullValue && rule.Kind is SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) && Enum.IsDefined(rule.Severity) && rule.Kind is
             SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
             SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
             SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
@@ -40,13 +40,21 @@ internal static class SemanticValidationRendering
         var value = concept ? "_.Value" : $"_.{Identifiers.ToPascalCase(property)}";
         var predicate = Predicate(rule, primitive, collection, wrapped && collection, optional);
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
+        var severity = rule.Severity switch
+        {
+            SemanticValidationSeverity.Error => "Error",
+            SemanticValidationSeverity.Warning => "Warning",
+            SemanticValidationSeverity.Information => "Information",
+            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValidationSeverity), rule.Severity)
+        };
+        var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity(ValidationResultSeverity.{severity})";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
-            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage(_ => global::{rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)});");
+            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage(_ => global::{rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
         else
         {
-            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)});");
+            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
     }
 

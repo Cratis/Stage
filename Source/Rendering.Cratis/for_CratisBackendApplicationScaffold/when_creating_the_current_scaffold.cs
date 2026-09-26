@@ -38,7 +38,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_stop_inheriting_parent_build_properties() => Content("Directory.Build.props").ShouldEqual("<Project />\n");
     [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");
     [Fact] void should_disable_inherited_central_package_management() => DirectoryPackagesPropsDisablesCentralPackageManagement().ShouldBeTrue();
-    [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("2|net10.0|22.23.0|22.23.0|22.23.0|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.4.8");
+    [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("2|net10.0|22.25.0|22.25.0|22.25.0|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.8.1");
     [Fact] void should_expose_only_the_verified_current_profile_as_public_static_surface() => PublicStaticProfileMethods().ShouldContainOnly("get_Current");
     [Fact] void should_emit_the_solution_without_a_guid() => SolutionSemantics().ShouldEqual("MyApp.csproj|False");
     [Fact] void should_emit_only_the_exact_package_versions() => PackageVersions().ShouldEqual(ExpectedPackageVersions());
@@ -50,7 +50,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_emit_the_exact_arc_chronicle_and_mongodb_settings() => AppSettingsSemantics().ShouldEqual("api|False|1|MyApp|chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000|mongodb://localhost:27017|MyApp");
     [Fact] void should_keep_event_store_data_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-data:/data/db");
     [Fact] void should_keep_event_store_configuration_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-config:/data/configdb");
-    [Fact] void should_pin_the_compatible_development_chronicle_image() => Content("docker-compose.yml").ShouldContain("image: cratis/chronicle:19.4.8-development");
+    [Fact] void should_pin_the_compatible_development_chronicle_image() => Content("docker-compose.yml").ShouldContain("image: cratis/chronicle:19.8.1-development");
     [Fact] void should_expose_only_the_required_chronicle_and_mongodb_ports() => ComposePorts().ShouldEqual("27017:27017|35000:35000");
     [Fact] void should_not_emit_wildcard_range_latest_or_random_guid_values() => HasForbiddenValues().ShouldBeFalse();
 
@@ -101,12 +101,12 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         '|',
         new[]
         {
-            "Cratis=22.23.0",
-            "Cratis.Arc.Chronicle.Testing=22.23.0",
-            "Cratis.Arc.MongoDB=22.23.0",
-            "Cratis.Chronicle=19.4.8",
-            "Cratis.Chronicle.AspNetCore=19.4.8",
-            "Cratis.Chronicle.Testing=19.4.8",
+            "Cratis=22.25.0",
+            "Cratis.Arc.Chronicle.Testing=22.25.0",
+            "Cratis.Arc.MongoDB=22.25.0",
+            "Cratis.Chronicle=19.8.1",
+            "Cratis.Chronicle.AspNetCore=19.8.1",
+            "Cratis.Chronicle.Testing=19.8.1",
             "Cratis.Specifications=4.1.1",
             "Cratis.Specifications.XUnit=4.1.1",
             "Microsoft.NET.Test.Sdk=18.10.1",

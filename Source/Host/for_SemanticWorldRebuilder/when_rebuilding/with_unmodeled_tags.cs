@@ -14,7 +14,7 @@ public class with_unmodeled_tags : a_rebuildable_world
     void Because()
     {
         _event.Context.Tags = ["not-produced"];
-        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_plan, [_event], _mirror, 0));
+        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_plan, [_event], 0));
     }
 
     [Fact] void should_refuse_the_unmodeled_tags() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();

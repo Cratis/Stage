@@ -15,6 +15,7 @@
         <PackageReference Include="Cratis.Arc.Testing" />
         <PackageReference Include="Cratis.Arc.Chronicle.Testing" />
         <PackageReference Include="Cratis.Chronicle.Testing" />
+        <PackageReference Include="Microsoft.Orleans.Reminders" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />

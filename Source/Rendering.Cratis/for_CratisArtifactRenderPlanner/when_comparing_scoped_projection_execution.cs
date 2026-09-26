@@ -28,6 +28,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         ("nested_from_then_from", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", First, First, "Again")]),
         ("root_removal_and_recreation", [new("ProjectRegistered", First, First, "First"), new("ProjectRemoved", First), new("ProjectRegistered", First, First, "Second")]),
         ("child_removal_existing_and_missing", [new("ProjectRegistered", First, First, "First"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoteRemoved", Note, First, null, Note), new("ProjectNoteRemoved", OtherNote, First, null, OtherNote)]),
+        ("child_removal_via_join", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", Note, Second, "B", Note), new("ProjectNoteRemovedViaJoin", Note, null, null, Note)]),
         ("two_parents_with_distinct_children", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", OtherNote, Second, "B", OtherNote)]),
         ("every_on_from_and_join", [new("ProjectRegistered", First, First, "First"), new("ProjectNamed", First, null, "Joined"), new("ProjectRenamed", First, First, "Renamed")]),
         ("local_after_join_keeps_joined_name", [new("ProjectNamed", First, null, "Joined"), new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Renamed")])
@@ -40,7 +41,11 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     protected override ArtifactRenderPlan CreatePlan()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", when_rendering_scoped_projections.ScopedSource);
+        var source = when_rendering_scoped_projections.ScopedSource
+            .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
+            .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
+            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal);
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
         _model = compiled.Value!.Model;
@@ -70,6 +75,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     }
 
     [Fact] void should_match_all_reference_snapshots() => _testOutput.ShouldContain("Passed!");
+    [Fact] void should_not_admit_from_all_when_mongo_cannot_match_reference() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
 
     // Screenplay backfills the earlier join after each local from-mapping; Chronicle's generated spec must agree.
     [Fact] void should_keep_joined_name_after_a_later_local_write() => _localAfterJoinExpected.ShouldContain("\"name\":\"Joined\"");
@@ -144,9 +150,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         var accepted = Assert.IsType<SemanticAccepted>(result.Execution);
         var readModel = feature.Slices.SelectMany(slice => slice.ReadModels).Single(candidate => candidate.Name == "ProjectSummary");
         return JsonSerializer.Serialize(new[] { First, Second }.Select(key => Snapshot(
-            accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key),
-            readModel,
-            _model)));
+            accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key), readModel, _model)));
     }
 
     static object? Snapshot(SemanticReadModelInstance? instance, SemanticReadModel readModel, ExecutableSemanticModel model)
@@ -161,7 +165,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
             return new { id = Text(members["noteId"]), name = Text(members["name"]) };
         }).ToArray() : null;
         var info = values["info"] is SemanticCompositeValue composite ? Text(composite.Properties.Single(member => member.TargetProperty == infoType.Properties.Single().Id).Value) : null;
-        return new { name = Text(values["name"]), visits = Number(values["visits"]), lastSeen = Text(values["lastSeen"]), info, notes };
+        return new { name = Text(values["name"]), label = Text(values["label"]), visits = Number(values["visits"]), lastSeen = Text(values["lastSeen"]), info, notes };
     }
 
     static string? Text(SemanticValue value) => value is SemanticTextValue text ? text.Value : null;
@@ -202,6 +206,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
                         return new
                         {
                             name = instance.Name.Value,
+                            label = instance.Label,
                             visits = instance.Visits?.ToString(CultureInfo.InvariantCulture),
                             lastSeen = instance.LastSeen?.Value.ToString(),
                             info = instance.Info?.Name.Value,

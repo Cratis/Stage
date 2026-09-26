@@ -201,11 +201,33 @@ public static class CratisRendering
         ImmutableArray<SemanticImplementationRequirement> requirements,
         ImmutableDictionary<string, string> contents,
         ImmutableArray<Diagnostic> attachmentDiagnostics)
+        => Plan(model, executionPlan, scope, options, requirements, contents, attachmentDiagnostics, []);
+
+    /// <summary>Plans with attachment diagnostics and typed contexts from one compilation.</summary>
+    /// <param name="model">The executable semantic model.</param>
+    /// <param name="executionPlan">The admitted execution plan.</param>
+    /// <param name="scope">The requested semantic scope.</param>
+    /// <param name="options">The project and namespace options.</param>
+    /// <param name="requirements">The compilation's requirements.</param>
+    /// <param name="contents">Resolved bodies keyed by requirement identity.</param>
+    /// <param name="attachmentDiagnostics">The attachment loader's diagnostics.</param>
+    /// <param name="descriptors">Typed contexts from the same compilation.</param>
+    /// <returns>The render plan or blocking diagnostics.</returns>
+    public static ArtifactRenderPlan Plan(
+        ExecutableSemanticModel model,
+        SemanticExecutionPlan executionPlan,
+        ArtifactRenderScope scope,
+        CratisRenderingOptions options,
+        ImmutableArray<SemanticImplementationRequirement> requirements,
+        ImmutableDictionary<string, string> contents,
+        ImmutableArray<Diagnostic> attachmentDiagnostics,
+        ImmutableArray<SemanticTypedContextDescriptor> descriptors)
     {
         var profile = CreateProfile(model.Application.Name, options);
         var request = new ArtifactRenderRequest(model, executionPlan, profile, scope)
         {
             ImplementationRequirements = requirements,
+            TypedContextDescriptors = descriptors,
             ImplementationContents = contents,
             AttachmentDiagnostics = attachmentDiagnostics
         };

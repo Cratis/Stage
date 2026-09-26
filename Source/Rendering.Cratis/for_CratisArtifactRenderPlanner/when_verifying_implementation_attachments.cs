@@ -70,6 +70,62 @@ public class when_verifying_implementation_attachments : Specification
         _loaded.ImplementationContents[requirement.RequirementId].ShouldContain("Nothing to order");
     }
 
+    [Fact] void should_carry_ready_descriptors_with_the_same_model_revision()
+    {
+        var descriptor = _loaded.TypedContextDescriptors.Single();
+        descriptor.RequirementId.ShouldEqual(_loaded.ImplementationRequirements.Single().RequirementId);
+        descriptor.IsWrapperReady.ShouldBeTrue();
+        descriptor.ModelRevision.ShouldEqual(_loaded.Model.Revision);
+        CratisRendering.Plan(
+            _loaded.Model,
+            _loaded.Plan,
+            Scope(_loaded),
+            new("Orders", "Orders"),
+            _loaded.ImplementationRequirements,
+            _loaded.ImplementationContents,
+            _loaded.AttachmentDiagnostics,
+            _loaded.TypedContextDescriptors).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005");
+    }
+
+    [Fact] void should_reject_a_descriptor_with_no_matching_compiler_requirement()
+    {
+        var descriptor = _loaded.TypedContextDescriptors.Single() with { RequirementId = "unrelated" };
+        CratisRendering.Plan(
+            _loaded.Model,
+            _loaded.Plan,
+            Scope(_loaded),
+            new("Orders", "Orders"),
+            _loaded.ImplementationRequirements,
+            _loaded.ImplementationContents,
+            _loaded.AttachmentDiagnostics,
+            [descriptor]).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021");
+    }
+
+    [Fact] void should_diagnose_an_unknown_runtime_token_without_falling_back_to_dynamic()
+    {
+        var descriptor = _loaded.TypedContextDescriptors.Single();
+        var member = descriptor.Members[0];
+        var unknown = descriptor with
+        {
+            Members = descriptor.Members.SetItem(0, member with
+            {
+                Type = new(SemanticContextTypeKinds.Runtime, null, null, "UnsupportedToken")
+            })
+        };
+        var plan = CratisRendering.Plan(
+            _loaded.Model,
+            _loaded.Plan,
+            Scope(_loaded),
+            new("Orders", "Orders"),
+            _loaded.ImplementationRequirements,
+            _loaded.ImplementationContents,
+            _loaded.AttachmentDiagnostics,
+            [unknown]);
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021" &&
+            diagnostic.Message.Contains("UnsupportedToken", StringComparison.Ordinal));
+        plan.Artifacts.ShouldBeEmpty();
+    }
+
     [Fact] void should_reject_the_missing_body_with_its_requirement_identity()
     {
         var requirement = _loaded.ImplementationRequirements.Single();

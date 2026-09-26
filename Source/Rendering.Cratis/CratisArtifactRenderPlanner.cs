@@ -54,6 +54,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             return PlanAdmitted(request, options);
         }
+        catch (InvalidTypedContext exception)
+        {
+            return ArtifactRenderPlan.Create(request, [], [Error("STAGE-ESM-021", exception.Message, request.Model.Application.Id)]);
+        }
         catch (UnsupportedSemanticRendering exception)
         {
             return ArtifactRenderPlan.Create(
@@ -68,18 +72,21 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var artifacts = new List<PlannedArtifact>();
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
+        diagnostics.AddRange(SemanticTypedContextAdmission.Verify(request));
         if (diagnostics.Count > 0)
         {
             return CreatePlan(request, [], diagnostics);
         }
         var context = new SemanticApplicationContext(request, options);
         var slices = context.SelectedSlices();
+        var wrappers = request.TypedContextDescriptors.Select(descriptor => SemanticTypedContextRenderer.Render(descriptor, context)).ToArray();
         diagnostics.AddRange(SemanticCratisAdmission.Evaluate(context, slices));
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {
             return CreatePlan(request, [], diagnostics);
         }
 
+        artifacts.AddRange(wrappers.Select(Artifact));
         AddScaffold(request, context, artifacts, diagnostics);
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {

@@ -9,7 +9,8 @@ using Cratis.Arc.Http;
 using Cratis.Arc.Testing.Commands;
 using Cratis.Arc.Validation;
 using Cratis.Chronicle.EventSequences;
-using Cratis.Chronicle.Testing.Events;
+using Cratis.Chronicle.Testing;
+using Cratis.Chronicle.Testing.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
@@ -109,12 +110,10 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             }
         }
 
-        var eventTypes = specification.GivenEvents.Select(given => given.EventContract)
-            .Concat(command?.Produces.Select(produced => produced.EventContract) ?? [])
-            .Concat(specification.WhenAppended is { } appendedEvent ? [appendedEvent.EventContract] : [])
-            .Distinct().Select(runtimeTypes.For).ToArray();
-        var eventStore = new EventStoreForTesting(null, new SemanticClientArtifactsProvider(eventTypes));
-        var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventStore, plan.Model.SemanticVersion);
+        var eventTypes = plan.Events.Keys.Select(runtimeTypes.For).ToArray();
+        var defaults = new Defaults(new SemanticClientArtifactsProvider(eventTypes));
+        using var eventScenario = new EventScenario(defaults);
+        var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventScenario.EventLog, plan.Model.SemanticVersion);
 
         // A new Chronicle-backed event log and scenario are created for each specification.
         foreach (var given in specification.GivenEvents)
@@ -130,7 +129,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
                 return Rejected(slice, specification, SemanticConstraintEvaluator.Message(violation), violation.Name);
             }
             await context.Append(new SemanticSpecificationEvent(appended.EventContract, appended.Values) { EventSource = appended.EventSource }, appended.EventSource.Value, cancellationToken);
-            return await Accepted(slice, specification, context, eventStore);
+            return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
         }
 
         var caller = specification.GivenCaller;
@@ -189,7 +188,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         {
             return Rejected(slice, specification, rejection);
         }
-        return await Accepted(slice, specification, context, eventStore);
+        return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
     }
 
     static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, string message, string? code = null)
@@ -198,9 +197,9 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         return Record(slice, specification, failures.Count == 0 ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed, "Rejected", failures: failures, trace: new SemanticExecutionTrace([], new Dictionary<string, string>(), new Dictionary<string, string>(), message) { RejectionCode = code });
     }
 
-    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventStoreForTesting eventStore)
+    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventScenario eventScenario, SemanticRuntimeTypes runtimeTypes, Defaults defaults, SemanticExecutionPlan plan)
     {
-        var persisted = await eventStore.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
+        var persisted = await eventScenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
         if (persisted.Count != context.Facts.Count)
         {
             throw new SemanticAppendFailed("The in-memory Chronicle log does not contain every accepted fact.");
@@ -208,11 +207,13 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
 
         var facts = context.Facts.Skip(specification.GivenEvents.Length).ToArray();
         var destinations = context.Destinations.Skip(specification.GivenEvents.Length).ToArray();
-        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, null);
+        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, null).ToList();
+        var projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
+        failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
         var trace = new SemanticExecutionTrace(
             [.. facts.Select((fact, index) => new SemanticTraceFact(fact.EventContract.ToString(), fact.EventSource?.Type.Kind == SemanticTypeReferenceKind.Concept ? fact.EventSource.Type.Target.ToString() : fact.EventSource?.Type.Primitive.ToString(), SemanticRunContext.Canonical(destinations[index]), fact.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))],
-            new Dictionary<string, string>(),
-            new Dictionary<string, string>(),
+            projected.ToDictionary(row => $"{row.ReadModel}:{SemanticRunContext.Canonical(row.Key)}", row => JsonSerializer.Serialize(row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value)))),
+            specification.ThenQueries.ToDictionary(query => $"{query.Query}:{SemanticRunContext.Canonical(query.Key)}", query => JsonSerializer.Serialize(projected.Where(row => row.ReadModel == plan.Queries[query.Query].ReadModel && SemanticExpectationComparer.AreEqual(row.Key, query.Key)).Select(row => row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))),
             null);
         return Record(slice, specification, failures.Count == 0 ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed, "Accepted", failures: failures, trace: trace);
     }

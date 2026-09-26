@@ -9,9 +9,7 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 namespace Cratis.Stage.Specifications;
 
 /// <summary>
-/// Executes selected semantic specifications in isolated memory. Arc's scenario replaces the process-wide
-/// Internals.ServiceProvider and leaves it pointing at a disposed provider; run this executor in its own
-/// process until Arc offers a scoped alternative. Serializing executor calls does not isolate a host.
+/// Executes selected semantic specifications in isolated memory without replacing the host service provider.
 /// </summary>
 public interface ISemanticSpecificationExecutor
 {

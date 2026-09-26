@@ -27,9 +27,7 @@ internal static class SemanticRunAdmission
         if (reducer is not null) return Block(StageExecutionCapability.Projection, reducer.ReadModel, "Reducer implementation bodies cannot be executed by Stage.");
         var opaqueConcept = plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Validations.Any(rule => OpaqueRule(rule.Kind)));
         if (opaqueConcept is not null) return Block(StageExecutionCapability.Command, opaqueConcept.Id, "Validation implementation bodies cannot be executed by Stage.");
-        if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Seeded read-model state requires a per-run projection engine.");
-        if (!specification.ThenReadModels.IsEmpty) return Block(StageExecutionCapability.Projection, specification.ThenReadModels[0].ReadModel, "Read-model assertions require a per-run projection engine.");
-        if (!specification.ThenQueries.IsEmpty) return Block(StageExecutionCapability.Query, specification.ThenQueries[0].Query, "Keyed queries require a per-run projection engine.");
+        if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Given read-model state cannot be seeded into the per-run projection scenario.");
         if (specification.GivenCaller?.Claims.Any(claim => string.Equals(claim.Type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase)) == true)
         {
             return Block(StageExecutionCapability.Authorization, specification.Id, "Role-URI claim types cannot be used as claims; roles and claims are separate in Screenplay.");
@@ -46,7 +44,7 @@ internal static class SemanticRunAdmission
             if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
             if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");
         }
-        if (specification.WhenAppended is not null) return ProjectionBlock(plan, specification, [specification.WhenAppended.EventContract]);
+        if (specification.WhenAppended is not null) return SemanticRunProjectionAdmission.Check(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
         if (specification.When is not { } when) return Block(StageExecutionCapability.Specification, specification.Id, "Only command or direct-append specifications are admitted.");
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
         if (!command.CodeValidations.IsEmpty || command.Validations.Any(rule => OpaqueRule(rule.Kind)))
@@ -63,7 +61,7 @@ internal static class SemanticRunAdmission
         // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
         var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? command.Produces.Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
-        if (ProjectionBlock(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
+        if (SemanticRunProjectionAdmission.Check(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
         if (command.Properties.Any(property => !Scalar(property.Type)) ||
             command.Produces.Any(produced => !plan.Events.TryGetValue(produced.EventContract, out var eventContract) || eventContract.Properties.Any(property => !Scalar(property.Type))))
@@ -91,14 +89,6 @@ internal static class SemanticRunAdmission
             return Block(StageExecutionCapability.IdentityAllocation, command.Id, "An accepted command requires an explicit destination.");
         }
         return null;
-    }
-
-    static SemanticUnsupportedCapability? ProjectionBlock(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents)
-    {
-        var reachable = specification.GivenEvents.Select(given => given.EventContract).Concat(reachableEvents).ToHashSet();
-        var projection = plan.Projections.Values.FirstOrDefault(value =>
-            (value.Scope is not null && reachable.Count > 0) || value.Transitions.Any(transition => reachable.Contains(transition.EventContract)));
-        return projection is null ? null : new(StageExecutionCapability.Projection, projection.Id.ToString(), "A projection consumes events in this specification but per-run projection execution is not available.");
     }
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>

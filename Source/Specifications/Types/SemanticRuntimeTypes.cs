@@ -9,12 +9,8 @@ using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Specifications.Types;
 
-// CLR types are used to validate every admitted fact against its declared persisted contract.
-// The per-run fact log retains semantic identities because Chronicle 19.4.7 does not expose
-// per-run projection execution; emitted types do not imply projected read models.
-
 /// <summary>
-/// Emits CLR event types for the scalar contracts admitted by the in-memory runner.
+/// Emits CLR event and read-model types for the scalar contracts admitted by the in-memory runner.
 /// </summary>
 /// <param name="plan">The semantic contract plan.</param>
 internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
@@ -22,6 +18,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     readonly DynamicTypeFactory _factory = new();
     readonly Dictionary<SemanticId, Type> _events = [];
     readonly Dictionary<SemanticId, Type> _commands = [];
+    readonly Dictionary<SemanticId, Type> _readModels = [];
 
     internal static object? ConvertValue(SemanticValue value, Type target) => value switch
     {
@@ -42,6 +39,17 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         {
             type = _factory.CreateCommandType("Stage.Semantic.Run", $"Command_{_commands.Count}");
             _commands.Add(command.Id, type);
+        }
+
+        return type;
+    }
+
+    internal Type ForReadModel(SemanticReadModel readModel)
+    {
+        if (!_readModels.TryGetValue(readModel.Id, out var type))
+        {
+            type = _factory.CreateReadModelType("Stage.Semantic.ReadModels", $"ReadModel_{_readModels.Count}", readModel.Properties.ToDictionary(property => property.Name, property => Resolve(property.Type)));
+            _readModels.Add(readModel.Id, type);
         }
 
         return type;

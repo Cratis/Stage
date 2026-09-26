@@ -14,6 +14,8 @@ using Cratis.Stage.Semantics;
 using NSubstitute;
 using Xunit;
 
+using ObserverInformation = Cratis.Chronicle.Contracts.Observation.ObserverInformation;
+
 namespace Cratis.Stage.Host.for_SemanticWorldRebuilder.when_rebuilding;
 
 public class with_two_independent_mirrors : a_rebuildable_world

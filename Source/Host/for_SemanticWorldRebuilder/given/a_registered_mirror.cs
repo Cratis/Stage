@@ -10,6 +10,8 @@ using Cratis.Chronicle.Contracts.Sequences;
 using Cratis.Stage.Semantics;
 using NSubstitute;
 
+using ObserverInformation = Cratis.Chronicle.Contracts.Observation.ObserverInformation;
+
 namespace Cratis.Stage.Host.for_SemanticWorldRebuilder.given;
 
 public class a_registered_mirror : a_rebuildable_world

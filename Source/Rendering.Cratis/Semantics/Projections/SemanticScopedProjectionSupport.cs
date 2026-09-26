@@ -35,7 +35,7 @@ internal static class SemanticScopedProjectionSupport
 
         if (scope.Every is { SubscribesToAllEvents: true })
         {
-            return "All-event subscriptions cannot render: Chronicle v19.4.7 FromAll stores mappings but ProjectionBuilderFor.Build omits SubscribesToAllEvents, so unrelated event types are not observed.";
+            return "All-event subscriptions remain rejected pending proof that Chronicle v19.8.0 FromAll agrees with Screenplay when from and all overlap.";
         }
 
         if (scope.Every is { IncludeChildren: true } && (scope.Children.Length > 0 || scope.Nested.Length > 0))
@@ -50,12 +50,12 @@ internal static class SemanticScopedProjectionSupport
 
         if (child && scope.JoinRemovals.Length > 0)
         {
-            return "Child remove via join cannot render: Chronicle v19.4.7 ReadModelScenario retains a matching child in one of two parents, although the MongoDB sink removes both; generated specifications would fail against the reference.";
+            return "Child remove via join remains rejected pending a Chronicle v19.8.0 ReadModelScenario equivalence spec.";
         }
 
         if (scope.Nested.Any(nested => nested.Scope.Removals.Length > 0))
         {
-            return "Nested clear cannot render: after clear and a matching root from, Chronicle v19.4.7 ReadModelScenario throws NullReferenceException, while the MongoDB sink fails the projection with write error 28 (cannot create a nested field in a null object); the reference recreates the nested object.";
+            return "Nested clear cannot render: after clear and a matching root from, Chronicle v19.8.0 cannot re-create the nested object; Chronicle#4166 remains unreleased.";
         }
 
         if (isNested && scope.JoinRemovals.Length > 0)
@@ -75,7 +75,7 @@ internal static class SemanticScopedProjectionSupport
             scope.Removals.Any(removal => removal.Key is SemanticProjectionCompositeKey || removal.ParentKey is SemanticProjectionCompositeKey) ||
             scope.JoinRemovals.Any(removal => removal.Key is SemanticProjectionCompositeKey))
         {
-            return "Composite keys cannot render: Chronicle v19.4.7's fluent UsingCompositeKey omits the type token emitted by its declaration visitor; the resulting definition and reference identity have not been proven equivalent in execution.";
+            return "Composite keys cannot render on Chronicle v19.8.0: keys containing '-', '@' or ':' are resolved incorrectly (Chronicle#4163, fixed in v19.8.1).";
         }
 
         if (child && identity is null)

@@ -425,16 +425,6 @@ public class StateViewSliceRenderer : ISliceRenderer
 
         AddJoined(joinBlocks, properties, seen, events, applicationSet, diagnostics);
 
-        // Chronicle's model-bound surface cannot carry 'subscribes to all events': its client rewrites [FromAll]
-        // into [FromEvery], and the flag that separates the two lives only in the definition path. The mappings
-        // survive, the system-wide subscription does not, so the loss is reported instead of implied.
-        if (blocks.OfType<AllSyntax>().Any())
-        {
-            diagnostics.Add(
-                "An 'all' block subscribes to every event type in the system, which no model-bound attribute expresses — " +
-                "its mappings are rendered, but the projection only observes the events its 'from' blocks name.");
-        }
-
         foreach (var mapping in blocks.OfType<AllSyntax>().SelectMany(all => all.Mappings))
         {
             Add(ProjectionMapping.ResolveGlobal(mapping, GlobalMappingScope.All, diagnostics), "all");

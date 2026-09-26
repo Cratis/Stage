@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Cratis.Chronicle.Contracts.Observation;
 using Cratis.Specifications;
 using Xunit;
 
+using ObserverInformation = Cratis.Chronicle.Contracts.Observation.ObserverInformation;
 using RunningState = Cratis.Chronicle.Contracts.Observation.ObserverRunningState;
 
 namespace Cratis.Stage.Host.for_SemanticChronicleRegistration;

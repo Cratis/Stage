@@ -28,13 +28,14 @@ internal static class SemanticRequirementRendering
             SemanticValidationSeverity.Information => "Information",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValidationSeverity), requirement.Severity)
         };
+        var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity(ValidationResultSeverity.{severity})";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
-            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage(_ => global::{context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}).WithSeverity(ValidationResultSeverity.{severity});");
+            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage(_ => global::{context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
         else
         {
-            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}).WithSeverity(ValidationResultSeverity.{severity});");
+            builder.Line($"RuleFor(_ => _).Must(command => {condition}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
     }
 

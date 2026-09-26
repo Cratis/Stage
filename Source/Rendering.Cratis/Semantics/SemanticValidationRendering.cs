@@ -47,13 +47,14 @@ internal static class SemanticValidationRendering
             SemanticValidationSeverity.Information => "Information",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValidationSeverity), rule.Severity)
         };
+        var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity(ValidationResultSeverity.{severity})";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
-            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage(_ => global::{rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}).WithSeverity(ValidationResultSeverity.{severity});");
+            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage(_ => global::{rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
         else
         {
-            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}).WithSeverity(ValidationResultSeverity.{severity});");
+            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
     }
 

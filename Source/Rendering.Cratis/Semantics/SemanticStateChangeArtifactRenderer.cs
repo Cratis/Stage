@@ -84,6 +84,8 @@ internal static class SemanticStateChangeArtifactRenderer
         if (severities.Length > 0)
         {
             // Screenplay rejects every validation failure; a caller must not loosen the modeled floor.
+            // Keep this even for Error-only rules: Arc lets an unattributed caller allow errors, and
+            // only attributed commands block Arc's Unknown severity (which Screenplay cannot model).
             var floor = severities.All(severity => severity == SemanticValidationSeverity.Error) ? "Error" : "Information";
             builder.Attribute($"BlockOnValidationSeverity(ValidationResultSeverity.{floor})");
         }
@@ -155,8 +157,11 @@ internal static class SemanticStateChangeArtifactRenderer
         else
         {
             var result = command.Produces.Length == 1 ? "EventForEventSourceId" : "IEnumerable<EventForEventSourceId>";
+
+            // Chronicle's MongoDB event context retains UTC milliseconds. Normalize the payload
+            // and append context together so a stored replay sees identical occurrence values.
             builder.OpenBlock($"public {result} Handle()")
-                .Line("var occurred = DateTimeOffset.UtcNow;")
+                .Line("var occurred = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());")
                 .Line($"return {(command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(WrappedEvent))}]")};")
                 .EndBlock();
         }

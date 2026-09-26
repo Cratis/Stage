@@ -103,19 +103,42 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
             ThenErrors = []
         };
 
-        // The source binder cannot attach an event source to an event with no declared producer. Keep the
-        // admitted projection plan, and inject only this executable fixture into its specification index.
+        // The reference now validates typed Given sources against declared producer destinations.
+        // These synthetic projection events have no source commands, so declare test-only producers
+        // without changing the application rendered for Chronicle's projection scenario.
+        var command = source.Commands.Single();
+        var sourceId = command.Properties.Single(property => property.IsIdentifier).Id;
+        var sourceName = command.Properties.Single(property => property.Name == "name").Id;
+        var probeProduces = facts.Select(fact => fact.Event).Distinct().Where(name => name != "ProjectRegistered")
+            .Select(name => new SemanticProducedEvent(
+                events[name].Id,
+                null,
+                null,
+                [.. events[name].Properties.Select(property => new SemanticPropertyMapping(
+                    property.Id,
+                    new SemanticResolvedExpression(
+                        SemanticExpressionRootKind.Command,
+                        SemanticExpressionSourceKind.Property,
+                        property.Name == "name" ? sourceName : sourceId)))]));
+        var referenceSource = source with { Commands = [command with { Produces = [.. command.Produces, .. probeProduces] }] };
+        var referenceModel = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, _model.Application with
+        {
+            Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice.Id == source.Id ? referenceSource : slice)] }] }]
+        });
+        var referencePlan = SemanticExecutionPlan.Compile(referenceModel);
+        Assert.True(referencePlan.Success, string.Join(Environment.NewLine, referencePlan.Issues));
+        var compiled = referencePlan.Plan!;
         var constructor = typeof(SemanticExecutionPlan).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
         var reference = (SemanticExecutionPlan)constructor.Invoke(
         [
-            _model,
-            _execution.Commands,
-            _execution.Events,
-            _execution.Projections,
-            _execution.ReadModels,
-            _execution.Queries,
-            _execution.Specifications.SetItem(spec.Id, spec),
-            _execution.Constraints
+            referenceModel,
+            compiled.Commands,
+            compiled.Events,
+            compiled.Projections,
+            compiled.ReadModels,
+            compiled.Queries,
+            compiled.Specifications.SetItem(spec.Id, spec),
+            compiled.Constraints
         ]);
         var result = new SemanticSpecificationRunner().Run(reference, spec.Id);
         var accepted = Assert.IsType<SemanticAccepted>(result.Execution);

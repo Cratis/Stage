@@ -64,10 +64,194 @@ public class when_verifying_implementation_attachments : Specification
 
     async Task Because() => _loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
 
+    [Fact] async Task should_emit_no_typed_contexts_for_a_slice_when_other_slices_have_a_reducer_rule_and_policy()
+    {
+        const string policy = """
+            policy Access
+              ```csharp
+              return true;
+              ```
+            """;
+        var source = policy + "\n" + FileSource.Replace("    slice StateChange PlaceOrder", "    slice StateChange Healthy\n      command CreateHealthy\n        id Uuid identifier\n        produces HealthyCreated\n          for id\n          id = id\n      event HealthyCreated\n        id Uuid\n    slice StateView Totals\n      readmodel Total\n        id Uuid\n        amount Decimal\n      query ById => Total?\n        by id Uuid\n      reducer Fold => Total\n        on OrderPlaced\n          file Reducers/OrderPlaced.cs\n    slice StateChange PlaceOrder", StringComparison.Ordinal)
+            .Replace("      command PlaceOrder\n", "      command PlaceOrder\n        authorize Access\n", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source);
+        Directory.CreateDirectory(Path.Combine(_folder, "Rules"));
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Rules", "Positive.cs"), "return context.Value > 0;");
+        Directory.CreateDirectory(Path.Combine(_folder, "Reducers"));
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Reducers", "OrderPlaced.cs"), "return state;");
+        var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
+        Assert.Contains(loaded.TypedContextDescriptors, descriptor => descriptor.Role == SemanticImplementationRole.RulePredicate);
+        Assert.Contains(loaded.TypedContextDescriptors, descriptor => descriptor.Role == SemanticImplementationRole.PolicyPredicate);
+        Assert.Contains(loaded.TypedContextDescriptors, descriptor => descriptor.Role == SemanticImplementationRole.ReducerTransition);
+        var healthy = loaded.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Healthy");
+        var request = new ArtifactRenderRequest(
+            loaded.Model,
+            loaded.Plan,
+            CratisRendering.CreateProfile("Orders", new("Orders", "Orders")),
+            new(ArtifactRenderScopeKind.Slice, healthy.Id))
+        {
+            ImplementationRequirements = loaded.ImplementationRequirements,
+            ImplementationContents = loaded.ImplementationContents,
+            TypedContextDescriptors = loaded.TypedContextDescriptors
+        };
+        var plan = new CratisArtifactRenderPlanner().Plan(request);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath.StartsWith("TypedContexts/", StringComparison.Ordinal));
+    }
+
+    [Fact] async Task should_require_a_policy_descriptor_for_each_authorized_use_site()
+    {
+        const string policySource = """
+            policy Access
+              ```csharp
+              return true;
+              ```
+            """;
+        var modelSource = policySource + "\n" + Source.Replace("    slice StateChange PlaceOrder", "    slice StateChange Healthy\n      command CreateHealthy\n        id Uuid identifier\n        authorize Access\n        produces HealthyCreated\n          for id\n          id = id\n      event HealthyCreated\n        id Uuid\n    slice StateChange PlaceOrder", StringComparison.Ordinal)
+            .Replace("      command PlaceOrder\n", "      command PlaceOrder\n        authorize Access\n", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), modelSource);
+        var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
+        var policies = loaded.TypedContextDescriptors.Where(descriptor => descriptor.Role == SemanticImplementationRole.PolicyPredicate).ToArray();
+        Assert.Equal(2, policies.Length);
+        var request = new ArtifactRenderRequest(
+            loaded.Model,
+            loaded.Plan,
+            CratisRendering.CreateProfile("Orders", new("Orders", "Orders")),
+            new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
+        {
+            ImplementationRequirements = loaded.ImplementationRequirements,
+            ImplementationContents = loaded.ImplementationContents,
+            TypedContextDescriptors = [.. loaded.TypedContextDescriptors.Where(descriptor => descriptor != policies[1])]
+        };
+        Assert.Contains(new CratisArtifactRenderPlanner().Plan(request).Diagnostics, diagnostic =>
+            diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("use site", StringComparison.Ordinal));
+    }
+
     [Fact] void should_carry_the_inline_body_by_requirement_identity()
     {
         var requirement = _loaded.ImplementationRequirements.Single();
         _loaded.ImplementationContents[requirement.RequirementId].ShouldContain("Nothing to order");
+    }
+
+    [Fact] void should_carry_ready_descriptors_with_the_same_model_revision()
+    {
+        var descriptor = _loaded.TypedContextDescriptors.Single();
+        descriptor.RequirementId.ShouldEqual(_loaded.ImplementationRequirements.Single().RequirementId);
+        descriptor.IsWrapperReady.ShouldBeTrue();
+        descriptor.ModelRevision.ShouldEqual(_loaded.Model.Revision);
+        CratisRendering.Plan(
+            _loaded.Model,
+            _loaded.Plan,
+            Scope(_loaded),
+            new("Orders", "Orders"),
+            _loaded.ImplementationRequirements,
+            _loaded.ImplementationContents,
+            _loaded.AttachmentDiagnostics,
+            _loaded.TypedContextDescriptors).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005");
+    }
+
+    [Fact] void should_reject_a_descriptor_from_another_model_revision()
+    {
+        var model = ExecutableSemanticModel.Create(
+            _loaded.Model.LanguageVersion,
+            _loaded.Model.SemanticVersion,
+            _loaded.Model.Application with { Name = "DifferentOrders" });
+        var request = new ArtifactRenderRequest(
+            model,
+            global::Cratis.Screenplay.Semantics.Execution.SemanticExecutionPlan.Compile(model).Plan!,
+            CratisRendering.CreateProfile("DifferentOrders", new("Orders", "Orders")),
+            new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        {
+            ImplementationRequirements = _loaded.ImplementationRequirements,
+            ImplementationContents = _loaded.ImplementationContents,
+            TypedContextDescriptors = _loaded.TypedContextDescriptors
+        };
+        Assert.Contains(new CratisArtifactRenderPlanner().Plan(request).Diagnostics, diagnostic =>
+            diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("revision", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void should_reject_a_mismatched_role_or_context_version(bool role)
+    {
+        var descriptor = _loaded.TypedContextDescriptors.Single();
+        var changed = role ? descriptor with { Role = SemanticImplementationRole.RulePredicate }
+            : descriptor with { ContextVersion = 2 };
+        var plan = CratisRendering.Plan(
+            _loaded.Model,
+            _loaded.Plan,
+            Scope(_loaded),
+            new("Orders", "Orders"),
+            _loaded.ImplementationRequirements,
+            _loaded.ImplementationContents,
+            _loaded.AttachmentDiagnostics,
+            [changed]);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" &&
+            diagnostic.Message.Contains("role, context version", StringComparison.Ordinal));
+    }
+
+    [Fact] void should_reject_a_descriptor_with_no_matching_compiler_requirement()
+    {
+        var descriptor = _loaded.TypedContextDescriptors.Single() with { RequirementId = "unrelated" };
+        CratisRendering.Plan(
+            _loaded.Model,
+            _loaded.Plan,
+            Scope(_loaded),
+            new("Orders", "Orders"),
+            _loaded.ImplementationRequirements,
+            _loaded.ImplementationContents,
+            _loaded.AttachmentDiagnostics,
+            [descriptor]).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021");
+    }
+
+    [Fact] void should_collect_target_and_descriptor_diagnostics_together()
+    {
+        var descriptor = _loaded.TypedContextDescriptors.Single();
+        var member = descriptor.Members[0];
+        var malformed = descriptor with
+        {
+            Members = descriptor.Members.SetItem(0, member with
+            {
+                Type = new(SemanticContextTypeKinds.Runtime, null, null, "UnsupportedToken")
+            })
+        };
+        var plan = CratisRendering.Plan(
+            _loaded.Model,
+            _loaded.Plan,
+            Scope(_loaded),
+            new("Orders", "Orders"),
+            _loaded.ImplementationRequirements,
+            _loaded.ImplementationContents,
+            _loaded.AttachmentDiagnostics,
+            [malformed]);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-005");
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021");
+    }
+
+    [Fact] void should_diagnose_an_unknown_runtime_token_without_falling_back_to_dynamic()
+    {
+        var descriptor = _loaded.TypedContextDescriptors.Single();
+        var member = descriptor.Members[0];
+        var unknown = descriptor with
+        {
+            Members = descriptor.Members.SetItem(0, member with
+            {
+                Type = new(SemanticContextTypeKinds.Runtime, null, null, "UnsupportedToken")
+            })
+        };
+        var plan = CratisRendering.Plan(
+            _loaded.Model,
+            _loaded.Plan,
+            Scope(_loaded),
+            new("Orders", "Orders"),
+            _loaded.ImplementationRequirements,
+            _loaded.ImplementationContents,
+            _loaded.AttachmentDiagnostics,
+            [unknown]);
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021" &&
+            diagnostic.Message.Contains("UnsupportedToken", StringComparison.Ordinal));
+        plan.Artifacts.ShouldBeEmpty();
     }
 
     [Fact] void should_reject_the_missing_body_with_its_requirement_identity()

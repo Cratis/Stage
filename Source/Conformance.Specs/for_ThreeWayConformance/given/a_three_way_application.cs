@@ -157,6 +157,34 @@ public abstract class a_three_way_application : a_generated_application
         return compilation.Value.Model;
     }
 
+    // The canonical V2 corpus acquired event generations in ESM v4. Keep the v2
+    // typed-destination path, without v4 replay or the unrelated Stage#163 projection oracle.
+    protected static ExecutableSemanticModel CreateV2(CanonicalCorpusSourceForm form)
+    {
+        var model = Compile(RegisterProjectCorpus.V2, form);
+        var modules = model.Application.Modules.Select(module => module with
+        {
+            Features = [.. module.Features.Select(feature => feature with
+            {
+                Slices = [.. feature.Slices.Select(slice => slice with
+                {
+                    Events = [.. slice.Events.Select(@event => @event with
+                    {
+                        Revision = EventContractRevision.Initial,
+                        Predecessor = null,
+                        PriorRevisions = []
+                    })],
+                    Specifications = [.. slice.Specifications.Select(specification => specification with
+                    {
+                        ThenReadModels = [],
+                        ThenQueries = []
+                    })]
+                })]
+            })]
+        });
+        return ExecutableSemanticModel.Create(LanguageVersion.V2, SemanticVersion.V2, model.Application with { Modules = [.. modules] });
+    }
+
     protected static ExecutableSemanticModel CompileWrongBilling()
     {
         var model = CompileBilling();

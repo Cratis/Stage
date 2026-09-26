@@ -40,7 +40,7 @@ internal static partial class SemanticCratisAdmission
         {
             if (!located.Slice.Reducers.IsEmpty)
             {
-                diagnostics.Add(Error("STAGE-ESM-019", $"Slice '{located.Slice.Name}' has reducer implementation bodies; Stage cannot render reducer transitions without Screenplay's per-transition typed context descriptor for State and Event (ContextVersion 1, ResultVersion 1).", located.Slice.Id));
+                diagnostics.Add(Error("STAGE-ESM-019", $"Slice '{located.Slice.Name}' has reducer implementation bodies; typed contexts are available, but Stage#119 still needs to render reducer bodies with null-result deletion, event-source key semantics and pure capability enforcement.", located.Slice.Id));
                 continue;
             }
 

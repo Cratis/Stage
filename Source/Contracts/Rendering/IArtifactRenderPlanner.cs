@@ -76,6 +76,12 @@ public sealed record ArtifactRenderRequest(
     /// <summary>Compiler requirements for the model; the planner verifies their content revisions before using a body.</summary>
     public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
 
+    /// <summary>The sidecar contract revision declared by the producer. Unknown revisions are refused.</summary>
+    public uint TypedContextContractRevision { get; init; } = 1;
+
+    /// <summary>Typed contexts from the compilation that produced <see cref="Model"/> and <see cref="ImplementationRequirements"/>.</summary>
+    public ImmutableArray<SemanticTypedContextDescriptor> TypedContextDescriptors { get; init; } = [];
+
     /// <summary>Resolved implementation bodies keyed by stable requirement identity, not by file path.</summary>
     public ImmutableDictionary<string, string> ImplementationContents { get; init; } = [];
 

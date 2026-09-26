@@ -24,6 +24,9 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
     /// <summary>Requirements emitted by the compilation.</summary>
     public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
 
+    /// <summary>Wrapper-ready context descriptors from the same compilation as <see cref="Model"/>.</summary>
+    public ImmutableArray<SemanticTypedContextDescriptor> TypedContextDescriptors { get; init; } = [];
+
     /// <summary>Resolved inline and file bodies keyed by requirement identity.</summary>
     public ImmutableDictionary<string, string> ImplementationContents { get; init; } = [];
 
@@ -148,6 +151,7 @@ public static class SemanticModelLoader
         return new(model, plan.Plan!)
         {
             ImplementationRequirements = compiled.ImplementationRequirements,
+            TypedContextDescriptors = compiled.TypedContextDescriptors,
             ImplementationContents = bodies.ToImmutable(),
             AttachmentDiagnostics = attachments.Diagnostics
         };

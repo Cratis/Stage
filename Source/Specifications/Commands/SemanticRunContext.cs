@@ -88,7 +88,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         var identityType = expression is SemanticResolvedExpression resolved
             ? command.Properties.Single(property => property.Id == resolved.Target).Type
             : command.Destination?.Type ?? specification.When.EventSource?.Type;
-        var identity = version == SemanticVersion.V2 && identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
+        var identity = version != SemanticVersion.V1 && identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
         var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, Evaluate(mapping.Source, inputs))).ToImmutableArray();
         return (new(produced.EventContract, values) { EventSource = identity }, destination);
     }

@@ -95,6 +95,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticEventContract", rendered, "Id Name Properties");
         Add(entries, "SemanticEventContract", rejected("STAGE-ESM-006"), "Revision Tags");
         Add(entries, "SemanticEventContract", ignored("The initial event revision's stable contract identity is owned by Screenplay, not emitted by the first renderer."), "ContractId");
+
+        // Screenplay 4.37 added historical event generations. The planner explicitly refuses ESM v4.
+        Add(entries, "SemanticEventContract", rejected("STAGE-ESM-016"), "Predecessor PriorRevisions");
+        Add(entries, "SemanticEventRevision", rejected("STAGE-ESM-016"), "Predecessor Properties Revision Tags");
         Add(entries, "SemanticPropertyMapping", rendered, "Source TargetProperty");
         Add(entries, "SemanticStateChangeDestination", rendered, "Type Value");
         Add(entries, "SemanticResolvedExpression", rendered, "Root Source Target");

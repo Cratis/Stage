@@ -62,7 +62,7 @@ public class with_opaque_bodies : a_command_only_plan
             Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice.Id == original.Id ? change(slice) : slice)] }] }],
             Policies = [.. application.Policies, new SemanticPolicy("UnusedOpaquePolicy", new SemanticOpaquePolicyCondition("policy-body"))]
         };
-        var model = ExecutableSemanticModel.Create(LanguageVersion.V3, SemanticVersion.V3, changeApplication is null ? application : changeApplication(application));
+        var model = CreateV3(changeApplication is null ? application : changeApplication(application));
         return SemanticRunAdmission.Check(SemanticExecutionPlan.Compile(model).Plan!, _specification);
     }
 }

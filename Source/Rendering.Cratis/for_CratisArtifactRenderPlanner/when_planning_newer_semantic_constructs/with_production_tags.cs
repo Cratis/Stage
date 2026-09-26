@@ -14,7 +14,6 @@ public class with_production_tags : given.an_invoice_model
         "          for streamReference\n          tag \"billing\"\n",
         StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_unrendered_semantic() => ErrorCodes.ShouldContain("STAGE-ESM-006");
-    [Fact] void should_not_plan_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_render_tags_on_the_event_wrapper() => Artifact("Issue.cs").ShouldContain("Tags = [\"billing\"]");
 }

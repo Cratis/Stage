@@ -16,11 +16,9 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_rejecting_unsupported_scoped_projections : Specification
 {
     [Theory]
-    [InlineData("literal")]
     [InlineData("every-including-children")]
     [InlineData("child-join")]
     [InlineData("nested-join")]
-    [InlineData("all-events")]
     [InlineData("root-join-removal")]
     [InlineData("nested-only-from")]
     [InlineData("nested-only-clear")]
@@ -28,18 +26,11 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("join-removal-overlap")]
     [InlineData("nested-mismatched-key")]
     [InlineData("nested-clear-with-root-from")]
-    [InlineData("child-join-removal")]
     [InlineData("composite-key")]
     public void should_fail_closed_for_unsupported_blocks(string variant)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var source = when_rendering_scoped_projections.ScopedSource;
-        if (variant == "literal")
-        {
-            source = source.Replace("notes ProjectNote[]", "notes ProjectNote[]\n        label String?", StringComparison.Ordinal)
-                .Replace("join project on projectId", "    label = \"fixed\"\n        join project on projectId", StringComparison.Ordinal);
-        }
-
         if (variant == "composite-key")
         {
             // The seeded lookup states a scalar key, which a composite key cannot accept.
@@ -69,9 +60,8 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 
         scope = variant switch
         {
-            "literal" or "composite-key" => scope,
+            "composite-key" => scope,
             "every-including-children" => scope with { Every = new(true, false, []) },
-            "all-events" => scope with { Every = new(true, true, []), Children = [], Nested = [], Removals = [] },
             "root-join-removal" => scope with { JoinRemovals = [new(
                 original.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events)
                     .Single(@event => @event.Name == "ProjectNoteRemovedViaJoin").Id,
@@ -112,13 +102,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             {
                 Removals = [new SemanticProjectionRemoval(scope.From[1].EventContract, scope.From[1].Key, null)]
             } })] },
-            "child-join-removal" => scope with { Children = [.. scope.Children.Select(children => children with { Scope = children.Scope with
-            {
-                JoinRemovals = [new SemanticProjectionJoinRemoval(
-                    original.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events)
-                        .Single(@event => @event.Name == "ProjectNoteRemovedViaJoin").Id,
-                    SemanticProjectionKey.EventSourceIdentity)]
-            } })] },
             "child-join" => scope with
             {
                 Children = [.. scope.Children.Select(children => children with
@@ -140,32 +123,22 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = SemanticCratisAdmission.Evaluate(context, context.SelectedSlices());
         var diagnostic = Assert.Single(diagnostics, _ => _.Code == "STAGE-ESM-017");
-        if (variant == "literal")
-        {
-            Assert.Contains("Chronicle#4124", diagnostic.Message, StringComparison.Ordinal);
-        }
-
         if (variant == "every-including-children" || variant == "nested-join" || variant == "root-join-removal")
         {
             Assert.Contains("Chronicle#4125", diagnostic.Message, StringComparison.Ordinal);
         }
 
-        if (variant == "all-events")
+        if (variant == "composite-key")
         {
-            Assert.Contains("SubscribesToAllEvents", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("v19.8.1", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "nested-clear-with-root-from")
+        {
+            Assert.Contains("Chronicle#4166", diagnostic.Message, StringComparison.Ordinal);
         }
 
         if (variant == "composite-key")
-        {
-            Assert.Contains("UsingCompositeKey", diagnostic.Message, StringComparison.Ordinal);
-        }
-
-        if (variant == "child-join-removal" || variant == "nested-clear-with-root-from")
-        {
-            Assert.Contains("ReadModelScenario", diagnostic.Message, StringComparison.Ordinal);
-        }
-
-        if (variant == "all-events" || variant == "composite-key")
         {
             var changedExecution = SemanticExecutionPlan.Compile(model);
             Assert.True(changedExecution.Success, string.Join(Environment.NewLine, changedExecution.Issues));

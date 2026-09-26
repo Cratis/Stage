@@ -22,20 +22,9 @@ internal static class SemanticScopedProjectionSupport
     /// <returns>The reason, or null when supported.</returns>
     public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false)
     {
-        if (scope.From.SelectMany(_ => _.Mappings).Concat(scope.Joins.SelectMany(_ => _.Mappings))
-            .Concat(scope.Every?.Mappings ?? []).Any(_ => _.Source is SemanticProjectionLiteral))
-        {
-            return "Literal mappings are blocked by Chronicle#4124: the engine may resolve their values as null.";
-        }
-
         if (scope.Nested.Any(_ => _.Scope.Joins.Length > 0 || _.Scope.Children.Length > 0 || _.Scope.JoinRemovals.Length > 0))
         {
             return "Joins and children inside nested are blocked by Chronicle#4125: the engine drops their subscriptions.";
-        }
-
-        if (scope.Every is { SubscribesToAllEvents: true })
-        {
-            return "All-event subscriptions remain rejected pending proof that Chronicle v19.8.0 FromAll agrees with Screenplay when from and all overlap.";
         }
 
         if (scope.Every is { IncludeChildren: true } && (scope.Children.Length > 0 || scope.Nested.Length > 0))
@@ -46,11 +35,6 @@ internal static class SemanticScopedProjectionSupport
         if (scope.JoinRemovals.Length > 0 && !child && !isNested)
         {
             return "Root remove via join is blocked by Chronicle#4125: the engine removes a child at the root path instead of deleting matching root instances.";
-        }
-
-        if (child && scope.JoinRemovals.Length > 0)
-        {
-            return "Child remove via join remains rejected pending a Chronicle v19.8.0 ReadModelScenario equivalence spec.";
         }
 
         if (scope.Nested.Any(nested => nested.Scope.Removals.Length > 0))
@@ -65,7 +49,7 @@ internal static class SemanticScopedProjectionSupport
 
         if (scope.Every is { Mappings.Length: > 0 } every &&
             (every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
-                mapping.Source is not SemanticProjectionEventSourceIdentity) ||
+                mapping.Source is not (SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral)) ||
              !EveryMappingsSupported(every.Mappings, properties, context)))
         {
             return "Every mappings need a Chronicle fluent equivalent for each bound value and operation.";
@@ -275,7 +259,7 @@ internal static class SemanticScopedProjectionSupport
         {
             SemanticProjectionOperation.Clear => target.Type.IsOptional && mapping.Source is null,
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
-            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventSourceIdentity ||
+            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral ||
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)),
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract =>
                 mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context),

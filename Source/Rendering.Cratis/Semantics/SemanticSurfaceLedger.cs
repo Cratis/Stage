@@ -80,7 +80,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationSeverity", rendered, "Error");
         Add(entries, "SemanticValidationSeverity", rejected("STAGE-ESM-005"), "Information Warning");
 
-        // State change: one command with unconditional, untagged mapped events in declaration order.
+        // State change: one command with unconditional mapped events in declaration order. Tags preserve
+        // contract-then-production order; duplicate tags fail admission because Chronicle deduplicates.
         // Requirements use the same catalog-backed message resolution as property and concept validation.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
         Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "CodeValidations");
@@ -90,10 +91,10 @@ internal static class SemanticSurfaceLedger
         // Their content hashes are checked before rendering. The runtime context for opaque validation,
         // reducers and policies still cannot be supplied exactly at their respective Arc boundaries.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
-        Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings");
-        Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition Tags When");
-        Add(entries, "SemanticEventContract", rendered, "Id Name Properties");
-        Add(entries, "SemanticEventContract", rejected("STAGE-ESM-006"), "Revision Tags");
+        Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags");
+        Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition When");
+        Add(entries, "SemanticEventContract", rendered, "Id Name Properties Tags");
+        Add(entries, "SemanticEventContract", rejected("STAGE-ESM-006"), "Revision");
         Add(entries, "SemanticEventContract", ignored("The initial event revision's stable contract identity is owned by Screenplay, not emitted by the first renderer."), "ContractId");
 
         // Screenplay 4.37 added historical event generations. The planner explicitly refuses ESM v4.
@@ -109,8 +110,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticExpressionRootKind", rejected("STAGE-ESM-006"), "Unknown");
         Add(entries, "SemanticExpressionSourceKind", rendered, "Property");
         Add(entries, "SemanticExpressionSourceKind", rejected("STAGE-ESM-006"), "Unknown");
-        Add(entries, "SemanticEventContextExpression", rejected("STAGE-ESM-013"), "Type Value");
-        Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown EventSourceIdentity Occurred CausedBySubject CausedByName CausedByUserName");
+        Add(entries, "SemanticEventContextExpression", rendered, "Type Value");
+        Add(entries, "SemanticEventContextValueKind", rendered, "Occurred");
+        Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown EventSourceIdentity CausedBySubject CausedByName CausedByUserName");
         Add(entries, "SemanticValueExpression", rejected("STAGE-ESM-006"), "Value");
 
         // State view: one transition keyed by the produced event source and an optional snapshot lookup.
@@ -131,25 +133,24 @@ internal static class SemanticSurfaceLedger
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
         // from and identical key fail STAGE-ESM-017. Composite keys remain rejected on Chronicle v19.8.0
-        // because keys with reserved characters are fixed only in v19.8.1. All-event subscriptions and
-        // child join removal still require differential proof on v19.8.0; root join removal is blocked by
-        // Chronicle#4125 and nested clear/recreation by Chronicle#4166.
+        // because keys with reserved characters are fixed only in v19.8.1. Child join removal is rendered
+        // only for children; root join removal and nested shapes remain blocked by Chronicle#4125.
+        // Nested clear/recreation is still blocked by Chronicle#4166.
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
         Add(entries, "SemanticProjectionEventContextValue", rejected("STAGE-ESM-017"), "Path");
         Add(entries, "SemanticProjectionEventProperty", rendered, "Path");
-        Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings");
-        Add(entries, "SemanticProjectionEvery", rejected("STAGE-ESM-017"), "SubscribesToAllEvents");
+        Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings SubscribesToAllEvents");
         Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
         Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
         Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");
-        Add(entries, "SemanticProjectionJoinRemoval", rejected("STAGE-ESM-017"), "EventContract Key");
+        Add(entries, "SemanticProjectionJoinRemoval", rendered, "EventContract Key");
         Add(entries, "SemanticProjectionKey", rendered, "Kind");
         Add(entries, "SemanticProjectionKeyKind", rendered, "Value");
         Add(entries, "SemanticProjectionKeyKind", rejected("STAGE-ESM-017"), "Unknown Composite");
         Add(entries, "SemanticProjectionKeyPart", rejected("STAGE-ESM-017"), "Property Value");
-        Add(entries, "SemanticProjectionLiteral", rejected("STAGE-ESM-017"), "Value");
+        Add(entries, "SemanticProjectionLiteral", rendered, "Value");
         Add(entries, "SemanticProjectionMapping", rendered, "Operation Source Target");
         Add(entries, "SemanticProjectionNested", rendered, "Property Scope");
         Add(entries, "SemanticProjectionOperation", rendered, "Set Add Subtract Increment Decrement Clear");
@@ -157,8 +158,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionRemoval", rendered, "EventContract Key ParentKey");
         Add(entries, "SemanticProjectionValue", rendered, "Kind");
         Add(entries, "SemanticProjectionValueKey", rendered, "Value");
-        Add(entries, "SemanticProjectionValueKind", rendered, "EventProperty EventSourceIdentity");
-        Add(entries, "SemanticProjectionValueKind", rejected("STAGE-ESM-017"), "Unknown EventContext Literal");
+        Add(entries, "SemanticProjectionValueKind", rendered, "EventProperty EventSourceIdentity Literal");
+        Add(entries, "SemanticProjectionValueKind", rejected("STAGE-ESM-017"), "Unknown EventContext");
 
         // Specifications render command actions with exact scalar fixtures and supported outcomes.
         // Scoped read-model/query expectations replay every produced event in production order;

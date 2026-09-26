@@ -29,7 +29,9 @@ internal static class SemanticStateChangeArtifactRenderer
             .Using("Cratis.Arc.Commands.ModelBound")
             .Using("Cratis.Arc.Validation")
             .Using("Cratis.Chronicle.Events");
-        if (command.Produces.Length > 1)
+        if (command.Produces.Length > 1 || command.Produces.Any(produced =>
+            produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }) ||
+            !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty))
         {
             builder.Using("Cratis.Chronicle.EventSequences");
         }
@@ -80,34 +82,66 @@ internal static class SemanticStateChangeArtifactRenderer
             .Line("/// <inheritdoc/>")
             .ExpressionMember("public EventSourceId GetEventSourceId()", destinationExpression)
             .BlankLine();
-        if (command.Produces.Length == 1)
+        var hasOccurrence = command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+            mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
+        var hasTags = command.Produces.Any(produced => !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty);
+        string EventValue(SemanticProducedEvent produced)
         {
-            var @event = context.Events[command.Produces[0].EventContract];
+            var @event = context.Events[produced.EventContract];
             var arguments = @event.Properties.Select(property =>
             {
-                var mapping = command.Produces[0].Mappings.Single(_ => _.TargetProperty == property.Id);
-                var source = (SemanticResolvedExpression)mapping.Source;
-                return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
+                var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
+                return mapping.Source is SemanticEventContextExpression ? "occurred" :
+                    Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target).Name);
             });
-            builder.ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", $"new({string.Join(", ", arguments)})");
+            return $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)})";
+        }
+
+        string WrappedEvent(SemanticProducedEvent produced)
+        {
+            var target = (SemanticResolvedExpression)SemanticDestinations.Of(command, produced)!;
+            var targetProperty = command.Properties.Single(_ => _.Id == target.Target);
+            var @event = context.Events[produced.EventContract];
+            var tags = @event.Tags.Concat(produced.Tags).ToArray();
+            var metadata = new List<string>();
+            if (hasOccurrence)
+            {
+                metadata.Add("Occurred = occurred");
+            }
+
+            if (tags.Length > 0)
+            {
+                metadata.Add($"Tags = [{string.Join(", ", tags.Select(tag => System.Text.Json.JsonSerializer.Serialize(tag)))}]");
+            }
+
+            var wrapper = $"new EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {EventValue(produced)})";
+            return metadata.Count == 0 ? wrapper : $"{wrapper} {{ {string.Join(", ", metadata)} }}";
+        }
+
+        if (command.Produces.Length == 1 && !hasOccurrence && !hasTags)
+        {
+            var @event = context.Events[command.Produces[0].EventContract];
+            builder.ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", EventValue(command.Produces[0]));
+        }
+        else if (!hasOccurrence)
+        {
+            var events = command.Produces.Select(WrappedEvent);
+            if (command.Produces.Length == 1)
+            {
+                builder.ExpressionMember("public EventForEventSourceId Handle()", events.Single());
+            }
+            else
+            {
+                builder.ExpressionMember("public IEnumerable<EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
+            }
         }
         else
         {
-            var events = command.Produces.Select(produced =>
-            {
-                var @event = context.Events[produced.EventContract];
-                var arguments = @event.Properties.Select(property =>
-                {
-                    var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
-                    var source = (SemanticResolvedExpression)mapping.Source;
-                    return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
-                });
-                var value = $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)})";
-                var target = (SemanticResolvedExpression)SemanticDestinations.Of(command, produced)!;
-                var targetProperty = command.Properties.Single(_ => _.Id == target.Target);
-                return $"new EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {value})";
-            });
-            builder.ExpressionMember("public IEnumerable<EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
+            var result = command.Produces.Length == 1 ? "EventForEventSourceId" : "IEnumerable<EventForEventSourceId>";
+            builder.OpenBlock($"public {result} Handle()")
+                .Line("var occurred = DateTimeOffset.UtcNow;")
+                .Line($"return {(command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(WrappedEvent))}]")};")
+                .EndBlock();
         }
 
         builder.EndBlock().BlankLine();

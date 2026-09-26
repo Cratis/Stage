@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.RegularExpressions;
 using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
@@ -8,8 +9,11 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 /// <summary>
 /// Identifies the scoped projection subset that can be lowered without changing its meaning.
 /// </summary>
-internal static class SemanticScopedProjectionSupport
+internal static partial class SemanticScopedProjectionSupport
 {
+    [GeneratedRegex(@"\A[\w ._/:*+-]*\z", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex FluentTextLiteral { get; }
+
     /// <summary>
     /// Returns the first reason a scope cannot be represented by the emitted Chronicle projection.
     /// </summary>
@@ -49,7 +53,7 @@ internal static class SemanticScopedProjectionSupport
 
         if (scope.Every is { Mappings.Length: > 0 } every &&
             (every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
-                mapping.Source is not (SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral)) ||
+                mapping.Source is not SemanticProjectionEventSourceIdentity) ||
              !EveryMappingsSupported(every.Mappings, properties, context)))
         {
             return "Every mappings need a Chronicle fluent equivalent for each bound value and operation.";
@@ -59,7 +63,7 @@ internal static class SemanticScopedProjectionSupport
             scope.Removals.Any(removal => removal.Key is SemanticProjectionCompositeKey || removal.ParentKey is SemanticProjectionCompositeKey) ||
             scope.JoinRemovals.Any(removal => removal.Key is SemanticProjectionCompositeKey))
         {
-            return "Composite keys cannot render on Chronicle v19.8.0: keys containing '-', '@' or ':' are resolved incorrectly (Chronicle#4163, fixed in v19.8.1).";
+            return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Chronicle v19.8.1 resolves projection keys, but Stage cannot look up those instances by their composite key.";
         }
 
         if (child && identity is null)
@@ -259,12 +263,21 @@ internal static class SemanticScopedProjectionSupport
         {
             SemanticProjectionOperation.Clear => target.Type.IsOptional && mapping.Source is null,
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
-            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral ||
+            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventSourceIdentity ||
+                (mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)),
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract =>
                 mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context),
             _ => false
         };
+    }
+
+    // Chronicle's fluent ToValue embeds text in an unquoted $value(...) expression. Its resolver is
+    // unanchored, so a closing parenthesis may silently truncate the value before projection.
+    static bool LiteralSupported(SemanticProjectionLiteral literal, SemanticTypeReference target, SemanticApplicationContext context)
+    {
+        var primitive = target.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[target.Target].Primitive : target.Primitive;
+        return primitive != SemanticPrimitiveType.Text || (literal.Value is SemanticTextValue text && FluentTextLiteral.IsMatch(text.Value));
     }
 
     static bool HasOptionalIntermediate(

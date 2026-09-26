@@ -27,6 +27,10 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("nested-mismatched-key")]
     [InlineData("nested-clear-with-root-from")]
     [InlineData("composite-key")]
+    [InlineData("every-literal")]
+    [InlineData("all-literal")]
+    [InlineData("unsafe-text-literal")]
+    [InlineData("unsafe-text-concept-literal")]
     public void should_fail_closed_for_unsupported_blocks(string variant)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
@@ -40,6 +44,12 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 .Replace("readmodel ProjectDetails\n        projectId ProjectId", "readmodel ProjectDetails\n        projectId ProjectKey", StringComparison.Ordinal)
                 .Replace("by projectId ProjectId\n      projection ProjectDetailsProjection", "by projectId ProjectKey\n      projection ProjectDetailsProjection", StringComparison.Ordinal)
                 .Replace("from ProjectRegistered key projectId\n          name = name\n      projection ProjectSummaryProjection", "from ProjectRegistered\n          key ProjectKey\n            projectId = projectId\n          name = name\n        from ProjectRenamed\n          key ProjectKey\n            projectId = projectId\n          name = name\n      projection ProjectSummaryProjection", StringComparison.Ordinal);
+        }
+
+        if (variant == "unsafe-text-literal")
+        {
+            source = source.Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
+                .Replace("name = name\n          increment visits", "name = name\n          label = \"a)b\"\n          increment visits", StringComparison.Ordinal);
         }
 
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", source);
@@ -58,9 +68,23 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.IsType<SemanticProjectionCompositeKey>(scope.From[0].Key);
         }
 
+        var nameTarget = view.ReadModels.Single(model => model.Name == "ProjectSummary").Properties.Single(property => property.Name == "name").Id;
+        var unsafeLiteral = new SemanticProjectionLiteral(SemanticValue.Text("a)b"));
         scope = variant switch
         {
             "composite-key" => scope,
+            "every-literal" or "all-literal" => scope with { Every = scope.Every! with
+            {
+                SubscribesToAllEvents = variant == "all-literal",
+                IncludeChildren = variant == "all-literal",
+                Mappings = [new SemanticProjectionMapping([nameTarget], SemanticProjectionOperation.Set, new SemanticProjectionLiteral(SemanticValue.Text("fixed")))]
+            } },
+            "unsafe-text-literal" => scope,
+            "unsafe-text-concept-literal" => scope with { From = [.. scope.From.Select((transition, index) => index == 0 ? transition with
+            {
+                Mappings = [.. transition.Mappings.Select(mapping => mapping.Target.Contains(nameTarget) ? mapping with { Source = unsafeLiteral } : mapping)]
+            } : transition)] },
+
             "every-including-children" => scope with { Every = new(true, false, []) },
             "root-join-removal" => scope with { JoinRemovals = [new(
                 original.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events)
@@ -130,7 +154,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 
         if (variant == "composite-key")
         {
-            Assert.Contains("v19.8.1", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("keyed lookup", diagnostic.Message, StringComparison.Ordinal);
         }
 
         if (variant == "nested-clear-with-root-from")

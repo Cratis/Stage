@@ -131,8 +131,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown Live");
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
-        // from and identical key fail STAGE-ESM-017. Composite keys remain rejected on Chronicle v19.8.0
-        // because keys with reserved characters are fixed only in v19.8.1. Child join removal is rendered
+        // from and identical key fail STAGE-ESM-017. Composite keys remain rejected because Stage
+        // cannot issue keyed lookups for composite read models. Literal mappings in every/all and
+        // text literals outside Chronicle's fluent $value grammar also fail STAGE-ESM-017.
+        // Child join removal is rendered
         // only for children; root join removal and nested shapes remain blocked by Chronicle#4125.
         // Nested clear/recreation is still blocked by Chronicle#4166.
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");

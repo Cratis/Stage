@@ -13,6 +13,7 @@ public class with_a_warning_validation : given.an_invoice_model
         "        validate\n          description not empty severity warning\n        produces InvoiceIssued\n",
         StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_reject_the_command() => ErrorCodes.ShouldContainOnly(["STAGE-ESM-005"]);
+    [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_block_the_warning() => Artifact("Issue.cs").ShouldContain("BlockOnValidationSeverity(ValidationResultSeverity.Information)");
+    [Fact] void should_preserve_the_warning_severity() => Artifact("Issue.cs").ShouldContain("WithSeverity(ValidationResultSeverity.Warning)");
 }

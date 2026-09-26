@@ -13,6 +13,7 @@ public class with_an_informational_requirement : given.an_invoice_model
         "        validate\n          require description != \"draft\"\n            severity information\n        produces InvoiceIssued\n",
         StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_any_artifacts() => _plan.Artifacts.ShouldBeEmpty();
-    [Fact] void should_reject_the_severity_arc_does_not_block() => ErrorCodes.ShouldContainOnly(["STAGE-ESM-005"]);
+    [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_block_the_informational_failure() => Artifact("Issue.cs").ShouldContain("BlockOnValidationSeverity(ValidationResultSeverity.Information)");
+    [Fact] void should_preserve_the_informational_severity() => Artifact("Issue.cs").ShouldContain("WithSeverity(ValidationResultSeverity.Information)");
 }

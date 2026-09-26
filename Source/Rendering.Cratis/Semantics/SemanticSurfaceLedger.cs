@@ -77,8 +77,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationRule", rejected("STAGE-ESM-005"), "Name RequirementId");
         Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches");
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown RulePredicate CodeValidation");
-        Add(entries, "SemanticValidationSeverity", rendered, "Error");
-        Add(entries, "SemanticValidationSeverity", rejected("STAGE-ESM-005"), "Information Warning");
+        Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
         // State change: one command with unconditional mapped events in declaration order. Tags preserve
         // contract-then-production order; duplicate tags fail admission because Chronicle deduplicates.

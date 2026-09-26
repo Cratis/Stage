@@ -38,7 +38,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_stop_inheriting_parent_build_properties() => Content("Directory.Build.props").ShouldEqual("<Project />\n");
     [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");
     [Fact] void should_disable_inherited_central_package_management() => DirectoryPackagesPropsDisablesCentralPackageManagement().ShouldBeTrue();
-    [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("2|net10.0|22.24.0|22.24.0|22.24.0|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.8.0");
+    [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("2|net10.0|22.25.0|22.25.0|22.25.0|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.8.0");
     [Fact] void should_expose_only_the_verified_current_profile_as_public_static_surface() => PublicStaticProfileMethods().ShouldContainOnly("get_Current");
     [Fact] void should_emit_the_solution_without_a_guid() => SolutionSemantics().ShouldEqual("MyApp.csproj|False");
     [Fact] void should_emit_only_the_exact_package_versions() => PackageVersions().ShouldEqual(ExpectedPackageVersions());
@@ -101,9 +101,9 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         '|',
         new[]
         {
-            "Cratis=22.24.0",
-            "Cratis.Arc.Chronicle.Testing=22.24.0",
-            "Cratis.Arc.MongoDB=22.24.0",
+            "Cratis=22.25.0",
+            "Cratis.Arc.Chronicle.Testing=22.25.0",
+            "Cratis.Arc.MongoDB=22.25.0",
             "Cratis.Chronicle=19.8.0",
             "Cratis.Chronicle.AspNetCore=19.8.0",
             "Cratis.Chronicle.Testing=19.8.0",

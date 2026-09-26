@@ -76,8 +76,19 @@ internal static class SemanticStateChangeArtifactRenderer
         var destinationProperty = command.Properties.Single(_ => _.Id == destination.Target);
         var destinationExpression = types.EventSourceExpression(Identifiers.ToPascalCase(destinationProperty.Name), destinationProperty.Type);
 
-        builder.Attribute("Command")
-            .Attribute(SemanticAuthorizationAttributes.For(command))
+        var severities = command.Validations.Select(rule => rule.Severity)
+            .Concat(command.Requirements.Select(requirement => requirement.Severity))
+            .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
+            .ToArray();
+        builder.Attribute("Command");
+        if (severities.Length > 0)
+        {
+            // Screenplay rejects every validation failure; a caller must not loosen the modeled floor.
+            var floor = severities.All(severity => severity == SemanticValidationSeverity.Error) ? "Error" : "Information";
+            builder.Attribute($"BlockOnValidationSeverity(ValidationResultSeverity.{floor})");
+        }
+
+        builder.Attribute(SemanticAuthorizationAttributes.For(command))
             .OpenBlock($"public record {name}({parameters}) : ICanProvideEventSourceId")
             .Line("/// <inheritdoc/>")
             .ExpressionMember("public EventSourceId GetEventSourceId()", destinationExpression)
@@ -145,6 +156,25 @@ internal static class SemanticStateChangeArtifactRenderer
         }
 
         builder.EndBlock().BlankLine();
+    }
+
+    static IEnumerable<SemanticValidationRule> ReferencedValidations(
+        SemanticTypeReference type,
+        SemanticApplicationContext context,
+        HashSet<SemanticId> visited)
+    {
+        if (type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts.TryGetValue(type.Target, out var concept))
+        {
+            return concept.Validations;
+        }
+
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType && visited.Add(type.Target) &&
+            context.Types.TryGetValue(type.Target, out var composite))
+        {
+            return composite.Properties.SelectMany(property => ReferencedValidations(property.Type, context, visited));
+        }
+
+        return [];
     }
 
     static void RenderEvent(CSharpCodeBuilder builder, SemanticEventContract @event, SemanticTypeSystem types)

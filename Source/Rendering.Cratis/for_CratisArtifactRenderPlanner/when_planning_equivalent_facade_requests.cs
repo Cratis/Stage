@@ -34,7 +34,7 @@ public class when_planning_equivalent_facade_requests : a_register_project_rende
     }
 
     [Fact] void should_expose_the_single_v1_target() => CratisRendering.TargetId.ShouldEqual("cratis");
-    [Fact] void should_expose_the_exact_target_version() => CratisRendering.TargetVersion.ShouldEqual("22.24.0");
+    [Fact] void should_expose_the_exact_target_version() => CratisRendering.TargetVersion.ShouldEqual("22.25.0");
     [Fact] void should_expose_the_exact_renderer_version() => CratisRendering.RendererVersion.ShouldEqual("1");
     [Fact] void should_create_identical_profile_identity_and_versions() => ProfileIdentity(_secondProfile).ShouldEqual(ProfileIdentity(_firstProfile));
     [Fact] void should_create_identical_profile_input_paths() => _secondProfile.Inputs.Select(_ => _.Name).SequenceEqual(_firstProfile.Inputs.Select(_ => _.Name)).ShouldBeTrue();

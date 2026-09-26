@@ -240,9 +240,21 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
             } })]
         };
         var modifiedView = view with { Projections = [.. view.Projections.Select(candidate => candidate.Id == projection.Id ? candidate with { Scope = scope } : candidate)] };
+        // EstablishSpecificationWorld now validates a typed Given source against the event's
+        // declared producer. Give each synthetic probe event a producer with the ProjectId destination.
+        var sourceSlice = feature.Slices.Single(slice => slice.Commands.Any());
+        var sourceCommand = sourceSlice.Commands.Single();
+        var sourceId = sourceCommand.Properties.Single(property => property.IsIdentifier).Id;
+        var sourceName = sourceCommand.Properties.Single(property => property.Name == "name").Id;
+        var probeEvents = new[] { "ProjectNoted", "ProjectNoteRemovedViaJoin", "ProjectRenamed" };
+        var probeProduces = probeEvents.Select(name => new SemanticProducedEvent(events[name].Id, null, null,
+            [.. events[name].Properties.Select(property => new SemanticPropertyMapping(property.Id,
+                new SemanticResolvedExpression(SemanticExpressionRootKind.Command, SemanticExpressionSourceKind.Property,
+                    property.Name == "name" ? sourceName : sourceId)))]));
+        var modifiedSource = sourceSlice with { Commands = [sourceCommand with { Produces = [.. sourceCommand.Produces, .. probeProduces] }] };
         model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
         {
-            Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice.Id == view.Id ? modifiedView : slice)] }] }]
+            Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice.Id == view.Id ? modifiedView : slice.Id == sourceSlice.Id ? modifiedSource : slice)] }] }]
         });
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));

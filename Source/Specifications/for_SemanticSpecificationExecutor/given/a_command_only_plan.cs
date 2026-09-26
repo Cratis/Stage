@@ -66,6 +66,28 @@ public class a_command_only_plan : Specification
 
     protected SemanticExecutionPlan WithProjection(SemanticSpecification specification) => Replace(_originalModel, _originalModel.Application.Modules.Single().Features.Single().Slices.Single(candidate => candidate.Kind == SemanticSliceKind.StateChange), specification, false);
 
+    // RegisterProject V2 now has two event generations and is ESM v4. These attachment tests
+    // exercise v3 behavior, so use its current event shape as a single-generation contract.
+    protected static ExecutableSemanticModel CreateV3(SemanticApplication application)
+    {
+        var modules = application.Modules.Select(module => module with
+        {
+            Features = [.. module.Features.Select(feature => feature with
+            {
+                Slices = [.. feature.Slices.Select(slice => slice with
+                {
+                    Events = [.. slice.Events.Select(@event => @event with
+                    {
+                        Revision = EventContractRevision.Initial,
+                        Predecessor = null,
+                        PriorRevisions = []
+                    })]
+                })]
+            })]
+        });
+        return ExecutableSemanticModel.Create(LanguageVersion.V3, SemanticVersion.V3, application with { Modules = [.. modules] });
+    }
+
     static SemanticExecutionPlan Replace(ExecutableSemanticModel model, SemanticSlice slice, SemanticSpecification specification, bool removeProjections = true)
     {
         var module = model.Application.Modules.Single();

@@ -20,7 +20,7 @@ public class with_a_cross_stream_destination : a_command_only_plan
         var command = _plan.Commands[_specification.When!.Command];
         var property = command.Properties.Single(candidate => candidate.Type != command.Destination!.Type);
         var produced = command.Produces[0] with { Destination = new SemanticResolvedExpression(SemanticExpressionRootKind.Command, SemanticExpressionSourceKind.Property, property.Id) };
-        var context = new SemanticRunContext(typeof(DynamicCommand), command, _specification, new(), new SemanticRuntimeTypes(_plan), new EventStoreForTesting(), _plan.Model.SemanticVersion);
+        var context = new SemanticRunContext(typeof(DynamicCommand), command, _specification, new(), new SemanticRuntimeTypes(_plan), new EventStoreForTesting().EventLog, _plan.Model.SemanticVersion);
         _type = context.Produce(produced).Fact.EventSource!.Type;
         _expected = property.Type;
     }

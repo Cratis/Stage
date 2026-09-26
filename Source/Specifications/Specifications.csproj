@@ -11,6 +11,9 @@
         <Description>Isolated in-memory Screenplay semantic specification execution.</Description>
     </PropertyGroup>
     <ItemGroup>
+        <!-- Compile the render admission predicate from its owning source so run admission cannot drift. -->
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Admission/SemanticScopedProjectionSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Admission/SemanticFlatProjectionSupport.cs" />
         <ProjectReference Include="../Stage/Stage.csproj" />
         <PackageReference Include="Cratis.Arc.Testing" />
         <PackageReference Include="Cratis.Arc.Chronicle.Testing" />

@@ -113,14 +113,6 @@ internal static partial class SemanticCratisAdmission
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind)
     };
 
-    static bool MappingsMatch(
-        ImmutableArray<SemanticPropertyMapping> mappings,
-        ImmutableArray<SemanticProperty> targets,
-        ImmutableArray<SemanticProperty> sources,
-        SemanticExpressionRootKind root) =>
-        mappings.Length == targets.Length && targets.All(target => mappings.Any(mapping => mapping.TargetProperty == target.Id &&
-            IsProperty(mapping.Source, root, sources.Select(_ => _.Id))));
-
     static bool IsProperty(SemanticExpression? expression, SemanticExpressionRootKind root, IEnumerable<SemanticId> candidates) =>
         expression is SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property } resolved &&
         resolved.Root == root && candidates.Contains(resolved.Target);

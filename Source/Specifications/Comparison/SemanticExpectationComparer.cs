@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Specifications.Comparison;
@@ -73,6 +74,29 @@ internal static class SemanticExpectationComparer
         return failures;
     }
 
+    internal static IReadOnlyList<string> CompareProjections(SemanticSpecification expected, IReadOnlyList<SemanticRunProjections.Projected> projected, SemanticExecutionPlan plan)
+    {
+        var failures = new List<string>();
+        foreach (var state in expected.ThenReadModels)
+        {
+            if (!MatchesState(state, projected))
+            {
+                failures.Add($"Expected read model '{state.ReadModel}' with key '{state.Key}' was not found with matching values.");
+            }
+        }
+        for (var index = 0; index < expected.ThenQueries.Length; index++)
+        {
+            var query = expected.ThenQueries[index];
+            var readModel = plan.Queries[query.Query].ReadModel;
+            var rows = projected.Where(row => row.ReadModel == readModel && AreEqual(row.Key, query.Key)).ToArray();
+            if (rows.Length != query.Results.Length || query.Results.Any(result => !MatchesState(result, rows, query.Exactly)))
+            {
+                failures.Add($"Query result at index {index} expected {query.Results.Length} row(s) with matching values, got {rows.Length}.");
+            }
+        }
+        return failures;
+    }
+
     internal static bool Matches(SemanticSpecificationEvent expected, SemanticSpecificationEvent actual) =>
         expected.EventContract == actual.EventContract && expected.Values.Length == actual.Values.Length &&
         expected.Values.All(value => actual.Values.Any(candidate => candidate.TargetProperty == value.TargetProperty && AreEqual(candidate.Value, value.Value))) &&
@@ -90,4 +114,9 @@ internal static class SemanticExpectationComparer
             a.Properties.All(property => b.Properties.Any(candidate => candidate.TargetProperty == property.TargetProperty && AreEqual(property.Value, candidate.Value))),
         _ => false
     };
+
+    static bool MatchesState(SemanticSpecificationReadModel state, IReadOnlyList<SemanticRunProjections.Projected> rows, bool exactly = false) =>
+        rows.Any(row => row.ReadModel == state.ReadModel && AreEqual(row.Key, state.Key) &&
+            (!(state.Exactly || exactly) || state.Values.Length == row.Values.Length) &&
+            state.Values.All(expected => row.Values.Any(actual => actual.TargetProperty == expected.TargetProperty && AreEqual(actual.Value, expected.Value))));
 }

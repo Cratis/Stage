@@ -15,7 +15,6 @@ internal static class SemanticWorldRebuilder
     internal static SemanticWorld Create(
         SemanticExecutionPlan plan,
         IEnumerable<AppendedEventResponse> events,
-        IReadOnlyDictionary<SemanticId, IReadOnlyList<string>> instances,
         ulong tail)
     {
         var history = events.OrderBy(@event => @event.Context.SequenceNumber).ToArray();
@@ -28,28 +27,19 @@ internal static class SemanticWorldRebuilder
 
         var facts = history.Select(@event => Fact(plan, @event)).ToImmutableArray();
         SemanticRebuildConstraints.Check(plan, facts);
-        var readModels = new List<SemanticReadModelInstance>();
-        foreach (var (id, rows) in instances)
-        {
-            var model = plan.ReadModels[id];
-            var identifier = model.Properties.Single(property => property.IsIdentifier);
-            foreach (var row in rows)
-            {
-                using var document = JsonDocument.Parse(row);
-                var values = MirrorValues(document.RootElement, model, plan.Model.Application);
-                readModels.Add(new(id, values.Single(value => value.TargetProperty == identifier.Id).Value, values));
-            }
-        }
-
         try
         {
-            var world = SemanticWorld.Create(facts, [.. readModels]);
-            SemanticMirrorVerification.Check(plan, facts, world);
-            return world;
+            return new SemanticEvaluator().EstablishWorld(plan, facts) switch
+            {
+                SemanticAccepted accepted => accepted.World,
+                SemanticUnsupported unsupported => throw new SemanticWorldRebuildRefused($"The semantic world cannot project its history: {unsupported.Details}"),
+                SemanticRejected rejected => throw new SemanticWorldRebuildRefused($"The stored history is not a valid semantic world: {rejected.Details}"),
+                _ => throw new SemanticWorldRebuildRefused("The semantic world reconstruction returned an unknown outcome.")
+            };
         }
         catch (InvalidSemanticContract exception)
         {
-            throw new SemanticWorldRebuildRefused($"Chronicle's mirror is not a valid semantic world: {exception.Message}");
+            throw new SemanticWorldRebuildRefused($"The stored history is not a valid semantic world: {exception.Message}");
         }
     }
 
@@ -101,7 +91,7 @@ internal static class SemanticWorldRebuilder
 
         return new SemanticFact(contract.Id, destination, values)
         {
-            Context = plan.Model.SemanticVersion == SemanticVersion.V2 ? new(new(destinationType, destination)) : null,
+            Context = plan.Model.SemanticVersion != SemanticVersion.V1 ? new(new(destinationType, destination)) : null,
             Tags = [.. context.Tags]
         };
     }
@@ -157,27 +147,6 @@ internal static class SemanticWorldRebuilder
         }
 
         return true;
-    }
-
-    static ImmutableArray<SemanticPropertyValue> MirrorValues(JsonElement json, SemanticReadModel model, SemanticApplication application)
-    {
-        if (json.ValueKind != JsonValueKind.Object ||
-            json.EnumerateObject().Any(entry => model.Properties.All(property => property.Name != entry.Name) &&
-                entry.Name is not ("id" or "__initialized" or "__subject")))
-        {
-            throw new SemanticWorldRebuildRefused("Chronicle mirror contains an unknown property.");
-        }
-
-        var identifier = model.Properties.Single(property => property.IsIdentifier);
-        var key = json.GetProperty(identifier.Name).ToString();
-        if (!json.TryGetProperty("id", out var id) || id.ToString() != key ||
-            !json.TryGetProperty("__initialized", out var initialized) || initialized.ValueKind != JsonValueKind.True)
-        {
-            throw new SemanticWorldRebuildRefused("Chronicle mirror metadata does not agree with its semantic key.");
-        }
-
-        var semantic = JsonSerializer.SerializeToElement(model.Properties.ToDictionary(property => property.Name, property => json.GetProperty(property.Name)));
-        return Values(semantic, model.Properties, application);
     }
 
     static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)

@@ -12,8 +12,6 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Semantics;
 using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
 using ChronicleEventTypes = Cratis.Chronicle.Contracts.EventTypes;
-using ChronicleProjections = Cratis.Chronicle.Contracts.Projections;
-using ChronicleReadModels = Cratis.Chronicle.Contracts.ReadModels;
 using ChronicleSequences = Cratis.Chronicle.Contracts.Sequences;
 
 namespace Cratis.Stage.Host;
@@ -34,11 +32,6 @@ internal static class SemanticChronicleRegistration
             Namespace = EventStoreNamespaceName.Default,
             EventSequenceId = EventSequenceId.Log
         })).EnsureSuccess().SequenceNumber;
-        if (!IsEmpty(tail))
-        {
-            EnsureMirrored(plan);
-        }
-
         var registrations = plan.Events.Values.Select(@event =>
         {
             var schema = SemanticSchemas.Schema(@event.Properties, plan.Model.Application);
@@ -60,117 +53,11 @@ internal static class SemanticChronicleRegistration
             })).EnsureSuccess();
         }
 
-        var mirrors = plan.Projections.Values
-            .Select(projection => SemanticProjectionMirrors.TryLower(plan, projection, out var model, out var definition, out _)
-                ? (Model: model, Projection: definition)
-                : (Model: null, Projection: null))
-            .Where(pair => pair.Model is not null && pair.Projection is not null)
-            .ToArray();
-        if (mirrors.Length > 0)
-        {
-            await accessor.Services.ReadModels.RegisterMany(new ChronicleReadModels.RegisterManyRequest
-            {
-                EventStore = store.Name,
-                Owner = ChronicleReadModels.ReadModelOwner.Client,
-                ReadModels = [.. mirrors.Select(pair => pair.Model!)],
-                Source = ChronicleReadModels.ReadModelSource.User
-            });
-            await accessor.Services.Projections.Register(new ChronicleProjections.RegisterRequest
-            {
-                EventStore = store.Name,
-                Owner = ChronicleProjections.ProjectionOwner.Client,
-                Projections = [.. mirrors.Select(pair => pair.Projection!)]
-            });
-        }
-
         return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, plan, tail);
-    }
-
-    internal static bool IsCaughtUp(Cratis.Chronicle.Contracts.Observation.ObserverInformation observer, ulong projectionTail) =>
-        observer.IsSubscribed && observer.RunningState == Cratis.Chronicle.Contracts.Observation.ObserverRunningState.Active &&
-        (IsEmpty(projectionTail) || (!IsEmpty(observer.LastHandledEventSequenceNumber) && observer.LastHandledEventSequenceNumber >= projectionTail));
-
-    internal static void EnsureMirrored(SemanticExecutionPlan plan)
-    {
-        foreach (var projection in plan.Projections.Values)
-        {
-            if (!SemanticProjectionMirrors.TryLower(plan, projection, out _, out _, out var reason))
-            {
-                throw new SemanticWorldRebuildRefused($"Projection '{projection.Name}' is not mirrored exactly into Chronicle: {reason}");
-            }
-        }
-    }
-
-    internal static void EnsureNoFailures(IEnumerable<Cratis.Chronicle.Contracts.Observation.FailedPartition> failed, IReadOnlySet<string> mirrorIds)
-    {
-        if (failed.Any(partition => mirrorIds.Contains(partition.ObserverId) && !partition.IsResolved))
-        {
-            throw new SemanticWorldRebuildRefused("The Chronicle mirror has failed partitions.");
-        }
     }
 
     internal static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, ulong tail)
     {
-        var mirrorTypes = plan.Projections.Values.ToDictionary(
-            projection =>
-            {
-                SemanticProjectionMirrors.TryLower(plan, projection, out _, out var mirror, out _);
-                return mirror!.Identifier;
-            },
-            projection => projection.Transitions.Select(transition => plan.Events[transition.EventContract].Name).Distinct().ToArray(),
-            StringComparer.Ordinal);
-        var mirrorIds = mirrorTypes.Keys.ToHashSet(StringComparer.Ordinal);
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
-        while (mirrorIds.Count > 0)
-        {
-            var registered = (await accessor.Services.Observers.GetObservers(new Cratis.Chronicle.Contracts.Observation.AllObserversRequest
-            {
-                EventStore = name,
-                Namespace = EventStoreNamespaceName.Default
-            })).Where(observer => mirrorIds.Contains(observer.Id)).ToArray();
-
-            // GetObservers reads stored definitions/state and does not populate IsSubscribed.
-            // Query each live observer grain before trusting its subscription or progress.
-            var observers = await Task.WhenAll(registered.Select(observer => accessor.Services.Observers.GetObserverInformation(
-                new Cratis.Chronicle.Contracts.Observation.GetObserverInformationRequest
-                {
-                    EventStore = name,
-                    Namespace = EventStoreNamespaceName.Default,
-                    ObserverId = observer.Id,
-                    EventSequenceId = observer.EventSequenceId
-                })));
-            if (observers.Length == mirrorIds.Count)
-            {
-                var caughtUp = true;
-                foreach (var observer in observers)
-                {
-                    var projectionTail = (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
-                    {
-                        EventStore = name,
-                        Namespace = EventStoreNamespaceName.Default,
-                        EventSequenceId = EventSequenceId.Log,
-                        EventTypeIds = string.Join(',', mirrorTypes[observer.Id])
-                    })).EnsureSuccess().SequenceNumber;
-                    caughtUp &= IsCaughtUp(observer, projectionTail);
-                }
-
-                if (caughtUp)
-                {
-                    break;
-                }
-            }
-
-            await EnsureNoFailedPartitions(accessor, name, mirrorIds);
-            if (DateTimeOffset.UtcNow >= deadline)
-            {
-                throw new SemanticWorldRebuildRefused($"Mirror projections have not reached event-log tail {tail}: {string.Join(", ", observers.Select(observer => $"{observer.Id}={observer.LastHandledEventSequenceNumber}/{observer.IsSubscribed}"))}.");
-            }
-
-            await Task.Delay(100);
-        }
-
-        await EnsureNoFailedPartitions(accessor, name, mirrorIds);
-
         var events = (await accessor.Services.Sequences.FromSequenceNumber(new ChronicleSequences.FromSequenceNumberRequest
         {
             EventStore = name,
@@ -178,42 +65,6 @@ internal static class SemanticChronicleRegistration
             EventSequenceId = EventSequenceId.Log,
             FromEventSequenceNumber = 0
         })).EnsureSuccess().ToArray();
-        var instances = new Dictionary<SemanticId, IReadOnlyList<string>>();
-        foreach (var readModel in plan.ReadModels.Values.Where(model => plan.Projections.Values.Any(projection => projection.ReadModel == model.Id)))
-        {
-            var mirror = plan.Projections.Values.Single(projection => projection.ReadModel == readModel.Id);
-            SemanticProjectionMirrors.TryLower(plan, mirror, out var definition, out _, out _);
-            var identifier = definition!.Type.Identifier;
-            var rows = new List<string>();
-            long? total = null;
-            for (var page = 0; ; page++)
-            {
-                var result = await accessor.Services.ReadModels.GetInstances(new ChronicleReadModels.GetInstancesRequest
-                {
-                    EventStore = name,
-                    Namespace = EventStoreNamespaceName.Default,
-                    ReadModel = identifier,
-                    Page = page,
-                    PageSize = 100
-                });
-                if (result.TotalCount < 0 || (total is not null && total != result.TotalCount) ||
-                    result.Instances.Count > 100 || rows.Count + result.Instances.Count > result.TotalCount ||
-                    (result.Instances.Count == 0 && rows.Count < result.TotalCount))
-                {
-                    throw new SemanticWorldRebuildRefused($"Chronicle mirror for '{readModel.Name}' returned an incomplete or inconsistent page.");
-                }
-
-                total = result.TotalCount;
-                rows.AddRange(result.Instances);
-                if (rows.Count == total)
-                {
-                    break;
-                }
-            }
-
-            instances.Add(readModel.Id, rows);
-        }
-
         var after = (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
         {
             EventStore = name,
@@ -225,16 +76,6 @@ internal static class SemanticChronicleRegistration
             throw new SemanticWorldRebuildRefused("The Chronicle event-log tail changed during world reconstruction.");
         }
 
-        return SemanticWorldRebuilder.Create(plan, events, instances, tail);
-    }
-
-    static async Task EnsureNoFailedPartitions(IChronicleServicesAccessor accessor, string name, HashSet<string> mirrorIds)
-    {
-        var failed = await accessor.Services.FailedPartitions.GetFailedPartitions(new Cratis.Chronicle.Contracts.Observation.GetFailedPartitionsRequest
-        {
-            EventStore = name,
-            Namespace = EventStoreNamespaceName.Default
-        });
-        EnsureNoFailures(failed, mirrorIds);
+        return SemanticWorldRebuilder.Create(plan, events, tail);
     }
 }

@@ -26,7 +26,7 @@ public class with_conflicting_historical_claims : a_rebuildable_world
             },
             Content = _event.Content.Replace("3fa85f64-5717-4562-b3fc-2c963f66afa6", "d7772ed1-59ea-429f-8973-8ef5b8c60470", StringComparison.Ordinal)
         };
-        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_plan, [_event, second], _mirror, 1));
+        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_plan, [_event, second], 1));
     }
 
     [Fact] void should_refuse_the_historical_claims() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();

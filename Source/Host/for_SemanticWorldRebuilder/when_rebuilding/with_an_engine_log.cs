@@ -21,7 +21,7 @@ public class with_an_engine_log : a_rebuildable_world
 
     async Task Because()
     {
-        _world = SemanticWorldRebuilder.Create(_plan, [_event], _mirror, 0);
+        _world = SemanticWorldRebuilder.Create(_plan, [_event], 0);
         _appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         ((ISemanticFactTail)_appender).Tail().Returns(0UL);
         var runtime = SemanticRuntimeHosting.Create(_plan, _appender, _world);

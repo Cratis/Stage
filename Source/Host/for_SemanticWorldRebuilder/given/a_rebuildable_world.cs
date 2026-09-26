@@ -15,7 +15,6 @@ public class a_rebuildable_world : Specification
     protected SemanticExecutionPlan _plan = null!;
     protected SemanticCommand _command = null!;
     protected AppendedEventResponse _event = null!;
-    protected IReadOnlyDictionary<SemanticId, IReadOnlyList<string>> _mirror = null!;
     protected SemanticReadModel _readModel = null!;
     protected ImmutableArray<SemanticPropertyValue> _commandValues;
 
@@ -55,16 +54,6 @@ public class a_rebuildable_world : Specification
             Content = JsonSerializer.Serialize(fact.Values.ToDictionary(value => eventContract.Properties.Single(property => property.Id == value.TargetProperty).Name,
                 value => ((SemanticTextValue)value.Value).Value))
         };
-        var values = accepted.World.ReadModels.Single().Values.ToDictionary(value => _readModel.Properties.Single(property => property.Id == value.TargetProperty).Name,
-            value => ((SemanticTextValue)value.Value).Value);
-        var row = JsonSerializer.Serialize(new
-        {
-            id = "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-            __initialized = true,
-            projectId = values["projectId"],
-            name = values["name"]
-        });
-        _mirror = new Dictionary<SemanticId, IReadOnlyList<string>> { [_readModel.Id] = [row] };
     }
 
     protected const string Source = """

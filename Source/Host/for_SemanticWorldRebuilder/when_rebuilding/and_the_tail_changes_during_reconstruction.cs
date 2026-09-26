@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticWorldRebuilder.when_rebuilding;
 
-public class and_the_tail_changes_during_reconstruction : a_registered_mirror
+public class and_the_tail_changes_during_reconstruction : a_stored_sequence
 {
     Exception? _error;
 

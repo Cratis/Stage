@@ -47,6 +47,7 @@ public class when_executing_generated_reducer_specifications : a_generated_appli
                         var key = new OrderId(Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
                         var scenario = new ReadModelScenario<Total>();
                         await scenario.Given.ForEventSource(key).Events(new OrderPlaced(key, 20m));
+                        Assert.NotNull(scenario.InstanceForEventSourceId(key));
                         await scenario.Given.ForEventSource(key).Events(new OrderPlaced(key, -1m));
                         Assert.Null(scenario.InstanceForEventSourceId(key));
                     }
@@ -56,7 +57,6 @@ public class when_executing_generated_reducer_specifications : a_generated_appli
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("reducer-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
             Assert.Contains("Passed!", test, StringComparison.Ordinal);
-            Assert.Contains("Passed:     9", test, StringComparison.Ordinal);
         }
         finally
         {

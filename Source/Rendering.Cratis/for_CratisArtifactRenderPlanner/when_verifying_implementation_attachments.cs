@@ -401,7 +401,7 @@ public class when_verifying_implementation_attachments : Specification
         const string source = """
             module Billing
               feature Accounts
-                slice StateView Balance
+                slice StateView BalanceView
                   event AmountDeposited
                     amount Decimal
                   readmodel AccountBalance

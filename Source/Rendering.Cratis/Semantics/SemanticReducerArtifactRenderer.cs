@@ -45,7 +45,7 @@ internal static class SemanticReducerArtifactRenderer
                 $"Transition_{suffix}(new {wrapper}(current, @event, eventContext.EventSourceId.Value, ReducerContextValues.Tenant(eventContext.Namespace), eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)))")
                 .BlankLine()
                 .OpenBlock($"static {modelType}? Transition_{suffix}({wrapper} context)")
-                .Raw(body!)
+                .RawVerbatim(body!)
                 .EndBlock()
                 .BlankLine();
         }

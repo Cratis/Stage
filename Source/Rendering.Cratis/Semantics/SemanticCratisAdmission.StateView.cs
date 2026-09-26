@@ -18,7 +18,7 @@ internal static partial class SemanticCratisAdmission
         List<ArtifactRenderDiagnostic> diagnostics)
     {
         if ((slice.ReadModels.Length == 0 && slice.Reducers.IsEmpty) ||
-            slice.Projections.Any(_ => !context.ReadModels.ContainsKey(_.ReadModel)) ||
+            slice.Projections.Any(projection => !slice.ReadModels.Any(model => model.Id == projection.ReadModel)) ||
             slice.ReadModels.Any(model => context.Projections.Values.Count(_ => _.ReadModel == model.Id) +
                 context.Reducers.Count(_ => _.ReadModel == model.Id) != 1))
         {

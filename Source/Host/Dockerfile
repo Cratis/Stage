@@ -32,7 +32,7 @@ RUN npm run build
 # Stage is built against have to be the same version, or the two drift apart silently between releases.
 # Keep the DEVELOPMENT kernel flavor and its shell/apt/tini runtime; the bare-version image is chiseled.
 # Verification/verify-runtime-compatibility.py enforces the release version and required development flavor.
-FROM cratis/chronicle:19.8.0-development
+FROM cratis/chronicle:19.8.1-development
 
 # The Chronicle base image bundles MongoDB (its default storage backend, an ~800MB install). The Stage runs
 # fully in-memory, so purge it to keep the image database-free. The purge is guarded so it is a no-op on

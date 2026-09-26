@@ -68,7 +68,7 @@ public sealed class CratisBackendApplicationScaffoldProfile
         "6.2.0",
         "2.9.3",
         "4.0.0",
-        "19.8.0");
+        "19.8.1");
 
     /// <summary>
     /// Gets the scaffold contract version carried by every generated input.

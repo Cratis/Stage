@@ -37,7 +37,7 @@ internal static class SemanticRunProjections
             var projection = plan.Projections.Values.Single(value => value.ReadModel == id);
             var method = typeof(SemanticRunProjections).GetMethod(nameof(Define), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(types.ForReadModel(model));
-            output.AddRange((IReadOnlyList<Projected>)method.Invoke(null, [plan, projection, model, context, types, defaults])!);
+            output.AddRange((IReadOnlyList<Projected>)method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [plan, projection, model, context, types, defaults], null)!);
         }
         return output;
     }
@@ -72,14 +72,8 @@ internal static class SemanticRunProjections
                     var @event = plan.Events[transition.EventContract];
                     var mappings = transition.Mappings.Select(mapping => (
                         Target: model.Properties.Single(property => property.Id == mapping.TargetProperty).Name,
-                        Source: (string?)@event.Properties.Single(property => property.Id == ((SemanticResolvedExpression)mapping.Source).Target).Name)).ToList();
-                    var identifier = model.Properties.Single(property => property.IsIdentifier);
-                    if (mappings.TrueForAll(mapping => mapping.Target != identifier.Name))
-                    {
-                        var key = (SemanticResolvedExpression)transition.AffectedInstance.Key;
-                        mappings.Add((identifier.Name, @event.Properties.Single(property => property.Id == key.Target).Name));
-                    }
-                    DefineFrom(builder, types.For(transition.EventContract), [.. mappings]);
+                        Source: (string?)@event.Properties.Single(property => property.Id == ((SemanticResolvedExpression)mapping.Source).Target).Name)).ToArray();
+                    DefineFrom(builder, types.For(transition.EventContract), mappings);
                 }
             }
         });
@@ -114,7 +108,7 @@ internal static class SemanticRunProjections
     static void DefineFrom<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, (string Target, string? Source)[] mappings)
     {
         typeof(SemanticRunProjections).GetMethod(nameof(DefineEvent), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, [builder, mappings]);
+            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mappings], null);
     }
 
     static void DefineEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, (string Target, string? Source)[] mappings)

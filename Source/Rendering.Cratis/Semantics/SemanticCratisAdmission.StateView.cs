@@ -55,7 +55,7 @@ internal static partial class SemanticCratisAdmission
             if (!context.Events.TryGetValue(transition.EventContract, out var @event) ||
                 transition.AffectedInstance.Cardinality != AffectedInstanceCardinality.One ||
                 !IsProperty(transition.AffectedInstance.Key, SemanticExpressionRootKind.Event, @event.Properties.Select(_ => _.Id)) ||
-                !MappingsMatch(transition.Mappings, readModel.Properties, @event.Properties, SemanticExpressionRootKind.Event) ||
+                !SemanticFlatProjectionSupport.MappingsMatch(transition.Mappings, readModel.Properties, @event.Properties, SemanticExpressionRootKind.Event) ||
                 !UsesEventSourceIdentity(context, transition, @event, readModel))
             {
                 diagnostics.Add(Error("STAGE-ESM-009", $"Projection '{projection.Name}' cannot preserve its affected instance with model-bound Cratis projection semantics.", projection.Id));

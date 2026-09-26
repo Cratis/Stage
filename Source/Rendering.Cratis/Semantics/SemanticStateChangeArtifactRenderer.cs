@@ -132,7 +132,13 @@ internal static class SemanticStateChangeArtifactRenderer
         if (command.Produces.Length == 1 && !hasOccurrence && !hasTags)
         {
             var @event = context.Events[command.Produces[0].EventContract];
-            builder.ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", EventValue(command.Produces[0]));
+            var arguments = @event.Properties.Select(property =>
+            {
+                var mapping = command.Produces[0].Mappings.Single(_ => _.TargetProperty == property.Id);
+                var source = (SemanticResolvedExpression)mapping.Source;
+                return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
+            });
+            builder.ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", $"new({string.Join(", ", arguments)})");
         }
         else if (!hasOccurrence)
         {

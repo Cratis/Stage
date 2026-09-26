@@ -20,7 +20,6 @@ public class with_a_protected_query_specification : Specification
         _plan = invoice_model.Plan(invoice_model.Compile(source));
     }
 
-    [Fact] void should_reject_a_query_that_would_bypass_the_arc_pipeline() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-011");
-    [Fact] void should_explain_the_missing_authorization_check() => _plan.Diagnostics.Any(_ => _.Message.Contains("direct invocation bypasses", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_emit_no_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_admit_the_protected_query() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_use_arcs_query_pipeline() => _plan.Artifacts.Select(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())).Any(code => code.Contains("_scenario.Perform(nameof(ProjectSummary.ProjectById)", StringComparison.Ordinal)).ShouldBeTrue();
 }

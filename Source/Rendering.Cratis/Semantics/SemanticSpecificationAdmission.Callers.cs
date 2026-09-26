@@ -22,8 +22,19 @@ internal static partial class SemanticSpecificationAdmission
             context.Commands.TryGetValue(specification.When.Command, out command) &&
             specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true &&
             (!specification.ThenDenied || (specification.ThenQueries.IsEmpty && command.Authorization is not null && specification.GivenCaller is not null)) &&
-            specification.ThenQueries.All(_ => context.Queries.TryGetValue(_.Query, out var query) && query.Authorization is null);
+            specification.ThenQueries.All(_ => context.Queries.TryGetValue(_.Query, out var query) &&
+                (query.Authorization is null || specification.GivenCaller is not null));
     }
+
+    internal static bool CanDenyQueryOnly(SemanticSpecification specification, SemanticApplicationContext context) =>
+        specification.When is null && specification.WhenAppended is null && specification.ThenDenied &&
+        specification.GivenCaller is { } caller &&
+        !caller.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) &&
+        specification.GivenEvents.IsEmpty && specification.GivenReadModels.IsEmpty &&
+        specification.ThenEvents.IsEmpty && specification.ThenReadModels.IsEmpty && specification.ThenErrors.IsEmpty &&
+        specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty &&
+        context.Queries.TryGetValue(specification.ThenQueries[0].Query, out var query) && query.Authorization is not null &&
+        IsScalar(specification.ThenQueries[0].Key);
 
     internal static bool CanSeedQueryOnly(SemanticSpecification specification, SemanticApplicationContext context)
     {

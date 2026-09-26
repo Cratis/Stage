@@ -164,7 +164,9 @@ internal static class SemanticSurfaceLedger
         // Scoped read-model/query expectations replay every produced event in production order;
         // incomplete or ambiguous unordered duplicate replay fails STAGE-ESM-011. Unordered event
         // assertions compare the produced stream even when the expected fact omits its source.
-        // Given events that violate an admitted constraint fail STAGE-ESM-011 before log seeding.
+        // Protected query results and query-only denials execute through Arc QueryScenario with fixture principals;
+        // streaming queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
+        // fail STAGE-ESM-011 before log seeding.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenAppended");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");

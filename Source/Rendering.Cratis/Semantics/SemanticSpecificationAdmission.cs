@@ -24,7 +24,8 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in slice.Specifications)
         {
-            var valid = (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
+            var valid = CanDenyQueryOnly(specification, context) ||
+                (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
                     !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&

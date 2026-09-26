@@ -26,6 +26,11 @@ internal static class SemanticQuerySpecificationRenderer
         SemanticApplicationContext context)
     {
         var query = context.Queries[expected.Query];
+        if (query.Authorization is not null)
+        {
+            return SemanticProtectedQuerySpecificationRenderer.Render(specification, expected, context);
+        }
+
         var readModel = context.ReadModels[query.ReadModel];
         var result = expected.Results.Single();
         var projection = context.Projections.Values.Single(_ => _.ReadModel == readModel.Id);

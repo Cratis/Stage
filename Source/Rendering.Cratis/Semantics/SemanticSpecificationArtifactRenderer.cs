@@ -26,6 +26,11 @@ internal static class SemanticSpecificationArtifactRenderer
             return [SemanticQuerySpecificationRenderer.RenderSeededQuery(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];
         }
 
+        if (SemanticSpecificationAdmission.CanDenyQueryOnly(specification, context))
+        {
+            return [SemanticQuerySpecificationRenderer.Render(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];
+        }
+
         var files = new List<RenderedFile>
         {
             SemanticCommandSpecificationRenderer.Render(specification, context)

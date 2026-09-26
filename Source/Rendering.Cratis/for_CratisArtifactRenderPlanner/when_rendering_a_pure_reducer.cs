@@ -404,7 +404,7 @@ public class when_rendering_a_pure_reducer
         {
             "Equals extern native local" or "local function attribute" => "Equals",
             "SafeFileHandle constructor" => "SafeFileHandle",
-            "Enumerable.Shuffle" => "Shuffle",
+            "Enumerable.Shuffle" => null, // Outer composition now refuses before reaching Shuffle.
             "record.GetHashCode" or "EqualityComparer.GetHashCode" => "GetHashCode",
             "ImmutableHashSet enumeration" => null,
             "ImmutableDictionary hash" => "ImmutableDictionary",
@@ -434,6 +434,49 @@ public class when_rendering_a_pure_reducer
         }
     }
 
+    // Planted adversarial bodies: each was admitted by the pre-fix gate (see failing targeted test).
+    [Theory]
+    [InlineData("return new Total(Guid.Empty, new[] { 2147483647, -2147483647, 0, 0, 2147483647, -2147483647, 0, 0, 2147483647, -2147483647, 0, 0, 2147483647, -2147483647, 0, 0 }.Sum());")]
+    [InlineData("return new Total(Guid.Empty, new[] { 0 }.Select(n => { new[] { 1 }.Select(ignored => ++n).Any(); return n; }).First());")]
+    [InlineData("return new Total(Guid.Empty, new[] { 0 }.Select(n => 1 / n).Any() ? 1m : 0m);")]
+    [InlineData("IEnumerable<int> values = new[] { 1 }; values = values.Select(ignored => values.First()); return new Total(Guid.Empty, values.First());")]
+    [InlineData("return new Total(Guid.Empty, string.Equals(\"\\u0264\", \"\\uA7CB\", StringComparison.OrdinalIgnoreCase) ? 1m : 0m);")]
+    [InlineData("return new Total(Guid.Empty, \" \\u2000 \".Trim().Length);")]
+    [InlineData("return new Total(Guid.Empty, string.IsNullOrWhiteSpace(\"\\u2000\") ? 1m : 0m);")]
+    [InlineData("var projected = new[] { 1 }.Select(n => ++n); return context.State;")]
+    [InlineData("var projected = new[] { 1 }.Select(n => n / (n + 1)); return context.State;")]
+    [InlineData("var projected = new[] { 1 }.Select(n => checked(n + 1)); return context.State;")]
+    [InlineData("var total = new[] { context.Event.Amount }.Aggregate(0m, (a,b) => a + b); return new Total(Guid.Empty, total);")]
+    [InlineData("IEnumerable<int> values = new[] { 1 }; var projected = new[] { 0 }.Select(n => values.First()); return context.State;")]
+    [InlineData("var numbers = System.Collections.Immutable.ImmutableArray<int>.Empty; var projected = new[] { 0 }.Select(n => numbers.Length); return context.State;")]
+    [InlineData("return new Total(Guid.Empty, new[] { 1 }.Any() ? 1m : 0m);")]
+    [InlineData("return new Total(Guid.Empty, new[] { 1 }.Count());")]
+    [InlineData("return new Total(Guid.Empty, new[] { 1 }.Select(n => n + 1).Count(n => n > 0));")]
+    [InlineData("IEnumerable<int> values = true ? new[] { 1 }.Select(n => n + 1) : new[] { 2 }; return new Total(Guid.Empty, values.First());")]
+    [InlineData("var values = new[] { 1 }.Concat(new[] { 2 }.Select(n => n + 1)); return context.State;")]
+    [InlineData("return new Total(Guid.Empty, System.Collections.Immutable.ImmutableArray.ToImmutableArray(new[] { 1 }.Select(n => n + 1)).Length);")]
+    public async Task should_refuse_adversarial_pure_subset_bodies(string body)
+    {
+        var verdict = await Analyze(body);
+        Assert.Equal("STAGE-ESM-022", verdict.Code);
+    }
+
+    [Theory]
+    [InlineData("Math", "Math.Abs(-1)")]
+    [InlineData("String", "string.IsNullOrEmpty(\"x\") ? 1m : 0m")]
+    [InlineData("Enumerable", "new[] { 1m }.Sum()")]
+    [InlineData("ImmutableArray", "System.Collections.Immutable.ImmutableArray<decimal>.Empty.Length")]
+    [InlineData("DateTimeOffset", "context.Occurred.Day")]
+    [InlineData("TimeSpan", "(context.Occurred - context.Occurred).Ticks")]
+    public async Task should_refuse_reducer_names_shadowing_audited_types(string name, string expression)
+    {
+        var source = Source.Replace("reducer Fold => Total", $"reducer {name} => Total", StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal)
+            .Replace("context.Event.Amount);", $"{expression});", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains(name, StringComparison.Ordinal));
+    }
+
     internal static readonly string[] AdmittedFixtures =
     [
             "return new Total(Guid.Empty, context.Event.Amount + 1m);",
@@ -451,22 +494,23 @@ public class when_rendering_a_pure_reducer
             "return new Total(Guid.Empty, context.Occurred.Year + context.Occurred.Month + context.Occurred.Hour + context.Occurred.Minute + context.Occurred.Second + context.Occurred.Ticks);",
             "return new Total(Guid.Empty, (context.Occurred - context.Occurred).Ticks);",
             "return new Total(Guid.Empty, (context.Occurred + (context.Occurred - context.Occurred)).Day);",
-            "return new Total(Guid.Empty, string.Equals(\"a\", \"A\", StringComparison.OrdinalIgnoreCase) && \"ab\".StartsWith(\"a\", StringComparison.Ordinal) ? 1m : 0m);",
-            "return new Total(Guid.Empty, \"ab\".EndsWith(\"B\", StringComparison.OrdinalIgnoreCase) && \"ab\".IndexOf(\"a\", StringComparison.Ordinal) == 0 ? 1m : 0m);",
-            "return new Total(Guid.Empty, \" ab \".Trim().Substring(0,1)[0] == 'a' ? 1m : 0m);",
-            "return new Total(Guid.Empty, string.IsNullOrEmpty(\"\") && string.IsNullOrWhiteSpace(\" \") ? 1m : 0m);",
+            "return new Total(Guid.Empty, string.Equals(\"a\", \"A\", StringComparison.Ordinal) && \"ab\".StartsWith(\"a\", StringComparison.Ordinal) ? 1m : 0m);",
+            "return new Total(Guid.Empty, \"ab\".EndsWith(\"B\", StringComparison.Ordinal) && \"ab\".IndexOf(\"a\", StringComparison.Ordinal) == 0 ? 1m : 0m);",
+            "return new Total(Guid.Empty, \"ab\".Substring(0,1)[0] == 'a' ? 1m : 0m);",
+            "return new Total(Guid.Empty, string.IsNullOrEmpty(\"\") && !string.IsNullOrEmpty(\" \") ? 1m : 0m);",
             "string text = \"a\"; text += 'b'; return new Total(Guid.Empty, text.Length);",
             "return new Total(Guid.Empty, context.State?.Amount ?? 0m);",
             "return context.State is null ? new Total(Guid.Empty, 0m) : context.State;",
             "return context.State is not null ? context.State with { Amount = 1m } : new Total(Guid.Empty, 0m);",
             "if (context.Event.Amount is 1m) return new Total(Guid.Empty, 1m); else return context.State;",
             "switch (context.Event.Amount) { case 1m: return context.State; default: return new Total(Guid.Empty, 0m); }",
-            "return new Total(Guid.Empty, new[] { 1m, 2m }.Select(n => n + 1m).Where(n => n > 1m).Sum());",
-            "return new Total(Guid.Empty, new[] { 1m }.Count() + (new[] { 1m }.Any() && new[] { 1m }.All(n => n > 0m) ? 1m : 0m));",
-            "return new Total(Guid.Empty, new[] { 1m, 2m }.Take(1).Concat(new[] { 3m }.Skip(0)).Aggregate(0m, (a,b) => a+b));",
+            "var selected = new[] { 1m, 2m }.Select(n => n); return new Total(Guid.Empty, new[] { 1m, 2m }.Sum());",
+            "var filtered = new[] { 1m, 2m }.Where(n => n > 1m); return new Total(Guid.Empty, new[] { 1m }.Sum());",
+            "return new Total(Guid.Empty, new[] { 1m }.Count(n => n > 0m) + (new[] { 1m }.Any(n => n > 0m) && new[] { 1m }.All(n => n > 0m) ? 1m : 0m));",
+            "var taken = new[] { 1m, 2m }.Take(1); var skipped = new[] { 3m }.Skip(0); var joined = new[] { 1m }.Concat(new[] { 2m }); return new Total(Guid.Empty, new[] { 1, 2 }.Aggregate(0, (a,b) => a+b));",
             "return new Total(Guid.Empty, new[] { 1m }.First() + new[] { 1m }.FirstOrDefault() + new[] { 1m }.Last() + new[] { 1m }.LastOrDefault());",
             "return new Total(Guid.Empty, new[] { 1m }.ToArray()[0]);",
-            "return new Total(Guid.Empty, System.Collections.Immutable.ImmutableArray.ToImmutableArray(new[] { 1m }.Select(n => n)).Length);",
+            "IEnumerable<decimal> values = new[] { 1m }; return new Total(Guid.Empty, System.Collections.Immutable.ImmutableArray.ToImmutableArray(values).Length);",
             "throw new ArgumentException(\"invalid\");",
             "return new Total(Guid.Empty, checked(context.Event.Amount + 1m));",
             "return new Total(Guid.Empty, unchecked(context.Event.Amount + 1m));",
@@ -480,23 +524,36 @@ public class when_rendering_a_pure_reducer
             "return context.State is Total total ? total : new Total(Guid.Empty, 0m);",
             "return context.Event.Amount switch { 1m => new Total(Guid.Empty, 1m), _ => context.State };",
             "var sum = 0m; foreach (var item in System.Collections.Immutable.ImmutableArray<decimal>.Empty) sum += item; return new Total(Guid.Empty, sum);",
-            "return new Total(Guid.Empty, System.Collections.Immutable.ImmutableArray.ToImmutableArray(new[] { 1m }.Select(n => n))[0]);",
+            "IEnumerable<decimal> values = new[] { 1m }; return new Total(Guid.Empty, System.Collections.Immutable.ImmutableArray.ToImmutableArray(values)[0]);",
             "return new Total(Guid.Empty, (\"a\" + 'b').Length);",
             "return new Total(Guid.Empty, context.IsFirst && context.Key.Length > 0 ? context.SequenceNumber : 0m);"
     ];
 
     [Fact]
+    public void should_use_only_the_exact_audited_reference_pack()
+    {
+        Assert.All(PureTransitionAdmission._references.Value, reference =>
+            Assert.Contains(
+                $"/Microsoft.NETCore.App.Ref/{PureTransitionAdmission.ReferencePackVersion}/ref/net10.0/",
+                reference.Display!.Replace('\\', '/'),
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task should_exercise_every_allowlist_entry_in_admitted_fixtures()
     {
         var used = new HashSet<string>(StringComparer.Ordinal);
+        var members = new HashSet<string>(StringComparer.Ordinal);
         foreach (var fixture in AdmittedFixtures)
         {
             var verdict = await Analyze(fixture);
             Assert.True(verdict.Accepted, $"Fixture {fixture} was refused: {verdict.Code}: {verdict.Reason}");
             used.UnionWith(verdict.UsedAllowlistEntries);
+            members.UnionWith(verdict.AuditedSymbols);
         }
 
         Assert.Equal(PureTransitionAdmission.AllowlistReasons.Keys.Order(StringComparer.Ordinal), used.Order(StringComparer.Ordinal));
+        Assert.Equal(PureTransitionAdmission.AuditedMemberSignatures.Order(StringComparer.Ordinal), members.Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -526,7 +583,37 @@ public class when_rendering_a_pure_reducer
             Assert.Equal(synthetic.UsedAllowlistEntries, actual.UsedAllowlistEntries);
             Assert.True(synthetic.Accepted, $"Parity fixture {fixture} was refused: {synthetic.Code}: {synthetic.Reason}");
             Assert.Equal(synthetic.BoundSymbols.ToArray(), actual.BoundSymbols.ToArray());
+            Assert.Equal(synthetic.AuditedSymbols.ToArray(), actual.AuditedSymbols.ToArray());
+            if (fixture.Contains("foreach (var item in System.Collections.Immutable.ImmutableArray", StringComparison.Ordinal))
+            {
+                Assert.Contains(synthetic.BoundSymbols, signature => signature.Contains(".GetEnumerator`", StringComparison.Ordinal));
+                Assert.Contains(synthetic.BoundSymbols, signature => signature.Contains(".MoveNext`", StringComparison.Ordinal));
+                Assert.Contains(synthetic.BoundSymbols, signature => signature.Contains(".Current(", StringComparison.Ordinal));
+            }
         }
+    }
+
+    [Fact]
+    public async Task should_detect_a_planted_changed_member_binding()
+    {
+        var compiled = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
+        var plan = Plan(compiled);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var descriptor = compiled.TypedContextDescriptors.Single();
+        var reducerFile = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal));
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(
+                artifact.RelativePath,
+                System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace(
+                    artifact.RelativePath == reducerFile.RelativePath ? "return new Total(context.Event.Id, context.Event.Amount);" : "\u0000",
+                    "return new Total(context.Event.Id, Math.Abs(-1m));",
+                    StringComparison.Ordinal)));
+        var intBinding = await Analyze("return new Total(Guid.Empty, Math.Abs(-1));");
+        var decimalBinding = PureTransitionAdmission.AnalyzeRendered(RenderedOutput.CreateCompilation(files), reducerFile.RelativePath, descriptor);
+        Assert.True(intBinding.Accepted && decimalBinding.Accepted, $"{intBinding.Reason}; {decimalBinding.Reason}");
+        Assert.False(intBinding.BoundSymbols.SequenceEqual(decimalBinding.BoundSymbols));
+        Assert.Contains(intBinding.BoundSymbols, signature => signature.Contains("Math.Abs`0(None:int)", StringComparison.Ordinal));
+        Assert.Contains(decimalBinding.BoundSymbols, signature => signature.Contains("Math.Abs`0(None:decimal)", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -15,6 +15,75 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Closed-compilation, fail-closed symbol admission for attached pure transitions (not a sandbox).</summary>
 internal static class PureTransitionAdmission
 {
+    // Exact net10.0 reference pack audited for reducer binding. Never silently substitute a newer pack.
+    internal const string ReferencePackVersion = "10.0.12";
+
+    // Exact BCL signatures, not broad type/name categories. The parity fixtures must cover each entry.
+    internal static readonly IReadOnlySet<string> AuditedMemberSignatures = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "Field:global::System.Collections.Immutable.ImmutableArray<T>.Empty:global::System.Collections.Immutable.ImmutableArray<T>",
+        "Field:global::System.MidpointRounding.ToEven:global::System.MidpointRounding",
+        "Field:global::System.StringComparison.Ordinal:global::System.StringComparison",
+        "Method:decimal.ToString`0(None:global::System.IFormatProvider):string",
+        "Method:global::System.ArgumentException..ctor`0(None:string):void",
+        "Method:global::System.Collections.Immutable.ImmutableArray.ToImmutableArray`1(None:global::System.Collections.Generic.IEnumerable<TSource>):global::System.Collections.Immutable.ImmutableArray<TSource>",
+        "Method:global::System.Collections.Immutable.ImmutableArray<T>.Enumerator.MoveNext`0():bool",
+        "Method:global::System.Collections.Immutable.ImmutableArray<T>.GetEnumerator`0():global::System.Collections.Immutable.ImmutableArray<T>.Enumerator",
+        "Method:global::System.DateTimeOffset.AddTicks`0(None:long):global::System.DateTimeOffset",
+        "Method:global::System.DateTimeOffset.op_Addition`0(None:global::System.DateTimeOffset,None:global::System.TimeSpan):global::System.DateTimeOffset",
+        "Method:global::System.DateTimeOffset.op_GreaterThanOrEqual`0(None:global::System.DateTimeOffset,None:global::System.DateTimeOffset):bool",
+        "Method:global::System.DateTimeOffset.op_Subtraction`0(None:global::System.DateTimeOffset,None:global::System.DateTimeOffset):global::System.TimeSpan",
+        "Method:global::System.InvalidOperationException..ctor`0(None:string):void",
+        "Method:global::System.Linq.Enumerable.Aggregate`2(None:global::System.Collections.Generic.IEnumerable<TSource>,None:TAccumulate,None:global::System.Func<TAccumulate, TSource, TAccumulate>):TAccumulate",
+        "Method:global::System.Linq.Enumerable.All`1(None:global::System.Collections.Generic.IEnumerable<TSource>,None:global::System.Func<TSource, bool>):bool",
+        "Method:global::System.Linq.Enumerable.Any`1(None:global::System.Collections.Generic.IEnumerable<TSource>,None:global::System.Func<TSource, bool>):bool",
+        "Method:global::System.Linq.Enumerable.Concat`1(None:global::System.Collections.Generic.IEnumerable<TSource>,None:global::System.Collections.Generic.IEnumerable<TSource>):global::System.Collections.Generic.IEnumerable<TSource>",
+        "Method:global::System.Linq.Enumerable.Count`1(None:global::System.Collections.Generic.IEnumerable<TSource>,None:global::System.Func<TSource, bool>):int",
+        "Method:global::System.Linq.Enumerable.FirstOrDefault`1(None:global::System.Collections.Generic.IEnumerable<TSource>):TSource",
+        "Method:global::System.Linq.Enumerable.First`1(None:global::System.Collections.Generic.IEnumerable<TSource>):TSource",
+        "Method:global::System.Linq.Enumerable.LastOrDefault`1(None:global::System.Collections.Generic.IEnumerable<TSource>):TSource",
+        "Method:global::System.Linq.Enumerable.Last`1(None:global::System.Collections.Generic.IEnumerable<TSource>):TSource",
+        "Method:global::System.Linq.Enumerable.Select`2(None:global::System.Collections.Generic.IEnumerable<TSource>,None:global::System.Func<TSource, TResult>):global::System.Collections.Generic.IEnumerable<TResult>",
+        "Method:global::System.Linq.Enumerable.Skip`1(None:global::System.Collections.Generic.IEnumerable<TSource>,None:int):global::System.Collections.Generic.IEnumerable<TSource>",
+        "Method:global::System.Linq.Enumerable.Sum`0(None:global::System.Collections.Generic.IEnumerable<decimal>):decimal",
+        "Method:global::System.Linq.Enumerable.Take`1(None:global::System.Collections.Generic.IEnumerable<TSource>,None:int):global::System.Collections.Generic.IEnumerable<TSource>",
+        "Method:global::System.Linq.Enumerable.ToArray`1(None:global::System.Collections.Generic.IEnumerable<TSource>):TSource[]",
+        "Method:global::System.Linq.Enumerable.Where`1(None:global::System.Collections.Generic.IEnumerable<TSource>,None:global::System.Func<TSource, bool>):global::System.Collections.Generic.IEnumerable<TSource>",
+        "Method:global::System.Math.Abs`0(None:decimal):decimal",
+        "Method:global::System.Math.Abs`0(None:int):int",
+        "Method:global::System.Math.Ceiling`0(None:decimal):decimal",
+        "Method:global::System.Math.Clamp`0(None:decimal,None:decimal,None:decimal):decimal",
+        "Method:global::System.Math.Floor`0(None:decimal):decimal",
+        "Method:global::System.Math.Max`0(None:decimal,None:decimal):decimal",
+        "Method:global::System.Math.Min`0(None:decimal,None:decimal):decimal",
+        "Method:global::System.Math.Round`0(None:decimal,None:global::System.MidpointRounding):decimal",
+        "Method:global::System.Math.Sign`0(None:decimal):int",
+        "Method:global::System.Math.Truncate`0(None:decimal):decimal",
+        "Method:global::System.TimeSpan.Add`0(None:global::System.TimeSpan):global::System.TimeSpan",
+        "Method:global::System.TimeSpan.op_Equality`0(None:global::System.TimeSpan,None:global::System.TimeSpan):bool",
+        "Method:string.Contains`0(None:string,None:global::System.StringComparison):bool",
+        "Method:string.EndsWith`0(None:string,None:global::System.StringComparison):bool",
+        "Method:string.Equals`0(None:string,None:string,None:global::System.StringComparison):bool",
+        "Method:string.IndexOf`0(None:string,None:global::System.StringComparison):int",
+        "Method:string.IsNullOrEmpty`0(None:string):bool",
+        "Method:string.StartsWith`0(None:string,None:global::System.StringComparison):bool",
+        "Method:string.Substring`0(None:int,None:int):string",
+        "Property:global::System.Collections.Immutable.ImmutableArray<T>.Enumerator.Current():T",
+        "Property:global::System.Collections.Immutable.ImmutableArray<T>.Length():int",
+        "Property:global::System.Collections.Immutable.ImmutableArray<T>.this[](int):T",
+        "Property:global::System.DateTimeOffset.Day():int",
+        "Property:global::System.DateTimeOffset.Hour():int",
+        "Property:global::System.DateTimeOffset.Minute():int",
+        "Property:global::System.DateTimeOffset.Month():int",
+        "Property:global::System.DateTimeOffset.Second():int",
+        "Property:global::System.DateTimeOffset.Ticks():long",
+        "Property:global::System.DateTimeOffset.Year():int",
+        "Property:global::System.Globalization.CultureInfo.InvariantCulture():global::System.Globalization.CultureInfo",
+        "Property:global::System.TimeSpan.Ticks():long",
+        "Property:string.Length():int",
+        "Property:string.this[](int):char"
+    };
+
     // Each entry is a separate exemption; a fixture must exercise it and any new side effect ends the exemption.
     internal static readonly IReadOnlyDictionary<string, string> AllowlistReasons = new Dictionary<string, string>
     {
@@ -24,25 +93,18 @@ internal static class PureTransitionAdmission
         ["time"] = "Explicit DateTimeOffset and TimeSpan arithmetic and component reads only.",
         ["string"] = "Ordinal text operations and invariant numeric formatting only.",
         ["collections"] = "ImmutableArray and local array reads; no mutable or hash collection members.",
-        ["linq"] = "Audited order-preserving LINQ with non-mutating argument lambdas.",
+        ["linq"] = "Audited order-preserving LINQ with expression-only callbacks and no deferred composition.",
         ["exceptions"] = "Only explicit InvalidOperationException(string) and ArgumentException(string) throws."
     };
 
-    // The exact scaffold profile pins the target TFM; never analyze against Stage's implementation CoreLib.
-    // If the corresponding reference pack is unavailable we refuse the body instead of falling back to another runtime.
     internal static readonly Lazy<MetadataReference[]> _references = new(() =>
     {
         var framework = CratisBackendApplicationScaffoldProfile.Current.TargetFramework;
         var dotnetRoot = new DirectoryInfo(Path.GetDirectoryName(typeof(object).Assembly.Location)!).Parent!.Parent!.Parent!;
         var packRoot = Path.Combine(dotnetRoot.FullName, "packs", "Microsoft.NETCore.App.Ref");
-        var version = Directory.Exists(packRoot) ? Directory.GetDirectories(packRoot)
-            .Select(Path.GetFileName)
-            .Where(name => Version.TryParse(name, out var parsed) && parsed.Major.ToString(System.Globalization.CultureInfo.InvariantCulture) == framework[3..framework.IndexOf('.', StringComparison.Ordinal)])
-            .OrderByDescending(name => Version.Parse(name!))
-            .FirstOrDefault() : null;
-        var refDirectory = Path.Combine(packRoot, version ?? string.Empty, "ref", framework);
-        if (version is null || !Directory.Exists(refDirectory))
-            throw new InvalidOperationException($"Reference assemblies for target framework '{framework}' are unavailable; pure transitions cannot be analysed.");
+        var refDirectory = Path.Combine(packRoot, ReferencePackVersion, "ref", framework);
+        if (!Directory.Exists(refDirectory))
+            throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework '{framework}' are unavailable; pure transitions cannot be analysed.");
         return [.. Directory.GetFiles(refDirectory, "*.dll").Select(path => MetadataReference.CreateFromFile(path))];
     });
 
@@ -140,6 +202,13 @@ internal static class PureTransitionAdmission
         var modelNs = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(readModel.Id).Path);
         var located = context.SelectedSlices().Single(candidate => candidate.Slice.Reducers.Any(reducer => reducer.ReadModel == readModel.Id));
         var reducer = located.Slice.Reducers.Single(candidate => candidate.ReadModel == readModel.Id);
+        var reducerName = Identifiers.ToPascalCase(reducer.Name);
+
+        // An unqualified BCL reference could bind to the containing reducer instead in the rendered file.
+        if (NameIs(reducerName, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan"))
+        {
+            return Reject("STAGE-ESM-022", $"Reducer '{reducerName}' shadows an audited type.");
+        }
         var ns = SliceNaming.Namespace(context.RootNamespace, located.Path);
         var reducerEvents = reducer.Transitions.Select(transition => context.Events[transition.EventContract]).ToArray();
         var types = new SemanticTypeSystem(context);
@@ -180,7 +249,8 @@ internal static class PureTransitionAdmission
         var declarations = "global using System; global using System.Collections.Generic; global using System.Linq; " +
             "global using System.IO; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks; " +
             (context.Application.Concepts.IsEmpty && context.Application.Types.IsEmpty ? string.Empty : $"using {context.RootNamespace}.Common; ") +
-            "namespace Cratis.Chronicle.Events {} namespace Cratis.Chronicle.Reducers {} " +
+            "namespace Cratis.Chronicle.Events { public class EventContext {} } " +
+            "namespace Cratis.Chronicle.Reducers { public interface IReducerFor<T> {} } " +
             string.Join('\n', definitions) + "\n" + tenant + "\n" + wrapper;
         var builder = new CodeGeneration.CSharpCodeBuilder()
             .Namespace(ns)
@@ -193,8 +263,19 @@ internal static class PureTransitionAdmission
             builder.Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(transitionEvent.Id).Path));
         }
 
-        var code = builder.OpenBlock("public static class TransitionAnalysis")
-            .OpenBlock($"public static {modelType}? Transition({wrapperType} context)")
+        var suffix = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(descriptor.RequirementId)))[..8];
+        builder.OpenBlock($"public class {reducerName} : IReducerFor<{modelType}>");
+        foreach (var transitionEvent in reducerEvents)
+        {
+            var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(transitionEvent.Id).Path);
+            var eventType = $"global::{eventNamespace}.{Identifiers.ToPascalCase(transitionEvent.Name)}";
+            builder.OpenBlock($"public {modelType}? On({eventType} @event, {modelType}? current, EventContext eventContext)")
+                .RawVerbatim("throw new global::System.NotImplementedException();")
+                .EndBlock();
+        }
+
+        var code = builder.OpenBlock($"static {modelType}? Transition_{suffix}({wrapperType} context)")
             .RawVerbatim(body)
             .EndBlock()
             .EndBlock()
@@ -211,7 +292,7 @@ internal static class PureTransitionAdmission
         if (errors.Length > 0)
         {
             var error = errors[0];
-            var methodOffset = code.IndexOf(body, code.LastIndexOf("public static class TransitionAnalysis", StringComparison.Ordinal), StringComparison.Ordinal);
+            var methodOffset = code.IndexOf(body, code.LastIndexOf($"public class {reducerName}", StringComparison.Ordinal), StringComparison.Ordinal);
             var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}";
             if (!error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < methodOffset ||
                 error.Location.SourceSpan.Start > methodOffset + body.Length)
@@ -223,7 +304,7 @@ internal static class PureTransitionAdmission
             return Reject("STAGE-ESM-019", $"Reducer body {location}: {detail}");
         }
 
-        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(_ => _.Identifier.Text == "Transition");
+        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(_ => _.Identifier.Text == $"Transition_{suffix}");
         return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor);
 
         string Parameters(IEnumerable<SemanticProperty> properties, bool reducerInput = false) => string.Join(", ", properties.Select(property =>
@@ -271,14 +352,27 @@ internal static class PureTransitionAdmission
             if (operation is IThrowOperation thrownOperation && !ValidThrow(thrownOperation.Exception))
                 return Reject("STAGE-ESM-022", "Throw must construct InvalidOperationException(string) or ArgumentException(string).");
 
-            if (operation is IAnonymousFunctionOperation lambda &&
-                (lambda.Parent is not IDelegateCreationOperation { Parent: IArgumentOperation { Parent: IInvocationOperation { TargetMethod.ContainingType: { } owner } } } ||
-                 owner.ToDisplayString() != "System.Linq.Enumerable" ||
-                 Descendants(lambda.Body).Any(child => (child is ISimpleAssignmentOperation { Target: ILocalReferenceOperation local } &&
-                     !lambda.Symbol.Parameters.Any(p => SymbolEqualityComparer.Default.Equals(p, local.Local))) ||
-                     child is ICompoundAssignmentOperation { Target: ILocalReferenceOperation } or IIncrementOrDecrementOperation { Target: ILocalReferenceOperation })))
+            if (operation is IAnonymousFunctionOperation lambda && InvalidLambda(lambda))
             {
-                return Reject("STAGE-ESM-022", "Lambda outside LINQ or mutation of a captured local is not pure.");
+                return Reject("STAGE-ESM-022", "LINQ lambda must be a pure expression over its parameters and typed context (no writes, deferred captures, nested LINQ or evaluation-dependent throws).");
+            }
+
+            if (operation is IInvocationOperation linq && linq.TargetMethod.ContainingType.ToDisplayString() == "System.Linq.Enumerable" &&
+                ((NameIs(linq.TargetMethod.Name, "Any", "Count") && linq.TargetMethod.Parameters.Length == 1) ||
+                 linq.Arguments.Any(argument => HasDeferredLinqSource(argument.Value, root))))
+            {
+                return Reject("STAGE-ESM-022", "LINQ count shortcuts and deferred LINQ composition are outside the pure subset.");
+            }
+
+            if (operation is IInvocationOperation immutable && immutable.TargetMethod.ContainingType.ToDisplayString() == "System.Collections.Immutable.ImmutableArray" &&
+                immutable.Arguments.Any(argument => HasDeferredLinqSource(argument.Value, root)))
+            {
+                return Reject("STAGE-ESM-022", "Materializing a deferred LINQ source is outside the pure subset.");
+            }
+
+            if (operation is ISimpleAssignmentOperation { Target: ILocalReferenceOperation assigned } && EnumerableType(assigned.Local.Type))
+            {
+                return Reject("STAGE-ESM-022", $"Enumerable local '{assigned.Local.Name}' must be single-assignment.");
             }
 
             if (operation is ILiteralOperation { Type: { } literalType } && !SafeDataType(literalType, model.Compilation))
@@ -464,6 +558,18 @@ internal static class PureTransitionAdmission
                 continue;
             }
 
+            if (operation is IForEachLoopOperation { Syntax: CommonForEachStatementSyntax forEach })
+            {
+                var info = model.GetForEachStatementInfo(forEach);
+                if (info.GetEnumeratorMethod?.ContainingType.ToDisplayString().StartsWith("System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal) != true ||
+                    info.MoveNextMethod is null || info.CurrentProperty is null ||
+                    !AuditedMemberSignatures.Contains(AuditedSignature(info.MoveNextMethod)) ||
+                    !AuditedMemberSignatures.Contains(AuditedSignature(info.CurrentProperty)))
+                {
+                    return Reject("STAGE-ESM-022", "Foreach requires audited immutable-array GetEnumerator, MoveNext and Current bindings.");
+                }
+            }
+
             if ((operation is ICompoundAssignmentOperation { Type.SpecialType: SpecialType.System_String } compoundText &&
                  StringOrChar(compoundText.Value)) ||
                 (operation is IBinaryOperation { Type.SpecialType: SpecialType.System_String, OperatorKind: BinaryOperatorKind.Add } binaryText &&
@@ -499,6 +605,11 @@ internal static class PureTransitionAdmission
                 return Reject("STAGE-ESM-022", $"Symbol '{symbol.ToDisplayString()}' is outside the pure allowlist.");
             }
 
+            if (IsAuditedMember(symbol) && !AuditedMemberSignatures.Contains(AuditedSignature(symbol)))
+            {
+                return Reject("STAGE-ESM-022", $"Symbol '{symbol.ToDisplayString()}' has no audited signature fixture.");
+            }
+
             used.Add(entry);
         }
 
@@ -507,18 +618,94 @@ internal static class PureTransitionAdmission
             null,
             reads.ToImmutable(),
             used.ToImmutable(),
-            [.. Descendants(root).Select(operation => operation switch
-            {
-                IInvocationOperation call => (ISymbol?)call.TargetMethod,
-                IObjectCreationOperation creation => creation.Constructor,
-                IPropertyReferenceOperation property => property.Property,
-                IFieldReferenceOperation field => field.Field,
-                IBinaryOperation { OperatorMethod: { } binary } => binary,
-                IUnaryOperation { OperatorMethod: { } unary } => unary,
-                ICompoundAssignmentOperation { OperatorMethod: { } compound } => compound,
-                IConversionOperation { OperatorMethod: { } conversion } => conversion,
-                _ => null
-            }).Where(symbol => symbol is not null).Select(symbol => SymbolIdentity(symbol!))]);
+            [.. Descendants(root).SelectMany(operation => BoundMembers(operation, model)).Select(SymbolIdentity)],
+            [.. Descendants(root).SelectMany(operation => BoundMembers(operation, model)).Where(IsAuditedMember).Select(AuditedSignature).Distinct(StringComparer.Ordinal)]);
+    }
+
+    static IEnumerable<ISymbol> BoundMembers(IOperation operation, SemanticModel model)
+    {
+        if (operation is IForEachLoopOperation { Syntax: CommonForEachStatementSyntax syntax } && !IsArrayForeach(operation, model))
+        {
+            var info = model.GetForEachStatementInfo(syntax);
+            if (info.GetEnumeratorMethod is not null) yield return info.GetEnumeratorMethod;
+            if (info.MoveNextMethod is not null) yield return info.MoveNextMethod;
+            if (info.CurrentProperty is not null) yield return info.CurrentProperty;
+        }
+
+        ISymbol? symbol = operation switch
+        {
+            IInvocationOperation call => call.TargetMethod,
+            IObjectCreationOperation creation => creation.Constructor,
+            IPropertyReferenceOperation property => property.Property,
+            IFieldReferenceOperation field => field.Field,
+            IBinaryOperation { OperatorMethod: { } binary } => binary,
+            IUnaryOperation { OperatorMethod: { } unary } => unary,
+            ICompoundAssignmentOperation { OperatorMethod: { } compound } => compound,
+            IConversionOperation { OperatorMethod: { } conversion } => conversion,
+            _ => null
+        };
+        if (symbol is not null) yield return symbol;
+    }
+
+    static bool InvalidLambda(IAnonymousFunctionOperation lambda)
+    {
+        if (lambda.Parent is not IDelegateCreationOperation { Parent: IArgumentOperation { Parent: IInvocationOperation call } } ||
+            call.TargetMethod.ContainingType.ToDisplayString() != "System.Linq.Enumerable" ||
+            lambda.Syntax is not LambdaExpressionSyntax { Body: ExpressionSyntax })
+        {
+            return true;
+        }
+
+        return lambda.Syntax.DescendantNodes().OfType<CheckedExpressionSyntax>().Any() ||
+            Descendants(lambda.Body).Any(child => child != lambda.Body && InvalidLambdaChild(child, lambda));
+    }
+
+    static bool InvalidLambdaChild(IOperation child, IAnonymousFunctionOperation lambda) => child switch
+    {
+        ISimpleAssignmentOperation or ICompoundAssignmentOperation or IIncrementOrDecrementOperation or
+            ICoalesceAssignmentOperation or IThrowOperation or IAnonymousFunctionOperation or IArrayElementReferenceOperation => true,
+        IBinaryOperation binary => binary.IsChecked ||
+            (binary.OperatorKind is BinaryOperatorKind.Divide or BinaryOperatorKind.Remainder) ||
+            (binary.Type?.SpecialType == SpecialType.System_Decimal &&
+             binary.OperatorKind is BinaryOperatorKind.Add or BinaryOperatorKind.Subtract or BinaryOperatorKind.Multiply),
+        IUnaryOperation unary => unary.IsChecked ||
+            (unary.Operand.Type?.SpecialType == SpecialType.System_Decimal && unary.OperatorKind == UnaryOperatorKind.Minus),
+        IConversionOperation conversion => conversion.IsChecked ||
+            (conversion.Operand.Type?.SpecialType == SpecialType.System_Decimal && conversion.Type?.SpecialType != SpecialType.System_Decimal),
+        IInvocationOperation call => !SafeLambdaCall(call),
+        ILocalReferenceOperation or IParameterReferenceOperation => CapturesDisallowedValue(child, lambda),
+        _ => false
+    };
+
+    static bool EnumerableType(ITypeSymbol? type) => type is not null &&
+        (type is IArrayTypeSymbol || type.ToDisplayString().StartsWith("System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal) ||
+         type.AllInterfaces.Any(@interface => @interface.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>") ||
+         type.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>");
+
+    static bool CapturesDisallowedValue(IOperation operation, IAnonymousFunctionOperation lambda) => operation switch
+    {
+        ILocalReferenceOperation => true, // Only lambda parameters and the typed context may be captured.
+        IParameterReferenceOperation parameter => !lambda.Symbol.Parameters.Any(p => SymbolEqualityComparer.Default.Equals(p, parameter.Parameter)) &&
+            !(parameter.Parameter.Type.Name.StartsWith("TypedContext_", StringComparison.Ordinal) &&
+              parameter.Parameter.ContainingSymbol is IMethodSymbol),
+        _ => false
+    };
+
+    static bool SafeLambdaCall(IInvocationOperation call) =>
+        call.TargetMethod.ContainingType.SpecialType == SpecialType.System_String &&
+        NameIs(call.TargetMethod.Name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf", "IsNullOrEmpty");
+
+    static bool HasDeferredLinqSource(IOperation source, IOperation root)
+    {
+        while (source is IConversionOperation conversion) source = conversion.Operand;
+        if (source is IInvocationOperation call && call.TargetMethod.ContainingType.ToDisplayString() == "System.Linq.Enumerable") return true;
+        if (source is ILocalReferenceOperation local)
+        {
+            return Descendants(root).OfType<IVariableDeclaratorOperation>().Any(declaration =>
+                SymbolEqualityComparer.Default.Equals(declaration.Symbol, local.Local) && declaration.Initializer is not null &&
+                HasDeferredLinqSource(declaration.Initializer.Value, root));
+        }
+        return source.ChildOperations.Any(child => HasDeferredLinqSource(child, root));
     }
 
     static bool IsThrownCreation(IOperation creation)
@@ -616,10 +803,9 @@ internal static class PureTransitionAdmission
                 if (symbol is IPropertySymbol textProperty) return name == "Length" || textProperty.IsIndexer;
                 if (symbol is IFieldSymbol) return name == "Empty";
                 return symbol is IMethodSymbol stringMethod &&
-                    ((name == "Trim" && stringMethod.Parameters.Length == 0) ||
-                     (name == "Substring" && stringMethod.Parameters.Length is 1 or 2 &&
+                    ((name == "Substring" && stringMethod.Parameters.Length is 1 or 2 &&
                       stringMethod.Parameters.All(parameter => parameter.Type.SpecialType == SpecialType.System_Int32)) ||
-                     NameIs(name, "IsNullOrEmpty", "IsNullOrWhiteSpace", "op_Equality", "op_Inequality") ||
+                     NameIs(name, "IsNullOrEmpty", "op_Equality", "op_Inequality") ||
                      (name == "Concat" && stringMethod.Parameters.All(parameter => parameter.Type.SpecialType == SpecialType.System_String)) ||
                      (NameIs(name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf") &&
                      stringMethod.Parameters.Any(parameter => parameter.Type.ToDisplayString() == "System.StringComparison")));
@@ -669,7 +855,7 @@ internal static class PureTransitionAdmission
         if (full == "global::System.StringComparison")
         {
             entry = "string";
-            return symbol is IFieldSymbol && NameIs(name, "Ordinal", "OrdinalIgnoreCase");
+            return symbol is IFieldSymbol && name == "Ordinal";
         }
 
         if (full == "global::System.Globalization.CultureInfo")
@@ -702,7 +888,8 @@ internal static class PureTransitionAdmission
         {
             entry = "linq";
             return NameIs(name, "Where", "Select", "Any", "All", "Count", "First", "FirstOrDefault", "Last", "LastOrDefault", "Take", "Skip", "Sum", "Aggregate", "ToArray", "Concat") &&
-                (name != "Aggregate" || symbol is IMethodSymbol { Parameters.Length: 3 });
+                (name != "Aggregate" || symbol is IMethodSymbol { Parameters.Length: 3 }) &&
+                (name != "Sum" || (symbol is IMethodSymbol sum && DecimalSumReturn(sum.ReturnType)));
         }
 
         if (NameIs(full, "global::System.InvalidOperationException", "global::System.ArgumentException"))
@@ -720,10 +907,36 @@ internal static class PureTransitionAdmission
         return false;
     }
 
-    // The production compilation has only SDK/BCL references and synthetic generated declarations.
-    // Render profiles pin the target framework and source layout. Debug parity compares these symbol
-    // identities with the real pinned Cratis references; a missing synthetic binding only refuses more.
-    static string SymbolIdentity(ISymbol symbol) => symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+    // FullyQualifiedFormat alone omits member signatures; include owner, kind, generic arity and parameters.
+    static string SymbolIdentity(ISymbol symbol)
+    {
+        var member = symbol switch
+        {
+            IMethodSymbol method => $"`{method.Arity}({string.Join(',', method.Parameters.Select(parameter =>
+                $"{parameter.RefKind}:{parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}"))}):{method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}",
+            IPropertySymbol property => $"({string.Join(',', property.Parameters.Select(parameter =>
+                parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))}):{property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}",
+            IFieldSymbol field => $":{field.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}",
+            _ => string.Empty
+        };
+        return $"{symbol.Kind}:{symbol.ContainingType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{symbol.Name}{member}";
+    }
+
+    static bool DecimalSumReturn(ITypeSymbol type) => type.SpecialType == SpecialType.System_Decimal ||
+        (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable &&
+         nullable.TypeArguments[0].SpecialType == SpecialType.System_Decimal);
+
+    static bool IsAuditedMember(ISymbol symbol) => symbol.ContainingType is { } type &&
+        (SafeValueType(type) || type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith("global::System.", StringComparison.Ordinal)) &&
+        symbol is not IMethodSymbol { MethodKind: MethodKind.BuiltinOperator };
+
+    static string AuditedSignature(ISymbol symbol) => SymbolIdentity(symbol switch
+    {
+        IMethodSymbol method => method.OriginalDefinition,
+        IPropertySymbol property => property.OriginalDefinition,
+        IFieldSymbol field => field.OriginalDefinition,
+        _ => symbol
+    });
 
     static bool SafeDataType(ITypeSymbol? type, Compilation compilation) =>
         SafeValue(type, compilation) ||
@@ -860,14 +1073,14 @@ internal static class PureTransitionAdmission
         {
             var comparison = call.Arguments.SingleOrDefault(argument => argument.Parameter?.Type.ToDisplayString() == "System.StringComparison");
             if (comparison is null || comparison.Value is not IFieldReferenceOperation field ||
-                !NameIs(field.Field.Name, "Ordinal", "OrdinalIgnoreCase"))
+                field.Field.Name != "Ordinal")
             {
                 return false;
             }
         }
         if (method.Name == "ToString" && Number(method.ContainingType))
             return call.Arguments.Length == 1 && IsInvariantProvider(call.Arguments[0].Value);
-        return owner != "System.Linq.Enumerable" || method.Name != "Sum" || Number(method.ReturnType);
+        return owner != "System.Linq.Enumerable" || method.Name != "Sum" || DecimalSumReturn(method.ReturnType);
     }
 
     static bool NameIs(string name, params string[] names) => names.Contains(name, StringComparer.Ordinal);
@@ -893,7 +1106,8 @@ internal static class PureTransitionAdmission
     static Verdict Reject(string code, string reason) => new(code, reason, [], []);
 
     internal sealed record Verdict(string? Code, string? Reason, ImmutableHashSet<string> ContextReads,
-        ImmutableHashSet<string> UsedAllowlistEntries, ImmutableArray<string> BoundSymbols = default)
+        ImmutableHashSet<string> UsedAllowlistEntries, ImmutableArray<string> BoundSymbols = default,
+        ImmutableArray<string> AuditedSymbols = default)
     {
         internal bool Accepted => Code is null;
     }

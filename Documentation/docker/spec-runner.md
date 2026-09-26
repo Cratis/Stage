@@ -156,7 +156,7 @@ specifications: the Screenplay v4.24.0 reference evaluator declares `SemanticCon
 
 Facts are compared against Stage's recorded occurrences; Chronicle's persisted log is checked for fact count.
 A separate Chronicle projection scenario evaluates admitted read-model assertions and unprotected, optional
-snapshot queries by the read-model identifier. Flat scalar projections and scoped projections using an
+snapshot queries by the read-model identifier. Flat scalar projections and scoped projections using
 event-source keys (text or UUID) with scalar `from`/`set` mappings run with per-specification artifacts. The
 semantic trace includes keyed read-model and query results; a mismatched result fails the specification.
 The clock is injectable through the in-process API. The tenant and identity allocator options are reserved

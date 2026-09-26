@@ -28,6 +28,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         ("nested_from_then_from", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", First, First, "Again")]),
         ("root_removal_and_recreation", [new("ProjectRegistered", First, First, "First"), new("ProjectRemoved", First), new("ProjectRegistered", First, First, "Second")]),
         ("child_removal_existing_and_missing", [new("ProjectRegistered", First, First, "First"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoteRemoved", Note, First, null, Note), new("ProjectNoteRemoved", OtherNote, First, null, OtherNote)]),
+        ("child_removal_via_join", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", Note, Second, "B", Note), new("ProjectNoteRemovedViaJoin", Note, null, null, Note)]),
         ("two_parents_with_distinct_children", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", OtherNote, Second, "B", OtherNote)]),
         ("every_on_from_and_join", [new("ProjectRegistered", First, First, "First"), new("ProjectNamed", First, null, "Joined"), new("ProjectRenamed", First, First, "Renamed")]),
         ("local_after_join_keeps_joined_name", [new("ProjectNamed", First, null, "Joined"), new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Renamed")])
@@ -40,7 +41,22 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     protected override ArtifactRenderPlan CreatePlan()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", when_rendering_scoped_projections.ScopedSource);
+        var source = when_rendering_scoped_projections.ScopedSource
+            .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
+            .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
+            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal) + "\n" + """
+                slice StateView AllLookup
+                  readmodel AllSummary
+                    projectId ProjectId
+                    lastSeen ProjectId?
+                  query AllById => AllSummary?
+                    by projectId ProjectId
+                  projection AllSummaryProjection => AllSummary
+                    from ProjectRegistered key projectId
+                    all
+                      lastSeen = $eventSourceId
+            """;
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
         _model = compiled.Value!.Model;
@@ -142,11 +158,17 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         ]);
         var result = new SemanticSpecificationRunner().Run(reference, spec.Id);
         var accepted = Assert.IsType<SemanticAccepted>(result.Execution);
-        var readModel = feature.Slices.SelectMany(slice => slice.ReadModels).Single(candidate => candidate.Name == "ProjectSummary");
-        return JsonSerializer.Serialize(new[] { First, Second }.Select(key => Snapshot(
-            accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key),
-            readModel,
-            _model)));
+        var readModels = feature.Slices.SelectMany(slice => slice.ReadModels).ToDictionary(model => model.Name);
+        var readModel = readModels["ProjectSummary"];
+        var all = readModels["AllSummary"];
+        return JsonSerializer.Serialize(new
+        {
+            project = new[] { First, Second }.Select(key => Snapshot(
+                accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key), readModel, _model)),
+            all = new[] { First, Second }.Select(key =>
+                accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == all.Id && instance.Key is SemanticTextValue value && value.Value == key) is { } instance
+                    ? Text(instance.Values.Single(value => value.TargetProperty == all.Properties.Single(property => property.Name == "lastSeen").Id).Value) : null)
+        });
     }
 
     static object? Snapshot(SemanticReadModelInstance? instance, SemanticReadModel readModel, ExecutableSemanticModel model)
@@ -161,7 +183,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
             return new { id = Text(members["noteId"]), name = Text(members["name"]) };
         }).ToArray() : null;
         var info = values["info"] is SemanticCompositeValue composite ? Text(composite.Properties.Single(member => member.TargetProperty == infoType.Properties.Single().Id).Value) : null;
-        return new { name = Text(values["name"]), visits = Number(values["visits"]), lastSeen = Text(values["lastSeen"]), info, notes };
+        return new { name = Text(values["name"]), label = Text(values["label"]), visits = Number(values["visits"]), lastSeen = Text(values["lastSeen"]), info, notes };
     }
 
     static string? Text(SemanticValue value) => value is SemanticTextValue text ? text.Value : null;
@@ -182,6 +204,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
             using Xunit;
             using Projects.Common;
             using Projects.Projects.Registration.RegisterProject;
+            using Projects.Projects.Registration.AllLookup;
 
             namespace Projects.Projects.Registration.ProjectLookup;
 
@@ -195,19 +218,27 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
                     var scenario = new ReadModelScenario<ProjectSummary>();
             {{seeds}}
                     await scenario.Given.ForEventSource(new EventSourceId("{{Third}}")).Events(new ProjectRegistered(new ProjectId(Guid.Parse("{{Third}}")), new ProjectName("Unused")));
-                    var actual = _keys.Select(key =>
+                    var all = new ReadModelScenario<AllSummary>();
+            {{seeds.Replace("scenario.Given", "all.Given", StringComparison.Ordinal)}}
+                    await all.Given.ForEventSource(new EventSourceId("{{Third}}")).Events(new ProjectRegistered(new ProjectId(Guid.Parse("{{Third}}")), new ProjectName("Unused")));
+                    var actual = new
                     {
-                        var instance = scenario.InstanceForEventSourceId(new EventSourceId(key));
-                        if (instance is null) return null;
-                        return new
+                        project = _keys.Select(key =>
                         {
-                            name = instance.Name.Value,
-                            visits = instance.Visits?.ToString(CultureInfo.InvariantCulture),
-                            lastSeen = instance.LastSeen?.Value.ToString(),
-                            info = instance.Info?.Name.Value,
-                            notes = instance.Notes?.Select(note => new { id = note.NoteId.Value.ToString(), name = note.Name.Value }).ToArray()
-                        };
-                    });
+                            var instance = scenario.InstanceForEventSourceId(new EventSourceId(key));
+                            if (instance is null) return null;
+                            return new
+                            {
+                                name = instance.Name.Value,
+                                label = instance.Label,
+                                visits = instance.Visits?.ToString(CultureInfo.InvariantCulture),
+                                lastSeen = instance.LastSeen?.Value.ToString(),
+                                info = instance.Info?.Name.Value,
+                                notes = instance.Notes?.Select(note => new { id = note.NoteId.Value.ToString(), name = note.Name.Value }).ToArray()
+                            };
+                        }),
+                        all = _keys.Select(key => all.InstanceForEventSourceId(new EventSourceId(key))?.LastSeen?.Value.ToString())
+                    };
                     Assert.Equal({{JsonSerializer.Serialize(expected)}}, JsonSerializer.Serialize(actual));
                 }
             }

@@ -24,7 +24,6 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
 
         using Cratis.Chronicle;
         using Cratis.Chronicle.Events;
-        using Cratis.Chronicle.Keys;
         using Cratis.Chronicle.Projections;
         using Cratis.Chronicle.ReadModels;
         using Cratis.Chronicle.Testing.ReadModels;
@@ -32,12 +31,15 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         using Projects.Common;
         using Projects.Projects.Registration.RegisterProject;
         using Projects.Projects.Registration.ProjectLookup;
+        using Projects.Projects.Registration.AllLookup;
         using Xunit;
 
         namespace Projects.MongoProbe;
 
+        #pragma warning disable CHR0029 // Explicit same-name mappings are required after NoAutoMap.
+
         [ReadModel]
-        public record NestedProbe([Key] ProjectId ProjectId, ProjectName Name, ProjectInfo? Info);
+        public record NestedProbe(ProjectId ProjectId, ProjectName Name, ProjectInfo? Info);
 
         public class NestedProbeProjection : IProjectionFor<NestedProbe>
         {
@@ -68,7 +70,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         }
 
         [ReadModel]
-        public record ChildrenProbe([Key] ProjectId ProjectId, ProjectName Name, ProjectNote[] Notes);
+        public record ChildrenProbe(ProjectId ProjectId, ProjectName Name, ProjectNote[] Notes);
 
         public class ChildrenProbeProjection : IProjectionFor<ChildrenProbe>
         {
@@ -135,7 +137,16 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 await Append((EventSourceId)note, new ProjectNoted(note, second, new ProjectName("B")));
                 Console.WriteLine($"JOIN_BEFORE_PARENT_FIRST={string.Join(",", (await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)first))?.Notes?.Select(item => item.Name.Value) ?? [])}");
                 Console.WriteLine($"JOIN_BEFORE_PARENT_SECOND={string.Join(",", (await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)second))?.Notes?.Select(item => item.Name.Value) ?? [])}");
+                var allBefore = await store.ReadModels.GetInstanceById<AllSummary>((EventSourceId)note);
+                Assert.Equal(Guid.Parse(Note), allBefore?.LastSeen?.Value);
+                var stageBefore = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
+                Assert.Equal("fixed", stageBefore?.Label);
+                Assert.Single(stageBefore!.Notes);
                 await Append((EventSourceId)note, new ProjectNoteRemovedViaJoin(note));
+                var stageAfterFirst = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
+                var stageAfterSecond = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)second);
+                Assert.Empty(stageAfterFirst!.Notes);
+                Assert.Empty(stageAfterSecond!.Notes);
                 var firstResult = await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)first);
                 var secondResult = await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)second);
                 Console.WriteLine($"JOIN_REMOVAL_PARENT_FIRST={string.Join(",", firstResult?.Notes?.Select(item => item.Name.Value) ?? [])}");
@@ -162,15 +173,38 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                     }
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<NestedProbeProjection>());
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<ChildrenProbeProjection>());
+                    if (fact is ProjectRegistered or ProjectNoted or ProjectNoteRemovedViaJoin)
+                    {
+                        await store.Projections.WaitTillReachesEventSequenceNumber<ProjectSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
+                        await store.Projections.WaitTillReachesEventSequenceNumber<AllSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
+                    }
+                    Assert.Empty(await store.Projections.GetFailedPartitionsFor<ProjectSummaryProjection>());
+                    Assert.Empty(await store.Projections.GetFailedPartitionsFor<AllSummaryProjection>());
                 }
             }
         }
+        #pragma warning restore CHR0029
         """;
 
     protected override ArtifactRenderPlan CreatePlan()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mongo"), "mongo", "Scopes.play", when_rendering_scoped_projections.ScopedSource);
+        var source = when_rendering_scoped_projections.ScopedSource
+            .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
+            .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
+            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal) + "\n" + """
+                slice StateView AllLookup
+                  readmodel AllSummary
+                    projectId ProjectId
+                    lastSeen ProjectId?
+                  query AllById => AllSummary?
+                    by projectId ProjectId
+                  projection AllSummaryProjection => AllSummary
+                    from ProjectRegistered key projectId
+                    all
+                      lastSeen = $eventSourceId
+            """;
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mongo"), "mongo", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         var model = compilation.Value!.Model;
@@ -183,14 +217,12 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
 
     async Task Because()
     {
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION")))
-        {
-            return;
-        }
-
         AddGeneratedSpecification("MongoProbe.cs", Probe);
         await Run("mongo-debug.log", "build", "-c", "Debug", "-warnaserror");
-        _output = await Run("mongo-probe.log", "test", "-c", "Debug", "--no-build", "--filter", "FullyQualifiedName~when_probing_mongo", "--logger", "console;verbosity=normal");
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION")))
+        {
+            _output = await Run("mongo-probe.log", "test", "-c", "Debug", "--no-build", "--filter", "FullyQualifiedName~when_probing_mongo", "--logger", "console;verbosity=normal");
+        }
     }
 
     [Fact] void should_report_both_mongo_shapes_when_configured()

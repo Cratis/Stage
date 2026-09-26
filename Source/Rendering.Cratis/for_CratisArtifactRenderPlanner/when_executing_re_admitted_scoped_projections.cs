@@ -43,7 +43,11 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
                 var literal = new ReadModelScenario<ProjectSummary>();
                 await literal.Given.ForEventSource(new EventSourceId(First)).Events(
                     new ProjectRegistered(new ProjectId(Guid.Parse(First)), new ProjectName("First")));
-                Assert.Equal("fixed", literal.InstanceForEventSourceId(new EventSourceId(First))?.Label);
+                var projected = literal.InstanceForEventSourceId(new EventSourceId(First));
+                Assert.Equal("fixed", projected?.Label);
+                Assert.Equal(Guid.Parse(Second), projected?.FixedId);
+                Assert.Equal(12.5m, projected?.FixedCount);
+                Assert.Equal(new DateOnly(2026, 9, 26), projected?.FixedDate);
                 var scenario = new ReadModelScenario<AllSummary>();
                 await scenario.Given.ForEventSource(new EventSourceId(First)).Events(
                     new ProjectRegistered(new ProjectId(Guid.Parse(First)), new ProjectName("First")));
@@ -86,8 +90,8 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
     protected override ArtifactRenderPlan CreatePlan()
     {
         var source = when_rendering_scoped_projections.ScopedSource
-            .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
-            .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
+            .Replace("notes ProjectNote[]", "label String?\n        fixedId Uuid?\n        fixedCount Decimal?\n        fixedDate Date?\n        notes ProjectNote[]", StringComparison.Ordinal)
+            .Replace("increment visits", "label = \"fixed\"\n          fixedId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n          fixedCount = 12.5\n          fixedDate = \"2026-09-26\"\n          increment visits", StringComparison.Ordinal)
             .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal) + "\n" + """
                 slice StateView AllLookup
                   readmodel AllSummary

@@ -40,8 +40,10 @@ internal static partial class SemanticSpecificationAdmission
                                 command!.Produces.Count(_ => _.EventContract == group.Key) == group.Count())
                             : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(command!.Produces.Select(_ => _.EventContract)))) &&
                     specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
-                        HasExpectedProjectionEvent(context, specification, expected)) &&
+                        HasExpectedProjectionEvent(context, specification, expected) &&
+                        !ReducerUsesUnstableContext(context, expected.ReadModel)) &&
                     specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
+                        !context.Reducers.Any(reducer => reducer.ReadModel == context.Queries[expected.Query].ReadModel) &&
                         HasExpectedProjectionEvent(context, specification, expected.Results.Single())) &&
                     HasRenderableErrors(context, specification, command) &&
                     HasRenderableEventSources(context, specification, command!) &&
@@ -81,12 +83,41 @@ internal static partial class SemanticSpecificationAdmission
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
         (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
 
+    static bool ReducerUsesUnstableContext(SemanticApplicationContext context, SemanticId readModel)
+    {
+        var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == readModel);
+        if (reducer is null) return false;
+        foreach (var transition in reducer.Transitions)
+        {
+            var descriptor = context.Request.TypedContextDescriptors.SingleOrDefault(_ => _.RequirementId == transition.RequirementId && _.OperationId == readModel);
+            var requirement = context.Request.ImplementationRequirements.SingleOrDefault(_ => _.RequirementId == transition.RequirementId);
+            if (descriptor is null || requirement is null) return true;
+            var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
+            if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, transition.RequirementId, readModel, diagnostics, out var body)) return true;
+            var verdict = PureTransitionAdmission.Analyze(body!, context, context.ReadModels[readModel], context.Events[transition.EventContract], descriptor, requirement);
+            if (verdict.ContextReads.Overlaps(["Occurred", "SequenceNumber", "Tenant"])) return true;
+        }
+
+        return false;
+    }
+
     static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {
         if (specification.When is { } when && context.Commands.TryGetValue(when.Command, out var command) &&
             AssertsUncontrolledOccurrence(specification, command))
         {
             return "A command maps $context.occurred from its current clock; fixed event or projected values in a specification cannot assert this occurrence without a supplied time.";
+        }
+
+        if (specification.ThenQueries.Any(expected => context.Queries.TryGetValue(expected.Query, out var query) &&
+            context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel)))
+        {
+            return "Query expectations on reducer-built read models require the rendered target's query scenario, which is not admitted in Phase 1.";
+        }
+
+        if (specification.ThenReadModels.Any(expected => ReducerUsesUnstableContext(context, expected.ReadModel)))
+        {
+            return "A reducer body reads context.Occurred, context.SequenceNumber or context.Tenant, which Chronicle's ReadModelScenario cannot supply deterministically.";
         }
 
         if (specification.ThenReadModels.Any(_ => CannotCompareScopedPresence(context, _.ReadModel, _.Exactly, _.Values)) ||

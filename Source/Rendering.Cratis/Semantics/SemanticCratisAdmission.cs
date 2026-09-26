@@ -36,13 +36,10 @@ internal static partial class SemanticCratisAdmission
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
 
+        var analysedBodies = 0;
         foreach (var located in slices)
         {
-            if (!located.Slice.Reducers.IsEmpty)
-            {
-                diagnostics.Add(Error("STAGE-ESM-019", $"Slice '{located.Slice.Name}' has reducer implementation bodies; typed contexts are available, but Stage#119 still needs to render reducer bodies with null-result deletion, event-source key semantics and pure capability enforcement.", located.Slice.Id));
-                continue;
-            }
+            analysedBodies += ValidateReducers(context, located.Slice, diagnostics);
 
             switch (located.Slice.Kind)
             {
@@ -58,6 +55,15 @@ internal static partial class SemanticCratisAdmission
             }
 
             SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics);
+        }
+
+        if (slices.Any(_ => !_.Slice.Reducers.IsEmpty))
+        {
+            diagnostics.Add(new(
+                "STAGE-ESM-023",
+                ArtifactRenderDiagnosticSeverity.Information,
+                $"{analysedBodies} transition bodies analysed.",
+                model.Application.Id));
         }
 
         return [.. diagnostics];

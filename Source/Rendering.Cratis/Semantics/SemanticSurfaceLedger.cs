@@ -53,11 +53,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
         Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications");
-        Add(entries, "SemanticSlice", rejected("STAGE-ESM-019"), "Reducers");
-        Add(entries, "SemanticReducer", rejected("STAGE-ESM-019"), "Name ReadModel Transitions Key InitialState Result");
-        Add(entries, "SemanticReducerTransition", rejected("STAGE-ESM-019"), "EventContract RequirementId");
-        Add(entries, "SemanticReducerKey", rejected("STAGE-ESM-019"), "EventSourceId");
-        Add(entries, "SemanticReducerResult", rejected("STAGE-ESM-019"), "StateOrDelete");
+        Add(entries, "SemanticSlice", rendered, "Reducers");
+        Add(entries, "SemanticReducer", rendered, "Name ReadModel Transitions Key InitialState Result");
+        Add(entries, "SemanticReducerTransition", rendered, "EventContract RequirementId");
+        Add(entries, "SemanticReducerKey", rendered, "EventSourceId");
+        Add(entries, "SemanticReducerResult", rendered, "StateOrDelete");
         Add(entries, "SemanticSliceKind", rendered, "StateChange StateView");
         Add(entries, "SemanticSliceKind", rejected("STAGE-ESM-001"), "Unknown");
 

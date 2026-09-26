@@ -65,8 +65,8 @@ internal static class SemanticStateViewArtifactRenderer
             }
 
             firstModel = false;
-            var projection = located.Slice.Projections.Single(_ => _.ReadModel == readModel.Id);
-            var transition = projection.Scope is null ? projection.Transitions.Single() : null;
+            var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
+            var transition = projection?.Scope is null && projection is not null ? projection.Transitions.Single() : null;
             var @event = transition is null ? null : context.Events[transition.EventContract];
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
             if (@event is not null)
@@ -82,7 +82,7 @@ internal static class SemanticStateViewArtifactRenderer
             }
 
             builder.EndBlock();
-            if (projection.Scope is { } scope)
+            if (projection?.Scope is { } scope)
             {
                 builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
             }

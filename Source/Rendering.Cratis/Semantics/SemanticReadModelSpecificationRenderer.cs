@@ -26,9 +26,13 @@ internal static class SemanticReadModelSpecificationRenderer
         SemanticApplicationContext context)
     {
         var readModel = context.ReadModels[expected.ReadModel];
-        var projection = context.Projections.Values.Single(_ => _.ReadModel == readModel.Id);
+        var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
+        var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == readModel.Id);
         var command = context.Commands[specification.When!.Command];
-        var replay = SemanticProjectionSpecificationEvents.Replay(specification, projection, command);
+        var replay = reducer is null
+            ? SemanticProjectionSpecificationEvents.Replay(specification, projection!, command)
+            : SemanticReducerSpecificationEvents.Replay(specification, expected, reducer, command);
+        var givenEvents = reducer is null ? specification.GivenEvents : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
@@ -43,7 +47,7 @@ internal static class SemanticReadModelSpecificationRenderer
             .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
             .BlankLine()
             .OpenBlock("async Task Establish()");
-        foreach (var given in specification.GivenEvents)
+        foreach (var given in givenEvents)
         {
             var givenEvent = context.Events[given.EventContract];
             var givenNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(given.EventContract).Path);

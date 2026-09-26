@@ -29,19 +29,21 @@ internal static class SemanticWorldRebuilder
         SemanticRebuildConstraints.Check(plan, facts);
         try
         {
-            return new SemanticEvaluator().EstablishWorld(plan, facts) switch
-            {
-                SemanticAccepted accepted => accepted.World,
-                SemanticUnsupported unsupported => throw new SemanticWorldRebuildRefused($"The semantic world cannot project its history: {unsupported.Details}"),
-                SemanticRejected rejected => throw new SemanticWorldRebuildRefused($"The stored history is not a valid semantic world: {rejected.Details}"),
-                _ => throw new SemanticWorldRebuildRefused("The semantic world reconstruction returned an unknown outcome.")
-            };
+            return Outcome(new SemanticEvaluator().EstablishWorld(plan, facts));
         }
         catch (InvalidSemanticContract exception)
         {
             throw new SemanticWorldRebuildRefused($"The stored history is not a valid semantic world: {exception.Message}");
         }
     }
+
+    internal static SemanticWorld Outcome(SemanticExecutionResult result) => result switch
+    {
+        SemanticAccepted accepted => accepted.World,
+        SemanticUnsupported unsupported => throw new SemanticWorldRebuildRefused($"The semantic world cannot project its history: {unsupported.Details}"),
+        SemanticRejected rejected => throw new SemanticWorldRebuildRefused($"The stored history is not a valid semantic world: {rejected.Details}"),
+        _ => throw new SemanticWorldRebuildRefused("The semantic world reconstruction returned an unknown outcome.")
+    };
 
     internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored)
     {

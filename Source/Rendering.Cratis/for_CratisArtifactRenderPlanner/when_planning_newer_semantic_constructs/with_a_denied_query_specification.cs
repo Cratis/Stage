@@ -20,6 +20,9 @@ public class with_a_denied_query_specification : Specification
             .Replace("specification LookingUpPinnedProject\n",
                 "specification DenyingAnonymousProjectLookup\n        given caller\n          role \"Guest\"\n        then query ProjectById\n          arguments\n            projectId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n        then denied\n      specification LookingUpPinnedProject\n",
                 StringComparison.Ordinal);
+        var givenStart = source.LastIndexOf('\n', source.IndexOf("given ProjectRegistered\n", StringComparison.Ordinal)) + 1;
+        var whenStart = source.LastIndexOf('\n', source.IndexOf("when RegisterProject\n", givenStart, StringComparison.Ordinal)) + 1;
+        source = source.Remove(givenStart, whenStart - givenStart);
         _plan = invoice_model.Plan(invoice_model.Compile(source));
     }
 

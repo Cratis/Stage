@@ -120,6 +120,7 @@ public class when_rendering_the_billing_payment_reducer : a_generated_applicatio
         Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics())}");
         Assert.Equal(analysis.ContextReads, rendered.ContextReads);
         Assert.Equal(analysis.UsedAllowlistEntries, rendered.UsedAllowlistEntries);
+        Assert.Equal(analysis.BoundSymbols.ToArray(), rendered.BoundSymbols.ToArray());
     }
 
     [Fact]

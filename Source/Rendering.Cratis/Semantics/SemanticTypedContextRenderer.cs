@@ -133,7 +133,14 @@ internal static class SemanticTypedContextRenderer
                     definition.Kind == reference.Kind => $"global::{context.RootNamespace}.Common.{Identifiers.ToPascalCase(definition.Name)}",
                 _ => throw Rejected($"Model type '{reference.Kind}' / '{reference.Target}' has no matching definition.")
             };
-            var type = reference.IsCollection ? $"IReadOnlyList<{scalar}>" : scalar;
+            var type = scalar;
+            if (reference.IsCollection)
+            {
+                type = descriptor.Role == SemanticImplementationRole.ReducerTransition
+                    ? $"global::System.Collections.Immutable.ImmutableArray<{scalar}>"
+                    : $"IReadOnlyList<{scalar}>";
+            }
+
             return reference.IsOptional ? $"{type}?" : type;
         }
     }

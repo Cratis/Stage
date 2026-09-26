@@ -75,7 +75,7 @@ internal static class SemanticStateViewArtifactRenderer
             }
 
             builder.Attribute("ReadModel")
-                .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault()))})");
+                .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries, context.Reducers.Any(reducer => reducer.ReadModel == readModel.Id)) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault()))})");
             foreach (var query in queries)
             {
                 RenderQuery(builder, query, readModel, types);
@@ -104,9 +104,9 @@ internal static class SemanticStateViewArtifactRenderer
             .Concat(scope.Children.SelectMany(_ => ScopeEvents(_.Scope)))
             .Concat(scope.Nested.SelectMany(_ => ScopeEvents(_.Scope))).Distinct();
 
-    static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries) =>
+    static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
         string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
-            $"{((property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty)}{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
+            $"{((property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty)}{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
 
     static string Parameters(
         SemanticReadModel readModel,

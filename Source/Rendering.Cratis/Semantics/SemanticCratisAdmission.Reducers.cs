@@ -70,6 +70,15 @@ internal static partial class SemanticCratisAdmission
                     continue;
                 }
 
+                // A nested composite with an interface-typed collection can still expose a mutable
+                // List or array. Refuse it until the whole composite closure is snapshotted.
+                if (context.Types.Values.Any(composite => composite.Properties.Any(property => property.Type.IsCollection)) &&
+                    model.Properties.Concat(@event.Properties).Any(property => property.Type.Kind == SemanticTypeReferenceKind.CompositeType))
+                {
+                    diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' cannot read nested mutable composite collections.", reducer.ReadModel));
+                    continue;
+                }
+
                 var descriptors = context.Request.TypedContextDescriptors.Where(_ => _.RequirementId == transition.RequirementId &&
                     _.OperationId == reducer.ReadModel).ToArray();
                 if (descriptors.Length != 1 || !descriptors[0].IsWrapperReady)

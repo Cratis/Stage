@@ -82,9 +82,10 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// Gets the C# type syntax for a semantic type reference.
     /// </summary>
     /// <param name="reference">The semantic type reference.</param>
+    /// <param name="reducerInput">Whether this is a reducer-visible event or state property.</param>
     /// <returns>The C# type syntax.</returns>
     /// <exception cref="UnsupportedSemanticRendering">The type reference is not handled by this renderer.</exception>
-    public string Type(SemanticTypeReference reference)
+    public string Type(SemanticTypeReference reference, bool reducerInput = false)
     {
         var scalar = reference.Kind switch
         {
@@ -94,7 +95,14 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), reference.Kind)
         };
 
-        var type = reference.IsCollection ? $"IReadOnlyList<{scalar}>" : scalar;
+        // Only reducer-visible records require concrete immutable inputs. Other artifacts keep their
+        // existing collection contracts; switching an unrelated projection or command changes semantics.
+        var type = scalar;
+        if (reference.IsCollection)
+        {
+            type = reducerInput ? $"global::System.Collections.Immutable.ImmutableArray<{scalar}>" : $"IReadOnlyList<{scalar}>";
+        }
+
         return reference.IsOptional ? $"{type}?" : type;
     }
 

@@ -128,6 +128,91 @@ public class when_rendering_a_pure_reducer
         Assert.Contains(body, System.Text.Encoding.UTF8.GetString(file.Bytes.AsSpan()), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("List<decimal>")]
+    [InlineData("decimal[]")]
+    public async Task should_reject_mutable_type_tests_on_real_reducer_input(string mutableType)
+    {
+        var source = Source.Replace("        amount Decimal\n        produces", "        amount Decimal\n        amounts Decimal[]\n        produces", StringComparison.Ordinal)
+            .Replace("          amount = amount\n      event", "          amount = amount\n          amounts = amounts\n      event", StringComparison.Ordinal)
+            .Replace("      event OrderPlaced\n        id Uuid\n        amount Decimal", "      event OrderPlaced\n        id Uuid\n        amount Decimal\n        amounts Decimal[]", StringComparison.Ordinal);
+        var admitted = source.Replace(
+            "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);",
+            "var sum = 0m; foreach (var amount in context.Event.Amounts) sum += amount; return new Total(context.Event.Id, sum);",
+            StringComparison.Ordinal);
+        var loaded = await Load(admitted);
+        Assert.Contains("amounts Decimal[]", source, StringComparison.Ordinal);
+        Assert.Contains("Amounts", string.Join(',', loaded.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices).SelectMany(slice => slice.Events).SelectMany(@event => @event.Properties).Select(property => property.Name)), StringComparison.OrdinalIgnoreCase);
+        var plan = Plan(loaded);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var @event = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("PlaceOrder.cs", StringComparison.Ordinal));
+        Assert.Contains("ImmutableArray<decimal> Amounts", System.Text.Encoding.UTF8.GetString(@event.Bytes.AsSpan()), StringComparison.Ordinal);
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        var compilation = RenderedOutput.CreateCompilation(files);
+        Assert.Empty(RenderedOutput.Errors(files));
+        var request = new ArtifactRenderRequest(
+            loaded.Model,
+            loaded.Plan,
+            CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
+            new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
+        {
+            TypedContextDescriptors = loaded.TypedContextDescriptors
+        };
+        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
+        var reducer = Assert.Single(context.Reducers);
+        var transition = Assert.Single(reducer.Transitions);
+        var descriptor = Assert.Single(loaded.TypedContextDescriptors);
+        var synthetic = PureTransitionAdmission.Analyze(
+            loaded.ImplementationContents[transition.RequirementId],
+            context,
+            context.ReadModels[reducer.ReadModel],
+            context.Events[transition.EventContract],
+            descriptor,
+            Assert.Single(loaded.ImplementationRequirements));
+        var reducerPath = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal)).RelativePath;
+        var real = PureTransitionAdmission.AnalyzeRendered(compilation, reducerPath, descriptor);
+        Assert.True(synthetic.Accepted && real.Accepted, $"{synthetic.Reason}; {real.Reason}");
+        Assert.Equal(synthetic.BoundSymbols.ToArray(), real.BoundSymbols.ToArray());
+
+        var planted = source.Replace(
+            "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);",
+            $"if (context.Event.Amounts is {mutableType} values) {{ values[0] += 1m; }} return context.State;",
+            StringComparison.Ordinal);
+        var refused = Plan(await Load(planted));
+        Assert.Contains(refused.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains(mutableType, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task should_render_reducer_state_collections_as_immutable_values()
+    {
+        var source = Source.Replace(
+            "      readmodel Total\n        id Uuid\n        amount Decimal",
+            "      readmodel Total\n        id Uuid\n        amount Decimal\n        amounts Decimal[]",
+            StringComparison.Ordinal)
+            .Replace(
+                "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);",
+                "return context.State is not null && context.State.Amounts.Length >= 0 ? context.State : null;",
+                StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var model = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Totals.cs", StringComparison.Ordinal));
+        Assert.Contains("ImmutableArray<decimal> Amounts", System.Text.Encoding.UTF8.GetString(model.Bytes.AsSpan()), StringComparison.Ordinal);
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        Assert.Empty(RenderedOutput.Errors(files));
+    }
+
+    [Fact]
+    public async Task should_reject_physical_crlf_inside_verbatim_literals_before_normalization()
+    {
+        const string body = "return new Total(Guid.Empty, @\"a\r\nb\".Length);";
+        var verdict = await Analyze(body);
+        Assert.Equal("STAGE-ESM-022", verdict.Code);
+        Assert.Contains("Carriage return", verdict.Reason, StringComparison.Ordinal);
+        Assert.True((await Analyze(body.Replace("\r\n", "\n", StringComparison.Ordinal))).Accepted);
+    }
+
     [Fact]
     public async Task should_render_the_reducer_and_its_wrapped_body()
     {
@@ -257,6 +342,58 @@ public class when_rendering_a_pure_reducer
     [InlineData("return new Total(Guid.Empty, new HashSet<string> { \"x\" }.Count);", "HashSet hash")]
     [InlineData("return new Total(Guid.Empty, new SortedSet<string> { \"a\" }.Count);", "SortedSet culture")]
     [InlineData("return new Total(Guid.Empty, 1.5m.ToString(System.Globalization.CultureInfo.CurrentCulture).Length);", "explicit current culture provider")]
+    [InlineData("return new Total(Guid.Empty, string.Equals(\"i\", \"I\", (StringComparison)1) ? 1 : 0);", "comparison cast bypass")]
+    [InlineData("return new Total(Guid.Empty, \"i\".Replace(\"I\", \"xx\", true, null).Length);", "Replace ambient culture")]
+    [InlineData("string text = \"x\"; text += 1.5m; return new Total(Guid.Empty, text.Length);", "compound culture concatenation")]
+    [InlineData("return new Total(Guid.Empty, DateTime.ParseExact(\"12:00\", \"HH:mm\", System.Globalization.CultureInfo.InvariantCulture).Day);", "DateTime.ParseExact")]
+    [InlineData("return new Total(Guid.Empty, new DateTime(2020,1,1).ToUniversalTime().Day);", "DateTime.ToUniversalTime")]
+    [InlineData("DateTimeOffset value = new DateTime(2020,1,1); return new Total(Guid.Empty, value.Day);", "implicit DateTime offset conversion")]
+    [InlineData("return new Total(Guid.Empty, double.ConvertToIntegerNative<int>(double.PositiveInfinity));", "floating native conversion")]
+    [InlineData("nint value = int.MaxValue; value = unchecked(value + 1); return new Total(Guid.Empty, value);", "native-sized integer")]
+    [InlineData("return new Total(Guid.Empty, string.Equals(\"é\", \"é\", StringComparison.InvariantCulture) ? 1 : 0);", "InvariantCulture collation")]
+    [InlineData("IReadOnlyList<decimal> amounts = new decimal[] { 1m }; if (amounts is List<decimal> values) { values[0] += 1m; } return context.State;", "mutable input list test")]
+    [InlineData("IReadOnlyList<decimal> amounts = new decimal[] { 1m }; if (amounts is decimal[] values) { values[0] += 1m; } return context.State;", "mutable input array test")]
+    [InlineData("throw new System.ComponentModel.Win32Exception();", "Win32Exception native state")]
+    [InlineData("while (true) { }", "unbounded while loop")]
+    [InlineData("int F() => F(); return new Total(Guid.Empty, F());", "local recursion")]
+    [InlineData("_ = Math.Pow(2, 3); return context.State;", "Math.Pow floating")]
+    [InlineData("return new Total(Guid.Empty, typeof(TransitionAnalysis).Name.Length);", "analysis helper typeof")]
+    [InlineData("_ = default(decimal); return context.State;", "non-generated default")]
+    [InlineData("_ = DateTimeOffset.MinValue.UtcDateTime; return context.State;", "UtcDateTime")]
+    [InlineData("_ = context.Occurred.Offset; return context.State;", "Offset")]
+    [InlineData("_ = new DateTimeOffset(new DateTime(2020,1,1)); return context.State;", "DateTimeOffset(DateTime)")]
+    [InlineData("_ = DateTime.FromFileTime(1); return context.State;", "DateTime.FromFileTime")]
+    [InlineData("_ = DateTimeOffset.FromFileTime(1).ToFileTime(); return context.State;", "ToFileTime")]
+    [InlineData("_ = DateTime.MinValue.IsDaylightSavingTime(); return context.State;", "IsDaylightSavingTime")]
+    [InlineData("_ = double.MultiplyAddEstimate(1,2,3); return context.State;", "double.MultiplyAddEstimate")]
+    [InlineData("_ = double.MinNative(1,2); return context.State;", "double.MinNative")]
+    [InlineData("_ = double.MaxNative(1,2); return context.State;", "double.MaxNative")]
+    [InlineData("_ = double.Sin(1); return context.State;", "double.Sin")]
+    [InlineData("_ = new System.Numerics.BigInteger(1); return context.State;", "BigInteger")]
+    [InlineData("_ = (Half)1; return context.State;", "Half")]
+    [InlineData("_ = 1f; return context.State;", "float")]
+    [InlineData("_ = 1d; return context.State;", "double")]
+    [InlineData("nuint value = 1; return context.State;", "nuint")]
+    [InlineData("do { return context.State; } while (true);", "do loop")]
+    [InlineData("for (var i = 0; i < 1; i++) { } return context.State;", "for loop")]
+    [InlineData("goto done; done: return context.State;", "goto")]
+    [InlineData("try { return context.State; } catch { return null; }", "try catch")]
+    [InlineData("using var value = new System.IO.MemoryStream(); return context.State;", "using")]
+    [InlineData("return new Total(Guid.Empty, sizeof(int));", "sizeof")]
+    [InlineData("return new Total(Guid.Empty, nameof(Total).Length);", "nameof")]
+    [InlineData("_ = \"ab\".Trim('a'); return context.State;", "Trim with arguments")]
+    [InlineData("var n = 0; _ = new[] { 1 }.Select(x => ++n).Sum(); return context.State;", "mutated captured local")]
+    [InlineData("_ = new[] { 2, 1 }.Distinct().Count(); return context.State;", "LINQ Distinct")]
+    [InlineData("_ = new[] { 2, 1 }.OrderBy(x => x).First(); return context.State;", "LINQ OrderBy")]
+    [InlineData("_ = new[] { 2, 1 }.GroupBy(x => x).First(); return context.State;", "LINQ GroupBy")]
+    [InlineData("_ = new[] { 2, 1 }.ToHashSet().Count; return context.State;", "LINQ ToHashSet")]
+    [InlineData("_ = (StringComparison)5; return context.State;", "comparison cast")]
+    [InlineData("_ = new InvalidOperationException(\"unused\"); return context.State;", "exception construction without throw")]
+    [InlineData("_ = (IEnumerable<decimal>)new[] { 1m }; return context.State;", "interface cast")]
+    [InlineData("_ = (byte)1; return context.State;", "narrowing integer cast")]
+    [InlineData("_ = StringComparison.Ordinal; return context.State;", "standalone StringComparison")]
+    [InlineData("_ = MidpointRounding.ToEven; return context.State;", "standalone MidpointRounding")]
+    [InlineData("_ = System.Globalization.CultureInfo.InvariantCulture; return context.State;", "standalone CultureInfo")]
     [InlineData("var value = System.Collections.Immutable.ImmutableArray<int>.Empty; System.Collections.Immutable.ImmutableInterlocked.InterlockedInitialize(ref value, System.Collections.Immutable.ImmutableArray<int>.Empty); return context.State;", "ImmutableInterlocked")]
     public async Task should_reject_planted_impure_bodies(string body, string category)
     {
@@ -269,24 +406,25 @@ public class when_rendering_a_pure_reducer
             "SafeFileHandle constructor" => "SafeFileHandle",
             "Enumerable.Shuffle" => "Shuffle",
             "record.GetHashCode" or "EqualityComparer.GetHashCode" => "GetHashCode",
-            "ImmutableHashSet enumeration" => "ImmutableHashSet",
+            "ImmutableHashSet enumeration" => null,
             "ImmutableDictionary hash" => "ImmutableDictionary",
             "Dictionary enumeration" => "KeyValuePair",
             "Dictionary construction" => "Dictionary",
             "HashSet hash" => "HashSet",
             "SortedSet culture" => "SortedSet",
-            "wrapper deconstruction" or "wrapper positional pattern" or "wrapper Deconstruct call" or
-            "wrapper Equals/with" or "wrapper recursive pattern" or "wrapper with/Occurred" or
+            "wrapper Deconstruct call" or
+            "wrapper Equals/with" or "wrapper with/Occurred" or
             "wrapper with/SequenceNumber" or "wrapper construction" or "wrapper Equals construction" or
             "passing context as value" => "TypedContext_",
-            "culture concatenation" or "object Concat" => "Concat",
-            "CurrentCulture comparison" => "CurrentCultureIgnoreCase",
-            "null culture provider" => "decimal.ToString",
+            "culture concatenation" => null,
+            "object Concat" => "Concat",
+            "CurrentCulture comparison" => null,
+            "null culture provider" => null,
             "null parse provider" => "decimal.Parse",
-            "char.ToUpper" => "ToUpper",
-            "ToShortDateString" => "ToShortDateString",
+            "char.ToUpper" => null,
+            "ToShortDateString" => null,
             "ToLocalTime" => "ToLocalTime",
-            "LocalDateTime" => "LocalDateTime",
+            "LocalDateTime" => null,
             "ImmutableInterlocked" => "ImmutableInterlocked",
             _ => null
         };
@@ -300,13 +438,51 @@ public class when_rendering_a_pure_reducer
     [
             "return new Total(Guid.Empty, context.Event.Amount + 1m);",
             "return new Total(Guid.Empty, Math.Abs(-1m));",
-            "return new Total(Guid.Empty, DateOnly.MinValue.AddDays(1).DayNumber);",
+            "return new Total(Guid.Empty, context.Occurred.AddTicks(1).Day);",
             "return new Total(Guid.Empty, \"a\".Contains(\"a\", StringComparison.Ordinal) ? 1m : 0m);",
-            "return new Total(Guid.Empty, decimal.Parse(\"1.5\", System.Globalization.CultureInfo.InvariantCulture));",
-            "return new Total(Guid.Empty, new List<decimal> { 1m }.Count);",
-            "var sum = 0m; foreach (var item in new List<decimal> { 1m }) sum += item; return new Total(Guid.Empty, sum);",
+            "return new Total(Guid.Empty, 1.5m.ToString(System.Globalization.CultureInfo.InvariantCulture).Length);",
+            "return new Total(Guid.Empty, System.Collections.Immutable.ImmutableArray<decimal>.Empty.Length);",
+            "var sum = 0m; foreach (var item in new[] { 1m }) sum += item; return new Total(Guid.Empty, sum);",
             "return new Total(Guid.Empty, new[] { 1m }.Sum());",
-            "throw new InvalidOperationException();"
+            "throw new InvalidOperationException(\"invalid\");",
+            "return new Total(Guid.Empty, Math.Min(2m, Math.Max(1m, Math.Clamp(3m, 0m, 4m))));",
+            "return new Total(Guid.Empty, Math.Sign(-1m));",
+            "return new Total(Guid.Empty, Math.Round(1.5m, MidpointRounding.ToEven) + Math.Truncate(1.5m) + Math.Floor(1.5m) + Math.Ceiling(1.5m));",
+            "return new Total(Guid.Empty, context.Occurred.Year + context.Occurred.Month + context.Occurred.Hour + context.Occurred.Minute + context.Occurred.Second + context.Occurred.Ticks);",
+            "return new Total(Guid.Empty, (context.Occurred - context.Occurred).Ticks);",
+            "return new Total(Guid.Empty, (context.Occurred + (context.Occurred - context.Occurred)).Day);",
+            "return new Total(Guid.Empty, string.Equals(\"a\", \"A\", StringComparison.OrdinalIgnoreCase) && \"ab\".StartsWith(\"a\", StringComparison.Ordinal) ? 1m : 0m);",
+            "return new Total(Guid.Empty, \"ab\".EndsWith(\"B\", StringComparison.OrdinalIgnoreCase) && \"ab\".IndexOf(\"a\", StringComparison.Ordinal) == 0 ? 1m : 0m);",
+            "return new Total(Guid.Empty, \" ab \".Trim().Substring(0,1)[0] == 'a' ? 1m : 0m);",
+            "return new Total(Guid.Empty, string.IsNullOrEmpty(\"\") && string.IsNullOrWhiteSpace(\" \") ? 1m : 0m);",
+            "string text = \"a\"; text += 'b'; return new Total(Guid.Empty, text.Length);",
+            "return new Total(Guid.Empty, context.State?.Amount ?? 0m);",
+            "return context.State is null ? new Total(Guid.Empty, 0m) : context.State;",
+            "return context.State is not null ? context.State with { Amount = 1m } : new Total(Guid.Empty, 0m);",
+            "if (context.Event.Amount is 1m) return new Total(Guid.Empty, 1m); else return context.State;",
+            "switch (context.Event.Amount) { case 1m: return context.State; default: return new Total(Guid.Empty, 0m); }",
+            "return new Total(Guid.Empty, new[] { 1m, 2m }.Select(n => n + 1m).Where(n => n > 1m).Sum());",
+            "return new Total(Guid.Empty, new[] { 1m }.Count() + (new[] { 1m }.Any() && new[] { 1m }.All(n => n > 0m) ? 1m : 0m));",
+            "return new Total(Guid.Empty, new[] { 1m, 2m }.Take(1).Concat(new[] { 3m }.Skip(0)).Aggregate(0m, (a,b) => a+b));",
+            "return new Total(Guid.Empty, new[] { 1m }.First() + new[] { 1m }.FirstOrDefault() + new[] { 1m }.Last() + new[] { 1m }.LastOrDefault());",
+            "return new Total(Guid.Empty, new[] { 1m }.ToArray()[0]);",
+            "return new Total(Guid.Empty, System.Collections.Immutable.ImmutableArray.ToImmutableArray(new[] { 1m }.Select(n => n)).Length);",
+            "throw new ArgumentException(\"invalid\");",
+            "return new Total(Guid.Empty, checked(context.Event.Amount + 1m));",
+            "return new Total(Guid.Empty, unchecked(context.Event.Amount + 1m));",
+            "return new Total(Guid.Empty, Math.Abs(-1));",
+            "return new Total(Guid.Empty, (long)1);",
+            "return new Total(Guid.Empty, (int)1m);",
+            "return default(Total);",
+            "return new Total(Guid.Empty, context.Occurred >= context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, (context.Occurred - context.Occurred).Add(context.Occurred - context.Occurred).Ticks);",
+            "return new Total(Guid.Empty, (context.Occurred - context.Occurred) == (context.Occurred - context.Occurred) ? 1m : 0m);",
+            "return context.State is Total total ? total : new Total(Guid.Empty, 0m);",
+            "return context.Event.Amount switch { 1m => new Total(Guid.Empty, 1m), _ => context.State };",
+            "var sum = 0m; foreach (var item in System.Collections.Immutable.ImmutableArray<decimal>.Empty) sum += item; return new Total(Guid.Empty, sum);",
+            "return new Total(Guid.Empty, System.Collections.Immutable.ImmutableArray.ToImmutableArray(new[] { 1m }.Select(n => n))[0]);",
+            "return new Total(Guid.Empty, (\"a\" + 'b').Length);",
+            "return new Total(Guid.Empty, context.IsFirst && context.Key.Length > 0 ? context.SequenceNumber : 0m);"
     ];
 
     [Fact]
@@ -332,14 +508,15 @@ public class when_rendering_a_pure_reducer
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-023" && diagnostic.Message == "1 transition bodies analysed.");
         var descriptor = compiled.TypedContextDescriptors.Single();
         var reducerFile = plan.Artifacts.Single(_ => _.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal));
-        const string originalBody = "return new Total(Guid.Empty, context.Event.Amount);";
+        const string originalBody = "return new Total(context.Event.Id, context.Event.Amount);";
         foreach (var fixture in AdmittedFixtures)
         {
             var synthetic = await Analyze(fixture);
+            var realizedFixture = fixture.Replace("Guid.Empty", "context.Event.Id", StringComparison.Ordinal);
             var files = plan.Artifacts.Where(_ => _.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && _.RelativePath != "Program.cs")
                 .Select(artifact => new RenderedFile(artifact.RelativePath,
                     System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace(
-                        artifact.RelativePath == reducerFile.RelativePath ? originalBody : "\u0000", fixture, StringComparison.Ordinal)));
+                        artifact.RelativePath == reducerFile.RelativePath ? originalBody : "\u0000", realizedFixture, StringComparison.Ordinal)));
             var real = RenderedOutput.CreateCompilation(files);
             var actual = PureTransitionAdmission.AnalyzeRendered(real, reducerFile.RelativePath, descriptor);
             Assert.True(synthetic.Accepted == actual.Accepted,
@@ -347,10 +524,20 @@ public class when_rendering_a_pure_reducer
                 string.Join("; ", real.GetDiagnostics().Where(_ => _.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)));
             Assert.Equal(synthetic.ContextReads, actual.ContextReads);
             Assert.Equal(synthetic.UsedAllowlistEntries, actual.UsedAllowlistEntries);
+            Assert.True(synthetic.Accepted, $"Parity fixture {fixture} was refused: {synthetic.Code}: {synthetic.Reason}");
+            Assert.Equal(synthetic.BoundSymbols.ToArray(), actual.BoundSymbols.ToArray());
         }
     }
 
-    static async Task<PureTransitionAdmission.Verdict> Analyze(string body)
+    [Fact]
+    public async Task should_reject_guid_members_not_in_the_subset()
+    {
+        var verdict = await Analyze("_ = Guid.Empty; return context.State;", normalizeIdentity: false);
+        Assert.Equal("STAGE-ESM-022", verdict.Code);
+        Assert.Contains("Guid.Empty", verdict.Reason, StringComparison.Ordinal);
+    }
+
+    static async Task<PureTransitionAdmission.Verdict> Analyze(string body, bool normalizeIdentity = true)
     {
         var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
         var request = new ArtifactRenderRequest(
@@ -365,7 +552,8 @@ public class when_rendering_a_pure_reducer
         var reducer = context.Reducers.Single();
         var transition = reducer.Transitions.Single();
         return PureTransitionAdmission.Analyze(
-            body.Replace("$WRAPPER$", "TypedContext_" + SemanticTypedContextRenderer.Suffix(loaded.TypedContextDescriptors.Single()), StringComparison.Ordinal),
+            (normalizeIdentity ? body.Replace("Guid.Empty", "context.Event.Id", StringComparison.Ordinal) : body)
+                .Replace("$WRAPPER$", "TypedContext_" + SemanticTypedContextRenderer.Suffix(loaded.TypedContextDescriptors.Single()), StringComparison.Ordinal),
             context,
             context.ReadModels[reducer.ReadModel],
             context.Events[transition.EventContract],
@@ -390,11 +578,14 @@ public class when_rendering_a_pure_reducer
         Directory.CreateDirectory(folder);
         try
         {
+            // Tests use the event's generated UUID identity as their inert record key. The submitted
+            // reducer body itself is never rewritten by production admission or artifact creation.
+            source = source.Replace("Guid.Empty", "context.Event.Id", StringComparison.Ordinal);
             await File.WriteAllTextAsync(Path.Combine(folder, "Orders.play"), source);
             if (source.Contains("file Reducers/Fold.cs", StringComparison.Ordinal))
             {
                 Directory.CreateDirectory(Path.Combine(folder, "Reducers"));
-                await File.WriteAllTextAsync(Path.Combine(folder, "Reducers", "Fold.cs"), "return new Total(Guid.Empty, context.Event.Amount);");
+                await File.WriteAllTextAsync(Path.Combine(folder, "Reducers", "Fold.cs"), "return new Total(context.Event.Id, context.Event.Amount);");
             }
 
             return await SemanticModelLoader.LoadFromPathAsync(folder, null, "Projects");

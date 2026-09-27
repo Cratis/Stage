@@ -229,8 +229,40 @@ internal static class PureTransitionAdmission
                 .Select(_ => (_.Id, Namespace: sliceNamespace, Name: Identifiers.ToPascalCase(_.Name)));
         }).Concat(context.Application.Concepts.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.RootNamespace + ".Common", Name: Identifiers.ToPascalCase(_.Name))))
             .Concat(context.Application.Types.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.RootNamespace + ".Common", Name: Identifiers.ToPascalCase(_.Name))));
-        var peers = peerDeclarations.Where(declaration => !stubbed.Contains(declaration))
+        var allDeclarations = peerDeclarations.ToArray();
+        var peers = allDeclarations.Where(declaration => !stubbed.Contains(declaration))
             .Select(declaration => declaration.Name).ToHashSet(StringComparer.Ordinal);
+
+        // The body need not spell a type for its binding to change: a peer in the model or event
+        // namespace can rebind an unqualified property type in an emitted record. Inventory the
+        // entire declaration dependency graph, including nested composites and collection elements,
+        // rather than only the names in the reducer method. The synthetic stubs omit these peers.
+        var propertyTypes = context.Application.Concepts.Where(concept => concept.Values.IsEmpty)
+            .Select(concept => new SemanticTypeReference(SemanticTypeReferenceKind.Primitive, concept.Primitive, default, false, false))
+            .Concat(context.Application.Types.SelectMany(composite => composite.Properties.Select(property => property.Type)))
+            .Concat(readModel.Properties.Select(property => property.Type))
+            .Concat(reducerEvents.SelectMany(transitionEvent => transitionEvent.Properties.Select(property => property.Type)));
+        var emittedTypeDependencies = propertyTypes.SelectMany(TypeDependencies)
+            .Where(dependency => dependency.Name is not "string" and not "int" and not "decimal" and not "bool")
+            .ToHashSet();
+        IEnumerable<(string Name, SemanticId? Target)> TypeDependencies(SemanticTypeReference reference)
+        {
+            var scalar = reference.Kind switch
+            {
+                SemanticTypeReferenceKind.Concept => (Name: Identifiers.ToPascalCase(context.Concepts[reference.Target].Name), Target: (SemanticId?)reference.Target),
+                SemanticTypeReferenceKind.CompositeType => (Name: Identifiers.ToPascalCase(context.Types[reference.Target].Name), Target: (SemanticId?)reference.Target),
+                _ => (Name: SemanticTypeSystem.Primitive(reference.Primitive), Target: null)
+            };
+            return reference.IsCollection ? [scalar, ("IReadOnlyList", null)] : [scalar];
+        }
+        var propertyShadow = allDeclarations.FirstOrDefault(declaration => emittedTypeDependencies.Any(dependency =>
+            dependency.Name == declaration.Name && dependency.Target != declaration.Id));
+        if (propertyShadow.Name is not null)
+            return Reject("STAGE-ESM-022", $"Generated type '{propertyShadow.Name}' shadows an emitted reducer property type.");
+        var propertyNamespaceShadow = context.NamespacePaths.FirstOrDefault(path =>
+            emittedTypeDependencies.Any(dependency => path.Split('.')[^1] == dependency.Name));
+        if (propertyNamespaceShadow is not null)
+            return Reject("STAGE-ESM-022", $"Generated namespace '{propertyNamespaceShadow}' shadows an emitted reducer property type.");
         var activeShadow = reducerEvents.Select(_ => Identifiers.ToPascalCase(_.Name))
             .Append(Identifiers.ToPascalCase(readModel.Name)).FirstOrDefault(ShadowsAuditedName);
         if (activeShadow is not null)

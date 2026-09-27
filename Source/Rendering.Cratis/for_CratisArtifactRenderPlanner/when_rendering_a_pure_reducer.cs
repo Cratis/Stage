@@ -129,6 +129,48 @@ public class when_rendering_a_pure_reducer
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("Money")]
+    [InlineData("Price")]
+    public async Task should_refuse_a_sibling_that_rebinds_an_emitted_property_type_without_naming_it_in_the_body(string sharedName)
+    {
+        const string body = "return new Total(context.Event.Id, context.Event.Amount);";
+        var source = ($"concept {sharedName} : Decimal\n" + Source)
+            .Replace("amount Decimal", $"amount {sharedName}", StringComparison.Ordinal)
+            .Replace("return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);", body, StringComparison.Ordinal);
+        var baseline = Plan(await Load(source));
+        Assert.True(baseline.Success, string.Join(Environment.NewLine, baseline.Diagnostics));
+        var baselineFiles = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
+        Assert.Empty(RenderedOutput.Errors(baselineFiles));
+        var shadowedFiles = baselineFiles.Append(new RenderedFile($"{sharedName}.cs", $"namespace Projects.Orders.Ordering.Totals; public record {sharedName}(System.Guid Id, decimal Amount);"));
+        Assert.NotEmpty(RenderedOutput.Errors(shadowedFiles));
+
+        var conflicting = source.Replace("      readmodel Total", $"      readmodel {sharedName}\n        id Uuid\n        amount Decimal\n      query {sharedName}ById => {sharedName}?\n        by id Uuid\n      reducer {sharedName}Fold => {sharedName}\n        on OrderPlaced\n          ```csharp\n          return context.State;\n          ```\n      readmodel Total", StringComparison.Ordinal);
+        var plan = Plan(await Load(conflicting));
+        if (plan.Success)
+        {
+            var emitted = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+                .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+            Assert.NotEmpty(RenderedOutput.Errors(emitted));
+        }
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains(sharedName, StringComparison.Ordinal));
+        Assert.Empty(plan.Artifacts);
+    }
+
+    [Fact]
+    public async Task should_compile_the_reducer_runtime_with_a_module_named_cratis()
+    {
+        var source = Source.Replace("module Orders", "module Cratis", StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        var errors = RenderedOutput.Errors(files);
+        Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
+    }
+
     [Fact]
     public async Task should_refuse_an_observed_event_name_shared_by_a_sibling_read_model()
     {

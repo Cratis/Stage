@@ -163,9 +163,13 @@ The clock is injectable through the in-process API. The tenant and identity allo
 and do not affect this run; implicit identity allocation remains unsupported.
 
 Given read models still return `Unsupported(GivenReadModel)`. Per-run projections reject optional or composite
-read-model properties, joins, child or nested projections, removals, every/all mappings, literal mappings,
-and unsupported key shapes before execution. They also apply the renderer's scoped-projection admission
-predicate, so `FromAll`, composite keys and Chronicle#4125 shapes remain rejected. Protected queries and
+read-model properties, DateTime read-model values (whose round-trip text may change), non-identifier properties
+named `Id` (which collide with Chronicle's document key), joins, child or nested projections, removals,
+every/all mappings, literal mappings, and unsupported key shapes before execution. An event-source identity
+mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
+otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also
+returns `Unsupported(Projection)`. They also apply the renderer's scoped-projection admission predicate, so
+`FromAll`, composite keys and Chronicle#4125 shapes remain rejected. Protected queries and
 queries other than optional snapshots by identifier return `Unsupported(Query)`. Other unimplemented
 behavior (conditional production, implicit event-source identity allocation, external effects and
 unsupported expression or value shapes) is also blocked rather than reported as a pass. The semantic

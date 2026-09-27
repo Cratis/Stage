@@ -19,6 +19,7 @@ public class when_rejecting_incomplete_scoped_projections
     [InlineData("overwritten-root-identity")]
     [InlineData("overwritten-child-identity")]
     [InlineData("whole-number-arithmetic")]
+    [InlineData("event-source-into-other-concept")]
     public void should_fail_closed_without_artifacts(string variant)
     {
         var source = when_rendering_scoped_projections.ScopedSource;
@@ -49,6 +50,10 @@ public class when_rejecting_incomplete_scoped_projections
             "overwritten-root-identity" => scope with { From = [scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }, .. scope.From.Skip(1)] },
             "overwritten-child-identity" => scope with { Children = [child with { Scope = child.Scope with { From = [child.Scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }] } }] },
             "whole-number-arithmetic" => scope,
+            "event-source-into-other-concept" => scope with { From = [.. scope.From.Select(subscription => subscription with
+            {
+                Mappings = [.. subscription.Mappings.Select(mapping => mapping.Target.Contains(name) ? mapping with { Source = SemanticProjectionValue.EventSourceIdentity } : mapping)]
+            })] },
             _ => throw new UnknownVariant(variant)
         };
         var changed = view with { Projections = [.. view.Projections.Select(candidate => candidate.Id == projection.Id ? candidate with { Scope = scope } : candidate)] };

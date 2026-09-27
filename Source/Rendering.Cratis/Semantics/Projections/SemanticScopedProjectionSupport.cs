@@ -56,6 +56,16 @@ internal static partial class SemanticScopedProjectionSupport
             return "Join removals inside nested are blocked by Chronicle#4125.";
         }
 
+        SemanticId? protectedIdentity = null;
+        if (child)
+        {
+            protectedIdentity = identity;
+        }
+        else if (!isNested)
+        {
+            protectedIdentity = properties.Single(_ => _.IsIdentifier).Id;
+        }
+
         if (scope.Every is { Mappings.Length: > 0 } every &&
             (every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
                 mapping.Source is not SemanticProjectionEventSourceIdentity) ||
@@ -74,16 +84,6 @@ internal static partial class SemanticScopedProjectionSupport
         if (child && identity is null)
         {
             return "A child collection needs an identified element.";
-        }
-
-        SemanticId? protectedIdentity = null;
-        if (child)
-        {
-            protectedIdentity = identity;
-        }
-        else if (!isNested)
-        {
-            protectedIdentity = properties.Single(_ => _.IsIdentifier).Id;
         }
 
         if (protectedIdentity is { } protectedId &&
@@ -117,7 +117,7 @@ internal static partial class SemanticScopedProjectionSupport
             if (!context.Events.TryGetValue(from.EventContract, out var @event) ||
                 !KeySupported(from.Key, @event, context) ||
                 (child ? from.ParentKey is not null && !KeySupported(from.ParentKey, @event, context) : from.ParentKey is not null) ||
-                !MappingsSupported(from.Mappings, properties, @event, context) ||
+                !MappingsSupported(from.Mappings, properties, @event, context, protectedIdentity) ||
                 !EstablishesRequiredProperties(from.Mappings, properties, context, protectedIdentity))
             {
                 return "A from block has an unsupported key, parent key, event, or mapping.";
@@ -127,7 +127,7 @@ internal static partial class SemanticScopedProjectionSupport
         foreach (var join in scope.Joins)
         {
             if (!context.Events.TryGetValue(join.EventContract, out var @event) || join.Key is not null ||
-                !properties.Any(_ => _.Id == join.On) || !MappingsSupported(join.Mappings, properties, @event, context))
+                !properties.Any(_ => _.Id == join.On) || !MappingsSupported(join.Mappings, properties, @event, context, protectedIdentity))
             {
                 return "A join has an unsupported correlation key or mapping.";
             }
@@ -241,15 +241,17 @@ internal static partial class SemanticScopedProjectionSupport
         IEnumerable<SemanticProjectionMapping> mappings,
         IReadOnlyList<SemanticProperty> targets,
         SemanticEventContract @event,
-        SemanticApplicationContext context) =>
+        SemanticApplicationContext context,
+        SemanticId? identity) =>
         mappings.Select(_ => string.Join('.', _.Target)).Distinct().Count() == mappings.Count() &&
-        mappings.All(mapping => MappingSupported(mapping, targets, @event, context));
+        mappings.All(mapping => MappingSupported(mapping, targets, @event, context, identity));
 
     static bool MappingSupported(
         SemanticProjectionMapping mapping,
         IReadOnlyList<SemanticProperty> targets,
         SemanticEventContract @event,
-        SemanticApplicationContext context)
+        SemanticApplicationContext context,
+        SemanticId? identity)
     {
         var target = Target(mapping.Target, targets, context);
         if (target?.Type.IsCollection != false || HasOptionalIntermediate(mapping.Target, targets, context))
@@ -268,13 +270,34 @@ internal static partial class SemanticScopedProjectionSupport
         {
             SemanticProjectionOperation.Clear => target.Type.IsOptional && mapping.Source is null,
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
-            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventSourceIdentity ||
+            SemanticProjectionOperation.Set => (mapping.Source is SemanticProjectionEventSourceIdentity && EventSourceMappingSupported(mapping, targets, context, identity)) ||
                 (mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)),
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract =>
                 mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context),
             _ => false
         };
+    }
+
+    // Chronicle's source identity becomes text in the runner. Only an unconstrained target of the
+    // exact identifier type can be reconstructed without bypassing Screenplay's value validation.
+    static bool EventSourceMappingSupported(
+        SemanticProjectionMapping mapping,
+        IReadOnlyList<SemanticProperty> properties,
+        SemanticApplicationContext context,
+        SemanticId? identity)
+    {
+        if (identity is null || mapping.Target.Length != 1)
+        {
+            return false;
+        }
+
+        var identifier = properties.SingleOrDefault(property => property.Id == identity);
+        var target = properties.SingleOrDefault(property => property.Id == mapping.Target[0]);
+        return identifier is not null && target is not null &&
+            (target.Id == identifier.Id ||
+             (target.Type == identifier.Type &&
+              (target.Type.Kind != SemanticTypeReferenceKind.Concept || context.Concepts[target.Type.Target].Values.IsEmpty)));
     }
 
     // Chronicle's fluent ToValue embeds text in an unquoted $value(...) expression. Its resolver is

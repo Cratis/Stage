@@ -20,6 +20,7 @@ public class with_a_consuming_projection : a_command_only_plan
         _report = await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new());
     }
 
-    [Fact] void should_match_the_reference() => _report.Results.Single().Outcome.ShouldEqual(_reference.Passed ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed);
+    [Fact] void should_match_the_reference() => Assert.True(_reference.Passed && _report.Results.Single().Outcome == SemanticSpecificationOutcome.Passed,
+        $"Reference: {string.Join("; ", _reference.Failures)}; Stage: {_report.Results.Single().Outcome}");
     [Fact] void should_execute_the_projection() => Assert.NotEmpty(_report.Results.Single().Trace!.ReadModels);
 }

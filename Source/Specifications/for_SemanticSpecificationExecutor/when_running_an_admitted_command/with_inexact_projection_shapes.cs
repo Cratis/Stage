@@ -84,6 +84,29 @@ public class with_inexact_projection_shapes : a_command_only_plan
         var second = projection with { Id = SemanticId.Parse("sem1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"), Name = "OtherProjection" };
         await Check("multiple projections", _original, projection, true, SemanticSpecificationOutcome.Unsupported, extra: second);
 
+        var sourceAssertion = _original.ThenReadModels.Single() with
+        {
+            Values = [.. _original.ThenReadModels.Single().Values.Select(value => value.TargetProperty == name.Id ? value with { Value = source.Value } : value)]
+        };
+        var sourceMapped = scoped with { Scope = scoped.Scope with { From = [root with
+        {
+            Mappings = [new([name.Id], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
+        }] } };
+        await Check(
+            "event source into constrained concept",
+            _original with { ThenReadModels = [], ThenQueries = [] },
+            sourceMapped,
+            false,
+            SemanticSpecificationOutcome.Unsupported,
+            enumeratedName: true);
+        await Check(
+            "non-identifier Id collision",
+            _original with { ThenReadModels = [sourceAssertion], ThenQueries = [] },
+            scoped,
+            false,
+            SemanticSpecificationOutcome.Unsupported,
+            model with { Properties = [.. model.Properties.Select(property => property.Id == name.Id ? property with { Name = "Id" } : property)] });
+
         // The reference keeps the original DateTime text, while a CLR round-trip would turn Z into +00:00.
         var timestamp = SemanticValue.Text("2025-01-01T00:00:00.0000000Z");
         var datedFact = fact with { Values = [.. fact.Values.Select(value => value.TargetProperty == eventName.Id ? value with { Value = timestamp } : value)] };
@@ -108,6 +131,8 @@ public class with_inexact_projection_shapes : a_command_only_plan
     [Fact] void should_reject_number_sources_for_text_identifiers() => Verify("numeric source / text identifier");
     [Fact] void should_reject_multiple_projections_for_one_read_model() => Verify("multiple projections");
     [Fact] void should_reject_lossy_datetime_projections() => Verify("DateTime text");
+    [Fact] void should_reject_event_source_mappings_into_constrained_concepts() => Verify("event source into constrained concept");
+    [Fact] void should_reject_non_identifier_id_collisions() => Verify("non-identifier Id collision");
 
     void Verify(string caseName) => Assert.DoesNotContain(_failures, failure => failure.StartsWith($"{caseName}:", StringComparison.Ordinal));
 
@@ -122,19 +147,42 @@ public class with_inexact_projection_shapes : a_command_only_plan
         SemanticEventContract? eventContract = null,
         bool numericSource = false,
         bool dateTimeSource = false,
+        bool enumeratedName = false,
         string? rejectionContains = null)
     {
         var application = _originalModel.Application;
-        var changed = application with { Modules = [.. application.Modules.Select(module => module with
+        var originalModel = application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices)
+            .SelectMany(slice => slice.ReadModels).Single(candidate => candidate.Id == projection.ReadModel);
+        var concept = application.Concepts.Single(value => value.Id == originalModel.Properties.Single(property => !property.IsIdentifier).Type.Target);
+        var changed = application with
+        {
+            Concepts = enumeratedName ? [.. application.Concepts, concept with
+            {
+                Id = SemanticId.Parse("sem1:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+                Name = "AllowedProjectName",
+                Values = ["Screenplay"]
+            }] : application.Concepts,
+            Modules = [.. application.Modules.Select(module => module with
         {
             Features = [.. module.Features.Select(feature => feature with { Slices = [.. feature.Slices.Select(slice => slice with
             {
                 Projections = [.. slice.Projections.Select(candidate => candidate.Id == projection.Id ? projection : candidate), .. extra is null || !slice.Projections.Any(candidate => candidate.Id == projection.Id) ? [] : new[] { extra }],
-                ReadModels = readModel is null ? slice.ReadModels : [.. slice.ReadModels.Select(candidate => candidate.Id == readModel.Id ? readModel : candidate)],
+                ReadModels = [.. slice.ReadModels.Select(candidate =>
+                {
+                    if (candidate.Id != projection.ReadModel || (!enumeratedName && readModel is null)) return candidate;
+                    if (!enumeratedName) return readModel!;
+                    return candidate with
+                    {
+                        Properties = [.. candidate.Properties.Select(property => property.IsIdentifier ? property : property with
+                        {
+                            Type = SemanticTypeReference.ForConcept(SemanticId.Parse("sem1:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"))
+                        })]
+                    };
+                })],
                 Events = eventContract is null ? slice.Events : [.. slice.Events.Select(candidate => candidate.Id == eventContract.Id ? eventContract : candidate)],
                 Commands = Commands(slice, eventContract, numericSource, dateTimeSource),
                 Queries = numericSource ? [.. slice.Queries.Select(query => query with { Argument = query.Argument with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text) } })] : slice.Queries,
-                Specifications = [.. slice.Specifications.Where(candidate => (!numericSource && !dateTimeSource) || candidate.Id == specification.Id).Select(candidate => candidate.Id == specification.Id ? specification : candidate)]
+                Specifications = [.. slice.Specifications.Where(candidate => (!numericSource && !dateTimeSource && !enumeratedName) || candidate.Id == specification.Id).Select(candidate => candidate.Id == specification.Id ? specification : candidate)]
             })] })]
         })] };
         var compilation = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_originalModel.LanguageVersion, _originalModel.SemanticVersion, changed));

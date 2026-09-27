@@ -88,22 +88,30 @@ internal static partial class SemanticCratisAdmission
                 }
 
                 var members = descriptors[0].Members;
-                var expected = new (string Name, string Kind, string Path, bool Derived)[]
+                var expected = new (string Name, string Kind, SemanticId? Id, string Path, EventContractRevision? Revision, bool Derived)[]
                 {
-                    ("State", SemanticContextSourceKinds.ReadModel, "State", false),
-                    ("Event", SemanticContextSourceKinds.CurrentEvent, "Event", false),
-                    ("Key", SemanticContextSourceKinds.EventSourceId, "eventSourceId", false),
-                    ("Tenant", SemanticContextSourceKinds.ContextContract, "Tenant", false),
-                    ("Occurred", SemanticContextSourceKinds.ContextContract, "Occurred", false),
-                    ("SequenceNumber", SemanticContextSourceKinds.ContextContract, "SequenceNumber", false),
-                    ("IsFirst", SemanticContextSourceKinds.Derived, "State", true)
+                    ("State", SemanticContextSourceKinds.ReadModel, model.Id, "State", null, false),
+                    ("Event", SemanticContextSourceKinds.CurrentEvent, @event.Id, "Event", @event.Revision, false),
+                    ("Key", SemanticContextSourceKinds.EventSourceId, @event.Id, "eventSourceId", null, false),
+                    ("Tenant", SemanticContextSourceKinds.ContextContract, null, "Tenant", null, false),
+                    ("Occurred", SemanticContextSourceKinds.ContextContract, null, "Occurred", null, false),
+                    ("SequenceNumber", SemanticContextSourceKinds.ContextContract, null, "SequenceNumber", null, false),
+                    ("IsFirst", SemanticContextSourceKinds.Derived, null, "State", null, true)
                 };
                 if (members.Length != expected.Length || !members.Zip(expected).All(pair =>
                     pair.First.Name == pair.Second.Name && pair.First.Source?.Kind == pair.Second.Kind &&
-                    pair.First.Source.Path == pair.Second.Path && pair.First.IsDerived == pair.Second.Derived &&
-                    MatchesReducerMemberType(pair.First, model, @event)))
+                    pair.First.Source.SemanticId == pair.Second.Id && pair.First.Source.Path == pair.Second.Path &&
+                    pair.First.Source.EventRevision == pair.Second.Revision && pair.First.Source.ConstantValue is null &&
+                    pair.First.IsDerived == pair.Second.Derived && MatchesReducerMemberType(pair.First, model, @event)))
                 {
                     diagnostics.Add(Error("STAGE-ESM-021", $"Reducer '{reducer.Name}' has an unexpected typed context member or source (State, Event, Key, Tenant, Occurred, SequenceNumber, IsFirst).", reducer.ReadModel));
+                    continue;
+                }
+
+                // StateView artifacts emit read models and reducers, not event declarations.
+                if (slice.Events.Any(candidate => candidate.Id == transition.EventContract))
+                {
+                    diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' observes an event declared in its StateView slice, which cannot render an event contract.", reducer.ReadModel));
                     continue;
                 }
 

@@ -19,8 +19,9 @@ internal static partial class SemanticCratisAdmission
     {
         if ((slice.ReadModels.Length == 0 && slice.Reducers.IsEmpty) ||
             slice.Projections.Any(projection => !slice.ReadModels.Any(model => model.Id == projection.ReadModel)) ||
-            slice.ReadModels.Any(model => context.Projections.Values.Count(_ => _.ReadModel == model.Id) +
-                context.Reducers.Count(_ => _.ReadModel == model.Id) != 1))
+            slice.Reducers.Any(reducer => !slice.ReadModels.Any(model => model.Id == reducer.ReadModel)) ||
+            slice.ReadModels.Any(model => slice.Projections.Count(_ => _.ReadModel == model.Id) +
+                slice.Reducers.Count(_ => _.ReadModel == model.Id) != 1))
         {
             diagnostics.Add(Error("STAGE-ESM-007", $"State-view slice '{slice.Name}' needs exactly one projection for each read model.", slice.Id));
             return;

@@ -97,16 +97,12 @@ internal static class PureTransitionAdmission
         ["exceptions"] = "Only explicit InvalidOperationException(string) and ArgumentException(string) throws."
     };
 
-    internal static readonly Lazy<MetadataReference[]> _references = new(() =>
-    {
-        var framework = CratisBackendApplicationScaffoldProfile.Current.TargetFramework;
-        var dotnetRoot = new DirectoryInfo(Path.GetDirectoryName(typeof(object).Assembly.Location)!).Parent!.Parent!.Parent!;
-        var packRoot = Path.Combine(dotnetRoot.FullName, "packs", "Microsoft.NETCore.App.Ref");
-        var refDirectory = Path.Combine(packRoot, ReferencePackVersion, "ref", framework);
-        if (!Directory.Exists(refDirectory))
-            throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework '{framework}' are unavailable; pure transitions cannot be analysed.");
-        return [.. Directory.GetFiles(refDirectory, "*.dll").Select(path => MetadataReference.CreateFromFile(path))];
-    });
+    // These are the 10.0.12 package's assemblies embedded in the renderer, independent of
+    // the installed SDK or host runtime. Never fall back to another installed SDK pack.
+    internal static readonly Lazy<MetadataReference[]> _references = new(LoadEmbeddedReferences);
+
+    // Isolated override for failure-path specifications; it does not alter the cached production pack.
+    internal static readonly AsyncLocal<string?> ReferenceDirectoryOverride = new();
 
     static readonly HashSet<OperationKind> _admittedOperations =
     [
@@ -209,19 +205,22 @@ internal static class PureTransitionAdmission
         var reducer = reducers[0];
         var reducerName = Identifiers.ToPascalCase(reducer.Name);
 
-        // Synthetic stubs cover the current inputs, but other generated types in the same namespace
-        // can shadow unqualified BCL names in the emitted reducer file.
-        var peers = located.Slice.ReadModels.Select(_ => _.Name)
-            .Concat(located.Slice.Events.Select(_ => _.Name))
-            .Concat(located.Slice.Commands.Select(_ => _.Name))
-            .Concat(located.Slice.Reducers.Select(_ => _.Name))
-            .Concat(located.Slice.Projections.Select(_ => _.Name));
+        // Synthetic stubs cover the current inputs, but imported and sibling generated types
+        // can shadow unqualified framework and Chronicle names in the emitted reducer file.
+        var reducerEvents = reducer.Transitions.Select(transition => context.Events[transition.EventContract]).ToArray();
+        var importedSlices = reducerEvents.Select(@event => context.DeclaringSlice(@event.Id).Slice).Append(located.Slice).Distinct();
+        var peers = importedSlices.SelectMany(slice => slice.ReadModels.Select(_ => _.Name)
+            .Concat(slice.Events.Select(_ => _.Name))
+            .Concat(slice.Commands.Select(_ => _.Name))
+            .Concat(slice.Reducers.Select(_ => _.Name))
+            .Concat(slice.Projections.Select(_ => _.Name)));
+        if (!context.Application.Concepts.IsEmpty || !context.Application.Types.IsEmpty)
+            peers = peers.Concat(context.Application.Concepts.Select(_ => _.Name)).Concat(context.Application.Types.Select(_ => _.Name));
         var shadow = peers.Select(Identifiers.ToPascalCase).FirstOrDefault(name =>
-            NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan"));
+            NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues"));
         if (shadow is not null)
             return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows an audited type in the reducer namespace.");
         var ns = SliceNaming.Namespace(context.RootNamespace, located.Path);
-        var reducerEvents = reducer.Transitions.Select(transition => context.Events[transition.EventContract]).ToArray();
         var types = new SemanticTypeSystem(context);
         var definitions = new List<string>();
         foreach (var concept in context.Application.Concepts)
@@ -243,7 +242,7 @@ internal static class PureTransitionAdmission
             definitions.Add($"namespace {context.RootNamespace}.Common {{ public record {Identifiers.ToPascalCase(composite.Name)}({Parameters(composite.Properties)}); }}");
         }
 
-        definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(readModel.Properties, true)}); }}");
+        definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
         foreach (var transitionEvent in reducerEvents)
         {
             var transitionNs = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(transitionEvent.Id).Path);
@@ -297,7 +296,7 @@ internal static class PureTransitionAdmission
         var compilation = CSharpCompilation.Create(
             "PureTransitionAnalysis",
             [declarationTree, tree],
-            _references.Value,
+            ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
         if (errors.Length > 0)
@@ -334,6 +333,30 @@ internal static class PureTransitionAdmission
         }
 
         return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor);
+    }
+
+    static MetadataReference[] LoadEmbeddedReferences()
+    {
+        var assembly = typeof(PureTransitionAdmission).Assembly;
+        var resources = assembly.GetManifestResourceNames()
+            .Where(name => name.StartsWith($"PureTransitionReferences.{ReferencePackVersion}.", StringComparison.Ordinal) && name.EndsWith(".dll", StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal).ToArray();
+        if (resources.Length == 0)
+            throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework 'net10.0' are unavailable; pure transitions cannot be analysed.");
+        return [.. resources.Select(name =>
+        {
+            using var stream = assembly.GetManifestResourceStream(name)!;
+            return MetadataReference.CreateFromStream(stream, filePath: name);
+        })];
+    }
+
+    static MetadataReference[] LoadReferences(string refDirectory)
+    {
+        var framework = CratisBackendApplicationScaffoldProfile.Current.TargetFramework;
+        var paths = Directory.Exists(refDirectory) ? Directory.GetFiles(refDirectory, "*.dll") : [];
+        if (paths.Length == 0)
+            throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework '{framework}' are unavailable; pure transitions cannot be analysed.");
+        return [.. paths.Select(path => MetadataReference.CreateFromFile(path))];
     }
 
     static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor)

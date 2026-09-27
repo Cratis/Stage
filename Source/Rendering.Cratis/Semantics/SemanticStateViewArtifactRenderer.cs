@@ -96,6 +96,9 @@ internal static class SemanticStateViewArtifactRenderer
         };
     }
 
+    internal static IOrderedEnumerable<SemanticProperty> OrderedProperties(IEnumerable<SemanticProperty> properties) =>
+        properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal);
+
     static IEnumerable<SemanticId> ScopeEvents(SemanticProjectionScope scope) =>
         scope.From.Select(_ => _.EventContract)
             .Concat(scope.Joins.Select(_ => _.EventContract))
@@ -105,7 +108,7 @@ internal static class SemanticStateViewArtifactRenderer
             .Concat(scope.Nested.SelectMany(_ => ScopeEvents(_.Scope))).Distinct();
 
     static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
-        string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
+        string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
             $"{((property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty)}{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
 
     static string Parameters(
@@ -114,7 +117,7 @@ internal static class SemanticStateViewArtifactRenderer
         SemanticEventContract @event,
         SemanticTypeSystem types,
         SemanticKeyedQuery? keyedQuery) =>
-        string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
+        string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
         {
             var mapping = transition.Mappings.Single(_ => _.TargetProperty == property.Id);
             var source = (SemanticResolvedExpression)mapping.Source;

@@ -51,11 +51,24 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="All" />
+        <!-- Embed the audited BCL reference assemblies: rolling SDKs and runtime-only hosts
+             need not install this exact patch of the SDK pack. Never bind against a newer pack. -->
+        <PackageReference Include="Microsoft.NETCore.App.Ref" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
         <EmbeddedResource Include="for_SemanticTypedContextRenderer/Vectors/*.json" />
     </ItemGroup>
+    <ItemGroup>
+        <!-- The SDK already loads these analyzers from its framework pack; loading the NuGet
+             copy a second time makes the regex generator emit duplicate partial members. -->
+        <EmbeddedResource Include="$(PkgMicrosoft_NETCore_App_Ref)/ref/net10.0/*.dll" LogicalName="PureTransitionReferences.$(PureTransitionReferencePackVersion).%(Filename)%(Extension)" />
+    </ItemGroup>
+    <Target Name="RemoveDuplicateReferencePackAnalyzers" BeforeTargets="CoreCompile">
+        <ItemGroup>
+            <Analyzer Remove="$(PkgMicrosoft_NETCore_App_Ref)/analyzers/dotnet/cs/*.dll" />
+        </ItemGroup>
+    </Target>
     <ItemGroup>
         <ProjectReference Include="../Contracts/Contracts.csproj" />
     </ItemGroup>

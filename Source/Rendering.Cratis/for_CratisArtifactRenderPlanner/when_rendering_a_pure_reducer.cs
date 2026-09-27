@@ -10,6 +10,7 @@ using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
@@ -59,8 +60,12 @@ public class when_rendering_a_pure_reducer
         var source = Source.Replace("    slice StateView Totals\n      readmodel Total", "    slice StateView Models\n      readmodel Total", StringComparison.Ordinal)
             .Replace("      reducer Fold => Total", "    slice StateView Totals\n      reducer Fold => Total", StringComparison.Ordinal)
             .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal);
-        var plan = Plan(await Load(source));
+        var loaded = await Load(source);
+        var plan = Plan(loaded);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Message.Contains("same slice", StringComparison.Ordinal));
+        var models = loaded.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.ReadModels.Length > 0);
+        Assert.Contains(Plan(loaded, new(ArtifactRenderScopeKind.Slice, models.Id)).Diagnostics,
+            diagnostic => diagnostic.Code == "STAGE-ESM-007");
     }
 
     [Fact]
@@ -72,6 +77,19 @@ public class when_rendering_a_pure_reducer
         var model = invoice_model.Compile(source);
         var plan = invoice_model.Plan(model);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-007");
+        var other = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Other");
+        Assert.Contains(invoice_model.Plan(model, new(ArtifactRenderScopeKind.Slice, other.Id)).Diagnostics,
+            diagnostic => diagnostic.Code == "STAGE-ESM-007");
+    }
+
+    [Fact]
+    public async Task should_reject_an_observed_event_declared_in_the_state_view_slice()
+    {
+        var source = Source.Replace("      event OrderPlaced\n        id Uuid\n        amount Decimal\n", string.Empty, StringComparison.Ordinal)
+            .Replace("    slice StateView Totals\n", "    slice StateView Totals\n      event OrderPlaced\n        id Uuid\n        amount Decimal\n", StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Message.Contains("cannot render an event", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -99,6 +117,38 @@ public class when_rendering_a_pure_reducer
             .Replace("return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);", "return new Total(context.Event.Id, Math.Abs(context.Event.Amount));", StringComparison.Ordinal);
         var plan = Plan(await Load(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("EventContext")]
+    [InlineData("ReducerContextValues")]
+    public async Task should_reject_reducer_names_shadowing_runtime_inputs(string name)
+    {
+        var source = Source.Replace("reducer Fold => Total", $"reducer {name} => Total", StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains(name, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task should_reject_an_imported_event_shadowing_math()
+    {
+        var source = Source.Replace("      event OrderPlaced\n        id Uuid\n        amount Decimal", "      event OrderPlaced\n        id Uuid\n        amount Decimal\n      event Math\n        id Uuid\n        amount Decimal", StringComparison.Ordinal)
+            .Replace("on OrderPlaced", "on Math", StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal)
+            .Replace("context.Event.Amount);", "Math.Abs(context.Event.Amount));", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task should_reject_a_sibling_shadowing_string_comparison()
+    {
+        var source = Source.Replace("      readmodel Total", "      readmodel StringComparison\n        id Uuid\n        amount Decimal\n      query ComparisonById => StringComparison?\n        by id Uuid\n      reducer ComparisonFold => StringComparison\n        on OrderPlaced\n          ```csharp\n          return new StringComparison(context.Event.Id, context.Event.Amount);\n          ```\n      readmodel Total", StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal)
+            .Replace("return new Total(context.Event.Id, context.Event.Amount);", "return new Total(context.Event.Id, \"x\".Contains(\"x\", StringComparison.Ordinal) ? context.Event.Amount : 0m);", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("StringComparison", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -174,6 +224,75 @@ public class when_rendering_a_pure_reducer
         };
         var plan = Plan(loaded with { TypedContextDescriptors = [changed] });
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("Key", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("State")]
+    [InlineData("Event")]
+    [InlineData("Key")]
+    [InlineData("Tenant")]
+    [InlineData("Occurred")]
+    [InlineData("SequenceNumber")]
+    [InlineData("IsFirst")]
+    public async Task should_reject_changed_source_identity_for_every_reducer_member(string name)
+    {
+        var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal));
+        var descriptor = Assert.Single(loaded.TypedContextDescriptors);
+        var changed = descriptor with
+        {
+            Members = [.. descriptor.Members.Select(member => member.Name == name ? member with
+            {
+                Source = member.Source with { SemanticId = member.Source.SemanticId is null ? descriptor.OperationId : null }
+            } : member)]
+        };
+        Assert.Contains(Plan(loaded with { TypedContextDescriptors = [changed] }).Diagnostics,
+            diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains(name, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("State")]
+    [InlineData("Event")]
+    [InlineData("Key")]
+    [InlineData("Tenant")]
+    [InlineData("Occurred")]
+    [InlineData("SequenceNumber")]
+    [InlineData("IsFirst")]
+    public async Task should_reject_changed_revision_and_constant_for_every_reducer_member(string name)
+    {
+        var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal));
+        var descriptor = Assert.Single(loaded.TypedContextDescriptors);
+        foreach (var changedSource in new[]
+        {
+            descriptor.Members.Single(member => member.Name == name).Source with { EventRevision = new(2) },
+            descriptor.Members.Single(member => member.Name == name).Source with { ConstantValue = "planted" }
+        })
+        {
+            var changed = descriptor with
+            {
+                Members = [.. descriptor.Members.Select(member => member.Name == name ? member with { Source = changedSource } : member)]
+            };
+            Assert.Contains(Plan(loaded with { TypedContextDescriptors = [changed] }).Diagnostics,
+                diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains(name, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public async Task should_return_diagnostics_for_specifications_without_reference_assemblies()
+    {
+        var source = WithIdentifierConcept(Source).Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal)
+            .Replace("      event OrderPlaced\n        id OrderId\n        amount Decimal", "      event OrderPlaced\n        id OrderId\n        amount Decimal\n      specification CreatingATotal\n        when PlaceOrder\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20\n        then OrderPlaced\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20\n        then readmodel Total\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20", StringComparison.Ordinal);
+        var loaded = await Load(source);
+        PureTransitionAdmission.ReferenceDirectoryOverride.Value = Path.Combine(Path.GetTempPath(), $"absent-stage-ref-{Guid.NewGuid():N}");
+        try
+        {
+            var plan = Plan(loaded);
+            Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("10.0.12", StringComparison.Ordinal));
+            Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011");
+        }
+        finally
+        {
+            PureTransitionAdmission.ReferenceDirectoryOverride.Value = null;
+        }
     }
 
     [Fact]
@@ -296,6 +415,59 @@ public class when_rendering_a_pure_reducer
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var errors = RenderedOutput.Errors(files);
         Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
+    }
+
+    [Fact]
+    public async Task should_bind_same_typed_constructor_arguments_in_emitted_model_order()
+    {
+        const string original = "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);";
+        var source = WithIdentifierConcept(Source).Replace(
+            "      readmodel Total\n        id OrderId\n        amount Decimal",
+            "      readmodel Total\n        id OrderId\n        amount Decimal\n        alpha Decimal\n        beta Decimal",
+            StringComparison.Ordinal)
+            .Replace("      event OrderPlaced\n        id OrderId\n        amount Decimal",
+                "      event OrderPlaced\n        id OrderId\n        amount Decimal\n      specification VerifyingTheConstructorOrder\n        when PlaceOrder\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20\n        then OrderPlaced\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20\n        then readmodel Total\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 11\n          alpha = 22\n          beta = 33",
+                StringComparison.Ordinal);
+        var baseline = await Load(source.Replace(original, "return context.State;", StringComparison.Ordinal));
+        var model = baseline.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.ReadModels.Length > 0).ReadModels.Single();
+        var ordered = SemanticStateViewArtifactRenderer.OrderedProperties(model.Properties).ToArray();
+        Assert.NotEqual(model.Properties.Where(property => property.Type.Primitive == SemanticPrimitiveType.DecimalNumber).Select(property => property.Name),
+            ordered.Where(property => property.Type.Primitive == SemanticPrimitiveType.DecimalNumber).Select(property => property.Name));
+        var values = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["id"] = "context.Event.Id",
+            ["amount"] = "11m",
+            ["alpha"] = "22m",
+            ["beta"] = "33m"
+        };
+        var body = $"return new Total({string.Join(", ", ordered.Select(property => values[property.Name]))});";
+        var loaded = await Load(source.Replace(original, body, StringComparison.Ordinal));
+        var plan = Plan(loaded);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
+        Assert.Empty(RenderedOutput.Errors(files));
+        var specification = plan.Artifacts.Single(artifact => artifact.RelativePath.Contains("verifying_the_constructor_order_is_projected", StringComparison.Ordinal));
+        var specificationText = System.Text.Encoding.UTF8.GetString(specification.Bytes.AsSpan());
+        Assert.Contains(".Amount.ShouldEqual(11m)", specificationText, StringComparison.Ordinal);
+        Assert.Contains(".Alpha.ShouldEqual(22m)", specificationText, StringComparison.Ordinal);
+        Assert.Contains(".Beta.ShouldEqual(33m)", specificationText, StringComparison.Ordinal);
+        var assembly = RenderedOutput.Load(files);
+        var record = assembly.GetTypes().Single(type => type.Name == "Total");
+        Assert.Equal(ordered.Select(property => Identifiers.ToPascalCase(property.Name)),
+            record.GetConstructors().Single(constructor => constructor.GetParameters().Length == ordered.Length).GetParameters().Select(parameter => parameter.Name));
+        var wrapper = assembly.GetTypes().Single(type => type.Name.StartsWith("TypedContext_", StringComparison.Ordinal));
+        var @event = assembly.GetTypes().Single(type => type.Name == "OrderPlaced");
+        var tenant = assembly.GetType("Projects.TypedContexts.TenantId");
+        var identity = assembly.GetTypes().Single(type => type.Name == "OrderId");
+        var payload = Activator.CreateInstance(@event, Activator.CreateInstance(identity, Guid.NewGuid()), 1m);
+        var context = Activator.CreateInstance(wrapper, null, payload, "key", Activator.CreateInstance(tenant, "Default"), DateTimeOffset.UtcNow, 0L);
+        var reducer = assembly.GetTypes().Single(type => type.Name == "Fold");
+        var transition = reducer.GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(method => method.Name.StartsWith("Transition_", StringComparison.Ordinal));
+        var result = transition.Invoke(null, [context]);
+        Assert.Equal(11m, record.GetProperty("Amount").GetValue(result));
+        Assert.Equal(22m, record.GetProperty("Alpha").GetValue(result));
+        Assert.Equal(33m, record.GetProperty("Beta").GetValue(result));
     }
 
     [Fact]
@@ -603,11 +775,9 @@ public class when_rendering_a_pure_reducer
     [Fact]
     public void should_use_only_the_exact_audited_reference_pack()
     {
+        Assert.True(PureTransitionAdmission._references.Value.Length > 150);
         Assert.All(PureTransitionAdmission._references.Value, reference =>
-            Assert.Contains(
-                $"/Microsoft.NETCore.App.Ref/{PureTransitionAdmission.ReferencePackVersion}/ref/net10.0/",
-                reference.Display!.Replace('\\', '/'),
-                StringComparison.Ordinal));
+            Assert.StartsWith($"PureTransitionReferences.{PureTransitionAdmission.ReferencePackVersion}.", reference.Display, StringComparison.Ordinal));
     }
 
     [Fact]

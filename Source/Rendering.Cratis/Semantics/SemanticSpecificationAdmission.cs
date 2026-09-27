@@ -94,8 +94,18 @@ internal static partial class SemanticSpecificationAdmission
             if (descriptor is null || requirement is null) return true;
             var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
             if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, transition.RequirementId, readModel, diagnostics, out var body)) return true;
-            var verdict = PureTransitionAdmission.Analyze(body!, context, context.ReadModels[readModel], context.Events[transition.EventContract], descriptor, requirement);
-            if (verdict.ContextReads.Overlaps(["Occurred", "SequenceNumber", "Tenant"])) return true;
+
+            // Specification admission must fail closed too: a host without the audited
+            // reference assemblies cannot safely classify this reducer's context reads.
+            try
+            {
+                var verdict = PureTransitionAdmission.Analyze(body!, context, context.ReadModels[readModel], context.Events[transition.EventContract], descriptor, requirement);
+                if (!verdict.Accepted || verdict.ContextReads.Overlaps(["Occurred", "SequenceNumber", "Tenant"])) return true;
+            }
+            catch (Exception)
+            {
+                return true;
+            }
         }
 
         return false;

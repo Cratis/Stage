@@ -154,6 +154,48 @@ public class when_rendering_a_pure_reducer
         Assert.Empty(plan.Artifacts);
     }
 
+    [Theory]
+    [InlineData("Projects.Orders.Ordering.Totals.Total", "Projects")]
+    [InlineData("Orders.Ordering.Totals.Total", "Orders")]
+    public async Task should_refuse_a_sibling_that_rebinds_a_namespace_qualifier(string qualifiedType, string peer)
+    {
+        const string originalBody = "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);";
+        var body = $"return default({qualifiedType});";
+        var baseline = Plan(await Load(Source.Replace(originalBody, body, StringComparison.Ordinal)));
+        Assert.True(baseline.Success, string.Join(Environment.NewLine, baseline.Diagnostics));
+        var baselineFiles = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
+        Assert.Empty(RenderedOutput.Errors(baselineFiles));
+        var files = baselineFiles.Append(new RenderedFile($"{peer}.cs", $"namespace Projects.Orders.Ordering.Totals; public record {peer}(System.Guid Id, decimal Amount);"));
+        Assert.Contains(RenderedOutput.Errors(files), error => error.Contains("Fold.cs", StringComparison.Ordinal) && error.Contains(peer, StringComparison.Ordinal));
+
+        var source = Source.Replace("      readmodel Total", $"      readmodel {peer}\n        id Uuid\n        amount Decimal\n      query By{peer} => {peer}?\n        by id Uuid\n      reducer {peer}Fold => {peer}\n        on OrderPlaced\n          ```csharp\n          return context.State;\n          ```\n      readmodel Total", StringComparison.Ordinal)
+            .Replace(originalBody, body, StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains(peer, StringComparison.Ordinal));
+        Assert.Empty(plan.Artifacts);
+    }
+
+    [Fact]
+    public async Task should_refuse_a_sibling_namespace_that_rebinds_the_root_qualifier()
+    {
+        const string originalBody = "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);";
+        const string body = "return default(Projects.Orders.Ordering.Totals.Total);";
+        var baseline = Plan(await Load(Source.Replace(originalBody, body, StringComparison.Ordinal)));
+        Assert.True(baseline.Success, string.Join(Environment.NewLine, baseline.Diagnostics));
+        var baselineFiles = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
+        Assert.Empty(RenderedOutput.Errors(baselineFiles));
+        var files = baselineFiles.Append(new RenderedFile("Projects.cs", "namespace Projects.Orders.Ordering.Projects { public record OtherTotal(System.Guid Id, decimal Amount); }"));
+        Assert.Contains(RenderedOutput.Errors(files), error => error.Contains("Fold.cs", StringComparison.Ordinal) && error.Contains("Projects", StringComparison.Ordinal));
+
+        var source = Source.Replace("    slice StateView Totals", "    slice StateView Projects\n      readmodel OtherTotal\n        id Uuid\n        amount Decimal\n      query OtherById => OtherTotal?\n        by id Uuid\n      reducer OtherFold => OtherTotal\n        on OrderPlaced\n          ```csharp\n          return context.State;\n          ```\n    slice StateView Totals", StringComparison.Ordinal)
+            .Replace(originalBody, body, StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Projects", StringComparison.Ordinal));
+        Assert.Empty(plan.Artifacts);
+    }
+
     [Fact]
     public async Task should_refuse_a_sibling_primitive_clr_name_before_the_real_reducer_rebinds()
     {

@@ -124,6 +124,13 @@ internal sealed class SemanticApplicationContext
     internal IEnumerable<string> NamespaceSegments => _slices.Values.SelectMany(located => located.Path)
         .Select(Identifiers.ToPascalCase).Concat(RootNamespace.Split('.'));
 
+    /// <summary>Gets distinct generated namespace prefixes, including slices outside the selected scope.</summary>
+    internal IEnumerable<string> NamespacePaths => _slices.Values.SelectMany(located =>
+    {
+        var segments = RootNamespace.Split('.').Concat(located.Path.Select(Identifiers.ToPascalCase)).ToArray();
+        return Enumerable.Range(1, segments.Length).Select(length => string.Join('.', segments.Take(length)));
+    }).Distinct(StringComparer.Ordinal);
+
     /// <summary>
     /// Gets the slices selected by the request scope in deterministic model order.
     /// </summary>

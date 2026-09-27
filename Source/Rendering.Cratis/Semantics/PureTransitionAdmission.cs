@@ -235,7 +235,8 @@ internal static class PureTransitionAdmission
             .Append(Identifiers.ToPascalCase(readModel.Name)).FirstOrDefault(ShadowsAuditedName);
         if (activeShadow is not null)
             return Reject("STAGE-ESM-022", $"Generated type '{activeShadow}' shadows an audited type in the reducer namespace.");
-        var namespaceSegments = context.NamespaceSegments.ToHashSet(StringComparer.Ordinal);
+        var namespacePaths = context.NamespacePaths.GroupBy(path => path.Split('.')[^1], StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToHashSet(StringComparer.Ordinal), StringComparer.Ordinal);
         var ns = SliceNaming.Namespace(context.RootNamespace, located.Path);
         var types = new SemanticTypeSystem(context);
         var definitions = new List<string>();
@@ -315,11 +316,13 @@ internal static class PureTransitionAdmission
             ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var semanticModel = compilation.GetSemanticModel(tree);
-        var referencedTypes = MethodTypeReferences(tree, semanticModel, context.RootNamespace);
-        var shadow = peers.FirstOrDefault(name => referencedTypes.Contains(name) || ShadowsAuditedName(name));
+        var referencedTypes = MethodTypeReferences(tree, semanticModel);
+        var shadow = peers.FirstOrDefault(name => referencedTypes.Any(reference => reference.Name == name) || ShadowsAuditedName(name));
         if (shadow is not null)
             return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows a type referenced by the reducer body.");
-        var namespaceShadow = namespaceSegments.FirstOrDefault(name => referencedTypes.Contains(name) || ShadowsAuditedName(name));
+        var namespaceShadow = namespacePaths.FirstOrDefault(entry => ShadowsAuditedName(entry.Key) ||
+            referencedTypes.Any(reference => reference.Name == entry.Key &&
+                (reference.Namespace is null || entry.Value.Any(path => path != reference.Namespace)))).Key;
         if (namespaceShadow is not null)
             return Reject("STAGE-ESM-022", $"Generated namespace '{namespaceShadow}' shadows a type referenced by the reducer body.");
 
@@ -367,29 +370,26 @@ internal static class PureTransitionAdmission
     static bool ShadowsAuditedName(string name) =>
         NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");
 
-    static HashSet<string> MethodTypeReferences(SyntaxTree tree, SemanticModel model, string rootNamespace)
+    static HashSet<(string Name, string? Namespace)> MethodTypeReferences(SyntaxTree tree, SemanticModel model)
     {
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
             .Single(declaration => declaration.Identifier.Text.StartsWith("Transition_", StringComparison.Ordinal));
-        var names = new HashSet<string>(StringComparer.Ordinal);
+        var names = new HashSet<(string Name, string? Namespace)>();
         foreach (var name in method.Body!.DescendantNodes().OfType<SimpleNameSyntax>())
         {
-            if ((name.Parent is MemberAccessExpressionSyntax member && member.Name == name) ||
-                (name.Parent is QualifiedNameSyntax qualified && qualified.Right == name) ||
-                (name.Parent is AliasQualifiedNameSyntax alias && alias.Name == name))
-            {
-                continue;
-            }
-
             var info = model.GetSymbolInfo(name);
-            if (info.Symbol is INamedTypeSymbol ||
-                (info.Symbol is INamespaceSymbol ns &&
-                 !ns.ToDisplayString().StartsWith(rootNamespace + ".", StringComparison.Ordinal) &&
-                 ns.ToDisplayString() != rootNamespace) ||
+
+            // Qualifiers are shadowable even when the stub binds a generated namespace. Include
+            // the right-hand side of qualified names, not just their syntactic root.
+            if (info.Symbol is INamespaceSymbol ns)
+            {
+                names.Add((name.Identifier.ValueText, ns.ToDisplayString()));
+            }
+            else if (info.Symbol is INamedTypeSymbol ||
                 (info.Symbol is null && info.CandidateSymbols.IsEmpty &&
                  name.Parent is MemberAccessExpressionSyntax { Expression: var expression } && expression == name))
             {
-                names.Add(name.Identifier.ValueText);
+                names.Add((name.Identifier.ValueText, null));
             }
         }
 

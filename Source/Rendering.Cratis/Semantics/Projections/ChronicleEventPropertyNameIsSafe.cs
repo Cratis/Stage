@@ -6,15 +6,20 @@ using System.Globalization;
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 /// <summary>
-/// Prevents event property paths from being interpreted as Chronicle expression literals.
+/// Prevents event property paths from being interpreted as Chronicle expressions or derived functions.
 /// </summary>
 internal static class ChronicleEventPropertyNameIsSafe
 {
+    // Chronicle v19.8.1 recognizes Week even without parentheses. The renderer also emits
+    // Pascal-cased event members, so both Week and week must be refused.
     internal static bool Check(string name) =>
         !name.Contains('$') &&
         !name.Contains('.') &&
         !name.Contains('[') &&
         !name.Contains(']') &&
+        !name.Contains('(') &&
+        !name.Contains(')') &&
+        !string.Equals(name, "Week", StringComparison.OrdinalIgnoreCase) &&
         !name.StartsWith('"') &&
         !string.Equals(name, "true", StringComparison.OrdinalIgnoreCase) &&
         !string.Equals(name, "false", StringComparison.OrdinalIgnoreCase) &&

@@ -17,6 +17,7 @@ internal static class SemanticFlatProjectionSupport
         ImmutableArray<SemanticProperty> sources,
         SemanticExpressionRootKind root) =>
         sources.All(source => ChronicleEventPropertyNameIsSafe.Check(source.Name)) &&
+        ChronicleReadModelPropertyNamesAreSafe.Check(targets) &&
         mappings.Length == targets.Length && targets.All(target => mappings.Any(mapping => mapping.TargetProperty == target.Id &&
             mapping.Source is SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property } resolved &&
             resolved.Root == root && sources.Any(source => source.Id == resolved.Target)));

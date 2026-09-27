@@ -75,6 +75,10 @@ internal static class SemanticRunProjectionAdmission
         {
             return "A non-identifier read-model property named Id collides with Chronicle's document key.";
         }
+        if (!ChronicleReadModelPropertyNamesAreSafe.Check(readModel.Properties))
+        {
+            return "A read-model property name collides with Chronicle's property paths or another generated property.";
+        }
         if (readModel.Properties.Any(property => Primitive(plan, property.Type) == SemanticPrimitiveType.DateTime))
         {
             return "DateTime read-model values cannot preserve the reference's round-trip text in the per-run projection.";

@@ -34,6 +34,12 @@ internal static partial class SemanticCratisAdmission
                 continue;
             }
 
+            if (!ChronicleReadModelPropertyNamesAreSafe.Check(readModel.Properties))
+            {
+                diagnostics.Add(Error("STAGE-ESM-017", $"Projection '{projection.Name}' cannot render: a read-model property name collides with Chronicle's property paths or another generated property.", projection.Id));
+                continue;
+            }
+
             if (projection.Scope is { } scope)
             {
                 var rejection = SemanticScopedProjectionSupport.Rejection(scope, context, readModel.Properties);

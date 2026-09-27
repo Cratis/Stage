@@ -31,8 +31,12 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("every-whole-number")]
     [InlineData("every-enumerated-concept")]
     [InlineData("event-source-with-property-key")]
+    [InlineData("join-event-source")]
     [InlineData("expression-event-property")]
+    [InlineData("derived-event-property")]
     [InlineData("flat-expression-event-property")]
+    [InlineData("expression-read-model-property")]
+    [InlineData("flat-expression-read-model-property")]
     [InlineData("all-literal")]
     [InlineData("all-events")]
     [InlineData("unsafe-text-literal")]
@@ -65,7 +69,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
         var view = feature.Slices.Single(_ => _.Kind == SemanticSliceKind.StateView);
-        var projection = view.Projections.Single(_ => _.Name == (variant == "composite-key" || variant == "flat-expression-event-property" ? "ProjectDetailsProjection" : "ProjectSummaryProjection"));
+        var projection = view.Projections.Single(_ => _.Name == (variant == "composite-key" || variant == "flat-expression-event-property" || variant == "flat-expression-read-model-property" ? "ProjectDetailsProjection" : "ProjectSummaryProjection"));
         var scope = projection.Scope!;
         if (variant == "composite-key")
         {
@@ -121,7 +125,15 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 Mappings = [.. transition.Mappings, new SemanticProjectionMapping([lastSeenTarget], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
             } : transition)]
             },
-            "expression-event-property" or "flat-expression-event-property" => scope,
+            "join-event-source" => scope with
+            {
+                Joins = [.. scope.Joins.Select(join => join with
+                {
+                    Mappings = [.. join.Mappings, new SemanticProjectionMapping([lastSeenTarget], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
+                })]
+            },
+            "expression-event-property" or "derived-event-property" or "flat-expression-event-property" or
+                "expression-read-model-property" or "flat-expression-read-model-property" => scope,
             "root-join-removal" => scope with
             {
                 JoinRemovals = [new(
@@ -201,12 +213,13 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             new(AffectedInstanceCardinality.One, key),
             [new(targetModel.Properties.Single(property => property.Name == "projectId").Id, key),
              new(targetModel.Properties.Single(property => property.Name == "name").Id, sourceName)]);
-        var changedProjection = variant == "flat-expression-event-property" ? projection with { Scope = null, Transitions = [flat] } : projection with { Scope = scope };
+        var changedProjection = variant == "flat-expression-event-property" || variant == "flat-expression-read-model-property" ? projection with { Scope = null, Transitions = [flat] } : projection with { Scope = scope };
         var changed = view with
         {
-            ReadModels = [.. view.ReadModels.Select(model => model.Name == "ProjectSummary" && (variant == "every-whole-number" || variant == "every-enumerated-concept") ? model with
+            ReadModels = [.. view.ReadModels.Select(model => model.Id == projection.ReadModel &&
+                (variant == "every-whole-number" || variant == "every-enumerated-concept" || variant == "expression-read-model-property" || variant == "flat-expression-read-model-property") ? model with
             {
-                Properties = [.. model.Properties.Select(property => ChangedEveryProperty(
+                Properties = [.. model.Properties.Select(property => ChangedReadModelProperty(
                     property,
                     variant,
                     visitsTarget,
@@ -220,9 +233,9 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Concepts = [.. original.Application.Concepts.Select(concept => variant == "every-enumerated-concept" && concept.Name == "ProjectName" ? concept with { Values = ["Earlier", "Screenplay", "Pinned", "allowed"] } : concept)],
             Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice.Id == view.Id ? changed : slice with
             {
-                Events = variant == "expression-event-property" || variant == "flat-expression-event-property" ? [.. slice.Events.Select(@event => @event.Name == "ProjectRegistered" ? @event with
+                Events = variant == "expression-event-property" || variant == "flat-expression-event-property" || variant == "derived-event-property" ? [.. slice.Events.Select(@event => @event.Name == "ProjectRegistered" ? @event with
                 {
-                    Properties = [.. @event.Properties.Select(property => property.Name == "name" ? property with { Name = "$value(0)" } : property)]
+                    Properties = [.. @event.Properties.Select(property => property.Name == "name" ? property with { Name = variant == "derived-event-property" ? "Week()" : "$value(0)" } : property)]
                 } : @event)] : slice.Events
             })] }] }]
         };
@@ -244,13 +257,20 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Contains("keyed lookup", diagnostic.Message, StringComparison.Ordinal);
         }
 
+        if (variant == "join-event-source")
+        {
+            Assert.Contains("A join has an unsupported correlation key or mapping", diagnostic.Message, StringComparison.Ordinal);
+        }
+
         if (variant == "nested-clear-with-root-from")
         {
             Assert.Contains("Chronicle#4166", diagnostic.Message, StringComparison.Ordinal);
         }
 
         if (variant == "composite-key" || variant == "every-whole-number" || variant == "every-enumerated-concept" ||
-            variant == "event-source-with-property-key" || variant == "expression-event-property" || variant == "flat-expression-event-property")
+            variant == "event-source-with-property-key" || variant == "join-event-source" || variant == "expression-event-property" ||
+            variant == "derived-event-property" || variant == "flat-expression-event-property" ||
+            variant == "expression-read-model-property" || variant == "flat-expression-read-model-property")
         {
             var changedExecution = SemanticExecutionPlan.Compile(model);
             Assert.True(changedExecution.Success, string.Join(Environment.NewLine, changedExecution.Issues));
@@ -261,8 +281,13 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         }
     }
 
-    static SemanticProperty ChangedEveryProperty(SemanticProperty property, string variant, SemanticId visits, SemanticId lastSeen, SemanticId concept)
+    static SemanticProperty ChangedReadModelProperty(SemanticProperty property, string variant, SemanticId visits, SemanticId lastSeen, SemanticId concept)
     {
+        if ((variant == "expression-read-model-property" || variant == "flat-expression-read-model-property") && property.Name == "name")
+        {
+            return property with { Name = "name.Length" };
+        }
+
         if (variant == "every-whole-number" && property.Id == visits)
         {
             return property with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.WholeNumber) };

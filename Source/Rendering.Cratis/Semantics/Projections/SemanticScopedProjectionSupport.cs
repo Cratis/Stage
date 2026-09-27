@@ -26,6 +26,11 @@ internal static partial class SemanticScopedProjectionSupport
     /// <returns>The reason, or null when supported.</returns>
     public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false)
     {
+        if (!ChronicleReadModelPropertyNamesAreSafe.Check(properties))
+        {
+            return "A read-model property name collides with Chronicle's property paths or another generated property.";
+        }
+
         if (scope.Nested.Any(_ => _.Scope.Joins.Length > 0 || _.Scope.Children.Length > 0 || _.Scope.JoinRemovals.Length > 0))
         {
             return "Joins and children inside nested are blocked by Chronicle#4125: the engine drops their subscriptions.";

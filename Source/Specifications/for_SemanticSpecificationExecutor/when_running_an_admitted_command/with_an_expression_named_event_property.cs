@@ -27,6 +27,9 @@ public class with_an_expression_named_event_property
                 when RegisterProject
                   projectId = "project-1"
                   flag = INPUT
+                then ProjectRegistered
+                  projectId = "project-1"
+                  eventFlag = INPUT
                 then readmodel ProjectSummary
                   key = "project-1"
                   flag = EXPECTED
@@ -55,6 +58,41 @@ public class with_an_expression_named_event_property
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, stage.Outcome);
         Assert.Equal(StageExecutionCapability.Projection, stage.Unsupported?.Capability);
         Assert.Contains("Chronicle expression", stage.Unsupported?.Details ?? "", StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task should_refuse_a_derived_property_even_when_an_empty_query_would_pass()
+    {
+        var plan = Compile("Week()", "false", "true");
+        var query = plan.Queries.Values.Single(value => value.Name == "ProjectById");
+        var original = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
+        var specification = original with
+        {
+            ThenReadModels = [],
+            ThenQueries = [new(query.Id, SemanticValue.Text("project-1"), [])]
+        };
+        var model = plan.Model;
+        var module = model.Application.Modules.Single();
+        var feature = module.Features.Single();
+        var changed = feature with
+        {
+            Slices = [.. feature.Slices.Select(slice => slice with
+            {
+                Specifications = [.. slice.Specifications.Select(value => value.Id == original.Id ? specification : value)]
+            })]
+        };
+        var compiled = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(
+            model.LanguageVersion,
+            model.SemanticVersion,
+            model.Application with { Modules = [module with { Features = [changed] }] }));
+        Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
+        var reference = new SemanticSpecificationRunner().Run(compiled.Plan!, specification.Id);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan!, new([specification.Id]), new())).Results);
+
+        Assert.False(reference.Passed);
+        Assert.True(stage.Outcome == SemanticSpecificationOutcome.Unsupported,
+            $"Stage: {stage.Outcome}; {string.Join("; ", stage.Failures)}; reference: {string.Join("; ", reference.Failures)}");
+        Assert.Equal(StageExecutionCapability.Projection, stage.Unsupported?.Capability);
     }
 
     [Fact]
@@ -104,6 +142,7 @@ public class with_an_expression_named_event_property
     [InlineData("$value(0)")]
     [InlineData("prefix$value(0)")]
     [InlineData("a.b")]
+    [InlineData("Week")]
     [InlineData("123")]
     public async Task should_refuse_a_direct_semantic_expression_property(string property)
     {

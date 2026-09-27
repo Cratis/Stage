@@ -52,6 +52,13 @@ internal static partial class SemanticCratisAdmission
             }
 
             var transition = projection.Transitions[0];
+            if (context.Events.TryGetValue(transition.EventContract, out var sourceEvent) &&
+                sourceEvent.Properties.Any(property => !ChronicleEventPropertyNameIsSafe.Check(property.Name)))
+            {
+                diagnostics.Add(Error("STAGE-ESM-017", $"Projection '{projection.Name}' cannot render: an event property name collides with Chronicle expression syntax.", projection.Id));
+                continue;
+            }
+
             if (!context.Events.TryGetValue(transition.EventContract, out var @event) ||
                 transition.AffectedInstance.Cardinality != AffectedInstanceCardinality.One ||
                 !IsProperty(transition.AffectedInstance.Key, SemanticExpressionRootKind.Event, @event.Properties.Select(_ => _.Id)) ||

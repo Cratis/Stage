@@ -29,7 +29,7 @@ public class with_two_per_run_models : a_command_only_plan
         try
         {
             var original = SemanticExecutionPlan.Compile(_originalModel).Plan!;
-            var alternate = ChangedReadModel(_originalModel);
+            var alternate = ChangedProjection(_originalModel);
             _distinctRevisions = original.Revision != alternate.Revision;
             var runner = new SemanticSpecificationRunner();
             _referenceAgrees = runner.Run(original, _original.Id).Passed && runner.Run(alternate, _original.Id).Passed;
@@ -46,13 +46,20 @@ public class with_two_per_run_models : a_command_only_plan
 
     [Fact] void should_keep_the_host_service_provider_after_both_runs() => _hostProviderPreserved.ShouldBeTrue();
     [Fact] void should_use_distinct_model_revisions() => _distinctRevisions.ShouldBeTrue();
-    [Fact] void should_project_each_model_without_leaking_an_artifact() =>
+    [Fact]
+    void should_project_each_model_without_leaking_an_artifact() =>
         Assert.True(_first.Outcome == SemanticSpecificationOutcome.Passed && _second.Outcome == SemanticSpecificationOutcome.Passed &&
-            _referenceAgrees && _first.Trace!.ReadModels.Count > 0 && _second.Trace!.ReadModels.Count > 0,
+            _referenceAgrees && _first.Trace!.ReadModels.Values.Any(value => value.Contains("Screenplay", StringComparison.Ordinal)) &&
+            _second.Trace!.ReadModels.Values.Any(value => value.Contains("SecondRun", StringComparison.Ordinal)) &&
+            _second.Trace.ReadModels.Values.All(value => !value.Contains("Screenplay", StringComparison.Ordinal)),
             $"First: {string.Join("; ", _first.Failures)}; second: {string.Join("; ", _second.Failures)}");
 
-    static SemanticExecutionPlan ChangedReadModel(ExecutableSemanticModel original)
+    static SemanticExecutionPlan ChangedProjection(ExecutableSemanticModel original)
     {
+        static System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> SecondRun(System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> values) =>
+            [.. values.Select(value => value.Value is SemanticTextValue text && string.Equals(text.Value, "Screenplay", StringComparison.Ordinal) ?
+                value with { Value = SemanticValue.Text("SecondRun") } : value)];
+
         var application = original.Application;
         var changed = application with
         {
@@ -62,11 +69,26 @@ public class with_two_per_run_models : a_command_only_plan
                 {
                     Slices = [.. feature.Slices.Select(slice => slice with
                     {
-                        ReadModels = [.. slice.ReadModels.Select(model => model with { Name = model.Name + "InSecondRun" })]
+                        Events = [.. slice.Events.Select(@event => @event with
+                        {
+                            Properties = [.. @event.Properties.Select(property => property.Name == "name" ? property with { Name = "alternateName" } : property)]
+                        })],
+                        Specifications = [.. slice.Specifications.Select(specification => specification.Name != "RegisteringAProject" ? specification : specification with
+                        {
+                            When = specification.When is null ? null : specification.When with { Values = SecondRun(specification.When.Values) },
+                            ThenEvents = [.. specification.ThenEvents.Select(fact => fact with { Values = SecondRun(fact.Values) })],
+                            ThenReadModels = [.. specification.ThenReadModels.Select(state => state with { Values = SecondRun(state.Values) })],
+                            ThenQueries = [.. specification.ThenQueries.Select(query => query with
+                            {
+                                Results = [.. query.Results.Select(state => state with { Values = SecondRun(state.Values) })]
+                            })]
+                        })]
                     })]
                 })]
             })]
         };
-        return SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, changed)).Plan!;
+        var compiled = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, changed));
+        Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
+        return compiled.Plan!;
     }
 }

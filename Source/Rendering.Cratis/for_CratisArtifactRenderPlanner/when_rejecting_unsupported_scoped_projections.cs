@@ -28,6 +28,11 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("nested-clear-with-root-from")]
     [InlineData("composite-key")]
     [InlineData("every-literal")]
+    [InlineData("every-whole-number")]
+    [InlineData("every-enumerated-concept")]
+    [InlineData("event-source-with-property-key")]
+    [InlineData("expression-event-property")]
+    [InlineData("flat-expression-event-property")]
     [InlineData("all-literal")]
     [InlineData("all-events")]
     [InlineData("unsafe-text-literal")]
@@ -60,7 +65,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
         var view = feature.Slices.Single(_ => _.Kind == SemanticSliceKind.StateView);
-        var projection = view.Projections.Single(_ => _.Name == (variant == "composite-key" ? "ProjectDetailsProjection" : "ProjectSummaryProjection"));
+        var projection = view.Projections.Single(_ => _.Name == (variant == "composite-key" || variant == "flat-expression-event-property" ? "ProjectDetailsProjection" : "ProjectSummaryProjection"));
         var scope = projection.Scope!;
         if (variant == "composite-key")
         {
@@ -71,6 +76,8 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 
         var nameTarget = view.ReadModels.Single(model => model.Name == "ProjectSummary").Properties.Single(property => property.Name == "name").Id;
         var unsafeLiteral = new SemanticProjectionLiteral(SemanticValue.Text("a)b"));
+        var lastSeenTarget = view.ReadModels.Single(model => model.Name == "ProjectSummary").Properties.Single(property => property.Name == "lastSeen").Id;
+        var visitsTarget = view.ReadModels.Single(model => model.Name == "ProjectSummary").Properties.Single(property => property.Name == "visits").Id;
         scope = variant switch
         {
             "composite-key" => scope,
@@ -80,23 +87,48 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 Nested = [],
                 Every = scope.Every! with { IncludeChildren = true, SubscribesToAllEvents = true }
             },
-            "every-literal" or "all-literal" => scope with { Every = scope.Every! with
+            "every-literal" or "all-literal" => scope with
             {
-                SubscribesToAllEvents = variant == "all-literal",
-                IncludeChildren = variant == "all-literal",
-                Mappings = [new SemanticProjectionMapping([nameTarget], SemanticProjectionOperation.Set, new SemanticProjectionLiteral(SemanticValue.Text("fixed")))]
-            } },
+                Every = scope.Every! with
+                {
+                    SubscribesToAllEvents = variant == "all-literal",
+                    IncludeChildren = variant == "all-literal",
+                    Mappings = [new SemanticProjectionMapping([nameTarget], SemanticProjectionOperation.Set, new SemanticProjectionLiteral(SemanticValue.Text("fixed")))]
+                }
+            },
             "unsafe-text-literal" => scope,
-            "unsafe-text-concept-literal" => scope with { From = [.. scope.From.Select((transition, index) => index == 0 ? transition with
+            "unsafe-text-concept-literal" => scope with
+            {
+                From = [.. scope.From.Select((transition, index) => index == 0 ? transition with
             {
                 Mappings = [.. transition.Mappings.Select(mapping => mapping.Target.Contains(nameTarget) ? mapping with { Source = unsafeLiteral } : mapping)]
-            } : transition)] },
+            } : transition)]
+            },
 
             "every-including-children" => scope with { Every = new(true, false, []) },
-            "root-join-removal" => scope with { JoinRemovals = [new(
+            "every-whole-number" => scope with
+            {
+                Every = scope.Every! with
+                {
+                    Mappings = [new SemanticProjectionMapping([visitsTarget], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
+                }
+            },
+            "every-enumerated-concept" => scope,
+            "event-source-with-property-key" => scope with
+            {
+                From = [.. scope.From.Select((transition, index) => index == 0 ? transition with
+            {
+                Mappings = [.. transition.Mappings, new SemanticProjectionMapping([lastSeenTarget], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
+            } : transition)]
+            },
+            "expression-event-property" or "flat-expression-event-property" => scope,
+            "root-join-removal" => scope with
+            {
+                JoinRemovals = [new(
                 original.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events)
                     .Single(@event => @event.Name == "ProjectNoteRemovedViaJoin").Id,
-                SemanticProjectionKey.EventSourceIdentity)] },
+                SemanticProjectionKey.EventSourceIdentity)]
+            },
             "nested-join" => scope with
             {
                 Nested = [.. scope.Nested.Select(nested => nested with
@@ -104,7 +136,9 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                     Scope = nested.Scope with { Joins = [new(scope.Joins[0].EventContract, nested.Scope.From[0].Mappings[0].Target[0], [])] }
                 })]
             },
-            "nested-only-from" => scope with { Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
+            "nested-only-from" => scope with
+            {
+                Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
             {
                 From = [nested.Scope.From[0] with
                 {
@@ -115,24 +149,34 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                         [original.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events)
                             .Single(@event => @event.Name == "ProjectInfoChanged").Properties.Single().Id]) }]
                 }]
-            } })] },
-            "nested-only-clear" => scope with { Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
+            } })]
+            },
+            "nested-only-clear" => scope with
+            {
+                Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
             {
                 Removals = [new SemanticProjectionRemoval(
                     original.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events).Single(@event => @event.Name == "ProjectInfoCleared").Id,
                     SemanticProjectionKey.EventSourceIdentity,
                     null)]
-            } })] },
+            } })]
+            },
             "root-from-join-overlap" => scope with { Joins = [.. scope.Joins, new SemanticProjectionJoin(scope.From[0].EventContract, scope.Joins[0].On, [])] },
             "join-removal-overlap" => scope with { Removals = [.. scope.Removals, scope.Removals[0] with { EventContract = scope.Joins[0].EventContract }] },
-            "nested-mismatched-key" => scope with { Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
+            "nested-mismatched-key" => scope with
+            {
+                Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
             {
                 From = [nested.Scope.From[0] with { Key = SemanticProjectionKey.EventSourceIdentity }]
-            } })] },
-            "nested-clear-with-root-from" => scope with { Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
+            } })]
+            },
+            "nested-clear-with-root-from" => scope with
+            {
+                Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
             {
                 Removals = [new SemanticProjectionRemoval(scope.From[1].EventContract, scope.From[1].Key, null)]
-            } })] },
+            } })]
+            },
             "child-join" => scope with
             {
                 Children = [.. scope.Children.Select(children => children with
@@ -142,18 +186,54 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             },
             _ => throw new UnknownScopeVariant(variant)
         };
-        var changed = view with { Projections = [.. view.Projections.Select(value => value.Id == projection.Id ? value with { Scope = scope } : value)] };
-        var model = ExecutableSemanticModel.Create(
-            original.LanguageVersion,
-            original.SemanticVersion,
-            original.Application with { Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice.Id == view.Id ? changed : slice)] }] }] });
+        var eventContract = feature.Slices.SelectMany(slice => slice.Events).Single(@event => @event.Name == "ProjectRegistered");
+        var targetModel = view.ReadModels.Single(model => model.Id == projection.ReadModel);
+        var key = new SemanticResolvedExpression(
+            SemanticExpressionRootKind.Event,
+            SemanticExpressionSourceKind.Property,
+            eventContract.Properties.Single(property => property.Name == "projectId").Id);
+        var sourceName = new SemanticResolvedExpression(
+            SemanticExpressionRootKind.Event,
+            SemanticExpressionSourceKind.Property,
+            eventContract.Properties.Single(property => property.Name == "name").Id);
+        var flat = new SemanticProjectionTransition(
+            eventContract.Id,
+            new(AffectedInstanceCardinality.One, key),
+            [new(targetModel.Properties.Single(property => property.Name == "projectId").Id, key),
+             new(targetModel.Properties.Single(property => property.Name == "name").Id, sourceName)]);
+        var changedProjection = variant == "flat-expression-event-property" ? projection with { Scope = null, Transitions = [flat] } : projection with { Scope = scope };
+        var changed = view with
+        {
+            ReadModels = [.. view.ReadModels.Select(model => model.Name == "ProjectSummary" && (variant == "every-whole-number" || variant == "every-enumerated-concept") ? model with
+            {
+                Properties = [.. model.Properties.Select(property => ChangedEveryProperty(
+                    property,
+                    variant,
+                    visitsTarget,
+                    lastSeenTarget,
+                    original.Application.Concepts.Single(concept => concept.Name == "ProjectName").Id))]
+            } : model)],
+            Projections = [.. view.Projections.Select(value => value.Id == projection.Id ? changedProjection : value)]
+        };
+        var application = original.Application with
+        {
+            Concepts = [.. original.Application.Concepts.Select(concept => variant == "every-enumerated-concept" && concept.Name == "ProjectName" ? concept with { Values = ["Earlier", "Screenplay", "Pinned", "allowed"] } : concept)],
+            Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice.Id == view.Id ? changed : slice with
+            {
+                Events = variant == "expression-event-property" || variant == "flat-expression-event-property" ? [.. slice.Events.Select(@event => @event.Name == "ProjectRegistered" ? @event with
+                {
+                    Properties = [.. @event.Properties.Select(property => property.Name == "name" ? property with { Name = "$value(0)" } : property)]
+                } : @event)] : slice.Events
+            })] }] }]
+        };
+        var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application);
         var execution = SemanticExecutionPlan.Compile(original).Plan!;
         var options = new CratisRenderingOptions("Projects", "Projects");
         var profile = CratisRendering.CreateProfile(model.Application.Name, options);
         var request = new ArtifactRenderRequest(model, execution, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = SemanticCratisAdmission.Evaluate(context, context.SelectedSlices());
-        var diagnostic = Assert.Single(diagnostics, _ => _.Code == "STAGE-ESM-017");
+        var diagnostic = Assert.Single(diagnostics, _ => _.Code == "STAGE-ESM-017" && _.Artifact == projection.Id);
         if (variant == "every-including-children" || variant == "nested-join" || variant == "root-join-removal")
         {
             Assert.Contains("Chronicle#4125", diagnostic.Message, StringComparison.Ordinal);
@@ -169,7 +249,8 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Contains("Chronicle#4166", diagnostic.Message, StringComparison.Ordinal);
         }
 
-        if (variant == "composite-key")
+        if (variant == "composite-key" || variant == "every-whole-number" || variant == "every-enumerated-concept" ||
+            variant == "event-source-with-property-key" || variant == "expression-event-property" || variant == "flat-expression-event-property")
         {
             var changedExecution = SemanticExecutionPlan.Compile(model);
             Assert.True(changedExecution.Success, string.Join(Environment.NewLine, changedExecution.Issues));
@@ -178,6 +259,21 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Empty(blocked.Artifacts);
             Assert.Contains(blocked.Diagnostics, item => item.Code == "STAGE-ESM-017");
         }
+    }
+
+    static SemanticProperty ChangedEveryProperty(SemanticProperty property, string variant, SemanticId visits, SemanticId lastSeen, SemanticId concept)
+    {
+        if (variant == "every-whole-number" && property.Id == visits)
+        {
+            return property with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.WholeNumber) };
+        }
+
+        if (variant == "every-enumerated-concept" && property.Id == lastSeen)
+        {
+            return property with { Type = SemanticTypeReference.ForConcept(concept) with { IsOptional = true } };
+        }
+
+        return property;
     }
 
     internal static void VerifyFromAllAdmission()

@@ -133,7 +133,8 @@ internal static class SemanticSurfaceLedger
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
         // from and identical key fail STAGE-ESM-017. Composite keys remain rejected because Stage
         // cannot issue keyed lookups for composite read models. Literal mappings in every/all and
-        // text literals outside Chronicle's fluent $value grammar also fail STAGE-ESM-017.
+        // text literals outside Chronicle's fluent $value grammar, expression-like event-property
+        // names, and unvalidated $eventSourceId mapping targets also fail STAGE-ESM-017.
         // FromAll stays rejected: MongoDB does not materialize an unrelated source observed in memory.
         // Child join removal is rendered
         // only for children; root join removal and nested shapes remain blocked by Chronicle#4125.

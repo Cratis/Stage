@@ -55,6 +55,16 @@ internal static class SemanticRunProjectionAdmission
 
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {
+        if ((projection.Scope is { } scoped
+                ? scoped.From.Select(from => from.EventContract).Concat(scoped.Joins.Select(join => join.EventContract))
+                    .Concat(scoped.Removals.Select(removal => removal.EventContract))
+                    .Concat(scoped.JoinRemovals.Select(removal => removal.EventContract))
+                : projection.Transitions.Select(transition => transition.EventContract))
+            .Any(id => plan.Events.TryGetValue(id, out var @event) &&
+                @event.Properties.Any(property => !ChronicleEventPropertyNameIsSafe.Check(property.Name))))
+        {
+            return "An event property name collides with Chronicle expression syntax.";
+        }
         if (readModel.Properties.Count(property => property.IsIdentifier) != 1 || readModel.Properties.Any(property =>
             property.Type.IsCollection || property.Type.IsOptional || property.Type.Kind is not (SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept)))
         {

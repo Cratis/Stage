@@ -207,19 +207,30 @@ internal static class PureTransitionAdmission
 
         // Synthetic stubs contain only the current model and observed events. Inventory every
         // declaration imported by the real file, including constraint classes in event slices.
+        // Exclude only the exact stubbed declaration, never an unrelated peer with the same short name.
         var reducerEvents = reducer.Transitions.Select(transition => context.Events[transition.EventContract]).ToArray();
         var importedSlices = reducerEvents.Select(@event => context.DeclaringSlice(@event.Id).Slice).Append(located.Slice).Distinct();
-        var peers = importedSlices.SelectMany(slice => slice.ReadModels.Select(_ => _.Name)
-            .Concat(slice.Events.Select(_ => _.Name))
-            .Concat(slice.Commands.Select(_ => _.Name))
-            .Concat(slice.Reducers.Select(_ => _.Name))
-            .Concat(slice.Projections.Where(_ => _.Scope is not null).Select(_ => _.Name))
-            .Concat(slice.Constraints.Select(_ => _.Name))
-            .Concat(slice.Commands.Select(_ => Identifiers.ToPascalCase(_.Name) + "Validator")))
-            .Concat(context.Application.Concepts.Select(_ => _.Name))
-            .Concat(context.Application.Types.Select(_ => _.Name))
-            .Select(Identifiers.ToPascalCase).ToHashSet(StringComparer.Ordinal);
-        peers.ExceptWith(reducerEvents.Select(_ => Identifiers.ToPascalCase(_.Name)).Append(Identifiers.ToPascalCase(readModel.Name)));
+        var stubbed = reducerEvents.Select(@event => (
+                Id: (SemanticId?)@event.Id,
+                Namespace: SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path),
+                Name: Identifiers.ToPascalCase(@event.Name)))
+            .Append(((SemanticId?)readModel.Id, modelNs, Identifiers.ToPascalCase(readModel.Name)))
+            .ToHashSet();
+        var peerDeclarations = importedSlices.SelectMany(slice =>
+        {
+            var sliceNamespace = SliceNaming.Namespace(context.RootNamespace, context.Slice(slice.Id).Path);
+            return slice.ReadModels.Select(_ => (Id: (SemanticId?)_.Id, _.Name))
+                .Concat(slice.Events.Select(_ => (Id: (SemanticId?)_.Id, _.Name)))
+                .Concat(slice.Commands.Select(_ => (Id: (SemanticId?)_.Id, _.Name)))
+                .Concat(slice.Reducers.Select(_ => (Id: (SemanticId?)null, _.Name)))
+                .Concat(slice.Projections.Where(_ => _.Scope is not null).Select(_ => (Id: (SemanticId?)_.Id, _.Name)))
+                .Concat(slice.Constraints.Select(_ => (Id: (SemanticId?)null, _.Name)))
+                .Concat(slice.Commands.Select(_ => (Id: (SemanticId?)null, Name: _.Name + "Validator")))
+                .Select(_ => (_.Id, Namespace: sliceNamespace, Name: Identifiers.ToPascalCase(_.Name)));
+        }).Concat(context.Application.Concepts.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.RootNamespace + ".Common", Name: Identifiers.ToPascalCase(_.Name))))
+            .Concat(context.Application.Types.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.RootNamespace + ".Common", Name: Identifiers.ToPascalCase(_.Name))));
+        var peers = peerDeclarations.Where(declaration => !stubbed.Contains(declaration))
+            .Select(declaration => declaration.Name).ToHashSet(StringComparer.Ordinal);
         var activeShadow = reducerEvents.Select(_ => Identifiers.ToPascalCase(_.Name))
             .Append(Identifiers.ToPascalCase(readModel.Name)).FirstOrDefault(ShadowsAuditedName);
         if (activeShadow is not null)

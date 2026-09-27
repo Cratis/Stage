@@ -130,6 +130,31 @@ public class when_rendering_a_pure_reducer
     }
 
     [Fact]
+    public async Task should_refuse_an_observed_event_name_shared_by_a_sibling_read_model()
+    {
+        const string originalBody = "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);";
+        const string conflictingBody = "return new Total(context.Event.Id, new OrderPlaced(context.Event.Id, context.Event.Amount).Amount);";
+        var source = Source.Replace("      readmodel Total", "      readmodel OrderPlaced\n        id Uuid\n        value Decimal\n      query ByOrderPlaced => OrderPlaced?\n        by id Uuid\n      reducer OrderPlacedFold => OrderPlaced\n        on OrderPlaced\n          ```csharp\n          return context.State;\n          ```\n      readmodel Total", StringComparison.Ordinal);
+        var baseline = Plan(await Load(source.Replace(originalBody, "return new Total(context.Event.Id, context.Event.Amount);", StringComparison.Ordinal)));
+        Assert.True(baseline.Success, string.Join(Environment.NewLine, baseline.Diagnostics));
+        var reducerFile = baseline.Artifacts.Single(artifact => Path.GetFileName(artifact.RelativePath) == "Fold.cs");
+        var baselineFiles = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        Assert.Empty(RenderedOutput.Errors(baselineFiles));
+        var files = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath,
+                System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace(
+                    artifact.RelativePath == reducerFile.RelativePath ? "return new Total(context.Event.Id, context.Event.Amount);" : "\u0000",
+                    conflictingBody,
+                    StringComparison.Ordinal)));
+        Assert.Contains(RenderedOutput.Errors(files), error => error.Contains("OrderPlaced", StringComparison.Ordinal) && error.Contains("Amount", StringComparison.Ordinal));
+
+        var plan = Plan(await Load(source.Replace(originalBody, conflictingBody, StringComparison.Ordinal)));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("OrderPlaced", StringComparison.Ordinal));
+        Assert.Empty(plan.Artifacts);
+    }
+
+    [Fact]
     public async Task should_refuse_a_sibling_primitive_clr_name_before_the_real_reducer_rebinds()
     {
         var source = Source.Replace("      readmodel Total", "      readmodel Int32\n        id Uuid\n        amount Decimal\n      query Int32ById => Int32?\n        by id Uuid\n      reducer Int32Fold => Int32\n        on OrderPlaced\n          ```csharp\n          return new Int32(context.Event.Id, context.Event.Amount);\n          ```\n      readmodel Total", StringComparison.Ordinal)

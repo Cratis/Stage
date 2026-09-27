@@ -70,8 +70,7 @@ internal static class SemanticRunProjectionAdmission
         {
             return "Per-run projections currently require a scalar read model with one identifier and no optional properties.";
         }
-        if (readModel.Properties.Any(property => !property.IsIdentifier &&
-            string.Equals(property.Name, "id", StringComparison.OrdinalIgnoreCase)))
+        if (readModel.Properties.Any(ChronicleReadModelPropertyNamesAreSafe.CollidesWithRootDocumentKey))
         {
             return "A non-identifier read-model property named Id collides with Chronicle's document key.";
         }

@@ -200,15 +200,26 @@ internal static class PureTransitionAdmission
         }
 
         var modelNs = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(readModel.Id).Path);
-        var located = context.SelectedSlices().Single(candidate => candidate.Slice.Reducers.Any(reducer => reducer.ReadModel == readModel.Id));
-        var reducer = located.Slice.Reducers.Single(candidate => candidate.ReadModel == readModel.Id);
+
+        // A specification may refer to a reducer outside the requested output scope.
+        var located = context.DeclaringSlice(readModel.Id);
+        var reducers = located.Slice.Reducers.Where(candidate => candidate.ReadModel == readModel.Id).ToArray();
+        if (reducers.Length != 1)
+            return Reject("STAGE-ESM-021", $"Read model '{readModel.Name}' has no unique reducer to analyse.");
+        var reducer = reducers[0];
         var reducerName = Identifiers.ToPascalCase(reducer.Name);
 
-        // An unqualified BCL reference could bind to the containing reducer instead in the rendered file.
-        if (NameIs(reducerName, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan"))
-        {
-            return Reject("STAGE-ESM-022", $"Reducer '{reducerName}' shadows an audited type.");
-        }
+        // Synthetic stubs cover the current inputs, but other generated types in the same namespace
+        // can shadow unqualified BCL names in the emitted reducer file.
+        var peers = located.Slice.ReadModels.Select(_ => _.Name)
+            .Concat(located.Slice.Events.Select(_ => _.Name))
+            .Concat(located.Slice.Commands.Select(_ => _.Name))
+            .Concat(located.Slice.Reducers.Select(_ => _.Name))
+            .Concat(located.Slice.Projections.Select(_ => _.Name));
+        var shadow = peers.Select(Identifiers.ToPascalCase).FirstOrDefault(name =>
+            NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan"));
+        if (shadow is not null)
+            return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows an audited type in the reducer namespace.");
         var ns = SliceNaming.Namespace(context.RootNamespace, located.Path);
         var reducerEvents = reducer.Transitions.Select(transition => context.Events[transition.EventContract]).ToArray();
         var types = new SemanticTypeSystem(context);

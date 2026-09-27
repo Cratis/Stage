@@ -93,6 +93,68 @@ public class when_rendering_a_pure_reducer
     }
 
     [Fact]
+    public async Task should_reject_a_sibling_model_shadowing_an_audited_bcl_type()
+    {
+        var source = Source.Replace("      readmodel Total", "      readmodel Math\n        id Uuid\n        amount Decimal\n      query MathById => Math?\n        by id Uuid\n      reducer MathFold => Math\n        on OrderPlaced\n          ```csharp\n          return new Math(context.Event.Id, context.Event.Amount);\n          ```\n      readmodel Total", StringComparison.Ordinal)
+            .Replace("return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);", "return new Total(context.Event.Id, Math.Abs(context.Event.Amount));", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task should_plan_cross_slice_reducer_assertions_at_slice_scope()
+    {
+        var source = WithIdentifierConcept(Source).Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal)
+            .Replace("      event OrderPlaced\n        id OrderId\n        amount Decimal", "      event OrderPlaced\n        id OrderId\n        amount Decimal\n      specification CreatingATotal\n        when PlaceOrder\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20\n        then OrderPlaced\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20\n        then readmodel Total\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20", StringComparison.Ordinal);
+        var loaded = await Load(source);
+        var slice = loaded.Model.Application.Modules.Single().Features.Single().Slices.Single(item => item.Specifications.Length > 0);
+        Assert.True(Plan(loaded, new(ArtifactRenderScopeKind.Slice, slice.Id)).Success);
+    }
+
+    [Fact]
+    public async Task should_reject_unordered_duplicate_events_with_a_reducer_assertion()
+    {
+        var source = WithIdentifierConcept(Source).Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal)
+            .Replace("          amount = amount\n      event", "          amount = amount\n        produces OrderPlaced\n          for id\n          id = id\n          amount = amount\n      event", StringComparison.Ordinal)
+            .Replace("      event OrderPlaced\n        id OrderId\n        amount Decimal", "      event OrderPlaced\n        id OrderId\n        amount Decimal\n      specification CreatingATotal\n        when PlaceOrder\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20\n        then events in any order\n        then OrderPlaced\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20\n        then OrderPlaced\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20\n        then readmodel Total\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 20", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("unordered", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task should_reject_a_reducer_descriptor_with_an_incompatible_key_type()
+    {
+        var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
+        var descriptor = Assert.Single(loaded.TypedContextDescriptors);
+        var changed = descriptor with { Members = [.. descriptor.Members.Select(member => member.Name == "Key" ? member with
+        {
+            Type = member.Type with { RuntimeToken = SemanticContextRuntimeTokens.WholeNumber }
+        } : member)] };
+        var plan = Plan(loaded with { TypedContextDescriptors = [changed] });
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("Key", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("State")]
+    [InlineData("Event")]
+    [InlineData("Key")]
+    [InlineData("Tenant")]
+    [InlineData("Occurred")]
+    [InlineData("SequenceNumber")]
+    [InlineData("IsFirst")]
+    public async Task should_reject_a_reducer_descriptor_with_changed_member_nullability(string name)
+    {
+        var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
+        var descriptor = Assert.Single(loaded.TypedContextDescriptors);
+        var changed = descriptor with { Members = [.. descriptor.Members.Select(member => member.Name == name ? member with
+        {
+            IsNullable = !member.IsNullable
+        } : member)] };
+        var plan = Plan(loaded with { TypedContextDescriptors = [changed] });
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains(name, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task should_reject_a_reducer_descriptor_with_a_foreign_key_source()
     {
         var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
@@ -683,14 +745,14 @@ public class when_rendering_a_pure_reducer
         }
     }
 
-    internal static ArtifactRenderPlan Plan(LoadedSemanticModel compiled)
+    internal static ArtifactRenderPlan Plan(LoadedSemanticModel compiled, ArtifactRenderScope? scope = null)
     {
         var model = compiled.Model;
         var request = new ArtifactRenderRequest(
             model,
             SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
-            new(ArtifactRenderScopeKind.Application, model.Application.Id))
+            scope ?? new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = compiled.ImplementationRequirements,
             ImplementationContents = compiled.ImplementationContents,

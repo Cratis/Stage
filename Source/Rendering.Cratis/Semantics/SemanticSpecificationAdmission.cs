@@ -109,6 +109,13 @@ internal static partial class SemanticSpecificationAdmission
             return "A command maps $context.occurred from its current clock; fixed event or projected values in a specification cannot assert this occurrence without a supplied time.";
         }
 
+        if (specification.ThenEventsInAnyOrder &&
+            specification.ThenEvents.GroupBy(_ => _.EventContract).Any(group => group.Count() > 1) &&
+            specification.ThenReadModels.Any(expected => context.Reducers.Any(reducer => reducer.ReadModel == expected.ReadModel)))
+        {
+            return "Unordered duplicate event contracts cannot be paired with reducer replay occurrences.";
+        }
+
         if (specification.ThenQueries.Any(expected => context.Queries.TryGetValue(expected.Query, out var query) &&
             context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel)))
         {

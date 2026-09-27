@@ -100,7 +100,8 @@ internal static partial class SemanticCratisAdmission
                 };
                 if (members.Length != expected.Length || !members.Zip(expected).All(pair =>
                     pair.First.Name == pair.Second.Name && pair.First.Source?.Kind == pair.Second.Kind &&
-                    pair.First.Source.Path == pair.Second.Path && pair.First.IsDerived == pair.Second.Derived))
+                    pair.First.Source.Path == pair.Second.Path && pair.First.IsDerived == pair.Second.Derived &&
+                    MatchesReducerMemberType(pair.First, model, @event)))
                 {
                     diagnostics.Add(Error("STAGE-ESM-021", $"Reducer '{reducer.Name}' has an unexpected typed context member or source (State, Event, Key, Tenant, Occurred, SequenceNumber, IsFirst).", reducer.ReadModel));
                     continue;
@@ -123,5 +124,34 @@ internal static partial class SemanticCratisAdmission
         }
 
         return analysed;
+    }
+
+    static bool MatchesReducerMemberType(SemanticTypedContextMember member, SemanticReadModel model, SemanticEventContract @event)
+    {
+        var type = member.Type;
+        if (type is null) return false;
+        if (member.Name == "State" || member.Name == "Event")
+        {
+            var shape = member.Name == "State" ? model.Id : @event.Id;
+            var properties = member.Name == "State" ? model.Properties : @event.Properties;
+            return type.Kind == SemanticContextTypeKinds.Shape && type.Shape == shape && type.ModelType is null &&
+                type.RuntimeToken is null && !type.Properties.IsDefault && type.Properties.Length == properties.Length &&
+                type.Properties.Zip(properties).All(pair => pair.First.Id == pair.Second.Id &&
+                    pair.First.Name == pair.Second.Name && pair.First.Type == pair.Second.Type) &&
+                member.IsNullable == (member.Name == "State");
+        }
+
+        var token = member.Name switch
+        {
+            "Key" => SemanticContextRuntimeTokens.Text,
+            "Tenant" => SemanticContextRuntimeTokens.TenantId,
+            "Occurred" => SemanticContextRuntimeTokens.DateTime,
+            "SequenceNumber" => SemanticContextRuntimeTokens.WholeNumber,
+            "IsFirst" => SemanticContextRuntimeTokens.Boolean,
+            _ => null
+        };
+        return token is not null && type.Kind == SemanticContextTypeKinds.Runtime && type.RuntimeToken == token &&
+            type.ModelType is null && type.Shape is null && !type.Properties.IsDefault && type.Properties.IsEmpty &&
+            !member.IsNullable;
     }
 }

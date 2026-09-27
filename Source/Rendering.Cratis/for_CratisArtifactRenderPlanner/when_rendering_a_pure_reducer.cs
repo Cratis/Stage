@@ -126,10 +126,13 @@ public class when_rendering_a_pure_reducer
     {
         var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
         var descriptor = Assert.Single(loaded.TypedContextDescriptors);
-        var changed = descriptor with { Members = [.. descriptor.Members.Select(member => member.Name == "Key" ? member with
+        var changed = descriptor with
         {
-            Type = member.Type with { RuntimeToken = SemanticContextRuntimeTokens.WholeNumber }
-        } : member)] };
+            Members = [.. descriptor.Members.Select(member => member.Name == "Key" ? member with
+            {
+                Type = member.Type with { RuntimeToken = SemanticContextRuntimeTokens.WholeNumber }
+            } : member)]
+        };
         var plan = Plan(loaded with { TypedContextDescriptors = [changed] });
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("Key", StringComparison.Ordinal));
     }
@@ -146,10 +149,13 @@ public class when_rendering_a_pure_reducer
     {
         var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
         var descriptor = Assert.Single(loaded.TypedContextDescriptors);
-        var changed = descriptor with { Members = [.. descriptor.Members.Select(member => member.Name == name ? member with
+        var changed = descriptor with
         {
-            IsNullable = !member.IsNullable
-        } : member)] };
+            Members = [.. descriptor.Members.Select(member => member.Name == name ? member with
+            {
+                IsNullable = !member.IsNullable
+            } : member)]
+        };
         var plan = Plan(loaded with { TypedContextDescriptors = [changed] });
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains(name, StringComparison.Ordinal));
     }
@@ -159,10 +165,13 @@ public class when_rendering_a_pure_reducer
     {
         var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
         var descriptor = loaded.TypedContextDescriptors.Single();
-        var changed = descriptor with { Members = [.. descriptor.Members.Select(member => member.Name == "Key" ? member with
+        var changed = descriptor with
         {
-            Source = member.Source with { Kind = SemanticContextSourceKinds.ReadModel }
-        } : member)] };
+            Members = [.. descriptor.Members.Select(member => member.Name == "Key" ? member with
+            {
+                Source = member.Source with { Kind = SemanticContextSourceKinds.ReadModel }
+            } : member)]
+        };
         var plan = Plan(loaded with { TypedContextDescriptors = [changed] });
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("Key", StringComparison.Ordinal));
     }

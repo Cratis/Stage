@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -23,6 +24,12 @@ internal static partial class SemanticCratisAdmission
         }
 
         var command = slice.Commands[0];
+        if (!GeneratedPascalCase.NamesAreUnique(command.Properties.Select(property => property.Name)))
+        {
+            diagnostics.Add(Error("STAGE-ESM-012", $"Command '{command.Name}' has property names that collide in generated C#.", command.Id));
+            return;
+        }
+
         if (!ValidateCommandAuthorization(context, command, diagnostics))
         {
             return;

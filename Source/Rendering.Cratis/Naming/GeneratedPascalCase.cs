@@ -8,6 +8,12 @@ namespace Cratis.Stage.Rendering.Cratis.Naming;
 /// </summary>
 internal static class GeneratedPascalCase
 {
+    internal static bool NamesAreUnique(IEnumerable<string> names)
+    {
+        var generated = names.Select(From).ToArray();
+        return generated.Distinct(StringComparer.Ordinal).Count() == generated.Length;
+    }
+
     internal static string From(string name)
     {
         var result = string.Concat(name.Split([' ', '_', '-', '.'], StringSplitOptions.RemoveEmptyEntries)

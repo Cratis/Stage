@@ -163,9 +163,9 @@ The clock is injectable through the in-process API. The tenant and identity allo
 and do not affect this run; implicit identity allocation remains unsupported.
 
 Given read models still return `Unsupported(GivenReadModel)`. Per-run projections reject optional or composite
-read-model properties, DateTime read-model values (whose round-trip text may change), non-identifier properties
-named `Id` (which collide with Chronicle's document key), joins, child or nested projections, removals,
-every/all mappings, literal mappings, and unsupported key shapes before execution. Projections over events whose property names Chronicle interprets as expressions (`$`, `.`, `[`, `]`, a leading quote, booleans, numbers, or derived functions such as `Week` or `Week()`), and read-model properties whose names can be interpreted as paths or collide after camel-casing, return `Unsupported(Projection)`.
+read-model properties, DateTime read-model values (whose round-trip text may change), and non-identifier
+properties whose generated name is `Id` (including authored `id_`, `_id`, and `id-`, which collide with
+Chronicle's document key). They reject joins, child or nested projections, removals, every/all mappings, literal mappings, and unsupported key shapes before execution. Projections over events whose property names Chronicle interprets as expressions (`$`, `.`, `[`, `]`, a leading quote, booleans, numbers, or derived functions such as `Week` or `Week()`), and read-model properties whose names can be interpreted as paths or collide after camel-casing, return `Unsupported(Projection)`.
 An event-source identity
 mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
 otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also

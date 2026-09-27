@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Specifications.Admission;
 
@@ -36,17 +37,28 @@ internal static class SemanticRunAdmission
         {
             if (appended.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, appended.EventContract, "Direct append requires an explicit event source.");
             if (!plan.Events.TryGetValue(appended.EventContract, out var appendedContract)) return Block(StageExecutionCapability.PlanIssue, appended.EventContract, "The appended event is not in the plan.");
+            if (!GeneratedPascalCase.NamesAreUnique(appendedContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, appendedContract.Id, "Event property names collide in generated C#.");
             if (appendedContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Occurrence, appended.EventContract, "Only scalar appended event values are admitted.");
         }
         foreach (var given in specification.GivenEvents)
         {
             if (given.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, given.EventContract, "Given events require an explicit event source.");
             if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
+            if (!GeneratedPascalCase.NamesAreUnique(givenContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, givenContract.Id, "Event property names collide in generated C#.");
             if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");
         }
         if (specification.WhenAppended is not null) return SemanticRunProjectionAdmission.Check(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
         if (specification.When is not { } when) return Block(StageExecutionCapability.Specification, specification.Id, "Only command or direct-append specifications are admitted.");
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
+        if (!GeneratedPascalCase.NamesAreUnique(command.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, command.Id, "Command property names collide in generated C#.");
+        foreach (var emitted in command.Produces)
+        {
+            if (plan.Events.TryGetValue(emitted.EventContract, out var producedContract) &&
+                !GeneratedPascalCase.NamesAreUnique(producedContract.Properties.Select(property => property.Name)))
+            {
+                return Block(StageExecutionCapability.Command, producedContract.Id, "Event property names collide in generated C#.");
+            }
+        }
         if (!command.CodeValidations.IsEmpty || command.Validations.Any(rule => OpaqueRule(rule.Kind)))
         {
             return Block(StageExecutionCapability.Command, command.Id, "Validation implementation bodies cannot be executed by Stage.");

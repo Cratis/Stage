@@ -205,23 +205,26 @@ internal static class PureTransitionAdmission
         var reducer = reducers[0];
         var reducerName = Identifiers.ToPascalCase(reducer.Name);
 
-        // Synthetic stubs cover the current inputs, but imported and sibling generated types
-        // can shadow unqualified framework and Chronicle names in the emitted reducer file.
+        // Synthetic stubs contain only the current model and observed events. Inventory every
+        // declaration imported by the real file, including constraint classes in event slices.
         var reducerEvents = reducer.Transitions.Select(transition => context.Events[transition.EventContract]).ToArray();
         var importedSlices = reducerEvents.Select(@event => context.DeclaringSlice(@event.Id).Slice).Append(located.Slice).Distinct();
         var peers = importedSlices.SelectMany(slice => slice.ReadModels.Select(_ => _.Name)
             .Concat(slice.Events.Select(_ => _.Name))
             .Concat(slice.Commands.Select(_ => _.Name))
             .Concat(slice.Reducers.Select(_ => _.Name))
-            .Concat(slice.Projections.Select(_ => _.Name)));
-        if (!context.Application.Concepts.IsEmpty || !context.Application.Types.IsEmpty)
-            peers = peers.Concat(context.Application.Concepts.Select(_ => _.Name)).Concat(context.Application.Types.Select(_ => _.Name));
-        var shadow = peers.Select(Identifiers.ToPascalCase).FirstOrDefault(ShadowsAuditedName);
-        if (shadow is not null)
-            return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows an audited type in the reducer namespace.");
-        var namespaceShadow = context.NamespaceSegments.FirstOrDefault(ShadowsAuditedName);
-        if (namespaceShadow is not null)
-            return Reject("STAGE-ESM-022", $"Generated namespace '{namespaceShadow}' shadows an audited type in the reducer namespace.");
+            .Concat(slice.Projections.Where(_ => _.Scope is not null).Select(_ => _.Name))
+            .Concat(slice.Constraints.Select(_ => _.Name))
+            .Concat(slice.Commands.Select(_ => Identifiers.ToPascalCase(_.Name) + "Validator")))
+            .Concat(context.Application.Concepts.Select(_ => _.Name))
+            .Concat(context.Application.Types.Select(_ => _.Name))
+            .Select(Identifiers.ToPascalCase).ToHashSet(StringComparer.Ordinal);
+        peers.ExceptWith(reducerEvents.Select(_ => Identifiers.ToPascalCase(_.Name)).Append(Identifiers.ToPascalCase(readModel.Name)));
+        var activeShadow = reducerEvents.Select(_ => Identifiers.ToPascalCase(_.Name))
+            .Append(Identifiers.ToPascalCase(readModel.Name)).FirstOrDefault(ShadowsAuditedName);
+        if (activeShadow is not null)
+            return Reject("STAGE-ESM-022", $"Generated type '{activeShadow}' shadows an audited type in the reducer namespace.");
+        var namespaceSegments = context.NamespaceSegments.ToHashSet(StringComparer.Ordinal);
         var ns = SliceNaming.Namespace(context.RootNamespace, located.Path);
         var types = new SemanticTypeSystem(context);
         var definitions = new List<string>();
@@ -300,6 +303,19 @@ internal static class PureTransitionAdmission
             [declarationTree, tree],
             ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+        var semanticModel = compilation.GetSemanticModel(tree);
+        var referencedTypes = MethodTypeReferences(tree, semanticModel, context.RootNamespace);
+        var shadow = peers.FirstOrDefault(name => referencedTypes.Contains(name) || ShadowsAuditedName(name));
+        if (shadow is not null)
+            return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows a type referenced by the reducer body.");
+        var namespaceShadow = namespaceSegments.FirstOrDefault(name => referencedTypes.Contains(name) || ShadowsAuditedName(name));
+        if (namespaceShadow is not null)
+            return Reject("STAGE-ESM-022", $"Generated namespace '{namespaceShadow}' shadows a type referenced by the reducer body.");
+
+        // These type names are used by the emitted method even when absent from the body.
+        var runtimeShadow = peers.FirstOrDefault(name => NameIs(name, "EventContext", "ReducerContextValues", "IReducerFor"));
+        if (runtimeShadow is not null)
+            return Reject("STAGE-ESM-022", $"Generated type '{runtimeShadow}' shadows a reducer runtime type.");
         var errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
         if (errors.Length > 0)
         {
@@ -317,7 +333,7 @@ internal static class PureTransitionAdmission
         }
 
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(_ => _.Identifier.Text == $"Transition_{suffix}");
-        return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor);
+        return Walk(semanticModel, method.Body!, descriptor);
 
         string Parameters(IEnumerable<SemanticProperty> properties, bool reducerInput = false) => string.Join(", ", properties.Select(property =>
             $"{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
@@ -339,6 +355,35 @@ internal static class PureTransitionAdmission
 
     static bool ShadowsAuditedName(string name) =>
         NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");
+
+    static HashSet<string> MethodTypeReferences(SyntaxTree tree, SemanticModel model, string rootNamespace)
+    {
+        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+            .Single(declaration => declaration.Identifier.Text.StartsWith("Transition_", StringComparison.Ordinal));
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in method.Body!.DescendantNodes().OfType<SimpleNameSyntax>())
+        {
+            if ((name.Parent is MemberAccessExpressionSyntax member && member.Name == name) ||
+                (name.Parent is QualifiedNameSyntax qualified && qualified.Right == name) ||
+                (name.Parent is AliasQualifiedNameSyntax alias && alias.Name == name))
+            {
+                continue;
+            }
+
+            var info = model.GetSymbolInfo(name);
+            if (info.Symbol is INamedTypeSymbol ||
+                (info.Symbol is INamespaceSymbol ns &&
+                 !ns.ToDisplayString().StartsWith(rootNamespace + ".", StringComparison.Ordinal) &&
+                 ns.ToDisplayString() != rootNamespace) ||
+                (info.Symbol is null && info.CandidateSymbols.IsEmpty &&
+                 name.Parent is MemberAccessExpressionSyntax { Expression: var expression } && expression == name))
+            {
+                names.Add(name.Identifier.ValueText);
+            }
+        }
+
+        return names;
+    }
 
     static MetadataReference[] LoadEmbeddedReferences()
     {

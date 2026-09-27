@@ -18,13 +18,29 @@ internal static class SemanticReducerArtifactRenderer
         var model = context.ReadModels[reducer.ReadModel];
         var modelType = $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{Identifiers.ToPascalCase(model.Name)}";
         var name = Identifiers.ToPascalCase(reducer.Name);
+        var keyType = model.Properties.Single(_ => _.IsIdentifier).Type;
+        var keyMember = Identifiers.ToPascalCase(model.Properties.Single(_ => _.IsIdentifier).Name);
+        var concept = keyType.Kind == SemanticTypeReferenceKind.Concept;
+        var uuid = concept ? context.Concepts[keyType.Target].Primitive == SemanticPrimitiveType.Uuid :
+            keyType.Primitive == SemanticPrimitiveType.Uuid;
+        var key = $"result.{keyMember}";
+        var typedValue = concept ? $"{key}.TypedValue" : key;
+        var value = concept ? $"{key}.Value" : key;
+        var typedWire = uuid ? $"{typedValue}.ToString()" : typedValue;
+        var valueWire = uuid ? $"{value}.ToString()" : value;
+        var check = $"!global::System.String.Equals({typedWire}, originalSourceId, global::System.StringComparison.Ordinal)";
+        if (concept)
+        {
+            check = $"{key} is null || {check} || !global::System.String.Equals({valueWire}, originalSourceId, global::System.StringComparison.Ordinal)";
+        }
+
         var builder = new CSharpCodeBuilder()
             .Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path))
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Reducers")
             .Using($"{context.RootNamespace}.TypedContexts")
             .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path))
-            .OpenBlock($"public class {name} : IReducerFor<{modelType}>");
+            .OpenBlock($"public class {name} : global::Cratis.Chronicle.Reducers.IReducerFor<{modelType}>");
         foreach (var transition in reducer.Transitions)
         {
             var @event = context.Events[transition.EventContract];
@@ -40,11 +56,16 @@ internal static class SemanticReducerArtifactRenderer
                 throw new InvalidTypedContext($"Reducer '{name}' lost its verified body after admission.");
             }
 
-            builder.ExpressionMember(
-                $"public {modelType}? On({eventType} @event, {modelType}? current, EventContext eventContext)",
-                $"Transition_{suffix}(new {wrapper}(current, @event, eventContext.EventSourceId.Value, ReducerContextValues.Tenant(eventContext.Namespace), eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)))")
+            builder.OpenBlock($"public {modelType}? On({eventType} @event, {modelType}? current, global::Cratis.Chronicle.Events.EventContext eventContext)")
+                .Line("var originalSourceId = eventContext.EventSourceId.Value;")
+                .Line($"var result = Transition_{suffix}(new global::{context.RootNamespace}.TypedContexts.{wrapper}(current, @event, originalSourceId, global::{context.RootNamespace}.TypedContexts.ReducerContextValues.Tenant(eventContext.Namespace), eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
+                .OpenBlock($"if (result is not null && ({check}))")
+                .Line("throw new global::System.InvalidOperationException(\"Reducer returned a read model with an identifier different from the event source.\");")
+                .EndBlock()
+                .Line("return result;")
+                .EndBlock()
                 .BlankLine()
-                .OpenBlock($"static {modelType}? Transition_{suffix}({wrapper} context)")
+                .OpenBlock($"static {modelType}? Transition_{suffix}(global::{context.RootNamespace}.TypedContexts.{wrapper} context)")
                 .RawVerbatim(body!)
                 .EndBlock()
                 .BlankLine();

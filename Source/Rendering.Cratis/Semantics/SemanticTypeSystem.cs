@@ -115,6 +115,30 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         !type.IsCollection && type.Kind == SemanticTypeReferenceKind.Concept &&
         context.IdentifierConcepts.Contains(type.Target) && context.Concepts[type.Target].Values.IsEmpty;
 
+    /// <summary>Whether a reducer identifier has an exact, supported Chronicle wire conversion.</summary>
+    /// <param name="type">The read-model identifier type.</param>
+    /// <returns>Whether its wire representation can be compared without normalization.</returns>
+    public bool SupportsReducerIdentifier(SemanticTypeReference type)
+    {
+        if (type.IsOptional || type.IsCollection)
+        {
+            return false;
+        }
+
+        if (type.Kind == SemanticTypeReferenceKind.Primitive)
+        {
+            return type.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text;
+        }
+
+        if (type.Kind != SemanticTypeReferenceKind.Concept || !context.IdentifierConcepts.Contains(type.Target) ||
+            !context.Concepts.TryGetValue(type.Target, out var concept) || !concept.Values.IsEmpty)
+        {
+            return false;
+        }
+
+        return concept.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text;
+    }
+
     /// <summary>
     /// Renders a concrete semantic value according to its declared type.
     /// </summary>

@@ -51,6 +51,17 @@ public class when_executing_generated_reducer_specifications : a_generated_appli
                         await scenario.Given.ForEventSource(key).Events(new OrderPlaced(key, -1m));
                         Assert.Null(scenario.InstanceForEventSourceId(key));
                     }
+
+                    [Fact]
+                    public async Task should_fail_the_batch_when_a_body_returns_another_sources_identifier()
+                    {
+                        var source = new OrderId(Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
+                        var foreign = new OrderId(Guid.Parse("4fa85f64-5717-4562-b3fc-2c963f66afa7"));
+                        var scenario = new ReadModelScenario<Total>();
+                        await scenario.Given.ForEventSource(source).Events(new OrderPlaced(foreign, 20m));
+                        var error = Assert.Throws<ReducerFailed>(() => scenario.InstanceForEventSourceId(source));
+                        Assert.Contains("identifier different from the event source", error.Message, StringComparison.Ordinal);
+                    }
                 }
                 """);
             var build = await Run("reducer-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");

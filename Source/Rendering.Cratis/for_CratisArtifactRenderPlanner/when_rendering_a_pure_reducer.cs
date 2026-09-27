@@ -129,6 +129,36 @@ public class when_rendering_a_pure_reducer
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task should_refuse_a_sibling_primitive_clr_name_before_the_real_reducer_rebinds()
+    {
+        var source = Source.Replace("      readmodel Total", "      readmodel Int32\n        id Uuid\n        amount Decimal\n      query Int32ById => Int32?\n        by id Uuid\n      reducer Int32Fold => Int32\n        on OrderPlaced\n          ```csharp\n          return new Int32(context.Event.Id, context.Event.Amount);\n          ```\n      readmodel Total", StringComparison.Ordinal)
+            .Replace("return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);", "Int32 count = 1; return new Total(context.Event.Id, count);", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Int32", StringComparison.Ordinal));
+        Assert.Empty(plan.Artifacts);
+
+        var baseline = Plan(await Load(Source.Replace(
+            "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);",
+            "Int32 count = 1; return new Total(context.Event.Id, count);",
+            StringComparison.Ordinal)));
+        Assert.True(baseline.Success, string.Join(Environment.NewLine, baseline.Diagnostics));
+        var files = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))
+            .Append(new RenderedFile("Int32.cs", "namespace Projects.Orders.Ordering.Totals; public record Int32(System.Guid Id, decimal Amount);"));
+        Assert.NotEmpty(RenderedOutput.Errors(files));
+    }
+
+    [Fact]
+    public async Task should_refuse_a_constraint_from_an_imported_event_slice_shadowing_math()
+    {
+        var source = Source.Replace("      event OrderPlaced\n        id Uuid\n        amount Decimal", "      event OrderPlaced\n        id Uuid\n        amount Decimal\n      constraint Math\n        unique event OrderPlaced", StringComparison.Ordinal)
+            .Replace("return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);", "return new Total(context.Event.Id, Math.Abs(context.Event.Amount));", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
+        Assert.Empty(plan.Artifacts);
+    }
+
     [Theory]
     [InlineData("EventContext")]
     [InlineData("ReducerContextValues")]

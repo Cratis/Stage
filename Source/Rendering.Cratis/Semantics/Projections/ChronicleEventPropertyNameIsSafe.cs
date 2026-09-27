@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
@@ -10,9 +11,10 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 /// </summary>
 internal static class ChronicleEventPropertyNameIsSafe
 {
-    // Chronicle v19.8.1 recognizes Week even without parentheses. The renderer also emits
-    // Pascal-cased event members, so both Week and week must be refused.
-    internal static bool Check(string name) =>
+    // Chronicle resolves generated Pascal-cased event members, not just authored names.
+    internal static bool Check(string name) => Safe(name) && Safe(GeneratedPascalCase.From(name));
+
+    static bool Safe(string name) =>
         !name.Contains('$') &&
         !name.Contains('.') &&
         !name.Contains('[') &&

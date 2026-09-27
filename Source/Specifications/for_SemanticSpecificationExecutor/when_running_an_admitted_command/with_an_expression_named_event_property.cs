@@ -61,6 +61,20 @@ public class with_an_expression_named_event_property
     }
 
     [Fact]
+    public async Task should_refuse_a_play_property_that_renders_as_a_boolean_literal()
+    {
+        var plan = Compile("true_", "false", "true", declared: true);
+        var specification = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
+        var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+
+        Assert.False(reference.Passed);
+        Assert.Equal(SemanticSpecificationOutcome.Unsupported, stage.Outcome);
+        Assert.Equal(StageExecutionCapability.Projection, stage.Unsupported?.Capability);
+        Assert.Contains("Chronicle expression", stage.Unsupported?.Details ?? "", StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task should_refuse_a_derived_property_even_when_an_empty_query_would_pass()
     {
         var plan = Compile("Week()", "false", "true");
@@ -143,6 +157,8 @@ public class with_an_expression_named_event_property
     [InlineData("prefix$value(0)")]
     [InlineData("a.b")]
     [InlineData("Week")]
+    [InlineData("_true")]
+    [InlineData("week_")]
     [InlineData("123")]
     public async Task should_refuse_a_direct_semantic_expression_property(string property)
     {
@@ -155,10 +171,14 @@ public class with_an_expression_named_event_property
         Assert.Contains("Chronicle expression", stage.Unsupported?.Details ?? "", StringComparison.Ordinal);
     }
 
-    static SemanticExecutionPlan Compile(string property, string input, string expected)
+    static SemanticExecutionPlan Compile(string property, string input, string expected, bool declared = false)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var source = Source.Replace("INPUT", input, StringComparison.Ordinal).Replace("EXPECTED", expected, StringComparison.Ordinal);
+        if (declared)
+        {
+            source = source.Replace("eventFlag", property, StringComparison.Ordinal);
+        }
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("literal"), "literal", "Literal.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
@@ -174,7 +194,7 @@ public class with_an_expression_named_event_property
         {
             Events = [.. slice.Events.Select(@event => @event with
             {
-                Properties = [.. @event.Properties.Select(value => value.Name == "eventFlag" ? value with { Name = property } : value)]
+                Properties = [.. @event.Properties.Select(value => !declared && value.Name == "eventFlag" ? value with { Name = property } : value)]
             })]
         })]
         };

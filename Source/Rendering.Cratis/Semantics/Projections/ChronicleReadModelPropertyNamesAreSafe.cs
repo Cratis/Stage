@@ -10,9 +10,9 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 /// </summary>
 internal static class ChronicleReadModelPropertyNamesAreSafe
 {
-    internal static bool Check(IReadOnlyList<SemanticProperty> properties) =>
+    internal static bool Check(IReadOnlyList<SemanticProperty> properties, bool rootLevel = true) =>
         properties.All(property => Safe(property.Name) &&
-            (property.IsIdentifier || !string.Equals(property.Name, "id", StringComparison.OrdinalIgnoreCase))) &&
+            (!rootLevel || property.IsIdentifier || !string.Equals(property.Name, "id", StringComparison.OrdinalIgnoreCase))) &&
         properties.Select(property => GeneratedCamelCase(property.Name)).Distinct(StringComparer.Ordinal).Count() == properties.Count;
 
     static bool Safe(string name) => name.Length > 0 &&

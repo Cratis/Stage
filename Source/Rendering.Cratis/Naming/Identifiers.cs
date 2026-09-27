@@ -26,16 +26,7 @@ public static class Identifiers
     /// </summary>
     /// <param name="name">The name to convert.</param>
     /// <returns>The PascalCase identifier.</returns>
-    public static string ToPascalCase(string name)
-    {
-        var result = string.Concat(SplitWords(name).Select(CapitalizeFirst));
-        if (result.Length == 0)
-        {
-            return "Item";
-        }
-
-        return char.IsDigit(result[0]) ? $"_{result}" : result;
-    }
+    public static string ToPascalCase(string name) => GeneratedPascalCase.From(name);
 
     /// <summary>
     /// Converts a name into camelCase.
@@ -73,8 +64,6 @@ public static class Identifiers
         _reservedKeywords.Contains(identifier) ? $"@{identifier}" : identifier;
 
     static string[] SplitWords(string name) => name.Split(_separators, StringSplitOptions.RemoveEmptyEntries);
-
-    static string CapitalizeFirst(string word) => char.ToUpperInvariant(word[0]) + word[1..];
 
     static IEnumerable<string> SplitOnCaseBoundary(string word)
     {

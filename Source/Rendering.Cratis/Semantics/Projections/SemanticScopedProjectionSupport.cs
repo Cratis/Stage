@@ -26,7 +26,7 @@ internal static partial class SemanticScopedProjectionSupport
     /// <returns>The reason, or null when supported.</returns>
     public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false)
     {
-        if (!ChronicleReadModelPropertyNamesAreSafe.Check(properties))
+        if (!ChronicleReadModelPropertyNamesAreSafe.Check(properties, rootLevel: !child && !isNested))
         {
             return "A read-model property name collides with Chronicle's property paths or another generated property.";
         }

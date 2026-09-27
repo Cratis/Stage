@@ -34,8 +34,13 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("join-event-source")]
     [InlineData("expression-event-property")]
     [InlineData("derived-event-property")]
+    [InlineData("derived-lower-event-property")]
+    [InlineData("normalized-event-property")]
     [InlineData("flat-expression-event-property")]
+    [InlineData("flat-derived-event-property")]
+    [InlineData("flat-normalized-event-property")]
     [InlineData("expression-read-model-property")]
+    [InlineData("root-id-collision")]
     [InlineData("flat-expression-read-model-property")]
     [InlineData("all-literal")]
     [InlineData("all-events")]
@@ -69,7 +74,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
         var view = feature.Slices.Single(_ => _.Kind == SemanticSliceKind.StateView);
-        var projection = view.Projections.Single(_ => _.Name == (variant == "composite-key" || variant == "flat-expression-event-property" || variant == "flat-expression-read-model-property" ? "ProjectDetailsProjection" : "ProjectSummaryProjection"));
+        var projection = view.Projections.Single(_ => _.Name == (variant == "composite-key" || Variant(variant, "flat-expression-event-property", "flat-derived-event-property", "flat-normalized-event-property", "flat-expression-read-model-property") ? "ProjectDetailsProjection" : "ProjectSummaryProjection"));
         var scope = projection.Scope!;
         if (variant == "composite-key")
         {
@@ -132,8 +137,9 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                     Mappings = [.. join.Mappings, new SemanticProjectionMapping([lastSeenTarget], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
                 })]
             },
-            "expression-event-property" or "derived-event-property" or "flat-expression-event-property" or
-                "expression-read-model-property" or "flat-expression-read-model-property" => scope,
+            "expression-event-property" or "derived-event-property" or "derived-lower-event-property" or "normalized-event-property" or
+                "flat-expression-event-property" or "flat-derived-event-property" or "flat-normalized-event-property" or
+                "expression-read-model-property" or "root-id-collision" or "flat-expression-read-model-property" => scope,
             "root-join-removal" => scope with
             {
                 JoinRemovals = [new(
@@ -213,11 +219,11 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             new(AffectedInstanceCardinality.One, key),
             [new(targetModel.Properties.Single(property => property.Name == "projectId").Id, key),
              new(targetModel.Properties.Single(property => property.Name == "name").Id, sourceName)]);
-        var changedProjection = variant == "flat-expression-event-property" || variant == "flat-expression-read-model-property" ? projection with { Scope = null, Transitions = [flat] } : projection with { Scope = scope };
+        var changedProjection = Variant(variant, "flat-expression-event-property", "flat-derived-event-property", "flat-normalized-event-property", "flat-expression-read-model-property") ? projection with { Scope = null, Transitions = [flat] } : projection with { Scope = scope };
         var changed = view with
         {
             ReadModels = [.. view.ReadModels.Select(model => model.Id == projection.ReadModel &&
-                (variant == "every-whole-number" || variant == "every-enumerated-concept" || variant == "expression-read-model-property" || variant == "flat-expression-read-model-property") ? model with
+                (variant == "every-whole-number" || variant == "every-enumerated-concept" || variant == "expression-read-model-property" || variant == "root-id-collision" || variant == "flat-expression-read-model-property") ? model with
             {
                 Properties = [.. model.Properties.Select(property => ChangedReadModelProperty(
                     property,
@@ -233,9 +239,22 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Concepts = [.. original.Application.Concepts.Select(concept => variant == "every-enumerated-concept" && concept.Name == "ProjectName" ? concept with { Values = ["Earlier", "Screenplay", "Pinned", "allowed"] } : concept)],
             Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice.Id == view.Id ? changed : slice with
             {
-                Events = variant == "expression-event-property" || variant == "flat-expression-event-property" || variant == "derived-event-property" ? [.. slice.Events.Select(@event => @event.Name == "ProjectRegistered" ? @event with
+                Events = Variant(variant,
+                    "expression-event-property",
+                    "flat-expression-event-property",
+                    "derived-event-property",
+                    "derived-lower-event-property",
+                    "normalized-event-property",
+                    "flat-derived-event-property",
+                    "flat-normalized-event-property") ? [.. slice.Events.Select(@event => @event.Name == "ProjectRegistered" ? @event with
                 {
-                    Properties = [.. @event.Properties.Select(property => property.Name == "name" ? property with { Name = variant == "derived-event-property" ? "Week()" : "$value(0)" } : property)]
+                    Properties = [.. @event.Properties.Select(property => property.Name == "name" ? property with { Name = variant switch
+                    {
+                        "derived-event-property" or "flat-derived-event-property" => "Week",
+                        "derived-lower-event-property" => "week",
+                        "normalized-event-property" or "flat-normalized-event-property" => "week_",
+                        _ => "$value(0)"
+                    } } : property)]
                 } : @event)] : slice.Events
             })] }] }]
         };
@@ -269,8 +288,8 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 
         if (variant == "composite-key" || variant == "every-whole-number" || variant == "every-enumerated-concept" ||
             variant == "event-source-with-property-key" || variant == "join-event-source" || variant == "expression-event-property" ||
-            variant == "derived-event-property" || variant == "flat-expression-event-property" ||
-            variant == "expression-read-model-property" || variant == "flat-expression-read-model-property")
+            Variant(variant, "derived-event-property", "derived-lower-event-property", "normalized-event-property", "flat-expression-event-property", "flat-derived-event-property", "flat-normalized-event-property") ||
+            variant == "expression-read-model-property" || variant == "root-id-collision" || variant == "flat-expression-read-model-property")
         {
             var changedExecution = SemanticExecutionPlan.Compile(model);
             Assert.True(changedExecution.Success, string.Join(Environment.NewLine, changedExecution.Issues));
@@ -281,11 +300,13 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         }
     }
 
+    static bool Variant(string variant, params string[] names) => names.Contains(variant, StringComparer.Ordinal);
+
     static SemanticProperty ChangedReadModelProperty(SemanticProperty property, string variant, SemanticId visits, SemanticId lastSeen, SemanticId concept)
     {
-        if ((variant == "expression-read-model-property" || variant == "flat-expression-read-model-property") && property.Name == "name")
+        if (Variant(variant, "expression-read-model-property", "root-id-collision", "flat-expression-read-model-property") && property.Name == "name")
         {
-            return property with { Name = "name.Length" };
+            return property with { Name = variant == "root-id-collision" ? "Id" : "name.Length" };
         }
 
         if (variant == "every-whole-number" && property.Id == visits)

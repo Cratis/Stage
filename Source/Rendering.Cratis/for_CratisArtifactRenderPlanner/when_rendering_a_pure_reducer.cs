@@ -93,6 +93,16 @@ public class when_rendering_a_pure_reducer
     }
 
     [Fact]
+    public async Task should_reject_an_observed_event_declared_in_a_sibling_state_view_slice()
+    {
+        var source = Source.Replace("      event OrderPlaced\n        id Uuid\n        amount Decimal\n", string.Empty, StringComparison.Ordinal)
+            .Replace("    slice StateView Totals\n", "    slice StateView Other\n      event OrderPlaced\n        id Uuid\n        amount Decimal\n    slice StateView Totals\n", StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Message.Contains("cannot render an event", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task should_reject_a_reducer_class_colliding_with_a_read_model()
     {
         var source = Source.Replace("reducer Fold => Total", "reducer Total => Total", StringComparison.Ordinal)
@@ -139,6 +149,41 @@ public class when_rendering_a_pure_reducer
             .Replace("context.Event.Amount);", "Math.Abs(context.Event.Amount));", StringComparison.Ordinal);
         var plan = Plan(await Load(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("    slice StateChange PlaceOrder", "    slice StateChange Math")]
+    [InlineData("  feature Ordering", "  feature Math")]
+    public async Task should_refuse_namespace_shadows_before_emitting_an_uncompilable_reducer(string original, string replacement)
+    {
+        var source = Source.Replace(original, replacement, StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal)
+            .Replace("context.Event.Amount);", "Math.Abs(context.Event.Amount));", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        if (plan.Success)
+        {
+            var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+                .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+            var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics().Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error);
+            Assert.Fail($"Admitted a namespace shadow; rendered compilation: {string.Join("; ", errors)}");
+        }
+
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task should_detect_the_namespace_shadow_in_rendered_compilation()
+    {
+        var source = Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal)
+            .Replace("context.Event.Amount);", "Math.Abs(context.Event.Amount));", StringComparison.Ordinal);
+        var plan = Plan(await Load(source));
+        Assert.True(plan.Success, string.Join("; ", plan.Diagnostics));
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))
+            .Append(new RenderedFile("Math.cs", "namespace Projects.Orders.Ordering.Math { }"));
+        var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics()
+            .Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error).ToArray();
+        Assert.Contains(errors, error => error.Id == "CS0234" && error.GetMessage().Contains("Abs", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -776,6 +821,8 @@ public class when_rendering_a_pure_reducer
     public void should_use_only_the_exact_audited_reference_pack()
     {
         Assert.True(PureTransitionAdmission._references.Value.Length > 150);
+        Assert.Contains(PureTransitionAdmission._references.Value, reference =>
+            reference.Display == $"PureTransitionReferences.{PureTransitionAdmission.ReferencePackVersion}.System.IO.dll");
         Assert.All(PureTransitionAdmission._references.Value, reference =>
             Assert.StartsWith($"PureTransitionReferences.{PureTransitionAdmission.ReferencePackVersion}.", reference.Display, StringComparison.Ordinal));
     }

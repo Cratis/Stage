@@ -88,3 +88,6 @@ jobs:
       # NuGet. Packing here puts the break in the pull request that causes it.
       - name: Pack
         run: dotnet pack --no-build --configuration Release -o ./Artifacts/NuGet -p:Version=9999.0.0
+
+      - name: Verify standalone packed reducer consumer
+        run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet

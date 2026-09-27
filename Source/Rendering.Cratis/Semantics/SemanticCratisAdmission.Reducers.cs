@@ -108,10 +108,11 @@ internal static partial class SemanticCratisAdmission
                     continue;
                 }
 
-                // StateView artifacts emit read models and reducers, not event declarations.
-                if (slice.Events.Any(candidate => candidate.Id == transition.EventContract))
+                // StateView artifacts emit read models and reducers, not event declarations,
+                // including when the event is declared in a different StateView slice.
+                if (context.DeclaringSlice(@event.Id).Slice.Kind != SemanticSliceKind.StateChange)
                 {
-                    diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' observes an event declared in its StateView slice, which cannot render an event contract.", reducer.ReadModel));
+                    diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' observes an event declared in a StateView slice, which cannot render an event contract.", reducer.ReadModel));
                     continue;
                 }
 

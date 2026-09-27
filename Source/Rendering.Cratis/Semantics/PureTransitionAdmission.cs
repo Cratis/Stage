@@ -216,10 +216,12 @@ internal static class PureTransitionAdmission
             .Concat(slice.Projections.Select(_ => _.Name)));
         if (!context.Application.Concepts.IsEmpty || !context.Application.Types.IsEmpty)
             peers = peers.Concat(context.Application.Concepts.Select(_ => _.Name)).Concat(context.Application.Types.Select(_ => _.Name));
-        var shadow = peers.Select(Identifiers.ToPascalCase).FirstOrDefault(name =>
-            NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues"));
+        var shadow = peers.Select(Identifiers.ToPascalCase).FirstOrDefault(ShadowsAuditedName);
         if (shadow is not null)
             return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows an audited type in the reducer namespace.");
+        var namespaceShadow = context.NamespaceSegments.FirstOrDefault(ShadowsAuditedName);
+        if (namespaceShadow is not null)
+            return Reject("STAGE-ESM-022", $"Generated namespace '{namespaceShadow}' shadows an audited type in the reducer namespace.");
         var ns = SliceNaming.Namespace(context.RootNamespace, located.Path);
         var types = new SemanticTypeSystem(context);
         var definitions = new List<string>();
@@ -334,6 +336,9 @@ internal static class PureTransitionAdmission
 
         return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor);
     }
+
+    static bool ShadowsAuditedName(string name) =>
+        NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");
 
     static MetadataReference[] LoadEmbeddedReferences()
     {

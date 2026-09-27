@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -118,6 +119,10 @@ internal sealed class SemanticApplicationContext
     /// Gets every append-time constraint in the application with the slice declaring it.
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
+
+    /// <summary>Gets all generated namespace segments, including slices outside the selected scope.</summary>
+    internal IEnumerable<string> NamespaceSegments => _slices.Values.SelectMany(located => located.Path)
+        .Select(Identifiers.ToPascalCase).Concat(RootNamespace.Split('.'));
 
     /// <summary>
     /// Gets the slices selected by the request scope in deterministic model order.

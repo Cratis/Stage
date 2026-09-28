@@ -87,9 +87,9 @@ public class when_rendering_the_billing_payment_reducer : a_generated_applicatio
     }
 
     [Fact]
-    void should_match_the_real_compilation_purity_verdict_for_the_billing_body()
+    void should_match_the_real_compilation_purity_verdict_for_the_billing_deletion_body()
     {
-        var compiled = LoadBilling();
+        var compiled = LoadBilling(deleteOnNegative: true);
         var plan = when_rendering_a_pure_reducer.Plan(compiled);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var descriptor = Assert.Single(compiled.TypedContextDescriptors);
@@ -121,6 +121,7 @@ public class when_rendering_the_billing_payment_reducer : a_generated_applicatio
         Assert.Equal(analysis.ContextReads, rendered.ContextReads);
         Assert.Equal(analysis.UsedAllowlistEntries, rendered.UsedAllowlistEntries);
         Assert.Equal(analysis.BoundSymbols.ToArray(), rendered.BoundSymbols.ToArray());
+        Assert.Contains(analysis.BoundSymbols, member => member.Contains("Cratis.Concepts.ConceptAs<decimal>.Value", StringComparison.Ordinal));
     }
 
     [Fact]

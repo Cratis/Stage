@@ -159,6 +159,29 @@ public class when_rendering_a_pure_reducer
     }
 
     [Fact]
+    public async Task should_refuse_the_reserved_root_typed_context_namespace_before_rendering_other_concept_properties()
+    {
+        var source = ("concept TenantId : String\n" + Source)
+            .Replace("      command PlaceOrder\n", "      command PlaceOrder\n        tenant TenantId\n", StringComparison.Ordinal)
+            .Replace("          amount = amount", "          amount = amount\n          tenant = tenant", StringComparison.Ordinal)
+            .Replace("      event OrderPlaced\n", "      event OrderPlaced\n        tenant TenantId\n", StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal);
+        var baseline = Plan(await Load(source));
+        Assert.True(baseline.Success, string.Join(Environment.NewLine, baseline.Diagnostics));
+        var baselineFiles = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        Assert.Empty(RenderedOutput.Errors(baselineFiles));
+        var assembly = RenderedOutput.Load(baselineFiles);
+        var concept = assembly.GetType("Projects.Common.TenantId");
+        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.PlaceOrder")!.GetProperty("Tenant")!.PropertyType);
+        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.OrderPlaced")!.GetProperty("Tenant")!.PropertyType);
+        var unrelated = source + "\nmodule TypedContexts\n  feature Other\n    slice StateChange Unrelated\n      event TenantChanged\n        tenant TenantId\n";
+        var plan = Plan(await Load(unrelated));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("TypedContexts", StringComparison.Ordinal));
+        Assert.Empty(plan.Artifacts);
+    }
+
+    [Fact]
     public async Task should_compile_the_reducer_runtime_with_a_module_named_cratis()
     {
         var source = Source.Replace("module Orders", "module Cratis", StringComparison.Ordinal)
@@ -668,6 +691,44 @@ public class when_rendering_a_pure_reducer
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var errors = RenderedOutput.Errors(files);
         Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
+    }
+
+    [Fact]
+    public async Task should_bind_identifier_value_and_typed_value_to_the_same_inherited_getters_in_both_compilations()
+    {
+        const string body = "return new Total(context.Event.Id, context.Event.Id.Value.Length + context.Event.Id.TypedValue.Length);";
+        var source = WithIdentifierConcept(Source).Replace("concept OrderId : Uuid", "concept OrderId : String", StringComparison.Ordinal)
+            .Replace("return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);", body, StringComparison.Ordinal);
+        var loaded = await Load(source);
+        var plan = Plan(loaded);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var request = new ArtifactRenderRequest(
+            loaded.Model,
+            loaded.Plan,
+            CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
+            new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
+        {
+            TypedContextDescriptors = loaded.TypedContextDescriptors
+        };
+        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
+        var reducer = Assert.Single(context.Reducers);
+        var descriptor = Assert.Single(loaded.TypedContextDescriptors);
+        var analysis = PureTransitionAdmission.Analyze(
+            body,
+            context,
+            context.ReadModels[reducer.ReadModel],
+            context.Events[Assert.Single(reducer.Transitions).EventContract],
+            descriptor,
+            Assert.Single(loaded.ImplementationRequirements));
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        var compilation = RenderedOutput.CreateCompilation(files);
+        var path = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal)).RelativePath;
+        var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, path, descriptor);
+        Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics())}");
+        Assert.Equal(analysis.BoundSymbols.ToArray(), rendered.BoundSymbols.ToArray());
+        Assert.Contains(analysis.BoundSymbols, member => member.Contains("Cratis.Concepts.ConceptAs<string>.Value", StringComparison.Ordinal));
+        Assert.Contains(analysis.BoundSymbols, member => member.Contains("Cratis.Chronicle.Events.EventSourceId<string>.TypedValue", StringComparison.Ordinal));
     }
 
     [Fact]

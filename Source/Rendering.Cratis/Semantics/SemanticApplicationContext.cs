@@ -120,10 +120,6 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
 
-    /// <summary>Gets all generated namespace segments, including slices outside the selected scope.</summary>
-    internal IEnumerable<string> NamespaceSegments => _slices.Values.SelectMany(located => located.Path)
-        .Select(Identifiers.ToPascalCase).Concat(RootNamespace.Split('.'));
-
     /// <summary>Gets distinct generated namespace prefixes, including slices outside the selected scope.</summary>
     internal IEnumerable<string> NamespacePaths => _slices.Values.SelectMany(located =>
     {

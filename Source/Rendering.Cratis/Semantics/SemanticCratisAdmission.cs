@@ -32,6 +32,15 @@ internal static partial class SemanticCratisAdmission
             return [.. diagnostics];
         }
 
+        // TypedContexts is reserved for reducer runtime tokens and wrappers. A modeled
+        // namespace with the same root path can rebind TenantId in unrelated artifacts.
+        if (slices.Any(_ => !_.Slice.Reducers.IsEmpty) &&
+            context.NamespacePaths.Any(path => path == $"{context.RootNamespace}.TypedContexts"))
+        {
+            diagnostics.Add(Error("STAGE-ESM-022", "Generated namespace 'TypedContexts' shadows the reserved reducer runtime namespace.", model.Application.Id));
+            return [.. diagnostics];
+        }
+
         ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);

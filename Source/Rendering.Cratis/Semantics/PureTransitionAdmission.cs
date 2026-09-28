@@ -282,8 +282,12 @@ internal static class PureTransitionAdmission
 
             var scalar = SemanticTypeSystem.Primitive(concept.Primitive);
 
+            // Mirror the inherited concept getters, including the distinct TypedValue on identifiers.
             // Synthetic concepts intentionally have no implicit conversions: extra refusals are safe.
-            definitions.Add($"namespace {context.RootNamespace}.Common {{ public record {Identifiers.ToPascalCase(concept.Name)}({scalar} Value); }}");
+            var baseType = context.IdentifierConcepts.Contains(concept.Id)
+                ? $"global::Cratis.Chronicle.Events.EventSourceId<{scalar}>"
+                : $"global::Cratis.Concepts.ConceptAs<{scalar}>";
+            definitions.Add($"namespace {context.RootNamespace}.Common {{ public record {Identifiers.ToPascalCase(concept.Name)}({scalar} Value) : {baseType}(Value); }}");
         }
 
         foreach (var composite in context.Application.Types)
@@ -308,7 +312,8 @@ internal static class PureTransitionAdmission
         var declarations = "global using System; global using System.Collections.Generic; global using System.Linq; " +
             "global using System.IO; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks; " +
             (context.Application.Concepts.IsEmpty && context.Application.Types.IsEmpty ? string.Empty : $"using {context.RootNamespace}.Common; ") +
-            "namespace Cratis.Chronicle.Events { public class EventContext {} } " +
+            "namespace Cratis.Concepts { public record ConceptAs<T>(T Value); } " +
+            "namespace Cratis.Chronicle.Events { public class EventContext {} public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue); } " +
             "namespace Cratis.Chronicle.Reducers { public interface IReducerFor<T> {} } " +
             string.Join('\n', definitions) + "\n" + tenant + "\n" + wrapper;
         var builder = new CodeGeneration.CSharpCodeBuilder()
@@ -905,6 +910,20 @@ internal static class PureTransitionAdmission
         var name = symbol.Name;
         if (name == "GetHashCode") return false;
         if (type.IsAnonymousType) return false; // Anonymous records can carry randomized string hashes; no synthesized method is trusted.
+
+        // The pinned ConceptAs<T> and EventSourceId<T> expose auto-property getters only.
+        // Mirror their declaring types in the synthetic compilation, rather than admitting a
+        // synthetic owned Value that binds differently from the real inherited property.
+        var genericOwner = type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        if (((genericOwner == "global::Cratis.Concepts.ConceptAs<T>" && name == "Value") ||
+             (genericOwner == "global::Cratis.Chronicle.Events.EventSourceId<T>" && name == "TypedValue")) &&
+            symbol is IPropertySymbol { IsStatic: false, IsIndexer: false, GetMethod: not null } conceptProperty &&
+            SymbolEqualityComparer.Default.Equals(conceptProperty.Type, type.TypeArguments[0]) &&
+            SafeValue(conceptProperty.Type, compilation))
+        {
+            entry = "generated";
+            return true;
+        }
 
         // Both the declaring type and the member must belong to this exact synthetic source tree.
         // This excludes Microsoft.Win32, all referenced application assemblies and unrelated source files.

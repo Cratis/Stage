@@ -14,6 +14,6 @@ public class with_a_warning_validation : given.an_invoice_model
         StringComparison.Ordinal));
 
     [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_block_the_warning() => Artifact("Issue.cs").ShouldContain("BlockOnValidationSeverity(ValidationResultSeverity.Information)");
-    [Fact] void should_preserve_the_warning_severity() => Artifact("Issue.cs").ShouldContain("WithSeverity(ValidationResultSeverity.Warning)");
+    [Fact] void should_block_the_warning() => Artifact("Issue.cs").ShouldContain("global::Cratis.Arc.Commands.ModelBound.BlockOnValidationSeverityAttribute(global::Cratis.Arc.Validation.ValidationResultSeverity.Information)");
+    [Fact] void should_preserve_the_warning_severity() => Artifact("Issue.cs").ShouldContain("WithSeverity(global::Cratis.Arc.Validation.ValidationResultSeverity.Warning)");
 }

@@ -14,6 +14,6 @@ public class with_a_command_requirement : given.an_invoice_model
         StringComparison.Ordinal));
 
     [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_render_the_requirement_as_a_command_rejection() => Artifact("Issue.cs").ShouldContain("Must(command => (!object.Equals(command.Description, \"rejected\")))");
+    [Fact] void should_render_the_requirement_as_a_command_rejection() => Artifact("Issue.cs").ShouldContain("Must(command => (!global::System.Object.Equals(command.Description, \"rejected\")))");
     [Fact] void should_render_the_reference_default_message() => Artifact("Issue.cs").ShouldContain(".WithMessage(\"Command requirement was not met.\")");
 }

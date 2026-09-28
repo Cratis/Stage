@@ -132,7 +132,7 @@ public class when_rendering_a_pure_reducer
     [Theory]
     [InlineData("Money")]
     [InlineData("Price")]
-    public async Task should_refuse_a_sibling_that_rebinds_an_emitted_property_type_without_naming_it_in_the_body(string sharedName)
+    public async Task should_qualify_an_emitted_property_type_when_a_sibling_shadows_it(string sharedName)
     {
         const string body = "return new Total(context.Event.Id, context.Event.Amount);";
         var source = ($"concept {sharedName} : Decimal\n" + Source)
@@ -144,7 +144,7 @@ public class when_rendering_a_pure_reducer
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
         Assert.Empty(RenderedOutput.Errors(baselineFiles));
         var shadowedFiles = baselineFiles.Append(new RenderedFile($"{sharedName}.cs", $"namespace Projects.Orders.Ordering.Totals; public record {sharedName}(System.Guid Id, decimal Amount);"));
-        Assert.NotEmpty(RenderedOutput.Errors(shadowedFiles));
+        Assert.Empty(RenderedOutput.Errors(shadowedFiles));
 
         var conflicting = source.Replace("      readmodel Total", $"      readmodel {sharedName}\n        id Uuid\n        amount Decimal\n      query {sharedName}ById => {sharedName}?\n        by id Uuid\n      reducer {sharedName}Fold => {sharedName}\n        on OrderPlaced\n          ```csharp\n          return context.State;\n          ```\n      readmodel Total", StringComparison.Ordinal);
         var plan = Plan(await Load(conflicting));
@@ -686,7 +686,7 @@ public class when_rendering_a_pure_reducer
         var plan = Plan(await Load(source));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var generatedSpec = plan.Artifacts.Single(artifact => artifact.RelativePath.Contains("is_projected", StringComparison.Ordinal));
-        Assert.Contains("[Fact]", System.Text.Encoding.UTF8.GetString(generatedSpec.Bytes.AsSpan()), StringComparison.Ordinal);
+        Assert.Contains("[global::Xunit.FactAttribute]", System.Text.Encoding.UTF8.GetString(generatedSpec.Bytes.AsSpan()), StringComparison.Ordinal);
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var errors = RenderedOutput.Errors(files);

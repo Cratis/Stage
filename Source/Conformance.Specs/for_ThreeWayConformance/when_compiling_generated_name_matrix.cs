@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
@@ -150,6 +151,91 @@ public class when_compiling_generated_name_matrix
     [InlineData("constraint", "projectRegistered")]
     public Task cross_kind_and_same_namespace_type_names_match_the_emitted_compilation(string kind, string name) =>
         Verify(Mutate(kind, name, typeName: true), $"sibling/{kind}/{name}");
+
+    [Theory]
+    [InlineData("event", "commandAttribute")]
+    [InlineData("event", "eventTypeAttribute")]
+    [InlineData("event", "blockOnValidationSeverityAttribute")]
+    [InlineData("event", "commandValidator")]
+    [InlineData("event", "fact")]
+    [InlineData("readmodel", "readModelAttribute")]
+    [InlineData("readmodel", "fromEventAttribute")]
+    [InlineData("readmodel", "setFromAttribute")]
+    [InlineData("readmodel", "keyAttribute")]
+    [InlineData("readmodel", "iReadModels")]
+    [InlineData("readmodel", "specification")]
+    [InlineData("concept", "timeSpan")]
+    public Task framework_type_names_match_the_emitted_compilation(string kind, string name) =>
+        Verify(Mutate(kind, name, typeName: true), $"crossnamespace/framework/{kind}/{name}");
+
+    [Theory]
+    [InlineData("iReadModels")]
+    [InlineData("readModelAttribute")]
+    [InlineData("keyAttribute")]
+    public async Task reducer_bearing_names_match_the_emitted_compilation(string name)
+    {
+        var source = when_rendering_a_pure_reducer.Source
+            .Replace("reducer Fold => Total", $"reducer {name} => Total", StringComparison.Ordinal)
+            .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal);
+        var loaded = await when_rendering_a_pure_reducer.Load(source);
+        var plan = when_rendering_a_pure_reducer.Plan(loaded);
+        Assert.True(plan.Success, string.Join("; ", plan.Diagnostics));
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        Assert.Empty(RenderedOutput.Errors(files));
+    }
+
+    [Theory]
+    [InlineData("event", "timeSpan")]
+    [InlineData("event", "system")]
+    public Task regex_validators_survive_shadowing_events(string kind, string name)
+    {
+        var source = Source.Replace("name not empty", "name matches \"^h\"", StringComparison.Ordinal);
+        var model = Compile(source);
+        var application = model.Application;
+        var module = application.Modules.Single();
+        var feature = module.Features.Single();
+        var changed = feature with
+        {
+            Slices = [.. feature.Slices.Select(slice => slice with
+            {
+                Events = [.. slice.Events.Select(@event => @event with { Name = name })]
+            })]
+        };
+        var changedModel = ExecutableSemanticModel.Create(
+            model.LanguageVersion,
+            model.SemanticVersion,
+            application with { Modules = [module with { Features = [changed] }] });
+        return Verify(changedModel, $"crossnamespace/regex/{kind}/{name}");
+    }
+
+    [Theory]
+    [InlineData("timeSpan")]
+    [InlineData("system")]
+    public Task regex_validators_survive_shadowing_concepts(string name)
+    {
+        var source = Source.Replace("concept Badge : String", $"concept Badge : String\n  validate\n    matches \"^h\"\nconcept {name} : String", StringComparison.Ordinal);
+        return Verify(Compile(source), $"crossnamespace/regex/concept/{name}");
+    }
+
+    [Theory]
+    [InlineData("module")]
+    [InlineData("feature")]
+    [InlineData("slice")]
+    public Task namespace_paths_cannot_shadow_generated_types(string level)
+    {
+        var source = level switch
+        {
+            "module" => Source.Replace("module Projects", "module Common", StringComparison.Ordinal)
+                .Replace("feature Registration", "feature Badge", StringComparison.Ordinal),
+            "feature" => Source.Replace("module Projects", "module Common", StringComparison.Ordinal)
+                .Replace("feature Registration", "feature Badge", StringComparison.Ordinal),
+            _ => Source.Replace("module Projects", "module Common", StringComparison.Ordinal)
+                .Replace("feature Registration", "feature Badge", StringComparison.Ordinal)
+                .Replace("slice StateChange RegisterProject", "slice StateChange Badge", StringComparison.Ordinal)
+        };
+        return Verify(Compile(source), $"namespace/{level}");
+    }
 
     [Theory]
     [InlineData("define")]

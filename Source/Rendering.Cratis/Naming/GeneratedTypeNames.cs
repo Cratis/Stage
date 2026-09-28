@@ -6,15 +6,17 @@ using Cratis.Screenplay.Semantics;
 namespace Cratis.Stage.Rendering.Cratis.Naming;
 
 /// <summary>
-/// Inventories top-level C# declarations in each emitted namespace, including generated validators.
+/// Inventories top-level C# declarations in each emitted namespace, including validators and constraints.
 /// Both render and execution admission use the same inventory.
 /// </summary>
 internal static class GeneratedTypeNames
 {
     internal static IEnumerable<(SemanticId Artifact, string Kind, string Name)> Collisions(
         SemanticApplication application,
-        IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> slices)
+        IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> slices,
+        IEnumerable<(IEnumerable<string> Path, SemanticId Owner, SemanticConstraint Constraint)>? constraints = null)
     {
+        var selectedSlices = slices.ToArray();
         var seen = new HashSet<(string Namespace, string Name)>();
         foreach (var concept in application.Concepts)
         {
@@ -26,7 +28,7 @@ internal static class GeneratedTypeNames
         {
             foreach (var name in Names("Common", type.Name, type.Id, "Type")) yield return name;
         }
-        foreach (var (path, slice) in slices)
+        foreach (var (path, slice) in selectedSlices)
         {
             var ns = string.Join('.', path.Select(GeneratedPascalCase.From));
             foreach (var command in slice.Commands)
@@ -47,6 +49,11 @@ internal static class GeneratedTypeNames
             {
                 foreach (var name in Names(ns, projection.Name, projection.Id, "Projection")) yield return name;
             }
+        }
+        foreach (var (path, owner, constraint) in constraints ?? selectedSlices.SelectMany(located => located.Slice.Constraints.Select(constraint => (located.Path, located.Slice.Id, constraint))))
+        {
+            var ns = string.Join('.', path.Select(GeneratedPascalCase.From));
+            foreach (var name in Names(ns, constraint.Name, owner, "Constraint")) yield return name;
         }
 
         IEnumerable<(SemanticId Artifact, string Kind, string Name)> Names(string ns, string source, SemanticId id, string kind)

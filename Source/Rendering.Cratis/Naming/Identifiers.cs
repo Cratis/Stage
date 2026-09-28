@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.CodeAnalysis.CSharp;
+
 namespace Cratis.Stage.Rendering.Cratis.Naming;
 
 /// <summary>
@@ -9,17 +11,6 @@ namespace Cratis.Stage.Rendering.Cratis.Naming;
 public static class Identifiers
 {
     static readonly char[] _separators = [' ', '_', '-', '.'];
-
-    static readonly HashSet<string> _reservedKeywords = new(StringComparer.Ordinal)
-    {
-        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const",
-        "continue", "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern",
-        "false", "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface",
-        "internal", "is", "lock", "long", "namespace", "new", "null", "object", "operator", "out", "override",
-        "params", "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed", "short",
-        "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof",
-        "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void", "volatile", "while",
-    };
 
     /// <summary>
     /// Converts a name into PascalCase.
@@ -56,12 +47,14 @@ public static class Identifiers
     public static string ToSnakeCase(string name) => ToWords(name).Replace(' ', '_');
 
     /// <summary>
-    /// Escapes an identifier with <c language="csharp">@</c> when it is a reserved C# keyword.
+    /// Escapes an identifier with <c language="csharp">@</c> when it is a C# keyword.
     /// </summary>
     /// <param name="identifier">The identifier to escape.</param>
     /// <returns>The escaped identifier, or the original identifier when escaping is not needed.</returns>
     public static string EscapeKeyword(string identifier) =>
-        _reservedKeywords.Contains(identifier) ? $"@{identifier}" : identifier;
+        SyntaxFacts.GetKeywordKind(identifier) != SyntaxKind.None || SyntaxFacts.GetContextualKeywordKind(identifier) != SyntaxKind.None
+            ? $"@{identifier}"
+            : identifier;
 
     static string[] SplitWords(string name) => name.Split(_separators, StringSplitOptions.RemoveEmptyEntries);
 

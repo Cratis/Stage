@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -28,6 +29,11 @@ internal static partial class SemanticCratisAdmission
     {
         foreach (var (slice, constraint) in SelectedConstraints(context, slices))
         {
+            if (!GeneratedPascalCase.ConstraintTypeNameIsSafe(constraint.Name))
+            {
+                diagnostics.Add(Error("STAGE-ESM-012", $"Constraint '{constraint.Name}' has a name that collides with its generated C# members.", slice.Id));
+            }
+
             if (constraint.Kind is not (SemanticConstraintKind.UniquePropertyValue or SemanticConstraintKind.UniqueEventOccurrence) ||
                 constraint.Scope != SemanticConstraintScope.EventSequence ||
                 !SemanticValidationRendering.SafeMessage(constraint.Message))

@@ -16,7 +16,7 @@ internal static class GeneratedPascalCase
     // Inherited object members (including Clone and GetType) do not.
     static readonly HashSet<string> _recordTypeNames = new(StringComparer.Ordinal)
     {
-        "EqualityContract", "ToString", "Equals", "GetHashCode", "Deconstruct", "PrintMembers"
+        "EqualityContract", "ToString", "Equals", "GetHashCode", "PrintMembers"
     };
 
     internal static IReadOnlyList<string> RecordMembers => _recordMembers;
@@ -58,13 +58,16 @@ internal static class GeneratedPascalCase
 
     internal static bool ProjectionTypeNameIsSafe(string name) => From(name) != "Define";
 
-    internal static bool RecordTypeNameIsSafe(string name) => !_recordTypeNames.Contains(From(name));
+    internal static bool ConstraintTypeNameIsSafe(string name) => From(name) != "Define";
+
+    internal static bool RecordTypeNameIsSafe(string name, bool hasProperties = true) =>
+        !_recordTypeNames.Contains(From(name)) && (From(name) != "Deconstruct" || !hasProperties);
 
     internal static bool RecordMembersAreUnique(string typeName, IEnumerable<string> properties, IEnumerable<string>? methods = null)
     {
         var generated = properties.Select(From).ToArray();
         var reserved = _recordMembers.Concat((methods ?? []).Select(From)).ToHashSet(StringComparer.Ordinal);
-        return RecordTypeNameIsSafe(typeName) &&
+        return RecordTypeNameIsSafe(typeName, generated.Length > 0) &&
             generated.Distinct(StringComparer.Ordinal).Count() == generated.Length &&
 
             // Positional records also bind constructor arguments by case-insensitive JSON property name.

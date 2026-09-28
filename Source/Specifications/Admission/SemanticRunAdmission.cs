@@ -52,6 +52,9 @@ internal static class SemanticRunAdmission
                 !GeneratedPascalCase.QueriesAreUnique(slice.Queries.Where(query => query.ReadModel == readModel.Id)
                     .Select(query => (query.Name, SemanticRunProjectionAdmission.QueryType(query.Argument.Type, plan), query.Argument.Name))));
             if (collidingReadModel is not null) return Block(StageExecutionCapability.Projection, collidingReadModel.Id, "A read-model property name or query collides in generated C#.");
+            var collidingConstraint = slice.Constraints.FirstOrDefault(constraint =>
+                !GeneratedPascalCase.ConstraintTypeNameIsSafe(constraint.Name));
+            if (collidingConstraint is not null) return Block(StageExecutionCapability.Command, slice.Id, "Constraint type name collides with generated C# members.");
             var collidingProjection = slice.Projections.FirstOrDefault(projection =>
                 projection.Scope is not null && !GeneratedPascalCase.ProjectionTypeNameIsSafe(projection.Name));
             if (collidingProjection is not null) return Block(StageExecutionCapability.Projection, collidingProjection.Id, "Projection type name collides with generated C# members.");

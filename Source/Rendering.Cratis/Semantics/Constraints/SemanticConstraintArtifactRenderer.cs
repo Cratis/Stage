@@ -24,9 +24,9 @@ internal static class SemanticConstraintArtifactRenderer
             : $"Constraint '{constraint.Name}' is violated: the event source already has the constrained event.");
 
         builder.Summary($"Enforces the {constraint.Name} append-time constraint.")
-            .OpenBlock($"public class {className} : IConstraint")
+            .OpenBlock($"public class {className} : global::Cratis.Chronicle.Events.Constraints.IConstraint")
             .Line("/// <inheritdoc/>")
-            .OpenBlock("public void Define(IConstraintBuilder builder)");
+            .OpenBlock("public void Define(global::Cratis.Chronicle.Events.Constraints.IConstraintBuilder builder)");
 
         if (constraint.Kind == SemanticConstraintKind.UniquePropertyValue)
         {

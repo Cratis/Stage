@@ -75,10 +75,14 @@ internal static class GeneratedTypeNames
         {
             foreach (var name in Names(string.Empty, "GeneratedStrings", application.Id, "Generated")) yield return name;
         }
+
+        // The backend scaffold always emits GeneratedPolicies.Registration; Policies.cs adds PolicyValues
+        // beside it when any operation is authorized.
+        foreach (var name in Names("GeneratedPolicies", "Registration", application.Id, "Generated")) yield return name;
         if (selectedSlices.Any(located => located.Slice.Commands.Any(command => command.Authorization is not null) ||
             located.Slice.Queries.Any(query => query.Authorization is not null)))
         {
-            foreach (var name in Names("GeneratedPolicies", "Registration", application.Id, "Generated")) yield return name;
+            foreach (var name in Names("GeneratedPolicies", "PolicyValues", application.Id, "Generated")) yield return name;
         }
         if (selectedSlices.Any(located => !located.Slice.Reducers.IsEmpty))
         {

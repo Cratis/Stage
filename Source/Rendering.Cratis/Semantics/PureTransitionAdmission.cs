@@ -233,41 +233,10 @@ internal static class PureTransitionAdmission
         var peers = allDeclarations.Where(declaration => !stubbed.Contains(declaration))
             .Select(declaration => declaration.Name).ToHashSet(StringComparer.Ordinal);
 
-        // The body need not spell a type for its binding to change: a peer in the model or event
-        // namespace can rebind an unqualified property type in an emitted record. Inventory the
-        // entire declaration dependency graph, including nested composites and collection elements,
-        // rather than only the names in the reducer method. The synthetic stubs omit these peers.
-        var propertyTypes = context.Application.Concepts.Where(concept => concept.Values.IsEmpty)
-            .Select(concept => new SemanticTypeReference(SemanticTypeReferenceKind.Primitive, concept.Primitive, default, false, false))
-            .Concat(context.Application.Types.SelectMany(composite => composite.Properties.Select(property => property.Type)))
-            .Concat(readModel.Properties.Select(property => property.Type))
-            .Concat(reducerEvents.SelectMany(transitionEvent => transitionEvent.Properties.Select(property => property.Type)));
-        var emittedTypeDependencies = propertyTypes.SelectMany(TypeDependencies)
-            .Where(dependency => dependency.Name is not "string" and not "int" and not "decimal" and not "bool")
-            .ToHashSet();
-        IEnumerable<(string Name, SemanticId? Target)> TypeDependencies(SemanticTypeReference reference)
-        {
-            var scalar = reference.Kind switch
-            {
-                SemanticTypeReferenceKind.Concept => (Name: Identifiers.ToPascalCase(context.Concepts[reference.Target].Name), Target: (SemanticId?)reference.Target),
-                SemanticTypeReferenceKind.CompositeType => (Name: Identifiers.ToPascalCase(context.Types[reference.Target].Name), Target: (SemanticId?)reference.Target),
-                _ => (Name: SemanticTypeSystem.Primitive(reference.Primitive), Target: null)
-            };
-            return reference.IsCollection ? [scalar, ("IReadOnlyList", null)] : [scalar];
-        }
-
-        // Emitted reducer property types are qualified (global::{Root}.Common.X), so a same-named sibling
-        // no longer breaks the rendered application. These two checks are kept on purpose: they still
-        // guard the admission's own analysis compilation, and refusing a same-named sibling is a
-        // fail-closed over-rejection rather than an unsafe admission (Cratis/Stage#172).
-        var propertyShadow = allDeclarations.FirstOrDefault(declaration => emittedTypeDependencies.Any(dependency =>
-            dependency.Name == declaration.Name && dependency.Target != declaration.Id));
-        if (propertyShadow.Name is not null)
-            return Reject("STAGE-ESM-022", $"Generated type '{propertyShadow.Name}' shadows an emitted reducer property type.");
-        var propertyNamespaceShadow = context.NamespacePaths.FirstOrDefault(path =>
-            emittedTypeDependencies.Any(dependency => path.Split('.')[^1] == dependency.Name));
-        if (propertyNamespaceShadow is not null)
-            return Reject("STAGE-ESM-022", $"Generated namespace '{propertyNamespaceShadow}' shadows an emitted reducer property type.");
+        // Emitted property types are qualified (global::{Root}.Common.X or global::System.*) in the
+        // rendered reducer, its typed-context wrapper and the synthetic analysis stubs, so a same-named
+        // sibling declaration or namespace cannot rebind them. Unqualified names in the reducer body are
+        // checked separately below.
         var activeShadow = reducerEvents.Select(_ => Identifiers.ToPascalCase(_.Name))
             .Append(Identifiers.ToPascalCase(readModel.Name)).FirstOrDefault(ShadowsAuditedName);
         if (activeShadow is not null)

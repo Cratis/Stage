@@ -147,11 +147,11 @@ public class when_rendering_a_pure_reducer
         Assert.Empty(RenderedOutput.Errors(shadowedFiles));
 
         var conflicting = source.Replace("      readmodel Total", $"      readmodel {sharedName}\n        id Uuid\n        amount Decimal\n      query {sharedName}ById => {sharedName}?\n        by id Uuid\n      reducer {sharedName}Fold => {sharedName}\n        on OrderPlaced\n          ```csharp\n          return context.State;\n          ```\n      readmodel Total", StringComparison.Ordinal);
-        // A same-named sibling is refused on purpose even though the qualified emission above compiles:
-        // the check also guards the admission's analysis compilation (see PureTransitionAdmission).
         var plan = Plan(await Load(conflicting));
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains(sharedName, StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var emitted = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        Assert.Empty(RenderedOutput.Errors(emitted));
     }
 
     [Fact]

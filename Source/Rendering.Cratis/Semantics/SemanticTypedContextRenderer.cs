@@ -14,7 +14,7 @@ internal static class SemanticTypedContextRenderer
 {
     internal static RenderedFile Render(SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context)
     {
-        var suffix = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{descriptor.RequirementId}:{descriptor.OperationId}")))[..16];
+        var suffix = Suffix(descriptor);
         var name = $"TypedContext_{suffix}";
         var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.TypedContexts");
         var definitions = descriptor.Types.ToDictionary(definition => definition.Id);
@@ -70,13 +70,18 @@ internal static class SemanticTypedContextRenderer
             Sources = descriptor.OperationId is { } operation ? [operation] : []
         };
 
+        string RuntimeForDescriptor(string? token) => token == SemanticContextRuntimeTokens.TenantId &&
+            descriptor.Role == SemanticImplementationRole.ReducerTransition
+                ? $"global::{context.RootNamespace}.TypedContexts.TenantId"
+                : Runtime(token);
+
         string Resolve(SemanticContextType type, string memberName)
         {
             if (type is null) throw Rejected($"Member '{memberName}' has no type.");
             return type.Kind switch
             {
                 SemanticContextTypeKinds.Runtime when type.ModelType is null && type.Shape is null && type.Properties.IsEmpty =>
-                    Runtime(type.RuntimeToken),
+                    RuntimeForDescriptor(type.RuntimeToken),
                 SemanticContextTypeKinds.Model when type.ModelType is not null && type.Shape is null && type.RuntimeToken is null && type.Properties.IsEmpty =>
                     ModelType(type.ModelType),
                 SemanticContextTypeKinds.Shape when type.Shape is { } shape && type.ModelType is null && type.RuntimeToken is null =>
@@ -128,10 +133,20 @@ internal static class SemanticTypedContextRenderer
                     definition.Kind == reference.Kind => $"global::{context.RootNamespace}.Common.{Identifiers.ToPascalCase(definition.Name)}",
                 _ => throw Rejected($"Model type '{reference.Kind}' / '{reference.Target}' has no matching definition.")
             };
-            var type = reference.IsCollection ? $"IReadOnlyList<{scalar}>" : scalar;
+            var type = scalar;
+            if (reference.IsCollection)
+            {
+                type = descriptor.Role == SemanticImplementationRole.ReducerTransition
+                    ? $"global::System.Collections.Immutable.ImmutableArray<{scalar}>"
+                    : $"IReadOnlyList<{scalar}>";
+            }
+
             return reference.IsOptional ? $"{type}?" : type;
         }
     }
+
+    internal static string Suffix(SemanticTypedContextDescriptor descriptor) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{descriptor.RequirementId}:{descriptor.OperationId}")))[..16];
 
     static bool SameProperties(System.Collections.Immutable.ImmutableArray<SemanticContextProperty> actual, System.Collections.Immutable.ImmutableArray<SemanticProperty> expected) =>
         !actual.IsDefault && actual.Length == expected.Length && actual.Zip(expected).All(pair =>

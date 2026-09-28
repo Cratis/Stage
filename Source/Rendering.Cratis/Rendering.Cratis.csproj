@@ -49,13 +49,31 @@
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />
+        <!-- Both reducer binding and inline handler admission use Roslyn at runtime;
+             packed consumers must receive its runtime assemblies transitively. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="All" />
+        <!-- Embed the audited BCL reference assemblies: rolling SDKs and runtime-only hosts
+             need not install this exact patch of the SDK pack. Never bind against a newer pack. -->
+        <PackageReference Include="Microsoft.NETCore.App.Ref" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
         <EmbeddedResource Include="for_SemanticTypedContextRenderer/Vectors/*.json" />
     </ItemGroup>
+    <ItemGroup>
+        <!-- Embed the pinned 10.0.12 reference pack; the resource version must match
+             PureTransitionAdmission.ReferencePackVersion and Directory.Packages.props.
+             WithCulture prevents System.IO.dll from becoming a spurious IO satellite assembly. -->
+        <EmbeddedResource Include="$(PkgMicrosoft_NETCore_App_Ref)/ref/net10.0/*.dll" LogicalName="PureTransitionReferences.$(PureTransitionReferencePackVersion).%(Filename)%(Extension)" WithCulture="false" />
+    </ItemGroup>
+    <!-- The SDK already loads these analyzers from its framework pack; loading the NuGet
+         copy a second time makes the regex generator emit duplicate partial members. -->
+    <Target Name="RemoveDuplicateReferencePackAnalyzers" BeforeTargets="CoreCompile">
+        <ItemGroup>
+            <Analyzer Remove="$(PkgMicrosoft_NETCore_App_Ref)/analyzers/dotnet/cs/*.dll" />
+        </ItemGroup>
+    </Target>
     <ItemGroup>
         <ProjectReference Include="../Contracts/Contracts.csproj" />
     </ItemGroup>

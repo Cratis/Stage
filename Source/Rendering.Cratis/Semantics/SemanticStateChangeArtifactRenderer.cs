@@ -53,7 +53,7 @@ internal static class SemanticStateChangeArtifactRenderer
         RenderCommand(builder, command, context, types);
         foreach (var declaredEvent in located.Slice.Events)
         {
-            RenderEvent(builder, declaredEvent, types);
+            RenderEvent(builder, declaredEvent, types, context);
         }
 
         RenderValidator(builder, command, context);
@@ -104,8 +104,10 @@ internal static class SemanticStateChangeArtifactRenderer
             var arguments = @event.Properties.Select(property =>
             {
                 var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
-                return mapping.Source is SemanticEventContextExpression ? "occurred" :
-                    Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target).Name);
+                if (mapping.Source is SemanticEventContextExpression) return "occurred";
+                var commandProperty = command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target);
+                var expression = Identifiers.ToPascalCase(commandProperty.Name);
+                return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
             });
             return $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)})";
         }
@@ -138,7 +140,9 @@ internal static class SemanticStateChangeArtifactRenderer
             {
                 var mapping = command.Produces[0].Mappings.Single(_ => _.TargetProperty == property.Id);
                 var source = (SemanticResolvedExpression)mapping.Source;
-                return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
+                var commandProperty = command.Properties.Single(_ => _.Id == source.Target);
+                var expression = Identifiers.ToPascalCase(commandProperty.Name);
+                return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
             });
             builder.ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", $"new({string.Join(", ", arguments)})");
         }
@@ -188,10 +192,20 @@ internal static class SemanticStateChangeArtifactRenderer
         return [];
     }
 
-    static void RenderEvent(CSharpCodeBuilder builder, SemanticEventContract @event, SemanticTypeSystem types)
+    static bool ReducerCollection(SemanticEventContract @event, SemanticProperty property, SemanticApplicationContext context) =>
+        property.Type.IsCollection && context.Reducers.Any(reducer => reducer.Transitions.Any(transition => transition.EventContract == @event.Id));
+
+    static string ImmutableSnapshot(string expression, bool optional)
+    {
+        var snapshot = $"global::System.Collections.Immutable.ImmutableArray.ToImmutableArray({expression})";
+        return optional ? $"{expression} is null ? null : {snapshot}" : snapshot;
+    }
+
+    static void RenderEvent(CSharpCodeBuilder builder, SemanticEventContract @event, SemanticTypeSystem types, SemanticApplicationContext context)
     {
         var name = Identifiers.ToPascalCase(@event.Name);
-        var parameters = string.Join(", ", @event.Properties.Select(_ => $"{types.Type(_.Type)} {Identifiers.ToPascalCase(_.Name)}"));
+        var parameters = string.Join(", ", @event.Properties.Select(property =>
+            $"{types.Type(property.Type, ReducerCollection(@event, property, context))} {Identifiers.ToPascalCase(property.Name)}"));
         builder.Summary($"The event that occurs when {Identifiers.ToWords(@event.Name)}.")
             .Attribute("EventType")
             .Line($"public record {name}({parameters});")

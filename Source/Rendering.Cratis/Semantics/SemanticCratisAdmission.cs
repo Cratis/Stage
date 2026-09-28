@@ -32,17 +32,23 @@ internal static partial class SemanticCratisAdmission
             return [.. diagnostics];
         }
 
+        // TypedContexts is reserved for reducer runtime tokens and wrappers. A modeled
+        // namespace with the same root path can rebind TenantId in unrelated artifacts.
+        if (slices.Any(_ => !_.Slice.Reducers.IsEmpty) &&
+            context.NamespacePaths.Any(path => path == $"{context.RootNamespace}.TypedContexts"))
+        {
+            diagnostics.Add(Error("STAGE-ESM-022", "Generated namespace 'TypedContexts' shadows the reserved reducer runtime namespace.", model.Application.Id));
+            return [.. diagnostics];
+        }
+
         ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
 
+        var analysedBodies = 0;
         foreach (var located in slices)
         {
-            if (!located.Slice.Reducers.IsEmpty)
-            {
-                diagnostics.Add(Error("STAGE-ESM-019", $"Slice '{located.Slice.Name}' has reducer implementation bodies; typed contexts are available, but Stage#119 still needs to render reducer bodies with null-result deletion, event-source key semantics and pure capability enforcement.", located.Slice.Id));
-                continue;
-            }
+            analysedBodies += ValidateReducers(context, located.Slice, diagnostics);
 
             switch (located.Slice.Kind)
             {
@@ -58,6 +64,15 @@ internal static partial class SemanticCratisAdmission
             }
 
             SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics);
+        }
+
+        if (slices.Any(_ => !_.Slice.Reducers.IsEmpty))
+        {
+            diagnostics.Add(new(
+                "STAGE-ESM-023",
+                ArtifactRenderDiagnosticSeverity.Information,
+                $"{analysedBodies} transition bodies analysed.",
+                model.Application.Id));
         }
 
         return [.. diagnostics];

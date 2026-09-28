@@ -26,9 +26,13 @@ internal static class SemanticReadModelSpecificationRenderer
         SemanticApplicationContext context)
     {
         var readModel = context.ReadModels[expected.ReadModel];
-        var projection = context.Projections.Values.Single(_ => _.ReadModel == readModel.Id);
+        var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
+        var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == readModel.Id);
         var command = context.Commands[specification.When!.Command];
-        var replay = SemanticProjectionSpecificationEvents.Replay(specification, projection, command);
+        var replay = reducer is null
+            ? SemanticProjectionSpecificationEvents.Replay(specification, projection!, command)
+            : SemanticReducerSpecificationEvents.Replay(specification, expected, reducer, command);
+        var givenEvents = reducer is null ? specification.GivenEvents : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
@@ -37,13 +41,14 @@ internal static class SemanticReadModelSpecificationRenderer
             behavior += $"_into_{Identifiers.ToSnakeCase(readModel.Name)}";
         }
         var builder = Builder(behavior, located, readModel, context);
+        var needsCommon = false;
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
 
         builder.OpenBlock($"public class {behavior} : Specification")
             .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
             .BlankLine()
             .OpenBlock("async Task Establish()");
-        foreach (var given in specification.GivenEvents)
+        foreach (var given in givenEvents)
         {
             var givenEvent = context.Events[given.EventContract];
             var givenNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(given.EventContract).Path);
@@ -55,6 +60,9 @@ internal static class SemanticReadModelSpecificationRenderer
             var givenArguments = givenEvent.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var givenSource = given.EventSource!;
+            needsCommon |= SemanticTypeSystem.ValueNeedsCommon(givenSource.Value, givenSource.Type) ||
+                givenEvent.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
+                    given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {Identifiers.ToPascalCase(givenEvent.Name)}({string.Join(", ", givenArguments)}));");
         }
 
@@ -68,6 +76,9 @@ internal static class SemanticReadModelSpecificationRenderer
             }
 
             var source = SemanticDestinations.ForSpecification(specification, command, produced);
+            needsCommon |= SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
+                @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
+                    expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)}));");
@@ -76,6 +87,7 @@ internal static class SemanticReadModelSpecificationRenderer
         builder.EndBlock()
             .BlankLine();
         var keyProperty = readModel.Properties.Single(_ => _.IsIdentifier);
+        needsCommon |= SemanticTypeSystem.ValueNeedsCommon(expected.Key, keyProperty.Type);
         var instance = $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
         if (expected.Values.IsEmpty)
         {
@@ -85,12 +97,32 @@ internal static class SemanticReadModelSpecificationRenderer
         foreach (var value in expected.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
         {
             var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);
-            builder.Line(
-                $"[Fact] void should_project_{Identifiers.ToSnakeCase(property.Name)}() => " +
-                $"{instance}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
+            if (reducer is not null && property.Type.IsCollection && value.Value is SemanticArrayValue array)
+            {
+                var elementType = property.Type with { IsCollection = false, IsOptional = false };
+                needsCommon |= SemanticTypeSystem.DeclarationNeedsCommon(elementType) ||
+                    SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
+                var elements = string.Join(", ", array.Values.Select(element => types.Value(element, elementType)));
+                var name = Identifiers.ToSnakeCase(property.Name);
+                builder.Line($"static readonly {types.Type(elementType)}[] _expected_{name} = [{elements}];")
+                    .Line($"[Fact] void should_project_{name}() => " +
+                        $"Assert.True(global::System.Linq.Enumerable.SequenceEqual({instance}.{Identifiers.ToPascalCase(property.Name)}" +
+                        (property.Type.IsOptional ? "!.Value" : string.Empty) + $", _expected_{name}));");
+            }
+            else
+            {
+                needsCommon |= SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
+                builder.Line(
+                    $"[Fact] void should_project_{Identifiers.ToSnakeCase(property.Name)}() => " +
+                    $"{instance}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
+            }
         }
 
         builder.EndBlock();
+        if (needsCommon)
+        {
+            builder.Using($"{context.RootNamespace}.Common");
+        }
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
         // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
@@ -115,7 +147,6 @@ internal static class SemanticReadModelSpecificationRenderer
             .Using("Cratis.Chronicle.Testing.ReadModels")
             .Using("Cratis.Specifications")
             .Using("Xunit")
-            .Using($"{context.RootNamespace}.Common")
             .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(readModel.Id).Path));
     }
 

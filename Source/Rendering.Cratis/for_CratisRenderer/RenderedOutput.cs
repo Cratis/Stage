@@ -105,7 +105,7 @@ internal static class RenderedOutput
         return AssemblyLoadContext.Default.LoadFromStream(assembly);
     }
 
-    static CSharpCompilation CreateCompilation(IEnumerable<RenderedFile> files)
+    internal static CSharpCompilation CreateCompilation(IEnumerable<RenderedFile> files)
     {
         // DEBUG has to be defined or a rendered specification compiles to nothing: the whole file sits inside
         // '#if DEBUG', and a parse without the symbol drops it silently — the assertion would then pass on an

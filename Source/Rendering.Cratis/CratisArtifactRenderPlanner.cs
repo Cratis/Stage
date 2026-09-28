@@ -84,12 +84,18 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var context = new SemanticApplicationContext(request, options);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticCratisAdmission.Evaluate(context, slices));
+        var selectedReducers = slices.SelectMany(_ => _.Slice.Reducers)
+            .SelectMany(reducer => reducer.Transitions.Select(transition => (transition.RequirementId, reducer.ReadModel)))
+            .ToHashSet();
         foreach (var descriptor in request.TypedContextDescriptors)
         {
             try
             {
-                // #119: validate wrappers fail-closed, but emit none until an admitted body consumes one.
-                _ = SemanticTypedContextRenderer.Render(descriptor, context);
+                var wrapper = SemanticTypedContextRenderer.Render(descriptor, context);
+                if (descriptor.OperationId is { } operation && selectedReducers.Contains((descriptor.RequirementId, operation)))
+                {
+                    artifacts.Add(Artifact(wrapper));
+                }
             }
             catch (InvalidTypedContext exception)
             {
@@ -99,6 +105,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {
             return CreatePlan(request, [], diagnostics);
+        }
+
+        if (selectedReducers.Count > 0)
+        {
+            artifacts.Add(Artifact(SemanticReducerContextRuntime.Render(context)));
         }
 
         AddScaffold(request, context, artifacts, diagnostics);

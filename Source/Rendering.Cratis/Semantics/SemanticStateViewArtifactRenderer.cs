@@ -65,8 +65,8 @@ internal static class SemanticStateViewArtifactRenderer
             }
 
             firstModel = false;
-            var projection = located.Slice.Projections.Single(_ => _.ReadModel == readModel.Id);
-            var transition = projection.Scope is null ? projection.Transitions.Single() : null;
+            var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
+            var transition = projection?.Scope is null && projection is not null ? projection.Transitions.Single() : null;
             var @event = transition is null ? null : context.Events[transition.EventContract];
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
             if (@event is not null)
@@ -75,14 +75,14 @@ internal static class SemanticStateViewArtifactRenderer
             }
 
             builder.Attribute("ReadModel")
-                .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault()))})");
+                .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries, context.Reducers.Any(reducer => reducer.ReadModel == readModel.Id)) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault()))})");
             foreach (var query in queries)
             {
                 RenderQuery(builder, query, readModel, types);
             }
 
             builder.EndBlock();
-            if (projection.Scope is { } scope)
+            if (projection?.Scope is { } scope)
             {
                 builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
             }
@@ -96,6 +96,9 @@ internal static class SemanticStateViewArtifactRenderer
         };
     }
 
+    internal static IOrderedEnumerable<SemanticProperty> OrderedProperties(IEnumerable<SemanticProperty> properties) =>
+        properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal);
+
     static IEnumerable<SemanticId> ScopeEvents(SemanticProjectionScope scope) =>
         scope.From.Select(_ => _.EventContract)
             .Concat(scope.Joins.Select(_ => _.EventContract))
@@ -104,9 +107,9 @@ internal static class SemanticStateViewArtifactRenderer
             .Concat(scope.Children.SelectMany(_ => ScopeEvents(_.Scope)))
             .Concat(scope.Nested.SelectMany(_ => ScopeEvents(_.Scope))).Distinct();
 
-    static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries) =>
-        string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
-            $"{((property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty)}{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
+    static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
+        string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
+            $"{((property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty)}{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
 
     static string Parameters(
         SemanticReadModel readModel,
@@ -114,7 +117,7 @@ internal static class SemanticStateViewArtifactRenderer
         SemanticEventContract @event,
         SemanticTypeSystem types,
         SemanticKeyedQuery? keyedQuery) =>
-        string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
+        string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
         {
             var mapping = transition.Mappings.Single(_ => _.TargetProperty == property.Id);
             var source = (SemanticResolvedExpression)mapping.Source;

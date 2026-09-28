@@ -150,6 +150,22 @@ public class CSharpCodeBuilder
     }
 
     /// <summary>
+    /// Embeds authored source bytes without normalizing line endings or indentation.
+    /// </summary>
+    /// <param name="text">The authored body.</param>
+    /// <returns>The builder, for chaining.</returns>
+    public CSharpCodeBuilder RawVerbatim(string text)
+    {
+        _body.Append(text);
+        if (!text.EndsWith('\n'))
+        {
+            _body.AppendLine();
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Emits an expression-bodied member: <c language="csharp">&lt;signature&gt; =&gt; &lt;expression&gt;;</c>.
     /// </summary>
     /// <param name="signature">The member signature, without a trailing <c language="csharp">=&gt;</c>.</param>

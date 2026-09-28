@@ -16,7 +16,7 @@ internal static class ChronicleReadModelPropertyNamesAreSafe
         properties.Select(property => GeneratedCamelCase(property.Name)).Distinct(StringComparer.Ordinal).Count() == properties.Count;
 
     internal static bool CollidesWithRootDocumentKey(SemanticProperty property) =>
-        !property.IsIdentifier && string.Equals(GeneratedCamelCase(property.Name), "id", StringComparison.Ordinal);
+        !property.IsIdentifier && string.Equals(GeneratedCamelCase(property.Name), "id", StringComparison.OrdinalIgnoreCase);
 
     static bool Safe(string name) => name.Length > 0 &&
         !name.Contains('.') && !name.Contains('[') && !name.Contains(']') &&

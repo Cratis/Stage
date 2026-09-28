@@ -402,10 +402,29 @@ public class when_comparing_projection_property_name_admission
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
     }
 
+    public static TheoryData<string, string> NestedEventMembers
+    {
+        get
+        {
+            var rows = new TheoryData<string, string>();
+            foreach (var scope in new[] { "children", "nested" })
+            {
+                foreach (var name in new[]
+                {
+                    "project_id", "toString", "equals", "getHashCode", "equalityContract", "deconstruct", "printMembers",
+                    "title"
+                })
+                {
+                    rows.Add(scope, name);
+                }
+            }
+            return rows;
+        }
+    }
+
     [Theory]
-    [InlineData("children")]
-    [InlineData("nested")]
-    public async Task should_reject_cross_slice_events_referenced_only_below_the_root(string scope)
+    [MemberData(nameof(NestedEventMembers))]
+    public async Task should_reject_cross_slice_events_referenced_only_below_the_root(string scope, string propertyName)
     {
         var source = """
             type ProjectNote
@@ -457,11 +476,15 @@ public class when_comparing_projection_property_name_admission
         if (scope == "nested")
         {
             source = source.Replace(
-                "                    children notes identified by id\n                      from ProjectNoted key id\n                        parent projectId\n                        name = name",
-                "                    nested info\n                      from ProjectNoted key $eventSourceId\n                        name = name",
+                "        children notes identified by id\n          from ProjectNoted key id\n            parent projectId\n            name = name",
+                "        from ProjectNoted key $eventSourceId\n          name = name\n        nested info\n          from ProjectNoted key $eventSourceId\n            name = name",
                 StringComparison.Ordinal);
         }
         var original = Compile(source);
+        var declaredScope = original.Application.Modules.Single().Features.Single().Slices
+            .Single(slice => slice.Kind == SemanticSliceKind.StateView).Projections.Single().Scope!;
+        Assert.Equal(scope == "nested", !declaredScope.Nested.IsEmpty);
+        Assert.Equal(scope == "children", !declaredScope.Children.IsEmpty);
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
         var changed = feature with
@@ -471,7 +494,7 @@ public class when_comparing_projection_property_name_admission
                 Events = [.. slice.Events.Select(@event => @event with
                 {
                     Properties = [.. @event.Properties.Select(property => @event.Name == "ProjectNoted" && property.Name == "name"
-                        ? property with { Name = "project_id" } : property)]
+                        ? property with { Name = propertyName } : property)]
                 })]
             })]
         };
@@ -489,10 +512,17 @@ public class when_comparing_projection_property_name_admission
             new([plan.Specifications.Values.Single().Id]),
             new())).Results);
 
-        Assert.False(rendered.Success);
-        Assert.Empty(rendered.Artifacts);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" &&
-            diagnostic.Artifact == plan.Projections.Values.Single().Id);
+        var collides = propertyName != "title";
+        Assert.True(!collides == rendered.Success, $"{scope}/{propertyName}: {string.Join("; ", rendered.Diagnostics)}");
+        if (collides)
+        {
+            Assert.Empty(rendered.Artifacts);
+            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" &&
+                diagnostic.Artifact == plan.Projections.Values.Single().Id);
+            Assert.Contains("generated C#", executed.Unsupported?.Details ?? string.Empty, StringComparison.Ordinal);
+        }
+
+        // Child/nested execution is not admitted even when its generated C# compiles.
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
 
         var options = new CratisRenderingOptions("Projects", "Projects");
@@ -504,7 +534,7 @@ public class when_comparing_projection_property_name_admission
         var context = new SemanticApplicationContext(request, options);
         var rawEventSource = SemanticStateChangeArtifactRenderer.Render(
             context.DeclaringSlice(context.Events.Values.Single(@event => @event.Name == "ProjectNoted").Id), context);
-        Assert.NotEmpty(RenderedOutput.Errors([rawEventSource]));
+        Assert.Equal(collides, RenderedOutput.Errors([rawEventSource]).Count > 0);
     }
 
     static async Task VerifyChildId()

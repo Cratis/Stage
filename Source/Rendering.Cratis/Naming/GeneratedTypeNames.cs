@@ -14,7 +14,8 @@ internal static class GeneratedTypeNames
     internal static IEnumerable<(SemanticId Artifact, string Kind, string Name)> Collisions(
         SemanticApplication application,
         IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> slices,
-        IEnumerable<(IEnumerable<string> Path, SemanticId Owner, SemanticConstraint Constraint)>? constraints = null)
+        IEnumerable<(IEnumerable<string> Path, SemanticId Owner, SemanticConstraint Constraint)>? constraints = null,
+        bool rendersStringsCatalog = false)
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         var namespaces = new HashSet<(string Namespace, string Name)>();
@@ -66,6 +67,23 @@ internal static class GeneratedTypeNames
         {
             var ns = string.Join('.', path.Select(GeneratedPascalCase.From));
             foreach (var name in Names(ns, constraint.Name, owner, "Constraint")) yield return name;
+        }
+
+        // Declarations the renderer adds outside the modeled namespaces. A module, feature or slice
+        // with the same generated name would declare a namespace next to one of these types.
+        if (rendersStringsCatalog)
+        {
+            foreach (var name in Names(string.Empty, "GeneratedStrings", application.Id, "Generated")) yield return name;
+        }
+        if (selectedSlices.Any(located => located.Slice.Commands.Any(command => command.Authorization is not null) ||
+            located.Slice.Queries.Any(query => query.Authorization is not null)))
+        {
+            foreach (var name in Names("GeneratedPolicies", "Registration", application.Id, "Generated")) yield return name;
+        }
+        if (selectedSlices.Any(located => !located.Slice.Reducers.IsEmpty))
+        {
+            foreach (var name in Names("TypedContexts", "TenantId", application.Id, "Generated")) yield return name;
+            foreach (var name in Names("TypedContexts", "ReducerContextValues", application.Id, "Generated")) yield return name;
         }
 
         IEnumerable<(SemanticId Artifact, string Kind, string Name)> Names(string ns, string source, SemanticId id, string kind)

@@ -39,14 +39,14 @@ internal static partial class SemanticCratisAdmission
                 continue;
             }
 
-            if (projection is null)
-            {
-                continue;
-            }
-
+            // Every read model renders as a record with its queries, whether a projection or a reducer
+            // builds it, and both are persisted through Chronicle's sinks. So these checks run before
+            // the projection-specific ones below.
             if (!ChronicleReadModelPropertyNamesAreSafe.Check(readModel.Properties))
             {
-                diagnostics.Add(Error("STAGE-ESM-017", $"Projection '{projection.Name}' cannot render: a read-model property name collides with Chronicle's property paths or another generated property.", projection.Id));
+                diagnostics.Add(projection is null
+                    ? Error("STAGE-ESM-017", $"Read model '{readModel.Name}' cannot render: a property name collides with Chronicle's property paths or another generated property.", readModel.Id)
+                    : Error("STAGE-ESM-017", $"Projection '{projection.Name}' cannot render: a read-model property name collides with Chronicle's property paths or another generated property.", projection.Id));
                 continue;
             }
 
@@ -59,6 +59,11 @@ internal static partial class SemanticCratisAdmission
                     .Select(query => (query.Name, new SemanticTypeSystem(context).Type(query.Argument.Type), query.Argument.Name))))
             {
                 diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' has property or query names that collide in generated C#.", readModel.Id));
+                continue;
+            }
+
+            if (projection is null)
+            {
                 continue;
             }
 

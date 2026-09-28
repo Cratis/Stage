@@ -255,6 +255,11 @@ internal static class PureTransitionAdmission
             };
             return reference.IsCollection ? [scalar, ("IReadOnlyList", null)] : [scalar];
         }
+
+        // Emitted reducer property types are qualified (global::{Root}.Common.X), so a same-named sibling
+        // no longer breaks the rendered application. These two checks are kept on purpose: they still
+        // guard the admission's own analysis compilation, and refusing a same-named sibling is a
+        // fail-closed over-rejection rather than an unsafe admission (Cratis/Stage#172).
         var propertyShadow = allDeclarations.FirstOrDefault(declaration => emittedTypeDependencies.Any(dependency =>
             dependency.Name == declaration.Name && dependency.Target != declaration.Id));
         if (propertyShadow.Name is not null)

@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
@@ -59,11 +60,7 @@ internal static class SemanticRunProjectionAdmission
         {
             return "A projection references an event with property names that collide in generated C#.";
         }
-        if ((projection.Scope is { } scoped
-                ? scoped.From.Select(from => from.EventContract).Concat(scoped.Joins.Select(join => join.EventContract))
-                    .Concat(scoped.Removals.Select(removal => removal.EventContract))
-                    .Concat(scoped.JoinRemovals.Select(removal => removal.EventContract))
-                : projection.Transitions.Select(transition => transition.EventContract))
+        if (ProjectionReferencedEventNamesAreUnique.Contracts(projection)
             .Any(id => plan.Events.TryGetValue(id, out var @event) &&
                 @event.Properties.Any(property => !ChronicleEventPropertyNameIsSafe.Check(property.Name))))
         {
@@ -81,6 +78,13 @@ internal static class SemanticRunProjectionAdmission
         if (!ChronicleReadModelPropertyNamesAreSafe.Check(readModel.Properties))
         {
             return "A read-model property name collides with Chronicle's property paths or another generated property.";
+        }
+        if (!GeneratedPascalCase.ReadModelMembersAreUnique(
+            readModel.Name,
+            readModel.Properties.Select(property => property.Name),
+            plan.Queries.Values.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)))
+        {
+            return "A read-model property or query name collides in generated C#.";
         }
         if (readModel.Properties.Any(property => Primitive(plan, property.Type) == SemanticPrimitiveType.DateTime))
         {

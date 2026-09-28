@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -37,6 +38,15 @@ internal static partial class SemanticCratisAdmission
             if (!ChronicleReadModelPropertyNamesAreSafe.Check(readModel.Properties))
             {
                 diagnostics.Add(Error("STAGE-ESM-017", $"Projection '{projection.Name}' cannot render: a read-model property name collides with Chronicle's property paths or another generated property.", projection.Id));
+                continue;
+            }
+
+            if (!GeneratedPascalCase.ReadModelMembersAreUnique(
+                readModel.Name,
+                readModel.Properties.Select(property => property.Name),
+                slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)))
+            {
+                diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' has property or query names that collide in generated C#.", readModel.Id));
                 continue;
             }
 

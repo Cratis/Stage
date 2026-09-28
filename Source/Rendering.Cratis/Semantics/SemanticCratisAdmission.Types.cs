@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -31,6 +32,11 @@ internal static partial class SemanticCratisAdmission
 
         foreach (var type in context.Application.Types)
         {
+            if (!GeneratedPascalCase.RecordMembersAreUnique(type.Name, type.Properties.Select(property => property.Name)))
+            {
+                diagnostics.Add(Error("STAGE-ESM-012", $"Type '{type.Name}' has property names that collide in generated C#.", type.Id));
+            }
+
             foreach (var property in type.Properties.Where(property => !TypeExists(context, property.Type)))
             {
                 diagnostics.Add(Error("STAGE-ESM-003", $"Property '{property.Name}' of '{type.Name}' has an unresolved type.", type.Id));

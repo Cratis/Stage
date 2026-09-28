@@ -8,14 +8,28 @@ namespace Cratis.Stage.Rendering.Cratis.Naming;
 /// </summary>
 internal static class GeneratedPascalCase
 {
-    static readonly string[] _recordMembers = ["EqualityContract", "ToString", "Equals", "GetHashCode", "Deconstruct", "PrintMembers"];
-    static readonly string[] _commandMembers = [.. _recordMembers, "Handle", "GetEventSourceId"];
+    // The record-synthesized members and the accessible object members are verified against
+    // Roslyn positional-record compilation in the generated-member matrix specifications.
+    static readonly string[] _recordMembers = ["EqualityContract", "ToString", "Equals", "GetHashCode", "Deconstruct", "PrintMembers", "GetType", "MemberwiseClone", "ReferenceEquals", "Clone"];
 
     internal static bool EventMembersAreUnique(string eventName, IEnumerable<string> properties) =>
-        MembersAreUnique(eventName, properties, _recordMembers);
+        RecordMembersAreUnique(eventName, properties);
 
     internal static bool CommandMembersAreUnique(string commandName, IEnumerable<string> properties) =>
-        MembersAreUnique(commandName, properties, _commandMembers);
+        RecordMembersAreUnique(commandName, properties, ["Handle", "GetEventSourceId"]) &&
+        From(commandName) is not ("Handle" or "GetEventSourceId");
+
+    internal static bool ReadModelMembersAreUnique(string readModelName, IEnumerable<string> properties, IEnumerable<string> queryNames) =>
+        RecordMembersAreUnique(readModelName, properties, queryNames) &&
+        queryNames.All(name => From(name) != From(readModelName) && From(name) is not ("EqualityContract" or "Clone"));
+
+    internal static bool RecordMembersAreUnique(string typeName, IEnumerable<string> properties, IEnumerable<string>? methods = null)
+    {
+        var generated = properties.Select(From).ToArray();
+        var reserved = _recordMembers.Concat((methods ?? []).Select(From)).ToHashSet(StringComparer.Ordinal);
+        return generated.Distinct(StringComparer.Ordinal).Count() == generated.Length &&
+            generated.All(name => name != From(typeName) && !reserved.Contains(name));
+    }
 
     internal static string From(string name)
     {
@@ -27,12 +41,5 @@ internal static class GeneratedPascalCase
         }
 
         return char.IsDigit(result[0]) ? $"_{result}" : result;
-    }
-
-    static bool MembersAreUnique(string typeName, IEnumerable<string> properties, IEnumerable<string> reserved)
-    {
-        var generated = properties.Select(From).ToArray();
-        return generated.Distinct(StringComparer.Ordinal).Count() == generated.Length &&
-            generated.All(name => name != From(typeName) && !reserved.Contains(name, StringComparer.Ordinal));
     }
 }

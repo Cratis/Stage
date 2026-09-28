@@ -38,10 +38,7 @@ internal static class SemanticStateViewArtifactRenderer
 
         foreach (var projection in located.Slice.Projections)
         {
-            var eventIds = projection.Scope is { } scope
-                ? ScopeEvents(scope)
-                : projection.Transitions.Select(_ => _.EventContract);
-            foreach (var eventId in eventIds)
+            foreach (var eventId in ProjectionReferencedEventNamesAreUnique.Contracts(projection))
             {
                 var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(eventId).Path);
                 if (!string.Equals(ownNamespace, eventNamespace, StringComparison.Ordinal))
@@ -95,14 +92,6 @@ internal static class SemanticStateViewArtifactRenderer
                 .. located.Slice.Projections.Select(_ => _.Id), .. located.Slice.Queries.Select(_ => _.Id)]
         };
     }
-
-    static IEnumerable<SemanticId> ScopeEvents(SemanticProjectionScope scope) =>
-        scope.From.Select(_ => _.EventContract)
-            .Concat(scope.Joins.Select(_ => _.EventContract))
-            .Concat(scope.Removals.Select(_ => _.EventContract))
-            .Concat(scope.JoinRemovals.Select(_ => _.EventContract))
-            .Concat(scope.Children.SelectMany(_ => ScopeEvents(_.Scope)))
-            .Concat(scope.Nested.SelectMany(_ => ScopeEvents(_.Scope))).Distinct();
 
     static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries) =>
         string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>

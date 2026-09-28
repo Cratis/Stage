@@ -13,12 +13,19 @@ internal static class ProjectionReferencedEventNamesAreUnique
 {
     internal static bool Check(SemanticProjection projection, IReadOnlyDictionary<SemanticId, SemanticEventContract> events)
     {
-        var contracts = projection.Scope is { } scoped
-            ? scoped.From.Select(from => from.EventContract).Concat(scoped.Joins.Select(join => join.EventContract))
-                .Concat(scoped.Removals.Select(removal => removal.EventContract))
-                .Concat(scoped.JoinRemovals.Select(removal => removal.EventContract))
-            : projection.Transitions.Select(transition => transition.EventContract);
-        return contracts.All(id => !events.TryGetValue(id, out var @event) ||
+        return Contracts(projection).All(id => !events.TryGetValue(id, out var @event) ||
             GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name)));
     }
+
+    internal static IEnumerable<SemanticId> Contracts(SemanticProjection projection) => projection.Scope is { } scope
+        ? ScopeEvents(scope).Distinct()
+        : projection.Transitions.Select(transition => transition.EventContract);
+
+    internal static IEnumerable<SemanticId> ScopeEvents(SemanticProjectionScope scope) =>
+        scope.From.Select(_ => _.EventContract)
+            .Concat(scope.Joins.Select(_ => _.EventContract))
+            .Concat(scope.Removals.Select(_ => _.EventContract))
+            .Concat(scope.JoinRemovals.Select(_ => _.EventContract))
+            .Concat(scope.Children.SelectMany(_ => ScopeEvents(_.Scope)))
+            .Concat(scope.Nested.SelectMany(_ => ScopeEvents(_.Scope)));
 }

@@ -19,6 +19,6 @@ internal static class ProjectionReferencedEventNamesAreUnique
                 .Concat(scoped.JoinRemovals.Select(removal => removal.EventContract))
             : projection.Transitions.Select(transition => transition.EventContract);
         return contracts.All(id => !events.TryGetValue(id, out var @event) ||
-            GeneratedPascalCase.NamesAreUnique(@event.Properties.Select(property => property.Name)));
+            GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name)));
     }
 }

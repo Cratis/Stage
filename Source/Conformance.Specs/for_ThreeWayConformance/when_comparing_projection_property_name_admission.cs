@@ -148,8 +148,11 @@ public class when_comparing_projection_property_name_admission
         }
     }
 
-    [Fact]
-    public async Task should_refuse_an_unreached_projection_event_with_colliding_generated_properties()
+    [Theory]
+    [InlineData("display_name")]
+    [InlineData("projectUpdated")]
+    [InlineData("toString")]
+    public async Task should_refuse_an_unreached_projection_event_with_colliding_generated_properties(string propertyName)
     {
         var source = Source.Replace(
                 "      specification RegisteringAProject",
@@ -169,7 +172,7 @@ public class when_comparing_projection_property_name_admission
                 Events = [.. slice.Events.Select(@event => @event with
                 {
                     Properties = [.. @event.Properties.Select(property => @event.Name == "ProjectUpdated" && property.Name == "otherName"
-                        ? property with { Name = "display_name" } : property)]
+                        ? property with { Name = propertyName } : property)]
                 })]
             })]
         };

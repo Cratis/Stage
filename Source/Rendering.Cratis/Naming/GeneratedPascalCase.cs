@@ -8,11 +8,14 @@ namespace Cratis.Stage.Rendering.Cratis.Naming;
 /// </summary>
 internal static class GeneratedPascalCase
 {
-    internal static bool NamesAreUnique(IEnumerable<string> names)
-    {
-        var generated = names.Select(From).ToArray();
-        return generated.Distinct(StringComparer.Ordinal).Count() == generated.Length;
-    }
+    static readonly string[] _recordMembers = ["EqualityContract", "ToString", "Equals", "GetHashCode", "Deconstruct", "PrintMembers"];
+    static readonly string[] _commandMembers = [.. _recordMembers, "Handle", "GetEventSourceId"];
+
+    internal static bool EventMembersAreUnique(string eventName, IEnumerable<string> properties) =>
+        MembersAreUnique(eventName, properties, _recordMembers);
+
+    internal static bool CommandMembersAreUnique(string commandName, IEnumerable<string> properties) =>
+        MembersAreUnique(commandName, properties, _commandMembers);
 
     internal static string From(string name)
     {
@@ -24,5 +27,12 @@ internal static class GeneratedPascalCase
         }
 
         return char.IsDigit(result[0]) ? $"_{result}" : result;
+    }
+
+    static bool MembersAreUnique(string typeName, IEnumerable<string> properties, IEnumerable<string> reserved)
+    {
+        var generated = properties.Select(From).ToArray();
+        return generated.Distinct(StringComparer.Ordinal).Count() == generated.Length &&
+            generated.All(name => name != From(typeName) && !reserved.Contains(name, StringComparer.Ordinal));
     }
 }

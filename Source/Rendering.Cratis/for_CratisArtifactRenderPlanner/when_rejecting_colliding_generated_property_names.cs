@@ -27,9 +27,19 @@ public class when_rejecting_colliding_generated_property_names
         """;
 
     [Theory]
-    [InlineData("event")]
-    [InlineData("command")]
-    public void should_reject_direct_semantic_property_collisions(string kind)
+    [InlineData("event", "project_id")]
+    [InlineData("command", "project_id")]
+    [InlineData("event", "projectRegistered")]
+    [InlineData("command", "registerProject")]
+    [InlineData("command", "handle")]
+    [InlineData("command", "getEventSourceId")]
+    [InlineData("event", "equalityContract")]
+    [InlineData("event", "toString")]
+    [InlineData("event", "equals")]
+    [InlineData("event", "getHashCode")]
+    [InlineData("event", "deconstruct")]
+    [InlineData("event", "printMembers")]
+    public void should_reject_direct_semantic_property_collisions(string kind, string propertyName)
     {
         var model = Compile(Source);
         var module = model.Application.Modules.Single();
@@ -39,11 +49,11 @@ public class when_rejecting_colliding_generated_property_names
         {
             Events = kind == "event" ? [.. slice.Events.Select(@event => @event with
             {
-                Properties = [.. @event.Properties.Select(property => property.Name == "displayName" ? property with { Name = "project_id" } : property)]
+                Properties = [.. @event.Properties.Select(property => property.Name == "displayName" ? property with { Name = propertyName } : property)]
             })] : slice.Events,
             Commands = kind == "command" ? [.. slice.Commands.Select(command => command with
             {
-                Properties = [.. command.Properties.Select(property => property.Name == "displayName" ? property with { Name = "project_id" } : property)]
+                Properties = [.. command.Properties.Select(property => property.Name == "displayName" ? property with { Name = propertyName } : property)]
             })] : slice.Commands
         };
         var changedModel = ExecutableSemanticModel.Create(

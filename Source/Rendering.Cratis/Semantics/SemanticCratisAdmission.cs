@@ -40,7 +40,7 @@ internal static partial class SemanticCratisAdmission
         foreach (var located in slices)
         {
             foreach (var @event in located.Slice.Events.Where(@event =>
-                !GeneratedPascalCase.NamesAreUnique(@event.Properties.Select(property => property.Name))))
+                !GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name))))
             {
                 diagnostics.Add(Error("STAGE-ESM-012", $"Event '{@event.Name}' has property names that collide in generated C#.", @event.Id));
             }

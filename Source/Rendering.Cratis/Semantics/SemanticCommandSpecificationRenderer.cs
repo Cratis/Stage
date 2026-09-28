@@ -212,8 +212,26 @@ internal static class SemanticCommandSpecificationRenderer
         bool seedInLog)
     {
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-            .Using("Cratis.Chronicle.Events")
-            .Line("[Fact] void should_succeed() => _result.ShouldBeSuccessful();");
+            .Using("Cratis.Chronicle.Events");
+        foreach (var (expected, index) in specification.ThenEvents.Select((value, index) => (value, index)))
+        {
+            foreach (var property in context.Events[expected.EventContract].Properties.Where(property => property.Type.IsCollection))
+            {
+                var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
+                if (value is SemanticArrayValue)
+                {
+                    var elementType = property.Type with { IsCollection = false, IsOptional = false };
+                    if (SemanticTypeSystem.DeclarationNeedsCommon(elementType))
+                    {
+                        builder.Using($"{context.RootNamespace}.Common");
+                    }
+
+                    builder.Line($"static readonly {types.Type(elementType)}[] {ExpectedCollectionName(property, index)} = {types.Value(value, property.Type)};");
+                }
+            }
+        }
+
+        builder.Line("[Fact] void should_succeed() => _result.ShouldBeSuccessful();");
         if (specification.ThenEvents.Length > 1)
         {
             builder.Line(seedInLog
@@ -247,7 +265,7 @@ internal static class SemanticCommandSpecificationRenderer
             var predicate = @event.Properties.IsEmpty ? "true" : string.Join(" && ", @event.Properties.Select(property =>
             {
                 var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
-                return $"@event.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value, property.Type)}";
+                return EventPropertyPredicate(property, value, types, index);
             }));
             var sourceValue = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
             var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
@@ -291,7 +309,7 @@ internal static class SemanticCommandSpecificationRenderer
                     builder.Using($"{context.RootNamespace}.Common");
                 }
 
-                return $"@event.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value, property.Type)}";
+                return EventPropertyPredicate(property, value, types, index);
             });
             var produced = command.Produces.First(_ => _.EventContract == expected.EventContract);
             var identity = SemanticDestinations.ForSpecification(specification, command, produced);
@@ -307,6 +325,24 @@ internal static class SemanticCommandSpecificationRenderer
         }
 
         builder.EndBlock();
+    }
+
+    static string ExpectedCollectionName(SemanticProperty property, int index) => $"_expected_event_{index}_{Identifiers.ToSnakeCase(property.Name)}";
+
+    static string EventPropertyPredicate(SemanticProperty property, SemanticValue value, SemanticTypeSystem types, int index)
+    {
+        var name = Identifiers.ToPascalCase(property.Name);
+        if (!property.Type.IsCollection)
+        {
+            return $"@event.{name} == {types.Value(value, property.Type)}";
+        }
+
+        if (value is SemanticNullValue)
+        {
+            return $"@event.{name} is null";
+        }
+
+        return $"(@event.{name} is {{ }} actual{name} && actual{name}.SequenceEqual({ExpectedCollectionName(property, index)}))";
     }
 
     static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";

@@ -164,8 +164,8 @@ and do not affect this run; implicit identity allocation remains unsupported.
 
 Given read models still return `Unsupported(GivenReadModel)`. Per-run projections reject optional or composite
 read-model properties, DateTime read-model values (whose round-trip text may change), and non-identifier
-properties whose generated name is `Id` (including authored `id_`, `_id`, and `id-`, which collide with
-Chronicle's document key). They reject joins, child or nested projections, removals, every/all mappings, literal mappings, and unsupported key shapes before execution. Projections over events whose property names Chronicle interprets as expressions (`$`, `.`, `[`, `]`, a leading quote, booleans, numbers, or derived functions such as `Week` or `Week()`), and read-model properties whose names can be interpreted as paths or collide after camel-casing, return `Unsupported(Projection)`.
+properties whose generated name matches `Id` case-insensitively (including authored `id_`, `_id`, `id-`, `ID`, `iD`, and `i_d`, which collide with
+Chronicle's document key); a child `id` remains allowed. Given, directly appended, and command-produced events, as well as commands, return `Unsupported(Command)` when their property names collide after PascalCase generation with another property, the record's type or synthesized members, or the generated command methods. Per-run projections also reject joins, child or nested projections, removals, every/all mappings, literal mappings, and unsupported key shapes before execution. Projections over events whose property names Chronicle interprets as expressions (`$`, `.`, `[`, `]`, a leading quote, booleans, numbers, or derived functions such as `Week` or `Week()`), projections referencing even unreached events with colliding generated members, and read-model properties whose names can be interpreted as paths or collide after camel-casing return `Unsupported(Projection)`.
 An event-source identity
 mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
 otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also

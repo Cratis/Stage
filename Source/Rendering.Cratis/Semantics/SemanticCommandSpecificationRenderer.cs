@@ -145,7 +145,7 @@ internal static class SemanticCommandSpecificationRenderer
 
         if (specification.ThenDenied)
         {
-            var policy = $"{context.RootNamespace}.GeneratedPolicies.StagePolicy_{command.Id.ToString().Replace('-', '_').Replace(':', '_')}";
+            var policy = $"global::{context.RootNamespace}.GeneratedPolicies.StagePolicy_{command.Id.ToString().Replace('-', '_').Replace(':', '_')}";
             builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
                 .Using("Cratis.Arc.Authorization")
                 .Using("Microsoft.Extensions.DependencyInjection")

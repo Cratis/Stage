@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using System.Globalization;
 using System.Text.Json;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -30,6 +31,9 @@ public class when_compiling_generated_name_matrix
     static readonly string[] RecordMembers = [.. GeneratedPascalCase.RecordMembers.Select(Identifiers.ToCamelCase), "finalize", "wait"];
     static readonly string[] RecordKinds = ["event", "command", "readmodel", "type", "concept"];
     static readonly string[] PropertyKinds = ["event", "command", "readmodel", "type"];
+    static readonly IReadOnlyDictionary<string, Lazy<Task<IReadOnlyDictionary<string, string?>>>> MemberBatches =
+        PropertyKinds.ToDictionary(kind => kind, kind => new Lazy<Task<IReadOnlyDictionary<string, string?>>>(() => VerifyMemberRows(kind)));
+    static readonly Lazy<Task<IReadOnlyDictionary<string, string?>>> ContextualBatches = new(VerifyContextualRows);
     static readonly string[] ContextualKeywords = [.. Enum.GetValues<SyntaxKind>()
         .Where(SyntaxFacts.IsContextualKeyword).Select(SyntaxFacts.GetText).Where(name => name.Length > 0)];
 
@@ -76,8 +80,26 @@ public class when_compiling_generated_name_matrix
                   name = name
         """;
 
+    const string CommonTemplateNamespace = "Projects.MatrixTemplate";
     static readonly ExecutableSemanticModel Original = Compile(Source);
     static readonly JsonSerializerOptions SerializationOptions = new(JsonSerializerDefaults.Web);
+    static readonly Lazy<RenderedFile[]> CommonTemplate = new(() =>
+    {
+        var model = Original;
+        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var options = new CratisRenderingOptions("Projects", CommonTemplateNamespace);
+        var request = new ArtifactRenderRequest(
+            model,
+            plan,
+            CratisRendering.CreateProfile("Projects", options),
+            new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var context = new SemanticApplicationContext(request, options);
+        return
+        [
+            .. model.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context)),
+            .. model.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context))
+        ];
+    });
 
     public static TheoryData<string, string> TypeRows
     {
@@ -100,30 +122,35 @@ public class when_compiling_generated_name_matrix
             var rows = new TheoryData<string, string>();
             foreach (var kind in PropertyKinds)
             {
-                // Authored siblings differ ordinally but normalize to the same emitted member.
-                var sibling = kind switch
-                {
-                    "event" or "command" => "project_id",
-                    "readmodel" => "key_",
-                    _ => "id_"
-                };
-                var emittedType = kind switch
-                {
-                    "event" => "projectRegistered",
-                    "command" => "registerProject",
-                    "readmodel" => "projectSummary",
-                    _ => "projectNote"
-                };
-                string[] methods = kind switch
-                {
-                    "command" => ["handle", "getEventSourceId"],
-                    "readmodel" => ["projectById"],
-                    _ => []
-                };
-                foreach (var member in RecordMembers.Append(sibling).Append(emittedType).Concat(methods).Concat(ContextualKeywords)) rows.Add(kind, member);
+                foreach (var name in MemberNames(kind)) rows.Add(kind, name);
             }
             return rows;
         }
+    }
+
+    static IEnumerable<string> MemberNames(string kind)
+    {
+        // Authored siblings differ ordinally but normalize to the same emitted member.
+        var sibling = kind switch
+        {
+            "event" or "command" => "project_id",
+            "readmodel" => "key_",
+            _ => "id_"
+        };
+        var emittedType = kind switch
+        {
+            "event" => "projectRegistered",
+            "command" => "registerProject",
+            "readmodel" => "projectSummary",
+            _ => "projectNote"
+        };
+        string[] methods = kind switch
+        {
+            "command" => ["handle", "getEventSourceId"],
+            "readmodel" => ["projectById"],
+            _ => []
+        };
+        return RecordMembers.Append(sibling).Append(emittedType).Concat(methods).Concat(ContextualKeywords);
     }
 
     [Theory]
@@ -133,8 +160,79 @@ public class when_compiling_generated_name_matrix
 
     [Theory]
     [MemberData(nameof(MemberRows))]
-    public Task record_members_and_siblings_match_the_emitted_compilation(string kind, string name) =>
-        Verify(Mutate(kind, name, typeName: false), $"member/{kind}/{name}");
+    public async Task record_members_and_siblings_match_the_emitted_compilation(string kind, string name)
+    {
+        var row = $"member/{kind}/{name}";
+        var results = await MemberBatches[kind].Value;
+        Assert.True(results[row] is null, results[row]);
+    }
+
+    static async Task<IReadOnlyDictionary<string, string?>> VerifyMemberRows(string kind)
+    {
+        var rows = MemberNames(kind).Select((name, index) =>
+            Prepare(Mutate(kind, name, typeName: false), $"member/{kind}/{name}", $"Projects.Matrix{kind}{index}")).ToArray();
+
+        // xUnit serializes theories in this class. Work on two independent compilations at a time
+        // without sharing a mutable result map between batches.
+        using var concurrency = new SemaphoreSlim(2);
+        var batches = rows.Chunk(8).Select(async batch =>
+        {
+            await concurrency.WaitAsync();
+            try
+            {
+                return await Task.Run(async () =>
+                {
+                    var batchResults = new Dictionary<string, string?>(StringComparer.Ordinal);
+                    await VerifyBatch(batch, batchResults);
+                    return batchResults;
+                });
+            }
+            finally
+            {
+                concurrency.Release();
+            }
+        });
+        var results = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var batch in await Task.WhenAll(batches))
+        {
+            foreach (var (row, failure) in batch)
+            {
+                if (!results.TryAdd(row, failure) && failure is not null) results[row] = failure;
+            }
+        }
+        return results;
+    }
+
+    static async Task VerifyBatch(MatrixRow[] rows, Dictionary<string, string?> results)
+    {
+        var files = rows.SelectMany((entry, index) => entry.Files.Select(file =>
+            new RenderedFile($"{index}/{file.RelativePath}", file.Content))).ToArray();
+        var diagnostics = RenderedOutput.CreateCompilation(files).GetDiagnostics()
+            .Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+            .ToArray();
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Location.SourceTree is null ||
+            diagnostic.Location.SourceTree.FilePath == "GlobalUsings.g.cs");
+        var errorsByRow = diagnostics.GroupBy(diagnostic => int.Parse(
+                diagnostic.Location.SourceTree!.FilePath.Split('/')[0], CultureInfo.InvariantCulture))
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)[.. group.Select(diagnostic =>
+                $"{diagnostic.Location.SourceTree!.FilePath}: {diagnostic.GetMessage(CultureInfo.InvariantCulture)}")]);
+
+        // Only the case-only serialization rows need a loaded assembly. The name matrix
+        // checks compiler diagnostics; the serialization rows still run the real serializer.
+        foreach (var (entry, index) in rows.Select((entry, index) => (entry, index)))
+        {
+            var errors = errorsByRow.GetValueOrDefault(index) ?? [];
+            try
+            {
+                await Verify(entry, errors, serializedFailure: false);
+                results.TryAdd(entry.Row, null);
+            }
+            catch (Exception exception)
+            {
+                results[entry.Row] = $"{entry.Row}: {exception}";
+            }
+        }
+    }
 
     [Theory]
     [InlineData("command", "registerProject")]
@@ -325,7 +423,26 @@ public class when_compiling_generated_name_matrix
 
     [Theory]
     [MemberData(nameof(ContextualArgumentRows))]
-    public Task contextual_keywords_as_properties_and_query_arguments_compile(string name)
+    public async Task contextual_keywords_as_properties_and_query_arguments_compile(string name)
+    {
+        var row = $"contextual/{name}";
+        var results = await ContextualBatches.Value;
+        Assert.True(results[row] is null, results[row]);
+    }
+
+    static async Task<IReadOnlyDictionary<string, string?>> VerifyContextualRows()
+    {
+        var rows = ContextualKeywords.Distinct(StringComparer.Ordinal).Select((name, index) =>
+            Prepare(MutateContextual(name), $"contextual/{name}", $"Projects.Contextual{index}")).ToArray();
+        var results = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var batch in rows.Chunk(8))
+        {
+            await VerifyBatch(batch, results);
+        }
+        return results;
+    }
+
+    static ExecutableSemanticModel MutateContextual(string name)
     {
         var model = Original;
         var application = model.Application;
@@ -342,12 +459,10 @@ public class when_compiling_generated_name_matrix
                 Queries = [.. slice.Queries.Select(query => query with { Argument = query.Argument with { Name = name } })]
             })]
         };
-        return Verify(
-            ExecutableSemanticModel.Create(
-                model.LanguageVersion,
-                model.SemanticVersion,
-                application with { Modules = [module with { Features = [updated] }] }),
-            $"contextual/{name}");
+        return ExecutableSemanticModel.Create(
+            model.LanguageVersion,
+            model.SemanticVersion,
+            application with { Modules = [module with { Features = [updated] }] });
     }
 
     public static TheoryData<string> ContextualArgumentRows
@@ -636,12 +751,14 @@ public class when_compiling_generated_name_matrix
         return ExecutableSemanticModel.Create(Original.LanguageVersion, Original.SemanticVersion, application);
     }
 
-    static async Task Verify(ExecutableSemanticModel model, string row)
+    static Task Verify(ExecutableSemanticModel model, string row) => Verify(Prepare(model, row));
+
+    static MatrixRow Prepare(ExecutableSemanticModel model, string row, string rootNamespace = "Projects")
     {
         var compiled = SemanticExecutionPlan.Compile(model);
         Assert.True(compiled.Success, $"{row}: {string.Join("; ", compiled.Issues)}");
         var plan = compiled.Plan!;
-        var options = new CratisRenderingOptions("Projects", "Projects");
+        var options = new CratisRenderingOptions("Projects", rootNamespace);
         var request = new ArtifactRenderRequest(
             model,
             plan,
@@ -651,8 +768,14 @@ public class when_compiling_generated_name_matrix
         var files = context.SelectedSlices().Select(slice => slice.Slice.Kind == SemanticSliceKind.StateChange
             ? SemanticStateChangeArtifactRenderer.Render(slice, context)
             : SemanticStateViewArtifactRenderer.Render(slice, context))
-            .Concat(model.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context)))
-            .Concat(model.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context)))
+            .Concat((row.StartsWith("member/", StringComparison.Ordinal) && !row.StartsWith("member/type/", StringComparison.Ordinal)) ||
+                row.StartsWith("contextual/", StringComparison.Ordinal)
+                ? CommonTemplate.Value.Select(file => file with
+                {
+                    Content = file.Content.Replace(CommonTemplateNamespace, rootNamespace, StringComparison.Ordinal)
+                })
+                : model.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context))
+                    .Concat(model.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context))))
             .Concat(SemanticCratisAdmission.SelectedConstraints(context, context.SelectedSlices())
                 .Select(selected => SemanticConstraintArtifactRenderer.Render(selected.Slice, selected.Constraint, context)))
             .Concat(row.StartsWith("crossnamespace/", StringComparison.Ordinal)
@@ -663,10 +786,15 @@ public class when_compiling_generated_name_matrix
                         .Concat(specification.ThenReadModels.Select(expected => SemanticReadModelSpecificationRenderer.Render(specification, expected, context))))
                 : [])
             .ToArray();
-        var errors = RenderedOutput.Errors(files);
-        var serializationFailure = false;
-        if (errors.Count == 0 && (row.StartsWith("member/", StringComparison.Ordinal) ||
-            row.StartsWith("serialization/", StringComparison.Ordinal)))
+        return new(row, model, plan, options, request, files);
+    }
+
+    static async Task Verify(MatrixRow entry, IReadOnlyList<string>? compiledErrors = null, bool? serializedFailure = null)
+    {
+        var (row, model, plan, options, request, files) = entry;
+        var errors = compiledErrors ?? RenderedOutput.Errors(files);
+        var serializationFailure = serializedFailure ?? false;
+        if (serializedFailure is null && errors.Count == 0 && row.StartsWith("serialization/", StringComparison.Ordinal))
         {
             // Serialization uses the same camel-case, case-insensitive names as Chronicle's
             // record materialization. C# accepts Name/NAme, but serialization cannot bind both.
@@ -702,6 +830,14 @@ public class when_compiling_generated_name_matrix
             Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" || diagnostic.Code == "STAGE-ESM-017");
         }
     }
+
+    sealed record MatrixRow(
+        string Row,
+        ExecutableSemanticModel Model,
+        SemanticExecutionPlan Plan,
+        CratisRenderingOptions Options,
+        ArtifactRenderRequest Request,
+        RenderedFile[] Files);
 
     static ExecutableSemanticModel Compile(string source)
     {

@@ -62,9 +62,7 @@ public class when_planning_names_beside_generated_declarations
     [Fact]
     public void should_compile_a_denied_specification_in_a_feature_named_like_the_root_namespace()
     {
-        var plan = invoice_model.Plan(invoice_model.Compile(when_rendering_portable_authorization.Source
-            .Replace("feature Invoicing", "feature Invoices", StringComparison.Ordinal)
-            .Replace("    slice StateView Lookup", """
+        const string denied = """
                   specification DenyingTheOtherOwner
                     given caller
                       authenticated
@@ -76,7 +74,10 @@ public class when_planning_names_beside_generated_declarations
                       description = "North"
                     then denied
                 slice StateView Lookup
-            """, StringComparison.Ordinal)));
+            """;
+        var plan = invoice_model.Plan(invoice_model.Compile(when_rendering_portable_authorization.Source
+            .Replace("feature Invoicing", "feature Invoices", StringComparison.Ordinal)
+            .Replace("    slice StateView Lookup", denied, StringComparison.Ordinal)));
 
         Assert.True(plan.Success, string.Join("; ", plan.Diagnostics));
         Assert.Contains(CSharp(plan), file => file.RelativePath.EndsWith("when_denying_the_other_owner.cs", StringComparison.Ordinal));

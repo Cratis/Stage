@@ -12,9 +12,12 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.conforma
 public class when_running_the_register_project_corpus : Specification
 {
     readonly List<string> _failures = [];
+    int _projectedAcceptances;
 
     [Fact]
-    public void should_match_the_reference_for_admitted_specs_and_block_projected_acceptance() => Assert.True(_failures.Count == 0, string.Join(Environment.NewLine, _failures));
+    public void should_match_the_reference_for_each_admitted_specification() => Assert.True(_failures.Count == 0, string.Join(Environment.NewLine, _failures));
+    [Fact]
+    public void should_execute_all_eight_canonical_projected_acceptances() => _projectedAcceptances.ShouldEqual(8);
 
     protected async Task Because()
     {
@@ -51,12 +54,16 @@ public class when_running_the_register_project_corpus : Specification
                     if (result.Outcome == SemanticSpecificationOutcome.Passed && !reference.Passed)
                         _failures.Add($"{corpus.Name}/{form.Name}/{expectation.Name}: Stage falsely passed");
 
-                    // An accepted registration feeds the project projection, which is not executed per run; a rejection
-                    // appends nothing, so it runs and must agree with the reference.
-                    if (expectation.Outcome == SemanticExecutionOutcomeKind.Accepted &&
-                        (result.Outcome != SemanticSpecificationOutcome.Unsupported || result.Unsupported?.Capability != StageExecutionCapability.Projection))
+                    if (expectation.Outcome == SemanticExecutionOutcomeKind.Accepted)
                     {
-                        _failures.Add($"{corpus.Name}/{form.Name}/{expectation.Name}: expected Unsupported(Projection), got {result.Outcome}/{result.Unsupported?.Capability}");
+                        if (result.Outcome == SemanticSpecificationOutcome.Passed && result.Trace?.ReadModels.Count > 0)
+                        {
+                            _projectedAcceptances++;
+                        }
+                        else
+                        {
+                            _failures.Add($"{corpus.Name}/{form.Name}/{expectation.Name}: Stage {result.Outcome}/{result.Unsupported?.Capability}: {string.Join("; ", result.Failures)}");
+                        }
                     }
 
                     if (expectation.Outcome == SemanticExecutionOutcomeKind.Rejected && result.Outcome != SemanticSpecificationOutcome.Passed)

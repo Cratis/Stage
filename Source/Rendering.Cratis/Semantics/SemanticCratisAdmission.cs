@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -44,10 +45,27 @@ internal static partial class SemanticCratisAdmission
         ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
+        foreach (var (artifact, kind, name) in GeneratedTypeNames.Collisions(
+            context.Application,
+            slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice)),
+            SelectedConstraints(context, slices).Select(selected =>
+                ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint))))
+        {
+            var message = kind == "Namespace"
+                ? $"Generated type '{name}' collides with a generated C# namespace."
+                : $"{kind} '{name}' collides with another generated C# type in the same namespace.";
+            diagnostics.Add(Error("STAGE-ESM-012", message, artifact));
+        }
 
         var analysedBodies = 0;
         foreach (var located in slices)
         {
+            foreach (var @event in located.Slice.Events.Where(@event =>
+                !GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name))))
+            {
+                diagnostics.Add(Error("STAGE-ESM-012", $"Event '{@event.Name}' has property names that collide in generated C#.", @event.Id));
+            }
+
             analysedBodies += ValidateReducers(context, located.Slice, diagnostics);
 
             switch (located.Slice.Kind)
@@ -127,14 +145,6 @@ internal static partial class SemanticCratisAdmission
         SemanticTypeReferenceKind.Unknown => false,
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind)
     };
-
-    static bool MappingsMatch(
-        ImmutableArray<SemanticPropertyMapping> mappings,
-        ImmutableArray<SemanticProperty> targets,
-        ImmutableArray<SemanticProperty> sources,
-        SemanticExpressionRootKind root) =>
-        mappings.Length == targets.Length && targets.All(target => mappings.Any(mapping => mapping.TargetProperty == target.Id &&
-            IsProperty(mapping.Source, root, sources.Select(_ => _.Id))));
 
     static bool IsProperty(SemanticExpression? expression, SemanticExpressionRootKind root, IEnumerable<SemanticId> candidates) =>
         expression is SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property } resolved &&

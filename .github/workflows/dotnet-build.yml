@@ -75,7 +75,9 @@ jobs:
       - name: Build & run tests
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
-        run: dotnet test --configuration Debug
+        # The compile-backed generated-name matrix runs in its own job below, in parallel, so this job
+        # stays inside its timeout. Every other spec runs here.
+        run: dotnet test --configuration Debug --filter "FullyQualifiedName!~when_compiling_generated_name_matrix"
 
       # The version is a sentinel, not a release. Package validation compares assembly versions, and one
       # below the baseline is rejected on that alone before the API surface is ever looked at - so it has to
@@ -91,3 +93,31 @@ jobs:
 
       - name: Verify standalone packed reducer consumer
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
+
+  # Compiles renderer output for every generated-name row with Roslyn; admission must reject exactly the
+  # names whose generated C# does not compile or serialize. It takes about as long as the rest of the
+  # suite, so it runs next to the build job instead of inside it.
+  generated-name-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Fetch Chronicle projection authority
+        run: |
+          git init "$RUNNER_TEMP/chronicle-source"
+          git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
+          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 8fe5d30e39c227b6344577b18246f34f566c1689
+          git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
+
+      - name: Run generated-name matrix
+        env:
+          CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
+        run: dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Debug --filter "FullyQualifiedName~when_compiling_generated_name_matrix"

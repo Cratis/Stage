@@ -34,9 +34,9 @@ public class when_rendering_event_source_expressions : a_register_project_render
     }
 
     [Fact] void should_use_the_identity_concepts_implicit_conversion() => _identity.ShouldEqual("Destination");
-    [Fact] void should_use_to_string_for_an_ordinary_concept() => _ordinaryConcept.ShouldEqual("new EventSourceId((new ProjectName(\"stream\")).ToString())");
+    [Fact] void should_use_to_string_for_an_ordinary_concept() => _ordinaryConcept.ShouldEqual("new global::Cratis.Chronicle.Events.EventSourceId((new global::Projects.Common.ProjectName(\"stream\")).ToString())");
     [Fact] void should_use_the_text_implicit_conversion() => _text.ShouldEqual("Destination");
     [Fact] void should_use_the_uuid_implicit_conversion() => _uuid.ShouldEqual("Destination");
-    [Fact] void should_parenthesize_a_negative_integer_specification_value() => _negativeWholeNumber.ShouldEqual("new EventSourceId((-42).ToString())");
-    [Fact] void should_parenthesize_a_negative_decimal_specification_value() => _negativeDecimal.ShouldEqual("new EventSourceId((-12.5m).ToString())");
+    [Fact] void should_parenthesize_a_negative_integer_specification_value() => _negativeWholeNumber.ShouldEqual("new global::Cratis.Chronicle.Events.EventSourceId((-42).ToString())");
+    [Fact] void should_parenthesize_a_negative_decimal_specification_value() => _negativeDecimal.ShouldEqual("new global::Cratis.Chronicle.Events.EventSourceId((-12.5m).ToString())");
 }

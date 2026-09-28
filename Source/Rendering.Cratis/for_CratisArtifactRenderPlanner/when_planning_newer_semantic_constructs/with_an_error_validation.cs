@@ -14,6 +14,6 @@ public class with_an_error_validation : given.an_invoice_model
         StringComparison.Ordinal));
 
     [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_keep_the_error_blocking_floor() => Artifact("Issue.cs").ShouldContain("BlockOnValidationSeverity(ValidationResultSeverity.Error)");
-    [Fact] void should_use_the_default_error_rule_severity() => Artifact("Issue.cs").ShouldNotContain(".WithSeverity(ValidationResultSeverity.Error)");
+    [Fact] void should_keep_the_error_blocking_floor() => Artifact("Issue.cs").ShouldContain("global::Cratis.Arc.Commands.ModelBound.BlockOnValidationSeverityAttribute(global::Cratis.Arc.Validation.ValidationResultSeverity.Error)");
+    [Fact] void should_use_the_default_error_rule_severity() => Artifact("Issue.cs").ShouldNotContain(".WithSeverity(global::Cratis.Arc.Validation.ValidationResultSeverity.Error)");
 }

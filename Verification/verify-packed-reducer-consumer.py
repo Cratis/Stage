@@ -32,14 +32,14 @@ SOURCE = '''module Orders
         amount Decimal
     slice StateView Totals
       readmodel Total
-        id Uuid
+        record Uuid
         amount Decimal
       query ById => Total?
-        by id Uuid
+        by record Uuid
       reducer Fold => Total
         on OrderPlaced
           ```csharp
-          return new Total(context.Event.Id, Math.Abs(context.Event.Amount));
+          return new Total(Record: context.Event.Id, Amount: Math.Abs(context.Event.Amount));
           ```
 '''
 
@@ -68,7 +68,8 @@ var request = new ArtifactRenderRequest(
     TypedContextDescriptors = loaded.TypedContextDescriptors
 };
 var plan = new CratisArtifactRenderPlanner().Plan(request);
-if (!plan.Success || !plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal)))
+if (!plan.Success || !plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal)) ||
+    !plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.ToArray()).Contains("@record", StringComparison.Ordinal)))
 {
     throw new Exception("Standalone reducer planning failed: " + string.Join("; ", plan.Diagnostics));
 }

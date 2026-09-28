@@ -46,11 +46,11 @@ public class when_importing_common_for_local_declarations : a_register_project_r
 
     [Fact] void should_import_common_for_a_locally_declared_event_signature() => _localEvent.ShouldContain("using Projects.Common;");
     [Fact] void should_not_import_common_for_an_externally_declared_event_signature() => _externalEvent.ShouldNotContain("using Projects.Common;");
-    [Fact] void should_still_return_the_external_event() => _externalEvent.ShouldContain("public ProjectRegistered Handle() => new(ProjectId, Name);");
+    [Fact] void should_still_return_the_external_event() => _externalEvent.ShouldContain("public global::Projects.Projects.Registration.RegisterProject.ProjectRegistered Handle() => new(ProjectId, Name);");
     [Fact] void should_not_import_common_for_primitive_read_model_properties() => _primitiveReadModel.ShouldNotContain("using Projects.Common;");
     [Fact] void should_import_common_for_concept_read_model_properties() => _conceptReadModel.ShouldContain("using Projects.Common;");
     [Fact] void should_import_common_for_an_emitted_concept_query_argument() => _conceptQuery.ShouldContain("using Projects.Common;");
-    [Fact] void should_preserve_the_existing_query_expression() => _conceptQuery.ShouldContain("await readModels.GetInstanceById<ProjectSummary>((EventSourceId)projectId)");
+    [Fact] void should_preserve_the_existing_query_expression() => _conceptQuery.ShouldContain("await readModels.GetInstanceById<ProjectSummary>((global::Cratis.Chronicle.Events.EventSourceId)projectId)");
 
     SemanticProperty PrimitiveProperty(SemanticProperty property) => property with
     {

@@ -5,16 +5,12 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Text.Json;
 using Cratis.Chronicle.Events;
-using Cratis.Chronicle.Testing.Events;
+using Cratis.Chronicle.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Specifications.Types;
 
 namespace Cratis.Stage.Specifications.Commands;
-
-// Chronicle 19.4.7 has a public in-memory event store, but its projection scenarios are bound to
-// process-static Defaults.Instance. Until a per-run projection seam ships, retain the exact typed
-// facts in a fresh per-spec log instead of pretending Chronicle projected them.
 
 /// <summary>
 /// Holds the isolated state for a single semantic command scenario.
@@ -24,9 +20,9 @@ namespace Cratis.Stage.Specifications.Commands;
 /// <param name="specification">The specification fixture.</param>
 /// <param name="options">The execution options.</param>
 /// <param name="runtimeTypes">The runtime event contracts.</param>
-/// <param name="eventStore">The fresh Chronicle in-memory event store.</param>
+/// <param name="eventLog">The fresh Chronicle in-memory event log.</param>
 /// <param name="version">The model's semantic version.</param>
-internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, EventStoreForTesting eventStore, SemanticVersion version)
+internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticVersion version)
 {
     readonly List<SemanticSpecificationEvent> _facts = [];
     readonly List<SemanticValue> _destinations = [];
@@ -70,7 +66,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
             SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
             _ => throw new UnsupportedSemanticMapping()
         };
-        var result = await eventStore.EventLog.Append(new EventSourceId(source), instance, occurred: Occurred);
+        var result = await eventLog.Append(new EventSourceId(source), instance, occurred: Occurred);
         if (!result.IsSuccess)
         {
             throw new SemanticAppendFailed($"The in-memory append for '{fact.EventContract}' failed: {string.Join(", ", result.Errors)}");

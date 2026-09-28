@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.Loader;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -64,12 +65,18 @@ internal static class RenderedOutput
         global using FluentValidation;
         """;
 
-    static readonly MetadataReference[] _references =
+    static readonly ImmutableArray<MetadataReference> _references =
     [
         .. ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Select(assembly => MetadataReference.CreateFromFile(assembly))
     ];
+    static readonly CSharpParseOptions _parseOptions = new(preprocessorSymbols: ["DEBUG"]);
+    static readonly CSharpCompilation _template = CSharpCompilation.Create(
+        "RenderedApplication",
+        [CSharpSyntaxTree.ParseText(ImplicitUsings, _parseOptions, path: "GlobalUsings.g.cs")],
+        _references,
+        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
 
     /// <summary>
     /// Compiles the rendered files and returns every compilation error, each prefixed with the file it came from.
@@ -110,16 +117,9 @@ internal static class RenderedOutput
         // DEBUG has to be defined or a rendered specification compiles to nothing: the whole file sits inside
         // '#if DEBUG', and a parse without the symbol drops it silently — the assertion would then pass on an
         // empty compilation unit and prove nothing about the spec it was written for.
-        var parseOptions = new CSharpParseOptions(preprocessorSymbols: ["DEBUG"]);
-        var trees = files
-            .Select(file => CSharpSyntaxTree.ParseText(file.Content, parseOptions, path: file.RelativePath))
-            .Prepend(CSharpSyntaxTree.ParseText(ImplicitUsings, parseOptions, path: "GlobalUsings.g.cs"));
+        var trees = files.Select(file => CSharpSyntaxTree.ParseText(file.Content, _parseOptions, path: file.RelativePath));
 
-        return CSharpCompilation.Create(
-            $"RenderedApplication_{Guid.NewGuid():N}",
-            trees,
-            _references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+        return _template.WithAssemblyName($"RenderedApplication_{Guid.NewGuid():N}").AddSyntaxTrees(trees);
     }
 
     static IReadOnlyList<string> Diagnostics(CSharpCompilation compilation, DiagnosticSeverity severity) =>

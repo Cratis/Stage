@@ -42,12 +42,12 @@ internal static class SemanticReadModelSpecificationRenderer
         }
         var builder = Builder(behavior, located, readModel, context);
         var needsCommon = false;
-        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var readModelName = types.SliceType(readModel.Id, readModel.Name);
 
-        builder.OpenBlock($"public class {behavior} : Specification")
-            .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
+        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+            .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .BlankLine()
-            .OpenBlock("async Task Establish()");
+            .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
         foreach (var given in givenEvents)
         {
             var givenEvent = context.Events[given.EventContract];
@@ -63,7 +63,7 @@ internal static class SemanticReadModelSpecificationRenderer
             needsCommon |= SemanticTypeSystem.ValueNeedsCommon(givenSource.Value, givenSource.Type) ||
                 givenEvent.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {Identifiers.ToPascalCase(givenEvent.Name)}({string.Join(", ", givenArguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
         }
 
         foreach (var (produced, expectedEvent) in replay)
@@ -81,7 +81,7 @@ internal static class SemanticReadModelSpecificationRenderer
                     expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
         builder.EndBlock()
@@ -91,7 +91,7 @@ internal static class SemanticReadModelSpecificationRenderer
         var instance = $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
         if (expected.Values.IsEmpty)
         {
-            builder.Line($"[Fact] void should_project_the_expected_instance() => {instance}.ShouldNotBeNull();");
+            builder.Line($"[global::Xunit.FactAttribute] void should_project_the_expected_instance() => {instance}.ShouldNotBeNull();");
         }
 
         foreach (var value in expected.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
@@ -105,15 +105,15 @@ internal static class SemanticReadModelSpecificationRenderer
                 var elements = string.Join(", ", array.Values.Select(element => types.Value(element, elementType)));
                 var name = Identifiers.ToSnakeCase(property.Name);
                 builder.Line($"static readonly {types.Type(elementType)}[] _expected_{name} = [{elements}];")
-                    .Line($"[Fact] void should_project_{name}() => " +
-                        $"Assert.True(global::System.Linq.Enumerable.SequenceEqual({instance}.{Identifiers.ToPascalCase(property.Name)}" +
+                    .Line($"[global::Xunit.FactAttribute] void should_project_{name}() => " +
+                        $"global::Xunit.Assert.True(global::System.Linq.Enumerable.SequenceEqual({instance}.{Identifiers.ToPascalCase(property.Name)}" +
                         (property.Type.IsOptional ? "!.Value" : string.Empty) + $", _expected_{name}));");
             }
             else
             {
                 needsCommon |= SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
                 builder.Line(
-                    $"[Fact] void should_project_{Identifiers.ToSnakeCase(property.Name)}() => " +
+                    $"[global::Xunit.FactAttribute] void should_project_{Identifiers.ToSnakeCase(property.Name)}() => " +
                     $"{instance}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
             }
         }

@@ -33,7 +33,7 @@ public class when_comparing_v2_corpus_specifications(when_comparing_v2_corpus_sp
     [Fact] void should_compare_every_specification_in_every_physical_form() => Assert.True(fixture.Outcomes.Length == RegisterProjectCorpus.V2.SourceForms.Length * RegisterProjectCorpus.V2.SpecificationExpectations.Length, string.Join(Environment.NewLine, fixture.Outcomes));
     [Fact] void should_match_all_three_executions() => Report(fixture, output);
     [Fact] void should_assert_the_typed_destination_in_the_rendered_specification() =>
-        Assert.Contains("ShouldHaveAppendedEvent<RegisterProject, ProjectRegistered>(new ProjectId(Guid.Parse(\"3fa85f64-5717-4562-b3fc-2c963f66afa6\"))", fixture.TypedDestinationAssertion, StringComparison.Ordinal);
+        Assert.Contains("ShouldHaveAppendedEvent<global::Projects.Projects.Registration.RegisterProject.RegisterProject, global::Projects.Projects.Registration.RegisterProject.ProjectRegistered>(new global::Projects.Common.ProjectId(global::System.Guid.Parse(\"3fa85f64-5717-4562-b3fc-2c963f66afa6\"))", fixture.TypedDestinationAssertion, StringComparison.Ordinal);
 
     public class context : a_three_way_application
     {

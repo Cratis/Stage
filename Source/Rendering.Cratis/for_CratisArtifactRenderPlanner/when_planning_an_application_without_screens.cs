@@ -43,7 +43,7 @@ public class when_planning_an_application_without_screens : a_register_project_r
         fields.ShouldContainOnly([("name", "string"), ("projectId", "guid")]);
         command.GetProperty("inputs").EnumerateArray().All(_ => string.Join('|', _.EnumerateObject().Select(property => property.Name)) == "label|property|type").ShouldBeTrue();
         var csharp = Text(Artifact("Projects/Registration/RegisterProject/RegisterProject.cs")!);
-        csharp.ShouldContain("public record RegisterProject(ProjectId ProjectId, ProjectName Name)");
+        csharp.ShouldContain("public record RegisterProject(global::Projects.Common.ProjectId ProjectId, global::Projects.Common.ProjectName Name)");
         Text(Artifact("Common/ProjectId.cs")!).ShouldContain("Guid");
         Text(Artifact("Common/ProjectName.cs")!).ShouldContain("string");
     }

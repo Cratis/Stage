@@ -36,7 +36,7 @@ public class with_a_produced_scoped_join : a_generated_application
     }
 
     [Fact] void should_pass_the_joined_read_model_and_query_specs() => _result.ShouldContain("Passed!");
-    [Fact] void should_replay_the_join_in_the_read_model_spec() => Assert.Contains("Events(new ProjectNamed(", ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_aproject_is_projected.cs"));
-    [Fact] void should_replay_the_join_in_the_query_spec() => Assert.Contains("Events(new ProjectNamed(", ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_aproject_is_queried.cs"));
+    [Fact] void should_replay_the_join_in_the_read_model_spec() => Assert.Contains("Events(new global::Invoices.Projects.Registration.RegisterProject.ProjectNamed(", ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_aproject_is_projected.cs"));
+    [Fact] void should_replay_the_join_in_the_query_spec() => Assert.Contains("Events(new global::Invoices.Projects.Registration.RegisterProject.ProjectNamed(", ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_aproject_is_queried.cs"));
 }
 #endif

@@ -32,7 +32,7 @@ internal static class SemanticPolicyArtifactRenderer
 
         builder.Summary("Registers every generated authorization policy with Arc.")
             .OpenBlock("public static partial class Registration")
-            .OpenBlock("static partial void RegisterGenerated(IServiceCollection services)");
+            .OpenBlock("static partial void RegisterGenerated(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         foreach (var operation in operations)
         {
             builder.Line($"services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))});");
@@ -43,11 +43,11 @@ internal static class SemanticPolicyArtifactRenderer
         {
             var expression = Authorization(operation.Authorization, context.Application.Policies, operation.IsCommand, operation.Argument, operation.Subject);
             builder.Summary("Enforces the effective Screenplay authorization for one operation.")
-                .OpenBlock($"public sealed class {Name(operation.Id)} : IAuthorizationPolicy")
+                .OpenBlock($"public sealed class {Name(operation.Id)} : global::Cratis.Arc.Authorization.IAuthorizationPolicy")
                 .Line("/// <inheritdoc/>")
                 .ExpressionMember(
-                    "public ValueTask<bool> IsAuthorized(AuthorizationPolicyContext context, CancellationToken cancellationToken)",
-                    $"ValueTask.FromResult({expression})")
+                    "public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)",
+                    $"global::System.Threading.Tasks.ValueTask.FromResult({expression})")
                 .EndBlock().BlankLine();
         }
 
@@ -55,16 +55,16 @@ internal static class SemanticPolicyArtifactRenderer
         // missing value (including a nullable composite or absent query argument) must deny, never match "".
         builder.OpenBlock("internal static class PolicyValues")
             .ExpressionMember(
-                "public static bool Match(AuthorizationPolicyContext context, string claim, string? target)",
-                "target is not null && context.Principal.Claims.Any(value => string.Equals(value.Type, claim, StringComparison.OrdinalIgnoreCase) && string.Equals(value.Value, target, StringComparison.Ordinal))")
+                "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
+                "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && global::System.String.Equals(value.Value, target, global::System.StringComparison.Ordinal))")
             .OpenBlock("public static string? Text(object? value)")
             .Line("if (value is string text) return text;")
             .Line("if (value is null) return null;")
             .Line("var type = value.GetType();")
             .Line("if (!InheritsTextConcept(type)) return null;")
-            .Line("return type.GetProperty(\"Value\", BindingFlags.Instance | BindingFlags.Public)?.GetValue(value) as string;")
+            .Line("return type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value) as string;")
             .EndBlock()
-            .OpenBlock("static bool InheritsTextConcept(Type type)")
+            .OpenBlock("static bool InheritsTextConcept(global::System.Type type)")
             .Line("for (var current = type.BaseType; current is not null; current = current.BaseType)")
             .Line("{")
             .Line("    if (current.IsGenericType && current.GenericTypeArguments.Length == 1 && current.GenericTypeArguments[0] == typeof(string) &&")
@@ -76,13 +76,13 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("foreach (var segment in path.Split('.'))")
             .Line("{")
             .Line("    if (value is null) return null;")
-            .Line("    value = value.GetType().GetProperty(segment, BindingFlags.Instance | BindingFlags.Public)?.GetValue(value);")
+            .Line("    value = value.GetType().GetProperty(segment, global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value);")
             .Line("}")
             .Line("return Text(value);")
             .EndBlock()
-            .OpenBlock("public static string? Query(AuthorizationPolicyContext context, string argument, string path)")
-            .Line("if (context.Target is not MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, StringComparison.Ordinal)) ||")
-            .Line("    context.Resource is not QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
+            .OpenBlock("public static string? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path)")
+            .Line("if (context.Target is not global::System.Reflection.MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, StringComparison.Ordinal)) ||")
+            .Line("    context.Resource is not global::Cratis.Arc.Queries.QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
             .Line("return path == argument ? Text(key) : Path(key, path[(argument.Length + 1)..]);")
             .EndBlock()
             .EndBlock();
@@ -117,9 +117,9 @@ internal static class SemanticPolicyArtifactRenderer
         var target = claim.TargetKind switch
         {
             SemanticClaimTargetKind.Literal => Literal(claim.Value!),
-            SemanticClaimTargetKind.Artifact when command => $"PolicyValues.Path((context.Resource as CommandContext)?.Command, {Literal(PascalPath(claim.Value!))})",
+            SemanticClaimTargetKind.Artifact when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(claim.Value!))})",
             SemanticClaimTargetKind.Artifact => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(QueryPath(claim.Value!))})",
-            SemanticClaimTargetKind.Subject when command => $"PolicyValues.Path((context.Resource as CommandContext)?.Command, {Literal(PascalPath(subject))})",
+            SemanticClaimTargetKind.Subject when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))})",
             SemanticClaimTargetKind.Subject => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(argument)})",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticClaimTargetKind), claim.TargetKind)
         };

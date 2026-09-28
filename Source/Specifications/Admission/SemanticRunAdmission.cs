@@ -5,6 +5,8 @@ using System.Security.Claims;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Specifications.Admission;
 
@@ -23,13 +25,66 @@ internal static class SemanticRunAdmission
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
+
+        // A per-run result must not pass an application whose selected slice cannot be rendered.
+        // Include declarations in the specification's slice even if the example never produces them.
+        foreach (var slice in slices)
+        {
+            var collidingEvent = slice.Events.FirstOrDefault(@event =>
+                !GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name)));
+            if (collidingEvent is not null)
+            {
+                var referenced = slices.SelectMany(candidate => candidate.Projections)
+                    .Any(projection => ProjectionReferencedEventNamesAreUnique.Contracts(projection).Contains(collidingEvent.Id));
+                return Block(
+                    referenced ? StageExecutionCapability.Projection : StageExecutionCapability.Command,
+                    collidingEvent.Id,
+                    "Event property names collide in generated C#.");
+            }
+            var collidingCommand = slice.Commands.FirstOrDefault(command =>
+                !GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name)));
+            if (collidingCommand is not null) return Block(StageExecutionCapability.Command, collidingCommand.Id, "Command property names collide in generated C#.");
+            var collidingReadModel = slice.ReadModels.FirstOrDefault(readModel =>
+                !GeneratedPascalCase.ReadModelMembersAreUnique(
+                    readModel.Name,
+                    readModel.Properties.Select(property => property.Name),
+                    slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
+                !GeneratedPascalCase.QueriesAreUnique(slice.Queries.Where(query => query.ReadModel == readModel.Id)
+                    .Select(query => (query.Name, SemanticRunProjectionAdmission.QueryType(query.Argument.Type, plan), query.Argument.Name))));
+            if (collidingReadModel is not null) return Block(StageExecutionCapability.Projection, collidingReadModel.Id, "A read-model property name or query collides in generated C#.");
+            var collidingConstraint = slice.Constraints.FirstOrDefault(constraint =>
+                !GeneratedPascalCase.ConstraintTypeNameIsSafe(constraint.Name));
+            if (collidingConstraint is not null) return Block(StageExecutionCapability.Command, slice.Id, "Constraint type name collides with generated C# members.");
+            var collidingProjection = slice.Projections.FirstOrDefault(projection =>
+                projection.Scope is not null && !GeneratedPascalCase.ProjectionTypeNameIsSafe(projection.Name));
+            if (collidingProjection is not null) return Block(StageExecutionCapability.Projection, collidingProjection.Id, "Projection type name collides with generated C# members.");
+        }
+        var typeCollision = GeneratedTypeNames.Collisions(
+            plan.Model.Application,
+            GeneratedTypeNames.AllSlices(plan.Model.Application)).FirstOrDefault();
+        if (typeCollision.Artifact.IsSet)
+        {
+            var capability = typeCollision.Kind == "ReadModel" || typeCollision.Kind == "Projection"
+                ? StageExecutionCapability.Projection : StageExecutionCapability.Command;
+            return Block(capability, typeCollision.Artifact, typeCollision.Kind == "Namespace"
+                ? $"Generated type '{typeCollision.Name}' collides with a generated C# namespace."
+                : $"{typeCollision.Kind} '{typeCollision.Name}' collides with another generated C# type.");
+        }
+        var identifiers = slices.SelectMany(slice => slice.Commands.SelectMany(command => command.Properties)
+            .Concat(slice.ReadModels.SelectMany(model => model.Properties)))
+            .Where(property => property.IsIdentifier && property.Type.Kind == SemanticTypeReferenceKind.Concept)
+            .Select(property => property.Type.Target).ToHashSet();
+        var collidingConcept = plan.Model.Application.Concepts.FirstOrDefault(concept =>
+            !GeneratedPascalCase.ConceptMembersAreUnique(concept.Name, concept.Values, identifiers.Contains(concept.Id)));
+        if (collidingConcept is not null) return Block(StageExecutionCapability.Command, collidingConcept.Id, "Concept members collide in generated C#.");
+        var collidingType = plan.Model.Application.Types.FirstOrDefault(type =>
+            !GeneratedPascalCase.RecordMembersAreUnique(type.Name, type.Properties.Select(property => property.Name)));
+        if (collidingType is not null) return Block(StageExecutionCapability.Command, collidingType.Id, "Type property names collide in generated C#.");
         var reducer = slices.SelectMany(slice => slice.Reducers).FirstOrDefault();
         if (reducer is not null) return Block(StageExecutionCapability.Projection, reducer.ReadModel, "Reducer implementation bodies cannot be executed by Stage.");
         var opaqueConcept = plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Validations.Any(rule => OpaqueRule(rule.Kind)));
         if (opaqueConcept is not null) return Block(StageExecutionCapability.Command, opaqueConcept.Id, "Validation implementation bodies cannot be executed by Stage.");
-        if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Seeded read-model state requires a per-run projection engine.");
-        if (!specification.ThenReadModels.IsEmpty) return Block(StageExecutionCapability.Projection, specification.ThenReadModels[0].ReadModel, "Read-model assertions require a per-run projection engine.");
-        if (!specification.ThenQueries.IsEmpty) return Block(StageExecutionCapability.Query, specification.ThenQueries[0].Query, "Keyed queries require a per-run projection engine.");
+        if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Given read-model state cannot be seeded into the per-run projection scenario.");
         if (specification.GivenCaller?.Claims.Any(claim => string.Equals(claim.Type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase)) == true)
         {
             return Block(StageExecutionCapability.Authorization, specification.Id, "Role-URI claim types cannot be used as claims; roles and claims are separate in Screenplay.");
@@ -38,17 +93,28 @@ internal static class SemanticRunAdmission
         {
             if (appended.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, appended.EventContract, "Direct append requires an explicit event source.");
             if (!plan.Events.TryGetValue(appended.EventContract, out var appendedContract)) return Block(StageExecutionCapability.PlanIssue, appended.EventContract, "The appended event is not in the plan.");
+            if (!GeneratedPascalCase.EventMembersAreUnique(appendedContract.Name, appendedContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, appendedContract.Id, "Event property names collide in generated C#.");
             if (appendedContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Occurrence, appended.EventContract, "Only scalar appended event values are admitted.");
         }
         foreach (var given in specification.GivenEvents)
         {
             if (given.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, given.EventContract, "Given events require an explicit event source.");
             if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
+            if (!GeneratedPascalCase.EventMembersAreUnique(givenContract.Name, givenContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, givenContract.Id, "Event property names collide in generated C#.");
             if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");
         }
-        if (specification.WhenAppended is not null) return ProjectionBlock(plan, specification, [specification.WhenAppended.EventContract]);
+        if (specification.WhenAppended is not null) return SemanticRunProjectionAdmission.Check(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
         if (specification.When is not { } when) return Block(StageExecutionCapability.Specification, specification.Id, "Only command or direct-append specifications are admitted.");
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
+        if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, command.Id, "Command property names collide in generated C#.");
+        foreach (var emitted in command.Produces)
+        {
+            if (plan.Events.TryGetValue(emitted.EventContract, out var producedContract) &&
+                !GeneratedPascalCase.EventMembersAreUnique(producedContract.Name, producedContract.Properties.Select(property => property.Name)))
+            {
+                return Block(StageExecutionCapability.Command, producedContract.Id, "Event property names collide in generated C#.");
+            }
+        }
         if (!command.CodeValidations.IsEmpty || command.Validations.Any(rule => OpaqueRule(rule.Kind)))
         {
             return Block(StageExecutionCapability.Command, command.Id, "Validation implementation bodies cannot be executed by Stage.");
@@ -63,7 +129,7 @@ internal static class SemanticRunAdmission
         // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
         var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? command.Produces.Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
-        if (ProjectionBlock(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
+        if (SemanticRunProjectionAdmission.Check(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
         if (command.Properties.Any(property => !Scalar(property.Type)) ||
             command.Produces.Any(produced => !plan.Events.TryGetValue(produced.EventContract, out var eventContract) || eventContract.Properties.Any(property => !Scalar(property.Type))))
@@ -91,14 +157,6 @@ internal static class SemanticRunAdmission
             return Block(StageExecutionCapability.IdentityAllocation, command.Id, "An accepted command requires an explicit destination.");
         }
         return null;
-    }
-
-    static SemanticUnsupportedCapability? ProjectionBlock(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents)
-    {
-        var reachable = specification.GivenEvents.Select(given => given.EventContract).Concat(reachableEvents).ToHashSet();
-        var projection = plan.Projections.Values.FirstOrDefault(value =>
-            (value.Scope is not null && reachable.Count > 0) || value.Transitions.Any(transition => reachable.Contains(transition.EventContract)));
-        return projection is null ? null : new(StageExecutionCapability.Projection, projection.Id.ToString(), "A projection consumes events in this specification but per-run projection execution is not available.");
     }
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>

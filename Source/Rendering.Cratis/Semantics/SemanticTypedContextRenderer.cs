@@ -48,7 +48,7 @@ internal static class SemanticTypedContextRenderer
                 if (member.Name == "IsFirst" && member.Source.Kind == SemanticContextSourceKinds.Derived && member.Source.Path == "State" && type == "bool")
                     derived.Add("public bool IsFirst => State is null;");
                 else if (member.Name == "IsWholeArtifact" && member.Source.Kind == SemanticContextSourceKinds.Derived && member.Source.Path == "Property" && type == "bool")
-                    derived.Add("public bool IsWholeArtifact => string.IsNullOrEmpty(Property);");
+                    derived.Add("public bool IsWholeArtifact => global::System.String.IsNullOrEmpty(Property);");
                 else throw Rejected($"Derived member '{member.Name}' has no admitted C# implementation.");
             }
             else
@@ -138,7 +138,7 @@ internal static class SemanticTypedContextRenderer
             {
                 type = descriptor.Role == SemanticImplementationRole.ReducerTransition
                     ? $"global::System.Collections.Immutable.ImmutableArray<{scalar}>"
-                    : $"IReadOnlyList<{scalar}>";
+                    : $"global::System.Collections.Generic.IReadOnlyList<{scalar}>";
             }
 
             return reference.IsOptional ? $"{type}?" : type;
@@ -157,7 +157,7 @@ internal static class SemanticTypedContextRenderer
         SemanticContextRuntimeTokens.Text => "string",
         SemanticContextRuntimeTokens.WholeNumber => "long",
         SemanticContextRuntimeTokens.Boolean => "bool",
-        SemanticContextRuntimeTokens.DateTime => "DateTimeOffset",
+        SemanticContextRuntimeTokens.DateTime => "global::System.DateTimeOffset",
         SemanticContextRuntimeTokens.TenantId => "global::Cratis.Screenplay.Contexts.TenantId",
         SemanticContextRuntimeTokens.Identity => "global::Cratis.Screenplay.Contexts.Identity",
         SemanticContextRuntimeTokens.CausedBy => "global::Cratis.Screenplay.Contexts.CausedBy",

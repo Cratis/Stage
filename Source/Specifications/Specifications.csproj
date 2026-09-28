@@ -11,6 +11,14 @@
         <Description>Isolated in-memory Screenplay semantic specification execution.</Description>
     </PropertyGroup>
     <ItemGroup>
+        <!-- Compile the render admission predicate from its owning source so run admission cannot drift. -->
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Admission/SemanticScopedProjectionSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Admission/SemanticFlatProjectionSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Naming/GeneratedPascalCase.cs" Link="Admission/GeneratedPascalCase.cs" />
+        <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeNames.cs" Link="Admission/GeneratedTypeNames.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleEventPropertyNameIsSafe.cs" Link="Admission/ChronicleEventPropertyNameIsSafe.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleReadModelPropertyNamesAreSafe.cs" Link="Admission/ChronicleReadModelPropertyNamesAreSafe.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/ProjectionReferencedEventNamesAreUnique.cs" Link="Admission/ProjectionReferencedEventNamesAreUnique.cs" />
         <ProjectReference Include="../Stage/Stage.csproj" />
         <PackageReference Include="Cratis.Arc.Testing" />
         <PackageReference Include="Cratis.Arc.Chronicle.Testing" />

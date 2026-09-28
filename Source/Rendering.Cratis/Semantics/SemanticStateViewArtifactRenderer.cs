@@ -38,10 +38,7 @@ internal static class SemanticStateViewArtifactRenderer
 
         foreach (var projection in located.Slice.Projections)
         {
-            var eventIds = projection.Scope is { } scope
-                ? ScopeEvents(scope)
-                : projection.Transitions.Select(_ => _.EventContract);
-            foreach (var eventId in eventIds)
+            foreach (var eventId in ProjectionReferencedEventNamesAreUnique.Contracts(projection))
             {
                 var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(eventId).Path);
                 if (!string.Equals(ownNamespace, eventNamespace, StringComparison.Ordinal))
@@ -71,10 +68,10 @@ internal static class SemanticStateViewArtifactRenderer
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
             if (@event is not null)
             {
-                builder.Attribute($"FromEvent<{Identifiers.ToPascalCase(@event.Name)}>");
+                builder.Attribute($"global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute<{types.EventType(@event)}>");
             }
 
-            builder.Attribute("ReadModel")
+            builder.Attribute("global::Cratis.Arc.Queries.ModelBound.ReadModelAttribute")
                 .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries, context.Reducers.Any(reducer => reducer.ReadModel == readModel.Id)) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault()))})");
             foreach (var query in queries)
             {
@@ -99,17 +96,9 @@ internal static class SemanticStateViewArtifactRenderer
     internal static IOrderedEnumerable<SemanticProperty> OrderedProperties(IEnumerable<SemanticProperty> properties) =>
         properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal);
 
-    static IEnumerable<SemanticId> ScopeEvents(SemanticProjectionScope scope) =>
-        scope.From.Select(_ => _.EventContract)
-            .Concat(scope.Joins.Select(_ => _.EventContract))
-            .Concat(scope.Removals.Select(_ => _.EventContract))
-            .Concat(scope.JoinRemovals.Select(_ => _.EventContract))
-            .Concat(scope.Children.SelectMany(_ => ScopeEvents(_.Scope)))
-            .Concat(scope.Nested.SelectMany(_ => ScopeEvents(_.Scope))).Distinct();
-
     static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
         string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
-            $"{((property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty)}{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
+            $"{((property.IsIdentifier || queries.Any(_ => _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[global::Cratis.Chronicle.Keys.KeyAttribute] " : string.Empty)}{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
 
     static string Parameters(
         SemanticReadModel readModel,
@@ -126,8 +115,8 @@ internal static class SemanticStateViewArtifactRenderer
             var sourceName = Identifiers.ToPascalCase(eventProperty.Name);
             var attribute = string.Equals(targetName, sourceName, StringComparison.Ordinal)
                 ? string.Empty
-                : $"[SetFrom<{Identifiers.ToPascalCase(@event.Name)}>(nameof({Identifiers.ToPascalCase(@event.Name)}.{sourceName}))] ";
-            var key = keyedQuery?.KeyProperty == property.Id && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty;
+                : $"[global::Cratis.Chronicle.Projections.ModelBound.SetFromAttribute<{types.EventType(@event)}>(nameof({types.EventType(@event)}.{sourceName}))] ";
+            var key = keyedQuery?.KeyProperty == property.Id && !types.IsEventSourceIdentifier(property.Type) ? "[global::Cratis.Chronicle.Keys.KeyAttribute] " : string.Empty;
             return $"{key}{attribute}{types.Type(property.Type)} {targetName}";
         }));
 
@@ -142,7 +131,7 @@ internal static class SemanticStateViewArtifactRenderer
         builder.BlankLine()
             .Attribute(SemanticAuthorizationAttributes.For(query))
             .ExpressionMember(
-                $"public static async Task<{readModelName}?> {Identifiers.ToPascalCase(query.Name)}(IReadModels readModels, {types.Type(query.Argument.Type)} {argumentName})",
-                $"await readModels.GetInstanceById<{readModelName}>((EventSourceId){argumentName})");
+                $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {Identifiers.ToPascalCase(query.Name)}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {types.Type(query.Argument.Type)} {argumentName})",
+                $"await readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){argumentName})");
     }
 }

@@ -18,6 +18,6 @@ public class when_configuring_request_localization : Specification
         _program = StringsCatalogInput.ConfigureProgram("app.UseCratis();", catalog!);
     }
 
-    [Fact] void should_keep_formatting_invariant() => _program.Contains("SupportedCultures = [System.Globalization.CultureInfo.InvariantCulture]", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_set_only_the_default_ui_culture() => _program.Contains("RequestCulture(System.Globalization.CultureInfo.InvariantCulture, System.Globalization.CultureInfo.GetCultureInfo(\"en\"))", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_keep_formatting_invariant() => _program.Contains("SupportedCultures = [global::System.Globalization.CultureInfo.InvariantCulture]", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_set_only_the_default_ui_culture() => _program.Contains("RequestCulture(global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.CultureInfo.GetCultureInfo(\"en\"))", StringComparison.Ordinal).ShouldBeTrue();
 }

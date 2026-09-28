@@ -80,20 +80,20 @@ internal static class SemanticStateChangeArtifactRenderer
             .Concat(command.Requirements.Select(requirement => requirement.Severity))
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
-        builder.Attribute("Command");
+        builder.Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
         if (severities.Length > 0)
         {
             // Screenplay rejects every validation failure; a caller must not loosen the modeled floor.
             // Keep this even for Error-only rules: Arc lets an unattributed caller allow errors, and
             // only attributed commands block Arc's Unknown severity (which Screenplay cannot model).
             var floor = severities.All(severity => severity == SemanticValidationSeverity.Error) ? "Error" : "Information";
-            builder.Attribute($"BlockOnValidationSeverity(ValidationResultSeverity.{floor})");
+            builder.Attribute($"global::Cratis.Arc.Commands.ModelBound.BlockOnValidationSeverityAttribute(global::Cratis.Arc.Validation.ValidationResultSeverity.{floor})");
         }
 
         builder.Attribute(SemanticAuthorizationAttributes.For(command))
-            .OpenBlock($"public record {name}({parameters}) : ICanProvideEventSourceId")
+            .OpenBlock($"public record {name}({parameters}) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId")
             .Line("/// <inheritdoc/>")
-            .ExpressionMember("public EventSourceId GetEventSourceId()", destinationExpression)
+            .ExpressionMember("public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId()", destinationExpression)
             .BlankLine();
         var hasOccurrence = command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
@@ -109,7 +109,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 var expression = Identifiers.ToPascalCase(commandProperty.Name);
                 return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
             });
-            return $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)})";
+            return $"new {types.EventType(@event)}({string.Join(", ", arguments)})";
         }
 
         string WrappedEvent(SemanticProducedEvent produced)
@@ -129,7 +129,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 metadata.Add($"Tags = [{string.Join(", ", tags.Select(tag => System.Text.Json.JsonSerializer.Serialize(tag)))}]");
             }
 
-            var wrapper = $"new EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {EventValue(produced)})";
+            var wrapper = $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {EventValue(produced)})";
             return metadata.Count == 0 ? wrapper : $"{wrapper} {{ {string.Join(", ", metadata)} }}";
         }
 
@@ -144,28 +144,28 @@ internal static class SemanticStateChangeArtifactRenderer
                 var expression = Identifiers.ToPascalCase(commandProperty.Name);
                 return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
             });
-            builder.ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", $"new({string.Join(", ", arguments)})");
+            builder.ExpressionMember($"public {types.EventType(@event)} Handle()", $"new({string.Join(", ", arguments)})");
         }
         else if (!hasOccurrence)
         {
             var events = command.Produces.Select(WrappedEvent);
             if (command.Produces.Length == 1)
             {
-                builder.ExpressionMember("public EventForEventSourceId Handle()", events.Single());
+                builder.ExpressionMember("public global::Cratis.Chronicle.EventSequences.EventForEventSourceId Handle()", events.Single());
             }
             else
             {
-                builder.ExpressionMember("public IEnumerable<EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
+                builder.ExpressionMember("public global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
             }
         }
         else
         {
-            var result = command.Produces.Length == 1 ? "EventForEventSourceId" : "IEnumerable<EventForEventSourceId>";
+            var result = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
 
             // Chronicle's MongoDB event context retains UTC milliseconds. Normalize the payload
             // and append context together so a stored replay sees identical occurrence values.
             builder.OpenBlock($"public {result} Handle()")
-                .Line("var occurred = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());")
+                .Line("var occurred = global::System.DateTimeOffset.FromUnixTimeMilliseconds(global::System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());")
                 .Line($"return {(command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(WrappedEvent))}]")};")
                 .EndBlock();
         }
@@ -207,7 +207,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var parameters = string.Join(", ", @event.Properties.Select(property =>
             $"{types.Type(property.Type, ReducerCollection(@event, property, context))} {Identifiers.ToPascalCase(property.Name)}"));
         builder.Summary($"The event that occurs when {Identifiers.ToWords(@event.Name)}.")
-            .Attribute("EventType")
+            .Attribute("global::Cratis.Chronicle.Events.EventTypeAttribute")
             .Line($"public record {name}({parameters});")
             .BlankLine();
     }
@@ -229,7 +229,7 @@ internal static class SemanticStateChangeArtifactRenderer
 
         var commandName = Identifiers.ToPascalCase(command.Name);
         builder.Summary($"Validates {Identifiers.ToWords(command.Name)}.")
-            .OpenBlock($"public class {commandName}Validator : CommandValidator<{commandName}>")
+            .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>")
             .OpenBlock($"public {commandName}Validator()");
         foreach (var rule in command.Validations)
         {

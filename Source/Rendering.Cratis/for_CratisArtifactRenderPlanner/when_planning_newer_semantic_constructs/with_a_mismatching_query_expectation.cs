@@ -23,6 +23,6 @@ public class with_a_mismatching_query_expectation : Specification
         _query = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_aproject_is_queried.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
-    [Fact] void should_assert_the_wrong_value_rather_than_seeding_it() => _query.ShouldContain("_result.Name == new ProjectName(\"Wrong query result\")");
-    [Fact] void should_seed_the_actual_event_from_the_command() => _query.ShouldContain("new ProjectName(\"Screenplay\")");
+    [Fact] void should_assert_the_wrong_value_rather_than_seeding_it() => _query.ShouldContain("_result.Name == new global::Invoices.Common.ProjectName(\"Wrong query result\")");
+    [Fact] void should_seed_the_actual_event_from_the_command() => _query.ShouldContain("new global::Invoices.Common.ProjectName(\"Screenplay\")");
 }

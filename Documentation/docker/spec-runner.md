@@ -155,16 +155,25 @@ does not run command authorization or validation. Conflict outcomes cannot be re
 specifications: the Screenplay v4.24.0 reference evaluator declares `SemanticConflict` but never produces it.
 
 Facts are compared against Stage's recorded occurrences; Chronicle's persisted log is checked for fact count.
+A separate Chronicle projection scenario evaluates admitted read-model assertions and unprotected, optional
+snapshot queries by the read-model identifier. Flat scalar projections and scoped projections using
+event-source keys (text or UUID) with scalar `from`/`set` mappings run with per-specification artifacts. The
+semantic trace includes keyed read-model and query results; a mismatched result fails the specification.
 The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
 and do not affect this run; implicit identity allocation remains unsupported.
 
-Read-model assertions, seeded read models, keyed queries, and specifications whose Given, produced or directly
-appended events feed a projection (including scoped projections) return typed `Unsupported` before execution: Chronicle 19.4.8
-does not offer per-run projection execution through its public scenario APIs. Other
-unimplemented behavior (conditional production, implicit event-source identity allocation,
-external effects and unsupported expression or value shapes) is also blocked rather than reported as a
-pass. Run the semantic executor in its **own process**: Arc's scenario replaces the process-wide
-`Internals.ServiceProvider` and leaves it pointing at a disposed provider. Serializing calls does not protect
-another host in the same process; isolation is required until Arc offers a scoped alternative.
-This is not a live Chronicle integration check. Keep the structural engine for existing Studio jobs
-until consumers explicitly migrate to the new report schema.
+Given read models still return `Unsupported(GivenReadModel)`. Per-run projections reject optional or composite
+read-model properties, DateTime read-model values (whose round-trip text may change), and non-identifier
+properties whose generated name matches `Id` case-insensitively (including authored `id_`, `_id`, `id-`, `ID`, `iD`, and `i_d`, which collide with
+Chronicle's document key); a child `id` remains allowed. Events and commands whose property names collide after PascalCase generation with another property, their record type, synthesized or inherited members, or generated command methods block every run, even when the event is not produced by the specification. The block is `Unsupported(Projection)` if a projection references that event; otherwise it is `Unsupported(Command)`. Concept and composite-type member or generated type-name collisions also block every run as `Unsupported(Command)`, even without a projection. Per-run projections also reject joins, child or nested projections, removals, every/all mappings, literal mappings, and unsupported key shapes before execution. Projections over events whose property names Chronicle interprets as expressions (`$`, `.`, `[`, `]`, a leading quote, booleans, numbers, or derived functions such as `Week` or `Week()`), projections referencing even unreached events (including in child or nested scopes) with colliding generated members, and read-model properties whose names can be interpreted as paths or collide with another generated property, the record's type, or generated query methods return `Unsupported(Projection)`. Query method overloads that compile remain allowed; duplicate generated signatures and arguments named `readModels` do not.
+An event-source identity
+mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
+otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also
+returns `Unsupported(Projection)`. They also apply the renderer's scoped-projection admission predicate, so
+`FromAll`, composite keys and Chronicle#4125 shapes remain rejected. Protected queries and
+queries other than optional snapshots by identifier return `Unsupported(Query)`. Other unimplemented
+behavior (conditional production, implicit event-source identity allocation, external effects and
+unsupported expression or value shapes) is also blocked rather than reported as a pass. The semantic
+executor can run alongside a host without replacing its process-wide Arc service provider. This is not
+a live Chronicle integration check. Keep the structural engine for existing Studio jobs until consumers
+explicitly migrate to the new report schema.

@@ -45,5 +45,5 @@ public class when_planning_a_composite_type : a_register_project_render_request
     [Fact] void should_be_publishable() => _plan.Success.ShouldBeTrue();
     [Fact] void should_render_the_composite_type() =>
         Text(_plan.Artifacts.Single(_ => _.RelativePath == "Common/ProjectMetadata.cs"))
-            .ShouldContain("public record ProjectMetadata(ProjectName Name);");
+            .ShouldContain("public record ProjectMetadata(global::Projects.Common.ProjectName Name);");
 }

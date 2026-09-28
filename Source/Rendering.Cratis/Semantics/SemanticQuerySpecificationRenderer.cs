@@ -43,7 +43,7 @@ internal static class SemanticQuerySpecificationRenderer
         {
             behavior += $"_through_{Identifiers.ToSnakeCase(query.Name)}";
         }
-        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var readModelName = types.SliceType(readModel.Id, readModel.Name);
         var queryNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path);
         var builder = new CSharpCodeBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
@@ -81,19 +81,19 @@ internal static class SemanticQuerySpecificationRenderer
             }
         }
 
-        builder.OpenBlock($"public class {behavior} : Specification")
-            .Line("readonly IReadModels _readModels = Substitute.For<IReadModels>();")
-            .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
+        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+            .Line("readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
+            .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line($"{readModelName}? _result;")
             .BlankLine()
-            .OpenBlock("async Task Establish()");
+            .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
         foreach (var given in specification.GivenEvents)
         {
             var givenEvent = context.Events[given.EventContract];
             var givenArguments = givenEvent.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var givenSource = given.EventSource!;
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {Identifiers.ToPascalCase(givenEvent.Name)}({string.Join(", ", givenArguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
         }
 
         foreach (var (produced, expectedEvent) in replay)
@@ -102,15 +102,15 @@ internal static class SemanticQuerySpecificationRenderer
             var source = SemanticDestinations.ForSpecification(specification, command, produced);
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
-        builder.Line($"_readModels.GetInstanceById<{readModelName}>((EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((EventSourceId){key})!);")
+        builder.Line($"_readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key})!);")
             .EndBlock()
             .BlankLine()
-            .Line($"async Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")
+            .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")
             .BlankLine()
-            .Line($"[Fact] void should_return_the_expected_read_model() => ({predicate}).ShouldBeTrue();")
+            .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({predicate}).ShouldBeTrue();")
             .EndBlock();
 
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
@@ -146,7 +146,7 @@ internal static class SemanticQuerySpecificationRenderer
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
-        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var readModelName = types.SliceType(readModel.Id, readModel.Name);
         var builder = new CSharpCodeBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Chronicle.Events")
@@ -170,15 +170,15 @@ internal static class SemanticQuerySpecificationRenderer
             builder.Using($"{context.RootNamespace}.Common");
         }
 
-        builder.OpenBlock($"public class {behavior} : Specification")
-            .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
+        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+            .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line($"{readModelName}? _result;")
             .BlankLine()
-            .Line($"void Establish() => _scenario.Given.ForEventSourceId((EventSourceId){key}).ReadModel(new {readModelName}({string.Join(", ", values)}));")
+            .Line($"void Establish() => _scenario.Given.ForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key}).ReadModel(new {readModelName}({string.Join(", ", values)}));")
             .BlankLine()
-            .Line($"async Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_scenario.ReadModels, {key});")
+            .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_scenario.ReadModels, {key});")
             .BlankLine()
-            .Line($"[Fact] void should_return_the_seeded_read_model() => ({predicate}).ShouldBeTrue();")
+            .Line($"[global::Xunit.FactAttribute] void should_return_the_seeded_read_model() => ({predicate}).ShouldBeTrue();")
             .EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
         var content = builder.ToString();

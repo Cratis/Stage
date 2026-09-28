@@ -61,6 +61,11 @@
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
         <EmbeddedResource Include="for_SemanticTypedContextRenderer/Vectors/*.json" />
     </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>Cratis.Stage.Conformance.Specs</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
     <ItemGroup>
         <!-- Embed the pinned 10.0.12 reference pack; the resource version must match
              PureTransitionAdmission.ReferencePackVersion and Directory.Packages.props.

@@ -112,7 +112,7 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
         _tests.ShouldContain("Passed!");
         var code = ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs");
         code.ShouldContain("ToValue(\"fixed\")");
-        code.ShouldContain("children.RemovedWithJoin<ProjectNoteRemovedViaJoin>");
+        code.ShouldContain("children.RemovedWithJoin<global::Projects.Projects.Registration.RegisterProject.ProjectNoteRemovedViaJoin>");
     }
 }
 #endif

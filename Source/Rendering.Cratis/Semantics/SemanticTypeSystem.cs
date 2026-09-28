@@ -20,13 +20,13 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
     public static string Primitive(SemanticPrimitiveType primitive) => primitive switch
     {
-        SemanticPrimitiveType.Uuid => "Guid",
+        SemanticPrimitiveType.Uuid => "global::System.Guid",
         SemanticPrimitiveType.Text => "string",
         SemanticPrimitiveType.WholeNumber => "int",
         SemanticPrimitiveType.DecimalNumber => "decimal",
         SemanticPrimitiveType.Boolean => "bool",
-        SemanticPrimitiveType.Date => "DateOnly",
-        SemanticPrimitiveType.DateTime => "DateTimeOffset",
+        SemanticPrimitiveType.Date => "global::System.DateOnly",
+        SemanticPrimitiveType.DateTime => "global::System.DateTimeOffset",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
     };
 
@@ -38,13 +38,13 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
     public static string NotSet(SemanticPrimitiveType primitive) => primitive switch
     {
-        SemanticPrimitiveType.Uuid => "Guid.Empty",
+        SemanticPrimitiveType.Uuid => "global::System.Guid.Empty",
         SemanticPrimitiveType.Text => "string.Empty",
         SemanticPrimitiveType.WholeNumber => "0",
         SemanticPrimitiveType.DecimalNumber => "0m",
         SemanticPrimitiveType.Boolean => "false",
-        SemanticPrimitiveType.Date => "DateOnly.MinValue",
-        SemanticPrimitiveType.DateTime => "DateTimeOffset.MinValue",
+        SemanticPrimitiveType.Date => "global::System.DateOnly.MinValue",
+        SemanticPrimitiveType.DateTime => "global::System.DateTimeOffset.MinValue",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
     };
 
@@ -89,12 +89,12 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         var scalar = reference.Kind switch
         {
             SemanticTypeReferenceKind.Primitive => Primitive(reference.Primitive),
-            SemanticTypeReferenceKind.Concept => Identifiers.ToPascalCase(context.Concepts[reference.Target].Name),
-            SemanticTypeReferenceKind.CompositeType => Identifiers.ToPascalCase(context.Types[reference.Target].Name),
+            SemanticTypeReferenceKind.Concept => CommonType(context.Concepts[reference.Target].Name),
+            SemanticTypeReferenceKind.CompositeType => CommonType(context.Types[reference.Target].Name),
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), reference.Kind)
         };
 
-        var type = reference.IsCollection ? $"IReadOnlyList<{scalar}>" : scalar;
+        var type = reference.IsCollection ? $"global::System.Collections.Generic.IReadOnlyList<{scalar}>" : scalar;
         return reference.IsOptional ? $"{type}?" : type;
     }
 
@@ -129,7 +129,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         if (type.Kind == SemanticTypeReferenceKind.Concept)
         {
             var concept = context.Concepts[type.Target];
-            return $"new {Identifiers.ToPascalCase(concept.Name)}({PrimitiveValue(value, concept.Primitive)})";
+            return $"new {CommonType(concept.Name)}({PrimitiveValue(value, concept.Primitive)})";
         }
 
         if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
@@ -137,7 +137,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             var semanticType = context.Types[type.Target];
             var values = semanticType.Properties.Select(property =>
                 Value(composite.Properties.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            return $"new {Identifiers.ToPascalCase(semanticType.Name)}({string.Join(", ", values)})";
+            return $"new {CommonType(semanticType.Name)}({string.Join(", ", values)})";
         }
 
         return PrimitiveValue(value, type.Primitive);
@@ -160,14 +160,37 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         // ToString() with the current culture. Parentheses also preserve negative numeric spec literals.
         return hasImplicitConversion || isIdentityConcept
             ? expression
-            : $"new EventSourceId(({expression}).ToString())";
+            : $"new global::Cratis.Chronicle.Events.EventSourceId(({expression}).ToString())";
     }
+
+    /// <summary>
+    /// Gets a fully qualified generated concept or composite type name.
+    /// </summary>
+    /// <param name="name">The modeled type name.</param>
+    /// <returns>The C# type name.</returns>
+    public string CommonType(string name) => $"global::{context.RootNamespace}.Common.{Identifiers.ToPascalCase(name)}";
+
+    /// <summary>
+    /// Gets a fully qualified generated event type name.
+    /// </summary>
+    /// <param name="event">The modeled event.</param>
+    /// <returns>The C# type name.</returns>
+    public string EventType(SemanticEventContract @event) => SliceType(@event.Id, @event.Name);
+
+    /// <summary>
+    /// Gets a fully qualified generated slice declaration name.
+    /// </summary>
+    /// <param name="id">The declaration identity.</param>
+    /// <param name="name">The modeled declaration name.</param>
+    /// <returns>The C# type name.</returns>
+    public string SliceType(SemanticId id, string name) =>
+        $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path)}.{Identifiers.ToPascalCase(name)}";
 
     static string PrimitiveValue(SemanticValue value, SemanticPrimitiveType primitive) => (value, primitive) switch
     {
-        (SemanticTextValue text, SemanticPrimitiveType.Uuid) => $"Guid.Parse({Literal(text.Value)})",
-        (SemanticTextValue text, SemanticPrimitiveType.Date) => $"DateOnly.Parse({Literal(text.Value)}, CultureInfo.InvariantCulture)",
-        (SemanticTextValue text, SemanticPrimitiveType.DateTime) => $"DateTimeOffset.Parse({Literal(text.Value)}, CultureInfo.InvariantCulture)",
+        (SemanticTextValue text, SemanticPrimitiveType.Uuid) => $"global::System.Guid.Parse({Literal(text.Value)})",
+        (SemanticTextValue text, SemanticPrimitiveType.Date) => $"global::System.DateOnly.Parse({Literal(text.Value)}, global::System.Globalization.CultureInfo.InvariantCulture)",
+        (SemanticTextValue text, SemanticPrimitiveType.DateTime) => $"global::System.DateTimeOffset.Parse({Literal(text.Value)}, global::System.Globalization.CultureInfo.InvariantCulture)",
         (SemanticTextValue text, SemanticPrimitiveType.Text) => Literal(text.Value),
         (SemanticNumberValue number, SemanticPrimitiveType.DecimalNumber) => $"{number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}m",
         (SemanticNumberValue number, SemanticPrimitiveType.WholeNumber) => number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),

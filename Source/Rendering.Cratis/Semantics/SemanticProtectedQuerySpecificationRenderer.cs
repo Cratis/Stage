@@ -25,7 +25,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             name += $"_through_{Identifiers.ToSnakeCase(query.Name)}";
         }
 
-        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var readModelName = new SemanticTypeSystem(context).SliceType(readModel.Id, readModel.Name);
         var types = new SemanticTypeSystem(context);
         var key = types.Value(expected.Key, query.Argument.Type);
         var builder = new CSharpCodeBuilder()
@@ -78,7 +78,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             var arguments = @event.Properties.Select(property =>
                 types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
             var source = given.EventSource!;
-            builder.Line($"_scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)}));");
+            builder.Line($"_scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
         if (specification.When is { } action)
@@ -90,7 +90,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
                 var source = SemanticDestinations.ForSpecification(specification, command, produced);
                 var arguments = @event.Properties.Select(property =>
                     types.Value(eventExpectation.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
-                builder.Line($"_scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)}));");
+                builder.Line($"_scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
             }
         }
 
@@ -99,7 +99,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             .Concat(caller.Claims.Select(claim => $"new Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
         var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
         builder.EndBlock().BlankLine()
-            .OpenBlock("async Task Because()")
+            .OpenBlock("async global::System.Threading.Tasks.Task Because()")
             .Line($"var principal = new ClaimsPrincipal(new ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
             .Line("using var scope = _principalAccessor.BeginScope(principal);")
             .Line($"_result = await _scenario.Perform(nameof({readModelName}.{Identifiers.ToPascalCase(query.Name)}), new QueryArguments {{ [{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(query.Argument.Name))}] = {key} }});")

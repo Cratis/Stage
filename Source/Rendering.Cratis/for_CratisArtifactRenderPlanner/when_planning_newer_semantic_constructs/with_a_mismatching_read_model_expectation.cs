@@ -23,6 +23,6 @@ public class with_a_mismatching_read_model_expectation : Specification
         _projection = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_aproject_is_projected.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
-    [Fact] void should_assert_the_wrong_value_rather_than_silently_accepting_it() => _projection.ShouldContain(".Name.ShouldEqual(new ProjectName(\"Wrong project name\"))");
-    [Fact] void should_not_seed_the_wrong_value_as_the_actual_event() => _projection.ShouldNotContain("new ProjectRegistered(new ProjectId(Guid.Parse(\"3fa85f64-5717-4562-b3fc-2c963f66afa6\")), new ProjectName(\"Wrong project name\"))");
+    [Fact] void should_assert_the_wrong_value_rather_than_silently_accepting_it() => _projection.ShouldContain(".Name.ShouldEqual(new global::Invoices.Common.ProjectName(\"Wrong project name\"))");
+    [Fact] void should_not_seed_the_wrong_value_as_the_actual_event() => _projection.ShouldNotContain("new global::Invoices.Projects.Registration.RegisterProject.ProjectRegistered(new global::Invoices.Common.ProjectId(global::System.Guid.Parse(\"3fa85f64-5717-4562-b3fc-2c963f66afa6\")), new ProjectName(\"Wrong project name\"))");
 }

@@ -47,8 +47,8 @@ public class when_planning_commands_with_a_competing_identity : Specification
     }
 
     [Fact] void should_keep_the_competing_concept_as_a_typed_event_source_identity() => _competingIdentityTypes.All(_ => typeof(EventSourceId<Guid>).IsAssignableFrom(_)).ShouldBeTrue();
-    [Fact] void should_keep_the_earlier_typed_identity() => _commands.All(_ => _.Contains("IssueInvoice(OtherId OtherId, string Description,", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_explicitly_provide_the_nonconventional_destination() => _commands.All(_ => _.Contains("public EventSourceId GetEventSourceId() => StreamReference;", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_keep_the_earlier_typed_identity() => _commands.All(_ => _.Contains("IssueInvoice(global::Invoices.Common.OtherId OtherId, string Description,", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_explicitly_provide_the_nonconventional_destination() => _commands.All(_ => _.Contains("public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId() => StreamReference;", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_not_depend_on_key_property_precedence() => _commands.All(_ => !_.Contains("[property: Key]", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_convert_the_destination_instead_of_the_earlier_identity() => _destinations.All(_ => _.Actual == _.Expected).ShouldBeTrue();
     [Fact] void should_import_common_for_the_command_signature() => _commands.All(_ => _.Contains("using Invoices.Common;", StringComparison.Ordinal)).ShouldBeTrue();

@@ -37,12 +37,12 @@ internal static class SemanticReadModelSpecificationRenderer
             behavior += $"_into_{Identifiers.ToSnakeCase(readModel.Name)}";
         }
         var builder = Builder(behavior, located, readModel, context);
-        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var readModelName = types.SliceType(readModel.Id, readModel.Name);
 
         builder.OpenBlock($"public class {behavior} : Specification")
             .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
             .BlankLine()
-            .OpenBlock("async Task Establish()");
+            .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
         foreach (var given in specification.GivenEvents)
         {
             var givenEvent = context.Events[given.EventContract];
@@ -55,7 +55,7 @@ internal static class SemanticReadModelSpecificationRenderer
             var givenArguments = givenEvent.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var givenSource = given.EventSource!;
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {Identifiers.ToPascalCase(givenEvent.Name)}({string.Join(", ", givenArguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
         }
 
         foreach (var (produced, expectedEvent) in replay)
@@ -70,7 +70,7 @@ internal static class SemanticReadModelSpecificationRenderer
             var source = SemanticDestinations.ForSpecification(specification, command, produced);
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
         builder.EndBlock()

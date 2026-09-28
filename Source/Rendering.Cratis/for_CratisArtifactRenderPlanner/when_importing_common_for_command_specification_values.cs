@@ -66,12 +66,12 @@ public class when_importing_common_for_command_specification_values : Specificat
         _rejected = SemanticCommandSpecificationRenderer.Render(expected with { ThenErrors = [new(null, "rejected")] }, _context).Content;
     }
 
-    [Fact] void should_emit_null_and_empty_collection_command_arguments() => _withoutConstructors.ShouldContain("new IssueInvoice(null, [], \"First payload\", \"invoice-one\")");
+    [Fact] void should_emit_null_and_empty_collection_command_arguments() => _withoutConstructors.ShouldContain("new global::Invoices.Billing.Invoicing.Issue.IssueInvoice(null, [], \"First payload\", \"invoice-one\")");
     [Fact] void should_not_import_common_for_null_and_empty_collection_values() => _withoutConstructors.ShouldNotContain("using Invoices.Common;");
     [Fact] void should_import_common_for_a_command_concept_constructor() => _withCommandConstructor.ShouldContain("using Invoices.Common;");
     [Fact] void should_import_common_for_a_command_collection_element_constructor() => _withCollectionConstructor.ShouldContain("using Invoices.Common;");
     [Fact] void should_import_common_for_an_accepted_expected_event_constructor() => _withExpectedConstructor.ShouldContain("using Invoices.Common;");
-    [Fact] void should_emit_the_accepted_expected_event_constructor() => _withExpectedConstructor.ShouldContain("@event.Note == new Note(\"expected\")");
+    [Fact] void should_emit_the_accepted_expected_event_constructor() => _withExpectedConstructor.ShouldContain("@event.Note == new global::Invoices.Common.Note(\"expected\")");
     [Fact] void should_not_import_common_for_unemitted_rejected_expectations() => _rejected.ShouldNotContain("using Invoices.Common;");
     [Fact] void should_not_emit_appended_event_assertions_for_rejections() => _rejected.ShouldNotContain("ShouldHaveAppendedEvent");
 

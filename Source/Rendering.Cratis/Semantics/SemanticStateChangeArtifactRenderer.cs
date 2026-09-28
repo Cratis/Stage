@@ -91,9 +91,9 @@ internal static class SemanticStateChangeArtifactRenderer
         }
 
         builder.Attribute(SemanticAuthorizationAttributes.For(command))
-            .OpenBlock($"public record {name}({parameters}) : ICanProvideEventSourceId")
+            .OpenBlock($"public record {name}({parameters}) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId")
             .Line("/// <inheritdoc/>")
-            .ExpressionMember("public EventSourceId GetEventSourceId()", destinationExpression)
+            .ExpressionMember("public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId()", destinationExpression)
             .BlankLine();
         var hasOccurrence = command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
@@ -107,7 +107,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 return mapping.Source is SemanticEventContextExpression ? "occurred" :
                     Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target).Name);
             });
-            return $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", arguments)})";
+            return $"new {types.EventType(@event)}({string.Join(", ", arguments)})";
         }
 
         string WrappedEvent(SemanticProducedEvent produced)
@@ -127,7 +127,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 metadata.Add($"Tags = [{string.Join(", ", tags.Select(tag => System.Text.Json.JsonSerializer.Serialize(tag)))}]");
             }
 
-            var wrapper = $"new EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {EventValue(produced)})";
+            var wrapper = $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {EventValue(produced)})";
             return metadata.Count == 0 ? wrapper : $"{wrapper} {{ {string.Join(", ", metadata)} }}";
         }
 
@@ -140,23 +140,23 @@ internal static class SemanticStateChangeArtifactRenderer
                 var source = (SemanticResolvedExpression)mapping.Source;
                 return Identifiers.ToPascalCase(command.Properties.Single(_ => _.Id == source.Target).Name);
             });
-            builder.ExpressionMember($"public {Identifiers.ToPascalCase(@event.Name)} Handle()", $"new({string.Join(", ", arguments)})");
+            builder.ExpressionMember($"public {types.EventType(@event)} Handle()", $"new({string.Join(", ", arguments)})");
         }
         else if (!hasOccurrence)
         {
             var events = command.Produces.Select(WrappedEvent);
             if (command.Produces.Length == 1)
             {
-                builder.ExpressionMember("public EventForEventSourceId Handle()", events.Single());
+                builder.ExpressionMember("public global::Cratis.Chronicle.EventSequences.EventForEventSourceId Handle()", events.Single());
             }
             else
             {
-                builder.ExpressionMember("public IEnumerable<EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
+                builder.ExpressionMember("public global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
             }
         }
         else
         {
-            var result = command.Produces.Length == 1 ? "EventForEventSourceId" : "IEnumerable<EventForEventSourceId>";
+            var result = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
 
             // Chronicle's MongoDB event context retains UTC milliseconds. Normalize the payload
             // and append context together so a stored replay sees identical occurrence values.

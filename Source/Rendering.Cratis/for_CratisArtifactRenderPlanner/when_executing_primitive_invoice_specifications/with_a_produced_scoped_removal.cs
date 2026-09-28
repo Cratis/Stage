@@ -30,6 +30,6 @@ public class with_a_produced_scoped_removal : a_generated_application
     }
 
     [Fact] void should_fail_the_removed_read_model_expectation() => _failure!.Message.ShouldContain("should_project_name");
-    [Fact] void should_replay_the_removal() => ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_aproject_is_projected.cs").ShouldContain("Events(new ProjectRemoved(");
+    [Fact] void should_replay_the_removal() => ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_aproject_is_projected.cs").ShouldContain("Events(new global::Invoices.Projects.Registration.RegisterProject.ProjectRemoved(");
 }
 #endif

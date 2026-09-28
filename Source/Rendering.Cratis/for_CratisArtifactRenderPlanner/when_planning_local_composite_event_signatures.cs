@@ -32,7 +32,7 @@ public class when_planning_local_composite_event_signatures : Specification
     }
 
     [Fact] void should_import_common_for_a_locally_emitted_composite_signature() => _command.ShouldContain("using Invoices.Common;");
-    [Fact] void should_render_the_composite_collection_signature() => _command.ShouldContain("public record InvoiceDetailsRecorded(IReadOnlyList<InvoiceDetails> Details);");
+    [Fact] void should_render_the_composite_collection_signature() => _command.ShouldContain("public record InvoiceDetailsRecorded(global::System.Collections.Generic.IReadOnlyList<global::Invoices.Common.InvoiceDetails> Details);");
     [Fact] void should_not_import_common_in_specs_that_emit_only_primitive_values() => _specification.ShouldNotContain("using Invoices.Common;");
     [Fact] void should_compile_the_generated_declarations_and_specifications() => string.Join(Environment.NewLine, _errors).ShouldEqual(string.Empty);
     [Fact] void should_compile_without_warnings() => string.Join(Environment.NewLine, _warnings).ShouldEqual(string.Empty);

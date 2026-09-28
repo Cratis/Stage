@@ -25,10 +25,10 @@ internal static class SemanticScopedProjectionRenderer
         var builder = new CSharpCodeBuilder();
         var modelName = Identifiers.ToPascalCase(readModel.Name);
         builder.Summary($"Projects events onto {modelName}.")
-            .OpenBlock($"public class {Identifiers.ToPascalCase(projection.Name)} : Cratis.Chronicle.Projections.IProjectionFor<{modelName}>")
+            .OpenBlock($"public class {Identifiers.ToPascalCase(projection.Name)} : global::Cratis.Chronicle.Projections.IProjectionFor<{modelName}>")
             .Summary("Defines the event transitions for this projection.")
             .Line("/// <param name=\"builder\">The projection builder.</param>")
-            .OpenBlock($"public void Define(Cratis.Chronicle.Projections.IProjectionBuilderFor<{modelName}> builder)")
+            .OpenBlock($"public void Define(global::Cratis.Chronicle.Projections.IProjectionBuilderFor<{modelName}> builder)")
             .Line("builder.NoAutoMap();");
         RenderScope(builder, scope, context, readModel.Properties, "builder");
         builder.EndBlock().EndBlock();
@@ -51,7 +51,7 @@ internal static class SemanticScopedProjectionRenderer
         foreach (var from in scope.From)
         {
             var @event = context.Events[from.EventContract];
-            var eventName = Identifiers.ToPascalCase(@event.Name);
+            var eventName = new SemanticTypeSystem(context).EventType(@event);
             code.OpenBlock($"{receiver}.From<{eventName}>(from =>")
                 .Line("// Explicit mappings preserve the bound projection; no event-to-model AutoMap is inferred.");
             RenderKey(code, from.Key, @event, context, "from", "UsingKey");
@@ -68,7 +68,7 @@ internal static class SemanticScopedProjectionRenderer
         {
             var @event = context.Events[join.EventContract];
             var on = properties.Single(_ => _.Id == join.On);
-            code.OpenBlock($"{receiver}.Join<{Identifiers.ToPascalCase(@event.Name)}>(join =>")
+            code.OpenBlock($"{receiver}.Join<{new SemanticTypeSystem(context).EventType(@event)}>(join =>")
                 .Line($"join.On(model => model.{Identifiers.ToPascalCase(on.Name)});");
             RenderMappings(code, join.Mappings, properties, @event, context, "join");
             code.EndBlock().Line(");");
@@ -97,7 +97,7 @@ internal static class SemanticScopedProjectionRenderer
         foreach (var removal in scope.Removals)
         {
             var @event = context.Events[removal.EventContract];
-            code.OpenBlock($"{receiver}.RemovedWith<{Identifiers.ToPascalCase(@event.Name)}>(removed =>");
+            code.OpenBlock($"{receiver}.RemovedWith<{new SemanticTypeSystem(context).EventType(@event)}>(removed =>");
             RenderKey(code, removal.Key, @event, context, "removed", "UsingKey");
             if (removal.ParentKey is not null)
             {
@@ -110,7 +110,7 @@ internal static class SemanticScopedProjectionRenderer
         foreach (var removal in scope.JoinRemovals)
         {
             var @event = context.Events[removal.EventContract];
-            code.OpenBlock($"{receiver}.RemovedWithJoin<{Identifiers.ToPascalCase(@event.Name)}>(removed =>");
+            code.OpenBlock($"{receiver}.RemovedWithJoin<{new SemanticTypeSystem(context).EventType(@event)}>(removed =>");
             RenderKey(code, removal.Key, @event, context, "removed", "UsingKey");
             code.EndBlock().Line(");");
         }
@@ -119,7 +119,7 @@ internal static class SemanticScopedProjectionRenderer
         {
             var property = properties.Single(_ => _.Id == nested.Property);
             var type = context.Types[property.Type.Target];
-            code.OpenBlock($"{receiver}.Nested<{Identifiers.ToPascalCase(type.Name)}>(model => model.{Identifiers.ToPascalCase(property.Name)}, nested =>")
+            code.OpenBlock($"{receiver}.Nested<{new SemanticTypeSystem(context).CommonType(type.Name)}>(model => model.{Identifiers.ToPascalCase(property.Name)}, nested =>")
                 .Line("nested.NoAutoMap();");
             RenderScope(code, nested.Scope, context, type.Properties, "nested");
             code.EndBlock().Line(");");
@@ -129,7 +129,7 @@ internal static class SemanticScopedProjectionRenderer
         {
             var property = properties.Single(_ => _.Id == children.Property);
             var type = context.Types[property.Type.Target];
-            var elementName = Identifiers.ToPascalCase(type.Name);
+            var elementName = new SemanticTypeSystem(context).CommonType(type.Name);
             var identity = type.Properties.Single(_ => _.Id == children.IdentifiedBy);
             code.OpenBlock($"{receiver}.Children<{elementName}>(model => model.{Identifiers.ToPascalCase(property.Name)}, children =>")
                 .Line("children.NoAutoMap();")
@@ -187,8 +187,7 @@ internal static class SemanticScopedProjectionRenderer
                 ? composite.Properties : [];
         }
 
-        return new SemanticTypeSystem(context).Value(literal.Value, target!.Type)
-            .Replace("CultureInfo.InvariantCulture", "System.Globalization.CultureInfo.InvariantCulture", StringComparison.Ordinal);
+        return new SemanticTypeSystem(context).Value(literal.Value, target!.Type);
     }
 
     static string Path(System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)

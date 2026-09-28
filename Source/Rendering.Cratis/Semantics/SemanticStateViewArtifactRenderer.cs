@@ -68,7 +68,7 @@ internal static class SemanticStateViewArtifactRenderer
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
             if (@event is not null)
             {
-                builder.Attribute($"FromEvent<{Identifiers.ToPascalCase(@event.Name)}>");
+                builder.Attribute($"FromEvent<{types.EventType(@event)}>");
             }
 
             builder.Attribute("ReadModel")
@@ -113,7 +113,7 @@ internal static class SemanticStateViewArtifactRenderer
             var sourceName = Identifiers.ToPascalCase(eventProperty.Name);
             var attribute = string.Equals(targetName, sourceName, StringComparison.Ordinal)
                 ? string.Empty
-                : $"[SetFrom<{Identifiers.ToPascalCase(@event.Name)}>(nameof(global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path)}.{Identifiers.ToPascalCase(@event.Name)}.{sourceName}))] ";
+                : $"[SetFrom<{types.EventType(@event)}>(nameof({types.EventType(@event)}.{sourceName}))] ";
             var key = keyedQuery?.KeyProperty == property.Id && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty;
             return $"{key}{attribute}{types.Type(property.Type)} {targetName}";
         }));
@@ -129,7 +129,7 @@ internal static class SemanticStateViewArtifactRenderer
         builder.BlankLine()
             .Attribute(SemanticAuthorizationAttributes.For(query))
             .ExpressionMember(
-                $"public static async Task<{readModelName}?> {Identifiers.ToPascalCase(query.Name)}(IReadModels readModels, {types.Type(query.Argument.Type)} {argumentName})",
-                $"await readModels.GetInstanceById<{readModelName}>((EventSourceId){argumentName})");
+                $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {Identifiers.ToPascalCase(query.Name)}(IReadModels readModels, {types.Type(query.Argument.Type)} {argumentName})",
+                $"await readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){argumentName})");
     }
 }

@@ -10,7 +10,9 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
 using Cratis.Stage.Specifications;
+using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -27,6 +29,8 @@ public class when_compiling_generated_name_matrix
     static readonly string[] RecordMembers = [.. GeneratedPascalCase.RecordMembers.Select(Identifiers.ToCamelCase), "finalize", "wait"];
     static readonly string[] RecordKinds = ["event", "command", "readmodel", "type", "concept"];
     static readonly string[] PropertyKinds = ["event", "command", "readmodel", "type"];
+    static readonly string[] ContextualKeywords = [.. Enum.GetValues<SyntaxKind>()
+        .Where(SyntaxFacts.IsContextualKeyword).Select(SyntaxFacts.GetText).Where(name => name.Length > 0)];
 
     const string Source = """
         concept Badge : String
@@ -45,6 +49,8 @@ public class when_compiling_generated_name_matrix
                   for projectId
                   projectId = projectId
                   name = name
+              constraint UniqueName
+                unique name on ProjectRegistered
               event ProjectRegistered
                 projectId String
                 name String
@@ -113,7 +119,7 @@ public class when_compiling_generated_name_matrix
                     "readmodel" => ["projectById"],
                     _ => []
                 };
-                foreach (var member in RecordMembers.Append(sibling).Append(emittedType).Concat(methods)) rows.Add(kind, member);
+                foreach (var member in RecordMembers.Append(sibling).Append(emittedType).Concat(methods).Concat(ContextualKeywords)) rows.Add(kind, member);
             }
             return rows;
         }
@@ -139,8 +145,66 @@ public class when_compiling_generated_name_matrix
     [InlineData("type", "badge")]
     [InlineData("event", "projectRegistered")]
     [InlineData("concept", "badgeValidator")]
+    [InlineData("constraint", "registerProject")]
+    [InlineData("constraint", "registerProjectValidator")]
+    [InlineData("constraint", "projectRegistered")]
     public Task cross_kind_and_same_namespace_type_names_match_the_emitted_compilation(string kind, string name) =>
         Verify(Mutate(kind, name, typeName: true), $"sibling/{kind}/{name}");
+
+    [Theory]
+    [InlineData("define")]
+    [InlineData("uniqueName")]
+    [InlineData("iConstraint")]
+    [InlineData("iConstraintBuilder")]
+    public Task constraint_type_names_match_the_emitted_compilation(string name) =>
+        Verify(Mutate("constraint", name, typeName: true), $"constraint/{name}");
+
+    [Theory]
+    [InlineData("Guid", SemanticPrimitiveType.Uuid)]
+    [InlineData("DateOnly", SemanticPrimitiveType.Date)]
+    [InlineData("DateTimeOffset", SemanticPrimitiveType.DateTime)]
+    [InlineData("String", SemanticPrimitiveType.Text)]
+    [InlineData("Task", SemanticPrimitiveType.Text)]
+    [InlineData("EventSourceId", SemanticPrimitiveType.Text)]
+    public Task bcl_shadowing_concepts_match_the_emitted_compilation(string name, SemanticPrimitiveType primitive)
+    {
+        var model = Mutate("concept", name, typeName: true);
+        var application = model.Application;
+        return Verify(
+            ExecutableSemanticModel.Create(
+                model.LanguageVersion,
+                model.SemanticVersion,
+                application with { Concepts = [.. application.Concepts.Select(concept => concept with { Primitive = primitive })] }),
+            $"bcl/concept/{name}");
+    }
+
+    [Theory]
+    [InlineData("Guid")]
+    [InlineData("String")]
+    [InlineData("DateTimeOffset")]
+    [InlineData("Task")]
+    [InlineData("EventSourceId")]
+    public Task bcl_shadowing_composite_types_match_the_emitted_compilation(string name) =>
+        Verify(Mutate("type", name, typeName: true), $"bcl/type/{name}");
+
+    [Theory]
+    [InlineData("type")]
+    [InlineData("event")]
+    public Task empty_records_named_deconstruct_are_legal(string kind)
+    {
+        var model = kind == "event"
+            ? Compile(Source.Replace("      event ProjectRegistered", "      event Deconstruct\n      event ProjectRegistered", StringComparison.Ordinal))
+            : Mutate(kind, "deconstruct", typeName: true);
+        var application = model.Application;
+        if (kind == "type")
+        {
+            model = ExecutableSemanticModel.Create(
+                model.LanguageVersion,
+                model.SemanticVersion,
+                application with { Types = [.. application.Types.Select(type => type with { Properties = [] })] });
+        }
+        return Verify(model, $"empty/{kind}");
+    }
 
     public static TheoryData<string> QueryNameRows
     {
@@ -174,11 +238,49 @@ public class when_compiling_generated_name_matrix
     }
 
     [Theory]
+    [MemberData(nameof(ContextualArgumentRows))]
+    public Task contextual_keywords_as_properties_and_query_arguments_compile(string name)
+    {
+        var model = Original;
+        var application = model.Application;
+        var module = application.Modules.Single();
+        var feature = module.Features.Single();
+        var updated = feature with
+        {
+            Slices = [.. feature.Slices.Select(slice => slice with
+            {
+                ReadModels = [.. slice.ReadModels.Select(readModel => readModel with
+                {
+                    Properties = [.. readModel.Properties.Select(property => property.Name == "key" ? property with { Name = name } : property)]
+                })],
+                Queries = [.. slice.Queries.Select(query => query with { Argument = query.Argument with { Name = name } })]
+            })]
+        };
+        return Verify(
+            ExecutableSemanticModel.Create(
+                model.LanguageVersion,
+                model.SemanticVersion,
+                application with { Modules = [module with { Features = [updated] }] }),
+            $"contextual/{name}");
+    }
+
+    public static TheoryData<string> ContextualArgumentRows
+    {
+        get
+        {
+            var rows = new TheoryData<string>();
+            foreach (var name in ContextualKeywords.Distinct(StringComparer.Ordinal)) rows.Add(name);
+            return rows;
+        }
+    }
+
+    [Theory]
     [InlineData("ProjectBy_Id", "key")]
     [InlineData("projectById", "key")]
     [InlineData("AnotherQuery", "readModels")]
     [InlineData("AnotherQuery", "read_models")]
     [InlineData("AnotherQuery", "key")]
+    [InlineData("AnotherQuery", "await")]
     public Task query_signatures_and_generated_parameters_match_the_emitted_compilation(
         string name, string argument)
     {
@@ -206,6 +308,37 @@ public class when_compiling_generated_name_matrix
             Original.SemanticVersion,
             application with { Modules = [module with { Features = [changed] }] });
         return Verify(model, $"query/{name}/{argument}");
+    }
+
+    [Theory]
+    [InlineData("event", "ProjectId")]
+    [InlineData("readmodel", "ProjectId")]
+    [InlineData("readmodel", "ProjectRegistered")]
+    [InlineData("readmodel", "ProjectLookup")]
+    [InlineData("event", "ProjectLookup")]
+    public Task cross_namespace_shadowing_matches_the_emitted_compilation(string kind, string name)
+    {
+        var source = Source.Replace("concept Badge : String", "concept Badge : String\nconcept ProjectId : String", StringComparison.Ordinal)
+            .Replace("projectId String", "projectId ProjectId", StringComparison.Ordinal)
+            .Replace("key String", "key ProjectId", StringComparison.Ordinal);
+        var model = Compile(source);
+        var application = model.Application;
+        var module = application.Modules.Single();
+        var feature = module.Features.Single();
+        var updated = feature with
+        {
+            Slices = [.. feature.Slices.Select(slice => slice with
+            {
+                Events = [.. slice.Events.Select(@event => kind == "event" ? @event with { Name = name } : @event)],
+                ReadModels = [.. slice.ReadModels.Select(readModel => kind == "readmodel" ? readModel with { Name = name } : readModel)]
+            })]
+        };
+        return Verify(
+            ExecutableSemanticModel.Create(
+                model.LanguageVersion,
+                model.SemanticVersion,
+                application with { Modules = [module with { Features = [updated] }] }),
+            $"crossnamespace/{kind}/{name}");
     }
 
     [Fact]
@@ -254,7 +387,7 @@ public class when_compiling_generated_name_matrix
     public void occurrence_type_is_qualified_against_a_command_member()
     {
         var source = Source.Replace("        name String\n        validate", "        name String\n        dateTimeOffset String\n        validate", StringComparison.Ordinal)
-            .Replace("          name = name\n      event", "          name = name\n          occurred = $context.occurred\n      event", StringComparison.Ordinal)
+            .Replace("          name = name\n      constraint", "          name = name\n          occurred = $context.occurred\n      constraint", StringComparison.Ordinal)
             .Replace(
                 "      event ProjectRegistered\n        projectId String\n        name String",
                 "      event ProjectRegistered\n        projectId String\n        name String\n        occurred DateTime",
@@ -404,7 +537,8 @@ public class when_compiling_generated_name_matrix
                 Commands = [.. slice.Commands.Select(ChangeCommand)],
                 Events = [.. slice.Events.Select(ChangeEvent)],
                 ReadModels = [.. slice.ReadModels.Select(ChangeReadModel)],
-                Projections = [.. slice.Projections.Select(projection => kind == "projection" ? projection with { Name = name } : projection)]
+                Projections = [.. slice.Projections.Select(projection => kind == "projection" ? projection with { Name = name } : projection)],
+                Constraints = [.. slice.Constraints.Select(constraint => kind == "constraint" ? constraint with { Name = name } : constraint)]
             })]
         };
         application = application with
@@ -433,6 +567,15 @@ public class when_compiling_generated_name_matrix
             : SemanticStateViewArtifactRenderer.Render(slice, context))
             .Concat(model.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context)))
             .Concat(model.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context)))
+            .Concat(SemanticCratisAdmission.SelectedConstraints(context, context.SelectedSlices())
+                .Select(selected => SemanticConstraintArtifactRenderer.Render(selected.Slice, selected.Constraint, context)))
+            .Concat(row.StartsWith("crossnamespace/", StringComparison.Ordinal)
+                ? model.Application.Modules.SelectMany(module => module.Features)
+                    .SelectMany(feature => feature.Slices)
+                    .SelectMany(slice => slice.Specifications)
+                    .SelectMany(specification => new[] { SemanticCommandSpecificationRenderer.Render(specification, context) }
+                        .Concat(specification.ThenReadModels.Select(expected => SemanticReadModelSpecificationRenderer.Render(specification, expected, context))))
+                : [])
             .ToArray();
         var errors = RenderedOutput.Errors(files);
         var serializationFailure = false;

@@ -61,7 +61,7 @@ internal static class SemanticCommandSpecificationRenderer
             }
         }
 
-        var commandName = Identifiers.ToPascalCase(command.Name);
+        var commandName = types.SliceType(command.Id, command.Name);
         var arguments = command.Properties.Select(property =>
             types.Value(when.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
 
@@ -87,7 +87,7 @@ internal static class SemanticCommandSpecificationRenderer
 
         if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
         {
-            builder.OpenBlock(seedInLog ? "async Task Establish()" : "void Establish()");
+            builder.OpenBlock(seedInLog ? "async global::System.Threading.Tasks.Task Establish()" : "void Establish()");
             if (command.Authorization is not null)
             {
                 builder.Line($"{context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
@@ -108,7 +108,7 @@ internal static class SemanticCommandSpecificationRenderer
             var eventArguments = @event.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var eventSource = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
-            var eventValue = $"new {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", eventArguments)})";
+            var eventValue = $"new {types.EventType(@event)}({string.Join(", ", eventArguments)})";
             builder.Line(seedInLog
                 ? $"await _scenario.EventScenario.Given.ForEventSource({eventSource}).Events({eventValue});"
                 : $"_scenario.Given.ForEventSource({eventSource}).Events({eventValue});");
@@ -129,7 +129,7 @@ internal static class SemanticCommandSpecificationRenderer
             var claims = caller.Roles.Select(role => $"new Claim(ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
                 .Concat(caller.Claims.Select(claim => $"new Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
             var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
-            builder.OpenBlock("async Task Because()")
+            builder.OpenBlock("async global::System.Threading.Tasks.Task Because()")
                 .Line($"var principal = new ClaimsPrincipal(new ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
                 .Line("var principalOverride = new CurrentPrincipalAccessor(new HttpRequestContextAccessor());")
                 .Line("using var scope = principalOverride.BeginScope(principal);")
@@ -139,7 +139,7 @@ internal static class SemanticCommandSpecificationRenderer
         }
         else
         {
-            builder.Line($"async Task Because() => _result = await _scenario.Execute(new {commandName}({string.Join(", ", arguments)}));")
+            builder.Line($"async global::System.Threading.Tasks.Task Because() => _result = await _scenario.Execute(new {commandName}({string.Join(", ", arguments)}));")
                 .BlankLine();
         }
 
@@ -253,14 +253,14 @@ internal static class SemanticCommandSpecificationRenderer
             var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
             if (specification.ThenEvents.Length == 1 && !seedInLog)
             {
-                builder.Line($"[Fact] async Task {name}() => await _scenario.ShouldHaveAppendedEvent<{Identifiers.ToPascalCase(command.Name)}, {Identifiers.ToPascalCase(@event.Name)}>({sourceValue}, @event => {predicate});");
+                builder.Line($"[Fact] async global::System.Threading.Tasks.Task {name}() => await _scenario.ShouldHaveAppendedEvent<{types.SliceType(command.Id, command.Name)}, {types.EventType(@event)}>({sourceValue}, @event => {predicate});");
             }
             else
             {
                 var appended = seedInLog
                     ? $"_scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).ToArray()[_givenEventCount + {index}]"
                     : $"_scenario.AppendedEvents[{index}]";
-                builder.Line($"[Fact] void {name}_at_position_{index + 1}() => ({appended}.Event.Context.EventSourceId == {sourceValue} && {appended}.Event.Content is {Identifiers.ToPascalCase(@event.Name)} @event && {predicate}).ShouldBeTrue();");
+                builder.Line($"[Fact] void {name}_at_position_{index + 1}() => ({appended}.Event.Context.EventSourceId == {sourceValue} && {appended}.Event.Content is {types.EventType(@event)} @event && {predicate}).ShouldBeTrue();");
             }
         }
     }
@@ -301,7 +301,7 @@ internal static class SemanticCommandSpecificationRenderer
                 builder.Using($"{context.RootNamespace}.Common");
             }
 
-            builder.Line($"var match{index} = remaining.FindIndex(entry => entry.Event.Content is {Identifiers.ToPascalCase(@event.Name)} @event{source}{string.Concat(predicates.Select(predicate => $" && {predicate}"))});")
+            builder.Line($"var match{index} = remaining.FindIndex(entry => entry.Event.Content is {types.EventType(@event)} @event{source}{string.Concat(predicates.Select(predicate => $" && {predicate}"))});")
                 .Line($"(match{index} >= 0).ShouldBeTrue();")
                 .Line($"remaining.RemoveAt(match{index});");
         }

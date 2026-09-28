@@ -72,7 +72,7 @@ internal static class SemanticCommonArtifactRenderer
             builder.Using("Cratis.Chronicle.Events");
         }
 
-        var baseType = isIdentifier ? $"EventSourceId<{primitive}>" : $"ConceptAs<{primitive}>";
+        var baseType = isIdentifier ? $"global::Cratis.Chronicle.Events.EventSourceId<{primitive}>" : $"global::Cratis.Concepts.ConceptAs<{primitive}>";
         builder.Summary($"Represents {Identifiers.ToWords(concept.Name)}.")
             .OpenBlock($"public record {name}({primitive} Value) : {baseType}(Value)")
             .Line($"public static readonly {name} NotSet = new({SemanticTypeSystem.NotSet(concept.Primitive)});")
@@ -80,7 +80,7 @@ internal static class SemanticCommonArtifactRenderer
 
         if (isIdentifier)
         {
-            var value = concept.Primitive == SemanticPrimitiveType.Uuid ? "Guid.NewGuid()" : SemanticTypeSystem.NotSet(concept.Primitive);
+            var value = concept.Primitive == SemanticPrimitiveType.Uuid ? "global::System.Guid.NewGuid()" : SemanticTypeSystem.NotSet(concept.Primitive);
             builder.Line($"public static {name} New() => new({value});").BlankLine();
         }
         else

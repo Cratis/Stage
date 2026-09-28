@@ -15,8 +15,8 @@ public class with_explicitly_sourced_given_events : an_invoice_model
         StringComparison.Ordinal));
 
     [Fact] void should_admit_sourced_prior_facts() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_seed_both_prior_facts_on_their_stated_streams() => Artifact("when_issuing_first_invoice.cs").ShouldContain("ForEventSource(\"prior-two\").Events(new InvoiceIssued(\"Prior second\"))");
+    [Fact] void should_seed_both_prior_facts_on_their_stated_streams() => Artifact("when_issuing_first_invoice.cs").ShouldContain("ForEventSource(\"prior-two\").Events(new global::Invoices.Billing.Invoicing.Issue.InvoiceIssued(\"Prior second\"))");
     [Fact] void should_seed_prior_facts_before_executing_the_command() =>
         Artifact("when_issuing_first_invoice.cs").IndexOf("Prior first", StringComparison.Ordinal)
-            .ShouldBeLessThan(Artifact("when_issuing_first_invoice.cs").IndexOf("async Task Because", StringComparison.Ordinal));
+            .ShouldBeLessThan(Artifact("when_issuing_first_invoice.cs").IndexOf("async global::System.Threading.Tasks.Task Because", StringComparison.Ordinal));
 }

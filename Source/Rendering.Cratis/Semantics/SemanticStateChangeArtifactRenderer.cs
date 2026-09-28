@@ -161,7 +161,7 @@ internal static class SemanticStateChangeArtifactRenderer
             // Chronicle's MongoDB event context retains UTC milliseconds. Normalize the payload
             // and append context together so a stored replay sees identical occurrence values.
             builder.OpenBlock($"public {result} Handle()")
-                .Line("var occurred = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());")
+                .Line("var occurred = global::System.DateTimeOffset.FromUnixTimeMilliseconds(global::System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());")
                 .Line($"return {(command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(WrappedEvent))}]")};")
                 .EndBlock();
         }

@@ -36,6 +36,11 @@ internal static partial class SemanticCratisAdmission
         ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
+        foreach (var (artifact, kind, name) in GeneratedTypeNames.Collisions(
+            context.Application, slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice))))
+        {
+            diagnostics.Add(Error("STAGE-ESM-012", $"{kind} '{name}' collides with another generated C# type in the same namespace.", artifact));
+        }
 
         foreach (var located in slices)
         {

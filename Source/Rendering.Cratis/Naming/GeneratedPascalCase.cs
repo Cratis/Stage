@@ -12,6 +12,15 @@ internal static class GeneratedPascalCase
     // Roslyn positional-record compilation in the generated-member matrix specifications.
     static readonly string[] _recordMembers = ["EqualityContract", "ToString", "Equals", "GetHashCode", "Deconstruct", "PrintMembers", "GetType", "MemberwiseClone", "ReferenceEquals", "Clone"];
 
+    // Only the members synthesized *on* a record conflict with the enclosing type name.
+    // Inherited object members (including Clone and GetType) do not.
+    static readonly HashSet<string> _recordTypeNames = new(StringComparer.Ordinal)
+    {
+        "EqualityContract", "ToString", "Equals", "GetHashCode", "Deconstruct", "PrintMembers"
+    };
+
+    internal static IReadOnlyList<string> RecordMembers => _recordMembers;
+
     internal static bool ConceptMembersAreUnique(string conceptName, IEnumerable<string> values, bool isIdentifier)
     {
         var names = values.Select(From).ToArray();
@@ -22,7 +31,9 @@ internal static class GeneratedPascalCase
         }
 
         // ConceptAs<T> already supplies Value; the derived record does not synthesize it anew.
-        return From(conceptName) != "NotSet" && (!isIdentifier || From(conceptName) != "New");
+        // ConceptAs<T> supplies ToString, so a derived concept does not synthesize it again.
+        return (From(conceptName) == "ToString" || RecordTypeNameIsSafe(conceptName)) &&
+            From(conceptName) != "NotSet" && (!isIdentifier || From(conceptName) != "New");
     }
 
     internal static bool EventMembersAreUnique(string eventName, IEnumerable<string> properties) =>
@@ -36,11 +47,29 @@ internal static class GeneratedPascalCase
         RecordMembersAreUnique(readModelName, properties, queryNames) &&
         queryNames.All(name => From(name) != From(readModelName) && From(name) is not ("EqualityContract" or "Clone"));
 
+    // The service argument is always IReadModels; the second argument is the rendered CLR type.
+    // Different argument types are genuine C# overloads, even if their authored query names normalize alike.
+    internal static bool QueriesAreUnique(IEnumerable<(string Name, string Type, string Argument)> queries)
+    {
+        var signatures = queries.Select(query => (Name: From(query.Name), query.Type)).ToArray();
+        return signatures.Distinct().Count() == signatures.Length &&
+            queries.All(query => char.ToLowerInvariant(From(query.Argument)[0]) + From(query.Argument)[1..] != "readModels");
+    }
+
+    internal static bool ProjectionTypeNameIsSafe(string name) => From(name) != "Define";
+
+    internal static bool RecordTypeNameIsSafe(string name) => !_recordTypeNames.Contains(From(name));
+
     internal static bool RecordMembersAreUnique(string typeName, IEnumerable<string> properties, IEnumerable<string>? methods = null)
     {
         var generated = properties.Select(From).ToArray();
         var reserved = _recordMembers.Concat((methods ?? []).Select(From)).ToHashSet(StringComparer.Ordinal);
-        return generated.Distinct(StringComparer.Ordinal).Count() == generated.Length &&
+        return RecordTypeNameIsSafe(typeName) &&
+            generated.Distinct(StringComparer.Ordinal).Count() == generated.Length &&
+
+            // Positional records also bind constructor arguments by case-insensitive JSON property name.
+            // C# accepts Name and NAme but System.Text.Json cannot serialize that record.
+            generated.Distinct(StringComparer.OrdinalIgnoreCase).Count() == generated.Length &&
             generated.All(name => name != From(typeName) && !reserved.Contains(name));
     }
 

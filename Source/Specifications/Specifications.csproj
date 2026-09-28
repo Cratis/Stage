@@ -15,6 +15,7 @@
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Admission/SemanticScopedProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Admission/SemanticFlatProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedPascalCase.cs" Link="Admission/GeneratedPascalCase.cs" />
+        <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeNames.cs" Link="Admission/GeneratedTypeNames.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleEventPropertyNameIsSafe.cs" Link="Admission/ChronicleEventPropertyNameIsSafe.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleReadModelPropertyNamesAreSafe.cs" Link="Admission/ChronicleReadModelPropertyNamesAreSafe.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ProjectionReferencedEventNamesAreUnique.cs" Link="Admission/ProjectionReferencedEventNamesAreUnique.cs" />

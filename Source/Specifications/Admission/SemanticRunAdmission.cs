@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Specifications.Admission;
 
@@ -24,16 +25,56 @@ internal static class SemanticRunAdmission
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
+
+        // A per-run result must not pass an application whose selected slice cannot be rendered.
+        // Include declarations in the specification's slice even if the example never produces them.
+        foreach (var slice in slices)
+        {
+            var collidingEvent = slice.Events.FirstOrDefault(@event =>
+                !GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name)));
+            if (collidingEvent is not null)
+            {
+                var referenced = slices.SelectMany(candidate => candidate.Projections)
+                    .Any(projection => ProjectionReferencedEventNamesAreUnique.Contracts(projection).Contains(collidingEvent.Id));
+                return Block(
+                    referenced ? StageExecutionCapability.Projection : StageExecutionCapability.Command,
+                    collidingEvent.Id,
+                    "Event property names collide in generated C#.");
+            }
+            var collidingCommand = slice.Commands.FirstOrDefault(command =>
+                !GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name)));
+            if (collidingCommand is not null) return Block(StageExecutionCapability.Command, collidingCommand.Id, "Command property names collide in generated C#.");
+            var collidingReadModel = slice.ReadModels.FirstOrDefault(readModel =>
+                !GeneratedPascalCase.ReadModelMembersAreUnique(
+                    readModel.Name,
+                    readModel.Properties.Select(property => property.Name),
+                    slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
+                !GeneratedPascalCase.QueriesAreUnique(slice.Queries.Where(query => query.ReadModel == readModel.Id)
+                    .Select(query => (query.Name, SemanticRunProjectionAdmission.QueryType(query.Argument.Type, plan), query.Argument.Name))));
+            if (collidingReadModel is not null) return Block(StageExecutionCapability.Projection, collidingReadModel.Id, "A read-model property name or query collides in generated C#.");
+            var collidingProjection = slice.Projections.FirstOrDefault(projection =>
+                projection.Scope is not null && !GeneratedPascalCase.ProjectionTypeNameIsSafe(projection.Name));
+            if (collidingProjection is not null) return Block(StageExecutionCapability.Projection, collidingProjection.Id, "Projection type name collides with generated C# members.");
+        }
+        var typeCollision = GeneratedTypeNames.Collisions(
+            plan.Model.Application,
+            GeneratedTypeNames.AllSlices(plan.Model.Application)).FirstOrDefault();
+        if (typeCollision.Artifact.IsSet)
+        {
+            var capability = typeCollision.Kind == "ReadModel" || typeCollision.Kind == "Projection"
+                ? StageExecutionCapability.Projection : StageExecutionCapability.Command;
+            return Block(capability, typeCollision.Artifact, $"{typeCollision.Kind} '{typeCollision.Name}' collides with another generated C# type.");
+        }
         var identifiers = slices.SelectMany(slice => slice.Commands.SelectMany(command => command.Properties)
             .Concat(slice.ReadModels.SelectMany(model => model.Properties)))
             .Where(property => property.IsIdentifier && property.Type.Kind == SemanticTypeReferenceKind.Concept)
             .Select(property => property.Type.Target).ToHashSet();
         var collidingConcept = plan.Model.Application.Concepts.FirstOrDefault(concept =>
             !GeneratedPascalCase.ConceptMembersAreUnique(concept.Name, concept.Values, identifiers.Contains(concept.Id)));
-        if (collidingConcept is not null) return Block(StageExecutionCapability.Projection, collidingConcept.Id, "Concept members collide in generated C#.");
+        if (collidingConcept is not null) return Block(StageExecutionCapability.Command, collidingConcept.Id, "Concept members collide in generated C#.");
         var collidingType = plan.Model.Application.Types.FirstOrDefault(type =>
             !GeneratedPascalCase.RecordMembersAreUnique(type.Name, type.Properties.Select(property => property.Name)));
-        if (collidingType is not null) return Block(StageExecutionCapability.Projection, collidingType.Id, "Type property names collide in generated C#.");
+        if (collidingType is not null) return Block(StageExecutionCapability.Command, collidingType.Id, "Type property names collide in generated C#.");
         var reducer = slices.SelectMany(slice => slice.Reducers).FirstOrDefault();
         if (reducer is not null) return Block(StageExecutionCapability.Projection, reducer.ReadModel, "Reducer implementation bodies cannot be executed by Stage.");
         var opaqueConcept = plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Validations.Any(rule => OpaqueRule(rule.Kind)));

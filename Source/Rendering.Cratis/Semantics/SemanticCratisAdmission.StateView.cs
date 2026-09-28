@@ -44,7 +44,10 @@ internal static partial class SemanticCratisAdmission
             if (!GeneratedPascalCase.ReadModelMembersAreUnique(
                 readModel.Name,
                 readModel.Properties.Select(property => property.Name),
-                slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)))
+                slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
+                !GeneratedPascalCase.QueriesAreUnique(slice.Queries.Where(query => query.ReadModel == readModel.Id)
+                    .Where(query => TypeExists(context, query.Argument.Type))
+                    .Select(query => (query.Name, new SemanticTypeSystem(context).Type(query.Argument.Type), query.Argument.Name))))
             {
                 diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' has property or query names that collide in generated C#.", readModel.Id));
                 continue;
@@ -58,6 +61,12 @@ internal static partial class SemanticCratisAdmission
 
             if (projection.Scope is { } scope)
             {
+                if (!GeneratedPascalCase.ProjectionTypeNameIsSafe(projection.Name))
+                {
+                    diagnostics.Add(Error("STAGE-ESM-012", $"Projection '{projection.Name}' has a name that collides with its generated C# members.", projection.Id));
+                    continue;
+                }
+
                 var rejection = SemanticScopedProjectionSupport.Rejection(scope, context, readModel.Properties);
                 if (rejection is not null || !projection.Transitions.IsEmpty)
                 {

@@ -54,6 +54,15 @@ internal static class SemanticRunProjectionAdmission
         return null;
     }
 
+    internal static string QueryType(SemanticTypeReference type, SemanticExecutionPlan plan) =>
+        type.Kind switch
+        {
+            SemanticTypeReferenceKind.Primitive => type.Primitive.ToString() + (type.IsOptional ? "?" : string.Empty) + (type.IsCollection ? "[]" : string.Empty),
+            SemanticTypeReferenceKind.Concept => GeneratedPascalCase.From(plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target).Name),
+            SemanticTypeReferenceKind.CompositeType => GeneratedPascalCase.From(plan.Model.Application.Types.Single(composite => composite.Id == type.Target).Name),
+            _ => type.ToString() ?? string.Empty
+        };
+
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {
         if (!ProjectionReferencedEventNamesAreUnique.Check(projection, plan.Events))
@@ -82,7 +91,9 @@ internal static class SemanticRunProjectionAdmission
         if (!GeneratedPascalCase.ReadModelMembersAreUnique(
             readModel.Name,
             readModel.Properties.Select(property => property.Name),
-            plan.Queries.Values.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)))
+            plan.Queries.Values.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
+            !GeneratedPascalCase.QueriesAreUnique(plan.Queries.Values.Where(query => query.ReadModel == readModel.Id)
+                .Select(query => (query.Name, QueryType(query.Argument.Type, plan), query.Argument.Name))))
         {
             return "A read-model property or query name collides in generated C#.";
         }
@@ -100,6 +111,11 @@ internal static class SemanticRunProjectionAdmission
 
         if (projection.Scope is { } scope)
         {
+            if (!GeneratedPascalCase.ProjectionTypeNameIsSafe(projection.Name))
+            {
+                return "A projection type name collides with its generated C# members.";
+            }
+
             var rejection = SemanticScopedProjectionSupport.Rejection(scope, new SemanticApplicationContext(plan), readModel.Properties);
             if (rejection is not null)
             {

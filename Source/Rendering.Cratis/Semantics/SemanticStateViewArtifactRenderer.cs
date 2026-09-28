@@ -72,7 +72,7 @@ internal static class SemanticStateViewArtifactRenderer
             }
 
             builder.Attribute("ReadModel")
-                .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault()))})");
+                .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault(), context))})");
             foreach (var query in queries)
             {
                 RenderQuery(builder, query, readModel, types);
@@ -102,7 +102,8 @@ internal static class SemanticStateViewArtifactRenderer
         SemanticProjectionTransition transition,
         SemanticEventContract @event,
         SemanticTypeSystem types,
-        SemanticKeyedQuery? keyedQuery) =>
+        SemanticKeyedQuery? keyedQuery,
+        SemanticApplicationContext context) =>
         string.Join(", ", readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).Select(property =>
         {
             var mapping = transition.Mappings.Single(_ => _.TargetProperty == property.Id);
@@ -112,7 +113,7 @@ internal static class SemanticStateViewArtifactRenderer
             var sourceName = Identifiers.ToPascalCase(eventProperty.Name);
             var attribute = string.Equals(targetName, sourceName, StringComparison.Ordinal)
                 ? string.Empty
-                : $"[SetFrom<{Identifiers.ToPascalCase(@event.Name)}>(nameof({Identifiers.ToPascalCase(@event.Name)}.{sourceName}))] ";
+                : $"[SetFrom<{Identifiers.ToPascalCase(@event.Name)}>(nameof(global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path)}.{Identifiers.ToPascalCase(@event.Name)}.{sourceName}))] ";
             var key = keyedQuery?.KeyProperty == property.Id && !types.IsEventSourceIdentifier(property.Type) ? "[Key] " : string.Empty;
             return $"{key}{attribute}{types.Type(property.Type)} {targetName}";
         }));

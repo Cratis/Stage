@@ -12,6 +12,19 @@ internal static class GeneratedPascalCase
     // Roslyn positional-record compilation in the generated-member matrix specifications.
     static readonly string[] _recordMembers = ["EqualityContract", "ToString", "Equals", "GetHashCode", "Deconstruct", "PrintMembers", "GetType", "MemberwiseClone", "ReferenceEquals", "Clone"];
 
+    internal static bool ConceptMembersAreUnique(string conceptName, IEnumerable<string> values, bool isIdentifier)
+    {
+        var names = values.Select(From).ToArray();
+        if (names.Length > 0)
+        {
+            // Unlike record members, an enum value can have the enclosing enum's name.
+            return names.Distinct(StringComparer.Ordinal).Count() == names.Length;
+        }
+
+        // ConceptAs<T> already supplies Value; the derived record does not synthesize it anew.
+        return From(conceptName) != "NotSet" && (!isIdentifier || From(conceptName) != "New");
+    }
+
     internal static bool EventMembersAreUnique(string eventName, IEnumerable<string> properties) =>
         RecordMembersAreUnique(eventName, properties);
 

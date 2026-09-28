@@ -318,6 +318,54 @@ public class when_comparing_projection_property_name_admission
     }
 
     [Theory]
+    [InlineData("Value", false, false)]
+    [InlineData("NotSet", true, false)]
+    [InlineData("Badge", false, true)]
+    [InlineData("Badge_", false, true)]
+    [InlineData("Status", false, true)]
+    [InlineData("Duplicate", true, true)]
+    public async Task should_match_roslyn_for_generated_concept_members(string authored, bool collision, bool isEnum)
+    {
+        var original = Compile("concept Badge : String\n" + Source);
+        var changed = original.Application.Concepts.Single() with
+        {
+            Name = authored,
+            Values = (isEnum, authored) switch
+            {
+                (false, _) => [],
+                (true, "Duplicate") => ["Badge", "Badge_"],
+                _ => ["Badge"]
+            }
+        };
+        var model = ExecutableSemanticModel.Create(
+            original.LanguageVersion,
+            original.SemanticVersion,
+            original.Application with { Concepts = [changed] });
+        var compiled = SemanticExecutionPlan.Compile(model);
+        Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
+        var plan = compiled.Plan!;
+        var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(
+            plan,
+            new([plan.Specifications.Values.Single().Id]),
+            new())).Results);
+        var options = new CratisRenderingOptions("Projects", "Projects");
+        var request = new ArtifactRenderRequest(
+            model,
+            plan,
+            CratisRendering.CreateProfile("Projects", options),
+            new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var context = new SemanticApplicationContext(request, options);
+        Assert.Equal(collision, RenderedOutput.Errors([SemanticCommonArtifactRenderer.Render(changed, context)]).Count > 0);
+        Assert.Equal(!collision, rendered.Success);
+        Assert.Equal(!collision, executed.Outcome == SemanticSpecificationOutcome.Passed);
+        if (collision)
+        {
+            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == changed.Id);
+        }
+    }
+
+    [Theory]
     [InlineData("projectNote")]
     [InlineData("clone")]
     [InlineData("getType")]

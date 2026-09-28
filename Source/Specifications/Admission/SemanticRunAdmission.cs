@@ -23,10 +23,17 @@ internal static class SemanticRunAdmission
     public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification)
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
+        var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
+        var identifiers = slices.SelectMany(slice => slice.Commands.SelectMany(command => command.Properties)
+            .Concat(slice.ReadModels.SelectMany(model => model.Properties)))
+            .Where(property => property.IsIdentifier && property.Type.Kind == SemanticTypeReferenceKind.Concept)
+            .Select(property => property.Type.Target).ToHashSet();
+        var collidingConcept = plan.Model.Application.Concepts.FirstOrDefault(concept =>
+            !GeneratedPascalCase.ConceptMembersAreUnique(concept.Name, concept.Values, identifiers.Contains(concept.Id)));
+        if (collidingConcept is not null) return Block(StageExecutionCapability.Projection, collidingConcept.Id, "Concept members collide in generated C#.");
         var collidingType = plan.Model.Application.Types.FirstOrDefault(type =>
             !GeneratedPascalCase.RecordMembersAreUnique(type.Name, type.Properties.Select(property => property.Name)));
         if (collidingType is not null) return Block(StageExecutionCapability.Projection, collidingType.Id, "Type property names collide in generated C#.");
-        var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
         var reducer = slices.SelectMany(slice => slice.Reducers).FirstOrDefault();
         if (reducer is not null) return Block(StageExecutionCapability.Projection, reducer.ReadModel, "Reducer implementation bodies cannot be executed by Stage.");
         var opaqueConcept = plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Validations.Any(rule => OpaqueRule(rule.Kind)));

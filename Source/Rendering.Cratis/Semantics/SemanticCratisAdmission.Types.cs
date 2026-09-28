@@ -16,6 +16,11 @@ internal static partial class SemanticCratisAdmission
     {
         foreach (var concept in context.Application.Concepts)
         {
+            if (!GeneratedPascalCase.ConceptMembersAreUnique(concept.Name, concept.Values, context.IdentifierConcepts.Contains(concept.Id)))
+            {
+                diagnostics.Add(Error("STAGE-ESM-012", $"Concept '{concept.Name}' has members that collide in generated C#.", concept.Id));
+            }
+
             if (concept.Validations.Any(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))
             {
                 diagnostics.Add(Error("STAGE-ESM-005", $"Concept '{concept.Name}' contains validation implementation bodies ({string.Join(", ", concept.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation).Select(rule => rule.RequirementId))}): Arc does not supply RuleContext.Occurred (received-at) to a generated validator, and Stage does not yet enforce the pure capability.", concept.Id));

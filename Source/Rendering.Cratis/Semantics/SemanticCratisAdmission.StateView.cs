@@ -3,7 +3,6 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
-using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -41,13 +40,7 @@ internal static partial class SemanticCratisAdmission
                 continue;
             }
 
-            var eventContracts = projection.Scope is { } scoped
-                ? scoped.From.Select(from => from.EventContract).Concat(scoped.Joins.Select(join => join.EventContract))
-                    .Concat(scoped.Removals.Select(removal => removal.EventContract))
-                    .Concat(scoped.JoinRemovals.Select(removal => removal.EventContract))
-                : projection.Transitions.Select(transition => transition.EventContract);
-            if (eventContracts.Any(id => context.Events.TryGetValue(id, out var @event) &&
-                !GeneratedPascalCase.NamesAreUnique(@event.Properties.Select(property => property.Name))))
+            if (!ProjectionReferencedEventNamesAreUnique.Check(projection, context.Events))
             {
                 diagnostics.Add(Error("STAGE-ESM-012", $"Projection '{projection.Name}' references an event with property names that collide in generated C#.", projection.Id));
                 continue;

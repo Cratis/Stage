@@ -55,6 +55,10 @@ internal static class SemanticRunProjectionAdmission
 
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {
+        if (!ProjectionReferencedEventNamesAreUnique.Check(projection, plan.Events))
+        {
+            return "A projection references an event with property names that collide in generated C#.";
+        }
         if ((projection.Scope is { } scoped
                 ? scoped.From.Select(from => from.EventContract).Concat(scoped.Joins.Select(join => join.EventContract))
                     .Concat(scoped.Removals.Select(removal => removal.EventContract))

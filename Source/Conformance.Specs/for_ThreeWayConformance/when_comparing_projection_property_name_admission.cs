@@ -148,6 +148,51 @@ public class when_comparing_projection_property_name_admission
         }
     }
 
+    [Fact]
+    public async Task should_refuse_an_unreached_projection_event_with_colliding_generated_properties()
+    {
+        var source = Source.Replace(
+                "      specification RegisteringAProject",
+                "      event ProjectUpdated\n        projectId String\n        displayName String\n        otherName String\n      specification RegisteringAProject",
+                StringComparison.Ordinal)
+            .Replace(
+                "from ProjectRegistered key $eventSourceId\n          name = name",
+                "from ProjectRegistered key $eventSourceId\n          name = name\n        from ProjectUpdated key $eventSourceId\n          name = displayName",
+                StringComparison.Ordinal);
+        var model = Compile(source);
+        var module = model.Application.Modules.Single();
+        var feature = module.Features.Single();
+        var modified = feature with
+        {
+            Slices = [.. feature.Slices.Select(slice => slice with
+            {
+                Events = [.. slice.Events.Select(@event => @event with
+                {
+                    Properties = [.. @event.Properties.Select(property => @event.Name == "ProjectUpdated" && property.Name == "otherName"
+                        ? property with { Name = "display_name" } : property)]
+                })]
+            })]
+        };
+        model = ExecutableSemanticModel.Create(
+            model.LanguageVersion,
+            model.SemanticVersion,
+            model.Application with { Modules = [module with { Features = [modified] }] });
+        var compiled = SemanticExecutionPlan.Compile(model);
+        Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
+        var plan = compiled.Plan!;
+        var specification = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
+        var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+
+        Assert.False(rendered.Success);
+        Assert.Empty(rendered.Artifacts);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" &&
+            diagnostic.Artifact == plan.Projections.Values.Single().Id);
+        Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
+        Assert.Equal(StageExecutionCapability.Projection, executed.Unsupported?.Capability);
+        Assert.Contains("generated C#", executed.Unsupported?.Details ?? "", StringComparison.Ordinal);
+    }
+
     static async Task VerifyChildId()
     {
         const string childSource = """

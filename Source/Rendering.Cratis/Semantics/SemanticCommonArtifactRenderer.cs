@@ -102,7 +102,7 @@ internal static class SemanticCommonArtifactRenderer
         builder.Using("Cratis.Arc.Validation")
             .BlankLine()
             .Summary($"Validates {name}.")
-            .OpenBlock($"public class {name}Validator : ConceptValidator<{name}>")
+            .OpenBlock($"public class {name}Validator : global::Cratis.Arc.Validation.ConceptValidator<{name}>")
             .OpenBlock($"public {name}Validator()");
         foreach (var rule in concept.Validations)
         {

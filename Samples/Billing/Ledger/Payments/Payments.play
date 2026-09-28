@@ -6,7 +6,7 @@ module Ledger
     slice StateChange RecordPayment
 
       command RecordPayment
-        paymentId Uuid identifier
+        paymentId PaymentId identifier
         invoiceId InvoiceId
         amount Money
         validate
@@ -25,7 +25,7 @@ module Ledger
           ```
 
       event PaymentRecorded
-        paymentId Uuid
+        paymentId PaymentId
         invoiceId InvoiceId
         amount Money
         settlesInvoice Bool
@@ -36,15 +36,18 @@ module Ledger
     slice StateView PaymentList
 
       readmodel PaymentSummary
-        paymentId Uuid
+        paymentId PaymentId
         invoiceId InvoiceId
         amount Money
 
       reducer PaymentSummaryReducer => PaymentSummary
         on PaymentRecorded
           ```csharp
-          return new PaymentSummary(event.PaymentId, event.InvoiceId, event.Amount);
+          return new PaymentSummary(context.Event.PaymentId, context.Event.InvoiceId, context.Event.Amount);
           ```
+
+      query PaymentById => PaymentSummary?
+        by paymentId PaymentId
 
       query Payments => observable PaymentSummary[]
         performer

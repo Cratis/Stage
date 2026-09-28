@@ -16,7 +16,15 @@ internal static class GeneratedTypeNames
         IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> slices,
         IEnumerable<(IEnumerable<string> Path, SemanticId Owner, SemanticConstraint Constraint)>? constraints = null)
     {
-        var selectedSlices = slices.ToArray();
+        var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
+        var namespaces = new HashSet<(string Namespace, string Name)>();
+        foreach (var (path, _) in selectedSlices)
+        {
+            for (var index = 0; index < path.Length; index++)
+            {
+                namespaces.Add((string.Join('.', path.Take(index)), path[index]));
+            }
+        }
         var seen = new HashSet<(string Namespace, string Name)>();
         foreach (var concept in application.Concepts)
         {
@@ -30,7 +38,11 @@ internal static class GeneratedTypeNames
         }
         foreach (var (path, slice) in selectedSlices)
         {
-            var ns = string.Join('.', path.Select(GeneratedPascalCase.From));
+            var ns = string.Join('.', path);
+            foreach (var reducer in slice.Reducers)
+            {
+                foreach (var name in Names(ns, reducer.Name, reducer.ReadModel, "Reducer")) yield return name;
+            }
             foreach (var command in slice.Commands)
             {
                 foreach (var name in Names(ns, command.Name, command.Id, "Command")) yield return name;
@@ -50,7 +62,7 @@ internal static class GeneratedTypeNames
                 foreach (var name in Names(ns, projection.Name, projection.Id, "Projection")) yield return name;
             }
         }
-        foreach (var (path, owner, constraint) in constraints ?? selectedSlices.SelectMany(located => located.Slice.Constraints.Select(constraint => (located.Path, located.Slice.Id, constraint))))
+        foreach (var (path, owner, constraint) in constraints ?? selectedSlices.SelectMany(located => located.Slice.Constraints.Select(constraint => ((IEnumerable<string>)located.Path, located.Slice.Id, constraint))))
         {
             var ns = string.Join('.', path.Select(GeneratedPascalCase.From));
             foreach (var name in Names(ns, constraint.Name, owner, "Constraint")) yield return name;
@@ -60,6 +72,7 @@ internal static class GeneratedTypeNames
         {
             var name = GeneratedPascalCase.From(source);
             if (!seen.Add((ns, name))) yield return (id, kind, name);
+            if (namespaces.Contains((ns, name))) yield return (id, "Namespace", name);
         }
     }
 

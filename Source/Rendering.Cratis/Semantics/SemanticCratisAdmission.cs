@@ -33,6 +33,15 @@ internal static partial class SemanticCratisAdmission
             return [.. diagnostics];
         }
 
+        // TypedContexts is reserved for reducer runtime tokens and wrappers. A modeled
+        // namespace with the same root path can rebind TenantId in unrelated artifacts.
+        if (slices.Any(_ => !_.Slice.Reducers.IsEmpty) &&
+            context.NamespacePaths.Any(path => path == $"{context.RootNamespace}.TypedContexts"))
+        {
+            diagnostics.Add(Error("STAGE-ESM-022", "Generated namespace 'TypedContexts' shadows the reserved reducer runtime namespace.", model.Application.Id));
+            return [.. diagnostics];
+        }
+
         ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
@@ -42,9 +51,13 @@ internal static partial class SemanticCratisAdmission
             SelectedConstraints(context, slices).Select(selected =>
                 ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint))))
         {
-            diagnostics.Add(Error("STAGE-ESM-012", $"{kind} '{name}' collides with another generated C# type in the same namespace.", artifact));
+            var message = kind == "Namespace"
+                ? $"Generated type '{name}' collides with a generated C# namespace."
+                : $"{kind} '{name}' collides with another generated C# type in the same namespace.";
+            diagnostics.Add(Error("STAGE-ESM-012", message, artifact));
         }
 
+        var analysedBodies = 0;
         foreach (var located in slices)
         {
             foreach (var @event in located.Slice.Events.Where(@event =>
@@ -53,11 +66,7 @@ internal static partial class SemanticCratisAdmission
                 diagnostics.Add(Error("STAGE-ESM-012", $"Event '{@event.Name}' has property names that collide in generated C#.", @event.Id));
             }
 
-            if (!located.Slice.Reducers.IsEmpty)
-            {
-                diagnostics.Add(Error("STAGE-ESM-019", $"Slice '{located.Slice.Name}' has reducer implementation bodies; typed contexts are available, but Stage#119 still needs to render reducer bodies with null-result deletion, event-source key semantics and pure capability enforcement.", located.Slice.Id));
-                continue;
-            }
+            analysedBodies += ValidateReducers(context, located.Slice, diagnostics);
 
             switch (located.Slice.Kind)
             {
@@ -73,6 +82,15 @@ internal static partial class SemanticCratisAdmission
             }
 
             SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics);
+        }
+
+        if (slices.Any(_ => !_.Slice.Reducers.IsEmpty))
+        {
+            diagnostics.Add(new(
+                "STAGE-ESM-023",
+                ArtifactRenderDiagnosticSeverity.Information,
+                $"{analysedBodies} transition bodies analysed.",
+                model.Application.Id));
         }
 
         return [.. diagnostics];

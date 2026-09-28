@@ -66,7 +66,9 @@ internal static class SemanticRunAdmission
         {
             var capability = typeCollision.Kind == "ReadModel" || typeCollision.Kind == "Projection"
                 ? StageExecutionCapability.Projection : StageExecutionCapability.Command;
-            return Block(capability, typeCollision.Artifact, $"{typeCollision.Kind} '{typeCollision.Name}' collides with another generated C# type.");
+            return Block(capability, typeCollision.Artifact, typeCollision.Kind == "Namespace"
+                ? $"Generated type '{typeCollision.Name}' collides with a generated C# namespace."
+                : $"{typeCollision.Kind} '{typeCollision.Name}' collides with another generated C# type.");
         }
         var identifiers = slices.SelectMany(slice => slice.Commands.SelectMany(command => command.Properties)
             .Concat(slice.ReadModels.SelectMany(model => model.Properties)))

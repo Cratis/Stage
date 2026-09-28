@@ -396,12 +396,12 @@ public class when_verifying_implementation_attachments : Specification
             diagnostic.Message.Contains(loaded.ImplementationRequirements.Single(requirement => requirement.Role == SemanticImplementationRole.ConceptValidation).RequirementId, StringComparison.Ordinal));
     }
 
-    [Fact] async Task should_reject_a_verified_reducer_with_019()
+    [Fact] async Task should_reject_a_verified_reducer_without_its_descriptor_with_021()
     {
         const string source = """
             module Billing
               feature Accounts
-                slice StateView Balance
+                slice StateView BalanceView
                   event AmountDeposited
                     amount Decimal
                   readmodel AccountBalance
@@ -419,7 +419,7 @@ public class when_verifying_implementation_attachments : Specification
         await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         var plan = Render(loaded);
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-019");
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021");
         plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-020");
     }
 

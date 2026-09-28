@@ -82,9 +82,10 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// Gets the C# type syntax for a semantic type reference.
     /// </summary>
     /// <param name="reference">The semantic type reference.</param>
+    /// <param name="reducerInput">Whether this is a reducer-visible event or state property.</param>
     /// <returns>The C# type syntax.</returns>
     /// <exception cref="UnsupportedSemanticRendering">The type reference is not handled by this renderer.</exception>
-    public string Type(SemanticTypeReference reference)
+    public string Type(SemanticTypeReference reference, bool reducerInput = false)
     {
         var scalar = reference.Kind switch
         {
@@ -94,7 +95,14 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), reference.Kind)
         };
 
-        var type = reference.IsCollection ? $"global::System.Collections.Generic.IReadOnlyList<{scalar}>" : scalar;
+        // Only reducer-visible records require concrete immutable inputs. Other artifacts keep their
+        // existing collection contracts; switching an unrelated projection or command changes semantics.
+        var type = scalar;
+        if (reference.IsCollection)
+        {
+            type = reducerInput ? $"global::System.Collections.Immutable.ImmutableArray<{scalar}>" : $"global::System.Collections.Generic.IReadOnlyList<{scalar}>";
+        }
+
         return reference.IsOptional ? $"{type}?" : type;
     }
 
@@ -106,6 +114,30 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     public bool IsEventSourceIdentifier(SemanticTypeReference type) =>
         !type.IsCollection && type.Kind == SemanticTypeReferenceKind.Concept &&
         context.IdentifierConcepts.Contains(type.Target) && context.Concepts[type.Target].Values.IsEmpty;
+
+    /// <summary>Whether a reducer identifier has an exact, supported Chronicle wire conversion.</summary>
+    /// <param name="type">The read-model identifier type.</param>
+    /// <returns>Whether its wire representation can be compared without normalization.</returns>
+    public bool SupportsReducerIdentifier(SemanticTypeReference type)
+    {
+        if (type.IsOptional || type.IsCollection)
+        {
+            return false;
+        }
+
+        if (type.Kind == SemanticTypeReferenceKind.Primitive)
+        {
+            return type.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text;
+        }
+
+        if (type.Kind != SemanticTypeReferenceKind.Concept || !context.IdentifierConcepts.Contains(type.Target) ||
+            !context.Concepts.TryGetValue(type.Target, out var concept) || !concept.Values.IsEmpty)
+        {
+            return false;
+        }
+
+        return concept.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text;
+    }
 
     /// <summary>
     /// Renders a concrete semantic value according to its declared type.

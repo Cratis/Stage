@@ -64,14 +64,14 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             }
         }
 
-        builder.OpenBlock($"public class {name} : Specification, IDisposable")
-            .Line($"readonly QueryScenario<{readModelName}> _scenario = new();")
-            .Line("readonly CurrentPrincipalAccessor _principalAccessor = new(new HttpRequestContextAccessor());")
-            .Line("QueryResult _result = null!;")
+        builder.OpenBlock($"public class {name} : global::Cratis.Specifications.Specification, global::System.IDisposable")
+            .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{readModelName}> _scenario = new();")
+            .Line("readonly global::Cratis.Arc.Authorization.CurrentPrincipalAccessor _principalAccessor = new(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
+            .Line("global::Cratis.Arc.Queries.QueryResult _result = null!;")
             .BlankLine()
             .OpenBlock("void Establish()")
             .Line($"global::{context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);")
-            .Line("_scenario.Services.AddSingleton<ICurrentPrincipalAccessor>(_principalAccessor);");
+            .Line("_scenario.Services.AddSingleton<global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor>(_principalAccessor);");
         foreach (var given in specification.GivenEvents)
         {
             var @event = context.Events[given.EventContract];
@@ -95,20 +95,20 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         }
 
         var caller = specification.GivenCaller!;
-        var claims = caller.Roles.Select(role => $"new Claim(ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
-            .Concat(caller.Claims.Select(claim => $"new Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+        var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+            .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
         var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
         builder.EndBlock().BlankLine()
             .OpenBlock("async global::System.Threading.Tasks.Task Because()")
-            .Line($"var principal = new ClaimsPrincipal(new ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
+            .Line($"var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
             .Line("using var scope = _principalAccessor.BeginScope(principal);")
-            .Line($"_result = await _scenario.Perform(nameof({readModelName}.{Identifiers.ToPascalCase(query.Name)}), new QueryArguments {{ [{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(query.Argument.Name))}] = {key} }});")
+            .Line($"_result = await _scenario.Perform(nameof({readModelName}.{Identifiers.ToPascalCase(query.Name)}), new global::Cratis.Arc.Queries.QueryArguments {{ [{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(query.Argument.Name))}] = {key} }});")
             .EndBlock().BlankLine();
 
         if (specification.ThenDenied)
         {
-            builder.Line("[Fact] void should_be_unauthorized() => _result.IsAuthorized.ShouldBeFalse();")
-                .Line("[Fact] void should_return_no_data() => _result.Data.ShouldBeNull();");
+            builder.Line("[global::Xunit.FactAttribute] void should_be_unauthorized() => _result.IsAuthorized.ShouldBeFalse();")
+                .Line("[global::Xunit.FactAttribute] void should_return_no_data() => _result.Data.ShouldBeNull();");
         }
         else
         {
@@ -118,8 +118,8 @@ internal static class SemanticProtectedQuerySpecificationRenderer
                 var property = readModel.Properties.Single(candidate => candidate.Id == value.TargetProperty);
                 return $"model.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value.Value, property.Type)}";
             });
-            builder.Line("[Fact] void should_be_authorized() => _result.IsAuthorized.ShouldBeTrue();")
-                .Line($"[Fact] void should_return_the_expected_read_model() => (_result.Data is {readModelName} model{string.Concat(comparisons.Select(value => $" && {value}"))}).ShouldBeTrue();");
+            builder.Line("[global::Xunit.FactAttribute] void should_be_authorized() => _result.IsAuthorized.ShouldBeTrue();")
+                .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => (_result.Data is {readModelName} model{string.Concat(comparisons.Select(value => $" && {value}"))}).ShouldBeTrue();");
         }
 
         builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();

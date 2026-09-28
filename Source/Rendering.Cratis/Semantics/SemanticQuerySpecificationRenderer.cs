@@ -81,9 +81,9 @@ internal static class SemanticQuerySpecificationRenderer
             }
         }
 
-        builder.OpenBlock($"public class {behavior} : Specification")
-            .Line("readonly IReadModels _readModels = Substitute.For<IReadModels>();")
-            .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
+        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+            .Line("readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
+            .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line($"{readModelName}? _result;")
             .BlankLine()
             .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
@@ -110,7 +110,7 @@ internal static class SemanticQuerySpecificationRenderer
             .BlankLine()
             .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")
             .BlankLine()
-            .Line($"[Fact] void should_return_the_expected_read_model() => ({predicate}).ShouldBeTrue();")
+            .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({predicate}).ShouldBeTrue();")
             .EndBlock();
 
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
@@ -170,15 +170,15 @@ internal static class SemanticQuerySpecificationRenderer
             builder.Using($"{context.RootNamespace}.Common");
         }
 
-        builder.OpenBlock($"public class {behavior} : Specification")
-            .Line($"readonly ReadModelScenario<{readModelName}> _scenario = new();")
+        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+            .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line($"{readModelName}? _result;")
             .BlankLine()
             .Line($"void Establish() => _scenario.Given.ForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key}).ReadModel(new {readModelName}({string.Join(", ", values)}));")
             .BlankLine()
             .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_scenario.ReadModels, {key});")
             .BlankLine()
-            .Line($"[Fact] void should_return_the_seeded_read_model() => ({predicate}).ShouldBeTrue();")
+            .Line($"[global::Xunit.FactAttribute] void should_return_the_seeded_read_model() => ({predicate}).ShouldBeTrue();")
             .EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
         var content = builder.ToString();

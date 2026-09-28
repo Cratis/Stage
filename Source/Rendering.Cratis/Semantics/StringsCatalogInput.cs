@@ -139,8 +139,8 @@ internal static partial class StringsCatalogInput
             throw UnsupportedSemanticRendering.For(nameof(StringsCatalogInput), "Program.cs request localization hook");
         }
 
-        var supported = string.Join(", ", catalog.Locales.Keys.Select(locale => $"System.Globalization.CultureInfo.GetCultureInfo({CSharpCodeBuilder.StringLiteral(locale)})"));
-        var localization = $"app.UseRequestLocalization(new Microsoft.AspNetCore.Builder.RequestLocalizationOptions\n{{\n    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(System.Globalization.CultureInfo.InvariantCulture, System.Globalization.CultureInfo.GetCultureInfo({CSharpCodeBuilder.StringLiteral(catalog.DefaultLocale)})),\n    SupportedCultures = [System.Globalization.CultureInfo.InvariantCulture],\n    SupportedUICultures = [{supported}]\n}});\n";
+        var supported = string.Join(", ", catalog.Locales.Keys.Select(locale => $"global::System.Globalization.CultureInfo.GetCultureInfo({CSharpCodeBuilder.StringLiteral(locale)})"));
+        var localization = $"app.UseRequestLocalization(new global::Microsoft.AspNetCore.Builder.RequestLocalizationOptions\n{{\n    DefaultRequestCulture = new global::Microsoft.AspNetCore.Localization.RequestCulture(global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.CultureInfo.GetCultureInfo({CSharpCodeBuilder.StringLiteral(catalog.DefaultLocale)})),\n    SupportedCultures = [global::System.Globalization.CultureInfo.InvariantCulture],\n    SupportedUICultures = [{supported}]\n}});\n";
         return source.Replace(marker, localization + marker, StringComparison.Ordinal);
     }
 
@@ -149,11 +149,11 @@ internal static partial class StringsCatalogInput
         var builder = new CSharpCodeBuilder().Namespace(rootNamespace).Using("System.Globalization")
             .OpenBlock("public static class GeneratedStrings")
             .Line($"const string DefaultLocale = {CSharpCodeBuilder.StringLiteral(catalog.DefaultLocale)};")
-            .Line("static readonly Dictionary<string, Dictionary<string, string>> Locales = new(StringComparer.OrdinalIgnoreCase)")
+            .Line("static readonly global::System.Collections.Generic.Dictionary<string, global::System.Collections.Generic.Dictionary<string, string>> Locales = new(global::System.StringComparer.OrdinalIgnoreCase)")
             .Line("{");
         foreach (var (locale, entries) in catalog.Locales)
         {
-            builder.Line($"    [{CSharpCodeBuilder.StringLiteral(locale)}] = new Dictionary<string, string>(StringComparer.Ordinal)")
+            builder.Line($"    [{CSharpCodeBuilder.StringLiteral(locale)}] = new global::System.Collections.Generic.Dictionary<string, string>(global::System.StringComparer.Ordinal)")
                 .Line("    {");
             foreach (var (key, value) in entries)
             {
@@ -168,7 +168,7 @@ internal static partial class StringsCatalogInput
             .Line("public static string Resolve(string reference)")
             .Line("{")
             .Line("    var key = reference[\"$strings.\".Length..];")
-            .Line("    for (var culture = CultureInfo.CurrentUICulture; !string.IsNullOrEmpty(culture.Name); culture = culture.Parent)")
+            .Line("    for (var culture = global::System.Globalization.CultureInfo.CurrentUICulture; !global::System.String.IsNullOrEmpty(culture.Name); culture = culture.Parent)")
             .Line("    {")
             .Line("        if (Locales.TryGetValue(culture.Name, out var localized) && localized.TryGetValue(key, out var value)) return value;")
             .Line("    }")

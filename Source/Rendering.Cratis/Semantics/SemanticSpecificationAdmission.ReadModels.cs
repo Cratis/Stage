@@ -28,6 +28,22 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSpecification specification,
         SemanticSpecificationReadModel expected)
     {
+        var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == expected.ReadModel);
+        if (reducer is not null)
+        {
+            var command = context.Commands[specification.When!.Command];
+
+            // Without occurrence identities, unordered duplicates cannot be replayed against
+            // the reducer's event-source state without guessing which payload came first.
+            if (specification.ThenEventsInAnyOrder && specification.ThenEvents.GroupBy(_ => _.EventContract).Any(group => group.Count() > 1))
+                return false;
+            return specification.ThenEvents.Length == command.Produces.Length &&
+                (specification.GivenEvents.Any(given => reducer.Transitions.Any(_ => _.EventContract == given.EventContract) &&
+                    Equals(given.EventSource?.Value, expected.Key)) ||
+                command.Produces.Any(produced => reducer.Transitions.Any(_ => _.EventContract == produced.EventContract) &&
+                    Equals(SemanticDestinations.ForSpecification(specification, command, produced).Value, expected.Key)));
+        }
+
         var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == expected.ReadModel);
         if (projection?.Scope is { } scope)
         {

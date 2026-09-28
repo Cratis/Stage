@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -39,6 +40,7 @@ internal sealed class SemanticApplicationContext
         Commands = _slices.Values.SelectMany(_ => _.Slice.Commands).ToDictionary(_ => _.Id);
         ReadModels = _slices.Values.SelectMany(_ => _.Slice.ReadModels).ToDictionary(_ => _.Id);
         Projections = _slices.Values.SelectMany(_ => _.Slice.Projections).ToDictionary(_ => _.Id);
+        Reducers = [.. _slices.Values.SelectMany(_ => _.Slice.Reducers)];
         Queries = _slices.Values.SelectMany(_ => _.Slice.Queries).ToDictionary(_ => _.Id);
         Specifications = _slices.Values.SelectMany(_ => _.Slice.Specifications).ToDictionary(_ => _.Id);
         IdentifierConcepts = FindIdentifierConcepts();
@@ -95,6 +97,9 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     public IReadOnlyDictionary<SemanticId, SemanticProjection> Projections { get; }
 
+    /// <summary>Gets reducer definitions across all slices.</summary>
+    public IReadOnlyList<SemanticReducer> Reducers { get; }
+
     /// <summary>
     /// Gets queries by semantic identity.
     /// </summary>
@@ -114,6 +119,13 @@ internal sealed class SemanticApplicationContext
     /// Gets every append-time constraint in the application with the slice declaring it.
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
+
+    /// <summary>Gets distinct generated namespace prefixes, including slices outside the selected scope.</summary>
+    internal IEnumerable<string> NamespacePaths => _slices.Values.SelectMany(located =>
+    {
+        var segments = RootNamespace.Split('.').Concat(located.Path.Select(Identifiers.ToPascalCase)).ToArray();
+        return Enumerable.Range(1, segments.Length).Select(length => string.Join('.', segments.Take(length)));
+    }).Distinct(StringComparer.Ordinal);
 
     /// <summary>
     /// Gets the slices selected by the request scope in deterministic model order.

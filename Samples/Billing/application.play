@@ -2,6 +2,8 @@ domain Cratis.Samples.Billing
 
 import Cratis.Samples.Shared
 
+concept PaymentId : Uuid
+
 concept InvoiceId : Uuid
 
 concept InvoiceNumber : String

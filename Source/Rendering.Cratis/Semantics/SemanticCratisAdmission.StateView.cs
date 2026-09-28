@@ -18,9 +18,11 @@ internal static partial class SemanticCratisAdmission
         SemanticSlice slice,
         List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (slice.ReadModels.Length == 0 || slice.Projections.Length != slice.ReadModels.Length ||
-            slice.Projections.Select(_ => _.ReadModel).Distinct().Count() != slice.ReadModels.Length ||
-            slice.Projections.Any(_ => !slice.ReadModels.Any(model => model.Id == _.ReadModel)))
+        if ((slice.ReadModels.Length == 0 && slice.Reducers.IsEmpty) ||
+            slice.Projections.Any(projection => !slice.ReadModels.Any(model => model.Id == projection.ReadModel)) ||
+            slice.Reducers.Any(reducer => !slice.ReadModels.Any(model => model.Id == reducer.ReadModel)) ||
+            slice.ReadModels.Any(model => slice.Projections.Count(_ => _.ReadModel == model.Id) +
+                slice.Reducers.Count(_ => _.ReadModel == model.Id) != 1))
         {
             diagnostics.Add(Error("STAGE-ESM-007", $"State-view slice '{slice.Name}' needs exactly one projection for each read model.", slice.Id));
             return;
@@ -28,10 +30,17 @@ internal static partial class SemanticCratisAdmission
 
         foreach (var readModel in slice.ReadModels)
         {
-            var projection = slice.Projections.Single(_ => _.ReadModel == readModel.Id);
+            var projection = slice.Projections.SingleOrDefault(_ => _.ReadModel == readModel.Id);
             if (readModel.Properties.Any(_ => !TypeExists(context, _.Type)) || readModel.Properties.Count(_ => _.IsIdentifier) != 1)
             {
-                diagnostics.Add(Error("STAGE-ESM-008", $"Projection '{projection.Name}' needs a resolvable read model with one identifier.", projection.Id));
+                diagnostics.Add(projection is null
+                    ? Error("STAGE-ESM-008", $"Read model '{readModel.Name}' needs resolvable properties and one identifier.", readModel.Id)
+                    : Error("STAGE-ESM-008", $"Projection '{projection.Name}' needs a resolvable read model with one identifier.", projection.Id));
+                continue;
+            }
+
+            if (projection is null)
+            {
                 continue;
             }
 

@@ -47,7 +47,17 @@ internal static class SemanticSliceArtifactRenderers
     {
         public bool Handles(LocatedSemanticSlice located) => located.Slice.Kind == SemanticSliceKind.StateView;
 
-        public IEnumerable<RenderedFile> Render(LocatedSemanticSlice located, SemanticApplicationContext context) =>
-            RenderWithSpecifications(SemanticStateViewArtifactRenderer.Render(located, context), located, context);
+        public IEnumerable<RenderedFile> Render(LocatedSemanticSlice located, SemanticApplicationContext context)
+        {
+            foreach (var file in RenderWithSpecifications(SemanticStateViewArtifactRenderer.Render(located, context), located, context))
+            {
+                yield return file;
+            }
+
+            foreach (var reducer in located.Slice.Reducers)
+            {
+                yield return SemanticReducerArtifactRenderer.Render(located, reducer, context);
+            }
+        }
     }
 }

@@ -47,7 +47,7 @@ internal static class SemanticValidationRendering
             SemanticValidationSeverity.Information => "Information",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValidationSeverity), rule.Severity)
         };
-        var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity(ValidationResultSeverity.{severity})";
+        var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity(global::Cratis.Arc.Validation.ValidationResultSeverity.{severity})";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
             builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage(_ => global::{rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
@@ -66,9 +66,9 @@ internal static class SemanticValidationRendering
         builder.BlankLine()
             .OpenBlock("static bool MatchesPattern(string value, string pattern)")
             .OpenBlock("try")
-            .Line("return System.Text.RegularExpressions.Regex.IsMatch(value, pattern, System.Text.RegularExpressions.RegexOptions.ECMAScript | System.Text.RegularExpressions.RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));")
+            .Line("return global::System.Text.RegularExpressions.Regex.IsMatch(value, pattern, global::System.Text.RegularExpressions.RegexOptions.ECMAScript | global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.TimeSpan.FromSeconds(1));")
             .EndBlock()
-            .OpenBlock("catch (System.Text.RegularExpressions.RegexMatchTimeoutException)")
+            .OpenBlock("catch (global::System.Text.RegularExpressions.RegexMatchTimeoutException)")
             .Line("return false;")
             .EndBlock()
             .EndBlock();
@@ -101,11 +101,11 @@ internal static class SemanticValidationRendering
         return rule.Kind switch
         {
             SemanticValidationRuleKind.NotEmpty when collection => "value is { Count: > 0 }",
-            SemanticValidationRuleKind.NotEmpty => wrapped ? "value is not null && !string.IsNullOrEmpty(value.Value)" : "!string.IsNullOrEmpty(value)",
+            SemanticValidationRuleKind.NotEmpty => wrapped ? "value is not null && !global::System.String.IsNullOrEmpty(value.Value)" : "!global::System.String.IsNullOrEmpty(value)",
             SemanticValidationRuleKind.Equal when primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber => $"{absentPasses}{scalar} == {number}",
             SemanticValidationRuleKind.NotEqual when primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber => $"{absentPasses}{scalar} != {number}",
-            SemanticValidationRuleKind.Equal => $"{absentPasses}object.Equals({scalar}, {equality})",
-            SemanticValidationRuleKind.NotEqual => $"{absentPasses}!object.Equals({scalar}, {equality})",
+            SemanticValidationRuleKind.Equal => $"{absentPasses}global::System.Object.Equals({scalar}, {equality})",
+            SemanticValidationRuleKind.NotEqual => $"{absentPasses}!global::System.Object.Equals({scalar}, {equality})",
             SemanticValidationRuleKind.Length => $"{absentPasses}{scalar}.Length == {number}",
             SemanticValidationRuleKind.Matches => $"{absentPasses}MatchesPattern({scalar}, {equality})",
             SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual => $"{absentPasses}value.All(element => {element} {comparison} {number})",

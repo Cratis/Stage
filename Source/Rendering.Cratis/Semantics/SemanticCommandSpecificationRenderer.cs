@@ -75,9 +75,9 @@ internal static class SemanticCommandSpecificationRenderer
         // has to dispose it in turn. Generated code is built in someone else's repository, frequently with
         // analysis as errors, and an undisposed owned resource is a build failure there that they cannot fix
         // by editing the file.
-        builder.OpenBlock($"public class {behavior} : Specification, IDisposable")
-            .Line($"readonly CommandScenario<{commandName}> _scenario = new();")
-            .Line("CommandResult _result = null!;");
+        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
+            .Line($"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{commandName}> _scenario = new();")
+            .Line("global::Cratis.Arc.Commands.CommandResult _result = null!;");
         if (seedInLog || specification.ThenDenied || !specification.ThenErrors.IsEmpty)
         {
             builder.Line("int _givenEventCount = 0;");
@@ -126,12 +126,12 @@ internal static class SemanticCommandSpecificationRenderer
 
         if (specification.GivenCaller is { } caller)
         {
-            var claims = caller.Roles.Select(role => $"new Claim(ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
-                .Concat(caller.Claims.Select(claim => $"new Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+            var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+                .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
             var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
             builder.OpenBlock("async global::System.Threading.Tasks.Task Because()")
-                .Line($"var principal = new ClaimsPrincipal(new ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
-                .Line("var principalOverride = new CurrentPrincipalAccessor(new HttpRequestContextAccessor());")
+                .Line($"var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
+                .Line("var principalOverride = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
                 .Line("using var scope = principalOverride.BeginScope(principal);")
                 .Line($"_result = await _scenario.Execute(new {commandName}({string.Join(", ", arguments)}));")
                 .EndBlock()
@@ -149,10 +149,10 @@ internal static class SemanticCommandSpecificationRenderer
             builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
                 .Using("Cratis.Arc.Authorization")
                 .Using("Microsoft.Extensions.DependencyInjection")
-                .Line("[Fact] void should_be_denied() => _result.IsAuthorized.ShouldBeFalse();")
-                .Line("[Fact] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);")
-                .OpenBlock("[Fact] void should_resolve_the_registered_policy()")
-                .Line($"_scenario.Services.Any(registration => registration.ImplementationInstance is AuthorizationPolicyRegistration policy && policy.Name == nameof({policy}) && policy.PolicyType == typeof({policy})).ShouldBeTrue();")
+                .Line("[global::Xunit.FactAttribute] void should_be_denied() => _result.IsAuthorized.ShouldBeFalse();")
+                .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);")
+                .OpenBlock("[global::Xunit.FactAttribute] void should_resolve_the_registered_policy()")
+                .Line($"_scenario.Services.Any(registration => registration.ImplementationInstance is global::Cratis.Arc.Authorization.AuthorizationPolicyRegistration policy && policy.Name == nameof({policy}) && policy.PolicyType == typeof({policy})).ShouldBeTrue();")
                 .Line("using var provider = _scenario.Services.BuildServiceProvider();")
                 .Line("using var scope = provider.CreateScope();")
                 .Line($"scope.ServiceProvider.GetRequiredService<{policy}>().ShouldNotBeNull();")
@@ -160,17 +160,17 @@ internal static class SemanticCommandSpecificationRenderer
         }
         else if (!specification.ThenErrors.IsEmpty)
         {
-            builder.Line("[Fact] void should_not_succeed() => _result.ShouldNotBeSuccessful();")
-                .Line("[Fact] void should_have_validation_errors() => _result.ShouldHaveValidationErrors();");
+            builder.Line("[global::Xunit.FactAttribute] void should_not_succeed() => _result.ShouldNotBeSuccessful();")
+                .Line("[global::Xunit.FactAttribute] void should_have_validation_errors() => _result.ShouldHaveValidationErrors();");
             if (specification.ThenErrors[0].Message is { } message)
             {
                 builder.Line(message.StartsWith("$strings.", StringComparison.Ordinal)
-                    ? $"[Fact] void should_report_the_expected_first_error_key() => _result.ValidationResults.First().State.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});"
-                    : $"[Fact] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});");
+                    ? $"[global::Xunit.FactAttribute] void should_report_the_expected_first_error_key() => _result.ValidationResults.First().State.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});"
+                    : $"[global::Xunit.FactAttribute] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});");
             }
 
             builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-                .Line("[Fact] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);");
+                .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);");
             RenderConstraintViolation(builder, specification, context);
         }
         else
@@ -199,7 +199,7 @@ internal static class SemanticCommandSpecificationRenderer
     {
         if (SemanticSpecificationAdmission.ConstraintName(context, specification) is { } constraintName)
         {
-            builder.Line($"[Fact] void should_report_the_constraint_violation() => _result.ShouldHaveConstraintViolationFor({CSharpCodeBuilder.StringLiteral(constraintName)});");
+            builder.Line($"[global::Xunit.FactAttribute] void should_report_the_constraint_violation() => _result.ShouldHaveConstraintViolationFor({CSharpCodeBuilder.StringLiteral(constraintName)});");
         }
     }
 
@@ -212,18 +212,36 @@ internal static class SemanticCommandSpecificationRenderer
         bool seedInLog)
     {
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-            .Using("Cratis.Chronicle.Events")
-            .Line("[Fact] void should_succeed() => _result.ShouldBeSuccessful();");
+            .Using("Cratis.Chronicle.Events");
+        foreach (var (expected, index) in specification.ThenEvents.Select((value, index) => (value, index)))
+        {
+            foreach (var property in context.Events[expected.EventContract].Properties.Where(property => property.Type.IsCollection))
+            {
+                var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
+                if (value is SemanticArrayValue)
+                {
+                    var elementType = property.Type with { IsCollection = false, IsOptional = false };
+                    if (SemanticTypeSystem.DeclarationNeedsCommon(elementType))
+                    {
+                        builder.Using($"{context.RootNamespace}.Common");
+                    }
+
+                    builder.Line($"static readonly {types.Type(elementType)}[] {ExpectedCollectionName(property, index)} = {types.Value(value, property.Type)};");
+                }
+            }
+        }
+
+        builder.Line("[global::Xunit.FactAttribute] void should_succeed() => _result.ShouldBeSuccessful();");
         if (specification.ThenEvents.Length > 1)
         {
             builder.Line(seedInLog
-                ? $"[Fact] void should_append_exactly_{specification.ThenEvents.Length}_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual({specification.ThenEvents.Length});"
-                : $"[Fact] void should_append_exactly_{specification.ThenEvents.Length}_events() => _scenario.AppendedEvents.Count.ShouldEqual({specification.ThenEvents.Length});");
+                ? $"[global::Xunit.FactAttribute] void should_append_exactly_{specification.ThenEvents.Length}_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual({specification.ThenEvents.Length});"
+                : $"[global::Xunit.FactAttribute] void should_append_exactly_{specification.ThenEvents.Length}_events() => _scenario.AppendedEvents.Count.ShouldEqual({specification.ThenEvents.Length});");
         }
 
         if (seedInLog && specification.ThenEvents.Length == 1)
         {
-            builder.Line("[Fact] void should_append_exactly_one_new_event() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(1);");
+            builder.Line("[global::Xunit.FactAttribute] void should_append_exactly_one_new_event() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(1);");
         }
 
         if (specification.ThenEventsInAnyOrder && specification.ThenEvents.Length > 1)
@@ -247,20 +265,20 @@ internal static class SemanticCommandSpecificationRenderer
             var predicate = @event.Properties.IsEmpty ? "true" : string.Join(" && ", @event.Properties.Select(property =>
             {
                 var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
-                return $"@event.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value, property.Type)}";
+                return EventPropertyPredicate(property, value, types, index);
             }));
             var sourceValue = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
             var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
             if (specification.ThenEvents.Length == 1 && !seedInLog)
             {
-                builder.Line($"[Fact] async global::System.Threading.Tasks.Task {name}() => await _scenario.ShouldHaveAppendedEvent<{types.SliceType(command.Id, command.Name)}, {types.EventType(@event)}>({sourceValue}, @event => {predicate});");
+                builder.Line($"[global::Xunit.FactAttribute] async global::System.Threading.Tasks.Task {name}() => await _scenario.ShouldHaveAppendedEvent<{types.SliceType(command.Id, command.Name)}, {types.EventType(@event)}>({sourceValue}, @event => {predicate});");
             }
             else
             {
                 var appended = seedInLog
                     ? $"_scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).ToArray()[_givenEventCount + {index}]"
                     : $"_scenario.AppendedEvents[{index}]";
-                builder.Line($"[Fact] void {name}_at_position_{index + 1}() => ({appended}.Event.Context.EventSourceId == {sourceValue} && {appended}.Event.Content is {types.EventType(@event)} @event && {predicate}).ShouldBeTrue();");
+                builder.Line($"[global::Xunit.FactAttribute] void {name}_at_position_{index + 1}() => ({appended}.Event.Context.EventSourceId == {sourceValue} && {appended}.Event.Content is {types.EventType(@event)} @event && {predicate}).ShouldBeTrue();");
             }
         }
     }
@@ -273,7 +291,7 @@ internal static class SemanticCommandSpecificationRenderer
         SemanticTypeSystem types,
         bool seedInLog)
     {
-        builder.OpenBlock("[Fact] void should_append_the_expected_event_multiset()")
+        builder.OpenBlock("[global::Xunit.FactAttribute] void should_append_the_expected_event_multiset()")
             .Line(seedInLog
                 ? "var remaining = _scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).Skip(_givenEventCount).ToList();"
                 : "var remaining = _scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).ToList();")
@@ -291,7 +309,7 @@ internal static class SemanticCommandSpecificationRenderer
                     builder.Using($"{context.RootNamespace}.Common");
                 }
 
-                return $"@event.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value, property.Type)}";
+                return EventPropertyPredicate(property, value, types, index);
             });
             var produced = command.Produces.First(_ => _.EventContract == expected.EventContract);
             var identity = SemanticDestinations.ForSpecification(specification, command, produced);
@@ -307,6 +325,24 @@ internal static class SemanticCommandSpecificationRenderer
         }
 
         builder.EndBlock();
+    }
+
+    static string ExpectedCollectionName(SemanticProperty property, int index) => $"_expected_event_{index}_{Identifiers.ToSnakeCase(property.Name)}";
+
+    static string EventPropertyPredicate(SemanticProperty property, SemanticValue value, SemanticTypeSystem types, int index)
+    {
+        var name = Identifiers.ToPascalCase(property.Name);
+        if (!property.Type.IsCollection)
+        {
+            return $"@event.{name} == {types.Value(value, property.Type)}";
+        }
+
+        if (value is SemanticNullValue)
+        {
+            return $"@event.{name} is null";
+        }
+
+        return $"(@event.{name} is {{ }} actual{name} && actual{name}.SequenceEqual({ExpectedCollectionName(property, index)}))";
     }
 
     static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";

@@ -116,6 +116,31 @@ public class when_rejecting_colliding_generated_property_names
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("references an event", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("projectNote")]
+    [InlineData("toString")]
+    [InlineData("clone")]
+    [InlineData("getType")]
+    public void should_reject_colliding_composite_type_members(string propertyName)
+    {
+        var original = Compile("type ProjectNote\n  id String\n  name String\n" + Source);
+        var type = original.Application.Types.Single();
+        var changed = type with
+        {
+            Properties = [.. type.Properties.Select(property => property.Name == "name" ? property with { Name = propertyName } : property)]
+        };
+        var model = ExecutableSemanticModel.Create(
+            original.LanguageVersion,
+            original.SemanticVersion,
+            original.Application with { Types = [changed] });
+        var execution = SemanticExecutionPlan.Compile(model);
+        Assert.True(execution.Success, string.Join("; ", execution.Issues));
+        var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        Assert.False(plan.Success);
+        Assert.Empty(plan.Artifacts);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == changed.Id);
+    }
+
     [Fact]
     public void should_keep_distinct_safe_names_supported()
     {

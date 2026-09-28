@@ -6,7 +6,9 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications;
 using Xunit;
 
@@ -196,6 +198,267 @@ public class when_comparing_projection_property_name_admission
         Assert.Contains("generated C#", executed.Unsupported?.Details ?? "", StringComparison.Ordinal);
     }
 
+    // These rows compile the source emitted by the actual slice renderers, including rejected models
+    // (the planner deliberately returns no artifacts once admission finds a collision).
+    [Theory]
+    [InlineData("event", "project_id", true)]
+    [InlineData("event", "projectRegistered", true)]
+    [InlineData("event", "toString", true)]
+    [InlineData("event", "equalityContract", true)]
+    [InlineData("event", "deconstruct", true)]
+    [InlineData("event", "printMembers", true)]
+    [InlineData("event", "getHashCode", true)]
+    [InlineData("event", "equals", true)]
+    [InlineData("event", "clone", true)]
+    [InlineData("event", "getType", true)]
+    [InlineData("event", "memberwiseClone", true)]
+    [InlineData("event", "referenceEquals", true)]
+    [InlineData("event", "finalize", false)]
+    [InlineData("event", "Project_Id", true)]
+    [InlineData("command", "project_id", true)]
+    [InlineData("command", "registerProject", true)]
+    [InlineData("command", "handle", true)]
+    [InlineData("command", "getEventSourceId", true)]
+    [InlineData("command", "clone", true)]
+    [InlineData("command", "getType", true)]
+    [InlineData("command", "finalize", false)]
+    [InlineData("readmodel", "projectSummary", true)]
+    [InlineData("readmodel", "projectById", true)]
+    [InlineData("readmodel", "toString", true)]
+    [InlineData("readmodel", "equalityContract", true)]
+    [InlineData("readmodel", "deconstruct", true)]
+    [InlineData("readmodel", "printMembers", true)]
+    [InlineData("readmodel", "getHashCode", true)]
+    [InlineData("readmodel", "equals", true)]
+    [InlineData("readmodel", "clone", true)]
+    [InlineData("readmodel", "getType", true)]
+    [InlineData("readmodel", "memberwiseClone", true)]
+    [InlineData("readmodel", "referenceEquals", true)]
+    [InlineData("readmodel", "finalize", false)]
+    [InlineData("readmodel", "id_", false, true)]
+    [InlineData("readmodel", "ID", false, true)]
+    [InlineData("readmodel", "i_d", false, true)]
+    [InlineData("query", "name", true)]
+    [InlineData("query", "projectSummary", true)]
+    [InlineData("query", "clone", true)]
+    [InlineData("query", "equalityContract", true)]
+    [InlineData("query", "toString", false)]
+    [InlineData("query", "getType", false)]
+    [InlineData("query", "equals", false)]
+    [InlineData("query", "getHashCode", false)]
+    [InlineData("query", "deconstruct", false)]
+    [InlineData("query", "printMembers", false)]
+    [InlineData("query", "memberwiseClone", false)]
+    [InlineData("query", "referenceEquals", false)]
+    [InlineData("query", "finalize", false)]
+    [InlineData("query", "ProjectBy_ID", false)]
+    public async Task should_admit_exactly_the_generated_members_that_compile_and_run(
+        string kind,
+        string authored,
+        bool collision,
+        bool chronicleOnly = false)
+    {
+        var original = Compile(Source);
+        var module = original.Application.Modules.Single();
+        var feature = module.Features.Single();
+        var changed = feature with
+        {
+            Slices = [.. feature.Slices.Select(slice => slice with
+            {
+                Commands = [.. slice.Commands.Select(command => command with
+                {
+                    Properties = [.. command.Properties.Select(property => kind == "command" && property.Name == "name" ? property with { Name = authored } : property)]
+                })],
+                Events = [.. slice.Events.Select(@event => @event with
+                {
+                    Properties = [.. @event.Properties.Select(property => kind == "event" && property.Name == "name" ? property with { Name = authored } : property)]
+                })],
+                ReadModels = [.. slice.ReadModels.Select(readModel => readModel with
+                {
+                    Properties = [.. readModel.Properties.Select(property => kind == "readmodel" && property.Name == "name" ? property with { Name = authored } : property)]
+                })],
+                Queries = [.. slice.Queries.Select(query => kind == "query" ? query with { Name = authored } : query)]
+            })]
+        };
+        var model = ExecutableSemanticModel.Create(
+            original.LanguageVersion,
+            original.SemanticVersion,
+            original.Application with { Modules = [module with { Features = [changed] }] });
+        var compiled = SemanticExecutionPlan.Compile(model);
+        Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
+        var plan = compiled.Plan!;
+        var specification = plan.Specifications.Values.Single();
+        var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+
+        var options = new CratisRenderingOptions("Projects", "Projects");
+        var request = new ArtifactRenderRequest(
+            model,
+            plan,
+            CratisRendering.CreateProfile("Projects", options),
+            new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var context = new SemanticApplicationContext(request, options);
+        var files = context.SelectedSlices().Select(slice => slice.Slice.Kind == SemanticSliceKind.StateChange
+            ? SemanticStateChangeArtifactRenderer.Render(slice, context)
+            : SemanticStateViewArtifactRenderer.Render(slice, context)).ToArray();
+        var errors = RenderedOutput.Errors(files);
+        Assert.Equal(collision, errors.Count > 0);
+        if (!collision)
+        {
+            Assert.Empty(RenderedOutput.Warnings(files));
+        }
+
+        Assert.Equal(!(collision || chronicleOnly), rendered.Success);
+        Assert.Equal(!(collision || chronicleOnly), executed.Outcome == SemanticSpecificationOutcome.Passed);
+        if (collision || chronicleOnly)
+        {
+            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == (chronicleOnly ? "STAGE-ESM-017" : "STAGE-ESM-012"));
+            Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
+        }
+    }
+
+    [Theory]
+    [InlineData("projectNote")]
+    [InlineData("clone")]
+    [InlineData("getType")]
+    public async Task should_agree_on_child_and_nested_record_type_members(string authored)
+    {
+        var original = Compile("type ProjectNote\n  id String\n  name String\n" + Source);
+        var type = original.Application.Types.Single();
+        var changed = type with
+        {
+            Properties = [.. type.Properties.Select(property => property.Name == "name" ? property with { Name = authored } : property)]
+        };
+        var model = ExecutableSemanticModel.Create(
+            original.LanguageVersion,
+            original.SemanticVersion,
+            original.Application with { Types = [changed] });
+        var compiled = SemanticExecutionPlan.Compile(model);
+        Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
+        var plan = compiled.Plan!;
+        var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(
+            plan,
+            new([plan.Specifications.Values.Single().Id]),
+            new())).Results);
+        var options = new CratisRenderingOptions("Projects", "Projects");
+        var request = new ArtifactRenderRequest(
+            model,
+            plan,
+            CratisRendering.CreateProfile("Projects", options),
+            new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var context = new SemanticApplicationContext(request, options);
+        Assert.NotEmpty(RenderedOutput.Errors([SemanticCommonArtifactRenderer.Render(changed, context)]));
+        Assert.False(rendered.Success);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == changed.Id);
+        Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
+    }
+
+    [Theory]
+    [InlineData("children")]
+    [InlineData("nested")]
+    public async Task should_reject_cross_slice_events_referenced_only_below_the_root(string scope)
+    {
+        var source = """
+            type ProjectNote
+              id String
+              name String
+            module Projects
+              feature Registration
+                slice StateChange RegisterProject
+                  command RegisterProject
+                    projectId String identifier
+                    name String
+                    produces ProjectRegistered
+                      for projectId
+                      projectId = projectId
+                      name = name
+                  event ProjectRegistered
+                    projectId String
+                    name String
+                  event ProjectNoted
+                    id String
+                    projectId String
+                    name String
+                  specification RegisteringAProject
+                    when RegisterProject
+                      projectId = "project-1"
+                      name = "hello"
+                    then ProjectRegistered
+                      projectId = "project-1"
+                      name = "hello"
+                    then readmodel ProjectSummary
+                      key = "project-1"
+                      name = "hello"
+                slice StateView ProjectLookup
+                  readmodel ProjectSummary
+                    key String
+                    name String
+                    notes ProjectNote[]
+                    info ProjectNote?
+                  query ProjectById => ProjectSummary?
+                    by key String
+                  projection ProjectSummaryProjection => ProjectSummary
+                    from ProjectRegistered key $eventSourceId
+                      name = name
+                    children notes identified by id
+                      from ProjectNoted key id
+                        parent projectId
+                        name = name
+            """;
+        if (scope == "nested")
+        {
+            source = source.Replace(
+                "                    children notes identified by id\n                      from ProjectNoted key id\n                        parent projectId\n                        name = name",
+                "                    nested info\n                      from ProjectNoted key $eventSourceId\n                        name = name",
+                StringComparison.Ordinal);
+        }
+        var original = Compile(source);
+        var module = original.Application.Modules.Single();
+        var feature = module.Features.Single();
+        var changed = feature with
+        {
+            Slices = [.. feature.Slices.Select(slice => slice with
+            {
+                Events = [.. slice.Events.Select(@event => @event with
+                {
+                    Properties = [.. @event.Properties.Select(property => @event.Name == "ProjectNoted" && property.Name == "name"
+                        ? property with { Name = "project_id" } : property)]
+                })]
+            })]
+        };
+        var model = ExecutableSemanticModel.Create(
+            original.LanguageVersion,
+            original.SemanticVersion,
+            original.Application with { Modules = [module with { Features = [changed] }] });
+        var compiled = SemanticExecutionPlan.Compile(model);
+        Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
+        var plan = compiled.Plan!;
+        var view = changed.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView);
+        var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Slice, view.Id), new("Projects", "Projects"));
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(
+            plan,
+            new([plan.Specifications.Values.Single().Id]),
+            new())).Results);
+
+        Assert.False(rendered.Success);
+        Assert.Empty(rendered.Artifacts);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" &&
+            diagnostic.Artifact == plan.Projections.Values.Single().Id);
+        Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
+
+        var options = new CratisRenderingOptions("Projects", "Projects");
+        var request = new ArtifactRenderRequest(
+            model,
+            plan,
+            CratisRendering.CreateProfile("Projects", options),
+            new(ArtifactRenderScopeKind.Slice, view.Id));
+        var context = new SemanticApplicationContext(request, options);
+        var rawEventSource = SemanticStateChangeArtifactRenderer.Render(
+            context.DeclaringSlice(context.Events.Values.Single(@event => @event.Name == "ProjectNoted").Id), context);
+        Assert.NotEmpty(RenderedOutput.Errors([rawEventSource]));
+    }
+
     static async Task VerifyChildId()
     {
         const string childSource = """
@@ -255,6 +518,18 @@ public class when_comparing_projection_property_name_admission
         // Child projections are renderable, but per-run execution currently admits only scalar read models.
         // The renderer's generated child-id integration spec exercises the actual Chronicle projection.
         Assert.True(rendered.Success, string.Join("; ", rendered.Diagnostics));
+        var options = new CratisRenderingOptions("Projects", "Projects");
+        var request = new ArtifactRenderRequest(
+            model,
+            plan,
+            CratisRendering.CreateProfile("Projects", options),
+            new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var context = new SemanticApplicationContext(request, options);
+        var files = context.SelectedSlices().Select(slice => slice.Slice.Kind == SemanticSliceKind.StateChange
+            ? SemanticStateChangeArtifactRenderer.Render(slice, context)
+            : SemanticStateViewArtifactRenderer.Render(slice, context))
+            .Concat(model.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context)));
+        Assert.Empty(RenderedOutput.Errors(files));
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
         Assert.Equal(StageExecutionCapability.Projection, executed.Unsupported?.Capability);
         Assert.Contains("scalar read model", executed.Unsupported?.Details ?? "", StringComparison.Ordinal);

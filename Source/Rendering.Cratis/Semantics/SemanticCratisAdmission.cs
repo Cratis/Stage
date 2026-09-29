@@ -49,7 +49,8 @@ internal static partial class SemanticCratisAdmission
             context.Application,
             slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice)),
             SelectedConstraints(context, slices).Select(selected =>
-                ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint))))
+                ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
+            rendersStringsCatalog: context.Strings is not null))
         {
             var message = kind == "Namespace"
                 ? $"Generated type '{name}' collides with a generated C# namespace."

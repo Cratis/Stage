@@ -317,15 +317,12 @@ public class when_compiling_generated_name_matrix
     }
 
     [Theory]
-    [InlineData("module")]
     [InlineData("feature")]
     [InlineData("slice")]
     public Task namespace_paths_cannot_shadow_generated_types(string level)
     {
         var source = level switch
         {
-            "module" => Source.Replace("module Projects", "module Common", StringComparison.Ordinal)
-                .Replace("feature Registration", "feature Badge", StringComparison.Ordinal),
             "feature" => Source.Replace("module Projects", "module Common", StringComparison.Ordinal)
                 .Replace("feature Registration", "feature Badge", StringComparison.Ordinal),
             _ => Source.Replace("module Projects", "module Common", StringComparison.Ordinal)

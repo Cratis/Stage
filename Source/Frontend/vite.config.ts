@@ -3,6 +3,7 @@
 
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { styledPrimeReact } from './styledPrimeReact';
 
 export default defineConfig({
     base: './',
@@ -15,7 +16,7 @@ export default defineConfig({
     define: {
         'import.meta.env.STAGE_PRIMEUI_LICENSE': JSON.stringify(process.env.STAGE_PRIMEUI_LICENSE || process.env.PRIMEUI_LICENSE || ''),
     },
-    plugins: [react()],
+    plugins: [styledPrimeReact(), react()],
     test: {
         environment: 'jsdom',
         setupFiles: ['./src/testSetup.ts'],

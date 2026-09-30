@@ -7,6 +7,7 @@ import { PrimeReactProvider } from '@primereact/core/config';
 import 'primeicons/primeicons.css';
 import '@cratis/scene.primereact/primeReactTheme.css';
 import { App } from './App';
+import { stageDarkClass, stageTheme } from './stageTheme';
 
 // PrimeReact 11 verifies a license key at runtime and otherwise renders a permanent "Invalid PrimeUI
 // License" banner over the application. The key itself is the PRIMEUI_LICENSE GitHub secret, the same one
@@ -16,9 +17,11 @@ import { App } from './App';
 // unlicensed presentation rather than failing to render.
 const primeUiLicense = import.meta.env.STAGE_PRIMEUI_LICENSE || '';
 
+document.documentElement.classList.add(stageDarkClass);
+
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        <PrimeReactProvider license={primeUiLicense}>
+        <PrimeReactProvider license={primeUiLicense} theme={stageTheme}>
             <App />
         </PrimeReactProvider>
     </StrictMode>,

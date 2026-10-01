@@ -9,7 +9,6 @@ using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
-using Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Semantics;
 
@@ -92,7 +91,8 @@ public static class SemanticModelLoader
 
         var sourceDocuments = documents.ToImmutableArray();
         var attachments = AttachmentFiles.Load(root, sourceDocuments);
-        var compiled = new SemanticModelCompiler().Compile(name, SemanticDocumentSet.Create(sourceDocuments, catalog, attachments.Contents));
+        var documentSet = SemanticDocumentSet.Create(sourceDocuments, catalog, attachments.Contents);
+        var compiled = new SemanticModelCompiler().Compile(name, documentSet);
         if (!compiled.Success)
         {
             throw new InvalidSemanticModel([.. compiled.Diagnostics.Select(diagnostic => $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column}): {diagnostic.Message}")]);
@@ -105,66 +105,12 @@ public static class SemanticModelLoader
             throw new InvalidSemanticModel([.. plan.Issues.Select(issue => $"{issue.Artifact}: {issue.Details}")]);
         }
 
-        var bodies = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
-        var inlineBodies = new Dictionary<(DocumentId Document, int Line, int Column), List<string>>();
-        foreach (var document in sourceDocuments)
-        {
-            if (new ScreenplayCompiler().Parse(document.Text, document.DisplayPath).Value is not { } syntax)
-            {
-                continue;
-            }
-
-            var collector = new InlineBodies();
-            collector.VisitApplication(syntax);
-            foreach (var block in collector.Bodies)
-            {
-                var key = (document.Id, block.Location.Line, block.Location.Column);
-                if (!inlineBodies.TryGetValue(key, out var matches))
-                {
-                    inlineBodies[key] = matches = [];
-                }
-
-                matches.Add(block.Code);
-            }
-        }
-
-        foreach (var requirement in compiled.ImplementationRequirements)
-        {
-            if (requirement.File is { } file)
-            {
-                if (AttachmentFiles.TryNormalize(file, out var key, out _) && attachments.Contents.TryGetValue(key, out var content))
-                {
-                    bodies[requirement.RequirementId] = content;
-                }
-
-                continue;
-            }
-
-            if (inlineBodies.TryGetValue(
-                (requirement.Source.Span.Document, requirement.Source.Span.StartLine, requirement.Source.Span.StartColumn),
-                out var matches) && matches.Count == 1)
-            {
-                bodies[requirement.RequirementId] = matches[0];
-            }
-        }
-
         return new(model, plan.Plan!)
         {
             ImplementationRequirements = compiled.ImplementationRequirements,
             TypedContextDescriptors = compiled.TypedContextDescriptors,
-            ImplementationContents = bodies.ToImmutable(),
+            ImplementationContents = SemanticImplementationBodies.Resolve(documentSet, compiled.ImplementationRequirements),
             AttachmentDiagnostics = attachments.Diagnostics
         };
-    }
-
-    sealed class InlineBodies : ScreenplaySyntaxWalker
-    {
-        public List<CodeBlockSyntax> Bodies { get; } = [];
-
-        public override void VisitCodeBlock(CodeBlockSyntax syntax)
-        {
-            Bodies.Add(syntax);
-            base.VisitCodeBlock(syntax);
-        }
     }
 }

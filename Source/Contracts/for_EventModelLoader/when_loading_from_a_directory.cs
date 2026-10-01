@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Specs;
 using Xunit;
 
 namespace Cratis.Stage.Contracts.for_EventModelLoader;
@@ -31,7 +32,7 @@ public class when_loading_from_a_directory : Specification
 
     void Establish()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"stage-specs-{Guid.NewGuid():N}");
+        _directory = SpecTemporaryRoot.NewPath("stage-specs");
         Directory.CreateDirectory(Path.Combine(_directory, "nested"));
         File.WriteAllText(Path.Combine(_directory, "alpha.play"), Alpha);
 
@@ -46,11 +47,5 @@ public class when_loading_from_a_directory : Specification
     [Fact] void should_include_the_top_level_module() => _model.Collections[0].Modules.Any(module => module.Name == "Alpha").ShouldBeTrue();
     [Fact] void should_include_the_nested_module() => _model.Collections[0].Modules.Any(module => module.Name == "Beta").ShouldBeTrue();
 
-    void Destroy()
-    {
-        if (Directory.Exists(_directory))
-        {
-            Directory.Delete(_directory, recursive: true);
-        }
-    }
+    void Destroy() => SpecTemporaryRoot.Delete(_directory);
 }

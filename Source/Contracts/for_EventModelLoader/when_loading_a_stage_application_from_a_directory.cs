@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Specs;
 using Xunit;
 
 namespace Cratis.Stage.Contracts.for_EventModelLoader;
@@ -25,7 +26,7 @@ public class when_loading_a_stage_application_from_a_directory : Specification
 
     void Establish()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"stage-specs-{Guid.NewGuid():N}");
+        _directory = SpecTemporaryRoot.NewPath("stage-specs");
         Directory.CreateDirectory(_directory);
         File.WriteAllText(Path.Combine(_directory, "application.play"), Source);
     }
@@ -42,11 +43,5 @@ public class when_loading_a_stage_application_from_a_directory : Specification
     [Fact] void should_preserve_the_model_through_the_file_or_folder_entry_point() => EventModelFile.Write(_fromPath.EventModel).ShouldEqual(EventModelFile.Write(_application.EventModel));
     [Fact] void should_preserve_the_screen_through_the_file_or_folder_entry_point() => _fromPath.Scene.Screens.Single().Name.ShouldEqual(_application.Scene.Screens.Single().Name);
 
-    void Destroy()
-    {
-        if (Directory.Exists(_directory))
-        {
-            Directory.Delete(_directory, recursive: true);
-        }
-    }
+    void Destroy() => SpecTemporaryRoot.Delete(_directory);
 }

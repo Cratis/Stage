@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Specs;
 using Xunit;
 
 namespace Cratis.Stage.Contracts.for_EventModelLoader;
@@ -35,12 +36,14 @@ public class when_inspecting_an_automapped_read_model : Specification
 
     void Establish()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"stage-specs-{Guid.NewGuid():N}");
+        _directory = SpecTemporaryRoot.NewPath("stage-specs");
         Directory.CreateDirectory(_directory);
         File.WriteAllText(Path.Combine(_directory, "application.play"), Source);
     }
 
     async Task Because() => _model = await EventModelLoader.LoadFromDirectoryAsync(_directory);
+
+    void Destroy() => SpecTemporaryRoot.Delete(_directory);
 
     [Fact]
     void should_take_its_shape_from_the_events_it_maps_from()

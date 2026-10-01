@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Specs;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Xunit;
 
@@ -16,7 +17,7 @@ public class when_scaffolding_a_new_project : Specification
 
     void Establish()
     {
-        _target = new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"stage-scaffold-new-{Guid.NewGuid():N}"));
+        _target = new DirectoryInfo(SpecTemporaryRoot.NewPath("stage-scaffold-new"));
         _scaffolder = new TemplateEngineProjectScaffolder();
     }
 
@@ -44,11 +45,5 @@ public class when_scaffolding_a_new_project : Specification
     [Fact] void should_remove_the_sample_slice_from_the_composition() =>
         File.ReadAllText(Path.Combine(_target.FullName, "App.tsx")).ShouldNotContain("SomeFeature");
 
-    void Destroy()
-    {
-        if (_target.Exists)
-        {
-            _target.Delete(recursive: true);
-        }
-    }
+    void Destroy() => SpecTemporaryRoot.Delete(_target.FullName);
 }

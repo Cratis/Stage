@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Specs;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
@@ -23,7 +24,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
 
     void Establish()
     {
-        _application = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"stage-generated-application-{Guid.NewGuid():N}"));
+        _application = Directory.CreateDirectory(SpecTemporaryRoot.NewPath("stage-generated-application"));
         var plan = CratisRendering.Plan(_model, _executionPlan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), _options);
         if (!plan.Success)
         {
@@ -65,14 +66,16 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
 
     async Task Destroy()
     {
-        if (_dockerAvailable)
+        try
         {
-            await Run("docker", "rm", "--force", "--volumes", DockerContainerName());
+            if (_dockerAvailable)
+            {
+                await Run("docker", "rm", "--force", "--volumes", DockerContainerName());
+            }
         }
-
-        if (_application.Exists)
+        finally
         {
-            _application.Delete(recursive: true);
+            SpecTemporaryRoot.Delete(_application.FullName);
         }
     }
 

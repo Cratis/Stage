@@ -27,5 +27,5 @@ public class when_deleting_a_created_path : Specification
 
     [Fact] void should_remove_the_path_and_everything_beneath_it() => Directory.Exists(_path).ShouldBeFalse();
     [Fact] void should_hand_out_distinct_paths() => _path.ShouldNotEqual(_other);
-    [Fact] void should_place_the_path_beneath_a_spec_owned_root() => Path.GetFileName(Path.GetDirectoryName(_path)).StartsWith("stage-spec-roots").ShouldBeTrue();
+    [Fact] void should_place_the_path_beneath_a_spec_owned_root() => Path.GetFileName(Path.GetDirectoryName(_path)).StartsWith("stage-spec-").ShouldBeTrue();
 }

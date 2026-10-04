@@ -4,10 +4,10 @@
 import Lara from '@primeuix/themes/lara';
 
 /**
- * The class that puts a Stage application in its dark scheme. Stage is always dark (see app.css), so it is
- * set on the document root before anything renders rather than following the operating system.
+ * The selector that puts PrimeReact in its dark scheme: the colour scheme the active blueprint theme sets on
+ * the document root (see `ColorSchemeMirror`), so a dialog portalled to `body` follows the shell.
  */
-export const stageDarkClass = 'stage-dark';
+export const stageDarkSelector = "[data-scene-color-scheme='dark']";
 
 /**
  * The PrimeReact theme a Stage application renders with.
@@ -20,6 +20,6 @@ export const stageDarkClass = 'stage-dark';
 export const stageTheme = {
     preset: Lara,
     options: {
-        darkModeSelector: `.${stageDarkClass}`,
+        darkModeSelector: stageDarkSelector,
     },
 };

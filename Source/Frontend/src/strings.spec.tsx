@@ -4,6 +4,8 @@
 import { render, screen } from '@testing-library/react';
 import { ExternalComponent, HorizontalAlignment, VerticalAlignment, Visibility } from '@cratis/scene.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PrimeReactProvider } from '@primereact/core/config';
+import { stageTheme } from './stageTheme';
 import { App, StageSceneApplication } from './App';
 
 function title(text: string): ExternalComponent {
@@ -55,7 +57,7 @@ describe('resolving a $strings. reference at runtime', () => {
     });
 
     it('shows the resolved text once the dictionary arrives, not the literal token', async () => {
-        render(<App />);
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
 
         expect(await screen.findByRole('heading', { name: 'Invoices' })).toBeDefined();
         expect(screen.queryByText('$strings.invoice.listTitle')).toBeNull();
@@ -70,7 +72,7 @@ describe('resolving a $strings. reference at runtime', () => {
             return { ok: false, json: async () => ({}) };
         });
 
-        render(<App />);
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
 
         expect(await screen.findByRole('combobox', { name: 'Locale' })).toBeDefined();
     });

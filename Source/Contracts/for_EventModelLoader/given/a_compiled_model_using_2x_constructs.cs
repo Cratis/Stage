@@ -57,6 +57,7 @@ public class a_compiled_model_using_2x_constructs : Specification
                   require InvoiceScope.phase == "Contract"
 
                 produces InvoiceActivated
+                  for invoiceId
                   invoiceId = invoiceId
                   email     = email
 

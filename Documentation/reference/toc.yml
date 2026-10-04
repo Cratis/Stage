@@ -6,3 +6,5 @@
   href: render-plans.md
 - name: Default generated Scene
   href: default-scene-composition.md
+- name: How the Stage renders a model
+  href: stage-rendering.md

@@ -24,7 +24,7 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in slice.Specifications)
         {
-            var valid = CanDenyQueryOnly(specification, context) ||
+            var valid = specification.ThenAbsentReadModels.IsEmpty && (CanDenyQueryOnly(specification, context) ||
                 (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
@@ -47,7 +47,7 @@ internal static partial class SemanticSpecificationAdmission
                         HasExpectedProjectionEvent(context, specification, expected.Results.Single())) &&
                     HasRenderableErrors(context, specification, command) &&
                     HasRenderableEventSources(context, specification, command!) &&
-                    ProtectedQuerySourcesMatch(context, specification, command!));
+                    ProtectedQuerySourcesMatch(context, specification, command!)));
 
             if (!valid)
             {
@@ -117,6 +117,11 @@ internal static partial class SemanticSpecificationAdmission
             AssertsUncontrolledOccurrence(specification, command))
         {
             return "A command maps $context.occurred from its current clock; fixed event or projected values in a specification cannot assert this occurrence without a supplied time.";
+        }
+
+        if (!specification.ThenAbsentReadModels.IsEmpty)
+        {
+            return "A read model asserted absent needs a scenario that proves no document exists for the key; the generated ReadModelScenario exposes only the materialized record.";
         }
 
         if (specification.ThenEventsInAnyOrder &&

@@ -4,6 +4,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InteractionActionKind, InteractionTriggerKind } from '@cratis/scene.model';
+import { PrimeReactProvider } from '@primereact/core/config';
+import { stageTheme } from './stageTheme';
 import { App } from './App';
 
 const sceneWithAnInteraction = {
@@ -60,7 +62,7 @@ describe('when a modeled interaction is clicked', () => {
         const fetched = vi.fn((input: RequestInfo | URL) => respond(String(input)));
         vi.stubGlobal('fetch', fetched);
 
-        render(<App />);
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
         await screen.findByRole('button', { name: 'Cancel invoice' });
 
         fireEvent.click(screen.getByRole('button', { name: 'Cancel invoice' }));
@@ -80,7 +82,7 @@ describe('when a modeled interaction is clicked', () => {
         });
         vi.stubGlobal('fetch', fetched);
 
-        render(<App />);
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
         await screen.findByRole('button', { name: 'Cancel invoice' });
 
         fireEvent.click(screen.getByRole('button', { name: 'Cancel invoice' }));

@@ -28,7 +28,7 @@ public class when_planning_primitive_invoice_commands : Specification
             ("Decimal", "-12.5", "73.25", "decimal", "-12.5m"),
             ("Bool", "true", "false", "bool", "true"),
             ("Date", "\"2026-01-02\"", "\"2026-02-03\"", "global::System.DateOnly", "global::System.DateOnly.Parse(\"2026-01-02\", global::System.Globalization.CultureInfo.InvariantCulture)"),
-            ("DateTime", "\"2026-01-02T03:04:05.0000000+00:00\"", "\"2026-02-03T04:05:06.0000000+00:00\"", "global::System.DateTimeOffset", "global::System.DateTimeOffset.Parse(\"2026-01-02T03:04:05.0000000+00:00\", global::System.Globalization.CultureInfo.InvariantCulture)")
+            ("DateTime", "\"2026-01-02T03:04:05.0000000+00:00\"", "\"2026-02-03T04:05:06.0000000+00:00\"", "global::System.DateTimeOffset", "global::System.DateTimeOffset.Parse(\"2026-01-02T03:04:05.0000000Z\", global::System.Globalization.CultureInfo.InvariantCulture)")
         ];
         foreach (var item in cases)
         {

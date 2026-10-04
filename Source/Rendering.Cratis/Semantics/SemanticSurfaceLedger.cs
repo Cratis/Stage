@@ -174,6 +174,8 @@ internal static class SemanticSurfaceLedger
         // streaming queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
         // fail STAGE-ESM-011 before log seeding.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "ThenAbsentReadModels");
+        Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-011"), "Key ReadModel");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenAppended");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");

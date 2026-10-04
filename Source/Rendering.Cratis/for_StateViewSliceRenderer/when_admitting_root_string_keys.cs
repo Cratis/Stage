@@ -88,7 +88,7 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
     [InlineData("LookupKey")]
     [InlineData("Int")]
     [InlineData("String[]")]
-    [InlineData("String?")]
+    [InlineData("String optional")]
     public void should_reject_incompatible_owned_identifying_types(string type)
     {
         Compile(Global, "query OrderById => OrderReadModel\n  by lookup " + type);

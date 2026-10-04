@@ -1,26 +1,32 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Layout, SceneElement, Screen, ScreenTemplate } from '@cratis/scene.model';
-import type { CommandOutcome, InteractionFinding, StringsDictionary } from '@cratis/scene.engine';
-import { evaluateFlowArrangement, resolveStringsInElement } from '@cratis/scene.engine';
+import { useEffect, useMemo, useState } from 'react';
+import type { Layout, SceneElement, Screen, ScreenTemplate, UiProfile } from '@cratis/scene.model';
+import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
+import { resolveStringsInElement } from '@cratis/scene.engine';
 import { InteractionScope, SceneElementView, createBrowserDispatcher } from '@cratis/scene.react';
+import {
+    ComponentName,
+    LayoutConfigProvider,
+    LayoutThemeProvider,
+    SlotName,
+    externalComponent,
+    shellComponentForLayout,
+} from '@cratis/scene.blueprint.default';
+import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRoutes } from './stageRoutes';
 import { stageComponents } from './stageComponents';
-import { useSizeClass } from './useSizeClass';
 import { useStrings } from './useStrings';
-import { FlowArrangementView } from './FlowArrangementView';
+import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents, stageTemplateComponent } from './StageChrome';
+import { applicationChrome, resolveNames, screenFromHash, screenHash, stageProfile, stageRegistry, templateFor } from './blueprint';
 import './app.css';
-
-function isFlowArrangement(arrangement: unknown): arrangement is Parameters<typeof evaluateFlowArrangement>[0] {
-    return !!arrangement && typeof arrangement === 'object' && 'root' in arrangement;
-}
 
 export interface StageSceneApplication {
     layouts: Layout[];
     screenTemplates: ScreenTemplate[];
     screens: Screen[];
+    uiProfiles?: UiProfile[];
 }
 
 interface SceneCommandDetail {
@@ -33,13 +39,50 @@ interface SceneNavigateDetail {
 
 const endpoint = 'stage/scene';
 
+const registry = stageRegistry({ ...stageComponents, ...stageChromeComponents });
+
+/**
+ * Composes one screen the way the default blueprint composes its own: the application shell for the screen's
+ * layout, the chrome every screen shares in the shell's slots, and the screen - inside the screen template it
+ * names, when it names one - in the shell's content slot.
+ *
+ * A layout the model declared under a name the blueprint does not provide still renders in the blueprint's
+ * `AppShell`: the model's layout contributes the application's structure, but the shell that draws it is the
+ * blueprint's, which is the point of rendering through one.
+ */
+export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string): SceneElement {
+    const profile = stageProfile(scene.uiProfiles);
+    const template = templateFor(scene.screenTemplates, screen);
+    const slotEntries = Object.entries(screen.slotContent);
+    const content: SceneElement[] = template
+        ? [externalComponent(`template-${screen.name}`, stageTemplateComponent, { arrangement: template.arrangement }, screen.slotContent)]
+        : slotEntries.flatMap(([, elements]) => elements);
+
+    const shell = shellComponentForLayout(screen.layout) ?? ComponentName.AppShell;
+    const chrome = shell === ComponentName.FullPageShell
+        ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale)[SlotName.ConfigPanel] }
+        : applicationChrome(scene.screens, screen.name, locales, locale);
+    const composed = externalComponent(`screen-${screen.name}`, shell, { screenName: screen.name }, {
+        ...chrome,
+        [SlotName.Content]: [...content, externalComponent('activity', stageActivityComponent)],
+    });
+
+    return resolveNames(composed, profile);
+}
+
 export function App() {
     const [scene, setScene] = useState<StageSceneApplication>();
     const routes = useStageRoutes();
     const strings = useStrings();
-    const [selectedScreen, setSelectedScreen] = useState('');
+    const [selectedScreen, setSelectedScreen] = useState(() => screenFromHash(globalThis.location?.hash ?? '') ?? '');
     const [error, setError] = useState('');
     const [activity, setActivity] = useState('');
+
+    const select = (name: string) => {
+        setSelectedScreen(name);
+        setActivity('');
+        if (globalThis.location && screenFromHash(globalThis.location.hash) !== name) globalThis.history?.replaceState(null, '', screenHash(name));
+    };
 
     useEffect(() => {
         const abort = new AbortController();
@@ -50,7 +93,7 @@ export function App() {
             })
             .then(application => {
                 setScene(application);
-                setSelectedScreen(application.screens[0]?.name ?? '');
+                setSelectedScreen(current => application.screens.some(screen => screen.name === current) ? current : application.screens[0]?.name ?? '');
             })
             .catch(reason => {
                 if (!abort.signal.aborted) setError(reason instanceof Error ? reason.message : String(reason));
@@ -59,6 +102,13 @@ export function App() {
     }, []);
 
     useEffect(() => {
+        const hashChanged = () => {
+            const name = screenFromHash(globalThis.location.hash);
+            if (name && scene?.screens.some(screen => screen.name === name)) {
+                setSelectedScreen(name);
+                setActivity('');
+            }
+        };
         const command = (event: Event) => {
             const detail = (event as CustomEvent<SceneCommandDetail>).detail;
             setActivity(`The modeled command “${detail.command}” is ready for input.`);
@@ -66,24 +116,31 @@ export function App() {
         const navigate = (event: Event) => {
             const detail = (event as CustomEvent<SceneNavigateDetail>).detail;
             if (scene?.screens.some(screen => screen.name === detail.targetScreen)) {
-                setSelectedScreen(detail.targetScreen);
-                setActivity('');
+                select(detail.targetScreen);
             } else {
                 setActivity(`The modeled screen “${detail.targetScreen}” is not available.`);
             }
         };
 
+        globalThis.addEventListener('hashchange', hashChanged);
         globalThis.addEventListener('cratis.scene.command', command);
         globalThis.addEventListener('cratis.scene.navigate', navigate);
         return () => {
+            globalThis.removeEventListener('hashchange', hashChanged);
             globalThis.removeEventListener('cratis.scene.command', command);
             globalThis.removeEventListener('cratis.scene.navigate', navigate);
         };
     }, [scene]);
 
+    const screen = scene?.screens.find(candidate => candidate.name === selectedScreen) ?? scene?.screens[0];
+    const element = useMemo(
+        () => scene && screen ? resolveStringsInElement(composeStageScreen(scene, screen, strings.locales, strings.locale), strings.dictionary) : undefined,
+        [scene, screen, strings.locales, strings.locale, strings.dictionary],
+    );
+
     if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
     if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
-    if (scene.screens.length === 0) {
+    if (!screen || !element) {
         return (
             <main className='stage-message'>
                 <h1>Nothing to show yet</h1>
@@ -91,8 +148,6 @@ export function App() {
             </main>
         );
     }
-
-    const screen = scene.screens.find(candidate => candidate.name === selectedScreen) ?? scene.screens[0];
 
     // Everything a document's interactions can do, pointed at the running application. The engine decides
     // what runs; this only says where a command goes and what a notification looks like.
@@ -126,8 +181,7 @@ export function App() {
         },
         navigate: screenName => {
             if (scene.screens.some(candidate => candidate.name === screenName)) {
-                setSelectedScreen(screenName);
-                setActivity('');
+                select(screenName);
             } else {
                 setActivity(`The modeled screen “${screenName}” is not available.`);
             }
@@ -142,116 +196,15 @@ export function App() {
         setActivity(findings.map(finding => finding.detail).join(' '));
 
     return (
-        <InteractionScope dispatcher={dispatcher} context={{ resolve: () => undefined }} attachments={[]} onFindings={reportFindings}>
-            <StageShell
-                scene={scene}
-                screen={screen}
-                selectedScreen={screen.name}
-                onSelectScreen={name => { setSelectedScreen(name); setActivity(''); }}
-                activity={activity}
-                strings={strings}
-            />
-        </InteractionScope>
-    );
-}
-
-function SceneContent({ element, dictionary }: { element: SceneElement; dictionary: StringsDictionary }) {
-    return <SceneElementView element={resolveStringsInElement(element, dictionary)} registry={stageComponents} resolveBinding={() => undefined} />;
-}
-
-interface StageShellProps {
-    scene: StageSceneApplication;
-    screen: Screen;
-    selectedScreen: string;
-    onSelectScreen: (name: string) => void;
-    activity: string;
-    strings: ReturnType<typeof useStrings>;
-}
-
-/**
- * Renders a screen inside its application `Layout`, and its own content inside its `ScreenTemplate` when
- * it has one - both positioned by the arrangement each one actually declares, via the shared engine, not
- * flat-stacked regardless of what the document said. A layout or template without a `flow` arrangement
- * (none declared, or a `freeform` one - not yet rendered here) falls back to a plain stack, which is what
- * every screen rendered as before this.
- */
-function StageShell({ scene, screen, selectedScreen, onSelectScreen, activity, strings }: StageShellProps) {
-    const sizeClass = useSizeClass();
-    const layout = useMemo(() => scene.layouts.find(candidate => candidate.name === screen.layout), [scene.layouts, screen.layout]);
-    const template = useMemo(
-        () => (screen.screenTemplate ? scene.screenTemplates.find(candidate => candidate.name === screen.screenTemplate) : undefined),
-        [scene.screenTemplates, screen.screenTemplate],
-    );
-
-    const contentSlots = useMemo(() => {
-        const slots: Record<string, ReactNode> = {};
-        for (const [slotName, elements] of Object.entries(screen.slotContent)) {
-            slots[slotName] = elements.map(element => <SceneContent key={element.id} element={element} dictionary={strings.dictionary} />);
-        }
-        return slots;
-    }, [screen.slotContent, strings.dictionary]);
-
-    const content = template?.arrangement && isFlowArrangement(template.arrangement)
-        ? <FlowArrangementView node={evaluateFlowArrangement(template.arrangement, sizeClass)} slots={contentSlots} />
-        : (
-            <div className='stage-slots-fallback'>
-                {Object.entries(contentSlots).map(([slotName, node]) => (
-                    <section className='stage-slot' data-slot={slotName} key={slotName}>{node}</section>
-                ))}
-            </div>
-        );
-
-    const shellSlots: Record<string, ReactNode> = {
-        topbar: <StageTopbar strings={strings} />,
-        sidebar: <StageSidebar screens={scene.screens} selectedScreen={selectedScreen} onSelectScreen={onSelectScreen} />,
-        content: <main className='stage-screen' data-screen={screen.name}>{content}{activity && <p className='stage-activity' role='status'>{activity}</p>}</main>,
-        footer: null,
-    };
-
-    if (layout?.arrangement && isFlowArrangement(layout.arrangement)) {
-        return <div className='stage-application'><FlowArrangementView node={evaluateFlowArrangement(layout.arrangement, sizeClass)} slots={shellSlots} /></div>;
-    }
-
-    return (
-        <div className='stage-application'>
-            <StageTopbar strings={strings} />
-            <div className='stage-body'>
-                <StageSidebar screens={scene.screens} selectedScreen={selectedScreen} onSelectScreen={onSelectScreen} />
-                {shellSlots.content}
-            </div>
-        </div>
-    );
-}
-
-function StageTopbar({ strings }: { strings: ReturnType<typeof useStrings> }) {
-    return (
-        <header className='stage-header'>
-            <strong>Cratis Stage</strong>
-            {strings.locales.length > 1 && (
-                <select
-                    className='stage-locale'
-                    aria-label='Locale'
-                    value={strings.locale}
-                    onChange={event => strings.setLocale(event.target.value)}>
-                    {strings.locales.map(locale => <option key={locale} value={locale}>{locale}</option>)}
-                </select>
-            )}
-        </header>
-    );
-}
-
-function StageSidebar({ screens, selectedScreen, onSelectScreen }: { screens: Screen[]; selectedScreen: string; onSelectScreen: (name: string) => void }) {
-    return (
-        <nav className='stage-sidebar' aria-label='Modeled screens'>
-            {screens.map(candidate => (
-                <button
-                    key={candidate.name}
-                    type='button'
-                    className={candidate.name === selectedScreen ? 'selected' : ''}
-                    onClick={() => onSelectScreen(candidate.name)}>
-                    {candidate.name}
-                </button>
-            ))}
-        </nav>
+        <LayoutConfigProvider>
+            <LayoutThemeProvider>
+                <ColorSchemeMirror />
+                <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity }}>
+                    <InteractionScope dispatcher={dispatcher} context={{ resolve: () => undefined }} attachments={[]} onFindings={reportFindings}>
+                        <SceneElementView element={element} registry={registry} resolveBinding={() => undefined} />
+                    </InteractionScope>
+                </StageChromeProvider>
+            </LayoutThemeProvider>
+        </LayoutConfigProvider>
     );
 }

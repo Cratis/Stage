@@ -4,6 +4,8 @@
 import { render, screen } from '@testing-library/react';
 import { ExternalComponent, HorizontalAlignment, VerticalAlignment, Visibility } from '@cratis/scene.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PrimeReactProvider } from '@primereact/core/config';
+import { stageTheme } from './stageTheme';
 import { App, StageSceneApplication } from './App';
 
 const scene: StageSceneApplication = {
@@ -45,7 +47,7 @@ describe('the Stage frontend', () => {
     });
 
     it('renders a Screenplay screen through Scene React', async () => {
-        render(<App />);
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
 
         expect(await screen.findByRole('heading', { name: 'Invoices' })).toBeDefined();
         expect(fetch).toHaveBeenCalledWith('stage/scene', expect.objectContaining({ signal: expect.any(AbortSignal) }));

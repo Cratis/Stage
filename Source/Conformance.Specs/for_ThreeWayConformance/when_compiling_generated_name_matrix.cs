@@ -73,7 +73,7 @@ public class when_compiling_generated_name_matrix
               readmodel ProjectSummary
                 key String
                 name String
-              query ProjectById => ProjectSummary?
+              query ProjectById => ProjectSummary optional
                 by key String
               projection ProjectSummaryProjection => ProjectSummary
                 from ProjectRegistered key $eventSourceId
@@ -585,10 +585,10 @@ public class when_compiling_generated_name_matrix
     public void occurrence_type_is_qualified_against_a_command_member()
     {
         var source = Source.Replace("        name String\n        validate", "        name String\n        dateTimeOffset String\n        validate", StringComparison.Ordinal)
-            .Replace("          name = name\n      constraint", "          name = name\n          occurred = $context.occurred\n      constraint", StringComparison.Ordinal)
+            .Replace("          name = name\n      constraint", "          name = name\n          registeredAt = $context.occurred\n      constraint", StringComparison.Ordinal)
             .Replace(
                 "      event ProjectRegistered\n        projectId String\n        name String",
-                "      event ProjectRegistered\n        projectId String\n        name String\n        occurred DateTime",
+                "      event ProjectRegistered\n        projectId String\n        name String\n        registeredAt DateTime",
                 StringComparison.Ordinal);
         var begin = source.IndexOf("      specification RegisteringAProject", StringComparison.Ordinal);
         var end = source.IndexOf("    slice StateView ProjectLookup", StringComparison.Ordinal);

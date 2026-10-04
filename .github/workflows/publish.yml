@@ -137,6 +137,7 @@ jobs:
       - name: Upload Host output
         uses: actions/upload-artifact@v4
         with:
+          retention-days: 1
           name: host-build
           path: ./Artifacts/Host
 
@@ -168,6 +169,7 @@ jobs:
       - name: Upload SpecRunner output
         uses: actions/upload-artifact@v4
         with:
+          retention-days: 1
           name: specrunner-build
           path: ./Artifacts/SpecRunner
 

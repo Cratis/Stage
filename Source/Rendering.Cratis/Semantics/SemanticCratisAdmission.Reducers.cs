@@ -78,7 +78,7 @@ internal static partial class SemanticCratisAdmission
                         (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true)) ||
                     !context.Events.TryGetValue(transition.EventContract, out var @event))
                 {
-                    diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' has an unsupported transition envelope, language or event revision.", reducer.ReadModel));
+                    diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' has an unsupported transition envelope or language.", reducer.ReadModel));
                     continue;
                 }
 

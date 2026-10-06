@@ -10,7 +10,7 @@ public class when_classifying_semantic_members
 {
     [Fact] public void should_classify_every_slice_kind() => AssertCoverage(
         [SemanticSliceKind.StateChange, SemanticSliceKind.StateView],
-        [SemanticSliceKind.Unknown]);
+        [SemanticSliceKind.Automation, SemanticSliceKind.Translate, SemanticSliceKind.Unknown]);
 
     [Fact] public void should_classify_every_type_reference_kind() => AssertCoverage(
         [SemanticTypeReferenceKind.Primitive, SemanticTypeReferenceKind.Concept, SemanticTypeReferenceKind.CompositeType],

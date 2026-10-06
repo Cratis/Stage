@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
+using Cratis.Chronicle.Events;
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
@@ -27,5 +28,8 @@ public class when_rendering_an_evolved_event : a_v4_reducer
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var errors = RenderedOutput.Errors(files);
         Assert.True(_plan.Success && errors.Count == 0, string.Join(Environment.NewLine, errors));
+        var assembly = RenderedOutput.Load(files);
+        assembly.GetType("Projects.Orders.Ordering.PlaceOrder.OrderPlaced", throwOnError: true)!.GetEventType()
+            .ShouldEqual(new EventType("OrderPlaced", _event.Revision.Value));
     }
 }

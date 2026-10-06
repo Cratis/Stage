@@ -48,7 +48,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticRevision", ignored("Canonical model revision, not an application artifact."), "IsSet");
         Add(entries, "SemanticId", ignored("Identity validity is guaranteed by Screenplay; identity indexes references rather than source members."), "IsSet");
         Add(entries, "EventContractId", ignored("Stable contract identity is already validated by Screenplay; the generated event uses its name."), "IsSet");
-        Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay; revision values check historical-reference admission, not generated registration."), "IsValid Value");
+        Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay."), "IsValid");
+        Add(entries, "EventContractRevision", rendered, "Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
@@ -93,7 +94,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition When");
         Add(entries, "SemanticEventContract", rendered, "Id Name Properties Tags");
-        Add(entries, "SemanticEventContract", ignored("Selects the current shape and validates typed-context event sources; no Chronicle migration or generation registration is emitted."), "Revision");
+        Add(entries, "SemanticEventContract", rendered, "Revision");
         Add(entries, "SemanticEventContract", ignored("The initial event revision's stable contract identity is owned by Screenplay, not emitted by the first renderer."), "ContractId");
 
         // ESM v4 carries lineage, but only the current Properties and Tags render. Historical

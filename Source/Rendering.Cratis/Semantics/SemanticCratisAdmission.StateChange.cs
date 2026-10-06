@@ -44,7 +44,7 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
-        if (slice.Events.Any(@event => @event.Revision != EventContractRevision.Initial ||
+        if (slice.Events.Any(@event =>
                 @event.Properties.Any(property => !TypeExists(context, property.Type) || property.Type.IsOptional)) ||
             command.Properties.Any(_ => !TypeExists(context, _.Type)) ||
             !command.Validations.All(rule => SemanticValidationRendering.CanRender(rule, context)) ||
@@ -80,7 +80,7 @@ internal static partial class SemanticCratisAdmission
             produced.When is not null ||
             @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() != @event.Tags.Length + produced.Tags.Length ||
             !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, command.Properties.Where(_ => _.IsIdentifier).Select(_ => _.Id)) ||
-            @event.Revision != EventContractRevision.Initial || @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
+            @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
             produced.Mappings.Length != @event.Properties.Length ||
             !@event.Properties.All(property => produced.Mappings.Any(mapping => mapping.TargetProperty == property.Id &&
                 (IsProperty(mapping.Source, SemanticExpressionRootKind.Command, command.Properties.Select(_ => _.Id)) ||

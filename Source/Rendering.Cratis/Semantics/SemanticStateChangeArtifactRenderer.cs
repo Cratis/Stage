@@ -207,9 +207,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var parameters = string.Join(", ", @event.Properties.Select(property =>
             $"{types.Type(property.Type, ReducerCollection(@event, property, context))} {Identifiers.ToPascalCase(property.Name)}"));
         builder.Summary($"The event that occurs when {Identifiers.ToWords(@event.Name)}.")
-            .Attribute(@event.Revision == EventContractRevision.Initial
-                ? "global::Cratis.Chronicle.Events.EventTypeAttribute"
-                : $"global::Cratis.Chronicle.Events.EventTypeAttribute(generation: {@event.Revision.Value})")
+            .Attribute("global::Cratis.Chronicle.Events.EventTypeAttribute")
             .Line($"public record {name}({parameters});")
             .BlankLine();
     }

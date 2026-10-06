@@ -33,6 +33,12 @@ internal static partial class SemanticCratisAdmission
             return [.. diagnostics];
         }
 
+        ValidateEventRevisions(context, slices, diagnostics);
+        if (diagnostics.Count > 0)
+        {
+            return [.. diagnostics];
+        }
+
         // TypedContexts is reserved for reducer runtime tokens and wrappers. A modeled
         // namespace with the same root path can rebind TenantId in unrelated artifacts.
         if (slices.Any(_ => !_.Slice.Reducers.IsEmpty) &&

@@ -144,7 +144,9 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
             compiled.ReadModels,
             compiled.Queries,
             compiled.Specifications.SetItem(spec.Id, spec),
-            compiled.Constraints
+            compiled.Constraints,
+            compiled.Reactions,
+            compiled.Captures
         ]);
         var result = new SemanticSpecificationRunner().Run(reference, spec.Id);
         var accepted = Assert.IsType<SemanticAccepted>(result.Execution);

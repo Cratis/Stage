@@ -21,7 +21,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.35.0 (ESM v1–v3).
+/// Inventories the executable semantic surface audited against Screenplay 4.66.0; only ESM v1–v3 are admitted.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
 internal static class SemanticSurfaceLedger
@@ -233,6 +233,37 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConstraintKind", rejected("STAGE-ESM-014"), "Unknown");
         Add(entries, "SemanticConstraintScope", rendered, "EventSequence");
         Add(entries, "SemanticConstraintScope", rejected("STAGE-ESM-014"), "Unknown");
+
+        // Screenplay 4.61 added ESM v6 reactions, captures, application triggers and clock/capture
+        // specifications. These remain rejected; the version gate refuses v6 before rendering.
+        var v6 = rejected("STAGE-ESM-024");
+        Add(entries, "SemanticApplication", v6, "Triggers");
+        Add(entries, "SemanticApplicationTrigger", v6, "Id Name Properties");
+        Add(entries, "SemanticSlice", v6, "Captures Reactions");
+        Add(entries, "SemanticSliceKind", v6, "Automation Translate");
+        Add(entries, "SemanticExpressionRootKind", v6, "Trigger");
+        Add(entries, "SemanticProducedEvent", v6, "DestinationType");
+        Add(entries, "SemanticInvocation", v6, "Command Mappings");
+        Add(entries, "SemanticReaction", v6, "Id Name Triggers");
+        Add(entries, "SemanticReactionTrigger", v6, "At Every Invokes Kind OnDayOfMonth OnDayOfWeek Produces RequirementId Source Where");
+        Add(entries, "SemanticReactionTriggerKind", v6, "Unknown ApplicationTrigger Event Interval Schedule Shutdown Startup");
+        Add(entries, "SemanticCapture", v6, "Appends Children Id Key Map Name Nested");
+        Add(entries, "SemanticCaptureAppend", v6, "EventContract EventSourceType Mappings Tags When");
+        Add(entries, "SemanticCaptureChildren", v6, "Appends Field IdentifiedBy Map");
+        Add(entries, "SemanticCaptureNested", v6, "Appends Field Map");
+        Add(entries, "SemanticCaptureRecord", v6, "Fields");
+        Add(entries, "SemanticCaptureField", v6, "Kind Name Record Records Value");
+        Add(entries, "SemanticCaptureFieldKind", v6, "Unknown Record Records Value");
+        Add(entries, "SemanticCaptureCondition", v6, "Expression Fields From Kind To");
+        Add(entries, "SemanticCaptureConditionKind", v6, "Unknown Added AllChanged AnyChanged Expression Removed Transition");
+        Add(entries, "SemanticCaptureMap", v6, "Kind Separator Source Targets Template Translations");
+        Add(entries, "SemanticCaptureMapKind", v6, "Unknown Split Template Value");
+        Add(entries, "SemanticCaptureMapping", v6, "Field TargetProperty Value");
+        Add(entries, "SemanticCaptureTemplatePart", v6, "Field Text");
+        Add(entries, "SemanticCaptureTranslation", v6, "From To");
+        Add(entries, "SemanticSpecification", v6, "GivenCaptures GivenClock WhenCapture WhenClock WhenTrigger");
+        Add(entries, "SemanticSpecificationCapture", v6, "Capture Record");
+        Add(entries, "SemanticSpecificationTrigger", v6, "Kind Trigger Values");
 
         return entries;
     }

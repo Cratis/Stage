@@ -313,7 +313,8 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         var plan = execution.Plan!;
         var reference = (SemanticExecutionPlan)constructor.Invoke([
             model, plan.Commands, plan.Events, plan.Projections, plan.ReadModels, plan.Queries,
-            plan.Specifications.SetItem(specification.Id, specification), plan.Constraints
+            plan.Specifications.SetItem(specification.Id, specification), plan.Constraints,
+            plan.Reactions, plan.Captures
         ]);
         var accepted = Assert.IsType<SemanticAccepted>(new SemanticSpecificationRunner().Run(reference, specification.Id).Execution);
         var readModel = modifiedView.ReadModels.Single(candidate => candidate.Name == "ProjectSummary");

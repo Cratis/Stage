@@ -32,11 +32,7 @@
         <PackageReference Include="Scalar.AspNetCore" />
         <PackageReference Include="Yarp.ReverseProxy" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+        <PackageReference Include="Cratis.OpenTelemetry" />
     </ItemGroup>
 
     <ItemGroup>

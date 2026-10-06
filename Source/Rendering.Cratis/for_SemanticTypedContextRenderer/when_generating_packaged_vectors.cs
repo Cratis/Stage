@@ -192,8 +192,8 @@ public class when_generating_packaged_vectors
             TypedContextContractRevision = 2
         };
 
-        // ESM v4 is checked before the descriptor envelope, even if its revision is invalid.
-        Assert.Contains(new CratisArtifactRenderPlanner().Plan(request).Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-016");
+        // ESM v4 is admitted, but an invalid descriptor contract revision still fails closed.
+        Assert.Contains(new CratisArtifactRenderPlanner().Plan(request).Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021");
         Assert.Contains(Plan(model, compilation.ImplementationRequirements, [descriptor], 2).Diagnostics, diagnostic =>
             diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("revision '2'", StringComparison.Ordinal));
     }

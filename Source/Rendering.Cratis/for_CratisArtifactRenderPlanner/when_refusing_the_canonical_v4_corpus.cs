@@ -12,26 +12,28 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-// Screenplay v4.37 evolved RegisterProject/V2's event into two generations; the corpus now selects ESM v4.
 public class when_refusing_the_canonical_v4_corpus : a_register_project_render_request
 {
     ExecutableSemanticModel _v4 = null!;
     ArtifactRenderPlan _plan = null!;
 
-    void Because()
-    {
-        _v4 = SemanticModelSerializer.Deserialize(RegisterProjectCorpus.V2.EsmBytes.AsSpan());
-        _plan = CratisRendering.Plan(
-            _v4,
-            SemanticExecutionPlan.Compile(_v4).Plan!,
-            new(ArtifactRenderScopeKind.Application, _v4.Application.Id),
-            _options);
-    }
+    void Establish() => _v4 = SemanticModelSerializer.Deserialize(RegisterProjectCorpus.V2.EsmBytes.AsSpan());
 
-    [Fact] void should_load_an_esm_v4_model() => _v4.SemanticVersion.ShouldEqual(SemanticVersion.V4);
-    [Fact] void should_refuse_generation_replay_before_v4_admission()
+    void Because() => _plan = CratisRendering.Plan(
+        _v4,
+        SemanticExecutionPlan.Compile(_v4).Plan!,
+        new(ArtifactRenderScopeKind.Application, _v4.Application.Id),
+        _options);
+
+    [Fact] void should_admit_the_v4_version_but_refuse_the_evolved_event() => _plan.Diagnostics.Single().Code.ShouldEqual("STAGE-ESM-026");
+    [Fact] void should_emit_no_partial_application() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_fail_admission() => _plan.Success.ShouldBeFalse();
+    [Fact] void should_name_the_event_revision_and_missing_migrations() => _plan.Diagnostics.Single().Message.ShouldEqual("Event 'ProjectRegistered' has evolved to revision 2; Stage does not render event migrations yet.");
+    [Fact] void should_refuse_a_projection_dependency_outside_the_selected_slice()
     {
-        _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
-        _plan.Artifacts.ShouldBeEmpty();
+        var view = _v4.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView);
+        var plan = CratisRendering.Plan(_v4, SemanticExecutionPlan.Compile(_v4).Plan!, new(ArtifactRenderScopeKind.Slice, view.Id), _options);
+        plan.Diagnostics.Single().Code.ShouldEqual("STAGE-ESM-026");
+        plan.Artifacts.ShouldBeEmpty();
     }
 }

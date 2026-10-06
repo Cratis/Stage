@@ -21,7 +21,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.66.0; only ESM v1–v3 are admitted.
+/// Inventories the executable semantic surface audited against Screenplay 4.66.0; ESM v1–v4 version pairs are admitted, but evolved events require migration rendering.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
 internal static class SemanticSurfaceLedger
@@ -48,7 +48,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticRevision", ignored("Canonical model revision, not an application artifact."), "IsSet");
         Add(entries, "SemanticId", ignored("Identity validity is guaranteed by Screenplay; identity indexes references rather than source members."), "IsSet");
         Add(entries, "EventContractId", ignored("Stable contract identity is already validated by Screenplay; the generated event uses its name."), "IsSet");
-        Add(entries, "EventContractRevision", rejected("STAGE-ESM-005"), "IsValid Value");
+        Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay."), "IsValid");
+        Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
@@ -93,12 +94,16 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition When");
         Add(entries, "SemanticEventContract", rendered, "Id Name Properties Tags");
-        Add(entries, "SemanticEventContract", rejected("STAGE-ESM-006"), "Revision");
+        Add(entries, "SemanticEventContract", ignored("Carried revision selects admission: initial events render unchanged; evolved revisions fail STAGE-ESM-026 until event migrations can render."), "Revision");
         Add(entries, "SemanticEventContract", ignored("The initial event revision's stable contract identity is owned by Screenplay, not emitted by the first renderer."), "ContractId");
 
-        // Screenplay 4.37 added historical event generations. The planner explicitly refuses ESM v4.
-        Add(entries, "SemanticEventContract", rejected("STAGE-ESM-016"), "Predecessor PriorRevisions");
-        Add(entries, "SemanticEventRevision", rejected("STAGE-ESM-016"), "Predecessor Properties Revision Tags");
+        // ESM v4 lineage is carried, not emitted. Selected evolved events and dependencies
+        // fail STAGE-ESM-026; historical typed-context references still fail STAGE-ESM-025.
+        Add(entries, "SemanticEventContract", ignored("Lineage metadata is carried in the input; no migration or predecessor artifact is emitted."), "Predecessor");
+        Add(entries, "SemanticEventContract", ignored("Prior schemas are carried for historical-reference admission (STAGE-ESM-025), never emitted as current events."), "PriorRevisions");
+        Add(entries, "SemanticEventRevision", ignored("Historical lineage metadata is carried, not rendered; historical consumption fails STAGE-ESM-025."), "Predecessor Revision");
+        Add(entries, "SemanticEventRevision", ignored("Historical property identities detect refused shape references (STAGE-ESM-025); no historical record is emitted."), "Properties");
+        Add(entries, "SemanticEventRevision", ignored("Historical tags are carried but never appended with the current generation."), "Tags");
         Add(entries, "SemanticPropertyMapping", rendered, "Source TargetProperty");
         Add(entries, "SemanticStateChangeDestination", rendered, "Type Value");
         Add(entries, "SemanticResolvedExpression", rendered, "Root Source Target");

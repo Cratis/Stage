@@ -6,11 +6,8 @@ using Cratis.Chronicle;
 using Cratis.Chronicle.AspNetCore;
 using Cratis.Chronicle.Connections;
 using Cratis.Json;
+using Cratis.OpenTelemetry;
 using Cratis.Serialization;
-using OpenTelemetry;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
 
 namespace Cratis.Stage.Host;
 
@@ -77,25 +74,7 @@ public static class CratisServiceConfiguration
 
         StageHttpRouteOptions.AlignIntrospection(builder.Services);
 
-        builder.Logging.AddOpenTelemetry(logging =>
-        {
-            logging.IncludeFormattedMessage = true;
-            logging.IncludeScopes = true;
-        });
-
-        builder.Services.AddOpenTelemetry()
-            .WithMetrics(metrics =>
-                metrics.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation())
-            .WithTracing(tracing =>
-                tracing.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation());
-
-        if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
-        {
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
-        }
+        builder.AddCratisOpenTelemetry();
 
         return builder;
     }

@@ -2,12 +2,15 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Linq;
+using Cratis.Arc;
 using Cratis.Arc.Authorization;
+using Cratis.Arc.Http;
 using Cratis.Arc.Tenancy;
 using Cratis.Chronicle.Auditing;
 using Cratis.Chronicle.Identities;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
 
@@ -19,6 +22,7 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
     string _handler = null!;
     Dictionary<string, string> _tenants = null!;
     List<Exception> _collisions = null!;
+    string _withoutHeader = string.Empty;
 
     async Task Because()
     {
@@ -44,6 +48,13 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
         }
         _tenants = new[] { TenantId.Default.Value, TenantId.NotSet.Value, "North", "default" }.ToDictionary(name => name, Apply);
         _collisions = [.. new[] { string.Empty, "00000000-0000-0000-0000-000000000000" }.Select(name => Catch.Exception(() => Apply(name)))];
+        var request = Substitute.For<IHttpRequestContext>();
+        request.Headers.Returns(new Dictionary<string, string>());
+        var requests = Substitute.For<IHttpRequestContextAccessor>();
+        requests.Current.Returns(request);
+        var headerTenant = new TenantIdAccessor(new HeaderTenantIdResolver(requests, Options.Create(new ArcOptions())));
+        var withoutHeader = handle.Invoke(command, [headerTenant, identities, causations, principals])!;
+        _withoutHeader = (string)withoutHeader.GetType().GetProperty("RegisteredFor")!.GetValue(withoutHeader)!;
     }
 
     [Fact] void should_render_an_application_that_compiles() => _errors.ShouldBeEmpty();
@@ -58,7 +69,8 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
     [Fact] void should_read_the_time_the_command_was_handled() => _handler.ShouldContain("DateTimeOffset.UtcNow");
     [Fact] void should_translate_the_tenant_from_the_tenant_accessor() => _handler.ShouldContain("global::AcmeBilling.GeneratedTenancy.PortableTenantValues.Translate(tenants.Current.Value");
     [Fact] void should_translate_default_in_the_generated_handler() => _tenants[TenantId.Default.Value].ShouldEqual(Screenplay.Contexts.TenantId.Default.Value);
-    [Fact] void should_translate_not_set_without_conflating_it_with_default() => _tenants[TenantId.NotSet.Value].ShouldEqual(Screenplay.Contexts.TenantId.NotSet.Value);
+    [Fact] void should_translate_arcs_unset_tenant_to_the_portable_default() => _tenants[TenantId.NotSet.Value].ShouldEqual(Screenplay.Contexts.TenantId.Default.Value);
+    [Fact] void should_use_the_portable_default_for_a_request_without_a_tenant_header() => _withoutHeader.ShouldEqual(Screenplay.Contexts.TenantId.Default.Value);
     [Fact] void should_preserve_a_named_tenant_in_the_generated_handler() => _tenants["North"].ShouldEqual("North");
     [Fact] void should_preserve_named_tenant_casing_in_the_generated_handler() => _tenants["default"].ShouldEqual("default");
     [Fact] void should_reject_ambiguous_tenants_in_the_generated_handler() => _collisions.TrueForAll(error => error.InnerException?.GetType().Name == "AmbiguousTenant").ShouldBeTrue();

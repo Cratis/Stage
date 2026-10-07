@@ -55,7 +55,9 @@ without executing it — that is what a client's form validation calls.
 For produced event mappings, `$context.tenant` is the portable tenant ID translated from the command's Arc tenant, and
 `$context.causedBy.subject`, `.name`, and `.userName` resolve from the caller's identity (`subject` uses the
 same ID as `$context.identity.id`). An anonymous caller has no ID, so identity-sourced event properties receive
-empty strings. Arc's named `Default` tenant maps to the zero-GUID string, while explicit `NotSet` maps to an empty string.
+empty strings. Arc's named `Default` and unresolved `NotSet` tenants both map to the zero-GUID string.
+A request without a tenant header uses this default identity, matching reducers in Chronicle's default namespace.
+Chronicle's explicit `NotSet` namespace remains an empty portable tenant; it is not Arc's no-header request case.
 Named tenants keep their exact values and casing. Empty named tenants and zero-GUID names are rejected as ambiguous.
 Tenant mappings remain text; use a string-backed tenant concept.
 

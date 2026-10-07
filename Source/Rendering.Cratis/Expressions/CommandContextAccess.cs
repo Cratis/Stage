@@ -88,7 +88,7 @@ public sealed class CommandContextAccess(string subject, ICollection<string> dia
         return segments switch
         {
             ["occurred"] => "DateTimeOffset.UtcNow",
-            ["tenant"] => $"{TenantValuesType}.Translate({Use(HandlerCollaborator.Tenants)}.Current.Value, global::Cratis.Arc.Tenancy.TenantId.Default.Value, global::Cratis.Arc.Tenancy.TenantId.NotSet.Value)",
+            ["tenant"] => $"({Use(HandlerCollaborator.Tenants)}.Current.IsDefault ? {TenantValuesType}.Default : {TenantValuesType}.Translate({Use(HandlerCollaborator.Tenants)}.Current.Value, global::Cratis.Arc.Tenancy.TenantId.Default.Value, global::Cratis.Arc.Tenancy.TenantId.NotSet.Value))",
             ["command", ..] when segments.Length > 1 => Property(segments),
             ["causedBy", var value] => CausedBy(value, path),
             ["causation", "type"] => $"{Use(HandlerCollaborator.Causations)}.GetCurrentChain()[^1].Type.Value",

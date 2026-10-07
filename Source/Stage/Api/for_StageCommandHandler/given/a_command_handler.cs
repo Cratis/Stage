@@ -39,8 +39,8 @@ public class a_command_handler : Specification
     protected StageCommandHandler HandlerFor(string? identifier) =>
         new(typeof(DynamicCommand), [], Definition(identifier), _appender, _identity, _tenants);
 
-    protected StageCommandHandler HandlerProducing(ProducedEvent produced) =>
-        new(typeof(DynamicCommand), [], Definition("invoiceId") with { Produces = [produced] }, _appender, _identity, _tenants);
+    protected StageCommandHandler HandlerProducing(ProducedEvent produced, ITenantIdAccessor? tenants = null) =>
+        new(typeof(DynamicCommand), [], Definition("invoiceId") with { Produces = [produced] }, _appender, _identity, tenants ?? _tenants);
 
     protected static CommandContext ContextFor(string payload) =>
         new(

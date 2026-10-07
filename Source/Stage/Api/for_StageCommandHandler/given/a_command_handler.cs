@@ -16,10 +16,13 @@ public class a_command_handler : Specification
 {
     protected IAppendProducedEvents _appender = null!;
     protected IProvideStageIdentity _identity = null!;
+    protected ITenantIdAccessor _tenants = null!;
     protected string _eventSourceId = string.Empty;
 
     void Establish()
     {
+        _tenants = Substitute.For<ITenantIdAccessor>();
+        _tenants.Current.Returns(TenantId.Default);
         _identity = Substitute.For<IProvideStageIdentity>();
         _identity.Current().Returns(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
 
@@ -34,17 +37,10 @@ public class a_command_handler : Specification
     }
 
     protected StageCommandHandler HandlerFor(string? identifier) =>
-        new(typeof(DynamicCommand), [], Definition(identifier), _appender, _identity, TenantAccessor());
+        new(typeof(DynamicCommand), [], Definition(identifier), _appender, _identity, _tenants);
 
     protected StageCommandHandler HandlerProducing(ProducedEvent produced) =>
-        new(typeof(DynamicCommand), [], Definition("invoiceId") with { Produces = [produced] }, _appender, _identity, TenantAccessor());
-
-    static ITenantIdAccessor TenantAccessor()
-    {
-        var accessor = Substitute.For<ITenantIdAccessor>();
-        accessor.Current.Returns(TenantId.Default);
-        return accessor;
-    }
+        new(typeof(DynamicCommand), [], Definition("invoiceId") with { Produces = [produced] }, _appender, _identity, _tenants);
 
     protected static CommandContext ContextFor(string payload) =>
         new(

@@ -50,7 +50,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
         var command = slice.Slice.Commands.FirstOrDefault();
         if (command is not null)
         {
-            RenderCommand(builder, command, applicationSet, diagnostics);
+            RenderCommand(builder, command, applicationSet, diagnostics, rootNamespace);
         }
 
         foreach (var @event in slice.Slice.Events)
@@ -72,7 +72,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
             .Concat(EventRenderer.ReferencedNames(slice.Events))
             .Concat(slice.Commands.SelectMany(command => command.Produces).Select(produces => produces.Event));
 
-    static void RenderCommand(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics)
+    static void RenderCommand(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
     {
         var typeName = Identifiers.ToPascalCase(command.Name);
         var parameters = string.Join(", ", command.Properties.Select(property => RenderParameter(property, command.Name, applicationSet, diagnostics)));
@@ -88,12 +88,12 @@ public class StateChangeSliceRenderer : ISliceRenderer
         builder.BlankLine().Attribute("Command").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
 
         CommandValidatorRenderer.Render(builder, command, typeName, applicationSet, diagnostics);
-        RenderHandle(builder, command, applicationSet, diagnostics);
+        RenderHandle(builder, command, applicationSet, diagnostics, rootNamespace);
 
         builder.EndBlock();
     }
 
-    static void RenderHandle(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics)
+    static void RenderHandle(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
     {
         if (command.Handler?.Code is not null)
         {
@@ -115,7 +115,10 @@ public class StateChangeSliceRenderer : ISliceRenderer
 
         // Every produced event is rendered before the signature is written, because rendering is what discovers
         // which collaborators the handler has to ask for — a `$context` path is reachable only through one.
-        var context = new CommandContextAccess($"Command '{command.Name}'", diagnostics);
+        var context = new CommandContextAccess($"Command '{command.Name}'", diagnostics)
+        {
+            TenantValuesType = $"global::{rootNamespace}.GeneratedTenancy.PortableTenantValues"
+        };
         var rendered = produces.Select(produced => (
             Event: Identifiers.ToPascalCase(produced.Event),
             Arguments: RenderEventArguments(produced, command, context, applicationSet, diagnostics),

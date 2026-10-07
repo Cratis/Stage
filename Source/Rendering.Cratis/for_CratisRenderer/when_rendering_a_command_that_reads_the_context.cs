@@ -2,8 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Linq;
+using Cratis.Arc.Authorization;
+using Cratis.Arc.Tenancy;
+using Cratis.Chronicle.Auditing;
+using Cratis.Chronicle.Identities;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
@@ -12,12 +17,33 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
 {
     IReadOnlyList<string> _errors = null!;
     string _handler = null!;
+    Dictionary<string, string> _tenants = null!;
+    List<Exception> _collisions = null!;
 
     async Task Because()
     {
         await _renderer.Render([_application], _targetDirectory, _output, _error);
         _errors = RenderedOutput.Errors(_codeOutput.Files);
         _handler = _codeOutput.Files.Single(file => file.RelativePath.EndsWith("Register.cs", StringComparison.Ordinal)).Content;
+        if (_errors.Count > 0) return;
+        var assembly = RenderedOutput.Load(_codeOutput.Files);
+        var commandType = assembly.GetTypes().Single(type => type.Name == "RegisterInvoice");
+        var command = Activator.CreateInstance(commandType, "invoice")!;
+        var handle = commandType.GetMethod("Handle")!;
+        var tenants = Substitute.For<ITenantIdAccessor>();
+        var identities = Substitute.For<IIdentityProvider>();
+        identities.GetCurrent().Returns(Identity.NotSet);
+        var causations = Substitute.For<ICausationManager>();
+        causations.GetCurrentChain().Returns([Causation.Unknown()]);
+        var principals = Substitute.For<ICurrentPrincipalAccessor>();
+        string Apply(string name)
+        {
+            tenants.Current.Returns(new TenantId(name));
+            var produced = handle.Invoke(command, [tenants, identities, causations, principals])!;
+            return (string)produced.GetType().GetProperty("RegisteredFor")!.GetValue(produced)!;
+        }
+        _tenants = new[] { TenantId.Default.Value, TenantId.NotSet.Value, "North", "default" }.ToDictionary(name => name, Apply);
+        _collisions = [.. new[] { string.Empty, "00000000-0000-0000-0000-000000000000" }.Select(name => Catch.Exception(() => Apply(name)))];
     }
 
     [Fact] void should_render_an_application_that_compiles() => _errors.ShouldBeEmpty();
@@ -30,7 +56,12 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
             "ICausationManager causations, ICurrentPrincipalAccessor principals)");
     [Fact] void should_not_ask_for_arcs_command_context() => _handler.ShouldNotContain("CommandContext");
     [Fact] void should_read_the_time_the_command_was_handled() => _handler.ShouldContain("DateTimeOffset.UtcNow");
-    [Fact] void should_read_the_tenant_from_the_tenant_accessor() => _handler.ShouldContain("tenants.Current.Value");
+    [Fact] void should_translate_the_tenant_from_the_tenant_accessor() => _handler.ShouldContain("global::AcmeBilling.GeneratedTenancy.PortableTenantValues.Translate(tenants.Current.Value");
+    [Fact] void should_translate_default_in_the_generated_handler() => _tenants[TenantId.Default.Value].ShouldEqual(Screenplay.Contexts.TenantId.Default.Value);
+    [Fact] void should_translate_not_set_without_conflating_it_with_default() => _tenants[TenantId.NotSet.Value].ShouldEqual(Screenplay.Contexts.TenantId.NotSet.Value);
+    [Fact] void should_preserve_a_named_tenant_in_the_generated_handler() => _tenants["North"].ShouldEqual("North");
+    [Fact] void should_preserve_named_tenant_casing_in_the_generated_handler() => _tenants["default"].ShouldEqual("default");
+    [Fact] void should_reject_ambiguous_tenants_in_the_generated_handler() => _collisions.TrueForAll(error => error.InnerException?.GetType().Name == "AmbiguousTenant").ShouldBeTrue();
     [Fact] void should_read_a_claim_from_the_calling_principal() =>
         _handler.ShouldContain("principals.Current?.FindFirst(\"department\")?.Value");
 }

@@ -42,7 +42,7 @@ public class when_rendering_the_paths_a_command_can_reach : Specification
     }
 
     [Fact] void should_render_occurred_as_the_time_the_handler_runs() => _occurred.ShouldEqual("DateTimeOffset.UtcNow");
-    [Fact] void should_render_the_tenant_as_its_value() => _tenant.ShouldEqual("tenants.Current.Value");
+    [Fact] void should_render_the_tenant_as_its_value() => _tenant.ShouldEqual("PortableTenantValues.Translate(tenants.Current.Value, global::Cratis.Arc.Tenancy.TenantId.Default.Value, global::Cratis.Arc.Tenancy.TenantId.NotSet.Value)");
     [Fact] void should_render_the_identity_id_as_the_subject() => _identityId.ShouldEqual("identities.GetCurrent().Subject");
     [Fact] void should_render_the_identity_name() => _identityName.ShouldEqual("identities.GetCurrent().Name");
     [Fact] void should_render_whether_the_caller_is_authenticated() =>

@@ -130,7 +130,7 @@ public class when_generating_packaged_vectors
                 public record Withdrawn;
             }
             """);
-        var errors = RenderedOutput.Errors([declarations, SemanticReducerContextRuntime.Render(context), .. wrappers]);
+        var errors = RenderedOutput.Errors([declarations, SemanticReducerContextRuntime.Render(context), TenantTranslationSource.Render(context.RootNamespace), .. wrappers]);
         Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
     }
 

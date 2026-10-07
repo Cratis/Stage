@@ -19,7 +19,14 @@ internal static class SemanticReducerContextRuntime
             .EndBlock()
             .BlankLine()
             .OpenBlock("internal static class ReducerContextValues")
-            .ExpressionMember("public static TenantId Tenant(global::Cratis.Chronicle.EventStoreNamespaceName name)", "new(name.Value)")
+            .OpenBlock("public static TenantId Tenant(global::Cratis.Chronicle.EventStoreNamespaceName name)")
+            .Line("if (name == global::Cratis.Chronicle.EventStoreNamespaceName.Default) return TenantId.Default;")
+            .Line("if (name == global::Cratis.Chronicle.EventStoreNamespaceName.NotSet) return TenantId.NotSet;")
+            .OpenBlock("if (name.Value.Length == 0 || (global::System.Guid.TryParse(name.Value, out var id) && id == global::System.Guid.Empty))")
+            .Line("throw new global::System.InvalidOperationException(\"Chronicle namespace collides with a reserved portable tenant identifier.\");")
+            .EndBlock()
+            .Line("return new TenantId(name.Value);")
+            .EndBlock()
             .EndBlock();
         return new(Path.Combine("TypedContexts", "TenantId.cs"), builder.ToString());
     }

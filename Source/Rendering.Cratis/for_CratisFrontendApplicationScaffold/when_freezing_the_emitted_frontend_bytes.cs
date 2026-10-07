@@ -25,5 +25,5 @@ public class when_freezing_the_emitted_frontend_bytes : a_current_frontend_scaff
         _digest = Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    [Fact] void should_freeze_the_complete_frontend_scaffold_with_the_arc_22250_and_scene_42_contract() => _digest.ShouldEqual("45526e6e1a55c0aefbe75aec247245827ee933c098f35867e110fecfa32c764d");
+    [Fact] void should_freeze_the_complete_frontend_scaffold_with_the_arc_22505_and_scene_42_contract() => _digest.ShouldEqual("41e57cae3a273bb0084dbfa567245f78fa37c486e5304c0425c87f0e7fcb921a");
 }

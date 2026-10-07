@@ -346,7 +346,7 @@ internal static class PureTransitionAdmission
         {
             var error = errors[0];
             var methodOffset = code.IndexOf(body, code.LastIndexOf($"public class {reducerName}", StringComparison.Ordinal), StringComparison.Ordinal);
-            var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}";
+            var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}{GeneratedMemberDiagnostic.Hint(error, semanticModel)}";
             if (!error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < methodOffset ||
                 error.Location.SourceSpan.Start > methodOffset + body.Length)
             {

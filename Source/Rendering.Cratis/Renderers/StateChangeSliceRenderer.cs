@@ -119,6 +119,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
         var rendered = produces.Select(produced => (
             Event: Identifiers.ToPascalCase(produced.Event),
             Arguments: RenderEventArguments(produced, command, context, applicationSet, diagnostics),
+            Destination: RenderDestination(produced.For, command, context, applicationSet),
             Condition: produced.When is null
                 ? null
                 : ExpressionRenderer.Render(produced.When, context, path => EnumTypeOfCommandProperty(path, command, applicationSet))))
@@ -133,25 +134,63 @@ public class StateChangeSliceRenderer : ISliceRenderer
 
         if (rendered.Length == 1 && rendered[0].Condition is null)
         {
-            builder.BlankLine().ExpressionMember($"public {rendered[0].Event} Handle({parameters})", $"new({rendered[0].Arguments})");
+            var produced = rendered[0];
+            var returnType = produced.Destination is null ? produced.Event : "global::Cratis.Chronicle.EventSequences.EventForEventSourceId";
+            var value = produced.Destination is null
+                ? $"new({produced.Arguments})"
+                : WrappedEvent(produced.Event, produced.Arguments, produced.Destination);
+            builder.BlankLine().ExpressionMember($"public {returnType} Handle({parameters})", value);
             return;
         }
 
         builder.BlankLine().OpenBlock($"public IEnumerable<object> Handle({parameters})").Line("var events = new List<object>();");
 
-        foreach (var (@event, arguments, condition) in rendered)
+        foreach (var (@event, arguments, destination, condition) in rendered)
         {
+            var value = destination is null ? $"new {@event}({arguments})" : WrappedEvent(@event, arguments, destination);
             if (condition is not null)
             {
-                builder.OpenBlock($"if ({condition})").Line($"events.Add(new {@event}({arguments}));").EndBlock();
+                builder.OpenBlock($"if ({condition})").Line($"events.Add({value});").EndBlock();
             }
             else
             {
-                builder.Line($"events.Add(new {@event}({arguments}));");
+                builder.Line($"events.Add({value});");
             }
         }
 
         builder.Line("return events;").EndBlock();
+    }
+
+    static string WrappedEvent(string eventName, string arguments, string destination) =>
+        $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({destination}, new {eventName}({arguments}))";
+
+    static string? RenderDestination(ExpressionSyntax? destination, CommandSyntax command, CommandContextAccess context, ApplicationSet applicationSet)
+    {
+        if (destination is null)
+        {
+            return null;
+        }
+
+        var hasImplicitConversion = false;
+        if (destination is PathExpressionSyntax path)
+        {
+            var property = CommandProperty(path.Path, command);
+            if (property is null || path.Path.Contains('.', StringComparison.Ordinal))
+            {
+                throw new UnsupportedExpression(destination);
+            }
+
+            var type = TypeResolver.Resolve(property.Type, applicationSet);
+            if (type.IsCollection || type.IsOptional || type.Kind is ResolvedTypeKind.Composite or ResolvedTypeKind.Unresolved)
+            {
+                throw new UnsupportedExpression(destination);
+            }
+
+            hasImplicitConversion = (type.Kind == ResolvedTypeKind.Primitive && (string.Equals(type.ClrTypeName, "string", StringComparison.Ordinal) || string.Equals(type.ClrTypeName, "Guid", StringComparison.Ordinal))) ||
+                (type.Kind == ResolvedTypeKind.Concept && applicationSet.IdentifierConceptNames.Contains(property.Type.Name));
+        }
+
+        return EventSourceExpression.Render(ExpressionRenderer.Render(destination, context), hasImplicitConversion);
     }
 
     /// <summary>

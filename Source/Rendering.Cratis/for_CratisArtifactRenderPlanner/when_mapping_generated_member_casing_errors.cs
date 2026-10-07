@@ -31,10 +31,7 @@ public class when_mapping_generated_member_casing_errors : Specification
         _conditional = await when_rendering_a_pure_reducer.Load(source.Replace(
             Body.Replace("\n", "\n          ", StringComparison.Ordinal), "return new Total(context.Event.Id, context.State?.amount ?? 0m);", StringComparison.Ordinal));
         _unknown = await when_rendering_a_pure_reducer.Load(source.Replace("payload.amount", "payload.missing", StringComparison.Ordinal));
-        var root = new DirectoryInfo(AppContext.BaseDirectory);
-        while (root is not null && !File.Exists(Path.Combine(root.FullName, ".git")) && !Directory.Exists(Path.Combine(root.FullName, ".git"))) root = root.Parent;
-        Assert.NotNull(root);
-        var folder = Path.Combine(root.FullName, ".ai-work", "casing-fixtures", Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(Path.GetTempPath(), $"stage-casing-{Guid.NewGuid():N}");
         Directory.CreateDirectory(folder);
         try
         {

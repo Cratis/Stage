@@ -94,6 +94,80 @@ jobs:
       - name: Verify standalone packed reducer consumer
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
 
+  # Live persistence is a separate gate: the ordinary Debug suite intentionally skips this probe
+  # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
+  reducer-mongo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Verify Host kernel and client compatibility pins
+        run: python3 Verification/verify-runtime-compatibility.py --self-test
+
+      - name: Start pinned Chronicle with bundled MongoDB
+        run: |
+          image=$(python3 -c 'import pathlib, runpy; policy = runpy.run_path("Verification/verify-runtime-compatibility.py"); print(policy["host_base"](pathlib.Path("Source/Host/Dockerfile").read_text()).group(1))')
+          docker run --detach --name stage-reducer-mongo \
+            --publish 127.0.0.1:35000:35000 "$image"
+          # Only the local development kernel uses a self-signed certificate.
+          curl --insecure --fail --retry 30 --retry-all-errors --retry-delay 2 \
+            --connect-timeout 5 --max-time 10 --retry-max-time 120 \
+            https://localhost:35000/health
+
+      - name: Run Billing persistence and deletion probe
+        env:
+          STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
+        run: >-
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
+          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion"
+          --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
+
+      # A zero exit from dotnet test can mean that nothing ran. Require exactly one passing,
+      # executed probe, so missing connection configuration cannot silently make this gate green.
+      - name: Require live probe execution
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse("TestResults/reducer-mongo/billing-mongo.trx").getroot()
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          results = root.findall("t:Results/t:UnitTestResult", ns)
+          if (len(results) != 1 or results[0].get("outcome") != "Passed"
+                  or "mongo_container_matches_model_bound_read_model_query_when_configured" not in results[0].get("testName", "")):
+              raise SystemExit("The Billing Mongo persistence and deletion probe must execute and pass, not skip.")
+          PY
+
+      - name: Capture kernel logs
+        if: always()
+        run: |
+          mkdir -p TestResults/reducer-mongo
+          if docker container inspect stage-reducer-mongo > /dev/null 2>&1; then
+            docker logs stage-reducer-mongo > TestResults/reducer-mongo/chronicle.log 2>&1
+          fi
+
+      - name: Stop kernel and remove MongoDB volumes
+        if: always()
+        run: |
+          if docker container inspect stage-reducer-mongo > /dev/null 2>&1; then
+            docker rm --force --volumes stage-reducer-mongo
+          fi
+
+      - name: Upload probe results and kernel logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reducer-mongo-results
+          path: TestResults/reducer-mongo
+          if-no-files-found: error
+          retention-days: 7
+
   # Compiles renderer output for every generated-name row with Roslyn; admission must reject exactly the
   # names whose generated C# does not compile or serialize. It takes about as long as the rest of the
   # suite, so it runs next to the build job instead of inside it.

@@ -132,6 +132,7 @@ internal static partial class SemanticCratisAdmission
                 {
                     var verdict = PureTransitionAdmission.Analyze(body!, context, model, @event, descriptors[0], requirement);
                     analysed++;
+                    context.ReducerContextReads[transition.RequirementId] = verdict.ContextReads;
                     if (!verdict.Accepted)
                     {
                         diagnostics.Add(Error(verdict.Code!, $"Reducer '{reducer.Name}' transition '{transition.RequirementId}': {verdict.Reason}", reducer.ReadModel));

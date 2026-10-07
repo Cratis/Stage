@@ -279,7 +279,7 @@ internal static class PureTransitionAdmission
             .Replace($"namespace {context.RootNamespace}.TypedContexts;", $"namespace {context.RootNamespace}.TypedContexts {{", StringComparison.Ordinal) + "\n}";
         var modelType = $"global::{modelNs}.{Identifiers.ToPascalCase(readModel.Name)}";
         var wrapperType = $"global::{context.RootNamespace}.TypedContexts.TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
-        var tenant = $"namespace {context.RootNamespace}.TypedContexts {{ public record TenantId(string Value); }}";
+        var tenant = $"namespace {context.RootNamespace}.TypedContexts {{ public record TenantId(string Value) {{ public static readonly TenantId Default = new(\"00000000-0000-0000-0000-000000000000\"); public static readonly TenantId NotSet = new(\"\"); }} }}";
 
         // Model stubs are compilation peers, not imports into the reducer file. The body has the
         // same namespace and exact using directives as SemanticReducerArtifactRenderer.Render.
@@ -906,6 +906,13 @@ internal static class PureTransitionAdmission
             symbol.Locations.All(_ => _.IsInSource && compilation.SyntaxTrees.Contains(_.SourceTree)))
         {
             entry = "generated";
+            if (full == $"global::{rootNamespace}.TypedContexts.TenantId" &&
+                ((symbol is IFieldSymbol { IsStatic: true, IsReadOnly: true } && NameIs(name, "Default", "NotSet")) ||
+                 (symbol is IMethodSymbol { IsImplicitlyDeclared: true, MethodKind: MethodKind.UserDefinedOperator } && NameIs(name, "op_Equality", "op_Inequality"))))
+            {
+                return true;
+            }
+
             return name != "ToString" &&
                 (type.Name.StartsWith("TypedContext_", StringComparison.Ordinal)
                     ? symbol is IPropertySymbol

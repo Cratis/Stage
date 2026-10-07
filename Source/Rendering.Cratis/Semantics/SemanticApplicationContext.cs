@@ -120,6 +120,8 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
 
+    internal Dictionary<string, IReadOnlySet<string>> ReducerContextReads { get; } = new(StringComparer.Ordinal);
+
     /// <summary>Gets distinct generated namespace prefixes, including slices outside the selected scope.</summary>
     internal IEnumerable<string> NamespacePaths => _slices.Values.SelectMany(located =>
     {

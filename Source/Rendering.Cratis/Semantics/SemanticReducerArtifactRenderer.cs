@@ -56,9 +56,12 @@ internal static class SemanticReducerArtifactRenderer
                 throw new InvalidTypedContext($"Reducer '{name}' lost its verified body after admission.");
             }
 
+            var tenant = context.ReducerContextReads[transition.RequirementId].Contains("Tenant")
+                ? $"global::{context.RootNamespace}.TypedContexts.ReducerContextValues.Tenant(eventContext.Namespace)"
+                : $"global::{context.RootNamespace}.TypedContexts.TenantId.NotSet";
             builder.OpenBlock($"public {modelType}? On({eventType} @event, {modelType}? current, global::Cratis.Chronicle.Events.EventContext eventContext)")
                 .Line("var originalSourceId = eventContext.EventSourceId.Value;")
-                .Line($"var result = Transition_{suffix}(new global::{context.RootNamespace}.TypedContexts.{wrapper}(current, @event, originalSourceId, global::{context.RootNamespace}.TypedContexts.ReducerContextValues.Tenant(eventContext.Namespace), eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
+                .Line($"var result = Transition_{suffix}(new global::{context.RootNamespace}.TypedContexts.{wrapper}(current, @event, originalSourceId, {tenant}, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
                 .OpenBlock($"if (result is not null && ({check}))")
                 .Line("throw new global::System.InvalidOperationException(\"Reducer returned a read model with an identifier different from the event source.\");")
                 .EndBlock()

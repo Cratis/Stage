@@ -35,7 +35,8 @@ internal static class SemanticPolicyArtifactRenderer
             .OpenBlock("static partial void RegisterGenerated(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         foreach (var operation in operations)
         {
-            builder.Line($"services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))});");
+            var anonymous = SemanticCratisAdmission.RequiresAuthentication(operation.Authorization, context.Application.Policies) ? string.Empty : ", evaluatesAnonymous: true";
+            builder.Line($"services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}{anonymous});");
         }
 
         builder.EndBlock().EndBlock().BlankLine();
@@ -55,35 +56,35 @@ internal static class SemanticPolicyArtifactRenderer
         // missing value (including a nullable composite or absent query argument) must deny, never match "".
         builder.OpenBlock("internal static class PolicyValues")
             .ExpressionMember(
-                "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
-                "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && global::System.String.Equals(value.Value, target, global::System.StringComparison.Ordinal))")
-            .OpenBlock("public static string? Text(object? value)")
-            .Line("if (value is string text) return text;")
+                "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, object? target)",
+                "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && (target is global::System.Guid uuid ? global::System.Guid.TryParse(value.Value, out var parsed) && parsed == uuid : target is string text && global::System.String.Equals(value.Value, text, global::System.StringComparison.Ordinal)))")
+            .OpenBlock("public static object? Value(object? value)")
+            .Line("if (value is string or global::System.Guid) return value;")
             .Line("if (value is null) return null;")
             .Line("var type = value.GetType();")
-            .Line("if (!InheritsTextConcept(type)) return null;")
-            .Line("return type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value) as string;")
+            .Line("if (!InheritsSupportedConcept(type)) return null;")
+            .Line("return type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value);")
             .EndBlock()
-            .OpenBlock("static bool InheritsTextConcept(global::System.Type type)")
+            .OpenBlock("static bool InheritsSupportedConcept(global::System.Type type)")
             .Line("for (var current = type.BaseType; current is not null; current = current.BaseType)")
             .Line("{")
-            .Line("    if (current.IsGenericType && current.GenericTypeArguments.Length == 1 && current.GenericTypeArguments[0] == typeof(string) &&")
+            .Line("    if (current.IsGenericType && current.GenericTypeArguments.Length == 1 && (current.GenericTypeArguments[0] == typeof(string) || current.GenericTypeArguments[0] == typeof(global::System.Guid)) &&")
             .Line("        (current.GetGenericTypeDefinition().FullName == \"Cratis.Concepts.ConceptAs`1\" || current.GetGenericTypeDefinition().FullName == \"Cratis.Chronicle.Events.EventSourceId`1\")) return true;")
             .Line("}")
             .Line("return false;")
             .EndBlock()
-            .OpenBlock("public static string? Path(object? value, string path)")
+            .OpenBlock("public static object? Path(object? value, string path)")
             .Line("foreach (var segment in path.Split('.'))")
             .Line("{")
             .Line("    if (value is null) return null;")
             .Line("    value = value.GetType().GetProperty(segment, global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value);")
             .Line("}")
-            .Line("return Text(value);")
+            .Line("return Value(value);")
             .EndBlock()
-            .OpenBlock("public static string? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path)")
+            .OpenBlock("public static object? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path)")
             .Line("if (context.Target is not global::System.Reflection.MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, global::System.StringComparison.Ordinal)) ||")
             .Line("    context.Resource is not global::Cratis.Arc.Queries.QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
-            .Line("return path == argument ? Text(key) : Path(key, path[(argument.Length + 1)..]);")
+            .Line("return path == argument ? Value(key) : Path(key, path[(argument.Length + 1)..]);")
             .EndBlock()
             .EndBlock();
 

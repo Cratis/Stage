@@ -14,6 +14,16 @@ internal static partial class SemanticCratisAdmission
 {
     internal static bool IsRoleClaim(string type) => string.Equals(type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase);
 
+    internal static bool RequiresAuthentication(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch
+    {
+        SemanticPolicyReference reference => policies.SingleOrDefault(policy => policy.Name == reference.Name) is { } policy && RequiresAuthentication(policy.Condition),
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical =>
+            RequiresAuthentication(logical.Left, policies) || RequiresAuthentication(logical.Right, policies),
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical =>
+            RequiresAuthentication(logical.Left, policies) && RequiresAuthentication(logical.Right, policies),
+        _ => false
+    };
+
     static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {
         // The reference evaluator selects the first supplied identifier, not necessarily the first declared
@@ -55,15 +65,13 @@ internal static partial class SemanticCratisAdmission
             return false;
         }
 
-        // Arc's Authorize attribute requires an authenticated principal even when its named policy would
-        // accept an unauthenticated caller. Admit only expressions that already require authentication.
-        if (CanRender(authorization, context.Application.Policies) && RequiresAuthentication(authorization, context.Application.Policies) &&
+        if (CanRender(authorization, context.Application.Policies) &&
             !Claims(authorization, context.Application.Policies).Any(claim => IsRoleClaim(claim.Claim)))
         {
             return true;
         }
 
-        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' cannot be rendered exactly with Arc's authenticated policy boundary, contains a role claim URI, or has an unresolved or non-portable policy.", id));
+        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' contains a role claim URI, or has an unresolved or non-portable policy.", id));
         return false;
     }
 
@@ -83,12 +91,12 @@ internal static partial class SemanticCratisAdmission
 
         var paths = Claims(authorization, context.Application.Policies).Where(claim => claim.TargetKind != SemanticClaimTargetKind.Literal)
             .Select(claim => claim.TargetKind == SemanticClaimTargetKind.Subject ? subject?.Name : claim.Value);
-        if (paths.All(path => path is not null && IsTextPath(context, properties, path)))
+        if (paths.All(path => path is not null && IsSupportedClaimPath(context, properties, path)))
         {
             return true;
         }
 
-        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' compares a claim with a non-text artifact value.", id));
+        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' compares a claim with an artifact value that is neither text nor Uuid.", id));
         return false;
     }
 
@@ -113,7 +121,7 @@ internal static partial class SemanticCratisAdmission
         _ => []
     };
 
-    static bool IsTextPath(SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string path)
+    static bool IsSupportedClaimPath(SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string path)
     {
         SemanticProperty? property = null;
         foreach (var segment in path.Split('.'))
@@ -129,19 +137,9 @@ internal static partial class SemanticCratisAdmission
         }
 
         return property is { Type.IsCollection: false } && (property.Type.Kind == SemanticTypeReferenceKind.Primitive
-            ? property.Type.Primitive == SemanticPrimitiveType.Text
-            : property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts[property.Type.Target].Primitive == SemanticPrimitiveType.Text);
+            ? property.Type.Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid
+            : property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts[property.Type.Target].Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid);
     }
-
-    static bool RequiresAuthentication(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch
-    {
-        SemanticPolicyReference reference => policies.SingleOrDefault(policy => policy.Name == reference.Name) is { } policy && RequiresAuthentication(policy.Condition),
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical =>
-            RequiresAuthentication(logical.Left, policies) || RequiresAuthentication(logical.Right, policies),
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical =>
-            RequiresAuthentication(logical.Left, policies) && RequiresAuthentication(logical.Right, policies),
-        _ => false
-    };
 
     static bool RequiresAuthentication(SemanticPolicyCondition condition) => condition switch
     {

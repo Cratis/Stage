@@ -14,6 +14,6 @@ public class with_a_role_only_policy : given.an_invoice_model
         Plan("policy Staff\n  require role \"Staff\"\n" + source[..source.IndexOf("      specification", StringComparison.Ordinal)]);
     }
 
-    [Fact] void should_reject_a_policy_that_arc_would_overrestrict() => ErrorCodes.ShouldContain("STAGE-ESM-015");
-    [Fact] void should_not_emit_permissive_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_admit_the_portable_role_policy() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_emit_the_protected_application() => _plan.Artifacts.ShouldNotBeEmpty();
 }

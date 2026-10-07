@@ -125,6 +125,8 @@ jobs:
       - name: Run Billing persistence and deletion probe
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
+          # Keeps the generated application's own build and test logs with the uploaded results.
+          AI_WORK_KEEP: ${{ github.workspace }}/TestResults/reducer-mongo
         run: >-
           dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
           --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion"

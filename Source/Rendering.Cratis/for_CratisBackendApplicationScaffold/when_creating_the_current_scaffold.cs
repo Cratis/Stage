@@ -44,6 +44,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_emit_only_the_exact_package_versions() => PackageVersions().ShouldEqual(ExpectedPackageVersions());
     [Fact] void should_keep_all_specification_packages_in_the_debug_item_group() => TestingPackagesAreDebugOnly().ShouldBeTrue();
     [Fact] void should_keep_the_host_active_in_debug() => Content("Program.cs").ShouldNotContain("#if");
+    [Fact] void should_disable_reverse_extraction_of_the_authoritative_source_model() => XDocument.Parse(Content("MyApp.csproj")).Root!.Element("PropertyGroup")!.Element("CratisEmbeddedScreenplayEnabled")!.Value.ShouldEqual("false");
     [Fact] void should_suppress_the_debug_test_entry_point_warning_locally() => Content("MyApp.csproj").ShouldContain("<NoWarn Condition=\"'$(Configuration)' == 'Debug'\">$(NoWarn);CS7022</NoWarn>");
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");
     [Fact] void should_activate_cratis_and_the_health_endpoint_before_running() => ProgramSemantics().ShouldEqual("True|True|True");

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Runtime.CompilerServices;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
@@ -12,6 +13,8 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// </summary>
 internal static class EventSourceIdentityComplianceAdmission
 {
+    static readonly ConditionalWeakTable<ApplicationSet, Lazy<ILookup<string, (TypeRefSyntax Type, string Use, SourceLocation Location)>>> _identityUses = [];
+
     /// <summary>
     /// Checks every identity used by the selected slices.
     /// </summary>
@@ -40,7 +43,8 @@ internal static class EventSourceIdentityComplianceAdmission
             EnsureUnprotected(concept, "an event-source identity", concept.Location);
         }
 
-        foreach (var (_, use, location) in IdentityUses(context.Slices, context).Where(identity => identity.Type.Name == concept.Name))
+        var identityUses = _identityUses.GetValue(context, static application => new(() => IdentityUses(application.Slices, application).ToLookup(identity => identity.Type.Name, StringComparer.Ordinal))).Value;
+        foreach (var (_, use, location) in identityUses[concept.Name])
         {
             EnsureUnprotected(concept, use, location);
         }
@@ -48,7 +52,7 @@ internal static class EventSourceIdentityComplianceAdmission
 
     static void EnsureUnprotected(ConceptSyntax concept, string use, SourceLocation location)
     {
-        var attribute = concept.Attributes.Select(attribute => attribute.Name).FirstOrDefault(name => string.Equals(name, "pii", StringComparison.Ordinal) || string.Equals(name, "sensitive", StringComparison.Ordinal));
+        var attribute = concept.Attributes.Select(_ => _.Name).FirstOrDefault(name => string.Equals(name, "pii", StringComparison.Ordinal) || string.Equals(name, "sensitive", StringComparison.Ordinal));
         if (attribute is not null)
         {
             throw new UnsupportedProtectedEventSourceIdentity(concept.Name, attribute, use, location);
@@ -60,14 +64,6 @@ internal static class EventSourceIdentityComplianceAdmission
         foreach (var slice in slices)
         {
             var slicePath = string.Join('.', slice.FullPath);
-            var properties = slice.Slice.Commands.SelectMany(command => command.Properties)
-                .Concat(slice.Slice.Events.SelectMany(@event => @event.Properties))
-                .Concat((slice.Slice.ReadModels ?? []).SelectMany(readModel => readModel.Properties));
-            foreach (var property in properties.Where(property => context.IdentifierConceptNames.Contains(property.Type.Name)))
-            {
-                yield return (property.Type, $"an identity concept referenced in slice '{slicePath}'", property.Location);
-            }
-
             foreach (var command in slice.Slice.Commands)
             {
                 foreach (var property in command.Properties.Where(property => property.IsIdentifier))
@@ -101,6 +97,14 @@ internal static class EventSourceIdentityComplianceAdmission
                         }
                     }
                 }
+            }
+
+            var properties = slice.Slice.Commands.SelectMany(command => command.Properties)
+                .Concat(slice.Slice.Events.SelectMany(@event => @event.Properties))
+                .Concat((slice.Slice.ReadModels ?? []).SelectMany(readModel => readModel.Properties));
+            foreach (var property in properties.Where(property => context.IdentifierConceptNames.Contains(property.Type.Name)))
+            {
+                yield return (property.Type, $"an identity concept referenced in slice '{slicePath}'", property.Location);
             }
         }
     }

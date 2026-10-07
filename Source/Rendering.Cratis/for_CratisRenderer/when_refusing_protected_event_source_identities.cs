@@ -16,17 +16,17 @@ public class when_refusing_protected_event_source_identities : a_multi_slice_app
     static readonly SourceLocation _identityLocation = SourceLocation.Start with { Path = "Protected.play", Line = 12, Column = 9 };
 
     [Theory]
-    [InlineData("pii", "identifier")]
-    [InlineData("sensitive", "identifier")]
-    [InlineData("pii", "destination")]
-    [InlineData("sensitive", "destination")]
-    [InlineData("pii", "projection")]
-    [InlineData("sensitive", "projection")]
-    [InlineData("pii", "inline-key")]
-    [InlineData("sensitive", "inline-key")]
-    [InlineData("pii", "projection-key")]
-    [InlineData("sensitive", "projection-key")]
-    public async Task should_reject_before_scaffolding_or_writing_any_artifact_on_every_public_entrypoint(string attribute, string identity)
+    [InlineData("pii", "identifier", "command identifier")]
+    [InlineData("sensitive", "identifier", "command identifier")]
+    [InlineData("pii", "destination", "production destination")]
+    [InlineData("sensitive", "destination", "production destination")]
+    [InlineData("pii", "projection", "projection key")]
+    [InlineData("sensitive", "projection", "projection key")]
+    [InlineData("pii", "inline-key", "projection key")]
+    [InlineData("sensitive", "inline-key", "projection key")]
+    [InlineData("pii", "projection-key", "projection key")]
+    [InlineData("sensitive", "projection-key", "projection key")]
+    public async Task should_reject_before_scaffolding_or_writing_any_artifact_on_every_public_entrypoint(string attribute, string identity, string useKind)
     {
         Configure(attribute, identity);
         var module = _application.Modules.Single();
@@ -52,6 +52,7 @@ public class when_refusing_protected_event_source_identities : a_multi_slice_app
             rejection.Message.ShouldContain(UnsupportedProtectedEventSourceIdentity.DiagnosticCode);
             rejection.Message.ShouldContain("surrogate Uuid identifier");
             rejection.IdentityUse.ShouldContain("Billing.Invoices.Protected");
+            rejection.IdentityUse.ShouldContain(useKind);
             _error.ToString().ShouldContain(rejection.Message);
             _scaffolder.WasCalled.ShouldBeFalse();
             _codeOutput.Files.ShouldBeEmpty();

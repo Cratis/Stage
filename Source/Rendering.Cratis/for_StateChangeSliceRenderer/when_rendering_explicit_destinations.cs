@@ -20,7 +20,13 @@ public class when_rendering_explicit_destinations
     public void should_return_a_single_event_with_its_destination(string type, string expected)
     {
         var source = Model(type, "produces Changed\n  for destination\n  name = name");
-        var (command, assembly) = Render(source, type, expected);
+        var (command, assembly, content) = Render(source, type, expected);
+        if (type == "String" || type == "Uuid")
+        {
+            content.ShouldContain("EventForEventSourceId(Destination, new Changed(Name))");
+            content.ShouldNotContain("ToString()");
+        }
+
         var produced = (EventForEventSourceId)command.GetType().GetMethod("Handle")!.Invoke(command, [])!;
         produced.EventSourceId.ToString().ShouldEqual(expected);
         produced.Event.GetType().GetProperty("Name")!.GetValue(produced.Event).ShouldEqual("payload");
@@ -42,7 +48,7 @@ public class when_rendering_explicit_destinations
             produces ImplicitChanged
               for id
             """);
-        var (command, _) = Render(source, "String", "elsewhere", includeConditional ? "payload" : string.Empty, omitLastDestination: true);
+        var (command, _, _) = Render(source, "String", "elsewhere", includeConditional ? "payload" : string.Empty, omitLastDestination: true);
         var produced = ((IEnumerable<object>)command.GetType().GetMethod("Handle")!.Invoke(command, [])!).ToArray();
         produced.Length.ShouldEqual(includeConditional ? 3 : 2);
         if (includeConditional)
@@ -71,7 +77,7 @@ public class when_rendering_explicit_destinations
               event ImplicitChanged
         """;
 
-    static (object Command, System.Reflection.Assembly Assembly) Render(string source, string type, string destination, string name = "payload", bool omitLastDestination = false)
+    static (object Command, System.Reflection.Assembly Assembly, string Content) Render(string source, string type, string destination, string name = "payload", bool omitLastDestination = false)
     {
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
@@ -89,8 +95,9 @@ public class when_rendering_explicit_destinations
             };
         }
 
+        var rendered = new StateChangeSliceRenderer().Render(slice, application, "Generated");
         var files = application.Concepts.Values.Select(concept => ConceptRenderer.Render(concept, application, "Generated"))
-            .Append(new StateChangeSliceRenderer().Render(slice, application, "Generated"));
+            .Append(rendered);
         var assembly = RenderedOutput.Load(files);
         var value = type switch
         {
@@ -103,6 +110,6 @@ public class when_rendering_explicit_destinations
             ? Activator.CreateInstance(value.GetType(), Guid.NewGuid())!
             : Guid.NewGuid();
         var command = Activator.CreateInstance(assembly.GetTypes().Single(candidate => candidate.Name == "Change"), identifier, value, "another", name)!;
-        return (command, assembly);
+        return (command, assembly, rendered.Content);
     }
 }

@@ -23,6 +23,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        EventSourceIdentityComplianceAdmission.EnsureAccepted([slice], applicationSet);
         if (slice.Slice.Commands.Any())
         {
             LegacyEnclosingAuthorization.EnsureRenderable(slice, applicationSet, $"Command '{slice.Slice.Commands.First().Name}'");

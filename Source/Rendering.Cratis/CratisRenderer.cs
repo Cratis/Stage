@@ -175,18 +175,23 @@ public class CratisRenderer : IRenderer
         await error.WriteLineAsync($"Failed to {operation}: {exception.Message}");
     }
 
+    static async Task EnsureComplianceAccepted(IEnumerable<LocatedSlice> slices, ApplicationSet context, TextWriter error)
+    {
+        try
+        {
+            EventSourceIdentityComplianceAdmission.EnsureAccepted(slices, context);
+        }
+        catch (UnsupportedProtectedEventSourceIdentity exception)
+        {
+            await error.WriteLineAsync(exception.Message);
+            throw new RenderingFailed([exception]);
+        }
+    }
+
     async Task RenderApplications(IReadOnlyList<ApplicationSyntax> applications, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
     {
         var failures = new List<Exception>();
-        await output.WriteLineAsync($"Rendering {applications.Count} application(s) to '{targetDirectory.FullName}'...");
-
         var rootNamespace = Identifiers.ToPascalCase(targetDirectory.Name);
-        if (!await TryScaffold(targetDirectory, rootNamespace, output, error, failures))
-        {
-            await Complete(targetDirectory, output, error, failures);
-            return;
-        }
-
         ApplicationSet applicationSet;
         try
         {
@@ -195,6 +200,14 @@ public class CratisRenderer : IRenderer
         catch (InvalidEventModel exception)
         {
             await RecordFailure("render events", exception, error, failures);
+            await Complete(targetDirectory, output, error, failures);
+            return;
+        }
+
+        await EnsureComplianceAccepted(applicationSet.Slices, applicationSet, error);
+        await output.WriteLineAsync($"Rendering {applications.Count} application(s) to '{targetDirectory.FullName}'...");
+        if (!await TryScaffold(targetDirectory, rootNamespace, output, error, failures))
+        {
             await Complete(targetDirectory, output, error, failures);
             return;
         }
@@ -235,6 +248,7 @@ public class CratisRenderer : IRenderer
         IReadOnlyList<LocatedSlice> slices, ApplicationSet context, DirectoryInfo targetDirectory, TextWriter output, TextWriter error)
     {
         var failures = new List<Exception>();
+        await EnsureComplianceAccepted(slices, context, error);
         var rootNamespace = Identifiers.ToPascalCase(targetDirectory.Name);
         if (!await TryScaffold(targetDirectory, rootNamespace, output, error, failures))
         {

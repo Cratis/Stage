@@ -36,6 +36,7 @@ public static class ConceptRenderer
     /// <returns>The <see cref="RenderedFile"/>.</returns>
     public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace)
     {
+        EventSourceIdentityComplianceAdmission.EnsureAccepted(concept, applicationSet);
         var typeName = Identifiers.ToPascalCase(concept.Name);
         var placement = applicationSet.ConceptPlacements.GetValueOrDefault(concept.Name, []);
         var folderSegments = placement.Count == 0 ? ["Common"] : SliceNaming.FolderPath(placement);

@@ -51,34 +51,48 @@ internal static class SemanticPolicyEvaluator
 
     static bool ClaimMatches(SemanticClaimCondition claim, SemanticExecutionPlan plan, SemanticCaller caller, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties)
     {
-        var target = claim.TargetKind switch
+        if (claim.TargetKind == SemanticClaimTargetKind.Literal)
         {
-            SemanticClaimTargetKind.Literal => claim.Value,
-            SemanticClaimTargetKind.Subject => (subject as SemanticTextValue)?.Value,
-            SemanticClaimTargetKind.Artifact when claim.Value is not null => (ArtifactValue(claim.Value, artifact, plan, properties) as SemanticTextValue)?.Value,
-            _ => null
+            return claim.Value is not null && caller.Claims.Any(value =>
+                string.Equals(value.Type, claim.Claim, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(value.Value, claim.Value, StringComparison.Ordinal));
+        }
+
+        var (target, type) = claim.TargetKind switch
+        {
+            SemanticClaimTargetKind.Subject => (subject, properties.FirstOrDefault(property => property.IsIdentifier && artifact.ContainsKey(property.Name))?.Type),
+            SemanticClaimTargetKind.Artifact when claim.Value is not null => ArtifactValue(claim.Value, artifact, plan, properties),
+            _ => (null, null)
         };
-        return target is not null && caller.Claims.Any(value =>
-            string.Equals(value.Type, claim.Claim, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(value.Value, target, StringComparison.Ordinal));
+        if (target is not SemanticTextValue text || type is not { IsCollection: false }) return false;
+        var primitive = type.Kind switch
+        {
+            SemanticTypeReferenceKind.Concept => plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target).Primitive,
+            SemanticTypeReferenceKind.Primitive => type.Primitive,
+            _ => (SemanticPrimitiveType?)null
+        };
+        return caller.Claims.Any(value => string.Equals(value.Type, claim.Claim, StringComparison.OrdinalIgnoreCase) &&
+            (primitive == SemanticPrimitiveType.Uuid
+                ? Guid.TryParse(text.Value, out var subjectId) && Guid.TryParse(value.Value, out var claimId) && subjectId == claimId
+                : primitive == SemanticPrimitiveType.Text && string.Equals(value.Value, text.Value, StringComparison.Ordinal)));
     }
 
-    static SemanticValue? ArtifactValue(string path, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticExecutionPlan plan, IEnumerable<SemanticProperty> properties)
+    static (SemanticValue? Value, SemanticTypeReference? Type) ArtifactValue(string path, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticExecutionPlan plan, IEnumerable<SemanticProperty> properties)
     {
         var parts = path.Split('.');
-        if (!artifact.TryGetValue(parts[0], out var value)) return null;
+        if (!artifact.TryGetValue(parts[0], out var value)) return (null, null);
         var type = properties.Single(property => property.Name == parts[0]).Type;
         foreach (var name in parts.Skip(1))
         {
-            if (value is not SemanticCompositeValue composite || type.Kind != SemanticTypeReferenceKind.CompositeType) return null;
+            if (value is not SemanticCompositeValue composite || type.Kind != SemanticTypeReferenceKind.CompositeType) return (null, null);
             var shape = plan.Model.Application.Types.Single(declaration => declaration.Id == type.Target);
             var member = shape.Properties.Single(property => property.Name == name);
             value = composite.Properties.SingleOrDefault(property => property.TargetProperty == member.Id)?.Value;
-            if (value is null) return null;
+            if (value is null) return (null, null);
             type = member.Type;
         }
 
-        return value;
+        return (value, type);
     }
 }
 

@@ -56,7 +56,12 @@ internal static class SemanticReducerArtifactRenderer
                 throw new InvalidTypedContext($"Reducer '{name}' lost its verified body after admission.");
             }
 
-            var tenant = context.ReducerContextReads[transition.RequirementId].Contains("Tenant")
+            if (!context.ReducerContextReads.TryGetValue(transition.RequirementId, out var contextReads))
+            {
+                throw new InvalidTypedContext($"Reducer '{name}' lost its analyzed context reads after admission.");
+            }
+
+            var tenant = contextReads.Contains("Tenant")
                 ? $"global::{context.RootNamespace}.TypedContexts.ReducerContextValues.Tenant(eventContext.Namespace)"
                 : $"global::{context.RootNamespace}.TypedContexts.TenantId.NotSet";
             builder.OpenBlock($"public {modelType}? On({eventType} @event, {modelType}? current, global::Cratis.Chronicle.Events.EventContext eventContext)")

@@ -186,13 +186,23 @@ public static class SpecificationRenderer
     {
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands").Line("[Fact] void should_succeed() => _result.ShouldBeSuccessful();");
 
-        var identifier = SpecificationAssertions.Of(specification.When!, command, applicationSet, diagnostics);
         var events = specification.ThenEvents.ToArray();
 
         foreach (var (@event, index) in events.Select((@event, index) => (@event, index)))
         {
             var eventType = Identifiers.ToPascalCase(@event.EventType);
             var predicate = SpecificationAssertions.Predicate(@event, applicationSet, diagnostics);
+            var productions = command.Produces.Where(produced => string.Equals(produced.Event, @event.EventType, StringComparison.OrdinalIgnoreCase)).ToArray();
+            var eventIndex = events.Take(index).Count(other => string.Equals(other.EventType, @event.EventType, StringComparison.OrdinalIgnoreCase));
+            var destinations = productions.Select(production => SpecificationAssertions.ForProduction(production, specification.When!, command, applicationSet, diagnostics)).ToArray();
+            if (destinations.Distinct(StringComparer.Ordinal).Count() > 1 && (productions.Any(produced => produced.When is not null) || eventIndex >= productions.Length))
+            {
+                throw new UnsupportedSpecificationDestination(specification.Name, @event.EventType);
+            }
+
+            var identifier = destinations.Length == 0
+                ? SpecificationAssertions.ForProduction(null, specification.When!, command, applicationSet, diagnostics)
+                : destinations[Math.Min(eventIndex, destinations.Length - 1)];
 
             // A fanout states the same event type more than once, each with its own values. The facts have to be
             // named apart or the rendered class declares the same member twice.

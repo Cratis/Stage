@@ -90,7 +90,7 @@ public sealed class StageCommandHandler(
             values,
             DateTimeOffset.UtcNow,
             caller,
-            tenant.IsDefault ? TenantId.Default.Value : tenant.Value);
+            tenant.IsDefault ? PortableTenantValues.Default : PortableTenantValues.Translate(tenant.Value, TenantId.Default.Value, TenantId.NotSet.Value));
 
         await appender.Append(EventSourceId(values), events, caller);
     }

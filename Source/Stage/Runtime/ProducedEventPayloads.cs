@@ -29,7 +29,7 @@ public static class ProducedEventPayloads
         IReadOnlyDictionary<string, JsonElement> command,
         DateTimeOffset occurred,
         IReadOnlyDictionary<string, string> identity) =>
-        Build(produces, command, occurred, identity, DefaultTenantIdAccessor.Instance.Current.Value);
+        Build(produces, command, occurred, identity, PortableTenantValues.Default);
 
     /// <summary>
     /// Builds the payload for every event the command produces for the given input.
@@ -38,7 +38,7 @@ public static class ProducedEventPayloads
     /// <param name="command">The command payload the request bound into.</param>
     /// <param name="occurred">The time to use for properties sourced from the occurred time.</param>
     /// <param name="identity">The identity that caused the command, used for identity-sourced properties.</param>
-    /// <param name="tenant">The tenant under which the command runs.</param>
+    /// <param name="tenant">The portable tenant identity under which the command runs, already translated from provider sentinels.</param>
     /// <returns>One <see cref="ProducedEventPayload"/> per event whose condition holds, in declaration order.</returns>
     /// <exception cref="UnsupportedProducedValue">A produced property has no runtime equivalent.</exception>
     public static IReadOnlyList<ProducedEventPayload> Build(

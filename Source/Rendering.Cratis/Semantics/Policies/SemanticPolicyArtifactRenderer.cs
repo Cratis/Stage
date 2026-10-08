@@ -51,23 +51,24 @@ internal static class SemanticPolicyArtifactRenderer
                 .EndBlock().BlankLine();
         }
 
-        // Reflection is deliberately limited to the declared public property path, using ordinal names. A
-        // missing value (including a nullable composite or absent query argument) must deny, never match "".
+        // Reflection is limited to the declared public property path, using ordinal names. Missing values
+        // deny; an empty-string target matches an empty claim, as it does in the in-memory evaluator.
         builder.OpenBlock("internal static class PolicyValues")
             .ExpressionMember(
                 "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
                 "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && global::System.String.Equals(value.Value, target, global::System.StringComparison.Ordinal))")
-            .OpenBlock("public static string? Text(object? value)")
+            .OpenBlock("public static string? Value(object? value)")
             .Line("if (value is string text) return text;")
+            .Line("if (value is global::System.Guid uuid) return uuid.ToString(\"D\", global::System.Globalization.CultureInfo.InvariantCulture);")
             .Line("if (value is null) return null;")
             .Line("var type = value.GetType();")
-            .Line("if (!InheritsTextConcept(type)) return null;")
-            .Line("return type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value) as string;")
+            .Line("if (!InheritsSupportedConcept(type)) return null;")
+            .Line("return Value(type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value));")
             .EndBlock()
-            .OpenBlock("static bool InheritsTextConcept(global::System.Type type)")
+            .OpenBlock("static bool InheritsSupportedConcept(global::System.Type type)")
             .Line("for (var current = type.BaseType; current is not null; current = current.BaseType)")
             .Line("{")
-            .Line("    if (current.IsGenericType && current.GenericTypeArguments.Length == 1 && current.GenericTypeArguments[0] == typeof(string) &&")
+            .Line("    if (current.IsGenericType && current.GenericTypeArguments.Length == 1 && (current.GenericTypeArguments[0] == typeof(string) || current.GenericTypeArguments[0] == typeof(global::System.Guid)) &&")
             .Line("        (current.GetGenericTypeDefinition().FullName == \"Cratis.Concepts.ConceptAs`1\" || current.GetGenericTypeDefinition().FullName == \"Cratis.Chronicle.Events.EventSourceId`1\")) return true;")
             .Line("}")
             .Line("return false;")
@@ -78,12 +79,12 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("    if (value is null) return null;")
             .Line("    value = value.GetType().GetProperty(segment, global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value);")
             .Line("}")
-            .Line("return Text(value);")
+            .Line("return Value(value);")
             .EndBlock()
             .OpenBlock("public static string? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path)")
             .Line("if (context.Target is not global::System.Reflection.MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, global::System.StringComparison.Ordinal)) ||")
             .Line("    context.Resource is not global::Cratis.Arc.Queries.QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
-            .Line("return path == argument ? Text(key) : Path(key, path[(argument.Length + 1)..]);")
+            .Line("return path == argument ? Value(key) : Path(key, path[(argument.Length + 1)..]);")
             .EndBlock()
             .EndBlock();
 

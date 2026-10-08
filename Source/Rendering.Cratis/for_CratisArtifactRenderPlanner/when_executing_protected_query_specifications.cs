@@ -61,7 +61,7 @@ public class when_executing_protected_query_specifications : a_generated_applica
         var source = "policy Clerks\n  require authenticated\n" + when_rendering_scoped_projections.ScopedSource
             .Replace("query ProjectById => ProjectSummary?\n", "query ProjectById => ProjectSummary?\n        authorize Clerks\n", StringComparison.Ordinal)
             .Replace("specification RegisteringAProject\n", "specification RegisteringAProject\n        given caller\n          authenticated\n", StringComparison.Ordinal)
-            .Replace("specification LookingUpPinnedProject\n", "specification DenyingAnonymousProjectLookup\n        given caller\n          role \"Guest\"\n        then query ProjectById\n          arguments\n            projectId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n        then denied\n      specification LookingUpPinnedProject\n", StringComparison.Ordinal);
+            .Replace("specification LookingUpPinnedProject\n", "specification DenyingAnonymousProjectLookup\n        given caller\n        then query ProjectById\n          arguments\n            projectId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n        then denied\n      specification LookingUpPinnedProject\n", StringComparison.Ordinal);
 
         // Arc's protected query scenario can only replay facts from the queried stream.
         var givenStart = source.LastIndexOf('\n', source.IndexOf("given ProjectRegistered\n", StringComparison.Ordinal)) + 1;

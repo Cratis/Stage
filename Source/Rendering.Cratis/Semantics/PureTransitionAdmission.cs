@@ -279,7 +279,7 @@ internal static class PureTransitionAdmission
             .Replace($"namespace {context.RootNamespace}.TypedContexts;", $"namespace {context.RootNamespace}.TypedContexts {{", StringComparison.Ordinal) + "\n}";
         var modelType = $"global::{modelNs}.{Identifiers.ToPascalCase(readModel.Name)}";
         var wrapperType = $"global::{context.RootNamespace}.TypedContexts.TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
-        var tenant = $"namespace {context.RootNamespace}.TypedContexts {{ public record TenantId(string Value); }}";
+        var tenant = $"namespace {context.RootNamespace}.TypedContexts {{ public record TenantId(string Value) {{ public static readonly TenantId Default = new(\"00000000-0000-0000-0000-000000000000\"); public static readonly TenantId NotSet = new(\"\"); }} }}";
 
         // Model stubs are compilation peers, not imports into the reducer file. The body has the
         // same namespace and exact using directives as SemanticReducerArtifactRenderer.Render.
@@ -346,7 +346,7 @@ internal static class PureTransitionAdmission
         {
             var error = errors[0];
             var methodOffset = code.IndexOf(body, code.LastIndexOf($"public class {reducerName}", StringComparison.Ordinal), StringComparison.Ordinal);
-            var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}";
+            var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}{GeneratedMemberDiagnostic.Hint(error, semanticModel)}";
             if (!error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < methodOffset ||
                 error.Location.SourceSpan.Start > methodOffset + body.Length)
             {
@@ -694,8 +694,6 @@ internal static class PureTransitionAdmission
 
             if (operation is IPropertyReferenceOperation propertyRead && propertyRead.Property.ContainingType.Name == wrapper)
             {
-                if (propertyRead.Property.Name == "Tenant")
-                    return Reject("STAGE-ESM-022", $"Reading symbol '{propertyRead.Property.ToDisplayString()}' is not admitted until the default tenant is defined.");
                 if ((propertyRead.Parent is ISimpleAssignmentOperation { Target: var target } && target == propertyRead) ||
                     propertyRead.Parent is ICompoundAssignmentOperation or IIncrementOrDecrementOperation or ICoalesceAssignmentOperation)
                 {
@@ -908,6 +906,13 @@ internal static class PureTransitionAdmission
             symbol.Locations.All(_ => _.IsInSource && compilation.SyntaxTrees.Contains(_.SourceTree)))
         {
             entry = "generated";
+            if (full == $"global::{rootNamespace}.TypedContexts.TenantId" &&
+                ((symbol is IFieldSymbol { IsStatic: true, IsReadOnly: true } && NameIs(name, "Default", "NotSet")) ||
+                 (symbol is IMethodSymbol { IsImplicitlyDeclared: true, MethodKind: MethodKind.UserDefinedOperator } && NameIs(name, "op_Equality", "op_Inequality"))))
+            {
+                return true;
+            }
+
             return name != "ToString" &&
                 (type.Name.StartsWith("TypedContext_", StringComparison.Ordinal)
                     ? symbol is IPropertySymbol

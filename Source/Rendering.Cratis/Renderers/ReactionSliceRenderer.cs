@@ -33,6 +33,7 @@ public class ReactionSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        EventSourceIdentityComplianceAdmission.EnsureAccepted([slice], applicationSet);
         var diagnostics = new List<string>();
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
         var builder = new CSharpCodeBuilder()

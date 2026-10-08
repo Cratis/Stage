@@ -14,4 +14,17 @@ public record ReadModelDefinition(
     Guid Id,
     string Name,
     string Schema,
-    ProjectionDefinition? Projection);
+    ProjectionDefinition? Projection)
+{
+    /// <summary>
+    /// Gets the name of the Screenplay projection selected to build this read model. Conversion selects the first
+    /// projection declared in the slice; <see langword="null"/> means no projection was selected or its source is unknown.
+    /// </summary>
+    public string? SelectedProjectionName { get; init; }
+
+    /// <summary>
+    /// Gets the names of the slice's other Screenplay projections, in declaration order, which were not converted.
+    /// Empty when no projections were ignored or their source is unknown.
+    /// </summary>
+    public IReadOnlyList<string> IgnoredProjectionNames { get; init; } = [];
+}

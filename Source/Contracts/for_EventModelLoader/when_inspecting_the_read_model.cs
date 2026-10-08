@@ -25,6 +25,8 @@ public class when_inspecting_the_read_model : given.a_compiled_invoicing_model
     [Fact] void should_infer_the_status_type_from_the_event() => _properties.GetProperty("status").GetProperty("type").GetString().ShouldEqual("string");
     [Fact] void should_leave_unknown_properties_open() => _properties.GetProperty("lineCount").EnumerateObject().Any().ShouldEqual(false);
     [Fact] void should_include_the_query_filter_property() => _properties.TryGetProperty("status", out _).ShouldBeTrue();
+    [Fact] void should_report_the_selected_projection_name() => _readModel.SelectedProjectionName.ShouldEqual("InvoiceList");
+    [Fact] void should_report_no_ignored_projections() => _readModel.IgnoredProjectionNames.ShouldBeEmpty();
     [Fact] void should_build_a_projection() => Projection.From.ContainsKey("InvoiceRegistered").ShouldBeTrue();
     [Fact] void should_map_the_from_key() => Projection.From["InvoiceRegistered"].Key.ShouldEqual("invoiceId");
     [Fact] void should_default_a_missing_key_to_not_set() => Projection.From["InvoiceStatusChanged"].Key.ShouldEqual(string.Empty);

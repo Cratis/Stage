@@ -91,7 +91,7 @@ app.UseCratisChronicle();
 
 if (warmMode)
 {
-    using var handoff = new WarmStageHandoff("/eventmodel");
+    using var handoff = new WarmStageHandoff("/eventmodel", engine);
 
     app.MapGet("/stage/status", handoff.GetStatus);
     app.MapPost("/stage/load", async (StageLoadRequest request, IChronicleClient chronicleClient, CancellationToken cancellationToken) =>
@@ -150,7 +150,10 @@ if (!ReferenceEquals(synthesized, scene))
 var sceneRoutes = new StageSceneRoutes(synthesized, app.Services, app.Logger);
 var stageStrings = new StageStrings(modelPath!);
 
-app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(model.Name), WarmStageHandoff.ReadHandoffId(modelPath!)));
+app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(model.Name), WarmStageHandoff.ReadHandoffId(modelPath!))
+{
+    Engine = StageRuntimeEngineSelection.Name(engine)
+});
 
 // A stage that already runs an application cannot take another one. Leaving the route unmapped answered that
 // with 405 Method Not Allowed, which reads as a broken endpoint rather than an occupied stage - and the pool

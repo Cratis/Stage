@@ -18,6 +18,9 @@ public sealed record StageUnsupportedIssue(string Capability, string Artifact, s
 
 public sealed record StageStatus(string State, StageStatusModel? Model, Guid? HandoffId)
 {
+    /// <summary>
+    /// Gets the selected runtime engine: <c>eventmodel</c> or <c>semantic</c>.
+    /// </summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public string? Engine { get; init; }
 
@@ -32,7 +35,13 @@ public sealed class WarmStageHandoff(string modelDirectory) : IDisposable
     public const string HandoffFileName = ".stage-handoff-id";
 
     readonly SemaphoreSlim _lock = new(1, 1);
+    readonly StageRuntimeEngine? _engine;
     bool _accepted;
+
+    internal WarmStageHandoff(string modelDirectory, StageRuntimeEngine engine) : this(modelDirectory)
+    {
+        _engine = engine;
+    }
 
     public static Guid? ReadHandoffId(string directory)
     {
@@ -42,9 +51,7 @@ public sealed class WarmStageHandoff(string modelDirectory) : IDisposable
 
     public StageStatus GetStatus() => new(_accepted ? "loading" : "warm", null, _accepted ? ReadHandoffId() : null)
     {
-        Engine = string.Equals(Environment.GetEnvironmentVariable("Stage__Runtime__Engine"), "semantic", StringComparison.OrdinalIgnoreCase)
-            ? "semantic"
-            : null
+        Engine = StageRuntimeEngineSelection.Name(_engine ?? StageRuntimeEngineSelection.Read([]))
     };
 
     public async Task<StageHandoffResult> Load(

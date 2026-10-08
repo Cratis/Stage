@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -133,50 +134,6 @@ internal static class PureTransitionAdmission
         SemanticTypedContextDescriptor descriptor,
         SemanticImplementationRequirement requirement)
     {
-        // PlannedArtifact.CreateText normalizes CR even inside verbatim literals. Refuse it so
-        // the published body is exactly the text analysed here.
-        if (body.Contains('\r')) return Reject("STAGE-ESM-022", "Carriage return in reducer body changes emitted text.");
-        var text = "{\n" + body + "\n}";
-        var statement = SyntaxFactory.ParseStatement(text, consumeFullText: true);
-        if (statement.DescendantTrivia(descendIntoTrivia: true).Any(trivia => trivia.IsDirective))
-        {
-            return Reject("STAGE-ESM-022", "directive");
-        }
-
-        if (statement is not BlockSyntax block || block.ContainsDiagnostics || block.ContainsSkippedText ||
-            block.CloseBraceToken.IsMissing || block.CloseBraceToken.SpanStart != text.Length - 1)
-        {
-            return Reject("STAGE-ESM-019", "The reducer body is not a complete C# statement block.");
-        }
-
-        var forbidden = block.DescendantNodesAndSelf().FirstOrDefault(node =>
-            node is AwaitExpressionSyntax or YieldStatementSyntax or LockStatementSyntax or UnsafeStatementSyntax or
-                FixedStatementSyntax or StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax or
-                PointerTypeSyntax or FunctionPointerTypeSyntax or InterpolatedStringExpressionSyntax or
-                LocalFunctionStatementSyntax or WhileStatementSyntax or DoStatementSyntax or ForStatementSyntax or
-                GotoStatementSyntax or TryStatementSyntax or UsingStatementSyntax or
-                TypeOfExpressionSyntax or SizeOfExpressionSyntax or AnonymousObjectCreationExpressionSyntax or
-                CollectionExpressionSyntax or RecursivePatternSyntax or ListPatternSyntax or RelationalPatternSyntax or
-                ParenthesizedLambdaExpressionSyntax { AttributeLists.Count: > 0 } or
-                SimpleLambdaExpressionSyntax { AttributeLists.Count: > 0 } or
-                ParameterSyntax { AttributeLists.Count: > 0 } or
-                AnonymousFunctionExpressionSyntax { AsyncKeyword.RawKind: not 0 } or
-                RefExpressionSyntax or RefTypeSyntax or RangeExpressionSyntax or
-                LocalDeclarationStatementSyntax { UsingKeyword.RawKind: not 0 } ||
-                node.IsKind(SyntaxKind.CoalesceAssignmentExpression));
-        if (forbidden is not null)
-        {
-            var symbol = forbidden switch
-            {
-                LocalFunctionStatementSyntax local => local.Identifier.Text,
-                ParameterSyntax parameter => parameter.Identifier.Text,
-                AnonymousFunctionExpressionSyntax => "lambda",
-                RecursivePatternSyntax when body.Contains("context", StringComparison.Ordinal) => "TypedContext_",
-                _ => forbidden.Kind().ToString()
-            };
-            return Reject("STAGE-ESM-022", $"Forbidden pure construct '{forbidden.Kind()}' on '{symbol}'.");
-        }
-
         // Reject disallowed type tests before diagnostics: an ImmutableArray input cannot legally
         // bind to a mutable List or array, but that is a purity refusal, not an ordinary compile error.
         var generatedNames = context.Application.Concepts.Select(_ => Identifiers.ToPascalCase(_.Name))
@@ -184,16 +141,8 @@ internal static class PureTransitionAdmission
             .Append(Identifiers.ToPascalCase(readModel.Name))
             .Append(Identifiers.ToPascalCase(@event.Name))
             .ToHashSet(StringComparer.Ordinal);
-        var disallowedTest = block.DescendantNodes().OfType<PatternSyntax>().FirstOrDefault(pattern => pattern switch
-        {
-            DeclarationPatternSyntax declaration => !generatedNames.Contains(declaration.Type.ToString()),
-            TypePatternSyntax typePattern => !generatedNames.Contains(typePattern.Type.ToString()),
-            _ => false
-        });
-        if (disallowedTest is not null)
-        {
-            return Reject("STAGE-ESM-022", $"Type test '{disallowedTest}' is outside the pure allowlist; only generated types are admitted.");
-        }
+        var parsed = ParseBody(body, generatedNames, "reducer");
+        if (parsed.Rejection is not null) return parsed.Rejection;
 
         var modelNs = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(readModel.Id).Path);
 
@@ -364,6 +313,68 @@ internal static class PureTransitionAdmission
             $"{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
     }
 
+    // Shared by every pure body role: the text must be one complete block without directives,
+    // CR or forbidden syntax, and may type-test only the named generated types.
+    internal static (BlockSyntax? Block, Verdict? Rejection) ParseBody(string body, IReadOnlySet<string> generatedNames, string role)
+    {
+        // PlannedArtifact.CreateText normalizes CR even inside verbatim literals. Refuse it so
+        // the published body is exactly the text analysed here.
+        if (body.Contains('\r')) return (null, Reject("STAGE-ESM-022", $"Carriage return in {role} body changes emitted text."));
+        var text = "{\n" + body + "\n}";
+        var statement = SyntaxFactory.ParseStatement(text, consumeFullText: true);
+        if (statement.DescendantTrivia(descendIntoTrivia: true).Any(trivia => trivia.IsDirective))
+        {
+            return (null, Reject("STAGE-ESM-022", "directive"));
+        }
+
+        if (statement is not BlockSyntax block || block.ContainsDiagnostics || block.ContainsSkippedText ||
+            block.CloseBraceToken.IsMissing || block.CloseBraceToken.SpanStart != text.Length - 1)
+        {
+            return (null, Reject("STAGE-ESM-019", $"The {role} body is not a complete C# statement block."));
+        }
+
+        var forbidden = block.DescendantNodesAndSelf().FirstOrDefault(node =>
+            node is AwaitExpressionSyntax or YieldStatementSyntax or LockStatementSyntax or UnsafeStatementSyntax or
+                FixedStatementSyntax or StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax or
+                PointerTypeSyntax or FunctionPointerTypeSyntax or InterpolatedStringExpressionSyntax or
+                LocalFunctionStatementSyntax or WhileStatementSyntax or DoStatementSyntax or ForStatementSyntax or
+                GotoStatementSyntax or TryStatementSyntax or UsingStatementSyntax or
+                TypeOfExpressionSyntax or SizeOfExpressionSyntax or AnonymousObjectCreationExpressionSyntax or
+                CollectionExpressionSyntax or RecursivePatternSyntax or ListPatternSyntax or RelationalPatternSyntax or
+                ParenthesizedLambdaExpressionSyntax { AttributeLists.Count: > 0 } or
+                SimpleLambdaExpressionSyntax { AttributeLists.Count: > 0 } or
+                ParameterSyntax { AttributeLists.Count: > 0 } or
+                AnonymousFunctionExpressionSyntax { AsyncKeyword.RawKind: not 0 } or
+                RefExpressionSyntax or RefTypeSyntax or RangeExpressionSyntax or
+                LocalDeclarationStatementSyntax { UsingKeyword.RawKind: not 0 } ||
+                node.IsKind(SyntaxKind.CoalesceAssignmentExpression));
+        if (forbidden is not null)
+        {
+            var symbol = forbidden switch
+            {
+                LocalFunctionStatementSyntax local => local.Identifier.Text,
+                ParameterSyntax parameter => parameter.Identifier.Text,
+                AnonymousFunctionExpressionSyntax => "lambda",
+                RecursivePatternSyntax when body.Contains("context", StringComparison.Ordinal) => "TypedContext_",
+                _ => forbidden.Kind().ToString()
+            };
+            return (null, Reject("STAGE-ESM-022", $"Forbidden pure construct '{forbidden.Kind()}' on '{symbol}'."));
+        }
+
+        var disallowedTest = block.DescendantNodes().OfType<PatternSyntax>().FirstOrDefault(pattern => pattern switch
+        {
+            DeclarationPatternSyntax declaration => !generatedNames.Contains(declaration.Type.ToString()),
+            TypePatternSyntax typePattern => !generatedNames.Contains(typePattern.Type.ToString()),
+            _ => false
+        });
+        if (disallowedTest is not null)
+        {
+            return (null, Reject("STAGE-ESM-022", $"Type test '{disallowedTest}' is outside the pure allowlist; only generated types are admitted."));
+        }
+
+        return (block, null);
+    }
+
     internal static Verdict AnalyzeRendered(CSharpCompilation compilation, string reducerPath, SemanticTypedContextDescriptor descriptor)
     {
         var tree = compilation.SyntaxTrees.Single(_ => _.FilePath == reducerPath);
@@ -378,13 +389,13 @@ internal static class PureTransitionAdmission
         return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor);
     }
 
-    static bool ShadowsAuditedName(string name) =>
+    internal static bool ShadowsAuditedName(string name) =>
         NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");
 
-    static HashSet<(string Name, string? Namespace)> MethodTypeReferences(SyntaxTree tree, SemanticModel model)
+    internal static HashSet<(string Name, string? Namespace)> MethodTypeReferences(SyntaxTree tree, SemanticModel model, string methodPrefix = "Transition_")
     {
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
-            .Single(declaration => declaration.Identifier.Text.StartsWith("Transition_", StringComparison.Ordinal));
+            .Single(declaration => declaration.Identifier.Text.StartsWith(methodPrefix, StringComparison.Ordinal));
         var names = new HashSet<(string Name, string? Namespace)>();
         foreach (var name in method.Body!.DescendantNodes().OfType<SimpleNameSyntax>())
         {
@@ -407,31 +418,7 @@ internal static class PureTransitionAdmission
         return names;
     }
 
-    static MetadataReference[] LoadEmbeddedReferences()
-    {
-        var assembly = typeof(PureTransitionAdmission).Assembly;
-        var resources = assembly.GetManifestResourceNames()
-            .Where(name => name.StartsWith($"PureTransitionReferences.{ReferencePackVersion}.", StringComparison.Ordinal) && name.EndsWith(".dll", StringComparison.Ordinal))
-            .Order(StringComparer.Ordinal).ToArray();
-        if (resources.Length == 0)
-            throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework 'net10.0' are unavailable; pure transitions cannot be analysed.");
-        return [.. resources.Select(name =>
-        {
-            using var stream = assembly.GetManifestResourceStream(name)!;
-            return MetadataReference.CreateFromStream(stream, filePath: name);
-        })];
-    }
-
-    static MetadataReference[] LoadReferences(string refDirectory)
-    {
-        var framework = CratisBackendApplicationScaffoldProfile.Current.TargetFramework;
-        var paths = Directory.Exists(refDirectory) ? Directory.GetFiles(refDirectory, "*.dll") : [];
-        if (paths.Length == 0)
-            throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework '{framework}' are unavailable; pure transitions cannot be analysed.");
-        return [.. paths.Select(path => MetadataReference.CreateFromFile(path))];
-    }
-
-    static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor)
+    internal static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor)
     {
         var root = model.GetOperation(body);
         if (root is null) return Reject("STAGE-ESM-022", "Reducer body has no bound operation.");
@@ -726,6 +713,45 @@ internal static class PureTransitionAdmission
             [.. Descendants(root).SelectMany(operation => BoundMembers(operation, model)).Where(IsAuditedMember).Select(AuditedSignature).Distinct(StringComparer.Ordinal)]);
     }
 
+    internal static string SourceLocation(SemanticImplementationRequirement requirement, string body, int offset)
+    {
+        var line = body.AsSpan(0, offset).Count('\n');
+        var start = body.LastIndexOf('\n', Math.Max(0, offset - 1));
+        var column = offset - start;
+        if (requirement.File is not null) return $"{requirement.File}:{line + 1}:{column}";
+        if (!requirement.BodyLines.IsDefaultOrEmpty && line < requirement.BodyLines.Length)
+            return $"{requirement.Source.Span.Document}:{requirement.BodyLines[line].Line}:{requirement.BodyLines[line].Column + column - 1}";
+        return $"line {requirement.BodySpan?.StartLine + line}, column {column}";
+    }
+
+    // The audited pack, or the isolated failure-path override, for every pure body analysis.
+    internal static MetadataReference[] AnalysisReferences() =>
+        ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value;
+
+    static MetadataReference[] LoadEmbeddedReferences()
+    {
+        var assembly = typeof(PureTransitionAdmission).Assembly;
+        var resources = assembly.GetManifestResourceNames()
+            .Where(name => name.StartsWith($"PureTransitionReferences.{ReferencePackVersion}.", StringComparison.Ordinal) && name.EndsWith(".dll", StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal).ToArray();
+        if (resources.Length == 0)
+            throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework 'net10.0' are unavailable; pure transitions cannot be analysed.");
+        return [.. resources.Select(name =>
+        {
+            using var stream = assembly.GetManifestResourceStream(name)!;
+            return MetadataReference.CreateFromStream(stream, filePath: name);
+        })];
+    }
+
+    static MetadataReference[] LoadReferences(string refDirectory)
+    {
+        var framework = CratisBackendApplicationScaffoldProfile.Current.TargetFramework;
+        var paths = Directory.Exists(refDirectory) ? Directory.GetFiles(refDirectory, "*.dll") : [];
+        if (paths.Length == 0)
+            throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework '{framework}' are unavailable; pure transitions cannot be analysed.");
+        return [.. paths.Select(path => MetadataReference.CreateFromFile(path))];
+    }
+
     static IEnumerable<ISymbol> BoundMembers(IOperation operation, SemanticModel model)
     {
         if (operation is IForEachLoopOperation { Syntax: CommonForEachStatementSyntax syntax } && !IsArrayForeach(operation, model))
@@ -909,6 +935,15 @@ internal static class PureTransitionAdmission
             if (full == $"global::{rootNamespace}.TypedContexts.TenantId" &&
                 ((symbol is IFieldSymbol { IsStatic: true, IsReadOnly: true } && NameIs(name, "Default", "NotSet")) ||
                  (symbol is IMethodSymbol { IsImplicitlyDeclared: true, MethodKind: MethodKind.UserDefinedOperator } && NameIs(name, "op_Equality", "op_Inequality"))))
+            {
+                return true;
+            }
+
+            // Stage's policy Identity mirrors Screenplay's audited lookups: ordinal roles, ordinal-ignore-case claim names.
+            if (full == $"global::{rootNamespace}.TypedContexts.{SemanticPolicyContextRuntime.IdentityType}" &&
+                symbol is IMethodSymbol { MethodKind: MethodKind.Ordinary, IsStatic: false, Parameters.Length: 1 } lookup &&
+                lookup.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                NameIs(name, "HasRole", "HasClaim", "ClaimValue", "ClaimValues"))
             {
                 return true;
             }
@@ -1215,17 +1250,6 @@ internal static class PureTransitionAdmission
         yield return root;
         foreach (var child in root.ChildOperations)
             foreach (var nested in Descendants(child)) yield return nested;
-    }
-
-    static string SourceLocation(SemanticImplementationRequirement requirement, string body, int offset)
-    {
-        var line = body.AsSpan(0, offset).Count('\n');
-        var start = body.LastIndexOf('\n', Math.Max(0, offset - 1));
-        var column = offset - start;
-        if (requirement.File is not null) return $"{requirement.File}:{line + 1}:{column}";
-        if (!requirement.BodyLines.IsDefaultOrEmpty && line < requirement.BodyLines.Length)
-            return $"{requirement.Source.Span.Document}:{requirement.BodyLines[line].Line}:{requirement.BodyLines[line].Column + column - 1}";
-        return $"line {requirement.BodySpan?.StartLine + line}, column {column}";
     }
 
     static Verdict Reject(string code, string reason) => new(code, reason, [], []);

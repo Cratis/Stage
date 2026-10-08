@@ -162,6 +162,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                 slice.Slice.Queries.Any(query => query.Authorization is not null)))
             {
                 artifacts.Add(Artifact(SemanticPolicyArtifactRenderer.Render(context, slices)));
+                artifacts.AddRange(SemanticPolicyArtifactRenderer.RenderOpaque(context, slices).Select(Artifact));
             }
         }
 

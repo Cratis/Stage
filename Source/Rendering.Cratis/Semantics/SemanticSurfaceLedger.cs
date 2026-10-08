@@ -90,8 +90,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCodeValidation", rejected("STAGE-ESM-005"), "RequirementId");
 
         // The render request now carries compiler requirements and resolved bodies by requirement id.
-        // Their content hashes are checked before rendering. The runtime context for opaque validation,
-        // reducers and policies still cannot be supplied exactly at their respective Arc boundaries.
+        // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
+        // admitted through the closed-compilation pure gate; opaque validation still cannot receive RuleContext.Occurred.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition When");
@@ -207,15 +207,18 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValueKind", rejected("STAGE-ESM-011"), "Unknown Composite");
         Add(entries, "SemanticNullValue", rendered, "$type");
 
-        // Portable authorization runs through Arc; opaque policy predicates fail STAGE-ESM-015 because
-        // PolicyContext.Occurred cannot be supplied. Caller fixtures and command denial are checked by Arc's pipeline.
+        // Portable authorization runs through Arc. A whole opaque csharp/file policy renders as its verified pure body
+        // over a typed PolicyContext (Subject, Identity, Occurred = Arc's AuthorizationPolicyContext.ReceivedAt); one that
+        // reads Tenant, the dynamic Artifact or an unmapped Identity member, or is nested in a condition, fails STAGE-ESM-015.
+        // Specifications reaching an opaque policy fail STAGE-ESM-011: the reference evaluator returns Unsupported.
+        // Caller fixtures and command denial are checked by Arc's pipeline.
         // Role claim URIs cannot preserve the separate Screenplay roles/claims boundary (011/015).
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rendered, "$type");
-        Add(entries, "SemanticOpaquePolicyCondition", rejected("STAGE-ESM-015"), "RequirementId");
+        Add(entries, "SemanticOpaquePolicyCondition", rendered, "RequirementId");
 
         // ESM v7 policy negation renders three-valued: a claim comparison with a missing, null or non-text target is
         // unknown, negation keeps it unknown, and a policy whose result is unknown denies.

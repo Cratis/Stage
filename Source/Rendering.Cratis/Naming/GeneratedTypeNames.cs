@@ -15,7 +15,8 @@ internal static class GeneratedTypeNames
         SemanticApplication application,
         IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> slices,
         IEnumerable<(IEnumerable<string> Path, SemanticId Owner, SemanticConstraint Constraint)>? constraints = null,
-        bool rendersStringsCatalog = false)
+        bool rendersStringsCatalog = false,
+        IEnumerable<(string Namespace, string Name)>? opaquePolicyTypes = null)
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         var namespaces = new HashSet<(string Namespace, string Name)>();
@@ -84,6 +85,10 @@ internal static class GeneratedTypeNames
         {
             foreach (var name in Names("GeneratedPolicies", "PolicyValues", application.Id, "Generated")) yield return name;
         }
+        foreach (var (ns, type) in opaquePolicyTypes ?? [])
+        {
+            foreach (var name in Names(ns, type, application.Id, "Generated", generated: true)) yield return name;
+        }
         if (selectedSlices.Any(located => !located.Slice.Reducers.IsEmpty))
         {
             foreach (var name in Names("TypedContexts", "TenantId", application.Id, "Generated")) yield return name;
@@ -92,9 +97,9 @@ internal static class GeneratedTypeNames
             foreach (var name in Names("GeneratedTenancy", "AmbiguousTenant", application.Id, "Generated")) yield return name;
         }
 
-        IEnumerable<(SemanticId Artifact, string Kind, string Name)> Names(string ns, string source, SemanticId id, string kind)
+        IEnumerable<(SemanticId Artifact, string Kind, string Name)> Names(string ns, string source, SemanticId id, string kind, bool generated = false)
         {
-            var name = GeneratedPascalCase.From(source);
+            var name = generated ? source : GeneratedPascalCase.From(source);
             if (!seen.Add((ns, name))) yield return (id, kind, name);
             if (namespaces.Contains((ns, name))) yield return (id, "Namespace", name);
         }

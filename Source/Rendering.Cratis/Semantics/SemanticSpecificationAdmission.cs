@@ -24,7 +24,7 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in slice.Specifications)
         {
-            var valid = specification.ThenAbsentReadModels.IsEmpty && (CanDenyQueryOnly(specification, context) ||
+            var valid = specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) && (CanDenyQueryOnly(specification, context) ||
                 (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
@@ -78,6 +78,20 @@ internal static partial class SemanticSpecificationAdmission
         return true;
     }
 
+    // The reference evaluator returns Unsupported once an opaque policy is reached, so it cannot be the oracle
+    // for a generated scenario of an operation whose authorization depends on one.
+    static bool DependsOnOpaquePolicy(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        var authorizations = specification.ThenQueries.Select(expected => context.Queries.TryGetValue(expected.Query, out var query) ? query.Authorization : null);
+        if (specification.When is { } action && context.Commands.TryGetValue(action.Command, out var command))
+        {
+            authorizations = authorizations.Append(command.Authorization);
+        }
+
+        return authorizations.OfType<SemanticAuthorization>()
+            .Any(authorization => SemanticCratisAdmission.OpaquePolicies(authorization, context.Application.Policies).Any());
+    }
+
     static bool AssertsUncontrolledOccurrence(SemanticSpecification specification, SemanticCommand command) =>
         command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
@@ -113,6 +127,11 @@ internal static partial class SemanticSpecificationAdmission
 
     static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {
+        if (DependsOnOpaquePolicy(context, specification))
+        {
+            return "The operation's authorization depends on an opaque csharp/file policy, which the reference evaluator cannot decide (Unsupported).";
+        }
+
         if (specification.When is { } when && context.Commands.TryGetValue(when.Command, out var command) &&
             AssertsUncontrolledOccurrence(specification, command))
         {

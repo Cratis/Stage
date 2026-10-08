@@ -45,14 +45,27 @@ internal static class SemanticPolicyArtifactRenderer
         builder.EndBlock().EndBlock().BlankLine();
         foreach (var operation in operations)
         {
-            var expression = Authorization(operation.Authorization, context, operation.Properties, operation.IsCommand, operation.Argument, operation.Subject);
+            var expression = Authorization(operation.Authorization, context, operation.Properties, operation.IsCommand, operation.Argument, operation.Subject, operation.Id);
+            const string signature = "public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)";
             builder.Summary("Enforces the effective Screenplay authorization for one operation.")
                 .OpenBlock($"public sealed class {Name(operation.Id)} : global::Cratis.Arc.Authorization.IAuthorizationPolicy")
-                .Line("/// <inheritdoc/>")
-                .ExpressionMember(
-                    "public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)",
-                    $"global::System.Threading.Tasks.ValueTask.FromResult({expression})")
-                .EndBlock().BlankLine();
+                .Line("/// <inheritdoc/>");
+            if (SemanticCratisAdmission.OpaquePolicies(operation.Authorization, context.Application.Policies).Any())
+            {
+                // Terms evaluate left to right with C# short-circuiting, as Screenplay's ordered gates do. A reached
+                // opaque term that cannot be given its context denies the whole authorization rather than becoming false.
+                builder.OpenBlock(signature)
+                    .Line("var unavailable = false;")
+                    .Line($"var allowed = {expression};")
+                    .Line("return global::System.Threading.Tasks.ValueTask.FromResult(allowed && !unavailable);")
+                    .EndBlock();
+            }
+            else
+            {
+                builder.ExpressionMember(signature, $"global::System.Threading.Tasks.ValueTask.FromResult({expression})");
+            }
+
+            builder.EndBlock().BlankLine();
         }
 
         // Reflection is limited to the declared public property path, using ordinal names. Missing values
@@ -132,17 +145,96 @@ internal static class SemanticPolicyArtifactRenderer
         };
     }
 
-    static string Authorization(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject) => authorization switch
+    /// <summary>
+    /// Renders the verified opaque policy bodies and their typed context, when a rendered operation uses one.
+    /// </summary>
+    /// <param name="context">The semantic application.</param>
+    /// <param name="slices">The rendered slices.</param>
+    /// <returns>The rendered files; empty when no rendered operation uses an opaque policy.</returns>
+    public static IEnumerable<RenderedFile> RenderOpaque(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
+        var bodies = OpaqueSites(context, slices).Select(site =>
+        {
+            var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<Contracts.Rendering.ArtifactRenderDiagnostic>();
+            if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, site.RequirementId, site.Operation, diagnostics, out var body))
+            {
+                throw new InvalidTypedContext($"Policy requirement '{site.RequirementId}' lost its verified body after admission.");
+            }
+
+            return (Descriptor: Descriptor(context, site.RequirementId, site.Operation), Body: body!);
+        }).OrderBy(_ => SemanticPolicyContextRuntime.Body(_.Descriptor), StringComparer.Ordinal).ToArray();
+        if (bodies.Length == 0)
+        {
+            return [];
+        }
+
+        var operations = bodies.Select(_ => _.Descriptor.OperationId!.Value).Distinct().ToArray();
+        return
+        [
+            SemanticPolicyContextRuntime.RenderRuntime(context, bodies.Select(_ => _.Descriptor)) with { Sources = [.. operations] },
+            SemanticPolicyContextRuntime.RenderBodies(context, bodies, evaluators: true) with { Sources = [.. operations] }
+        ];
+    }
+
+    internal static IEnumerable<(string RequirementId, SemanticId Operation)> OpaqueSites(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Id, command.Authorization))
+                .Concat(slice.Slice.Queries.Select(query => (query.Id, query.Authorization))))
+            .Where(operation => operation.Authorization is not null)
+            .SelectMany(operation => SemanticCratisAdmission.OpaquePolicies(operation.Authorization!, context.Application.Policies)
+                .Select(policy => (((SemanticOpaquePolicyCondition)policy.Condition).RequirementId, operation.Id)))
+            .Distinct();
+
+    static SemanticTypedContextDescriptor Descriptor(SemanticApplicationContext context, string requirementId, SemanticId operation) =>
+        context.Request.TypedContextDescriptors.Single(descriptor => descriptor.RequirementId == requirementId && descriptor.OperationId == operation);
+
+    static string Authorization(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject, SemanticId operation) => authorization switch
+    {
+        // Admission accepts an opaque predicate only as a whole named policy; its term is the verified body.
+        SemanticPolicyReference reference when context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is SemanticOpaquePolicyCondition opaque =>
+            Opaque(opaque, context, properties, command, argument, subject, operation),
+
         // A policy without negation keeps its two-valued rendering: without `not`, mapping unknown to false decides
         // exactly as three-valued logic followed by deny-on-unknown, so the generated bytes stay unchanged.
         SemanticPolicyReference reference => context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is var condition && Negates(condition)
             ? $"({Truth(condition, context, properties, command, argument, subject)} == true)"
             : Condition(context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, context, properties, command, argument, subject),
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject)} && {Authorization(logical.Right, context, properties, command, argument, subject)})",
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject)} || {Authorization(logical.Right, context, properties, command, argument, subject)})",
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject, operation)} && {Authorization(logical.Right, context, properties, command, argument, subject, operation)})",
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject, operation)} || {Authorization(logical.Right, context, properties, command, argument, subject, operation)})",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticAuthorization), authorization.GetType().Name)
     };
+
+    static string Opaque(SemanticOpaquePolicyCondition opaque, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject, SemanticId operation)
+    {
+        var descriptor = Descriptor(context, opaque.RequirementId, operation);
+        if (!context.PolicyContextReads.TryGetValue((opaque.RequirementId, operation), out var reads))
+        {
+            throw new InvalidTypedContext($"Policy requirement '{opaque.RequirementId}' lost its analysed context reads after admission.");
+        }
+
+        // Screenplay supplies an empty Subject when the identifier is unavailable. A body that never reads Subject
+        // is given the empty text rather than a value Stage would have to resolve.
+        var source = descriptor.Members.Single(member => member.Name == "Subject").Source.Kind;
+        string text;
+        if (!reads.Contains("Subject") || source == SemanticContextSourceKinds.Unavailable)
+        {
+            text = "global::System.String.Empty";
+        }
+        else
+        {
+            var targetType = SemanticClaimTargets.Primitive(context, SemanticClaimTargets.Property(context, properties, subject)) switch
+            {
+                SemanticPrimitiveType.Uuid => ", true",
+                SemanticPrimitiveType.Date => ", dateTarget: true",
+                SemanticPrimitiveType.DateTime => ", dateTimeTarget: true",
+                _ => string.Empty
+            };
+            text = command
+                ? $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{targetType})"
+                : $"PolicyValues.Query(context, {Literal(argument)}, {Literal(argument)}{targetType})";
+        }
+
+        return $"PolicyBodies.{SemanticPolicyContextRuntime.Evaluate(descriptor)}(ref unavailable, context, {text})";
+    }
 
     static string Condition(SemanticPolicyCondition condition, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject) => condition switch
     {
@@ -156,6 +248,9 @@ internal static class SemanticPolicyArtifactRenderer
 
     static bool AllowsGuest(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string subject) => authorization switch
     {
+        // An opaque body is unknown until it runs, so it never makes an operation guest-satisfiable.
+        SemanticPolicyReference reference when context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is SemanticOpaquePolicyCondition => false,
+
         // Unknown denies at each named policy boundary, before composing the effective authorization.
         SemanticPolicyReference reference => GuestTruth(context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, context, properties, subject) == true,
         SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => AllowsGuest(logical.Left, context, properties, subject) && AllowsGuest(logical.Right, context, properties, subject),

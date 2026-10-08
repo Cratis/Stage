@@ -126,6 +126,9 @@ internal sealed class SemanticApplicationContext
 
     internal Dictionary<string, IReadOnlySet<string>> ReducerContextReads { get; } = new(StringComparer.Ordinal);
 
+    /// <summary>Gets the admitted opaque policy bodies' context reads, by requirement and use site.</summary>
+    internal Dictionary<(string RequirementId, SemanticId Operation), IReadOnlySet<string>> PolicyContextReads { get; } = [];
+
     /// <summary>Gets distinct generated namespace prefixes, including slices outside the selected scope.</summary>
     internal IEnumerable<string> NamespacePaths => _slices.Values.SelectMany(located =>
     {

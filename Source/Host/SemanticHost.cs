@@ -11,7 +11,6 @@ using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Host.Workbench;
 using Cratis.Stage.Runtime;
 using Cratis.Stage.Semantics;
-using Cratis.Stage.Specifications;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 
@@ -46,7 +45,8 @@ internal static class SemanticHost
         if (surface is not null)
         {
             SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, WorldProvider(() => world));
-            builder.Services.AddSingleton<ISemanticSpecificationExecutor>(new SemanticSpecificationExecutor());
+            builder.Services.AddSingleton<ISpecificationRunProcess, SpecificationRunProcess>();
+            builder.Services.AddSingleton(SemanticSpecificationProcessOptions.FromConfiguration(builder.Configuration));
             builder.Services.AddSingleton<DynamicTypeFactory>();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddControllers();
@@ -78,7 +78,7 @@ internal static class SemanticHost
 
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
-        SemanticSpecificationRuns.Map(app, loaded.Plan);
+        SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();

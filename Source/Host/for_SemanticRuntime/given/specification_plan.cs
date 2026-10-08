@@ -7,7 +7,9 @@ namespace Cratis.Stage.Host.for_SemanticRuntime.given;
 
 public static class specification_plan
 {
-    public static SemanticExecutionPlan Create(bool seeded = false) => compiled_plan.From($$"""
+    public static SemanticExecutionPlan Create(bool seeded = false) => compiled_plan.From(Source(seeded));
+
+    public static string Source(bool seeded = false) => $$"""
         module Projects
           feature Registration
             slice StateChange RegisterProject
@@ -32,5 +34,5 @@ public static class specification_plan
                 then ProjectRegistered
                   for "first"
                   name = "Screenplay"
-        """);
+        """;
 }

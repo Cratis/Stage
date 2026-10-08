@@ -6,9 +6,9 @@ using Cratis.Chronicle;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
-using Cratis.Stage.Specifications;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using NSubstitute;
@@ -25,17 +25,26 @@ public class a_specification_endpoint : Specification
     protected SemanticSpecificationRunReport Report => SemanticSpecificationRunReportFile.Read(_body)!;
     protected virtual bool Seeded => false;
     protected virtual bool Refused => false;
-    protected virtual ISemanticSpecificationExecutor Executor => new SemanticSpecificationExecutor();
+    protected virtual bool LiveRegistrationRefused => false;
+    private protected virtual ISpecificationRunProcess Process => new SpecificationRunProcess();
+    private protected virtual TimeSpan Timeout => TimeSpan.FromSeconds(120);
+    protected string _modelPath = null!;
+    protected string _directory = null!;
     RequestDelegate _request = null!;
 
-    void Establish()
+    async Task Establish()
     {
-        _plan = specification_plan.Create(Seeded);
+        _directory = Path.Combine(Path.GetTempPath(), $"stage-host-spec-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_directory);
+        _modelPath = Path.Combine(_directory, "Projects.play");
+        await File.WriteAllTextAsync(_modelPath, specification_plan.Source(Seeded));
+        _plan = (await SemanticModelLoader.LoadFromPathAsync(_modelPath)).Plan;
         _hostEventStore = Substitute.For<IEventStore>();
         var builder = WebApplication.CreateBuilder();
         builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
         builder.Services.AddSingleton(_hostEventStore);
-        builder.Services.AddSingleton(Executor);
+        builder.Services.AddSingleton(Process);
+        builder.Services.AddSingleton(new SemanticSpecificationProcessOptions(Path.Combine(AppContext.BaseDirectory, "specrunner", "Cratis.Stage.SpecRunner.dll"), Timeout));
         _app = builder.Build();
         if (Refused)
         {
@@ -43,9 +52,10 @@ public class a_specification_endpoint : Specification
         }
         else
         {
-            SemanticSpecificationRuns.Map(_app, _plan);
+            SemanticSpecificationRuns.Map(_app, _plan, _modelPath);
         }
         var pipeline = new ApplicationBuilder(_app.Services);
+        if (LiveRegistrationRefused) SemanticHost.UseReadinessGate(pipeline, () => null, [new StageUnsupportedIssue("World", "model", "Chronicle registration was refused.")]);
         pipeline.UseRouting();
         pipeline.UseEndpoints(endpoints =>
         {
@@ -75,7 +85,11 @@ public class a_specification_endpoint : Specification
         _body = Encoding.UTF8.GetString(responseBody.ToArray());
     }
 
-    async Task Destroy() => await _app.DisposeAsync();
+    async Task Destroy()
+    {
+        await _app.DisposeAsync();
+        Directory.Delete(_directory, recursive: true);
+    }
 
     sealed class body_detection : IHttpRequestBodyDetectionFeature
     {

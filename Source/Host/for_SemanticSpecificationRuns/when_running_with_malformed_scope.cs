@@ -3,7 +3,6 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticSpecificationRuns.given;
-using Cratis.Stage.Specifications;
 using NSubstitute;
 using Xunit;
 
@@ -11,10 +10,10 @@ namespace Cratis.Stage.Host.for_SemanticSpecificationRuns;
 
 public class when_running_with_malformed_scope : a_specification_endpoint
 {
-    protected override ISemanticSpecificationExecutor Executor { get; } = Substitute.For<ISemanticSpecificationExecutor>();
+    private protected override ISpecificationRunProcess Process { get; } = Substitute.For<ISpecificationRunProcess>();
 
     async Task Because() => await Request("{\"scopes\":[\"not-an-id\"]}");
 
     [Fact] void should_return_bad_request() => _status.ShouldEqual(StatusCodes.Status400BadRequest);
-    [Fact] void should_not_run_any_specifications() => Executor.ReceivedCalls().ShouldBeEmpty();
+    [Fact] void should_not_run_any_specifications() => Process.ReceivedCalls().ShouldBeEmpty();
 }

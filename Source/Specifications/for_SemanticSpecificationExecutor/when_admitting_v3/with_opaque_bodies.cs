@@ -4,7 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
-using Cratis.Stage.Specifications.Admission;
+using Cratis.Stage.Semantics;
 using Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.given;
 using Xunit;
 

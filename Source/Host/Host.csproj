@@ -37,16 +37,20 @@
 
     <ItemGroup>
         <ProjectReference Include="../Stage/Stage.csproj" />
-        <ProjectReference Include="../Specifications/Specifications.csproj" />
-    </ItemGroup>
 
-    <ItemGroup>
-        <!-- Compile the renderer's ESM v5-v7 construct detection from its owning source so runtime admission cannot drift. -->
-        <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Semantics/SemanticVersionFeatures.cs" />
     </ItemGroup>
 
     <ItemGroup>
         <Content Remove="package.json" />
         <None Remove="package.json" />
     </ItemGroup>
+    <!-- Local Debug hosts/specs use the same isolated layout as the image. -->
+    <Target Name="BuildSpecificationRunner" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+        <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../SpecRunner/SpecRunner.csproj&quot; --configuration Debug --output &quot;$(TargetDir)specrunner/&quot; --self-contained false -p:Version=$(Version)" />
+    </Target>
+    <!-- Publish in a separate probing directory: none of the runner's kernel/testing dependencies enter Host.deps.json. -->
+    <Target Name="PublishSpecificationRunner" AfterTargets="Publish">
+        <!-- A fresh CLI evaluation after restore avoids reusing Debug test imports in a Release runner publish. -->
+        <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../SpecRunner/SpecRunner.csproj&quot; --configuration $(Configuration) --output &quot;$(PublishDir)specrunner/&quot; --self-contained false -p:Version=$(Version)" />
+    </Target>
 </Project>

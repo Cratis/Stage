@@ -3,7 +3,7 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
-using Cratis.Stage.Specifications;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_admitting_specifications;
@@ -17,7 +17,7 @@ public class with_a_given_read_model : Specification
     {
         var plan = specification_plan.Create(seeded: true);
         _admission = new(plan);
-        _details = SemanticSpecificationAdmission.Check(plan, plan.Specifications.Values.Single())!.Details;
+        _details = SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Details;
     }
 
     [Fact] void should_report_unsupported() => _admission.Entries.Single(entry => entry.Kind == "specification").Status.ShouldEqual("unsupported");

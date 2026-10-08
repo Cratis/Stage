@@ -8,7 +8,7 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
-namespace Cratis.Stage.Specifications.Admission;
+namespace Cratis.Stage.Semantics;
 
 internal static class SemanticRunProjectionAdmission
 {

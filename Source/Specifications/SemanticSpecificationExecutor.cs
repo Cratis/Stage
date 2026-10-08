@@ -15,7 +15,6 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts.Specifications.Semantic;
-using Cratis.Stage.Specifications.Admission;
 using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Types;

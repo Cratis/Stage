@@ -191,11 +191,26 @@ The response uses its existing `stage-spec-run/1` report schema. HTTP 200 means 
 every specification passed: inspect each `outcome` (`Passed`, `Failed`, `Unsupported` or `Cancelled`). Refusals
 carry `unsupported.capability`, `unsupported.construct` and `unsupported.details`. An unknown scope produces
 an `Unsupported(Specification)` record rather than being ignored; a malformed identity returns HTTP 400 without
-running any specifications. A refused model returns HTTP 501 with the host's refusal headers and issues.
+running any specifications. Duplicate scopes are selected once; more than 1000 scopes returns HTTP 400.
+A model refused at initial compilation or runtime admission returns HTTP 501 with the host's refusal headers and issues.
+If an admitted model's live world rebuild or Chronicle registration fails later, specifications remain available:
+they depend only on the admitted model, not that live world or registration.
 
-Each specification runs against a fresh in-memory Chronicle event log and Arc scenario. Runs never seed from,
-append to, or modify the session's live event store or world. Request cancellation is forwarded to the shared
-executor; a disconnected caller might not receive the resulting report. `GET /stage/semantic/admission` marks
+The host launches the semantic SpecRunner as a separate process. Each specification runs against a fresh
+in-memory Chronicle event log and Arc scenario. Runs never seed from, append to, or modify the session's live
+event store or world. Testing and kernel assemblies are loaded only by the child, never by the Host. Runs are
+serialized process-wide. Request cancellation kills the child process tree; a disconnected caller receives no
+completed report. A timeout returns HTTP 504; launch failure, nonzero exit, or a missing/invalid report returns
+HTTP 502 problem details, never a passed report. The report must match the host's admitted model revision;
+changing source files after startup requires restarting the host before they can be tested.
+
+`dotnet publish Source/Host/Host.csproj` includes the runner in `specrunner/`. Configure
+`Stage__Specifications__RunnerPath` to override the default `specrunner/Cratis.Stage.SpecRunner.dll` beneath the
+host output, and `Stage__Specifications__TimeoutSeconds` for the run deadline (default 120, clamped to 1–600
+seconds, including queued time). The same keys can be set in deployment configuration as
+`Stage:Specifications:RunnerPath` and `Stage:Specifications:TimeoutSeconds`.
+
+`GET /stage/semantic/admission` marks
 specifications admitted by that executor as `supported`, and reports the missing capability and details for
 those it refuses, without blocking the live model. The default EventModel engine does not expose this route.
 The `/stage/status`, `/stage/scene` and runner `results.json` schemas are unchanged.

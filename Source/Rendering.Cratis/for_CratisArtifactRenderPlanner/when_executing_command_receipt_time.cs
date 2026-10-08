@@ -20,6 +20,7 @@ public class when_executing_command_receipt_time : a_generated_application
         using Cratis.Arc;
         using Cratis.Arc.Authorization;
         using Cratis.Arc.Chronicle.Testing.Commands;
+        using Cratis.Arc.Http;
         using Cratis.Arc.Testing.Commands;
         using Cratis.Chronicle.EventSequences;
         using Invoices.Billing.Invoicing.Issue;
@@ -39,10 +40,12 @@ public class when_executing_command_receipt_time : a_generated_application
                 using var scenario = new CommandScenario<IssueInvoice>();
                 var clock = new FixedClock();
                 scenario.Services.AddSingleton<TimeProvider>(clock);
-                scenario.Services.AddSingleton<ICurrentPrincipalAccessor>(new Caller());
+                // CommandScenario's lazy Arc initialization replaces custom principal accessor registrations.
+                using var caller = new CurrentPrincipalAccessor(new HttpRequestContextAccessor())
+                    .BeginScope(new ClaimsPrincipal(new ClaimsIdentity([], "fixture")));
                 GeneratedPolicies.Registration.Register(scenario.Services);
                 var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one"), "North"));
-                Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
+                Assert.True(result.IsSuccess, $"Authorized={result.IsAuthorized}; clock reads={clock.Calls}; authorization={result.AuthorizationFailureReason}; validation={System.Text.Json.JsonSerializer.Serialize(result.ValidationResults)}; exceptions={string.Join("; ", result.ExceptionMessages)}");
                 Assert.Single(scenario.AppendedEvents);
                 var stored = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
                 var payload = Assert.IsType<InvoiceIssued>(stored.Content);
@@ -86,11 +89,6 @@ public class when_executing_command_receipt_time : a_generated_application
                     Calls++;
                     return Receipt;
                 }
-            }
-
-            sealed class Caller : ICurrentPrincipalAccessor
-            {
-                public ClaimsPrincipal Current { get; } = new(new ClaimsIdentity([], "fixture"));
             }
 
             sealed class ReceiptAccessor(DateTimeOffset receivedAt) : IOperationContextAccessor

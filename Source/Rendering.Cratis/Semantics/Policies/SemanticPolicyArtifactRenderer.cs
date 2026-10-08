@@ -51,8 +51,8 @@ internal static class SemanticPolicyArtifactRenderer
                 .EndBlock().BlankLine();
         }
 
-        // Reflection is deliberately limited to the declared public property path, using ordinal names. A
-        // missing value (including a nullable composite or absent query argument) must deny, never match "".
+        // Reflection is limited to the declared public property path, using ordinal names. Missing values
+        // deny; an empty-string target matches an empty claim, as it does in the in-memory evaluator.
         builder.OpenBlock("internal static class PolicyValues")
             .ExpressionMember(
                 "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, object? target)",

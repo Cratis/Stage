@@ -122,28 +122,12 @@ internal static partial class SemanticCratisAdmission
 
     static bool IsSupportedClaimPath(SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string path)
     {
-        SemanticProperty? property = null;
-        foreach (var segment in path.Split('.'))
-        {
-            property = properties.SingleOrDefault(candidate => candidate.Name == segment);
-            if (property is null)
-            {
-                return false;
-            }
-
-            properties = property.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(property.Type.Target, out var composite)
-                ? composite.Properties : [];
-        }
+        var property = SemanticClaimTargets.Property(context, properties, path);
 
         // Screenplay's SemanticValueValidator admits numbers and booleans only as non-text values.
         // MatchClaim therefore always denies these targets; generated claim terms are the literal false.
         // Date and DateTime are SemanticTextValue targets, not always-denied scalars, and stay refused.
-        var primitive = property?.Type.Kind switch
-        {
-            SemanticTypeReferenceKind.Primitive => property.Type.Primitive,
-            SemanticTypeReferenceKind.Concept => context.Concepts[property.Type.Target].Primitive,
-            _ => SemanticPrimitiveType.Unknown
-        };
+        var primitive = SemanticClaimTargets.Primitive(context, property);
         return property is { Type.IsCollection: false } && primitive is
             SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid or
             SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean;

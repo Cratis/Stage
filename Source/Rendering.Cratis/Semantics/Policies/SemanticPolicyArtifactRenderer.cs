@@ -52,18 +52,24 @@ internal static class SemanticPolicyArtifactRenderer
         }
 
         // Reflection is limited to the declared public property path, using ordinal names. Missing values
-        // deny; an empty-string target matches an empty claim, as it does in the in-memory evaluator.
+        // deny; an empty-string text target matches an empty claim. Uuid targets must be canonical.
         builder.OpenBlock("internal static class PolicyValues")
             .ExpressionMember(
                 "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
                 "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && global::System.String.Equals(value.Value, target, global::System.StringComparison.Ordinal))")
-            .OpenBlock("public static string? Value(object? value)")
-            .Line("if (value is string text) return text;")
-            .Line("if (value is global::System.Guid uuid) return uuid.ToString(\"D\", global::System.Globalization.CultureInfo.InvariantCulture);")
+            .OpenBlock("public static string? Uuid(object? value)")
+            .Line("if (value is global::System.Guid uuid) return uuid.ToString(\"D\");")
+            .Line("if (value is string text && global::System.Guid.TryParseExact(text, \"D\", out var parsed) &&")
+            .Line("    global::System.String.Equals(text, parsed.ToString(\"D\"), global::System.StringComparison.Ordinal)) return text;")
+            .Line("return null;")
+            .EndBlock()
+            .OpenBlock("public static string? Value(object? value, bool uuidTarget = false)")
+            .Line("if (value is string text) return uuidTarget ? Uuid(text) : text;")
+            .Line("if (value is global::System.Guid uuid) return Uuid(uuid);")
             .Line("if (value is null) return null;")
             .Line("var type = value.GetType();")
             .Line("if (!InheritsSupportedConcept(type)) return null;")
-            .Line("return Value(type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value));")
+            .Line("return Value(type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value), uuidTarget);")
             .EndBlock()
             .OpenBlock("static bool InheritsSupportedConcept(global::System.Type type)")
             .Line("for (var current = type.BaseType; current is not null; current = current.BaseType)")
@@ -73,18 +79,18 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("}")
             .Line("return false;")
             .EndBlock()
-            .OpenBlock("public static string? Path(object? value, string path)")
+            .OpenBlock("public static string? Path(object? value, string path, bool uuidTarget = false)")
             .Line("foreach (var segment in path.Split('.'))")
             .Line("{")
             .Line("    if (value is null) return null;")
             .Line("    value = value.GetType().GetProperty(segment, global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value);")
             .Line("}")
-            .Line("return Value(value);")
+            .Line("return Value(value, uuidTarget);")
             .EndBlock()
-            .OpenBlock("public static string? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path)")
+            .OpenBlock("public static string? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path, bool uuidTarget = false)")
             .Line("if (context.Target is not global::System.Reflection.MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, global::System.StringComparison.Ordinal)) ||")
             .Line("    context.Resource is not global::Cratis.Arc.Queries.QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
-            .Line("return path == argument ? Value(key) : Path(key, path[(argument.Length + 1)..]);")
+            .Line("return path == argument ? Value(key, uuidTarget) : Path(key, path[(argument.Length + 1)..], uuidTarget);")
             .EndBlock()
             .EndBlock();
 
@@ -115,42 +121,24 @@ internal static class SemanticPolicyArtifactRenderer
 
     static string Claim(SemanticClaimCondition claim, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject)
     {
-        if (claim.TargetKind != SemanticClaimTargetKind.Literal &&
-            ClaimPrimitive(context, properties, claim.TargetKind == SemanticClaimTargetKind.Subject ? subject : claim.Value!) is
-                SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean)
+        var primitive = claim.TargetKind == SemanticClaimTargetKind.Literal ? SemanticPrimitiveType.Text :
+            SemanticClaimTargets.Primitive(context, SemanticClaimTargets.Property(context, properties, claim.TargetKind == SemanticClaimTargetKind.Subject ? subject : claim.Value!));
+        if (primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean)
         {
             return "false";
         }
 
+        var uuidTarget = primitive == SemanticPrimitiveType.Uuid ? ", true" : string.Empty;
         var target = claim.TargetKind switch
         {
             SemanticClaimTargetKind.Literal => Literal(claim.Value!),
-            SemanticClaimTargetKind.Artifact when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(claim.Value!))})",
-            SemanticClaimTargetKind.Artifact => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(QueryPath(claim.Value!))})",
-            SemanticClaimTargetKind.Subject when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))})",
-            SemanticClaimTargetKind.Subject => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(argument)})",
+            SemanticClaimTargetKind.Artifact when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(claim.Value!))}{uuidTarget})",
+            SemanticClaimTargetKind.Artifact => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(QueryPath(claim.Value!))}{uuidTarget})",
+            SemanticClaimTargetKind.Subject when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{uuidTarget})",
+            SemanticClaimTargetKind.Subject => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(argument)}{uuidTarget})",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticClaimTargetKind), claim.TargetKind)
         };
         return $"PolicyValues.Match(context, {Literal(claim.Claim)}, {target})";
-    }
-
-    static SemanticPrimitiveType ClaimPrimitive(SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string path)
-    {
-        SemanticProperty? property = null;
-        foreach (var segment in path.Split('.'))
-        {
-            property = properties.SingleOrDefault(candidate => candidate.Name == segment);
-            if (property is null) return SemanticPrimitiveType.Unknown;
-            properties = property.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(property.Type.Target, out var composite)
-                ? composite.Properties : [];
-        }
-
-        return property?.Type.Kind switch
-        {
-            SemanticTypeReferenceKind.Primitive => property.Type.Primitive,
-            SemanticTypeReferenceKind.Concept => context.Concepts[property.Type.Target].Primitive,
-            _ => SemanticPrimitiveType.Unknown
-        };
     }
 
     static string PascalPath(string path) => string.Join('.', path.Split('.').Select(Identifiers.ToPascalCase));

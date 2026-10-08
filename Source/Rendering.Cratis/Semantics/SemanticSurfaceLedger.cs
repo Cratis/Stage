@@ -21,7 +21,8 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.66.0; ESM v1–v4 version pairs are admitted, but evolved events require migration rendering.
+/// Inventories the executable semantic surface audited against Screenplay 4.81.0; ESM v1–v7 version pairs are admitted, but evolved events require migration rendering
+/// and each v5–v7 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
 internal static class SemanticSurfaceLedger
@@ -67,6 +68,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values");
         Add(entries, "SemanticCompositeType", rendered, "Id Name Properties");
         Add(entries, "SemanticProperty", rendered, "Id IsIdentifier Name Type");
+        Add(entries, "SemanticProperty", rejected("STAGE-ESM-028"), "IsGenerated");
         Add(entries, "SemanticTypeReference", rendered, "IsCollection IsOptional Kind Primitive Target");
         Add(entries, "SemanticTypeReferenceKind", rendered, "Primitive Concept CompositeType");
         Add(entries, "SemanticTypeReferenceKind", rejected("STAGE-ESM-003"), "Unknown");
@@ -180,8 +182,10 @@ internal static class SemanticSurfaceLedger
         // fail STAGE-ESM-011 before log seeding. An unauthenticated caller fixture with roles or claims
         // also fails STAGE-ESM-011 before rendering: Arc supplies an empty guest principal.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "ThenAbsentReadModels");
-        Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-011"), "Key ReadModel");
+
+        // ESM v5 keyed read-model absence fails STAGE-ESM-027: the generated ReadModelScenario exposes only a materialized record.
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-027"), "ThenAbsentReadModels");
+        Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-027"), "Key ReadModel");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenAppended");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");
@@ -212,6 +216,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rendered, "$type");
         Add(entries, "SemanticOpaquePolicyCondition", rejected("STAGE-ESM-015"), "RequirementId");
+
+        // ESM v7 policy negation renders three-valued: a claim comparison with a missing, null or non-text target is
+        // unknown, negation keeps it unknown, and a policy whose result is unknown denies.
+        Add(entries, "SemanticNotPolicyCondition", rendered, "Operand");
         Add(entries, "SemanticProjectionEventSourceIdentity", rendered, "$type");
         Add(entries, "SemanticCaller", rendered, "Authenticated Claims Roles");
         Add(entries, "SemanticCallerClaim", rendered, "Type Value");
@@ -241,7 +249,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConstraintScope", rejected("STAGE-ESM-014"), "Unknown");
 
         // Screenplay 4.61 added ESM v6 reactions, captures, application triggers and clock/capture
-        // specifications. These remain rejected; the version gate refuses v6 before rendering.
+        // specifications. The version gate admits v6, but each of these refuses the model with STAGE-ESM-024 (Stage#79).
         var v6 = rejected("STAGE-ESM-024");
         Add(entries, "SemanticApplication", v6, "Triggers");
         Add(entries, "SemanticApplicationTrigger", v6, "Id Name Properties");
@@ -270,6 +278,22 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecification", v6, "GivenCaptures GivenClock WhenCapture WhenClock WhenTrigger");
         Add(entries, "SemanticSpecificationCapture", v6, "Capture Record");
         Add(entries, "SemanticSpecificationTrigger", v6, "Kind Trigger Values");
+
+        // Screenplay 4.68 added ESM v7 generated command values and command responses (Stage#175). Each refuses
+        // the model before any artifact is planned; nothing is dropped from the request, proxy or specification.
+        var generated = rejected("STAGE-ESM-028");
+        Add(entries, "SemanticSpecificationCommand", generated, "GeneratedValues");
+        var responses = rejected("STAGE-ESM-029");
+        Add(entries, "SemanticCommand", responses, "Response");
+        Add(entries, "SemanticCommandResponse", responses, "$type");
+        Add(entries, "SemanticScalarCommandResponse", responses, "Source Type");
+        Add(entries, "SemanticRecordCommandResponse", responses, "Fields");
+        Add(entries, "SemanticCommandResponseField", responses, "Name Source Type");
+        Add(entries, "SemanticSpecification", responses, "ThenReturns");
+        Add(entries, "SemanticSpecificationResponse", responses, "$type");
+        Add(entries, "SemanticScalarSpecificationResponse", responses, "Value");
+        Add(entries, "SemanticRecordSpecificationResponse", responses, "Fields");
+        Add(entries, "SemanticSpecificationResponseField", responses, "Name Value");
 
         return entries;
     }

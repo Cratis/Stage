@@ -3,15 +3,16 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
-using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Xunit;
 
-namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+namespace Cratis.Stage.Rendering.Cratis.Semantics.for_AuthoringMetadataInput;
 
-public class when_planning_authoring_documentation_with_a_described_reaction : Specification
+public class when_creating_input_with_a_described_reaction : Specification
 {
     SemanticCompilation _compilation = null!;
-    ArtifactRenderPlan _plan = null!;
+    AuthoringMetadataInput.Catalog? _catalog;
+    bool _accepted;
 
     void Establish() => _compilation = when_rendering_authoring_documentation.Compile(
         when_rendering_authoring_documentation.Source.Replace(
@@ -26,8 +27,13 @@ public class when_planning_authoring_documentation_with_a_described_reaction : S
             """,
             StringComparison.Ordinal));
 
-    void Because() => _plan = when_rendering_authoring_documentation.Plan(_compilation);
+    void Because()
+    {
+        var input = AuthoringMetadataInput.Create(_compilation);
+        input.ShouldNotBeNull();
+        _accepted = AuthoringMetadataInput.TryRead(input!, _compilation.Model, out _catalog);
+    }
 
-    [Fact] void should_admit_the_metadata_it_creates() => Assert.True(_plan.Success, string.Join("; ", _plan.Diagnostics));
-    [Fact] void should_still_plan_rendered_declarations() => _plan.Artifacts.ShouldNotBeEmpty();
+    [Fact] void should_admit_the_metadata_it_creates() => _accepted.ShouldBeTrue();
+    [Fact] void should_preserve_the_command_description() => _catalog!.Entries.Values.ShouldContain(new AuthoringMetadataInput.Metadata("Registers <project> & name", null));
 }

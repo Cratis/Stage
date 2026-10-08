@@ -37,7 +37,7 @@ public class when_rendering_authoring_documentation : Specification
     [Fact] void should_render_the_event_description() => _command.ShouldContain("/// A &lt;project&gt; &amp; name were registered");
     [Fact] void should_copy_the_event_markdown_as_escaped_remarks() => _command.ShouldContain("/// <remarks>\n/// # Registration &lt;notes&gt; &amp; details\n///\n/// - **Keep** the project identity.");
     [Fact] void should_render_the_declared_read_model_description() => _view.ShouldContain("/// Shows &lt;project&gt; &amp; name");
-    [Fact] void should_render_the_query_description() => _view.ShouldContain("    /// Finds &lt;project&gt; &amp; name\n    /// </summary>\n    [Authorize]");
+    [Fact] void should_render_the_query_description() => _view.ShouldContain("    /// Finds &lt;project&gt; &amp; name\n    /// </summary>\n    [AllowAnonymous]");
     [Fact] void should_render_the_composite_type_description() => _type.ShouldContain("/// Describes &lt;project&gt; &amp; details");
     [Fact] void should_render_an_inferred_model_without_a_declared_read_model_collection() => _viewWithoutDeclaration.ShouldContain("public record ProjectSummary(");
 }

@@ -36,4 +36,6 @@ public class when_creating_input_with_a_described_reaction : Specification
 
     [Fact] void should_admit_the_metadata_it_creates() => _accepted.ShouldBeTrue();
     [Fact] void should_preserve_the_command_description() => _catalog!.Entries.Values.ShouldContain(new AuthoringMetadataInput.Metadata("Registers <project> & name", null));
+    [Fact] void should_exclude_the_syntax_only_reaction_description() => _catalog!.Entries.Values.ShouldNotContain(new AuthoringMetadataInput.Metadata("Notifies about registration", null));
+    [Fact] void should_exclude_the_syntax_only_trigger_description() => _catalog!.Entries.Values.ShouldNotContain(new AuthoringMetadataInput.Metadata("Handles a registered project", null));
 }

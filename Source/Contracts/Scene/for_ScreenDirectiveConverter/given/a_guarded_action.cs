@@ -12,8 +12,13 @@ public class a_guarded_action : Specification
     protected ScreenGuardedActionSyntax _action = null!;
     protected SourceLocation _location = new(12, 5, "Invoices.play");
 
-    void Establish() => _action = new("Process invoice",
-        [new ScreenActionAlternativeSyntax(
-            new ComparisonConditionSyntax("status", ComparisonOperator.Equal, new LiteralExpressionSyntax("draft", _location), _location),
-            "SendInvoice", _location)], _location);
+    void Establish() => _action = new(
+        "Process invoice",
+        [
+            new ScreenActionAlternativeSyntax(
+                new ComparisonConditionSyntax("status", ComparisonOperator.Equal, new LiteralExpressionSyntax("draft", _location), _location),
+                "SendInvoice",
+                _location)
+        ],
+        _location);
 }

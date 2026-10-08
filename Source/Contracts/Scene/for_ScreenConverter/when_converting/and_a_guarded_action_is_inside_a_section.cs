@@ -12,8 +12,11 @@ public class and_a_guarded_action_is_inside_a_section : for_ScreenDirectiveConve
     ScreenSyntax _screen = null!;
     Exception? _error;
 
-    void Establish() => _screen = new("InvoiceDetails", null,
-        [new ScreenSectionSyntax("Actions", [_action], _location)], _location);
+    void Establish() => _screen = new(
+        "InvoiceDetails",
+        null,
+        [new ScreenSectionSyntax("Actions", [_action], _location)],
+        _location);
 
     void Because() => _error = Catch.Exception(() => ScreenConverter.Convert(_screen, "AppShell", [], []));
 

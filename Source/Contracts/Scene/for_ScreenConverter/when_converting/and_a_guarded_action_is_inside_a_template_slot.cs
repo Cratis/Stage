@@ -12,8 +12,11 @@ public class and_a_guarded_action_is_inside_a_template_slot : for_ScreenDirectiv
     ScreenSyntax _screen = null!;
     Exception? _error;
 
-    void Establish() => _screen = new("InvoiceDetails", null,
-        [new ScreenTemplateReferenceSyntax("Details", [new ScreenSlotSyntax("actions", [_action], _location)], _location)], _location);
+    void Establish() => _screen = new(
+        "InvoiceDetails",
+        null,
+        [new ScreenTemplateReferenceSyntax("Details", [new ScreenSlotSyntax("actions", [_action], _location)], _location)],
+        _location);
 
     void Because() => _error = Catch.Exception(() => ScreenConverter.Convert(_screen, "AppShell", [], []));
 

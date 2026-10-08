@@ -36,7 +36,8 @@ public static class EventRenderer
         var typeName = Identifiers.ToPascalCase(@event.Name);
         var parameters = string.Join(", ", @event.Properties.Select(property => RenderParameter(property, @event.Name, applicationSet, diagnostics, declared)));
 
-        builder.BlankLine().Using("Cratis.Chronicle.Events").Summary($"Emitted when {Identifiers.ToWords(@event.Name)}.");
+        builder.BlankLine().Using("Cratis.Chronicle.Events")
+            .Documentation(@event.Description, @event.Documentation, $"Emitted when {Identifiers.ToWords(@event.Name)}.");
 
         // Either level of uniqueness needs the namespace, and the property-level one is already in the rendered
         // parameter text by this point rather than emitted as its own line.

@@ -91,7 +91,7 @@ public static class QueryRenderer
                 applicationSet,
                 $"Query '{query.Name}'",
                 diagnostics);
-            builder.Attribute(authorization).Line(Signature(query, typeName, keyType, keyParameterName));
+            builder.Documentation(query.Description).Attribute(authorization).Line(Signature(query, typeName, keyType, keyParameterName));
         }
     }
 

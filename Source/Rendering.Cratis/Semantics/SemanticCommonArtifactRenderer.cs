@@ -46,8 +46,8 @@ internal static class SemanticCommonArtifactRenderer
         var name = Identifiers.ToPascalCase(type.Name);
         var parameters = string.Join(", ", type.Properties.Select(_ => $"{types.Type(_.Type)} {Identifiers.ToPascalCase(_.Name)}"));
         var builder = new CSharpCodeBuilder()
-            .Namespace($"{context.RootNamespace}.Common")
-            .Summary($"Represents {Identifiers.ToWords(type.Name)}.")
+            .Namespace($"{context.RootNamespace}.Common");
+        context.Docs(type.Id).Render(builder, $"Represents {Identifiers.ToWords(type.Name)}.")
             .Line($"public record {name}({parameters});");
         return new(Path.Combine("Common", $"{name}.cs"), builder.ToString()) { Sources = [type.Id] };
     }

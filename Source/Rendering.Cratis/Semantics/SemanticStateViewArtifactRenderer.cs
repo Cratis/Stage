@@ -66,6 +66,7 @@ internal static class SemanticStateViewArtifactRenderer
             var transition = projection?.Scope is null && projection is not null ? projection.Transitions.Single() : null;
             var @event = transition is null ? null : context.Events[transition.EventContract];
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
+            context.Docs(readModel.Id).Render(builder);
             if (@event is not null)
             {
                 builder.Attribute($"global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute<{types.EventType(@event)}>");
@@ -75,7 +76,7 @@ internal static class SemanticStateViewArtifactRenderer
                 .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries, context.Reducers.Any(reducer => reducer.ReadModel == readModel.Id)) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault()))})");
             foreach (var query in queries)
             {
-                RenderQuery(builder, query, readModel, types);
+                RenderQuery(builder, query, readModel, types, context);
             }
 
             builder.EndBlock();
@@ -124,11 +125,12 @@ internal static class SemanticStateViewArtifactRenderer
         CSharpCodeBuilder builder,
         SemanticKeyedQuery query,
         SemanticReadModel readModel,
-        SemanticTypeSystem types)
+        SemanticTypeSystem types,
+        SemanticApplicationContext context)
     {
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
         var argumentName = Identifiers.EscapeKeyword(Identifiers.ToCamelCase(query.Argument.Name));
-        builder.BlankLine()
+        context.Docs(query.Id).Render(builder.BlankLine())
             .Attribute(SemanticAuthorizationAttributes.For(query))
             .ExpressionMember(
                 $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {Identifiers.ToPascalCase(query.Name)}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {types.Type(query.Argument.Type)} {argumentName})",

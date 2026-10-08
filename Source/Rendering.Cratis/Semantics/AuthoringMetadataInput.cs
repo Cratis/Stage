@@ -79,8 +79,8 @@ internal static class AuthoringMetadataInput
     internal static Metadata Of(SyntaxNode? node) => node switch
     {
         EventSyntax declaration => new(Normalize(declaration.Description), Normalize(declaration.Documentation)),
-        CommandSyntax declaration => new(Normalize(declaration.Description), null),
-        ReadModelSyntax declaration => new(Normalize(declaration.Description), null),
+        CommandSyntax declaration => new(Normalize(declaration.Description), Normalize(declaration.Documentation)),
+        ReadModelSyntax declaration => new(Normalize(declaration.Description), Normalize(declaration.Documentation)),
         QuerySyntax declaration => new(Normalize(declaration.Description), null),
         TypeSyntax declaration => new(Normalize(declaration.Description), null),
         ReactionSyntax declaration => new(Normalize(declaration.Description), null),

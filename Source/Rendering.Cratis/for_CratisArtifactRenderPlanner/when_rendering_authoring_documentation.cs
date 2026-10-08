@@ -22,6 +22,12 @@ public class when_rendering_authoring_documentation : Specification
             slice StateChange RegisterProject
               command RegisterProject
                 description "Registers <project> & name"
+                documentation
+                  ```markdown
+                  # Command <notes> & details
+
+                  - **Keep** the requested name.
+                  ```
                 projectId ProjectId identifier
                 name ProjectName
                 produces ProjectRegistered
@@ -42,6 +48,12 @@ public class when_rendering_authoring_documentation : Specification
             slice StateView ProjectLookup
               readmodel ProjectSummary
                 description "Shows <project> & name"
+                documentation
+                  ```markdown
+                  # View <notes> & details
+
+                  - `name` may contain <markup> & text.
+                  ```
                 projectId ProjectId
                 name ProjectName
               query ProjectById => ProjectSummary?
@@ -70,11 +82,13 @@ public class when_rendering_authoring_documentation : Specification
         _type = Text(_plan, "ProjectInfo.cs");
     }
 
-    [Fact] void should_render_the_command_description() => _command.ShouldContain("/// Registers &lt;project&gt; &amp; name\n/// </summary>\n[global::Cratis.Arc.Commands.ModelBound.CommandAttribute]");
+    [Fact] void should_render_the_command_description() => _command.ShouldContain("/// Registers &lt;project&gt; &amp; name\n/// </summary>");
+    [Fact] void should_render_command_markdown_before_attributes() => _command.ShouldContain("/// <remarks>\n/// # Command &lt;notes&gt; &amp; details\n///\n/// - **Keep** the requested name.\n/// </remarks>\n[global::Cratis.Arc.Commands.ModelBound.CommandAttribute]");
     [Fact] void should_replace_the_event_summary() => _command.ShouldContain("/// A &lt;project&gt; &amp; name were registered");
     [Fact] void should_not_invent_an_event_summary_with_metadata() => _command.ShouldNotContain("The event that occurs when");
     [Fact] void should_copy_markdown_as_escaped_text() => _command.ShouldContain("/// <remarks>\n/// # Registration &lt;notes&gt; &amp; details\n///\n/// - **Keep** the project identity.\n/// - `name` may contain &lt;markup&gt; &amp; text.\n/// </remarks>");
-    [Fact] void should_render_the_read_model_description_before_attributes() => _view.ShouldContain("/// Shows &lt;project&gt; &amp; name\n/// </summary>\n[global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute");
+    [Fact] void should_render_the_read_model_description() => _view.ShouldContain("/// Shows &lt;project&gt; &amp; name\n/// </summary>");
+    [Fact] void should_render_read_model_markdown_before_attributes() => _view.ShouldContain("/// <remarks>\n/// # View &lt;notes&gt; &amp; details\n///\n/// - `name` may contain &lt;markup&gt; &amp; text.\n/// </remarks>\n[global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute");
     [Fact] void should_render_the_query_description() => _view.ShouldContain("    /// Finds &lt;project&gt; &amp; name\n    /// </summary>\n    [global::Cratis.Arc.Authorization");
     [Fact] void should_render_the_composite_type_description() => _type.ShouldContain("/// Describes &lt;project&gt; &amp; details");
     [Fact] void should_render_identical_bytes_twice() => Assert.Equal(_plan.Artifacts.Select(artifact => artifact.Sha256), Plan(_compilation).Artifacts.Select(artifact => artifact.Sha256));
@@ -89,9 +103,29 @@ public class when_rendering_authoring_documentation : Specification
     }
 
     [Fact]
+    void should_invalidate_command_documentation_without_changing_the_executable_revision()
+    {
+        var changed = Compile(Source.Replace("# Command <notes> & details", "# Changed command notes", StringComparison.Ordinal));
+        changed.Model.Revision.ShouldEqual(_compilation.Model.Revision);
+        Text(Plan(changed), "RegisterProject.cs").ShouldNotEqual(_command);
+        Text(Plan(changed), "ProjectLookup.cs").ShouldEqual(_view);
+    }
+
+    [Fact]
+    void should_invalidate_read_model_documentation_without_changing_the_executable_revision()
+    {
+        var changed = Compile(Source.Replace("# View <notes> & details", "# Changed view notes", StringComparison.Ordinal));
+        changed.Model.Revision.ShouldEqual(_compilation.Model.Revision);
+        Text(Plan(changed), "ProjectLookup.cs").ShouldNotEqual(_view);
+        Text(Plan(changed), "RegisterProject.cs").ShouldEqual(_command);
+    }
+
+    [Fact]
     void should_keep_existing_bytes_when_metadata_is_absent()
     {
-        var source = Source.Replace("  description \"Describes <project> & details\"\n", string.Empty, StringComparison.Ordinal)
+        var source = Source.Replace("        documentation\n          ```markdown\n          # Command <notes> & details\n\n          - **Keep** the requested name.\n          ```\n", string.Empty, StringComparison.Ordinal)
+            .Replace("        documentation\n          ```markdown\n          # View <notes> & details\n\n          - `name` may contain <markup> & text.\n          ```\n", string.Empty, StringComparison.Ordinal)
+            .Replace("  description \"Describes <project> & details\"\n", string.Empty, StringComparison.Ordinal)
             .Replace("        description \"Registers <project> & name\"\n", string.Empty, StringComparison.Ordinal)
             .Replace("        description \"A <project> & name were registered\"\n", string.Empty, StringComparison.Ordinal)
             .Replace("        documentation\n          ```markdown\n          # Registration <notes> & details\n\n          - **Keep** the project identity.\n          - `name` may contain <markup> & text.\n          ```\n", string.Empty, StringComparison.Ordinal)

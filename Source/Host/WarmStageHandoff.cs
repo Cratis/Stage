@@ -19,7 +19,7 @@ public sealed record StageUnsupportedIssue(string Capability, string Artifact, s
 public sealed record StageStatus(string State, StageStatusModel? Model, Guid? HandoffId)
 {
     /// <summary>
-    /// Gets the selected runtime engine: <c>eventmodel</c> or <c>semantic</c>.
+    /// Gets the selected runtime engine: <c language="text">eventmodel</c> or <c language="text">semantic</c>.
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public string? Engine { get; init; }

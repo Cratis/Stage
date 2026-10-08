@@ -56,6 +56,16 @@ function respond(url: string) {
 const navigationScene = {
     layouts: [],
     screenTemplates: [],
+    dialogTemplates: [
+        {
+            name: 'EditInvoiceDialog',
+            displayName: 'Edit invoice dialog',
+            slots: [],
+            content: {
+                content: [{ id: 'dialog-title', name: 'dialog-title', componentName: 'core:title', properties: { text: 'Edit invoice content' }, slots: {} }],
+            },
+        },
+    ],
     screens: [
         {
             name: 'InvoiceList',
@@ -165,7 +175,21 @@ describe('when a modeled interaction is clicked', () => {
         expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
     });
 
-    it('should report an authored dialog this Stage runtime cannot host yet', async () => {
+    it('should honor a deep link to a modeled screen', async () => {
+        globalThis.history.replaceState(null, '', '#/InvoiceDetails');
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(navigationScene) } as Response);
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+
+        expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
+    });
+
+    it('should open an authored dialog and render its content', async () => {
         vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
             if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(navigationScene) } as Response);
@@ -176,6 +200,7 @@ describe('when a modeled interaction is clicked', () => {
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
         fireEvent.click(await screen.findByRole('button', { name: 'Edit invoice' }));
 
-        expect(await screen.findByText(/EditInvoiceDialog/)).toBeDefined();
+        expect(await screen.findByRole('dialog', { name: 'Edit invoice dialog' })).toBeDefined();
+        expect(await screen.findByRole('heading', { name: 'Edit invoice content' })).toBeDefined();
     });
 });

@@ -79,8 +79,8 @@ public class when_consuming_examples : Specification
 
     async Task Because()
     {
-        var exampleSource = Declarations + "\n" + Examples;
-        var authoredSource = Declarations + "\n" + Authored;
+        const string exampleSource = Declarations + "\n" + Examples;
+        const string authoredSource = Declarations + "\n" + Authored;
         _examples = EventModelLoader.LoadFromSource(exampleSource);
         _authored = EventModelLoader.LoadFromSource(authoredSource);
         _legacyExampleSpec = LegacySpec(exampleSource);
@@ -133,8 +133,11 @@ public class when_consuming_examples : Specification
 
     static ArtifactRenderPlan Render(SemanticCompilation compilation)
     {
-        var result = CratisRendering.Plan(compilation.Model, SemanticExecutionPlan.Compile(compilation.Model).Plan!,
-            new(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id), new("Projects", "Projects"));
+        var result = CratisRendering.Plan(
+            compilation.Model,
+            SemanticExecutionPlan.Compile(compilation.Model).Plan!,
+            new(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id),
+            new("Projects", "Projects"));
         Assert.True(result.Success, string.Join("; ", result.Diagnostics));
         return result;
     }

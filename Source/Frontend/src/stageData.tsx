@@ -4,6 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { BindingExpression } from '@cratis/scene.model';
+import { createBindingResolver, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
 
 const DATA_CHANGED = 'cratis.stage.data-changed';
@@ -31,15 +32,6 @@ export interface StageQueryResult {
     refresh: () => void;
 }
 
-interface TypedBindingExpression {
-    kind?: string;
-    path?: string;
-    query?: string;
-    componentId?: string;
-    componentPropertyPath?: string;
-    property?: string;
-    value?: unknown;
-}
 
 export interface StageDataState {
     locale: string;
@@ -53,7 +45,7 @@ export interface StageDataState {
     clearSelection: (scope: string) => void;
     setState: (key: string, value: unknown) => void;
     refreshQuery: (query?: string) => void;
-    resolveBinding: (binding: BindingExpression | TypedBindingExpression | string | undefined) => unknown;
+    resolveBinding: (binding: BindingExpression | string | undefined) => unknown;
     registerQueryResult: (scope: string, state: QueryState | undefined) => void;
     refreshVersion: number;
     refreshQueryName?: string;
@@ -134,14 +126,19 @@ export function StageDataProvider({ routes, locale, locales, screen, children }:
 
     const selected = activeSelection ? selections[activeSelection] : undefined;
 
-    const resolveBinding = useCallback((binding: BindingExpression | TypedBindingExpression | string | undefined): unknown => {
+    const resolveBinding = useCallback((binding: BindingExpression | string | undefined): unknown => {
         if (binding === undefined) return undefined;
-        if (typeof binding === 'object' && 'kind' in binding && binding.kind) {
-            return resolveTypedBinding(binding, selected, selections, queries, localState);
+        if (typeof binding === 'string') return resolvePath(binding, selected, selections, queries, localState, screen, locale, locales);
+
+        if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, screen, locale, locales);
+
+        const scope = bindingScope(selected, queries, localState);
+        const diagnostics = validateBindingExpression(binding, scope);
+        if (diagnostics.length > 0) {
+            console.warn(`Scene binding could not be resolved: ${diagnostics.map(_ => `${_.code}:${_.message}`).join('; ')}`);
         }
 
-        const path = typeof binding === 'string' ? binding : binding.path;
-        return resolvePath(path, selected, selections, queries, localState, screen, locale, locales);
+        return createBindingResolver(scope)(binding);
     }, [locale, locales, localState, queries, screen, selected, selections]);
 
     const state = useMemo<StageDataState>(() => ({
@@ -154,7 +151,7 @@ export function StageDataProvider({ routes, locale, locales, screen, children }:
         selections,
         selectRow,
         clearSelection,
-        setState: (key, value) => setLocalState(current => ({ ...current, [key]: value })),
+        setState: (key, value) => setLocalState(current => writeComponentOutput(current, key, value)),
         refreshQuery,
         resolveBinding,
         registerQueryResult,
@@ -235,27 +232,40 @@ export function dataChanged() {
     globalThis.dispatchEvent(new CustomEvent(DATA_CHANGED));
 }
 
-function resolveTypedBinding(
-    binding: TypedBindingExpression,
-    selected: Record<string, unknown> | undefined,
-    selections: Record<string, Record<string, unknown> | undefined>,
-    queries: Record<string, QueryState>,
-    localState: Record<string, unknown>,
-): unknown {
-    switch (binding.kind) {
-        case 'literal': return binding.value;
-        case 'dataContext': return resolveDataPath(binding.path ?? binding.property, selected, selections);
-        case 'queryResult': return resolveQueryResult(queries, binding.query, binding.path ?? binding.property);
-        case 'componentProperty': return resolveComponentProperty(localState, binding.componentId, binding.componentPropertyPath ?? binding.property);
-        default: return undefined;
-    }
+function bindingScope(selected: Record<string, unknown> | undefined, queries: Record<string, QueryState>, localState: Record<string, unknown>) {
+    const queryResults = Object.fromEntries(Object.entries(queries).flatMap(([scope, state]) => [
+        [scope, queryValue(state.rows)],
+        ...(state.name ? [[state.name, queryValue(state.rows)] as const] : []),
+    ]));
+
+    return {
+        dataContext: selected,
+        queryResults,
+        componentOutputs: componentOutputs(localState),
+    };
 }
 
-function resolveComponentProperty(localState: Record<string, unknown>, componentId: string | undefined, property: string | undefined): unknown {
-    if (!property) return undefined;
-    if (!componentId) return localState[property];
-    const componentState = localState[componentId];
-    return valueAt(componentState, [property]) ?? localState[`${componentId}.${property}`];
+function queryValue(rows: Record<string, unknown>[]): unknown {
+    return rows.length === 1 ? rows[0] : rows;
+}
+
+function componentOutputs(localState: Record<string, unknown>): Record<string, Record<string, unknown>> {
+    return Object.fromEntries(Object.entries(localState).filter(([, value]) => isRecord(value))) as Record<string, Record<string, unknown>>;
+}
+
+function writeComponentOutput(current: Record<string, unknown>, key: string, value: unknown): Record<string, unknown> {
+    const [componentId, ...path] = key.split('.');
+    if (path.length === 0) return { ...current, [key]: value };
+
+    const componentState = isRecord(current[componentId]) ? current[componentId] : {};
+    return { ...current, [componentId]: writePath(componentState, path, value), [key]: value };
+}
+
+function writePath(current: Record<string, unknown>, path: string[], value: unknown): Record<string, unknown> {
+    const [head, ...tail] = path;
+    if (!head) return current;
+    if (tail.length === 0) return { ...current, [head]: value };
+    return { ...current, [head]: writePath(isRecord(current[head]) ? current[head] : {}, tail, value) };
 }
 
 function resolvePath(

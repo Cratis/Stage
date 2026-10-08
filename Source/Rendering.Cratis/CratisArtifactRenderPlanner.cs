@@ -71,9 +71,18 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     {
         var artifacts = new List<PlannedArtifact>();
         var diagnostics = new List<ArtifactRenderDiagnostic>();
-        if (!EsmSchemaV4Support.Supports(request.Model.LanguageVersion, request.Model.SemanticVersion))
+        if (!EsmSchemaV7Support.Supports(request.Model.LanguageVersion, request.Model.SemanticVersion))
         {
             return CreatePlan(request, [], [Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", request.Model.Application.Id)]);
+        }
+
+        // Constructs a later version adds refuse the plan before any envelope or rendering check runs.
+        var context = new SemanticApplicationContext(request, options);
+        var slices = context.SelectedSlices();
+        diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
+        if (diagnostics.Count > 0)
+        {
+            return CreatePlan(request, [], diagnostics);
         }
         diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
         diagnostics.AddRange(SemanticTypedContextAdmission.Verify(request));
@@ -82,8 +91,6 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             return CreatePlan(request, [], diagnostics);
         }
-        var context = new SemanticApplicationContext(request, options);
-        var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticCratisAdmission.Evaluate(context, slices));
         var selectedReducers = slices.SelectMany(_ => _.Slice.Reducers)
             .SelectMany(reducer => reducer.Transitions.Select(transition => (transition.RequirementId, reducer.ReadModel)))

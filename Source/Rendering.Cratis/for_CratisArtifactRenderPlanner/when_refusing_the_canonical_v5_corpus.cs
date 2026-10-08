@@ -30,11 +30,19 @@ public class when_refusing_the_canonical_v5_corpus : Specification
     void Because() => _plan = new CratisArtifactRenderPlanner().Plan(_request);
 
     [Fact] void should_load_v5() => _request.Model.SemanticVersion.ShouldEqual(SemanticVersion.V5);
-    [Fact] void should_keep_the_planner_version_gate_closed() => _plan.Diagnostics.Single().Code.ShouldEqual("STAGE-ESM-016");
+    [Fact] void should_admit_the_version_but_refuse_each_absence_assertion() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-027"]);
+    [Fact] void should_name_every_absence_specification() => _plan.Diagnostics.Select(diagnostic => diagnostic.Artifact).ShouldContainOnly([.. AbsenceSpecifications()]);
+    [Fact] void should_not_publish_a_partial_plan() => _plan.Success.ShouldBeFalse();
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
-    [Fact] void should_keep_the_semantic_admission_version_gate_closed()
+    [Fact] void should_refuse_through_semantic_admission_as_well()
     {
         var context = new SemanticApplicationContext(_request, new("Absence", "Absence"));
-        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).Single().Code.ShouldEqual("STAGE-ESM-016");
+        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-027"]);
     }
+
+    IEnumerable<SemanticId> AbsenceSpecifications() => _request.Model.Application.Modules.SelectMany(module => module.Features)
+        .SelectMany(AllSlices).SelectMany(slice => slice.Specifications)
+        .Where(specification => !specification.ThenAbsentReadModels.IsDefaultOrEmpty).Select(specification => specification.Id);
+
+    static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
 }

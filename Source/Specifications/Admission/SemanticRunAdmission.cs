@@ -25,6 +25,7 @@ internal static class SemanticRunAdmission
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
+        if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
 
         // A per-run result must not pass an application whose selected slice cannot be rendered.
         // Include declarations in the specification's slice even if the example never produces them.
@@ -159,6 +160,33 @@ internal static class SemanticRunAdmission
         if (specification.ThenErrors.IsEmpty && when.EventSource is null && command.Destination?.Value is null && command.Produces.Any(produced => produced.Destination is null))
         {
             return Block(StageExecutionCapability.IdentityAllocation, command.Id, "An accepted command requires an explicit destination.");
+        }
+        return null;
+    }
+
+    // ESM v5-v7 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
+    // an absence assertion, a generated value or a response would otherwise be dropped and the run could pass.
+    static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
+    {
+        var reaction = slices.SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions).FirstOrDefault();
+        if (reaction is not null) return new(StageExecutionCapability.Specification, reaction.Id.ToString(), "Reactions cannot be executed by Stage.");
+        if (specification.GivenClock is not null || specification.WhenClock is not null || specification.WhenTrigger is not null ||
+            specification.WhenCapture is not null || !specification.GivenCaptures.IsDefaultOrEmpty)
+        {
+            return new(StageExecutionCapability.Specification, specification.Id.ToString(), "Clock, trigger and capture specifications cannot be executed by Stage.");
+        }
+        if (!specification.ThenAbsentReadModels.IsDefaultOrEmpty)
+        {
+            return new(StageExecutionCapability.Projection, specification.Id.ToString(), "Read-model absence expectations cannot be executed by Stage.");
+        }
+        if (specification.ThenReturns is not null || specification.When is { GeneratedValues.IsDefaultOrEmpty: false })
+        {
+            return new(StageExecutionCapability.IdentityAllocation, specification.Id.ToString(), "Generated values and response expectations cannot be executed by Stage.");
+        }
+        if (specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var command) &&
+            (command.Response is not null || command.Properties.Any(property => property.IsGenerated)))
+        {
+            return new(StageExecutionCapability.IdentityAllocation, command.Id.ToString(), "Generated values and command responses cannot be executed by Stage.");
         }
         return null;
     }

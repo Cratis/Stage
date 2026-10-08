@@ -27,9 +27,15 @@ internal static partial class SemanticCratisAdmission
         _ = SemanticSurfaceLedger.Entries;
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         var model = context.Request.Model;
-        if (!EsmSchemaV4Support.Supports(model.LanguageVersion, model.SemanticVersion))
+        if (!EsmSchemaV7Support.Supports(model.LanguageVersion, model.SemanticVersion))
         {
             diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", model.Application.Id));
+            return [.. diagnostics];
+        }
+
+        diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
+        if (diagnostics.Count > 0)
+        {
             return [.. diagnostics];
         }
 

@@ -94,7 +94,7 @@ jobs:
       - name: Verify standalone packed reducer consumer
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
 
-  # Live persistence is a separate gate: the ordinary Debug suite intentionally skips this probe
+  # Live persistence is a separate gate: the ordinary Debug suite skips live execution of these probes
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
   reducer-mongo:
     runs-on: ubuntu-latest
@@ -122,28 +122,36 @@ jobs:
             --connect-timeout 5 --max-time 10 --retry-max-time 120 \
             https://localhost:35000/health
 
-      - name: Run Billing persistence and deletion probe
+      - name: Run Billing deletion and scoped-projection persistence probes
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
           # Keeps the generated application's own build and test logs with the uploaded results.
           AI_WORK_KEEP: ${{ github.workspace }}/TestResults/reducer-mongo
         run: >-
           dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
-          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion"
+          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured"
           --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
 
-      # A zero exit from dotnet test can mean that nothing ran. Require exactly one passing,
-      # executed probe, so missing connection configuration cannot silently make this gate green.
-      - name: Require live probe execution
+      # A zero exit from dotnet test can mean that nothing ran. Require both named probes to
+      # execute and pass, so a missing or skipped probe cannot silently make this gate green.
+      - name: Require both live probes to execute and pass
         run: |
           python3 - <<'PY'
           import xml.etree.ElementTree as ET
           root = ET.parse("TestResults/reducer-mongo/billing-mongo.trx").getroot()
           ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
           results = root.findall("t:Results/t:UnitTestResult", ns)
-          if (len(results) != 1 or results[0].get("outcome") != "Passed"
-                  or "mongo_container_matches_model_bound_read_model_query_when_configured" not in results[0].get("testName", "")):
-              raise SystemExit("The Billing Mongo persistence and deletion probe must execute and pass, not skip.")
+          prefix = "Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner."
+          expected = {
+              prefix + "when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured",
+              prefix + "when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured",
+          }
+          counters = root.find("t:ResultSummary/t:Counters", ns)
+          if (len(results) != len(expected)
+                  or {result.get("testName") for result in results} != expected
+                  or any(result.get("outcome") != "Passed" for result in results)
+                  or counters is None or counters.get("executed") != str(len(expected))):
+              raise SystemExit("Both Billing and scoped-projection Mongo probes must execute and pass, not skip.")
           PY
 
       - name: Capture kernel logs

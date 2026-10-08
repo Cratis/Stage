@@ -45,8 +45,8 @@
         <None Remove="package.json" />
     </ItemGroup>
     <PropertyGroup>
-        <!-- BaseIntermediateOutputPath may already be absolute; NormalizeDirectory combines it safely. -->
-        <SpecificationRunnerArtifactsPath>$([MSBuild]::NormalizeDirectory($(MSBuildProjectDirectory), $(BaseIntermediateOutputPath), 'specrunner-artifacts'))</SpecificationRunnerArtifactsPath>
+        <!-- BaseIntermediateOutputPath may already be absolute; NormalizeDirectory combines it safely. No trailing separator, so a quoted Windows path cannot end in an escaped quote. -->
+        <SpecificationRunnerArtifactsPath>$([MSBuild]::NormalizeDirectory($(MSBuildProjectDirectory), $(BaseIntermediateOutputPath), 'specrunner-artifacts').TrimEnd('\').TrimEnd('/'))</SpecificationRunnerArtifactsPath>
     </PropertyGroup>
     <!--
         Local Debug hosts/specs use the same isolated layout as the image.

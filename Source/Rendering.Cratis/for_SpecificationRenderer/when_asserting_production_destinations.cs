@@ -9,6 +9,7 @@ using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Specifications;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.Specifications;
@@ -42,6 +43,18 @@ public class when_asserting_production_destinations : given.a_slice_with_specifi
         var application = Application("String", expression);
         var (actual, expected) = RenderAndInvoke(application, "elsewhere", [Event("Changed")]);
         ((EventForEventSourceId)actual).EventSourceId.ShouldEqual(expected.Single());
+    }
+
+    [Theory]
+    [InlineData("`prefix-{destination}`")]
+    [InlineData("`prefix-${destination}`")]
+    public void should_refuse_template_destinations_parsed_as_raw_expressions(string expression)
+    {
+        var application = Application("String", expression);
+        var slice = application.Slices.Single();
+        slice.Slice.Commands.Single().Produces.Single().For.ShouldBeOfExactType<RawExpressionSyntax>();
+        Catch.Exception(() => RenderAndInvoke(application, "elsewhere", [Event("Changed")])).ShouldBeOfExactType<UnsupportedExpression>();
+        Catch.Exception(() => new StateChangeSliceRenderer().Render(slice, application, "Generated")).ShouldBeOfExactType<UnsupportedExpression>();
     }
 
     [Fact]

@@ -35,7 +35,8 @@ public class when_projecting_protected_nested_values : a_multi_slice_application
                         value = value
             """);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        await _renderer.Render([compilation.Value!], _targetDirectory, _output, _error);
+        var error = await Catch.Exception(() => _renderer.Render([compilation.Value!], _targetDirectory, _output, _error));
+        Assert.True(error is null, $"{error}{Environment.NewLine}{_error}");
         _scaffolder.WasCalled.ShouldBeTrue();
         _codeOutput.Files.ShouldContain(file => file.Content.Contains("[PII]", StringComparison.Ordinal));
         _codeOutput.Files.ShouldContain(file => file.Content.Contains("nameof(Changed.Value)", StringComparison.Ordinal));

@@ -176,7 +176,7 @@ internal static class SemanticPolicyArtifactRenderer
         ];
     }
 
-    static IEnumerable<(string RequirementId, SemanticId Operation)> OpaqueSites(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+    internal static IEnumerable<(string RequirementId, SemanticId Operation)> OpaqueSites(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
         slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Id, command.Authorization))
                 .Concat(slice.Slice.Queries.Select(query => (query.Id, query.Authorization))))
             .Where(operation => operation.Authorization is not null)

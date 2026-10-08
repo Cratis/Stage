@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -62,7 +63,8 @@ internal static partial class SemanticCratisAdmission
             slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice)),
             SelectedConstraints(context, slices).Select(selected =>
                 ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
-            rendersStringsCatalog: context.Strings is not null))
+            rendersStringsCatalog: context.Strings is not null,
+            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices)))
         {
             var message = kind == "Namespace"
                 ? $"Generated type '{name}' collides with a generated C# namespace."

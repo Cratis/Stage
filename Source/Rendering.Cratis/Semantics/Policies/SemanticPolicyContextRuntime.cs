@@ -36,6 +36,25 @@ internal static class SemanticPolicyContextRuntime
 
     internal static string Evaluate(SemanticTypedContextDescriptor descriptor) => $"Evaluate_{SemanticTypedContextRenderer.Suffix(descriptor)}";
 
+    internal static IEnumerable<(string Namespace, string Name)> GeneratedTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
+    {
+        var sites = SemanticPolicyArtifactRenderer.OpaqueSites(context, slices).ToHashSet();
+        if (sites.Count == 0) yield break;
+
+        yield return ("GeneratedPolicies", "PolicyBodies");
+        yield return ("TypedContexts", "Claim");
+        yield return ("TypedContexts", IdentityType);
+        yield return ("TypedContexts", "PolicyContextValues");
+        // Missing descriptors are refused separately; inventory only wrappers belonging to rendered use sites.
+        foreach (var descriptor in context.Request.TypedContextDescriptors.IsDefault ? [] : context.Request.TypedContextDescriptors)
+        {
+            if (descriptor?.OperationId is { } operation && sites.Contains((descriptor.RequirementId, operation)))
+            {
+                yield return ("TypedContexts", Wrapper(descriptor));
+            }
+        }
+    }
+
     /// <summary>
     /// Renders the identity types, the claims-principal mapping and one wrapper per used descriptor.
     /// </summary>

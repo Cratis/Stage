@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Syntax;
+using Cratis.Screenplay.Syntax.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Screenplay;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -330,8 +331,19 @@ public class CratisRenderer : IRenderer
         TextWriter error,
         List<Exception> failures)
     {
-        foreach (var specification in slice.Slice.Specifications)
+        foreach (var authored in slice.Slice.Specifications)
         {
+            SpecificationSyntax specification;
+            try
+            {
+                specification = applicationSet.ExpandSpecification(authored, slice);
+            }
+            catch (InvalidEventModel exception)
+            {
+                await RecordFailure($"render specification '{authored.Name}'", exception, error, failures);
+                continue;
+            }
+
             if (SpecificationRenderer.Unrenderable(specification, slice.Slice) is { } reason)
             {
                 await error.WriteLineAsync($"Specification '{specification.Name}' is not rendered — {reason}.");

@@ -27,25 +27,25 @@ public static class SpecificationConverter
 
         var given = specification.Given
             .Select((@event, index) => new SpecificationGivenEvent(
-                DeterministicId.From($"{specificationPath}.given.{index}.{@event.EventType}"),
-                @event.EventType,
-                DeterministicId.From($"{slicePath}.event.{@event.EventType}"),
+                DeterministicId.From($"{specificationPath}.given.{index}.{Name(@event.EventType, slicePath)}"),
+                Name(@event.EventType, slicePath),
+                DeclarationId(@event.EventType, "event", slicePath),
                 Values(@event.Values)))
             .ToArray();
 
         var when = specification.When is { } command
             ? new SpecificationCommand(
-                DeterministicId.From($"{specificationPath}.when.{command.CommandType}"),
-                DeterministicId.From($"{slicePath}.command.{command.CommandType}"),
-                command.CommandType,
+                DeterministicId.From($"{specificationPath}.when.{Name(command.CommandType, slicePath)}"),
+                DeclarationId(command.CommandType, "command", slicePath),
+                Name(command.CommandType, slicePath),
                 Values(command.Values))
             : null;
 
         var thenEvents = specification.ThenEvents
             .Select((@event, index) => new SpecificationThenEvent(
-                DeterministicId.From($"{specificationPath}.then.{index}.{@event.EventType}"),
-                @event.EventType,
-                DeterministicId.From($"{slicePath}.event.{@event.EventType}"),
+                DeterministicId.From($"{specificationPath}.then.{index}.{Name(@event.EventType, slicePath)}"),
+                Name(@event.EventType, slicePath),
+                DeclarationId(@event.EventType, "event", slicePath),
                 Values(@event.Values)))
             .ToArray();
 
@@ -76,11 +76,22 @@ public static class SpecificationConverter
         string slicePath) =>
     [
         .. (readModels ?? []).Select((readModel, index) => new SpecificationReadModel(
-            DeterministicId.From($"{stepPath}.readmodel.{index}.{readModel.Name}"),
-            readModel.Name,
-            DeterministicId.From($"{slicePath}.readmodel.{readModel.Name}"),
+            DeterministicId.From($"{stepPath}.readmodel.{index}.{Name(readModel.Name, slicePath)}"),
+            Name(readModel.Name, slicePath),
+            DeclarationId(readModel.Name, "readmodel", slicePath),
             Values(readModel.Properties)))
     ];
+
+    static string Name(string reference, string slicePath) => reference.StartsWith($"{slicePath}.", StringComparison.Ordinal)
+        ? reference[(slicePath.Length + 1)..]
+        : reference;
+
+    static Guid DeclarationId(string reference, string kind, string slicePath)
+    {
+        var separator = reference.LastIndexOf('.');
+        var owner = separator < 0 ? slicePath : reference[..separator];
+        return DeterministicId.From($"{owner}.{kind}.{reference[(separator + 1)..]}");
+    }
 
     static string Values(IEnumerable<PropertyMappingSyntax> mappings)
     {

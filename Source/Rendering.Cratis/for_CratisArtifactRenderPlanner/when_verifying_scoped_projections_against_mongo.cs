@@ -13,8 +13,8 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
-/// Runs a generated application's projection probes against a real Chronicle kernel and MongoDB when explicitly configured.
-/// The probe definitions add the two blocked projection blocks to the admitted scoped fixture without relaxing admission.
+/// Records Chronicle 19.32.0 MongoDB behavior for blocked nested-removal and child join-removal projection shapes when explicitly configured.
+/// Verifies clearing, recreation, removal from both parents, and the absence of failed partitions without relaxing Stage admission.
 /// </summary>
 public class when_verifying_scoped_projections_against_mongo : a_generated_application
 {
@@ -134,8 +134,14 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 await Append((EventSourceId)second, new ProjectRegistered(second, new ProjectName("Second")));
                 await Append((EventSourceId)note, new ProjectNoted(note, first, new ProjectName("A")));
                 await Append((EventSourceId)note, new ProjectNoted(note, second, new ProjectName("B")));
-                Console.WriteLine($"JOIN_BEFORE_PARENT_FIRST={string.Join(",", (await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)first))?.Notes?.Select(item => item.Name.Value) ?? [])}");
-                Console.WriteLine($"JOIN_BEFORE_PARENT_SECOND={string.Join(",", (await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)second))?.Notes?.Select(item => item.Name.Value) ?? [])}");
+                var firstBefore = await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)first);
+                var secondBefore = await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)second);
+                Console.WriteLine($"JOIN_BEFORE_PARENT_FIRST={string.Join(",", firstBefore?.Notes?.Select(item => item.Name.Value) ?? [])}");
+                Console.WriteLine($"JOIN_BEFORE_PARENT_SECOND={string.Join(",", secondBefore?.Notes?.Select(item => item.Name.Value) ?? [])}");
+                Assert.NotNull(firstBefore);
+                Assert.NotNull(secondBefore);
+                Assert.Equal("A", Assert.Single(firstBefore.Notes).Name.Value);
+                Assert.Equal("B", Assert.Single(secondBefore.Notes).Name.Value);
                 var stageBefore = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
                 Assert.Equal("fixed", stageBefore?.Label);
                 Assert.Single(stageBefore!.Notes);
@@ -148,13 +154,23 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 var secondResult = await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)second);
                 Console.WriteLine($"JOIN_REMOVAL_PARENT_FIRST={string.Join(",", firstResult?.Notes?.Select(item => item.Name.Value) ?? [])}");
                 Console.WriteLine($"JOIN_REMOVAL_PARENT_SECOND={string.Join(",", secondResult?.Notes?.Select(item => item.Name.Value) ?? [])}");
+                Assert.NotNull(firstResult);
+                Assert.NotNull(secondResult);
+                Assert.Empty(firstResult.Notes);
+                Assert.Empty(secondResult.Notes);
                 await Append((EventSourceId)first, new ProjectRenamed(first, new ProjectName("Updated")));
-                Console.WriteLine($"NESTED_AFTER_CLEAR={ (await store.ReadModels.GetInstanceById<NestedProbe>((EventSourceId)first))?.Info?.Name.Value ?? "null" }");
-                var recreation = await store.EventLog.Append((EventSourceId)first, new ProjectRegistered(first, new ProjectName("Again")));
-                Assert.True(recreation.IsSuccess);
-                var failures = await store.Projections.WaitForThereToBeFailedPartitions<NestedProbeProjection>(TimeSpan.FromSeconds(30));
-                Console.WriteLine($"NESTED_MONGO_FAILURE={string.Join("; ", failures.SelectMany(failure => failure.Attempts).SelectMany(attempt => attempt.Messages))}");
-                Console.WriteLine($"NESTED_AFTER_RECREATION={ (await store.ReadModels.GetInstanceById<NestedProbe>((EventSourceId)first))?.Info?.Name.Value ?? "null" }");
+                var cleared = await store.ReadModels.GetInstanceById<NestedProbe>((EventSourceId)first);
+                Console.WriteLine($"NESTED_AFTER_CLEAR={cleared?.Info?.Name.Value ?? "null"}");
+                Assert.NotNull(cleared);
+                Assert.Equal("Updated", cleared.Name.Value);
+                Assert.Null(cleared.Info);
+                await Append((EventSourceId)first, new ProjectRegistered(first, new ProjectName("Again")));
+                var recreated = await store.ReadModels.GetInstanceById<NestedProbe>((EventSourceId)first);
+                Console.WriteLine($"NESTED_AFTER_RECREATION={recreated?.Info?.Name.Value ?? "null"}");
+                Assert.NotNull(recreated);
+                Assert.Equal("Again", recreated.Name.Value);
+                Assert.NotNull(recreated.Info);
+                Assert.Equal("Again", recreated.Info.Name.Value);
                 async Task Append(EventSourceId id, object fact)
                 {
                     var append = await store.EventLog.Append(id, fact);

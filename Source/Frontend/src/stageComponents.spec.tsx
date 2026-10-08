@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { fireEvent, render as renderWithoutProvider, screen, waitFor } from '@testing-library/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
@@ -29,6 +29,28 @@ function renderWithData(ui: ReactElement) {
 function BindingProbe({ path, label = 'selection' }: { path: string | Record<string, unknown>; label?: string }) {
     const value = useStageData().resolveBinding(path as never);
     return <output aria-label={label}>{value === undefined ? '' : String(value)}</output>;
+}
+
+function ComponentOutput({ name, value }: { name: string; value: unknown }) {
+    const { setState } = useStageData();
+    useEffect(() => { setState(name, value); }, []);
+    return null;
+}
+
+function commandResult(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+        correlationId: '00000000-0000-0000-0000-000000000000',
+        isSuccess: true,
+        isAuthorized: true,
+        isValid: true,
+        hasExceptions: false,
+        validationResults: [],
+        exceptionMessages: [],
+        exceptionStackTrace: '',
+        authorizationFailureReason: '',
+        response: null,
+        ...overrides,
+    };
 }
 
 describe('a synthesized table', () => {
@@ -123,13 +145,30 @@ describe('a synthesized table', () => {
 
         renderWithData(<>
             <StageTable element={table} slots={{}} />
-            <BindingProbe label='data' path={{ kind: 'dataContext', path: 'invoices.invoiceNumber' }} />
+            <BindingProbe label='data' path={{ kind: 'dataContext', path: 'invoiceNumber' }} />
             <BindingProbe label='query' path={{ kind: 'queryResult', query: 'AllInvoices', path: 'invoiceNumber' }} />
         </>);
         fireEvent.click((await screen.findByText('INV-1')).closest('tr')!);
 
         expect(screen.getByLabelText('data').textContent).toEqual('INV-1');
         expect(screen.getByLabelText('query').textContent).toEqual('INV-1');
+    });
+
+    it('uses the shared typed resolver for nested component paths, null behavior and diagnostics', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        renderWithData(<>
+            <ComponentOutput name='editor.value.text' value='Nested title' />
+            <BindingProbe label='component' path={{ kind: 'componentProperty', componentId: 'editor', componentPropertyPath: 'value.text' }} />
+            <BindingProbe label='preserve' path={{ kind: 'dataContext', path: 'missing', nullBehavior: 'preserve' }} />
+            <BindingProbe label='type' path={{ kind: 'literal', path: '', value: 'not a number', expectedValueType: 'number' }} />
+            <BindingProbe label='mode' path={{ kind: 'dataContext', path: 'missing', mode: 'twoWay' }} />
+        </>);
+
+        await waitFor(() => expect(screen.getByLabelText('component').textContent).toEqual('Nested title'));
+        expect(screen.getByLabelText('preserve').textContent).toEqual('');
+        expect(warn.mock.calls.map(call => String(call[0])).join('\n')).toContain('bindingTypeMismatch');
+        expect(warn.mock.calls.map(call => String(call[0])).join('\n')).toContain('unsupportedTwoWayBinding');
+        warn.mockRestore();
     });
 
     it('rebinds query arguments from selection without leaking stale arguments', async () => {
@@ -154,8 +193,8 @@ describe('a synthesized table', () => {
 });
 
 describe('a native command form', () => {
-    it('uses form metadata, command route lookup and validation feedback', async () => {
-        const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ validationResults: [{ message: 'Order number is required' }] }) });
+    it('keeps invalid required fields inside the native form boundary', async () => {
+        const fetched = vi.fn();
         vi.stubGlobal('fetch', fetched);
         const form = element('order-form', 'Stage:commandForm', {
             command: 'RegisterOrder',
@@ -166,18 +205,73 @@ describe('a native command form', () => {
         renderWithoutProvider(
             <PrimeReactProvider>
                 <StageDataProvider routes={{ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }} locale='en' locales={['en']} screen='Orders'>
-                    <StageCommandForm element={form} slots={{}} />
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Execute Register order' }));
+
+        await waitFor(() => expect(screen.getByLabelText('Order #').getAttribute('aria-invalid')).toEqual('true'));
+        expect(fetched).not.toHaveBeenCalled();
+    });
+
+    it('generates rich fields automatically and honors manually placed unequal columns', () => {
+        const form = element('profile-form', 'Stage:commandForm', {
+            command: 'RegisterProfile',
+            label: 'Register profile',
+            mode: 'auto',
+            columns: [['name', 'enabled'], ['amount', 'dueDate']],
+            schema: JSON.stringify({
+                required: ['name', 'enabled', 'amount', 'dueDate'],
+                properties: {
+                    name: { type: 'string' },
+                    enabled: { type: 'boolean' },
+                    amount: { type: 'number' },
+                    dueDate: { type: 'string', format: 'date' },
+                },
+            }),
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RegisterProfile: '/api/profiles/register' }, queries: {} }} locale='en' locales={['en']} screen='Profiles'>
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+
+        expect(screen.getByLabelText('name')).toBeDefined();
+        expect(screen.getByLabelText('enabled')).toBeDefined();
+        expect(screen.getByLabelText('amount')).toBeDefined();
+        expect(screen.getByLabelText('dueDate')).toBeDefined();
+    });
+
+    it('uses form metadata, command route lookup and validation feedback', async () => {
+        const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult({ isSuccess: false, isValid: false, validationResults: [{ severity: 0, message: 'Order number is required', members: ['orderNumber'] }] }) });
+        vi.stubGlobal('fetch', fetched);
+        const form = element('order-form', 'Stage:commandForm', {
+            command: 'RegisterOrder',
+            label: 'Register order',
+            fields: [{ name: 'orderNumber', label: 'Order #' }],
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }} locale='en' locales={['en']} screen='Orders'>
+                    <StageCommandForm element={form} />
                 </StageDataProvider>
             </PrimeReactProvider>,
         );
         fireEvent.change(screen.getByLabelText('Order #'), { target: { value: 'O-1' } });
         fireEvent.click(screen.getByRole('button', { name: 'Execute Register order' }));
 
-        await waitFor(() => expect(fetched).toHaveBeenCalledWith('api/orders/register', expect.objectContaining({
+        await waitFor(() => expect(fetched).toHaveBeenCalled());
+        expect(String(fetched.mock.calls[0][0])).toContain('/api/orders/register');
+        expect(fetched.mock.calls[0][1]).toEqual(expect.objectContaining({
             method: 'POST',
             body: JSON.stringify({ orderNumber: 'O-1' }),
-        })));
-        expect(await screen.findByText('Order number is required')).toBeDefined();
+        }));
+        expect((await screen.findAllByText('Order number is required')).length).toBeGreaterThan(0);
     });
 });
 
@@ -190,7 +284,7 @@ describe('a synthesized action', () => {
     });
 
     it('posts the modeled command with the values entered', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ isSuccess: true }) });
+        const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult() });
         vi.stubGlobal('fetch', fetchMock);
 
         render(<StageAction element={action} slots={{}} />);
@@ -200,23 +294,27 @@ describe('a synthesized action', () => {
         fireEvent.blur(screen.getByLabelText('amount'));
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
-        await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('api/sales/invoices/register-invoice', expect.objectContaining({
+        await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+        expect(String(fetchMock.mock.calls[0][0])).toContain('/api/sales/invoices/register-invoice');
+        expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({
             method: 'POST',
             body: JSON.stringify({ invoiceNumber: 'INV-7', amount: 13 }),
-        })));
+        }));
     });
 
     it('shows the validation the command rejected with', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ validationResults: [{ message: 'Invoice number is required' }] }),
+            json: async () => commandResult({ isSuccess: false, isValid: false, validationResults: [{ severity: 0, message: 'Invoice number is required', members: ['invoiceNumber'] }] }),
         }));
 
         render(<StageAction element={action} slots={{}} />);
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
+        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
+        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
-        expect(await screen.findByText('Invoice number is required')).toBeDefined();
+        expect((await screen.findAllByText('Invoice number is required')).length).toBeGreaterThan(0);
     });
 
     it('refreshes scoped queries after a successful command', async () => {
@@ -229,7 +327,7 @@ describe('a synthesized action', () => {
                 return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: invoiceNumber, invoiceNumber }] }) });
             }
 
-            if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => ({ isSuccess: true }) });
+            if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
             return Promise.resolve({ ok: false, json: async () => ({}) });
         });
         vi.stubGlobal('fetch', fetched);
@@ -240,6 +338,8 @@ describe('a synthesized action', () => {
         renderWithData(<><StageTable element={table} slots={{}} /><StageAction element={action} slots={{}} /></>);
         expect(await screen.findByText('INV-1')).toBeDefined();
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
+        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-8' } });
+        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '14' } });
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
         expect(await screen.findByText('INV-2')).toBeDefined();

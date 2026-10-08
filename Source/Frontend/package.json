@@ -11,11 +11,15 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cratis/scene.blueprint.default": "4.9.0",
-    "@cratis/scene.engine": "4.9.0",
-    "@cratis/scene.model": "4.9.0",
-    "@cratis/scene.primereact": "4.9.0",
-    "@cratis/scene.react": "4.9.0",
+    "@cratis/arc": "22.58.2",
+    "@cratis/arc.react": "22.58.2",
+    "@cratis/components": "4.26.2",
+    "@cratis/fundamentals": "7.22.8",
+    "@cratis/scene.blueprint.default": "4.10.0",
+    "@cratis/scene.engine": "4.10.0",
+    "@cratis/scene.model": "4.10.0",
+    "@cratis/scene.primereact": "4.10.0",
+    "@cratis/scene.react": "4.10.0",
     "@primereact/core": "11.2.0",
     "@primereact/headless": "11.2.0",
     "@primereact/ui": "11.2.0",
@@ -23,7 +27,9 @@
     "primeicons": "8.0.2",
     "primereact": "11.2.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "reflect-metadata": "0.2.2",
+    "tsyringe": "4.10.0"
   },
   "devDependencies": {
     "@testing-library/react": "16.3.3",

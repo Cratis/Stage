@@ -4,31 +4,34 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+
 using Cratis.Screenplay.Strings;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 
+#pragma warning disable MA0110, SA1202 // The current SDK does not generate implementations for these regex members in this project.
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
 /// Carries validated, canonical locale dictionaries in the immutable render profile.
 /// </summary>
-internal static partial class StringsCatalogInput
+internal static class StringsCatalogInput
 {
     internal const string Name = "cratis-strings:catalog";
     internal const string Version = "1";
     internal const string RelativePath = "GeneratedStrings.cs";
 
-    [GeneratedRegex("^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{2,8})*$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, 1000)]
-    private static partial Regex LocalePattern { get; }
+    static readonly Regex _localePattern = new("^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{2,8})*$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, TimeSpan.FromMilliseconds(1000));
+    static readonly Regex _keyPattern = new(@"^[A-Za-z_]\w*(?:\.\w+)*$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, TimeSpan.FromMilliseconds(1000));
 
-    [GeneratedRegex(@"^[A-Za-z_]\w*(?:\.\w+)*$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, 1000)]
-    private static partial Regex KeyPattern { get; }
+    static Regex LocalePattern() => _localePattern;
+
+    static Regex KeyPattern() => _keyPattern;
 
     internal static ArtifactRenderInput Create(IReadOnlyDictionary<string, string> files, string defaultLocale)
     {
-        if (!LocalePattern.IsMatch(defaultLocale) || files.Count == 0)
+        if (!LocalePattern().IsMatch(defaultLocale) || files.Count == 0)
         {
             throw Invalid();
         }
@@ -45,7 +48,7 @@ internal static partial class StringsCatalogInput
 
             var stem = file[..^".strings".Length];
             var separator = stem.LastIndexOf('.');
-            if (separator <= 0 || !LocalePattern.IsMatch(stem[(separator + 1)..]))
+            if (separator <= 0 || !LocalePattern().IsMatch(stem[(separator + 1)..]))
             {
                 throw Invalid();
             }
@@ -98,10 +101,10 @@ internal static partial class StringsCatalogInput
         try
         {
             var serialized = JsonSerializer.Deserialize<DictionaryCatalog>(new UTF8Encoding(false, true).GetString(input.Bytes.AsSpan()));
-            if (serialized is null || serialized.Locales is null || !LocalePattern.IsMatch(serialized.DefaultLocale) ||
+            if (serialized is null || serialized.Locales is null || !LocalePattern().IsMatch(serialized.DefaultLocale) ||
                 !serialized.Locales.ContainsKey(serialized.DefaultLocale) ||
                 serialized.Locales.Keys.Distinct(StringComparer.OrdinalIgnoreCase).Count() != serialized.Locales.Count ||
-                serialized.Locales.Any(locale => !LocalePattern.IsMatch(locale.Key) || locale.Value?.Any(entry => !KeyPattern.IsMatch(entry.Key) ||
+                serialized.Locales.Any(locale => !LocalePattern().IsMatch(locale.Key) || locale.Value?.Any(entry => !KeyPattern().IsMatch(entry.Key) ||
                     entry.Value?.Any(character => char.IsControl(character) || char.IsSurrogate(character)) != false ||
                     !StringsFileEntryValid(entry.Key, entry.Value)) != false))
             {

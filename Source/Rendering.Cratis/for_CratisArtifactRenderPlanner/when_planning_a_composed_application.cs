@@ -2,14 +2,16 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.RegularExpressions;
+
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Xunit;
 
+#pragma warning disable MA0110, SA1202 // The current SDK does not generate implementations for these regex members in this project.
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public partial class when_planning_a_composed_application : a_composed_register_project_application
+public class when_planning_a_composed_application : a_composed_register_project_application
 {
     void Because() => _plan = _planner.Plan(_request);
 
@@ -52,9 +54,10 @@ public partial class when_planning_a_composed_application : a_composed_register_
         _plan.Artifacts
             .Any(_ => (_.RelativePath.EndsWith(".ts", StringComparison.Ordinal) || _.RelativePath.EndsWith(".tsx", StringComparison.Ordinal)) &&
                 !_.RelativePath.StartsWith(".frontend/", StringComparison.Ordinal) &&
-                QuotedRootPath.IsMatch(Text(_)))
+                QuotedRootPath().IsMatch(Text(_)))
             .ShouldBeFalse();
 
-    [GeneratedRegex("['\"]/[a-z]", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex QuotedRootPath { get; }
+    static readonly Regex _quotedRootPath = new("['\"]/[a-z]", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(1000));
+
+    static Regex QuotedRootPath() => _quotedRootPath;
 }

@@ -13,7 +13,7 @@ const scene: StageSceneApplication = {
     screenTemplates: [],
     screens: [{
         name: 'Invoices',
-        layout: 'Application',
+        layout: 'AppShell',
         forms: [],
         contributions: [],
         slotContent: {
@@ -43,7 +43,11 @@ const scene: StageSceneApplication = {
 
 describe('the Stage frontend', () => {
     beforeEach(() => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => scene }));
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: async () => ({ commands: {}, queries: {} }) });
+            return Promise.resolve({ ok: true, json: async () => scene });
+        }));
     });
 
     it('renders a Screenplay screen through Scene React', async () => {

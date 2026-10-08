@@ -77,15 +77,18 @@ public sealed class CratisFrontendApplicationScaffold
             "@cratis/arc.react": "{{frontend.ArcReactPackageVersion}}",
             "@cratis/components": "{{frontend.ComponentsPackageVersion}}",
             "@cratis/fundamentals": "{{frontend.FundamentalsPackageVersion}}",
+            "@cratis/scene.blueprint.default": "{{frontend.ScenePackageVersion}}",
             "@cratis/scene.components": "{{frontend.ScenePackageVersion}}",
             "@cratis/scene.engine": "{{frontend.ScenePackageVersion}}",
             "@cratis/scene.model": "{{frontend.ScenePackageVersion}}",
+            "@cratis/scene.primereact": "{{frontend.ScenePackageVersion}}",
             "@cratis/scene.react": "{{frontend.ScenePackageVersion}}",
             "@primereact/core": "{{frontend.PrimeReactPackageVersion}}",
             "@primereact/headless": "{{frontend.PrimeReactPackageVersion}}",
             "@primereact/hooks": "{{frontend.PrimeReactPackageVersion}}",
             "@primereact/styles": "{{frontend.PrimeReactPackageVersion}}",
             "@primereact/types": "{{frontend.PrimeReactPackageVersion}}",
+            "@primereact/ui": "{{frontend.PrimeReactPackageVersion}}",
             "@primeuix/themes": "{{frontend.PrimeUixThemesPackageVersion}}",
             "primeicons": "{{frontend.PrimeIconsPackageVersion}}",
             "primereact": "{{frontend.PrimeReactPackageVersion}}",
@@ -168,8 +171,11 @@ public sealed class CratisFrontendApplicationScaffold
         import ReactDOM from 'react-dom/client';
         import { Arc } from '@cratis/arc.react';
         import { CratisComponentsProvider } from '@cratis/components';
-        import { SceneElementView, coreComponents } from '@cratis/scene.react';
+        import { InteractionScope, SceneElementView, coreComponents, createBrowserDispatcher } from '@cratis/scene.react';
         import { cratisComponentsPackage } from '@cratis/scene.components';
+        import { primeReactComponents } from '@cratis/scene.primereact';
+        import { LayoutConfigProvider, LayoutThemeProvider, composeScreenElement, defaultBlueprintComponents } from '@cratis/scene.blueprint.default';
+        import '@cratis/scene.blueprint.default/styles.css';
         import type { Screen } from '@cratis/scene.model';
         import composition from '../scene.json';
         import '../src/bindings';
@@ -181,9 +187,36 @@ public sealed class CratisFrontendApplicationScaffold
         // Typed by the screen rather than by a whole-application type: Scene has no "translated application"
         // concept in TypeScript, and inventing one here would not match what the package actually exports.
         const scene = composition as unknown as { screens: Screen[] };
-        const screen = scene.screens[0];
-        const elements = screen ? Object.values(screen.slotContent).flat() : [];
-        const components = { ...coreComponents, ...cratisComponentsPackage.components };
+        const arcBoundComponents = { ...coreComponents, ...cratisComponentsPackage.components };
+        const components = { ...arcBoundComponents, ...primeReactComponents, ...defaultBlueprintComponents };
+        const dispatcher = createBrowserDispatcher({
+            notify: (level, message) => console.info(`${level}: ${message}`),
+            onUnsupported: action => console.warn(`Unsupported Scene action: ${action}`),
+        });
+
+        function Application() {
+            const [screenName, setScreenName] = React.useState(() => globalThis.location.hash.slice(2));
+            const screen = scene.screens.find(candidate => candidate.name === decodeURIComponent(screenName)) ?? scene.screens[0];
+            React.useEffect(() => {
+                const hashChanged = () => setScreenName(globalThis.location.hash.slice(2));
+                globalThis.addEventListener('hashchange', hashChanged);
+                return () => globalThis.removeEventListener('hashchange', hashChanged);
+            }, []);
+
+            if (!screen) return <main id="application">This application has no screens.</main>;
+
+            return (
+                <LayoutConfigProvider>
+                    <LayoutThemeProvider>
+                        <InteractionScope dispatcher={dispatcher} context={{ resolve: () => undefined }} attachments={[]}>
+                            <main id="application">
+                                <SceneElementView element={composeScreenElement(screen)} registry={components} resolveBinding={() => undefined} />
+                            </main>
+                        </InteractionScope>
+                    </LayoutThemeProvider>
+                </LayoutConfigProvider>
+            );
+        }
 
         // A lazy CSS import orders user-owned tokens after the managed styles, before React renders.
         const customStyles = import.meta.glob('../Customizations/styles.css');
@@ -193,15 +226,7 @@ public sealed class CratisFrontendApplicationScaffold
             <React.StrictMode>
                 <CratisComponentsProvider>
                     <Arc>
-                        <main id="application">
-                            {elements.map(element => (
-                                <SceneElementView
-                                    key={element.id}
-                                    element={element}
-                                    registry={components}
-                                    resolveBinding={() => undefined} />
-                            ))}
-                        </main>
+                        <Application />
                     </Arc>
                 </CratisComponentsProvider>
             </React.StrictMode>

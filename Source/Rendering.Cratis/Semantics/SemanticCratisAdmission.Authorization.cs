@@ -14,15 +14,14 @@ internal static partial class SemanticCratisAdmission
 {
     internal static bool IsRoleClaim(string type) => string.Equals(type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase);
 
-    internal static bool RequiresAuthentication(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch
+    static void ValidateCallerFixtures(SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        SemanticPolicyReference reference => policies.SingleOrDefault(policy => policy.Name == reference.Name) is { } policy && RequiresAuthentication(policy.Condition),
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical =>
-            RequiresAuthentication(logical.Left, policies) || RequiresAuthentication(logical.Right, policies),
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical =>
-            RequiresAuthentication(logical.Left, policies) && RequiresAuthentication(logical.Right, policies),
-        _ => false
-    };
+        foreach (var specification in slice.Specifications.Where(specification =>
+            specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty)))
+        {
+            diagnostics.Add(Error("STAGE-ESM-011", $"Specification '{specification.Name}' cannot render: An unauthenticated caller cannot carry roles or claims; Arc supplies an empty guest principal.", specification.Id));
+        }
+    }
 
     static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -140,16 +139,6 @@ internal static partial class SemanticCratisAdmission
             ? property.Type.Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid
             : property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts[property.Type.Target].Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid);
     }
-
-    static bool RequiresAuthentication(SemanticPolicyCondition condition) => condition switch
-    {
-        SemanticAuthenticatedCondition => true,
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical =>
-            RequiresAuthentication(logical.Left) || RequiresAuthentication(logical.Right),
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical =>
-            RequiresAuthentication(logical.Left) && RequiresAuthentication(logical.Right),
-        _ => false
-    };
 
     static bool CanRender(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch
     {

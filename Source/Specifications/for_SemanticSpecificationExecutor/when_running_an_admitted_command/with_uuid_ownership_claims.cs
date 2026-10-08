@@ -30,7 +30,7 @@ public class with_uuid_ownership_claims : a_command_only_plan
         {
             var specification = _specification with
             {
-                GivenCaller = new SemanticCaller(false, [], [.. claims.Select(value => new SemanticCaller(false, [], [new("OWNER", value)]).Claims[0])]),
+                GivenCaller = new SemanticCaller(true, [], [.. claims.Select(value => new SemanticCaller(true, [], [new("OWNER", value)]).Claims[0])]),
                 ThenDenied = !allowed,
                 ThenEvents = allowed ? _specification.ThenEvents : []
             };

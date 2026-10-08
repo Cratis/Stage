@@ -85,6 +85,10 @@ internal static class SemanticRunAdmission
         var opaqueConcept = plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Validations.Any(rule => OpaqueRule(rule.Kind)));
         if (opaqueConcept is not null) return Block(StageExecutionCapability.Command, opaqueConcept.Id, "Validation implementation bodies cannot be executed by Stage.");
         if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Given read-model state cannot be seeded into the per-run projection scenario.");
+        if (specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty))
+        {
+            return Block(StageExecutionCapability.Authorization, specification.Id, "An unauthenticated caller cannot carry roles or claims; Arc supplies an empty guest principal.");
+        }
         if (specification.GivenCaller?.Claims.Any(claim => string.Equals(claim.Type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase)) == true)
         {
             return Block(StageExecutionCapability.Authorization, specification.Id, "Role-URI claim types cannot be used as claims; roles and claims are separate in Screenplay.");

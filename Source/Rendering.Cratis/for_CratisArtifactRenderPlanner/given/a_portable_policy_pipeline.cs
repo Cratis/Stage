@@ -15,6 +15,26 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
     protected virtual string Key => "invoice-one";
     protected virtual bool IncludeQuery => true;
 
+    protected static string WithGuestDenials(string source) => source.Replace(
+        "    slice StateView Lookup",
+        """
+              specification DenyingGuestCommand
+                given caller
+                when IssueInvoice
+                  invoiceId = "invoice-one"
+                  description = "North"
+                then denied
+            slice StateView Lookup
+        """,
+        StringComparison.Ordinal) + "\n" + """
+              specification DenyingGuestQuery
+                given caller
+                then query InvoiceById
+                  arguments
+                    invoiceId = "invoice-one"
+                then denied
+        """;
+
     protected async Task VerifyPipeline()
     {
         var query = IncludeQuery ? """
@@ -56,7 +76,8 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
 
             public static class PolicyProbe
             {
-                public static ClaimsPrincipal Guest(params Claim[] claims) => new(new ClaimsIdentity(claims));
+                public static ClaimsPrincipal Guest() => new(new ClaimsIdentity());
+                public static ClaimsPrincipal Authenticated(params Claim[] claims) => new(new ClaimsIdentity(claims, "fixture"));
 
                 public static async Task<(bool CommandAllowed, int Appended, bool QueryAllowed, bool HasData)> Execute(ClaimsPrincipal principal, string key)
                 {
@@ -65,6 +86,8 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
                     using var scope = accessor.BeginScope(principal);
                     using var command = new CommandScenario<IssueInvoice>();
                     Invoices.GeneratedPolicies.Registration.Register(command.Services);
+                    Assert.All(command.Services.Where(service => service.ImplementationInstance is AuthorizationPolicyRegistration), service =>
+                        Assert.False(((AuthorizationPolicyRegistration)service.ImplementationInstance!).EvaluatesAnonymous));
                     command.Services.AddSingleton<ICurrentPrincipalAccessor>(accessor);
                     var commandResult = await command.Execute(new IssueInvoice(id, "North"));
                     Assert.False(commandResult.HasExceptions, string.Join("; ", commandResult.ExceptionMessages));

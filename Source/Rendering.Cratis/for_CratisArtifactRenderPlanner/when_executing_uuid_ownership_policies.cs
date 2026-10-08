@@ -25,11 +25,11 @@ public class when_executing_uuid_ownership_policies(context fixture) : IClassFix
         protected override string Key => "3fa85f64-5717-4562-b3fc-2c963f66afa6";
         protected override IEnumerable<(string Name, string Principal, bool Allowed)> Vectors =>
         [
-            ("allow_a_typed_uuid_match", "Guest(new Claim(\"OWNER\", \"{3FA85F64-5717-4562-B3FC-2C963F66AFA6}\"), new Claim(\"region\", \"North\"))", true),
-            ("deny_a_different_uuid", "Guest(new Claim(\"owner\", \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"), new Claim(\"region\", \"North\"))", false),
-            ("deny_a_malformed_claim", "Guest(new Claim(\"owner\", \"not-a-uuid\"), new Claim(\"region\", \"North\"))", false),
-            ("deny_a_missing_claim", "Guest(new Claim(\"region\", \"North\"))", false),
-            ("allow_a_repeated_claim_with_one_parseable_match", "Guest(new Claim(\"owner\", \"not-a-uuid\"), new Claim(\"owner\", \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"), new Claim(\"region\", \"North\"))", true)
+            ("allow_a_typed_uuid_match", "Authenticated(new Claim(\"OWNER\", \"{3FA85F64-5717-4562-B3FC-2C963F66AFA6}\"), new Claim(\"region\", \"North\"))", true),
+            ("deny_a_different_uuid", "Authenticated(new Claim(\"owner\", \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"), new Claim(\"region\", \"North\"))", false),
+            ("deny_a_malformed_claim", "Authenticated(new Claim(\"owner\", \"not-a-uuid\"), new Claim(\"region\", \"North\"))", false),
+            ("deny_a_missing_claim", "Authenticated(new Claim(\"region\", \"North\"))", false),
+            ("allow_a_repeated_claim_with_one_parseable_match", "Authenticated(new Claim(\"owner\", \"not-a-uuid\"), new Claim(\"owner\", \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"), new Claim(\"region\", \"North\"))", true)
         ];
 
         Task Because() => VerifyPipeline();

@@ -35,8 +35,7 @@ internal static class SemanticPolicyArtifactRenderer
             .OpenBlock("static partial void RegisterGenerated(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         foreach (var operation in operations)
         {
-            var anonymous = SemanticCratisAdmission.RequiresAuthentication(operation.Authorization, context.Application.Policies) ? string.Empty : ", evaluatesAnonymous: true";
-            builder.Line($"services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}{anonymous});");
+            builder.Line($"services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))});");
         }
 
         builder.EndBlock().EndBlock().BlankLine();

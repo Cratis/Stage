@@ -19,7 +19,9 @@ internal static class SemanticReducerContextRuntime
             .EndBlock()
             .BlankLine()
             .OpenBlock("internal static class ReducerContextValues")
-            .ExpressionMember("public static TenantId Tenant(global::Cratis.Chronicle.EventStoreNamespaceName name)", "new(name.Value)")
+            .OpenBlock("public static TenantId Tenant(global::Cratis.Chronicle.EventStoreNamespaceName name)")
+            .Line($"return new TenantId(global::{context.RootNamespace}.GeneratedTenancy.PortableTenantValues.Translate(name.Value, global::Cratis.Chronicle.EventStoreNamespaceName.Default.Value, global::Cratis.Chronicle.EventStoreNamespaceName.NotSet.Value));")
+            .EndBlock()
             .EndBlock();
         return new(Path.Combine("TypedContexts", "TenantId.cs"), builder.ToString());
     }

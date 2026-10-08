@@ -177,7 +177,8 @@ internal static class SemanticSurfaceLedger
         // assertions compare the produced stream even when the expected fact omits its source.
         // Protected query results and query-only denials execute through Arc QueryScenario with fixture principals;
         // streaming queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
-        // fail STAGE-ESM-011 before log seeding.
+        // fail STAGE-ESM-011 before log seeding. An unauthenticated caller fixture with roles or claims
+        // also fails STAGE-ESM-011 before rendering: Arc supplies an empty guest principal.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "ThenAbsentReadModels");
         Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-011"), "Key ReadModel");

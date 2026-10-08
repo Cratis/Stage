@@ -111,6 +111,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         if (selectedReducers.Count > 0)
         {
             artifacts.Add(Artifact(SemanticReducerContextRuntime.Render(context)));
+            artifacts.Add(Artifact(TenantTranslationSource.Render(context.RootNamespace)));
         }
 
         AddScaffold(request, context, artifacts, diagnostics);

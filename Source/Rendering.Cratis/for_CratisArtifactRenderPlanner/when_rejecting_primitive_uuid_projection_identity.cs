@@ -8,16 +8,17 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public class when_rejecting_a_nontext_claim_target : Specification
+public class when_rejecting_primitive_uuid_projection_identity : Specification
 {
     ArtifactRenderPlan _plan = null!;
 
     void Because()
     {
-        var source = when_rendering_portable_authorization.Source.Replace("description String", "description Decimal", StringComparison.Ordinal);
+        var source = when_rendering_portable_authorization.Source.Replace("invoiceId InvoiceId", "invoiceId Uuid", StringComparison.Ordinal);
         _plan = invoice_model.Plan(invoice_model.Compile(source));
     }
 
-    [Fact] void should_refuse_a_claim_against_a_decimal_property() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-015");
+    [Fact] void should_refuse_a_projection_without_concept_backed_event_source_identity() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-009");
+    [Fact] void should_admit_primitive_uuid_authorization() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-015");
     [Fact] void should_emit_no_partial_application() => _plan.Artifacts.ShouldBeEmpty();
 }

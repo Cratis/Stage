@@ -235,9 +235,10 @@ public class CratisRenderer : IRenderer
                 failures);
         }
 
+        var runtimeArtifacts = new HashSet<string>(StringComparer.Ordinal);
         foreach (var slice in applicationSet.Slices)
         {
-            await RenderSlice(slice, applicationSet, rootNamespace, targetDirectory, output, error, failures);
+            await RenderSlice(slice, applicationSet, rootNamespace, targetDirectory, output, error, failures, runtimeArtifacts);
         }
 
         await ReportUnrenderableReferences(applicationSet, error);
@@ -257,9 +258,10 @@ public class CratisRenderer : IRenderer
             return;
         }
 
+        var runtimeArtifacts = new HashSet<string>(StringComparer.Ordinal);
         foreach (var slice in slices)
         {
-            await RenderSlice(slice, context, rootNamespace, targetDirectory, output, error, failures);
+            await RenderSlice(slice, context, rootNamespace, targetDirectory, output, error, failures, runtimeArtifacts);
         }
 
         await Complete(targetDirectory, output, error, failures);
@@ -272,7 +274,8 @@ public class CratisRenderer : IRenderer
         DirectoryInfo targetDirectory,
         TextWriter output,
         TextWriter error,
-        List<Exception> failures)
+        List<Exception> failures,
+        HashSet<string> runtimeArtifacts)
     {
         var slicePath = string.Join('.', slice.FullPath);
 
@@ -294,6 +297,12 @@ public class CratisRenderer : IRenderer
         {
             await RecordFailure($"render slice '{slicePath}'", exception, error, failures);
             return;
+        }
+
+        if (file.Content.Contains($"global::{rootNamespace}.GeneratedTenancy.PortableTenantValues.Translate", StringComparison.Ordinal) &&
+            runtimeArtifacts.Add("tenant translation"))
+        {
+            await WriteFile(TenantTranslationSource.Render(rootNamespace), targetDirectory, output, error, failures);
         }
 
         await WriteFile(file, targetDirectory, output, error, failures);

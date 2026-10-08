@@ -88,6 +88,7 @@ internal static partial class SemanticCratisAdmission
                     break;
             }
 
+            ValidateCallerFixtures(located.Slice, diagnostics);
             SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics);
         }
 

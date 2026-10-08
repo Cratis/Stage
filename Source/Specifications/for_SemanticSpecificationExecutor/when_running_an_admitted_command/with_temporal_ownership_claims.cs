@@ -3,6 +3,7 @@
 
 #if DEBUG
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -19,6 +20,9 @@ public class with_temporal_ownership_claims : Specification
         ("DateTime", "2026-09-07T12:34:56.1234567+02:00", ["2026-09-07T12:34:56.1234567+02:00", "2026-09-07T10:34:56.1234567Z", ""])
     ];
 
+    // Screenplay string literals do not decode JSON Unicode escapes such as \u002B for an offset's '+'.
+    static readonly JsonSerializerOptions _literalOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
     SemanticExecutionPlan _plan = null!;
     readonly List<string> _mismatches = [];
     int _vectors;
@@ -28,8 +32,9 @@ public class with_temporal_ownership_claims : Specification
         var source = new StringBuilder("policy Owns\n  require claim \"owner\" matches subject and claim \"owner\" matches invoiceId\npolicy NotBlocked\n  require not claim \"blocked\" matches schedule.deadline.value\n");
         for (var index = 0; index < _targets.Length; index++)
         {
-            source.Append($"concept InvoiceId{index} : {_targets[index].Primitive}\n");
-            source.Append($"type Deadline{index}\n  value {_targets[index].Primitive}\ntype Schedule{index}\n  deadline Deadline{index} optional\n");
+            source
+                .Append($"concept InvoiceId{index} : {_targets[index].Primitive}\n")
+                .Append($"type Deadline{index}\n  value {_targets[index].Primitive}\ntype Schedule{index}\n  deadline Deadline{index} optional\n");
         }
         source.Append("module Billing\n  feature Invoicing\n");
         for (var index = 0; index < _targets.Length; index++)
@@ -50,28 +55,29 @@ public class with_temporal_ownership_claims : Specification
                 """);
             for (var claim = 0; claim < target.Claims.Length; claim++)
             {
-                var then = claim == 0 ? $"then Issued{index}\n          for {JsonSerializer.Serialize(target.Target)}\n          invoiceId = {JsonSerializer.Serialize(target.Target)}" : "then denied";
+                var then = claim == 0 ? $"then Issued{index}\n          for {JsonSerializer.Serialize(target.Target, _literalOptions)}\n          invoiceId = {JsonSerializer.Serialize(target.Target, _literalOptions)}" : "then denied";
                 source.Append($$"""
                           specification Claim{{claim}}
                             given caller
                               authenticated
-                              claim "OWNER" = {{JsonSerializer.Serialize(target.Claims[claim])}}
+                              claim "OWNER" = {{JsonSerializer.Serialize(target.Claims[claim], _literalOptions)}}
                             when Issue{{index}}
-                              invoiceId = {{JsonSerializer.Serialize(target.Target)}}
-                              schedule = { deadline: { value: {{JsonSerializer.Serialize(target.Target)}} } }
+                              invoiceId = {{JsonSerializer.Serialize(target.Target, _literalOptions)}}
+                              schedule = { "deadline": { "value": {{JsonSerializer.Serialize(target.Target, _literalOptions)}} } }
                             {{then}}
 
                     """);
             }
+
             // Every command property must be supplied, even an optional one. Omit the optional composite
             // member instead, so the claim target is unknown without an invalid command null literal.
             source.Append($$"""
                       specification NegatedUnknown
                         given caller
                           authenticated
-                          claim "owner" = {{JsonSerializer.Serialize(target.Target)}}
+                          claim "owner" = {{JsonSerializer.Serialize(target.Target, _literalOptions)}}
                         when Issue{{index}}
-                          invoiceId = {{JsonSerializer.Serialize(target.Target)}}
+                          invoiceId = {{JsonSerializer.Serialize(target.Target, _literalOptions)}}
                           schedule = {}
                         then denied
 

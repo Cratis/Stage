@@ -25,10 +25,11 @@ public class with_temporal_ownership_claims : Specification
 
     void Establish()
     {
-        var source = new StringBuilder("policy Owns\n  require claim \"owner\" matches subject and claim \"owner\" matches invoiceId\npolicy NotBlocked\n  require not claim \"blocked\" matches deadline\n");
+        var source = new StringBuilder("policy Owns\n  require claim \"owner\" matches subject and claim \"owner\" matches invoiceId\npolicy NotBlocked\n  require not claim \"blocked\" matches schedule.deadline.value\n");
         for (var index = 0; index < _targets.Length; index++)
         {
             source.Append($"concept InvoiceId{index} : {_targets[index].Primitive}\n");
+            source.Append($"type Deadline{index}\n  value {_targets[index].Primitive}\ntype Schedule{index}\n  deadline Deadline{index} optional\n");
         }
         source.Append("module Billing\n  feature Invoicing\n");
         for (var index = 0; index < _targets.Length; index++)
@@ -38,7 +39,7 @@ public class with_temporal_ownership_claims : Specification
                     slice StateChange Issue{{index}}
                       command Issue{{index}}
                         invoiceId InvoiceId{{index}} identifier
-                        deadline {{target.Primitive}} optional
+                        schedule Schedule{{index}}
                         authorize Owns and NotBlocked
                         produces Issued{{index}}
                           for invoiceId
@@ -57,11 +58,13 @@ public class with_temporal_ownership_claims : Specification
                               claim "OWNER" = {{JsonSerializer.Serialize(target.Claims[claim])}}
                             when Issue{{index}}
                               invoiceId = {{JsonSerializer.Serialize(target.Target)}}
-                              deadline = {{JsonSerializer.Serialize(target.Target)}}
+                              schedule = { deadline: { value: {{JsonSerializer.Serialize(target.Target)}} } }
                             {{then}}
 
                     """);
             }
+            // Every command property must be supplied, even an optional one. Omit the optional composite
+            // member instead, so the claim target is unknown without an invalid command null literal.
             source.Append($$"""
                       specification NegatedUnknown
                         given caller
@@ -69,6 +72,7 @@ public class with_temporal_ownership_claims : Specification
                           claim "owner" = {{JsonSerializer.Serialize(target.Target)}}
                         when Issue{{index}}
                           invoiceId = {{JsonSerializer.Serialize(target.Target)}}
+                          schedule = {}
                         then denied
 
                 """);

@@ -30,6 +30,8 @@ public class StateViewSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        EventSourceIdentityComplianceAdmission.EnsureAccepted([slice], applicationSet);
+
         // Every rendered read model exposes queries - declared ones, or the synthesized all/by-id pair - so the
         // inherited authorization is checked whether or not the slice declares a query.
         LegacyEnclosingAuthorization.EnsureRenderable(

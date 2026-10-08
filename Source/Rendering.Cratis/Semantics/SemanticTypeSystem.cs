@@ -190,9 +190,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
 
         // ESM destinations are required scalars. Arc preserves typed identity conversion, otherwise calls
         // ToString() with the current culture. Parentheses also preserve negative numeric spec literals.
-        return hasImplicitConversion || isIdentityConcept
-            ? expression
-            : $"new global::Cratis.Chronicle.Events.EventSourceId(({expression}).ToString())";
+        return Expressions.EventSourceExpression.Render(expression, hasImplicitConversion || isIdentityConcept);
     }
 
     /// <summary>

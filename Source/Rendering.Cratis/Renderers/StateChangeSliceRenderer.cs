@@ -23,6 +23,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
+        EventSourceIdentityComplianceAdmission.EnsureAccepted([slice], applicationSet);
         if (slice.Slice.Commands.Any())
         {
             LegacyEnclosingAuthorization.EnsureRenderable(slice, applicationSet, $"Command '{slice.Slice.Commands.First().Name}'");
@@ -122,6 +123,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
         var rendered = produces.Select(produced => (
             Event: Identifiers.ToPascalCase(produced.Event),
             Arguments: RenderEventArguments(produced, command, context, applicationSet, diagnostics),
+            Destination: produced.For is null ? null : CommandEventSourceExpression.Render(produced.For, command, applicationSet, property => Identifiers.ToPascalCase(property.Name)),
             Condition: produced.When is null
                 ? null
                 : ExpressionRenderer.Render(produced.When, context, path => EnumTypeOfCommandProperty(path, command, applicationSet))))
@@ -136,26 +138,35 @@ public class StateChangeSliceRenderer : ISliceRenderer
 
         if (rendered.Length == 1 && rendered[0].Condition is null)
         {
-            builder.BlankLine().ExpressionMember($"public {rendered[0].Event} Handle({parameters})", $"new({rendered[0].Arguments})");
+            var produced = rendered[0];
+            var returnType = produced.Destination is null ? produced.Event : "global::Cratis.Chronicle.EventSequences.EventForEventSourceId";
+            var value = produced.Destination is null
+                ? $"new({produced.Arguments})"
+                : WrappedEvent(produced.Event, produced.Arguments, produced.Destination);
+            builder.BlankLine().ExpressionMember($"public {returnType} Handle({parameters})", value);
             return;
         }
 
         builder.BlankLine().OpenBlock($"public IEnumerable<object> Handle({parameters})").Line("var events = new List<object>();");
 
-        foreach (var (@event, arguments, condition) in rendered)
+        foreach (var (@event, arguments, destination, condition) in rendered)
         {
+            var value = destination is null ? $"new {@event}({arguments})" : WrappedEvent(@event, arguments, destination);
             if (condition is not null)
             {
-                builder.OpenBlock($"if ({condition})").Line($"events.Add(new {@event}({arguments}));").EndBlock();
+                builder.OpenBlock($"if ({condition})").Line($"events.Add({value});").EndBlock();
             }
             else
             {
-                builder.Line($"events.Add(new {@event}({arguments}));");
+                builder.Line($"events.Add({value});");
             }
         }
 
         builder.Line("return events;").EndBlock();
     }
+
+    static string WrappedEvent(string eventName, string arguments, string destination) =>
+        $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({destination}, new {eventName}({arguments}))";
 
     /// <summary>
     /// Renders the constructor arguments for a produced event. The argument list follows the <b>event's</b>

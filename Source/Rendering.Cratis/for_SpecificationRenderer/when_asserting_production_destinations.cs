@@ -89,6 +89,35 @@ public class when_asserting_production_destinations : given.a_slice_with_specifi
         produced.Select(value => value.EventSourceId).ShouldEqual(expected);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void should_render_repeated_conditional_event_types_with_a_shared_destination(bool explicitDestination)
+    {
+        var application = Application("String", "destination");
+        var command = application.Slices.Single().Slice.Commands.Single();
+        var conditional = command.Produces.Single() with
+        {
+            For = explicitDestination ? command.Produces.Single().For : null,
+            When = new ComparisonConditionSyntax("name", ComparisonOperator.Equal, new Screenplay.Syntax.LiteralExpressionSyntax("payload", SourceLocation.Start), SourceLocation.Start),
+        };
+        application = ReplaceCommand(application, command with { Produces = [conditional, conditional] });
+        var (_, expected) = RenderAndInvoke(application, "elsewhere", [Event("Changed")]);
+        expected.Single().ToString().ShouldEqual(explicitDestination ? "elsewhere" : "command-source");
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void should_render_more_expected_events_than_productions_with_a_shared_destination(int productionCount)
+    {
+        var application = Application("String", "destination");
+        var command = application.Slices.Single().Slice.Commands.Single();
+        application = ReplaceCommand(application, command with { Produces = Enumerable.Repeat(command.Produces.Single(), productionCount).ToArray() });
+        var (_, expected) = RenderAndInvoke(application, "elsewhere", [Event("Changed"), Event("Changed"), Event("Changed")]);
+        expected.Select(destination => destination.ToString()).ShouldEqual(new[] { "elsewhere", "elsewhere", "elsewhere" });
+    }
+
     [Fact]
     public void should_not_guess_a_destination_for_repeated_conditional_event_types()
     {

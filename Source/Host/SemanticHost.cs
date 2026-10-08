@@ -20,20 +20,8 @@ internal static class SemanticHost
 {
     internal static async Task Run(string[] args, string modelPath)
     {
-        LoadedSemanticModel? loaded = null;
         var issues = new List<StageUnsupportedIssue>();
-        try
-        {
-            loaded = await SemanticModelLoader.LoadFromPathAsync(modelPath);
-        }
-        catch (InvalidSemanticModel invalid)
-        {
-            issues.AddRange(invalid.Diagnostics.Select(message => new StageUnsupportedIssue("Plan", "model", message)));
-            if (issues.Count == 0)
-            {
-                issues.Add(new StageUnsupportedIssue("Plan", "model", "The semantic model could not be loaded."));
-            }
-        }
+        var (loaded, scene) = await LoadModel(modelPath, issues);
 
         var admission = loaded is null ? null : new SemanticRuntimeAdmission(loaded.Plan);
         if (admission is not null)
@@ -98,18 +86,7 @@ internal static class SemanticHost
         app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
         app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
 
-        SceneApplication scene;
-        try
-        {
-            var presentation = await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath);
-            scene = SceneSynthesizer.Synthesize(presentation.Scene, presentation.EventModel);
-        }
-        catch (InvalidEventModel)
-        {
-            scene = await EventModelLoader.LoadSceneApplicationFromDirectoryAsync(Directory.Exists(modelPath) ? modelPath : Path.GetDirectoryName(Path.GetFullPath(modelPath))!);
-        }
-
-        var routes = new StageSceneRoutes(scene, app.Services, app.Logger);
+        var routes = new StageSceneRoutes(scene!, app.Services, app.Logger);
         var strings = new StageStrings(modelPath);
 
         // The EventModel visitor names the application after its first modeled module (or EventModel
@@ -134,6 +111,26 @@ internal static class SemanticHost
         }
 
         await app.WaitForShutdownAsync();
+    }
+
+    internal static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadModel(string modelPath, List<StageUnsupportedIssue> issues)
+    {
+        try
+        {
+            var loaded = await SemanticModelLoader.LoadFromPathAsync(modelPath);
+
+            return (loaded, SemanticHostScene.Load(modelPath, loaded.Model));
+        }
+        catch (InvalidSemanticModel invalid)
+        {
+            issues.AddRange(invalid.Diagnostics.Select(message => new StageUnsupportedIssue("Plan", "model", message)));
+            if (issues.Count == 0)
+            {
+                issues.Add(new StageUnsupportedIssue("Plan", "model", "The semantic model could not be loaded."));
+            }
+
+            return (null, null);
+        }
     }
 
     internal static void UseReadinessGate(IApplicationBuilder app, Func<SemanticWorld?> world, List<StageUnsupportedIssue> issues) => app.Use(async (context, next) =>

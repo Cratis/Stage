@@ -14,6 +14,7 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
     protected virtual string IdentifierExpression => "new InvoiceId(key)";
     protected virtual string Key => "invoice-one";
     protected virtual bool IncludeQuery => true;
+    protected virtual bool VerifyEmptyQueryDenial => false;
 
     protected static string WithGuestDenials(string source) => source.Replace(
         "    slice StateView Lookup",
@@ -37,15 +38,29 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
 
     protected async Task VerifyPipeline()
     {
-        var query = IncludeQuery ? """
+        var emptyQueryDenial = VerifyEmptyQueryDenial ? """
+                    var seededReadModels = (Cratis.Chronicle.ReadModels.IReadModels)query.Context["Chronicle.ReadModels"];
+                    Assert.NotNull(await seededReadModels.GetInstanceById<InvoiceSummary>((Cratis.Chronicle.Events.EventSourceId)id));
+                    using (accessor.BeginScope(Authenticated(new Claim("owner", string.Empty))))
+                    {
+                        var emptyQueryResult = await query.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = string.Empty });
+                        Assert.False(emptyQueryResult.HasExceptions, string.Join("; ", emptyQueryResult.ExceptionMessages));
+                        Assert.False(emptyQueryResult.IsAuthorized);
+                        Assert.Null(emptyQueryResult.Data);
+                    }
+            """ : string.Empty;
+        var query = IncludeQuery ? $$"""
                     using var query = new QueryScenario<InvoiceSummary>();
                     Invoices.GeneratedPolicies.Registration.Register(query.Services);
                     query.Services.AddSingleton<ICurrentPrincipalAccessor>(accessor);
-                    query.Given.ForEventSource(key).Events(new InvoiceIssued(id, "North"));
+                    // Use the query's typed identity conversion; numeric identities need not stringify like the input key.
+                    query.Given.ForEventSource((Cratis.Chronicle.Events.EventSourceId)id).Events(new InvoiceIssued(id, "North"));
                     await AssertGuestDenied(typeof(InvoiceSummary).GetMethod(nameof(InvoiceSummary.InvoiceById))!,
                         new QueryContext(nameof(InvoiceSummary.InvoiceById), CorrelationId.New(), Paging.NotPaged, Sorting.None, new QueryArguments { ["invoiceId"] = id }));
+                    {{emptyQueryDenial}}
                     var queryResult = await query.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = id });
                     Assert.False(queryResult.HasExceptions, string.Join("; ", queryResult.ExceptionMessages));
+                    Assert.Empty(queryResult.ValidationResults);
                     return (commandResult.IsAuthorized, command.AppendedEvents.Count, queryResult.IsAuthorized, queryResult.Data is InvoiceSummary);
             """ : "return (commandResult.IsAuthorized, command.AppendedEvents.Count, false, false);";
         var queryAllowed = IncludeQuery ? "true" : "false";

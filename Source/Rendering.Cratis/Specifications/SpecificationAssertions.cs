@@ -3,7 +3,9 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Specifications;
+using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Types;
 
 namespace Cratis.Stage.Rendering.Cratis.Specifications;
 
@@ -98,6 +100,31 @@ public static class SpecificationAssertions
             .ToArray();
 
         return comparisons.Length == 0 ? string.Empty : $", @event => {string.Join(" && ", comparisons)}";
+    }
+
+    internal static string ForProduction(
+        ProducesSyntax? production, SpecificationCommandSyntax when, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics)
+    {
+        if (production?.For is not { } destination)
+        {
+            return Of(when, command, applicationSet, diagnostics);
+        }
+
+        var missing = false;
+        var rendered = CommandEventSourceExpression.Render(destination, command, applicationSet, property =>
+        {
+            var value = SpecificationValues.For(property, when.Values, command.Name, applicationSet, diagnostics);
+            if (value == "default!")
+            {
+                missing = true;
+                diagnostics.Add($"The specification states no renderable value for destination property '{property.Name}' of '{command.Name}'.");
+            }
+
+            var type = TypeResolver.Resolve(property.Type, applicationSet);
+            return type.Kind == ResolvedTypeKind.Concept ? $"(({type.ClrTypeName})({value}))" : value;
+        });
+
+        return missing ? "EventSourceId.Unspecified" : rendered;
     }
 
     static string? Comparison(

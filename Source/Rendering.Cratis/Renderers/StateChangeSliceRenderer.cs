@@ -120,7 +120,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
         var rendered = produces.Select(produced => (
             Event: Identifiers.ToPascalCase(produced.Event),
             Arguments: RenderEventArguments(produced, command, context, applicationSet, diagnostics),
-            Destination: RenderDestination(produced.For, command, context, applicationSet),
+            Destination: produced.For is null ? null : CommandEventSourceExpression.Render(produced.For, command, applicationSet, property => Identifiers.ToPascalCase(property.Name)),
             Condition: produced.When is null
                 ? null
                 : ExpressionRenderer.Render(produced.When, context, path => EnumTypeOfCommandProperty(path, command, applicationSet))))
@@ -164,35 +164,6 @@ public class StateChangeSliceRenderer : ISliceRenderer
 
     static string WrappedEvent(string eventName, string arguments, string destination) =>
         $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({destination}, new {eventName}({arguments}))";
-
-    static string? RenderDestination(ExpressionSyntax? destination, CommandSyntax command, CommandContextAccess context, ApplicationSet applicationSet)
-    {
-        if (destination is null)
-        {
-            return null;
-        }
-
-        var hasImplicitConversion = false;
-        if (destination is PathExpressionSyntax path)
-        {
-            var property = CommandProperty(path.Path, command);
-            if (property is null || path.Path.Contains('.', StringComparison.Ordinal))
-            {
-                throw new UnsupportedExpression(destination);
-            }
-
-            var type = TypeResolver.Resolve(property.Type, applicationSet);
-            if (type.IsCollection || type.IsOptional || type.Kind is ResolvedTypeKind.Composite or ResolvedTypeKind.Unresolved)
-            {
-                throw new UnsupportedExpression(destination);
-            }
-
-            hasImplicitConversion = (type.Kind == ResolvedTypeKind.Primitive && (string.Equals(type.ClrTypeName, "string", StringComparison.Ordinal) || string.Equals(type.ClrTypeName, "Guid", StringComparison.Ordinal))) ||
-                (type.Kind == ResolvedTypeKind.Concept && applicationSet.IdentifierConceptNames.Contains(property.Type.Name));
-        }
-
-        return EventSourceExpression.Render(ExpressionRenderer.Render(destination, context), hasImplicitConversion);
-    }
 
     /// <summary>
     /// Renders the constructor arguments for a produced event. The argument list follows the <b>event's</b>

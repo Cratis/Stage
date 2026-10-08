@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
@@ -14,6 +15,17 @@ internal sealed class SemanticRuntimeAdmission
     internal SemanticRuntimeAdmission(SemanticExecutionPlan plan)
     {
         var entries = new List<SemanticAdmissionEntry>();
+        var blocking = new List<SemanticAdmissionEntry>();
+
+        // ESM v5-v7 constructs the runtime cannot execute refuse the whole model rather than running without them:
+        // a reaction, capture or trigger would never fire, and a generated value or response would be mis-executed.
+        var application = plan.Model.Application;
+        foreach (var feature in SemanticVersionFeatures.InApplication(application).Concat(SemanticVersionFeatures.Slices(application).SelectMany(SemanticVersionFeatures.InSlice)))
+        {
+            var entry = Refused(feature);
+            entries.Add(entry);
+            blocking.Add(entry);
+        }
         var duplicateNames = plan.Events.Values.GroupBy(@event => @event.Name, StringComparer.Ordinal)
             .Where(group => group.Count() > 1).Select(group => group.Key).ToHashSet(StringComparer.Ordinal);
         foreach (var @event in plan.Events.Values)
@@ -36,6 +48,14 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var command in plan.Commands.Values)
         {
+            if (SemanticVersionFeatures.InCommand(command).FirstOrDefault() is { } feature)
+            {
+                var entry = Refused(feature);
+                entries.Add(entry);
+                blocking.Add(entry);
+                continue;
+            }
+
             var problem = command.Produces.Any(produced => produced.Destination is null && command.Destination?.Value is null)
                 ? "A produced fact requires an allocated destination."
                 : null;
@@ -59,13 +79,20 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var specification in plan.Specifications.Values)
         {
-            entries.Add(new(specification.Id.ToString(), "specification", "unsupported", "Specification", "Live specification execution is not available; use the specification runner."));
+            // Live specifications never run, so a v5-v7 construct in one is reported precisely without blocking the model.
+            entries.Add(SemanticVersionFeatures.InSpecification(specification).FirstOrDefault() is { } feature
+                ? Refused(feature)
+                : new(specification.Id.ToString(), "specification", "unsupported", "Specification", "Live specification execution is not available; use the specification runner."));
         }
 
         Entries = entries;
+        Blocking = [.. entries.Where(entry => entry.Kind == "event" && entry.Status == "unsupported"), .. blocking];
     }
 
     internal IReadOnlyList<SemanticAdmissionEntry> Entries { get; }
 
-    internal IReadOnlyList<SemanticAdmissionEntry> Blocking => [.. Entries.Where(entry => entry.Kind == "event" && entry.Status == "unsupported")];
+    internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
+
+    static SemanticAdmissionEntry Refused(SemanticVersionFeature feature) =>
+        new(feature.Artifact.ToString(), feature.Kind, "unsupported", feature.Capability.ToString(), $"{feature.Code}: {feature.Message}");
 }

@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Specifications.Admission;
@@ -166,29 +167,16 @@ internal static class SemanticRunAdmission
 
     // ESM v5-v7 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
     // an absence assertion, a generated value or a response would otherwise be dropped and the run could pass.
+    // Any automation construct in the model blocks every run, since its consequences could follow any command.
     static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
     {
-        var reaction = slices.SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions).FirstOrDefault();
-        if (reaction is not null) return new(StageExecutionCapability.Specification, reaction.Id.ToString(), "Reactions cannot be executed by Stage.");
-        if (specification.GivenClock is not null || specification.WhenClock is not null || specification.WhenTrigger is not null ||
-            specification.WhenCapture is not null || !specification.GivenCaptures.IsDefaultOrEmpty)
-        {
-            return new(StageExecutionCapability.Specification, specification.Id.ToString(), "Clock, trigger and capture specifications cannot be executed by Stage.");
-        }
-        if (!specification.ThenAbsentReadModels.IsDefaultOrEmpty)
-        {
-            return new(StageExecutionCapability.Projection, specification.Id.ToString(), "Read-model absence expectations cannot be executed by Stage.");
-        }
-        if (specification.ThenReturns is not null || specification.When is { GeneratedValues.IsDefaultOrEmpty: false })
-        {
-            return new(StageExecutionCapability.IdentityAllocation, specification.Id.ToString(), "Generated values and response expectations cannot be executed by Stage.");
-        }
-        if (specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var command) &&
-            (command.Response is not null || command.Properties.Any(property => property.IsGenerated)))
-        {
-            return new(StageExecutionCapability.IdentityAllocation, command.Id.ToString(), "Generated values and command responses cannot be executed by Stage.");
-        }
-        return null;
+        var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
+        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application)
+            .Concat(slices.SelectMany(SemanticVersionFeatures.InSlice))
+            .Concat(SemanticVersionFeatures.InSpecification(specification))
+            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command))
+            .FirstOrDefault();
+        return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>

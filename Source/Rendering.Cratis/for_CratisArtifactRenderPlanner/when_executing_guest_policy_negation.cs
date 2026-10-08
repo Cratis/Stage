@@ -15,6 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// <summary>
 /// Exercises guest opt-in through the generated Arc command and query pipelines, not just the policy predicate.
 /// </summary>
+/// <param name="fixture">The generated application fixture.</param>
 public class when_executing_guest_policy_negation(context fixture) : IClassFixture<context>
 {
     [Fact] void should_build_debug_and_release_without_warnings() => (fixture.DebugWarnings + fixture.ReleaseWarnings).ShouldBeEmpty();
@@ -29,13 +30,13 @@ public class when_executing_guest_policy_negation(context fixture) : IClassFixtu
         {
             get
             {
-                (string Condition, string Type, string? Value, bool Allowed)[] policies =
+                (string Condition, string Type, string Value, bool Allowed)[] policies =
                 [
-                    ("not role \"Banned\"", "String", null, true),
-                    ("not authenticated", "String", null, true),
-                    ("not claim \"owner\" matches owner", "String", null, false),
+                    ("not role \"Banned\"", "String", "\"person\"", true),
+                    ("not authenticated", "String", "\"person\"", true),
+                    ("not claim \"owner\" matches owner", "Decimal", "42.5", false),
                     ("not claim \"owner\" matches owner", "Int", "42", false),
-                    ("not claim \"owner\" matches \"person\"", "String", null, true),
+                    ("not claim \"owner\" matches \"person\"", "String", "\"person\"", true),
                     ("not claim \"owner\" matches owner", "String", "\"person\"", true),
                     ("not (role \"Banned\" and claim \"owner\" matches owner)", "Int", "42", true),
                     ("not (role \"Banned\" or claim \"owner\" matches owner)", "Int", "42", false)
@@ -50,13 +51,13 @@ public class when_executing_guest_policy_negation(context fixture) : IClassFixtu
                 for (var index = 0; index < policies.Length; index++)
                 {
                     var (_, type, value, allowed) = policies[index];
-                    var owner = $"\n          owner = {value ?? "null"}";
+                    var owner = $"\n          owner = {value}";
                     var then = allowed ? $"then Filed{index}\n          for \"r-1\"\n          reportId = \"r-1\"" : "then denied";
                     source.Append($$"""
                             slice StateChange File{{index}}
                               command File{{index}}
                                 reportId ReportId identifier
-                                owner {{type}} optional
+                                owner {{type}}
                                 authorize P{{index}}
                                 produces Filed{{index}}
                                   for reportId
@@ -70,24 +71,24 @@ public class when_executing_guest_policy_negation(context fixture) : IClassFixtu
                                 {{then}}
 
                         """);
+                    if (index is 0 or 1)
+                    {
+                        var name = index == 0 ? "BannedCaller" : "SignedInCaller";
+                        var role = index == 0 ? "\n          role \"Banned\"" : string.Empty;
+                        source.Append($$"""
+                              specification {{name}}
+                                given caller
+                                  authenticated{{role}}
+                                when File{{index}}
+                                  reportId = "r-1"
+                                  owner = "person"
+                                then denied
+
+                        """);
+                    }
                 }
 
                 source.Append("""
-                      specification BannedCaller
-                        given caller
-                          authenticated
-                          role "Banned"
-                        when File0
-                          reportId = "r-1"
-                          owner = "person"
-                        then denied
-                      specification SignedInCaller
-                        given caller
-                          authenticated
-                        when File1
-                          reportId = "r-1"
-                          owner = "person"
-                        then denied
                     slice StateView Lookup
                       readmodel Report
                         reportId ReportId
@@ -164,7 +165,7 @@ public class when_executing_guest_policy_negation(context fixture) : IClassFixtu
                         Assert.Equal(11, policies.Length);
                         (string Operation, bool Anonymous)[] expected =
                         [
-                            ("File0", true), ("File1", true), ("File2", true), ("File3", false),
+                            ("File0", true), ("File1", true), ("File2", false), ("File3", false),
                             ("File4", true), ("File5", true), ("File6", true), ("File7", false),
                             ("GuestReport", true), ("NoGuestReport", false), ("EitherReport", true)
                         ];

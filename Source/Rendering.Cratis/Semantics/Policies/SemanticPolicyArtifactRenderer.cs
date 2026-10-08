@@ -159,9 +159,23 @@ internal static class SemanticPolicyArtifactRenderer
         SemanticClaimCondition claim => claim.TargetKind == SemanticClaimTargetKind.Literal ||
             SemanticClaimTargets.Primitive(context, SemanticClaimTargets.Property(context, properties, claim.TargetKind == SemanticClaimTargetKind.Subject ? subject : claim.Value!)) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid ? false : null,
         SemanticNotPolicyCondition not => GuestTruth(not.Operand, context, properties, subject) is { } value ? !value : null,
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => GuestTruth(logical.Left, context, properties, subject) & GuestTruth(logical.Right, context, properties, subject),
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => GuestTruth(logical.Left, context, properties, subject) | GuestTruth(logical.Right, context, properties, subject),
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => And(GuestTruth(logical.Left, context, properties, subject), GuestTruth(logical.Right, context, properties, subject)),
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => Or(GuestTruth(logical.Left, context, properties, subject), GuestTruth(logical.Right, context, properties, subject)),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPolicyCondition), condition.GetType().Name)
+    };
+
+    static bool? And(bool? left, bool? right) => (left, right) switch
+    {
+        (false, _) or (_, false) => false,
+        (true, true) => true,
+        _ => null
+    };
+
+    static bool? Or(bool? left, bool? right) => (left, right) switch
+    {
+        (true, _) or (_, true) => true,
+        (false, false) => false,
+        _ => null
     };
 
     static bool Negates(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch

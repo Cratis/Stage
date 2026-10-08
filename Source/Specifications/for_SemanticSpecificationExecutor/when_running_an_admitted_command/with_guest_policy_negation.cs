@@ -20,18 +20,18 @@ public class with_guest_policy_negation : Specification
 
     void Establish()
     {
-        (string Condition, string Type, string? Value, string Caller, bool Allowed)[] policies =
+        (string Condition, string Type, string Value, string Caller, bool Allowed)[] policies =
         [
-            ("not role \"Banned\"", "String", null, string.Empty, true),
-            ("not authenticated", "String", null, string.Empty, true),
-            ("not claim \"owner\" matches owner", "String", null, string.Empty, false),
+            ("not role \"Banned\"", "String", "\"person\"", string.Empty, true),
+            ("not authenticated", "String", "\"person\"", string.Empty, true),
+            ("not claim \"owner\" matches owner", "Decimal", "42.5", string.Empty, false),
             ("not claim \"owner\" matches owner", "Int", "42", string.Empty, false),
-            ("not claim \"owner\" matches \"person\"", "String", null, string.Empty, true),
+            ("not claim \"owner\" matches \"person\"", "String", "\"person\"", string.Empty, true),
             ("not claim \"owner\" matches owner", "String", "\"person\"", string.Empty, true),
             ("not (role \"Banned\" and claim \"owner\" matches owner)", "Int", "42", string.Empty, true),
             ("not (role \"Banned\" or claim \"owner\" matches owner)", "Int", "42", string.Empty, false),
-            ("not role \"Banned\"", "String", null, "\n          authenticated\n          role \"Banned\"", false),
-            ("not authenticated", "String", null, "\n          authenticated", false)
+            ("not role \"Banned\"", "String", "\"person\"", "\n          authenticated\n          role \"Banned\"", false),
+            ("not authenticated", "String", "\"person\"", "\n          authenticated", false)
         ];
         var source = new StringBuilder();
         for (var index = 0; index < policies.Length; index++)
@@ -43,13 +43,13 @@ public class with_guest_policy_negation : Specification
         for (var index = 0; index < policies.Length; index++)
         {
             var (_, type, value, caller, allowed) = policies[index];
-            var owner = value is null ? string.Empty : $"\n          owner = {value}";
+            var owner = $"\n          owner = {value}";
             var then = allowed ? $"then Filed{index}\n          for \"r-1\"\n          reportId = \"r-1\"" : "then denied";
             source.Append($$"""
                     slice StateChange File{{index}}
                       command File{{index}}
                         reportId String identifier
-                        owner {{type}} optional
+                        owner {{type}}
                         authorize P{{index}}
                         produces Filed{{index}}
                           for reportId

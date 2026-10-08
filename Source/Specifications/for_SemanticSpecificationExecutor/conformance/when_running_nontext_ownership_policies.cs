@@ -12,6 +12,11 @@ public class when_running_nontext_ownership_policies : Specification
     readonly List<string> _differences = [];
     int _executed;
 
+    [Fact]
+    public void should_execute_all_scalar_denial_and_role_alternative_vectors() => _executed.ShouldEqual(6);
+    [Fact]
+    public void should_match_the_reference_for_numeric_and_boolean_subjects_and_properties() => Assert.True(_differences.Count == 0, string.Join(Environment.NewLine, _differences));
+
     protected async Task Because()
     {
         foreach (var (primitive, value, claim) in new[] { ("Decimal", "123.45", "123.45"), ("Int", "123", "123"), ("Bool", "true", "true") })
@@ -71,9 +76,4 @@ public class when_running_nontext_ownership_policies : Specification
             }
         }
     }
-
-    [Fact]
-    public void should_execute_all_scalar_denial_and_role_alternative_vectors() => _executed.ShouldEqual(6);
-    [Fact]
-    public void should_match_the_reference_for_numeric_and_boolean_subjects_and_properties() => Assert.True(_differences.Count == 0, string.Join(Environment.NewLine, _differences));
 }

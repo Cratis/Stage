@@ -53,8 +53,69 @@ function respond(url: string) {
     return Promise.resolve({ ok: true, json: () => Promise.resolve({ isSuccess: true }) } as Response);
 }
 
+const navigationScene = {
+    layouts: [],
+    screenTemplates: [],
+    screens: [
+        {
+            name: 'InvoiceList',
+            layout: 'AppShell',
+            screenTemplate: null,
+            forms: [],
+            contributions: [],
+            behaviors: [],
+            slotContent: {
+                content: [
+                    {
+                        id: 'details',
+                        name: 'details',
+                        componentName: 'core:button',
+                        properties: { label: 'Open details' },
+                        slots: {},
+                        behaviors: [{
+                            name: 'OpenDetails',
+                            bindings: [{
+                                trigger: { kind: InteractionTriggerKind.Click },
+                                actions: [{ kind: InteractionActionKind.Navigate, screen: 'InvoiceDetails' }],
+                            }],
+                        }],
+                    },
+                    {
+                        id: 'edit',
+                        name: 'edit',
+                        componentName: 'core:button',
+                        properties: { label: 'Edit invoice' },
+                        slots: {},
+                        behaviors: [{
+                            name: 'EditInvoice',
+                            bindings: [{
+                                trigger: { kind: InteractionTriggerKind.Click },
+                                actions: [{ kind: InteractionActionKind.OpenDialog, dialogTemplate: 'EditInvoiceDialog' }],
+                            }],
+                        }],
+                    },
+                ],
+            },
+        },
+        {
+            name: 'InvoiceDetails',
+            layout: 'AppShell',
+            screenTemplate: null,
+            forms: [],
+            contributions: [],
+            behaviors: [],
+            slotContent: {
+                content: [{ id: 'title', name: 'title', componentName: 'core:title', properties: { text: 'Details screen' }, slots: {} }],
+            },
+        },
+    ],
+};
+
 describe('when a modeled interaction is clicked', () => {
-    afterEach(() => vi.unstubAllGlobals());
+    afterEach(() => {
+        globalThis.history.replaceState(null, '', '#');
+        vi.unstubAllGlobals();
+    });
 
     // The end of the whole chain: a `.play` document said `on click / execute CancelInvoice`, and clicking the
     // rendered button posts to the route this Stage registered for that command. Everything else is plumbing.
@@ -88,5 +149,33 @@ describe('when a modeled interaction is clicked', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Cancel invoice' }));
 
         await screen.findByText(/not registered by this Stage/);
+    });
+
+    it('should navigate to the authored screen and render its outlet content', async () => {
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(navigationScene) } as Response);
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        fireEvent.click(await screen.findByRole('button', { name: 'Open details' }));
+
+        expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
+    });
+
+    it('should report an authored dialog this Stage runtime cannot host yet', async () => {
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(navigationScene) } as Response);
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        fireEvent.click(await screen.findByRole('button', { name: 'Edit invoice' }));
+
+        expect(await screen.findByText(/EditInvoiceDialog/)).toBeDefined();
     });
 });

@@ -2,11 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.RegularExpressions;
+
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
+#pragma warning disable MA0110, SA1202 // The current SDK does not generate implementations for these regex members in this project.
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
@@ -17,7 +19,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// stricter analyser settings than this repository uses. A using nobody uses is a warning in that build and a
 /// change request in that review, and the author cannot fix it by editing the file.
 /// </remarks>
-public partial class when_planning_generated_code_quality : a_register_project_render_request
+public class when_planning_generated_code_quality : a_register_project_render_request
 {
     ArtifactRenderPlan _plan = null!;
 
@@ -35,7 +37,7 @@ public partial class when_planning_generated_code_quality : a_register_project_r
 
     [Fact] void should_not_declare_a_namespace_twice_in_one_file() =>
         Sources()
-            .Any(_ => UsingDirective.Matches(_.Text)
+            .Any(_ => UsingDirective().Matches(_.Text)
                 .Select(match => match.Groups["namespace"].Value)
                 .GroupBy(namespaceName => namespaceName, StringComparer.Ordinal)
                 .Any(group => group.Count() > 1))
@@ -45,7 +47,7 @@ public partial class when_planning_generated_code_quality : a_register_project_r
         Sources()
             .Any(_ =>
             {
-                var declared = UsingDirective.Matches(_.Text)
+                var declared = UsingDirective().Matches(_.Text)
                     .Select(match => match.Groups["namespace"].Value)
                     .ToArray();
                 return !declared.SequenceEqual(declared.Order(StringComparer.Ordinal));
@@ -55,8 +57,9 @@ public partial class when_planning_generated_code_quality : a_register_project_r
     [Fact] void should_leave_no_blank_line_at_the_end_of_a_file() =>
         Sources().Any(_ => _.Text.EndsWith("\n\n", StringComparison.Ordinal)).ShouldBeFalse();
 
-    [GeneratedRegex("(?m)^using (?<namespace>[A-Za-z0-9_.]+);", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex UsingDirective { get; }
+    static readonly Regex _usingDirective = new("(?m)^using (?<namespace>[A-Za-z0-9_.]+);", RegexOptions.ExplicitCapture, TimeSpan.FromMilliseconds(1000));
+
+    static Regex UsingDirective() => _usingDirective;
 
     IEnumerable<(string Path, string Text)> Sources() =>
         _plan.Artifacts

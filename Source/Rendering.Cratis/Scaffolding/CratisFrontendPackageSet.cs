@@ -26,8 +26,8 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// NuGet counterpart at all.
 /// </para>
 /// <para>
-/// The Scene family is pinned at exact 4.2.0 for editable keyed lookups, explicit command inputs and
-/// identity-aware bindings, with Components 4.14.0 supplying the optional native-form footer. Frontend
+/// The Scene family is pinned at exact 4.9.0 for the typed runtime contracts, released default blueprint, package-owned PrimeReact mapping,
+/// editable keyed lookups, explicit command inputs and identity-aware bindings, with Components 4.14.0 supplying the optional native-form footer. Frontend
 /// installation and native consumer verification use those published packages as a separate gate;
 /// C# rendering checks alone do not establish it.
 /// </para>
@@ -214,11 +214,11 @@ public sealed class CratisFrontendPackageSet
         "19.3.0",
         "19.3.0",
         "4.14.0",
-        "4.2.0",
-        "11.1.0",
-        "8.0.1",
+        "4.9.0",
+        "11.2.0",
+        "8.0.2",
         "3.0.1",
-        "26.6.2");
+        "26.6.4");
 
     /// <summary>
     /// Creates an unvalidated frontend package set for in-assembly contract verification.

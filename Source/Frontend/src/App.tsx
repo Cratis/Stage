@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Layout, SceneElement, Screen, ScreenTemplate, UiProfile } from '@cratis/scene.model';
+import type { DialogTemplate, Layout, SceneElement, Screen, ScreenTemplate, Theme, UiProfile } from '@cratis/scene.model';
 import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
 import { InteractionScope, SceneElementView, createBrowserDispatcher } from '@cratis/scene.react';
@@ -15,7 +15,8 @@ import {
     shellComponentForLayout,
 } from '@cratis/scene.blueprint.default';
 import '@cratis/scene.blueprint.default/styles.css';
-import { useStageRoutes } from './stageRoutes';
+import { useStageRoutes, type StageRoutes } from './stageRoutes';
+import { StageDataProvider, useStageData } from './stageData';
 import { stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents, stageTemplateComponent } from './StageChrome';
@@ -23,10 +24,12 @@ import { applicationChrome, resolveNames, screenFromHash, screenHash, stageProfi
 import './app.css';
 
 export interface StageSceneApplication {
+    uiProfiles?: UiProfile[];
+    themes?: Theme[];
     layouts: Layout[];
     screenTemplates: ScreenTemplate[];
+    dialogTemplates?: DialogTemplate[];
     screens: Screen[];
-    uiProfiles?: UiProfile[];
 }
 
 interface SceneCommandDetail {
@@ -46,9 +49,9 @@ const registry = stageRegistry({ ...stageComponents, ...stageChromeComponents })
  * layout, the chrome every screen shares in the shell's slots, and the screen - inside the screen template it
  * names, when it names one - in the shell's content slot.
  *
- * A layout the model declared under a name the blueprint does not provide still renders in the blueprint's
- * `AppShell`: the model's layout contributes the application's structure, but the shell that draws it is the
- * blueprint's, which is the point of rendering through one.
+ * A layout the selected package set does not provide remains unresolved in the rendered tree. Showing that
+ * missing component is deliberate: silently substituting a default shell would hide a package/profile problem
+ * and produce a screen the model did not ask for.
  */
 export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string): SceneElement {
     const profile = stageProfile(scene.uiProfiles);
@@ -58,7 +61,7 @@ export function composeStageScreen(scene: StageSceneApplication, screen: Screen,
         ? [externalComponent(`template-${screen.name}`, stageTemplateComponent, { arrangement: template.arrangement }, screen.slotContent)]
         : slotEntries.flatMap(([, elements]) => elements);
 
-    const shell = shellComponentForLayout(screen.layout) ?? ComponentName.AppShell;
+    const shell = shellComponentForLayout(screen.layout) ?? screen.layout;
     const chrome = shell === ComponentName.FullPageShell
         ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale)[SlotName.ConfigPanel] }
         : applicationChrome(scene.screens, screen.name, locales, locale);
@@ -149,6 +152,38 @@ export function App() {
         );
     }
 
+    return (
+        <LayoutConfigProvider>
+            <LayoutThemeProvider>
+                <ColorSchemeMirror />
+                <StageDataProvider routes={routes} locale={strings.locale} locales={strings.locales} screen={screen.name}>
+                    <StageSceneView
+                        activity={activity}
+                        element={element}
+                        routes={routes}
+                        scene={scene}
+                        setActivity={setActivity}
+                        select={select}
+                        strings={strings} />
+                </StageDataProvider>
+            </LayoutThemeProvider>
+        </LayoutConfigProvider>
+    );
+}
+
+interface StageSceneViewProps {
+    activity: string;
+    element: SceneElement;
+    routes: StageRoutes | undefined;
+    scene: StageSceneApplication;
+    select: (screen: string) => void;
+    setActivity: (activity: string) => void;
+    strings: ReturnType<typeof useStrings>;
+}
+
+function StageSceneView({ activity, element, routes, scene, select, setActivity, strings }: StageSceneViewProps) {
+    const data = useStageData();
+
     // Everything a document's interactions can do, pointed at the running application. The engine decides
     // what runs; this only says where a command goes and what a notification looks like.
     const dispatcher = createBrowserDispatcher({
@@ -176,6 +211,7 @@ export function App() {
             // whether it worked. Reading the body is what makes 'on failure' mean what the document says.
             const validationErrors = (result.validationResults ?? []).map(_ => ({ member: _.members[0] ?? '', message: _.message }));
             if (validationErrors.length > 0) setActivity(validationErrors.map(_ => _.message).join(' '));
+            if (validationErrors.length === 0) data.refreshQuery();
 
             return { isSuccess: result.isSuccess !== false && validationErrors.length === 0, validationErrors };
         },
@@ -186,8 +222,17 @@ export function App() {
                 setActivity(`The modeled screen “${screenName}” is not available.`);
             }
         },
+        navigateBack: () => globalThis.history?.back(),
+        openDialog: async dialogTemplate => {
+            setActivity(`The modeled dialog “${dialogTemplate}” is not available in this Stage runtime.`);
+            return { isConfirmed: false };
+        },
+        closeDialog: () => setActivity('Dialog closed.'),
+        confirm: async message => globalThis.confirm(message),
+        setState: (target, value) => data.setState(target, value),
         notify: (level, message) => setActivity(`${level}: ${message}`),
-        refreshQuery: async query => { globalThis.dispatchEvent(new CustomEvent('cratis.scene.refresh', { detail: { query } })); },
+        refreshQuery: async query => data.refreshQuery(query),
+        raise: async trigger => setActivity(`The modeled trigger “${trigger}” is not available in this Stage runtime.`),
     });
 
     // A finding is what the engine could not do. Showing it is the whole difference between an interaction
@@ -196,15 +241,10 @@ export function App() {
         setActivity(findings.map(finding => finding.detail).join(' '));
 
     return (
-        <LayoutConfigProvider>
-            <LayoutThemeProvider>
-                <ColorSchemeMirror />
-                <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity }}>
-                    <InteractionScope dispatcher={dispatcher} context={{ resolve: () => undefined }} attachments={[]} onFindings={reportFindings}>
-                        <SceneElementView element={element} registry={registry} resolveBinding={() => undefined} />
-                    </InteractionScope>
-                </StageChromeProvider>
-            </LayoutThemeProvider>
-        </LayoutConfigProvider>
+        <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity }}>
+            <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key }} attachments={[]} onFindings={reportFindings}>
+                <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} />
+            </InteractionScope>
+        </StageChromeProvider>
     );
 }

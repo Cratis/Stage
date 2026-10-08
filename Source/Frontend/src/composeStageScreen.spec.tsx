@@ -16,7 +16,7 @@ const element = (id: string, componentName: string, properties: Record<string, u
 } as ExternalComponent);
 
 const screen = (name: string, template?: string): Screen => ({
-    name, layout: 'Application', screenTemplate: template, forms: [], contributions: [],
+    name, layout: 'AppShell', screenTemplate: template, forms: [], contributions: [],
     slotContent: template ? { body: [element(`${name}-body`, 'core:text')] } : { content: [element(`${name}-title`, 'core:title')] },
 } as unknown as Screen);
 
@@ -47,5 +47,11 @@ describe('composing a screen in the default blueprint', () => {
     it('places a screen with no template straight into the shell content slot', () => {
         const composed = compose(scene, screens(scene)[1]);
         expect(slot(composed, 'content').map(_ => _.componentName)).toContain('core:title');
+    });
+
+    it('keeps an unsupported layout unresolved rather than substituting a default shell', () => {
+        const custom = { ...screen('Custom'), layout: 'CustomShell' };
+        const composed = compose({ layouts: [], screenTemplates: [], screens: [custom] }, custom);
+        expect(composed.componentName).toBe('CustomShell');
     });
 });

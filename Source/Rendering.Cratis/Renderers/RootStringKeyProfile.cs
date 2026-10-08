@@ -3,21 +3,24 @@
 
 using System.Collections.Immutable;
 using System.Text.RegularExpressions;
+
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
 using Cratis.Stage.Rendering.Cratis.Naming;
 
+#pragma warning disable MA0110, SA1202 // The current SDK does not generate implementations for these regex members in this project.
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 // Separate from mapped property identity: admitting this profile never adds or marks a record property.
 // Subscriptions are the renderer's actual first-event winners, not another walk of the projection syntax.
-internal sealed partial class RootStringKeyProfile(ImmutableDictionary<string, string> values)
+internal sealed class RootStringKeyProfile(ImmutableDictionary<string, string> values)
 {
     // Nonempty, anchored counterpart of Chronicle 313f181 ValueExpressionResolver's payload capture.
     // .NET Unicode \w is intentional; spaces survive unchanged. No trimming or expression evaluation.
-    [GeneratedRegex(@"\A[\w ._/:\*\+\-]+\z", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex PayloadGrammar { get; }
+    static readonly Regex _payloadGrammar = new(@"\A[\w ._/:\*\+\-]+\z", RegexOptions.None, TimeSpan.FromMilliseconds(1000));
+
+    static Regex PayloadGrammar() => _payloadGrammar;
 
     internal static RootStringKeyProfile? Admit(
         ProjectionSyntax projection,
@@ -49,7 +52,7 @@ internal sealed partial class RootStringKeyProfile(ImmutableDictionary<string, s
                 throw Reject(UnsupportedRootStringKeyReason.EmptyLiteral, key.Location, spec.Event);
             }
 
-            if (!PayloadGrammar.IsMatch(value))
+            if (!PayloadGrammar().IsMatch(value))
             {
                 throw Reject(UnsupportedRootStringKeyReason.UnencodableLiteral, key.Location, spec.Event);
             }

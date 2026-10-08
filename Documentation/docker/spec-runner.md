@@ -118,6 +118,13 @@ The types behind the file live in `Cratis.Stage.Contracts` (`SpecificationRunRes
 
 ## Opt in to semantic execution
 
+A running Stage host with the semantic engine also exposes
+[`POST /stage/semantic/specifications/run`](index.md#run-specifications-in-a-semantic-session). It calls the
+same `SemanticSpecificationExecutor` as this runner and returns the same `stage-spec-run/1` report directly,
+without writing a file. Both paths create fresh isolated state per specification; neither runs against a live
+session's world or event store. Capability refusals remain typed `Unsupported` results with their details.
+The host route is additive and does not change either runner's `results.json` format or the default engine.
+
 The semantic engine is opt-in in this minor version. Use `--engine semantic` for behavioral execution rather than the deprecated structural check:
 
 ```bash

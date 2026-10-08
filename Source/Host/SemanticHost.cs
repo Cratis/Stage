@@ -11,6 +11,7 @@ using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Host.Workbench;
 using Cratis.Stage.Runtime;
 using Cratis.Stage.Semantics;
+using Cratis.Stage.Specifications;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 
@@ -45,6 +46,7 @@ internal static class SemanticHost
         if (surface is not null)
         {
             SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, WorldProvider(() => world));
+            builder.Services.AddSingleton<ISemanticSpecificationExecutor>(new SemanticSpecificationExecutor());
             builder.Services.AddSingleton<DynamicTypeFactory>();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddControllers();
@@ -76,6 +78,7 @@ internal static class SemanticHost
 
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
+        SemanticSpecificationRuns.Map(app, loaded.Plan);
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();
@@ -183,17 +186,21 @@ internal static class SemanticHost
         {
             Engine = "semantic", Issues = issues
         });
+        app.MapPost(SemanticSpecificationRuns.Route, (HttpContext context) => RefusedResponse(context, issues));
         MapRefusedApi(app, issues);
     }
 
     static void MapRefusedApi(WebApplication app, List<StageUnsupportedIssue> issues)
     {
-        app.MapMethods("/api/{**path}", ["GET", "POST", "PUT", "DELETE", "PATCH", "QUERY"], (HttpContext context, string path) =>
-        {
-            var issue = issues[0];
-            context.Response.Headers["Stage-Unsupported-Capability"] = issue.Capability;
-            context.Response.Headers["Stage-Unsupported-Artifact"] = issue.Artifact;
-            return Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented);
-        });
+        app.MapMethods("/api/{**path}", ["GET", "POST", "PUT", "DELETE", "PATCH", "QUERY"], (HttpContext context, string path) => RefusedResponse(context, issues));
+    }
+
+    static IResult RefusedResponse(HttpContext context, List<StageUnsupportedIssue> issues)
+    {
+        var issue = issues[0];
+        context.Response.Headers["Stage-Unsupported-Capability"] = issue.Capability;
+        context.Response.Headers["Stage-Unsupported-Artifact"] = issue.Artifact;
+
+        return Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented);
     }
 }

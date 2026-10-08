@@ -37,6 +37,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../Stage/Stage.csproj" />
+        <ProjectReference Include="../Specifications/Specifications.csproj" />
     </ItemGroup>
 
     <ItemGroup>

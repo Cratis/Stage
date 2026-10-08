@@ -162,8 +162,7 @@ are available through Stage's in-process queries, not as projection views in the
 The default EventModel engine continues to register its own Chronicle projections. Commands that require
 allocation of a new event-source identity return `Unsupported(IdentityAllocation)`; explicitly name a
 `produces … for` destination to make them executable. Unsupported event revisions or duplicate event names
-put the running host in refused mode (`state: "unsupported"` and HTTP 501 for `/api/**`). The semantic engine does not execute modeled specifications; use the specification runner
-for model-level checks. Scene synthesis still uses the legacy presentation converter, but that converter is
+put the running host in refused mode (`state: "unsupported"` and HTTP 501 for `/api/**`). The semantic engine runs modeled specifications through the shared executor on request, with fresh isolated state rather than the live world or Chronicle log (see below). Scene synthesis still uses the legacy presentation converter, but that converter is
 never registered as the semantic execution model. A screen can therefore omit a semantic command even though
 its API route exists. The in-process world holds the session's fact history without a size cap; use this
 engine for short-lived play sessions, not durable workloads.
@@ -176,6 +175,30 @@ queries read the in-process world, not Chronicle projections. If an append's out
 history passes the same strict admission checks.
 
 The sandbox constructs caller identities from Arc's unsigned `x-ms-client-principal` request headers. Clients that can reach the host can forge those headers; modeled authorization is not a security boundary here. Restrict access at a trusted proxy and keep the session private. An anonymous semantic caller has empty audit identity fields (`subject`, `name`, `userName`), not an invented `unknown` identity; the default EventModel path omits those identity values entirely.
+
+### Run specifications in a semantic session
+
+Post to `POST /stage/semantic/specifications/run` with an empty object or an empty `scopes` array to run all specifications:
+
+```bash
+curl -X POST http://localhost:9090/stage/semantic/specifications/run \
+    -H 'Content-Type: application/json' -d '{"scopes":[]}'
+```
+
+To select a subset, supply semantic identities in `scopes`. Application, module, feature, slice and specification
+identities use the same selection rules as the [semantic specification runner](spec-runner.md#opt-in-to-semantic-execution).
+The response uses its existing `stage-spec-run/1` report schema. HTTP 200 means a report was returned, not that
+every specification passed: inspect each `outcome` (`Passed`, `Failed`, `Unsupported` or `Cancelled`). Refusals
+carry `unsupported.capability`, `unsupported.construct` and `unsupported.details`. An unknown scope produces
+an `Unsupported(Specification)` record rather than being ignored; a malformed identity returns HTTP 400 without
+running any specifications. A refused model returns HTTP 501 with the host's refusal headers and issues.
+
+Each specification runs against a fresh in-memory Chronicle event log and Arc scenario. Runs never seed from,
+append to, or modify the session's live event store or world. Request cancellation is forwarded to the shared
+executor; a disconnected caller might not receive the resulting report. `GET /stage/semantic/admission` marks
+specifications admitted by that executor as `supported`, and reports the missing capability and details for
+those it refuses, without blocking the live model. The default EventModel engine does not expose this route.
+The `/stage/status`, `/stage/scene` and runner `results.json` schemas are unchanged.
 
 ## Behind a reverse proxy
 

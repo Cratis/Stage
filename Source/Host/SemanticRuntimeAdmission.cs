@@ -5,6 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Semantics;
+using Cratis.Stage.Specifications;
 
 namespace Cratis.Stage.Host;
 
@@ -79,10 +80,11 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var specification in plan.Specifications.Values)
         {
-            // Live specifications never run, so a v5-v7 construct in one is reported precisely without blocking the model.
+            // A refused specification does not block the live model; runs report the same typed refusal.
+            var refusal = SemanticSpecificationAdmission.Check(plan, specification);
             entries.Add(SemanticVersionFeatures.InSpecification(specification).FirstOrDefault() is { } feature
                 ? Refused(feature)
-                : new(specification.Id.ToString(), "specification", "unsupported", "Specification", "Live specification execution is not available; use the specification runner."));
+                : new(specification.Id.ToString(), "specification", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
         }
 
         Entries = entries;

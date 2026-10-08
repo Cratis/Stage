@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
@@ -113,6 +114,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {
             return CreatePlan(request, [], diagnostics);
+        }
+
+        if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)))
+        {
+            artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace)));
         }
 
         if (selectedReducers.Count > 0)

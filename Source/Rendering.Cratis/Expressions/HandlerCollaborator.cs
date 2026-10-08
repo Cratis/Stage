@@ -18,6 +18,11 @@ namespace Cratis.Stage.Rendering.Cratis.Expressions;
 public sealed record HandlerCollaborator(string TypeName, string ParameterName, string Namespace)
 {
     /// <summary>
+    /// Gets the collaborator giving the active Arc dispatch's receipt time.
+    /// </summary>
+    public static readonly HandlerCollaborator Operation = new("global::Cratis.Arc.IOperationContextAccessor", "operation", string.Empty);
+
+    /// <summary>
     /// Gets the collaborator giving the tenant the command executes for.
     /// </summary>
     public static readonly HandlerCollaborator Tenants = new("ITenantIdAccessor", "tenants", "Cratis.Arc.Tenancy");

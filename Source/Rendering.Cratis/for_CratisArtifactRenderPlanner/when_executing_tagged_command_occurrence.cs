@@ -76,7 +76,7 @@ public class when_executing_tagged_command_occurrence : a_generated_application
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);
         _tests.ShouldContain("Passed!");
-        ReadGeneratedFile("Billing/Invoicing/Issue/Issue.cs").ShouldContain("global::System.DateTimeOffset.FromUnixTimeMilliseconds(global::System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())");
+        ReadGeneratedFile("Billing/Invoicing/Issue/Issue.cs").ShouldContain("var occurred = global::Invoices.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);");
     }
 }
 #endif

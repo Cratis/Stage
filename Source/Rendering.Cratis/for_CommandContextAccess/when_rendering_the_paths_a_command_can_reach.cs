@@ -41,7 +41,7 @@ public class when_rendering_the_paths_a_command_can_reach : Specification
         _commandProperty = _access.Render(Context("command.invoiceNumber"));
     }
 
-    [Fact] void should_render_occurred_as_the_time_the_handler_runs() => _occurred.ShouldEqual("DateTimeOffset.UtcNow");
+    [Fact] void should_render_occurred_as_the_dispatch_receipt_time() => _occurred.ShouldEqual("CommandReceiptTime.OccurredAtReceipt(operation)");
     [Fact] void should_render_the_tenant_as_its_value() => _tenant.ShouldEqual("(tenants.Current.IsDefault ? PortableTenantValues.Default : PortableTenantValues.Translate(tenants.Current.Value, global::Cratis.Arc.Tenancy.TenantId.Default.Value, global::Cratis.Arc.Tenancy.TenantId.NotSet.Value))");
     [Fact] void should_render_the_identity_id_as_the_subject() => _identityId.ShouldEqual("identities.GetCurrent().Subject");
     [Fact] void should_render_the_identity_name() => _identityName.ShouldEqual("identities.GetCurrent().Name");
@@ -60,7 +60,7 @@ public class when_rendering_the_paths_a_command_can_reach : Specification
         _causationType.ShouldEqual("causations.GetCurrentChain()[^1].Type.Value");
     [Fact] void should_render_a_command_property_as_the_command_s_own() => _commandProperty.ShouldEqual("InvoiceNumber");
     [Fact] void should_report_nothing_as_unreachable() => _diagnostics.ShouldBeEmpty();
-    [Fact] void should_ask_for_each_collaborator_once() => _access.Collaborators.Count.ShouldEqual(4);
+    [Fact] void should_ask_for_each_collaborator_once() => _access.Collaborators.Count.ShouldEqual(5);
     [Fact] void should_name_the_identity_provider_in_full_because_the_short_name_is_ambiguous() =>
         _access.Collaborators.ShouldContain(HandlerCollaborator.Identities);
     [Fact] void should_import_what_the_rendered_expressions_need() =>

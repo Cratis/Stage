@@ -10,6 +10,9 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_run
 public class with_uuid_ownership_claims : a_command_only_plan
 {
     SemanticSpecificationRunReport _matching = null!;
+    SemanticSpecificationRunReport _uppercase = null!;
+    SemanticSpecificationRunReport _braced = null!;
+    SemanticSpecificationRunReport _unhyphenated = null!;
     SemanticSpecificationRunReport _different = null!;
     SemanticSpecificationRunReport _malformed = null!;
     SemanticSpecificationRunReport _missing = null!;
@@ -37,14 +40,21 @@ public class with_uuid_ownership_claims : a_command_only_plan
             return await new SemanticSpecificationExecutor().Run(WithBehavior(specification, command, policy: policy), new([specification.Id]), new());
         }
 
-        _matching = await Run(true, uuid.ToString("B").ToUpperInvariant());
+        subject.ShouldEqual(uuid.ToString("D"));
+        _matching = await Run(true, subject);
+        _uppercase = await Run(false, subject.ToUpperInvariant());
+        _braced = await Run(false, uuid.ToString("B"));
+        _unhyphenated = await Run(false, uuid.ToString("N"));
         _different = await Run(false, Guid.NewGuid().ToString());
         _malformed = await Run(false, "not-a-uuid");
         _missing = await Run(false);
         _repeated = await Run(true, "not-a-uuid", subject);
     }
 
-    [Fact] void should_allow_a_typed_uuid_match() => _matching.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_allow_a_canonical_uuid_text_match() => _matching.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_deny_an_uppercase_uuid_claim() => _uppercase.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_deny_a_braced_uuid_claim() => _braced.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_deny_an_unhyphenated_uuid_claim() => _unhyphenated.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_deny_a_different_uuid() => _different.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_deny_a_malformed_claim() => _malformed.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_deny_a_missing_claim() => _missing.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);

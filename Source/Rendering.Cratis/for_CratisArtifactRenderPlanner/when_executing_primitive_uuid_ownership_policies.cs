@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_executing_primitive_uuid_ownership_policies(context fixture) : IClassFixture<context>
 {
     [Fact] void should_build_debug_and_release_without_warnings() => (fixture.DebugWarnings + fixture.ReleaseWarnings).ShouldBeEmpty();
-    [Fact] void should_preserve_allow_and_deny_for_primitive_uuid_targets() => fixture.Results.Select(result => result.Outcome).ShouldContainOnly(["Passed", "Passed", "Passed", "Passed", "Passed"]);
+    [Fact] void should_preserve_allow_and_deny_for_primitive_uuid_targets() => fixture.Results.Select(result => result.Outcome).ShouldContainOnly(["Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed"]);
 
     public class context : when_executing_uuid_ownership_policies.context
     {

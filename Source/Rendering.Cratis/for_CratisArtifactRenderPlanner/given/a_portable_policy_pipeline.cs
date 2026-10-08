@@ -42,6 +42,8 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
                     Invoices.GeneratedPolicies.Registration.Register(query.Services);
                     query.Services.AddSingleton<ICurrentPrincipalAccessor>(accessor);
                     query.Given.ForEventSource(key).Events(new InvoiceIssued(id, "North"));
+                    await AssertGuestDenied(typeof(InvoiceSummary).GetMethod(nameof(InvoiceSummary.InvoiceById))!,
+                        new QueryContext(nameof(InvoiceSummary.InvoiceById), CorrelationId.New(), Paging.NotPaged, Sorting.None, new QueryArguments { ["invoiceId"] = id }));
                     var queryResult = await query.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = id });
                     Assert.False(queryResult.HasExceptions, string.Join("; ", queryResult.ExceptionMessages));
                     return (commandResult.IsAuthorized, command.AppendedEvents.Count, queryResult.IsAuthorized, queryResult.Data is InvoiceSummary);
@@ -57,14 +59,17 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
             """));
         AddGeneratedSpecification("PolicyProbe.cs", $$"""
             #if DEBUG
+            using System.Reflection;
             using System.Security.Claims;
             using Cratis.Arc.Authorization;
+            using Cratis.Arc.Commands;
             using Cratis.Arc.Chronicle.Testing.Commands;
             using Cratis.Arc.Chronicle.Testing.Queries;
             using Cratis.Arc.Http;
             using Cratis.Arc.Queries;
             using Cratis.Arc.Testing.Commands;
             using Cratis.Arc.Testing.Queries;
+            using Cratis.Execution;
             using Invoices.Billing.Invoicing.Issue;
             {{(IncludeQuery ? "using Invoices.Billing.Invoicing.Lookup;" : string.Empty)}}
             using Invoices.Common;
@@ -89,9 +94,19 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
                     Assert.All(command.Services.Where(service => service.ImplementationInstance is AuthorizationPolicyRegistration), service =>
                         Assert.False(((AuthorizationPolicyRegistration)service.ImplementationInstance!).EvaluatesAnonymous));
                     command.Services.AddSingleton<ICurrentPrincipalAccessor>(accessor);
+                    await AssertGuestDenied(typeof(IssueInvoice),
+                        new CommandContext(CorrelationId.New(), typeof(IssueInvoice), new IssueInvoice(id, "North"), [], CommandContextValues.Empty));
                     var commandResult = await command.Execute(new IssueInvoice(id, "North"));
                     Assert.False(commandResult.HasExceptions, string.Join("; ", commandResult.ExceptionMessages));
                     {{query}}
+                }
+
+                static async Task AssertGuestDenied(MemberInfo target, object resource)
+                {
+                    var name = target.GetCustomAttribute<AuthorizeAttribute>()!.Policy;
+                    var type = typeof(IssueInvoice).Assembly.GetTypes().Single(candidate => candidate.Name == name);
+                    var policy = (IAuthorizationPolicy)Activator.CreateInstance(type)!;
+                    Assert.False(await policy.IsAuthorized(new(Guest(), target, resource), CancellationToken.None));
                 }
             }
 

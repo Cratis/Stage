@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_executing_uuid_ownership_policies(context fixture) : IClassFixture<context>
 {
     [Fact] void should_build_debug_and_release_without_warnings() => (fixture.DebugWarnings + fixture.ReleaseWarnings).ShouldBeEmpty();
-    [Fact] void should_compare_typed_uuid_values_and_deny_invalid_or_missing_claims() => fixture.Results.Select(result => result.Outcome).ShouldContainOnly(["Passed", "Passed", "Passed", "Passed", "Passed"]);
+    [Fact] void should_compare_uuid_text_and_deny_noncanonical_or_missing_claims() => fixture.Results.Select(result => result.Outcome).ShouldContainOnly(["Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed"]);
 
     public class context : a_portable_policy_pipeline
     {
@@ -25,11 +25,14 @@ public class when_executing_uuid_ownership_policies(context fixture) : IClassFix
         protected override string Key => "3fa85f64-5717-4562-b3fc-2c963f66afa6";
         protected override IEnumerable<(string Name, string Principal, bool Allowed)> Vectors =>
         [
-            ("allow_a_typed_uuid_match", "Authenticated(new Claim(\"OWNER\", \"{3FA85F64-5717-4562-B3FC-2C963F66AFA6}\"), new Claim(\"region\", \"North\"))", true),
+            ("allow_a_canonical_uuid_text_match", "Authenticated(new Claim(\"OWNER\", \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"), new Claim(\"region\", \"North\"))", true),
+            ("deny_an_uppercase_uuid_claim", "Authenticated(new Claim(\"owner\", \"3FA85F64-5717-4562-B3FC-2C963F66AFA6\"), new Claim(\"region\", \"North\"))", false),
+            ("deny_a_braced_uuid_claim", "Authenticated(new Claim(\"owner\", \"{3fa85f64-5717-4562-b3fc-2c963f66afa6}\"), new Claim(\"region\", \"North\"))", false),
+            ("deny_an_unhyphenated_uuid_claim", "Authenticated(new Claim(\"owner\", \"3fa85f6457174562b3fc2c963f66afa6\"), new Claim(\"region\", \"North\"))", false),
             ("deny_a_different_uuid", "Authenticated(new Claim(\"owner\", \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"), new Claim(\"region\", \"North\"))", false),
             ("deny_a_malformed_claim", "Authenticated(new Claim(\"owner\", \"not-a-uuid\"), new Claim(\"region\", \"North\"))", false),
             ("deny_a_missing_claim", "Authenticated(new Claim(\"region\", \"North\"))", false),
-            ("allow_a_repeated_claim_with_one_parseable_match", "Authenticated(new Claim(\"owner\", \"not-a-uuid\"), new Claim(\"owner\", \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"), new Claim(\"region\", \"North\"))", true)
+            ("allow_a_repeated_claim_with_one_text_match", "Authenticated(new Claim(\"owner\", \"not-a-uuid\"), new Claim(\"owner\", \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"), new Claim(\"region\", \"North\"))", true)
         ];
 
         Task Because() => VerifyPipeline();

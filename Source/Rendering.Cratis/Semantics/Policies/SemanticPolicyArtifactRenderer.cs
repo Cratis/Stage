@@ -55,14 +55,15 @@ internal static class SemanticPolicyArtifactRenderer
         // deny; an empty-string target matches an empty claim, as it does in the in-memory evaluator.
         builder.OpenBlock("internal static class PolicyValues")
             .ExpressionMember(
-                "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, object? target)",
-                "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && (target is global::System.Guid uuid ? global::System.Guid.TryParse(value.Value, out var parsed) && parsed == uuid : target is string text && global::System.String.Equals(value.Value, text, global::System.StringComparison.Ordinal)))")
-            .OpenBlock("public static object? Value(object? value)")
-            .Line("if (value is string or global::System.Guid) return value;")
+                "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
+                "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && global::System.String.Equals(value.Value, target, global::System.StringComparison.Ordinal))")
+            .OpenBlock("public static string? Value(object? value)")
+            .Line("if (value is string text) return text;")
+            .Line("if (value is global::System.Guid uuid) return uuid.ToString(\"D\", global::System.Globalization.CultureInfo.InvariantCulture);")
             .Line("if (value is null) return null;")
             .Line("var type = value.GetType();")
             .Line("if (!InheritsSupportedConcept(type)) return null;")
-            .Line("return type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value);")
+            .Line("return Value(type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value));")
             .EndBlock()
             .OpenBlock("static bool InheritsSupportedConcept(global::System.Type type)")
             .Line("for (var current = type.BaseType; current is not null; current = current.BaseType)")
@@ -72,7 +73,7 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("}")
             .Line("return false;")
             .EndBlock()
-            .OpenBlock("public static object? Path(object? value, string path)")
+            .OpenBlock("public static string? Path(object? value, string path)")
             .Line("foreach (var segment in path.Split('.'))")
             .Line("{")
             .Line("    if (value is null) return null;")
@@ -80,7 +81,7 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("}")
             .Line("return Value(value);")
             .EndBlock()
-            .OpenBlock("public static object? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path)")
+            .OpenBlock("public static string? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path)")
             .Line("if (context.Target is not global::System.Reflection.MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, global::System.StringComparison.Ordinal)) ||")
             .Line("    context.Resource is not global::Cratis.Arc.Queries.QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
             .Line("return path == argument ? Value(key) : Path(key, path[(argument.Length + 1)..]);")

@@ -21,6 +21,7 @@ internal static class SemanticHost
     internal static async Task Run(string[] args, string modelPath)
     {
         var issues = new List<StageUnsupportedIssue>();
+        var mirrorIssues = new List<StageUnsupportedIssue>();
         var (loaded, scene) = await LoadModel(modelPath, issues);
 
         var admission = loaded is null ? null : new SemanticRuntimeAdmission(loaded.Plan);
@@ -65,7 +66,7 @@ internal static class SemanticHost
         app.UseRouting();
         app.UseCratisChronicle();
         app.MapPost("/stage/load", () => Results.Conflict());
-        app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
+        app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Concat(mirrorIssues).Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
 
         if (surface is null)
         {
@@ -75,7 +76,7 @@ internal static class SemanticHost
         }
 
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
-        app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
+        app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath, mirrorIssues));
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();
@@ -99,7 +100,7 @@ internal static class SemanticHost
         await app.StartAsync();
         try
         {
-            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan);
+            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, mirrorIssues);
         }
         catch (SemanticWorldRebuildRefused exception)
         {
@@ -158,16 +159,20 @@ internal static class SemanticHost
     internal static Func<SemanticWorld> WorldProvider(Func<SemanticWorld?> world) =>
         () => world() ?? throw new SemanticWorldRebuildRefused("The semantic world has not been reconstructed yet.");
 
-    internal static StageStatus RegistrationStatus(SemanticWorld? world, List<StageUnsupportedIssue> issues, IServiceProvider services, string modelName, string modelPath)
+    internal static StageStatus RegistrationStatus(SemanticWorld? world, List<StageUnsupportedIssue> issues, IServiceProvider services, string modelName, string modelPath, IReadOnlyList<StageUnsupportedIssue>? mirrorIssues = null)
     {
         if (issues.Count > 0)
         {
             return new StageStatus("unsupported", null, WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic", Issues = issues };
         }
 
-        return world is null
+        var status = world is null
             ? new StageStatus("loading", null, WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" }
             : Status(services.GetRequiredService<ISemanticRuntime>(), modelName, modelPath);
+
+        return mirrorIssues is { Count: > 0 }
+            ? status with { Issues = [.. status.Issues ?? [], .. mirrorIssues] }
+            : status;
     }
 
     internal static StageStatus Status(ISemanticRuntime runtime, string modelName, string modelPath) => runtime is ISemanticRuntimeStatus { FaultReason: { } reason }

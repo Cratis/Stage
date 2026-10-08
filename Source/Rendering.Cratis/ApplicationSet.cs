@@ -119,8 +119,11 @@ public class ApplicationSet
             Concepts = [.. Applications.SelectMany(application => application.Concepts)],
             Types = [.. Applications.SelectMany(application => application.Types ?? [])]
         };
-        var effective = SpecificationExpansion.Expand(specification, declarations, slice.FullPath);
-        var ownPath = string.Join('.', slice.FullPath);
+
+        // A scoped render may omit or replace output folders; examples still resolve where the slice was declared.
+        var declarationScope = Slices.FirstOrDefault(candidate => ReferenceEquals(candidate.Slice, slice.Slice))?.FullPath ?? slice.FullPath;
+        var effective = SpecificationExpansion.Expand(specification, declarations, declarationScope);
+        var ownPath = string.Join('.', declarationScope);
         return effective with
         {
             When = effective.When is { } when && when.CommandType.StartsWith($"{ownPath}.", StringComparison.Ordinal)

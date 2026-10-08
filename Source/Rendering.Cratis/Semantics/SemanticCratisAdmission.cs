@@ -45,12 +45,12 @@ internal static partial class SemanticCratisAdmission
             return [.. diagnostics];
         }
 
-        // TypedContexts is reserved for reducer runtime tokens and wrappers. A modeled
-        // namespace with the same root path can rebind TenantId in unrelated artifacts.
-        if (slices.Any(_ => !_.Slice.Reducers.IsEmpty) &&
+        // TypedContexts is reserved for reducer and policy runtime tokens and wrappers. A modeled
+        // namespace with the same root path can rebind TenantId or Identity in unrelated artifacts.
+        if ((slices.Any(_ => !_.Slice.Reducers.IsEmpty) || UsesOpaquePolicies(context, slices)) &&
             context.NamespacePaths.Any(path => path == $"{context.RootNamespace}.TypedContexts"))
         {
-            diagnostics.Add(Error("STAGE-ESM-022", "Generated namespace 'TypedContexts' shadows the reserved reducer runtime namespace.", model.Application.Id));
+            diagnostics.Add(Error("STAGE-ESM-022", "Generated namespace 'TypedContexts' shadows the reserved reducer and policy runtime namespace.", model.Application.Id));
             return [.. diagnostics];
         }
 
@@ -159,6 +159,12 @@ internal static partial class SemanticCratisAdmission
         SemanticTypeReferenceKind.Unknown => false,
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind)
     };
+
+    internal static bool UsesOpaquePolicies(SemanticApplicationContext context, IEnumerable<LocatedSemanticSlice> slices) =>
+        slices.SelectMany(located => located.Slice.Commands.Select(command => command.Authorization)
+                .Concat(located.Slice.Queries.Select(query => query.Authorization)))
+            .OfType<SemanticAuthorization>()
+            .Any(authorization => OpaquePolicies(authorization, context.Application.Policies).Any());
 
     static bool IsProperty(SemanticExpression? expression, SemanticExpressionRootKind root, IEnumerable<SemanticId> candidates) =>
         expression is SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property } resolved &&

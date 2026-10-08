@@ -16,7 +16,7 @@ internal static class PortableTenantValues
     {
         if (value == providerDefault) return Default;
         if (value == providerNotSet) return NotSet;
-        if (value.Length == 0 || (Guid.TryParse(value, out var id) && id == Guid.Empty))
+        if (value.Length == 0 || (global::System.Guid.TryParse(value, out var id) && id == global::System.Guid.Empty))
         {
             throw new AmbiguousTenant(value);
         }

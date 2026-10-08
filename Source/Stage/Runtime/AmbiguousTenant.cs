@@ -7,4 +7,4 @@ namespace Cratis.Stage.Runtime;
 /// The exception that is thrown when a named provider tenant collides with a portable sentinel.
 /// </summary>
 /// <param name="value">The conflicting provider tenant name.</param>
-public sealed class AmbiguousTenant(string value) : Exception($"Provider tenant '{value}' collides with a reserved portable tenant identifier.");
+public sealed class AmbiguousTenant(string value) : global::System.Exception($"Provider tenant '{value}' collides with a reserved portable tenant identifier.");

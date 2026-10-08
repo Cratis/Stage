@@ -56,7 +56,7 @@ internal static class SemanticPolicyArtifactRenderer
         }
 
         // Reflection is limited to the declared public property path, using ordinal names. Missing values
-        // deny; an empty-string text target matches an empty claim. Uuid targets must be canonical.
+        // deny; an empty-string text target matches an empty claim. Uuid, Date and DateTime targets must be canonical.
         builder.OpenBlock("internal static class PolicyValues")
             .ExpressionMember(
                 "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
@@ -81,34 +81,47 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("    global::System.String.Equals(text, parsed.ToString(\"D\"), global::System.StringComparison.Ordinal)) return text;")
             .Line("return null;")
             .EndBlock()
-            .OpenBlock("public static string? Value(object? value, bool uuidTarget = false)")
-            .Line("if (value is string text) return uuidTarget ? Uuid(text) : text;")
-            .Line("if (value is global::System.Guid uuid) return Uuid(uuid);")
+            .OpenBlock("public static string? Date(object? value)")
+            .Line("if (value is global::System.DateOnly date) return date.ToString(\"yyyy-MM-dd\", global::System.Globalization.CultureInfo.InvariantCulture);")
+            .Line("if (value is string text && global::System.DateOnly.TryParseExact(text, \"yyyy-MM-dd\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.None, out _)) return text;")
+            .Line("return null;")
+            .EndBlock()
+            .OpenBlock("public static string? DateTime(object? value)")
+            .Line("if (value is global::System.DateTimeOffset instant) return instant.Offset == global::System.TimeSpan.Zero ? instant.UtcDateTime.ToString(\"O\", global::System.Globalization.CultureInfo.InvariantCulture) : instant.ToString(\"O\", global::System.Globalization.CultureInfo.InvariantCulture);")
+            .Line("if (value is string text && global::System.DateTimeOffset.TryParseExact(text, \"O\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind, out var parsed) &&")
+            .Line("    global::System.String.Equals(text, DateTime(parsed), global::System.StringComparison.Ordinal)) return text;")
+            .Line("return null;")
+            .EndBlock()
+            .OpenBlock("public static string? Value(object? value, bool uuidTarget = false, bool dateTarget = false, bool dateTimeTarget = false)")
+            .Line("if (value is string text) return dateTarget ? Date(text) : dateTimeTarget ? DateTime(text) : uuidTarget ? Uuid(text) : text;")
+            .Line("if (value is global::System.DateOnly) return dateTarget ? Date(value) : null;")
+            .Line("if (value is global::System.DateTimeOffset) return dateTimeTarget ? DateTime(value) : null;")
+            .Line("if (value is global::System.Guid uuid) return dateTarget || dateTimeTarget ? null : Uuid(uuid);")
             .Line("if (value is null) return null;")
             .Line("var type = value.GetType();")
             .Line("if (!InheritsSupportedConcept(type)) return null;")
-            .Line("return Value(type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value), uuidTarget);")
+            .Line("return Value(type.GetProperty(\"Value\", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value), uuidTarget, dateTarget, dateTimeTarget);")
             .EndBlock()
             .OpenBlock("static bool InheritsSupportedConcept(global::System.Type type)")
             .Line("for (var current = type.BaseType; current is not null; current = current.BaseType)")
             .Line("{")
-            .Line("    if (current.IsGenericType && current.GenericTypeArguments.Length == 1 && (current.GenericTypeArguments[0] == typeof(string) || current.GenericTypeArguments[0] == typeof(global::System.Guid)) &&")
+            .Line("    if (current.IsGenericType && current.GenericTypeArguments.Length == 1 && (current.GenericTypeArguments[0] == typeof(string) || current.GenericTypeArguments[0] == typeof(global::System.Guid) || current.GenericTypeArguments[0] == typeof(global::System.DateOnly) || current.GenericTypeArguments[0] == typeof(global::System.DateTimeOffset)) &&")
             .Line("        (current.GetGenericTypeDefinition().FullName == \"Cratis.Concepts.ConceptAs`1\" || current.GetGenericTypeDefinition().FullName == \"Cratis.Chronicle.Events.EventSourceId`1\")) return true;")
             .Line("}")
             .Line("return false;")
             .EndBlock()
-            .OpenBlock("public static string? Path(object? value, string path, bool uuidTarget = false)")
+            .OpenBlock("public static string? Path(object? value, string path, bool uuidTarget = false, bool dateTarget = false, bool dateTimeTarget = false)")
             .Line("foreach (var segment in path.Split('.'))")
             .Line("{")
             .Line("    if (value is null) return null;")
             .Line("    value = value.GetType().GetProperty(segment, global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public)?.GetValue(value);")
             .Line("}")
-            .Line("return Value(value, uuidTarget);")
+            .Line("return Value(value, uuidTarget, dateTarget, dateTimeTarget);")
             .EndBlock()
-            .OpenBlock("public static string? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path, bool uuidTarget = false)")
+            .OpenBlock("public static string? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path, bool uuidTarget = false, bool dateTarget = false, bool dateTimeTarget = false)")
             .Line("if (context.Target is not global::System.Reflection.MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, global::System.StringComparison.Ordinal)) ||")
             .Line("    context.Resource is not global::Cratis.Arc.Queries.QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
-            .Line("return path == argument ? Value(key, uuidTarget) : Path(key, path[(argument.Length + 1)..], uuidTarget);")
+            .Line("return path == argument ? Value(key, uuidTarget, dateTarget, dateTimeTarget) : Path(key, path[(argument.Length + 1)..], uuidTarget, dateTarget, dateTimeTarget);")
             .EndBlock()
             .EndBlock();
 
@@ -157,7 +170,7 @@ internal static class SemanticPolicyArtifactRenderer
     {
         SemanticAuthenticatedCondition or SemanticRoleCondition => false,
         SemanticClaimCondition claim => claim.TargetKind == SemanticClaimTargetKind.Literal ||
-            SemanticClaimTargets.Primitive(context, SemanticClaimTargets.Property(context, properties, claim.TargetKind == SemanticClaimTargetKind.Subject ? subject : claim.Value!)) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid ? false : null,
+            SemanticClaimTargets.Primitive(context, SemanticClaimTargets.Property(context, properties, claim.TargetKind == SemanticClaimTargetKind.Subject ? subject : claim.Value!)) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime ? false : null,
         SemanticNotPolicyCondition not => GuestTruth(not.Operand, context, properties, subject) is { } value ? !value : null,
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => And(GuestTruth(logical.Left, context, properties, subject), GuestTruth(logical.Right, context, properties, subject)),
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => Or(GuestTruth(logical.Left, context, properties, subject), GuestTruth(logical.Right, context, properties, subject)),
@@ -217,14 +230,20 @@ internal static class SemanticPolicyArtifactRenderer
             return truth ? "null" : "false";
         }
 
-        var uuidTarget = primitive == SemanticPrimitiveType.Uuid ? ", true" : string.Empty;
+        var targetType = primitive switch
+        {
+            SemanticPrimitiveType.Uuid => ", true",
+            SemanticPrimitiveType.Date => ", dateTarget: true",
+            SemanticPrimitiveType.DateTime => ", dateTimeTarget: true",
+            _ => string.Empty
+        };
         var target = claim.TargetKind switch
         {
             SemanticClaimTargetKind.Literal => Literal(claim.Value!),
-            SemanticClaimTargetKind.Artifact when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(claim.Value!))}{uuidTarget})",
-            SemanticClaimTargetKind.Artifact => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(QueryPath(claim.Value!))}{uuidTarget})",
-            SemanticClaimTargetKind.Subject when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{uuidTarget})",
-            SemanticClaimTargetKind.Subject => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(argument)}{uuidTarget})",
+            SemanticClaimTargetKind.Artifact when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(claim.Value!))}{targetType})",
+            SemanticClaimTargetKind.Artifact => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(QueryPath(claim.Value!))}{targetType})",
+            SemanticClaimTargetKind.Subject when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{targetType})",
+            SemanticClaimTargetKind.Subject => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(argument)}{targetType})",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticClaimTargetKind), claim.TargetKind)
         };
         return $"PolicyValues.{(truth ? "Truth" : "Match")}(context, {Literal(claim.Claim)}, {target})";

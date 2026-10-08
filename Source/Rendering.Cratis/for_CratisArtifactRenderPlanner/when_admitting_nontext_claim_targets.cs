@@ -109,12 +109,10 @@ public class when_admitting_nontext_claim_targets : Specification
     [Theory]
     [InlineData("Date")]
     [InlineData("DateTime")]
-    public void should_keep_refusing_text_backed_dates_without_a_faithful_text_renderer(string primitive)
+    public void should_admit_text_backed_dates_with_their_canonical_text(string primitive)
     {
         var source = when_rendering_portable_authorization.Source.Replace("description String", $"description {primitive}", StringComparison.Ordinal);
-        var plan = invoice_model.Plan(invoice_model.Compile(source));
-        plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-015");
-        plan.Artifacts.ShouldBeEmpty();
+        invoice_model.Plan(invoice_model.Compile(source)).Success.ShouldBeTrue();
     }
 
     static string RenderedPolicy(string source)

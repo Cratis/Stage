@@ -25,6 +25,7 @@ public class when_rendering_authorization_without_negation : Specification
     }
 
     [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_keep_registration_without_anonymous_opt_in() => _policies.Contains("evaluatesAnonymous", StringComparison.Ordinal).ShouldBeFalse();
     [Fact] void should_keep_the_two_valued_claim_comparison() => _policies.Contains("PolicyValues.Match(context, \"owner\", ", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_emit_no_three_valued_helpers() => (_policies.Contains("Truth(", StringComparison.Ordinal) || _policies.Contains("PolicyValues.Not(", StringComparison.Ordinal) ||
         _policies.Contains("bool?", StringComparison.Ordinal)).ShouldBeFalse();

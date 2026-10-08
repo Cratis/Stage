@@ -36,7 +36,10 @@ internal static class SemanticPolicyArtifactRenderer
             .OpenBlock("static partial void RegisterGenerated(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         foreach (var operation in operations)
         {
-            builder.Line($"services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))});");
+            // Arc strips guest roles and claims. Opt in only when this operation's effective authorization
+            // can allow that empty principal; the policy still checks the actual request, including unknown targets.
+            var anonymous = AllowsGuest(operation.Authorization, context, operation.Properties, operation.Subject) ? ", evaluatesAnonymous: true" : string.Empty;
+            builder.Line($"services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}{anonymous});");
         }
 
         builder.EndBlock().EndBlock().BlankLine();
@@ -135,6 +138,29 @@ internal static class SemanticPolicyArtifactRenderer
         SemanticClaimCondition claim => Claim(claim, context, properties, command, argument, subject),
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => $"({Condition(logical.Left, context, properties, command, argument, subject)} && {Condition(logical.Right, context, properties, command, argument, subject)})",
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => $"({Condition(logical.Left, context, properties, command, argument, subject)} || {Condition(logical.Right, context, properties, command, argument, subject)})",
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPolicyCondition), condition.GetType().Name)
+    };
+
+    static bool AllowsGuest(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string subject) => authorization switch
+    {
+        // Unknown denies at each named policy boundary, before composing the effective authorization.
+        SemanticPolicyReference reference => GuestTruth(context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, context, properties, subject) == true,
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => AllowsGuest(logical.Left, context, properties, subject) && AllowsGuest(logical.Right, context, properties, subject),
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => AllowsGuest(logical.Left, context, properties, subject) || AllowsGuest(logical.Right, context, properties, subject),
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticAuthorization), authorization.GetType().Name)
+    };
+
+    // A guest has no authentication, roles or claims. A supported claim target can be supplied by the request,
+    // so its comparison is false for that guest. Missing/null targets remain unknown in the runtime policy;
+    // a statically non-text target is always unknown and cannot justify anonymous opt-in even under `not`.
+    static bool? GuestTruth(SemanticPolicyCondition condition, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string subject) => condition switch
+    {
+        SemanticAuthenticatedCondition or SemanticRoleCondition => false,
+        SemanticClaimCondition claim => claim.TargetKind == SemanticClaimTargetKind.Literal ||
+            SemanticClaimTargets.Primitive(context, SemanticClaimTargets.Property(context, properties, claim.TargetKind == SemanticClaimTargetKind.Subject ? subject : claim.Value!)) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid ? false : null,
+        SemanticNotPolicyCondition not => GuestTruth(not.Operand, context, properties, subject) is { } value ? !value : null,
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => GuestTruth(logical.Left, context, properties, subject) & GuestTruth(logical.Right, context, properties, subject),
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => GuestTruth(logical.Left, context, properties, subject) | GuestTruth(logical.Right, context, properties, subject),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPolicyCondition), condition.GetType().Name)
     };
 

@@ -5,6 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
@@ -110,6 +111,18 @@ internal static class PurePolicyAdmission
             if (symbol is INamedTypeSymbol type && type.ContainingNamespace.ToDisplayString() == contexts)
             {
                 return $"The policy body names Stage's runtime context type '{type.Name}'.";
+            }
+        }
+
+        // A runtime type can be constructed or defaulted without ever naming it (target-typed new,
+        // with, or a default literal). Inspect the bound operations as well as explicit type names.
+        foreach (var node in body.DescendantNodes())
+        {
+            var operation = model.GetOperation(node);
+            if (operation is IObjectCreationOperation or IWithOperation or IDefaultValueOperation &&
+                operation.Type is INamedTypeSymbol type && type.ContainingNamespace.ToDisplayString() == contexts)
+            {
+                return $"The policy body constructs or defaults Stage's runtime context type '{type.Name}'.";
             }
         }
 

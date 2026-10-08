@@ -45,6 +45,7 @@ internal static class SemanticPolicyContextRuntime
         yield return ("TypedContexts", "Claim");
         yield return ("TypedContexts", IdentityType);
         yield return ("TypedContexts", "PolicyContextValues");
+
         // Missing descriptors are refused separately; inventory only wrappers belonging to rendered use sites.
         foreach (var descriptor in context.Request.TypedContextDescriptors.IsDefault ? [] : context.Request.TypedContextDescriptors)
         {

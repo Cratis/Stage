@@ -6,6 +6,7 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Screenplay;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Emission;
+using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
@@ -181,7 +182,7 @@ public class CratisRenderer : IRenderer
         {
             EventSourceIdentityComplianceAdmission.EnsureAccepted(slices, context);
         }
-        catch (UnsupportedProtectedEventSourceIdentity exception)
+        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression)
         {
             await error.WriteLineAsync(exception.Message);
             throw new RenderingFailed([exception]);

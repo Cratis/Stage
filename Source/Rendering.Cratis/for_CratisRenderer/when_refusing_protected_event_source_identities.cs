@@ -20,6 +20,10 @@ public class when_refusing_protected_event_source_identities : a_multi_slice_app
     [InlineData("sensitive", "identifier", "command identifier")]
     [InlineData("pii", "destination", "production destination")]
     [InlineData("sensitive", "destination", "production destination")]
+    [InlineData("pii", "destination-context", "production destination")]
+    [InlineData("sensitive", "destination-context", "production destination")]
+    [InlineData("pii", "destination-template", "production destination")]
+    [InlineData("sensitive", "destination-template", "production destination")]
     [InlineData("pii", "projection", "projection key")]
     [InlineData("sensitive", "projection", "projection key")]
     [InlineData("pii", "inline-key", "projection key")]
@@ -115,7 +119,13 @@ public class when_refusing_protected_event_source_identities : a_multi_slice_app
         var plainIdentifier = new PropertySyntax("id", new TypeRefSyntax("Uuid", false, false, SourceLocation.Start), SourceLocation.Start, IsIdentifier: identity != "identifier");
         var produced = new ProducesSyntax("Changed", null, [], SourceLocation.Start)
         {
-            For = identity == "destination" ? new PathExpressionSyntax("protectedValue", _identityLocation) : null,
+            For = identity switch
+            {
+                "destination" => new PathExpressionSyntax("protectedValue", _identityLocation),
+                "destination-context" => new ContextExpressionSyntax("command.protectedValue", _identityLocation),
+                "destination-template" => new TemplateExpressionSyntax([new TemplateInterpolationSyntax(new PathExpressionSyntax("protectedValue", _identityLocation), _identityLocation)], _identityLocation),
+                _ => null,
+            },
         };
         var command = new CommandSyntax("Change", [plainIdentifier, protectedProperty], null, [], [produced], null, SourceLocation.Start);
         var declared = new EventSyntax("Changed", [protectedProperty with { IsIdentifier = false }], SourceLocation.Start);

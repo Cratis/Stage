@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Stage.Rendering.Cratis.Expressions;
 
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
@@ -71,19 +72,19 @@ internal static class EventSourceIdentityComplianceAdmission
                     yield return (property.Type, $"command identifier '{command.Name}.{property.Name}' in slice '{slicePath}'", property.Location);
                 }
 
-                foreach (var produced in command.Produces.Where(produced => produced.For is PathExpressionSyntax))
+                foreach (var produced in command.Produces.Where(produced => produced.For is not null))
                 {
-                    var path = (PathExpressionSyntax)produced.For!;
-                    if (TypeAtPath(command.Properties, path.Path, context) is { } type)
+                    foreach (var property in CommandEventSourceExpression.Properties(produced.For!, command, context))
                     {
-                        yield return (type, $"production destination '{path.Path}' of '{produced.Event}' in slice '{slicePath}'", path.Location);
+                        yield return (property.Type, $"production destination reading '{property.Name}' of '{produced.Event}' in slice '{slicePath}'", produced.For!.Location);
                     }
                 }
             }
 
             foreach (var projection in slice.Slice.Projections)
             {
-                foreach (var from in FromBlocks(projection.Blocks))
+                // Child and nested keys identify records inside the root document, not event streams.
+                foreach (var from in projection.Blocks.OfType<FromSyntax>())
                 {
                     foreach (var spec in from.Events)
                     {
@@ -108,14 +109,6 @@ internal static class EventSourceIdentityComplianceAdmission
             }
         }
     }
-
-    static IEnumerable<FromSyntax> FromBlocks(IEnumerable<ProjectionBlockSyntax> blocks) => blocks.SelectMany(block => block switch
-    {
-        FromSyntax from => Enumerable.Repeat(from, 1),
-        NestedSyntax nested => FromBlocks(nested.Blocks),
-        ChildrenSyntax children => FromBlocks(children.Blocks),
-        _ => [],
-    });
 
     static TypeRefSyntax? TypeAtPath(IEnumerable<PropertySyntax> properties, string path, ApplicationSet context)
     {

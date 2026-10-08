@@ -97,17 +97,18 @@ internal static class SemanticReadModelSpecificationRenderer
         foreach (var value in expected.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
         {
             var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);
-            if (reducer is not null && property.Type.IsCollection && value.Value is SemanticArrayValue array)
+            if (property.Type.IsCollection && value.Value is SemanticArrayValue array)
             {
                 var elementType = property.Type with { IsCollection = false, IsOptional = false };
                 needsCommon |= SemanticTypeSystem.DeclarationNeedsCommon(elementType) ||
                     SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
                 var elements = string.Join(", ", array.Values.Select(element => types.Value(element, elementType)));
                 var name = Identifiers.ToSnakeCase(property.Name);
+                var optionalAccess = reducer is null ? "!" : "!.Value";
                 builder.Line($"static readonly {types.Type(elementType)}[] _expected_{name} = [{elements}];")
                     .Line($"[global::Xunit.FactAttribute] void should_project_{name}() => " +
                         $"global::Xunit.Assert.True(global::System.Linq.Enumerable.SequenceEqual({instance}.{Identifiers.ToPascalCase(property.Name)}" +
-                        (property.Type.IsOptional ? "!.Value" : string.Empty) + $", _expected_{name}));");
+                        (property.Type.IsOptional ? optionalAccess : string.Empty) + $", _expected_{name}));");
             }
             else
             {

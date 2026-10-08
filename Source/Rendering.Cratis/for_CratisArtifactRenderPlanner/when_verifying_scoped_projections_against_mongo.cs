@@ -206,10 +206,11 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
     protected override ArtifactRenderPlan CreatePlan()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
+
+        // ClearWith binds to the event-source key, so its root from must use the same key.
         var source = when_rendering_scoped_projections.ScopedSource
             .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
             .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
-            // ClearWith binds to the event-source key, so its root from must use the same key.
             .Replace("projection ProjectSummaryProjection => ProjectSummary\n", "projection ProjectSummaryProjection => ProjectSummary\n        no automap\n", StringComparison.Ordinal)
             .Replace("from ProjectRenamed key projectId", "from ProjectRenamed", StringComparison.Ordinal)
             .Replace("        children notes identified by noteId", "          clear with ProjectRenamed\n        children notes identified by noteId", StringComparison.Ordinal)

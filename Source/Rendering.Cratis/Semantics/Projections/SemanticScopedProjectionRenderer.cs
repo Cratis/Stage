@@ -30,7 +30,7 @@ internal static class SemanticScopedProjectionRenderer
             .Line("/// <param name=\"builder\">The projection builder.</param>")
             .OpenBlock($"public void Define(global::Cratis.Chronicle.Projections.IProjectionBuilderFor<{modelName}> builder)")
             .Line("builder.NoAutoMap();");
-        RenderScope(builder, scope, context, readModel.Properties, "builder");
+        RenderScope(builder, scope, context, readModel.Properties, "builder", readModel.Properties.Single(property => property.IsIdentifier));
         builder.EndBlock().EndBlock();
         var source = builder.ToString();
 
@@ -46,7 +46,8 @@ internal static class SemanticScopedProjectionRenderer
         SemanticProjectionScope scope,
         SemanticApplicationContext context,
         IReadOnlyList<SemanticProperty> properties,
-        string receiver)
+        string receiver,
+        SemanticProperty? rootIdentifier = null)
     {
         foreach (var from in scope.From)
         {
@@ -58,6 +59,20 @@ internal static class SemanticScopedProjectionRenderer
             if (from.ParentKey is not null)
             {
                 RenderKey(code, from.ParentKey, @event, context, "from", "UsingParentKey");
+            }
+
+            // Chronicle stores the root key separately from the record's identifier property.
+            // Screenplay establishes that property from the key even when auto-map is disabled.
+            if (rootIdentifier is { } identifier && !from.Mappings.Any(mapping => mapping.Target.Contains(identifier.Id)))
+            {
+                var target = Identifiers.ToPascalCase(identifier.Name);
+                var source = from.Key switch
+                {
+                    SemanticProjectionValueKey { Value: SemanticProjectionEventProperty property } => $"To(evt => evt.{Path(property.Path, @event.Properties, context)})",
+                    SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } => "ToEventSourceId()",
+                    _ => throw UnsupportedSemanticRendering.For(nameof(SemanticProjectionKeyKind), from.Key.Kind)
+                };
+                code.Line($"from.Set(model => model.{target}).{source};");
             }
 
             RenderMappings(code, from.Mappings, properties, @event, context, "from");

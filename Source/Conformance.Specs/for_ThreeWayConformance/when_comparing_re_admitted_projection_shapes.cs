@@ -46,6 +46,10 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                       for projectId
                       projectId = projectId
                       name = name
+                  event ProjectRegistered
+                    projectId ProjectId
+                    name ProjectName
+                slice StateChange RenameProject
                   command RenameProject
                     projectId ProjectId identifier
                     name ProjectName
@@ -53,6 +57,10 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                       for projectId
                       projectId = projectId
                       name = name
+                  event ProjectRenamed
+                    projectId ProjectId
+                    name ProjectName
+                slice StateChange NoteProject
                   command NoteProject
                     noteId ProjectId identifier
                     projectId ProjectId
@@ -62,21 +70,16 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                       noteId = noteId
                       projectId = projectId
                       name = name
+                  event ProjectNoted
+                    noteId ProjectId
+                    projectId ProjectId
+                    name ProjectName
+                slice StateChange RemoveProjectNote
                   command RemoveProjectNote
                     noteId ProjectId identifier
                     produces ProjectNoteRemovedViaJoin
                       for noteId
                       noteId = noteId
-                  event ProjectRegistered
-                    projectId ProjectId
-                    name ProjectName
-                  event ProjectRenamed
-                    projectId ProjectId
-                    name ProjectName
-                  event ProjectNoted
-                    noteId ProjectId
-                    projectId ProjectId
-                    name ProjectName
                   event ProjectNoteRemovedViaJoin
                     noteId ProjectId
                 slice StateView ProjectLookup
@@ -165,7 +168,7 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                       notes = []
                 """);
             var specifications = string.Join('\n', new[] { recreation }.Concat(joined)).Split('\n').Select(line => "    " + line);
-            var source = Source.Replace("    slice StateView ProjectLookup", string.Join('\n', specifications) + "\n    slice StateView ProjectLookup", StringComparison.Ordinal);
+            var source = Source.Replace("    slice StateChange RenameProject", string.Join('\n', specifications) + "\n    slice StateChange RenameProject", StringComparison.Ordinal);
             var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("re-admitted"), "re-admitted", "Scopes.play", source);
             var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));

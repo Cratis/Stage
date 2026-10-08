@@ -19,7 +19,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <c language="csharp">SceneElement</c> subtype per widget - the <c language="csharp">core:*</c> components don't have to exist in
 /// <c language="csharp">Scene.React</c> yet for the translated model to be correct; rendering them is a separate, later
 /// concern (a <c language="csharp">core</c> package addition), the same reasoning Cratis/Scene#5 used to leave
-/// <c language="csharp">Scene.React</c> untouched.
+/// <c language="csharp">Scene.React</c> untouched. Guarded actions are an exception: their command selection and visibility
+/// require renderer support, so they are refused rather than translated into a component Scene cannot execute.
 /// </remarks>
 public static class ScreenDirectiveConverter
 {
@@ -30,6 +31,7 @@ public static class ScreenDirectiveConverter
     /// <param name="directives">The sibling directives to convert.</param>
     /// <param name="path">The id path of the directives' parent, used to derive unique element ids.</param>
     /// <returns>The converted elements, in declaration order.</returns>
+    /// <exception cref="UnsupportedGuardedScreenAction">Thrown when a directive is a guarded action requiring Scene renderer support.</exception>
     /// <remarks>
     /// Behavior directives are skipped rather than converted. They share the screen body with content because
     /// that is where they are written, but they are what the content <em>does</em>, not more of it - they are
@@ -48,6 +50,7 @@ public static class ScreenDirectiveConverter
     /// <param name="behaviors">What a <c language="csharp">uses</c> clause resolves against.</param>
     /// <param name="attached">Where to collect what was attached at this level, when anything is listening.</param>
     /// <returns>The converted elements, in declaration order.</returns>
+    /// <exception cref="UnsupportedGuardedScreenAction">Thrown when a directive is a guarded action requiring Scene renderer support.</exception>
     public static IReadOnlyList<SceneElements.SceneElement> Convert(
         IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives,
         string path,
@@ -96,6 +99,7 @@ public static class ScreenDirectiveConverter
                 ["navigateToScreen"] = action.Navigate?.Screen,
                 ["navigateByParameter"] = action.Navigate?.By,
             }),
+            ScreenplaySyntax.ScreenGuardedActionSyntax action => throw new UnsupportedGuardedScreenAction(action.Label, action.Location),
             ScreenplaySyntax.ScreenSectionSyntax section => ConvertSection(section, id, scope),
             ScreenplaySyntax.ScreenNavigateSyntax navigate => SceneElementFactory.Component(id, "core:navigate", new Dictionary<string, object?>
             {
@@ -179,6 +183,7 @@ public static class ScreenDirectiveConverter
         {
             ScreenplaySyntax.ScreenDataSyntax => "data",
             ScreenplaySyntax.ScreenActionSyntax => "action",
+            ScreenplaySyntax.ScreenGuardedActionSyntax => "guarded-action",
             ScreenplaySyntax.ScreenSectionSyntax => "section",
             ScreenplaySyntax.ScreenNavigateSyntax => "navigate",
             ScreenplaySyntax.ScreenTitleSyntax => "title",

@@ -22,6 +22,20 @@ A bare component name in a template (for example `title` or `inputText`) is reso
 packages before it is rendered, so a template written against the blueprint's vocabulary draws real components
 rather than placeholders. A name no package declares renders a placeholder that names what is missing.
 
+## Guarded actions require Scene support
+
+A simple `action … execute <Command>` translates to `core:action`. Guarded actions with ordered
+`when … execute` alternatives are not supported by the pinned Scene packages. Stage refuses them during
+Scene translation with `UnsupportedGuardedScreenAction` (`STAGE-SCENE-ACTION-001`), identifying the action
+label and source location. This also applies inside sections and template slots; no guarded-action component
+is emitted.
+
+Supporting them requires Scene to resolve a selected item, choose only the first matching alternative, treat
+missing or null fields as nonmatching, and run the fallback command or hide the action if no condition matches.
+The action must be hidden when no item is selected, even if it has a fallback command. Scene must also carry
+command input bindings and post-success navigation for the selected alternative. Stage does not replace these
+semantics with a single unconditional command.
+
 ## Chrome
 
 The topbar, sidebar, menu, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them:

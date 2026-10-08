@@ -130,24 +130,6 @@ public class ApplicationSet
         };
     }
 
-    string RenderedEventName(string reference)
-    {
-        var separator = reference.LastIndexOf('.');
-        if (separator < 0)
-        {
-            return reference;
-        }
-
-        var name = reference[(separator + 1)..];
-        var declarations = Slices.Where(slice => slice.Slice.Events.Any(@event => @event.Name == name)).ToArray();
-        if (declarations.Length != 1 || $"{string.Join('.', declarations[0].FullPath)}.{name}" != reference)
-        {
-            throw new InvalidEventModel(reference, [$"The legacy specification renderer cannot resolve the qualified event '{reference}' to a unique rendered event type. Use semantic rendering."]);
-        }
-
-        return name;
-    }
-
     static Dictionary<string, TSyntax> BuildLookup<TSyntax>(IEnumerable<TSyntax> items, Func<TSyntax, string> name)
     {
         var lookup = new Dictionary<string, TSyntax>(StringComparer.Ordinal);
@@ -167,6 +149,24 @@ public class ApplicationSet
         }
 
         return slices.Count == 1 ? slices.Single().FullPath : Placement.LowestCommonAncestor(slices.Select(slice => slice.Path));
+    }
+
+    string RenderedEventName(string reference)
+    {
+        var separator = reference.LastIndexOf('.');
+        if (separator < 0)
+        {
+            return reference;
+        }
+
+        var name = reference[(separator + 1)..];
+        var declarations = Slices.Where(slice => slice.Slice.Events.Any(@event => @event.Name == name)).ToArray();
+        if (declarations.Length != 1 || $"{string.Join('.', declarations[0].FullPath)}.{name}" != reference)
+        {
+            throw new InvalidEventModel(reference, [$"The legacy specification renderer cannot resolve the qualified event '{reference}' to a unique rendered event type. Use semantic rendering."]);
+        }
+
+        return name;
     }
 
     /// <summary>

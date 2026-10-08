@@ -19,7 +19,7 @@ public class when_expanding_specification_examples : Specification
               event Recorded
                 amount Int
               readmodel Balance
-                id String identifier
+                id String
                 amount Int
               query BalanceById => Balance?
                 by id String

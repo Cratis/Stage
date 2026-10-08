@@ -95,7 +95,7 @@ internal static partial class SemanticCratisAdmission
             return true;
         }
 
-        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' compares a claim with an artifact value that is neither text nor Uuid.", id));
+        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' compares a claim with an artifact value that is neither text, Uuid, nor a supported always-denied scalar.", id));
         return false;
     }
 
@@ -122,22 +122,15 @@ internal static partial class SemanticCratisAdmission
 
     static bool IsSupportedClaimPath(SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string path)
     {
-        SemanticProperty? property = null;
-        foreach (var segment in path.Split('.'))
-        {
-            property = properties.SingleOrDefault(candidate => candidate.Name == segment);
-            if (property is null)
-            {
-                return false;
-            }
+        var property = SemanticClaimTargets.Property(context, properties, path);
 
-            properties = property.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(property.Type.Target, out var composite)
-                ? composite.Properties : [];
-        }
-
-        return property is { Type.IsCollection: false } && (property.Type.Kind == SemanticTypeReferenceKind.Primitive
-            ? property.Type.Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid
-            : property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts[property.Type.Target].Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid);
+        // Screenplay's SemanticValueValidator admits numbers and booleans only as non-text values.
+        // MatchClaim therefore always denies these targets; generated claim terms are the literal false.
+        // Date and DateTime are SemanticTextValue targets, not always-denied scalars, and stay refused.
+        var primitive = SemanticClaimTargets.Primitive(context, property);
+        return property is { Type.IsCollection: false } && primitive is
+            SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid or
+            SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean;
     }
 
     static bool CanRender(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch

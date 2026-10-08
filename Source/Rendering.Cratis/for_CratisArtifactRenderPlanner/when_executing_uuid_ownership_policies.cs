@@ -21,6 +21,7 @@ public class when_executing_uuid_ownership_policies(context fixture) : IClassFix
             .Replace("concept InvoiceId : String", "concept InvoiceId : Uuid", StringComparison.Ordinal)
             .Replace("  authorize Access\n", string.Empty, StringComparison.Ordinal)
             .Replace("claim \"owner\" matches subject and", "claim \"owner\" matches subject and claim \"owner\" matches invoiceId and", StringComparison.Ordinal);
+        protected override bool VerifyEmptyQueryDenial => true;
         protected override string IdentifierExpression => "new InvoiceId(new Guid(key))";
         protected override string Key => "3fa85f64-5717-4562-b3fc-2c963f66afa6";
         protected override IEnumerable<(string Name, string Principal, bool Allowed)> Vectors =>

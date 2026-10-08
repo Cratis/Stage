@@ -54,13 +54,15 @@ internal static class SemanticPolicyContextRuntime
         }
 
         // ClaimsIdentity.IsInRole compares the identity's role claim type ignoring case and the value ordinally,
-        // which is the same lookup the portable `require role` condition renders as.
+        // which is the same lookup the portable `require role` condition renders as. Screenplay keeps roles and claims
+        // separate, so role-type claims appear only in Roles, never in Claims or the claim lookups.
         builder.Summary("Maps Arc's authorization principal to the policy identity.")
             .OpenBlock("internal static class PolicyContextValues")
             .OpenBlock($"public static {IdentityType} From(global::System.Security.Claims.ClaimsPrincipal principal)")
             .Line("var roles = principal.Identities.SelectMany(identity => identity.Claims.Where(claim =>")
             .Line("    global::System.String.Equals(claim.Type, identity.RoleClaimType, global::System.StringComparison.OrdinalIgnoreCase))).Select(claim => claim.Value);")
-            .Line("var claims = principal.Claims.Select(claim => new Claim(claim.Type, claim.Value));")
+            .Line("var claims = principal.Identities.SelectMany(identity => identity.Claims.Where(claim =>")
+            .Line("    !global::System.String.Equals(claim.Type, identity.RoleClaimType, global::System.StringComparison.OrdinalIgnoreCase))).Select(claim => new Claim(claim.Type, claim.Value));")
             .Line($"return new {IdentityType}(principal.Identity?.IsAuthenticated == true, global::System.Collections.Immutable.ImmutableArray.CreateRange(roles), global::System.Collections.Immutable.ImmutableArray.CreateRange(claims));")
             .EndBlock()
             .EndBlock();

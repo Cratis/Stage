@@ -12,7 +12,7 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
-/// Builds and executes the Chronicle 19.8 projection shapes that Stage now admits.
+/// Builds and executes the literal and child join-removal projection shapes that Stage admits.
 /// </summary>
 public class when_executing_re_admitted_scoped_projections : a_generated_application
 {

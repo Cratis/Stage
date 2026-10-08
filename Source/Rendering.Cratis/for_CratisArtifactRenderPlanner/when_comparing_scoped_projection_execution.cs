@@ -26,6 +26,9 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     readonly (string Name, Fact[] Facts)[] _cases =
     [
         ("nested_from_then_from", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", First, First, "Again")]),
+        ("nested_clear", [new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Updated")]),
+        ("nested_clear_and_recreation", [new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Updated"), new("ProjectRegistered", First, First, "Again")]),
+        ("nested_repeated_clear_and_recreation", [new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Updated"), new("ProjectRenamed", First, First, "Updated again"), new("ProjectRegistered", First, First, "Again")]),
         ("root_removal_and_recreation", [new("ProjectRegistered", First, First, "First"), new("ProjectRemoved", First), new("ProjectRegistered", First, First, "Second")]),
         ("child_removal_existing_and_missing", [new("ProjectRegistered", First, First, "First"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoteRemoved", Note, First, null, Note), new("ProjectNoteRemoved", OtherNote, First, null, OtherNote)]),
         ("child_removal_via_join", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", Note, Second, "B", Note), new("ProjectNoteRemovedViaJoin", Note, null, null, Note)]),
@@ -41,9 +44,14 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     protected override ArtifactRenderPlan CreatePlan()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
+
+        // ClearWith binds to the event-source key, so its root from must use the same key.
         var source = when_rendering_scoped_projections.ScopedSource
             .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
             .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
+            .Replace("projection ProjectSummaryProjection => ProjectSummary\n", "projection ProjectSummaryProjection => ProjectSummary\n        no automap\n", StringComparison.Ordinal)
+            .Replace("from ProjectRenamed key projectId", "from ProjectRenamed", StringComparison.Ordinal)
+            .Replace("        children notes identified by noteId", "          clear with ProjectRenamed\n        children notes identified by noteId", StringComparison.Ordinal)
             .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal);
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));

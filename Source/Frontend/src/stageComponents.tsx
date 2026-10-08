@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type React from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { coreComponents } from '@cratis/scene.react';
@@ -11,8 +11,8 @@ import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { InputNumber } from 'primereact/inputnumber';
 import type { InputNumberRootValueChangeEvent } from 'primereact/inputnumber';
-import { PrimeDataTable, PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
-import { dataChanged, useStageData } from './stageData';
+import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
+import { dataChanged, useStageData, useStageQuery } from './stageData';
 
 /**
  * Builds the minimal `ExternalComponent` PrimeReact's v11 adapters need - they read configuration off
@@ -38,60 +38,59 @@ function text(element: ExternalComponent, name: string, fallback = ''): string {
     return typeof value === 'string' ? value : fallback;
 }
 
-function useModelData(route: string | undefined): { rows: Record<string, unknown>[]; error: string; loading: boolean } {
-    const [rows, setRows] = useState<Record<string, unknown>[]>([]);
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-
-    const read = useCallback(() => {
-        if (!route) return;
-        setLoading(true);
-        fetch(route.replace(/^\//, ''), { headers: { Accept: 'application/json' } })
-            .then(async response => {
-                if (!response.ok) throw new Error(`The query answered ${response.status}.`);
-                return response.json() as Promise<unknown>;
-            })
-            .then(payload => {
-                const data = payload !== null && typeof payload === 'object' && 'data' in payload ? (payload as { data?: unknown }).data : payload;
-                setRows(Array.isArray(data) ? data.filter((row): row is Record<string, unknown> => row !== null && typeof row === 'object' && !Array.isArray(row)) : data && typeof data === 'object' && !Array.isArray(data) ? [data as Record<string, unknown>] : []);
-                setError('');
-            })
-            .catch(reason => setError(reason instanceof Error ? reason.message : String(reason)))
-            .finally(() => setLoading(false));
-    }, [route]);
-
-    useEffect(() => {
-        read();
-        globalThis.addEventListener('cratis.stage.data-changed', read);
-        return () => globalThis.removeEventListener('cratis.stage.data-changed', read);
-    }, [read]);
-
-    return { rows, error, loading };
+interface TableColumn {
+    property: string;
+    label: string;
 }
 
-function rowsForRoute(route: string, data: ReturnType<typeof useStageData>, local: { rows: Record<string, unknown>[]; error: string; loading: boolean }): { rows: Record<string, unknown>[]; error: string; loading: boolean } {
-    const match = Object.values(data.queries).find(query => query.route === route || query.route.replace(/^\//, '') === route.replace(/^\//, ''));
-    return match ? { rows: match.rows, error: match.error, loading: match.loading } : local;
+function queryArgumentsFor(element: ExternalComponent, data: ReturnType<typeof useStageData>): Record<string, unknown> {
+    const value = element.properties.queryArguments;
+    if (!isRecord(value)) return {};
+
+    return Object.fromEntries(Object.entries(value).map(([name, argument]) => [name, isBinding(argument) ? data.resolveBinding(argument) : argument]));
 }
 
-/** Reads a slice's read model through the query the Stage registered for it. */
-export function StageTable({ element, slots }: RegisteredProps) {
-    const route = text(element, 'route');
-    const data = useStageData();
-    const local = useModelData(route || undefined);
-    const { rows, error, loading } = rowsForRoute(route, data, local);
+function columnsFor(element: ExternalComponent, rows: Record<string, unknown>[]): TableColumn[] {
     const modeled = (element.slots.columns ?? []).map(column => {
         const properties = (column as ExternalComponent).properties;
         return {
             property: typeof properties.property === 'string' ? properties.property : '',
             label: typeof properties.label === 'string' ? properties.label : '',
         };
-    });
+    }).filter(column => column.property.length > 0);
 
     // A projection can put properties on a document the model never names - a `children` block, say. The rows
     // themselves state what is there, and showing what came back beats showing an empty header over real data.
     const discovered = [...new Set(rows.flatMap(row => Object.keys(row)))].map(property => ({ property, label: property }));
-    const columns = modeled.length > 0 ? modeled : discovered;
+    return modeled.length > 0 ? modeled : discovered;
+}
+
+function rowIdentity(row: Record<string, unknown>, dataKey: string): unknown {
+    return row[dataKey] ?? row.id ?? row.key;
+}
+
+/** Reads a slice's read model through the query the Stage registered for it. */
+export function StageTable({ element, slots }: RegisteredProps) {
+    const route = text(element, 'route');
+    const queryName = text(element, 'query', text(element, 'typeName', element.id));
+    const data = useStageData();
+    const queryArguments = useMemo(() => queryArgumentsFor(element, data), [data, element]);
+    const { rows, error, loading } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments });
+    const columns = columnsFor(element, rows);
+    const dataKey = text(element, 'dataKey', 'id');
+    const selected = data.selections[element.id];
+
+    useEffect(() => {
+        if (!selected) return;
+        const selectedIdentity = rowIdentity(selected, dataKey);
+        const rebound = selectedIdentity !== undefined ? rows.find(row => rowIdentity(row, dataKey) === selectedIdentity) : undefined;
+        if (rebound && rebound !== selected) {
+            data.selectRow(element.id, rebound);
+            return;
+        }
+
+        if (!rebound && selectedIdentity !== undefined) data.clearSelection(element.id);
+    }, [data, dataKey, element.id, rows, selected]);
 
     if (!route) {
         return (
@@ -102,22 +101,51 @@ export function StageTable({ element, slots }: RegisteredProps) {
         );
     }
 
-    // Columns is unused directly here now - PrimeDataTable derives its own from `element.slots.columns` (the
-    // model, not the rendered React nodes) or, absent that, the shape of the first row. `columns` above still
-    // drives the "no query exposed" fallback and stays the single place that reads the modeled column list.
-    void columns;
-
-    const tableElement = syntheticElement(element.id, { ...element.properties, rows }, element.slots);
+    const select = (row: Record<string, unknown>) => data.selectRow(element.id, row);
+    const clear = () => data.clearSelection(element.id);
 
     return (
         <section className='stage-table' data-scene-id={element.id}>
             {loading && <PrimeMessage element={syntheticElement(`${element.id}-loading`, { severity: 'info', text: 'Loading…' })} slots={{}} />}
             {error && <PrimeMessage element={syntheticElement(`${element.id}-error`, { severity: 'error', text: error })} slots={{}} />}
-            <div onClick={() => data.setSelected(rows[0])}>
-                <PrimeDataTable element={tableElement} slots={{}} />
-            </div>
+            {selected && <Button type='button' size='small' onClick={clear}>Clear selection</Button>}
+            <table aria-label={text(element, 'label', text(element, 'typeName', 'Results'))}>
+                <thead>
+                    <tr>{columns.map(column => <th key={column.property} scope='col'>{column.label}</th>)}</tr>
+                </thead>
+                <tbody>
+                    {rows.map((row, index) => {
+                        const isSelected = selected === row;
+                        return (
+                            <tr
+                                key={String(rowIdentity(row, dataKey) ?? index)}
+                                aria-selected={isSelected}
+                                tabIndex={0}
+                                onClick={() => select(row)}
+                                onKeyDown={event => {
+                                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                                    event.preventDefault();
+                                    select(row);
+                                }}>
+                                {columns.map(column => <td key={column.property}>{String(row[column.property] ?? '')}</td>)}
+                            </tr>
+                        );
+                    })}
+                    {rows.length === 0 && !loading && (
+                        <tr><td colSpan={Math.max(columns.length, 1)}>No records found</td></tr>
+                    )}
+                </tbody>
+            </table>
         </section>
     );
+}
+
+function isBinding(value: unknown): value is { path?: string; kind?: string } {
+    return isRecord(value) && (typeof value.path === 'string' || typeof value.kind === 'string');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 interface SchemaProperty {

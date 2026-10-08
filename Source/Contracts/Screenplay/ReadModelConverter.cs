@@ -58,7 +58,8 @@ public static class ReadModelConverter
         // A slice may declare several projections. A read-model definition carries one, so the first is taken
         // and the rest are left unconverted — the same single-projection shape as before, rather than a silent
         // merge of models that describe different things.
-        var projection = slice.Projections.FirstOrDefault();
+        var projections = slice.Projections.ToArray();
+        var projection = projections.FirstOrDefault();
         if (projection is null && queries.Length == 0)
         {
             return null;
@@ -75,7 +76,11 @@ public static class ReadModelConverter
             DeterministicId.From($"{slicePath}.readmodel.{name}"),
             name,
             schema.ForReadModel(properties),
-            projection is not null ? ProjectionConverter.Convert(projection) : null);
+            projection is not null ? ProjectionConverter.Convert(projection) : null)
+        {
+            SelectedProjectionName = projection?.Name,
+            IgnoredProjectionNames = [.. projections.Skip(1).Select(ignored => ignored.Name)]
+        };
     }
 
     static List<KeyValuePair<string, string?>> CollectProperties(

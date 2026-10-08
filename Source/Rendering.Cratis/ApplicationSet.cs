@@ -3,6 +3,8 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Screenplay.Syntax.Specifications;
+using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Screenplay;
 
 namespace Cratis.Stage.Rendering.Cratis;
@@ -97,6 +99,54 @@ public class ApplicationSet
     /// meaning the application-wide <c language="csharp">Common</c> folder.
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> ConceptPlacements { get; }
+
+    internal SpecificationSyntax ExpandSpecification(SpecificationSyntax specification, LocatedSlice slice)
+    {
+        if (Applications.Count == 0)
+        {
+            if (specification.Examples.Any())
+            {
+                throw new InvalidEventModel(string.Join('.', slice.FullPath), ["Specification examples require the owning application's declarations."]);
+            }
+
+            return specification;
+        }
+
+        var declarations = Applications[0] with
+        {
+            Modules = [.. Applications.SelectMany(application => application.Modules)],
+            Examples = [.. Applications.SelectMany(application => application.Examples)],
+            Concepts = [.. Applications.SelectMany(application => application.Concepts)],
+            Types = [.. Applications.SelectMany(application => application.Types ?? [])]
+        };
+        var effective = SpecificationExpansion.Expand(specification, declarations, slice.FullPath);
+        var ownPath = string.Join('.', slice.FullPath);
+        return effective with
+        {
+            When = effective.When is { } when && when.CommandType.StartsWith($"{ownPath}.", StringComparison.Ordinal)
+                ? when with { CommandType = when.CommandType[(ownPath.Length + 1)..] }
+                : effective.When,
+            ThenEvents = [.. effective.ThenEvents.Select(@event => @event with { EventType = RenderedEventName(@event.EventType) })]
+        };
+    }
+
+    string RenderedEventName(string reference)
+    {
+        var separator = reference.LastIndexOf('.');
+        if (separator < 0)
+        {
+            return reference;
+        }
+
+        var name = reference[(separator + 1)..];
+        var declarations = Slices.Where(slice => slice.Slice.Events.Any(@event => @event.Name == name)).ToArray();
+        if (declarations.Length != 1 || $"{string.Join('.', declarations[0].FullPath)}.{name}" != reference)
+        {
+            throw new InvalidEventModel(reference, [$"The legacy specification renderer cannot resolve the qualified event '{reference}' to a unique rendered event type. Use semantic rendering."]);
+        }
+
+        return name;
+    }
 
     static Dictionary<string, TSyntax> BuildLookup<TSyntax>(IEnumerable<TSyntax> items, Func<TSyntax, string> name)
     {

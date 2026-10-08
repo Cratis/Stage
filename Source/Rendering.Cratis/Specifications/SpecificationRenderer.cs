@@ -100,6 +100,7 @@ public static class SpecificationRenderer
         ApplicationSet applicationSet,
         string rootNamespace)
     {
+        specification = applicationSet.ExpandSpecification(specification, slice);
         var diagnostics = new List<string>();
         var name = Behavior(specification.Name);
         var commandType = Identifiers.ToPascalCase(command.Name);

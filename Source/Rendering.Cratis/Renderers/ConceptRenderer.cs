@@ -80,9 +80,14 @@ public static class ConceptRenderer
             builder.Using("Cratis.Chronicle.Events");
         }
 
-        if (HasAttribute(concept, "pii") || HasAttribute(concept, "sensitive"))
+        if (HasAttribute(concept, "pii"))
         {
             builder.Using("Cratis.Chronicle.Compliance.GDPR").Attribute("PII");
+        }
+        else if (HasAttribute(concept, "sensitive"))
+        {
+            builder.Using("Cratis.Chronicle.ProtectedValues").Attribute("Encrypted")
+                .Using("Cratis.Arc.Chronicle.Commands").Attribute("NotAudited");
         }
 
         builder.Summary($"Represents {typeName}.")

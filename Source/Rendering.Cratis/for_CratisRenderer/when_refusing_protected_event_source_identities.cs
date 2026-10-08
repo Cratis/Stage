@@ -105,8 +105,15 @@ public class when_refusing_protected_event_source_identities : a_multi_slice_app
         Configure(attribute, "value");
         await _renderer.Render([_application], _targetDirectory, _output, _error);
         _scaffolder.WasCalled.ShouldBeTrue();
-        _codeOutput.Files.ShouldContain(file => file.Content.Contains("[PII]", StringComparison.Ordinal));
-        _codeOutput.Files.ShouldNotContain(file => file.Content.Contains("NotAudited", StringComparison.Ordinal));
+        _codeOutput.Files.ShouldContain(file => file.Content.Contains(attribute == "pii" ? "[PII]" : "[Encrypted]\n[NotAudited]", StringComparison.Ordinal));
+        if (attribute == "pii")
+        {
+            _codeOutput.Files.ShouldNotContain(file => file.Content.Contains("NotAudited", StringComparison.Ordinal));
+        }
+        else
+        {
+            _codeOutput.Files.ShouldNotContain(file => file.Content.Contains("[PII]", StringComparison.Ordinal));
+        }
         RenderedOutput.Errors(_codeOutput.Files).ShouldBeEmpty();
         _codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
         _output.ToString().ShouldContain("Rendering complete.");

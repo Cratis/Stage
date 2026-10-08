@@ -38,19 +38,20 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_stop_inheriting_parent_build_properties() => Content("Directory.Build.props").ShouldEqual("<Project />\n");
     [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");
     [Fact] void should_disable_inherited_central_package_management() => DirectoryPackagesPropsDisablesCentralPackageManagement().ShouldBeTrue();
-    [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("2|net10.0|22.25.0|22.25.0|22.25.0|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.8.1");
+    [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("2|net10.0|22.50.5|22.50.5|22.50.5|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.32.0");
     [Fact] void should_expose_only_the_verified_current_profile_as_public_static_surface() => PublicStaticProfileMethods().ShouldContainOnly("get_Current");
     [Fact] void should_emit_the_solution_without_a_guid() => SolutionSemantics().ShouldEqual("MyApp.csproj|False");
     [Fact] void should_emit_only_the_exact_package_versions() => PackageVersions().ShouldEqual(ExpectedPackageVersions());
     [Fact] void should_keep_all_specification_packages_in_the_debug_item_group() => TestingPackagesAreDebugOnly().ShouldBeTrue();
     [Fact] void should_keep_the_host_active_in_debug() => Content("Program.cs").ShouldNotContain("#if");
+    [Fact] void should_disable_reverse_extraction_of_the_authoritative_source_model() => XDocument.Parse(Content("MyApp.csproj")).Root!.Element("PropertyGroup")!.Element("CratisEmbeddedScreenplayEnabled")!.Value.ShouldEqual("false");
     [Fact] void should_suppress_the_debug_test_entry_point_warning_locally() => Content("MyApp.csproj").ShouldContain("<NoWarn Condition=\"'$(Configuration)' == 'Debug'\">$(NoWarn);CS7022</NoWarn>");
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");
     [Fact] void should_activate_cratis_and_the_health_endpoint_before_running() => ProgramSemantics().ShouldEqual("True|True|True");
     [Fact] void should_emit_the_exact_arc_chronicle_and_mongodb_settings() => AppSettingsSemantics().ShouldEqual("api|False|1|MyApp|chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000|mongodb://localhost:27017|MyApp");
     [Fact] void should_keep_event_store_data_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-data:/data/db");
     [Fact] void should_keep_event_store_configuration_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-config:/data/configdb");
-    [Fact] void should_pin_the_compatible_development_chronicle_image() => Content("docker-compose.yml").ShouldContain("image: cratis/chronicle:19.8.1-development");
+    [Fact] void should_pin_the_compatible_development_chronicle_image() => Content("docker-compose.yml").ShouldContain("image: cratis/chronicle:19.32.0-development");
     [Fact] void should_expose_only_the_required_chronicle_and_mongodb_ports() => ComposePorts().ShouldEqual("27017:27017|35000:35000");
     [Fact] void should_not_emit_wildcard_range_latest_or_random_guid_values() => HasForbiddenValues().ShouldBeFalse();
 
@@ -101,12 +102,12 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         '|',
         new[]
         {
-            "Cratis=22.25.0",
-            "Cratis.Arc.Chronicle.Testing=22.25.0",
-            "Cratis.Arc.MongoDB=22.25.0",
-            "Cratis.Chronicle=19.8.1",
-            "Cratis.Chronicle.AspNetCore=19.8.1",
-            "Cratis.Chronicle.Testing=19.8.1",
+            "Cratis=22.50.5",
+            "Cratis.Arc.Chronicle.Testing=22.50.5",
+            "Cratis.Arc.MongoDB=22.50.5",
+            "Cratis.Chronicle=19.32.0",
+            "Cratis.Chronicle.AspNetCore=19.32.0",
+            "Cratis.Chronicle.Testing=19.32.0",
             "Cratis.Specifications=4.1.1",
             "Cratis.Specifications.XUnit=4.1.1",
             "Microsoft.NET.Test.Sdk=18.10.1",

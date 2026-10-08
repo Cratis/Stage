@@ -116,6 +116,7 @@ internal static partial class SemanticCratisAdmission
     static IEnumerable<SemanticClaimCondition> Conditions(SemanticPolicyCondition condition) => condition switch
     {
         SemanticClaimCondition claim => [claim],
+        SemanticNotPolicyCondition not => Conditions(not.Operand),
         SemanticLogicalPolicyCondition logical => Conditions(logical.Left).Concat(Conditions(logical.Right)),
         _ => []
     };
@@ -149,6 +150,7 @@ internal static partial class SemanticCratisAdmission
         SemanticClaimCondition { Claim: not null, TargetKind: SemanticClaimTargetKind.Literal or SemanticClaimTargetKind.Artifact, Value: not null } => true,
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And or SemanticLogicalOperator.Or } logical =>
             CanRender(logical.Left) && CanRender(logical.Right),
+        SemanticNotPolicyCondition not => CanRender(not.Operand),
         _ => false
     };
 }

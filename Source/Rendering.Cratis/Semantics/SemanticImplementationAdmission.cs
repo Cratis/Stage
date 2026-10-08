@@ -179,6 +179,7 @@ internal static class SemanticImplementationAdmission
     {
         SemanticOpaquePolicyCondition opaque => [opaque.RequirementId],
         SemanticLogicalPolicyCondition logical => PolicyBodies(logical.Left).Concat(PolicyBodies(logical.Right)),
+        SemanticNotPolicyCondition not => PolicyBodies(not.Operand),
         _ => []
     };
 

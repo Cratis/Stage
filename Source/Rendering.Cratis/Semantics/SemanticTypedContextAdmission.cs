@@ -129,6 +129,7 @@ internal static class SemanticTypedContextAdmission
     {
         SemanticOpaquePolicyCondition opaque => [opaque.RequirementId],
         SemanticLogicalPolicyCondition logical => PolicyBodies(logical.Left).Concat(PolicyBodies(logical.Right)),
+        SemanticNotPolicyCondition not => PolicyBodies(not.Operand),
         _ => []
     };
 

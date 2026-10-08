@@ -101,6 +101,32 @@ public class CSharpCodeBuilder
     public CSharpCodeBuilder Summary(string text) => Summary([text]);
 
     /// <summary>
+    /// Emits authoring metadata as escaped XML documentation, preserving a legacy summary when metadata is absent.
+    /// </summary>
+    /// <param name="description">The optional authored summary.</param>
+    /// <param name="documentation">The optional Markdown remarks, copied as text.</param>
+    /// <param name="fallbackSummary">The existing generated summary, if any.</param>
+    /// <returns>The builder, for chaining.</returns>
+    public CSharpCodeBuilder Documentation(string? description, string? documentation = null, string? fallbackSummary = null)
+    {
+        if (description is not null)
+        {
+            TextDocumentation("summary", description);
+        }
+        else if (fallbackSummary is not null)
+        {
+            Summary(fallbackSummary);
+        }
+
+        if (documentation is not null)
+        {
+            TextDocumentation("remarks", documentation);
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Emits an attribute usage at the current indent level.
     /// </summary>
     /// <param name="attribute">The attribute content, without the surrounding brackets (e.g. <c language="csharp">Command</c>).</param>
@@ -223,5 +249,23 @@ public class CSharpCodeBuilder
 
         result.Append(_body);
         return result.ToString();
+    }
+
+    internal static string NormalizeDocumentation(string text) => string.Join(
+        '\n',
+        text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n').Select(line => line.TrimEnd())).TrimEnd();
+
+    void TextDocumentation(string tag, string text)
+    {
+        Line($"/// <{tag}>");
+        foreach (var line in NormalizeDocumentation(text).Split('\n'))
+        {
+            var escaped = line.Replace("&", "&amp;", StringComparison.Ordinal)
+                .Replace("<", "&lt;", StringComparison.Ordinal)
+                .Replace(">", "&gt;", StringComparison.Ordinal);
+            Line(escaped.Length == 0 ? "///" : $"/// {escaped}");
+        }
+
+        Line($"/// </{tag}>");
     }
 }

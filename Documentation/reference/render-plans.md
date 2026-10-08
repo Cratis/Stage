@@ -166,6 +166,14 @@ not.
 
 Screenplay ESM v1 gives constraints and named policies no individual semantic identities. Cratis maps constraint files to their owning slice and target event identities, and generated policy registrations to the protected command/query identities.
 
+## Authored code documentation
+
+For C# code rendering, use the `CratisRendering.Plan` overload that accepts a `SemanticCompilation` to preserve authored descriptions and event documentation. If you compose a profile with Scene or strings inputs yourself, pass that profile and the same compilation to `CratisRendering.WithAuthoringMetadata` before creating the render request. The model-only overload cannot recover syntax-only metadata.
+
+Descriptions become XML-escaped `<summary>` comments on generated commands, events, read models, query methods, and composite types. Event Markdown documentation becomes escaped text in `<remarks>`; it is not converted to HTML. The retained syntax renderers also preserve reaction and trigger descriptions. Line endings and trailing whitespace are normalized. With no authored metadata, existing generated summaries and artifact bytes are unchanged.
+
+Metadata travels as a versioned, hashed profile input keyed by semantic identity, not as a generated sidecar file. A documentation-only edit changes the affected artifact hashes without changing the executable model revision. Planning refuses malformed, stale, duplicate, or unsupported-version metadata. Declarations without a corresponding generated symbol do not gain an artificial documentation artifact; the generated frontend scaffold is not a declaration-documentation surface.
+
 ## What a plan does not decide
 
 - **It emits nothing.** A plan is the resolved input an emitter consumes; producing a static web bundle or a

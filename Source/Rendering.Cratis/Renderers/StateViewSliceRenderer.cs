@@ -69,7 +69,17 @@ public class StateViewSliceRenderer : ISliceRenderer
         if (projection is not null)
         {
             var projectionDiagnostics = new List<string>();
-            RenderReadModel(builder, projection, readModel!, slice.Slice.Queries, applicationSet, referenced, projectionDiagnostics, diagnostics, string.Join('.', slice.FullPath));
+            RenderReadModel(
+                builder,
+                projection,
+                ReadModelName(projection),
+                slice.Slice.Queries,
+                applicationSet,
+                referenced,
+                projectionDiagnostics,
+                diagnostics,
+                string.Join('.', slice.FullPath),
+                slice.Slice.ReadModels?.FirstOrDefault(model => model.Name is { } name && Identifiers.ToPascalCase(name) == readModel)?.Description);
             var lost = projectionDiagnostics.FirstOrDefault(message =>
                 !message.Contains("property was added to carry it", StringComparison.Ordinal) &&
                 !message.Contains("Chronicle infers the parent", StringComparison.Ordinal));
@@ -123,7 +133,8 @@ public class StateViewSliceRenderer : ISliceRenderer
         List<string> referenced,
         List<string> diagnostics,
         List<string> queryDiagnostics,
-        string slicePath)
+        string slicePath,
+        string? description)
     {
         var blocks = projection.Blocks.ToArray();
         var fromBlocks = blocks.OfType<FromSyntax>().ToArray();
@@ -167,6 +178,7 @@ public class StateViewSliceRenderer : ISliceRenderer
         // From with the event source id and only ever overwrites it from a class-level [FromEvent]'s key — it
         // never reads [Key] for this — so a read model whose key came only from [Key] would keep routing its
         // documents on the event source id no matter what the projection declared.
+        builder.Documentation(description);
         foreach (var subscription in subscriptions)
         {
             builder.Attribute(stringKeys is null

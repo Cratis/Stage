@@ -25,6 +25,8 @@ internal sealed class SemanticApplicationContext
         Application = request.Model.Application;
         RootNamespace = options.RootNamespace;
         Strings = StringsCatalogInput.From(request.Profile);
+        var metadata = request.Profile.Inputs.SingleOrDefault(input => input.Name == AuthoringMetadataInput.Name);
+        Documentation = metadata is not null && AuthoringMetadataInput.TryRead(metadata, request.Model, out var catalog) ? catalog : null;
         Concepts = Application.Concepts.ToDictionary(_ => _.Id);
         Types = Application.Types.ToDictionary(_ => _.Id);
 
@@ -120,6 +122,8 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
 
+    internal AuthoringMetadataInput.Catalog? Documentation { get; }
+
     internal Dictionary<string, IReadOnlySet<string>> ReducerContextReads { get; } = new(StringComparer.Ordinal);
 
     /// <summary>Gets distinct generated namespace prefixes, including slices outside the selected scope.</summary>
@@ -156,6 +160,9 @@ internal sealed class SemanticApplicationContext
     /// <returns>The located slice.</returns>
     public LocatedSemanticSlice DeclaringSlice(SemanticId artifact) =>
         _slices.Values.Single(_ => _.Declares(artifact));
+
+    internal AuthoringMetadataInput.Metadata Docs(SemanticId id) =>
+        Documentation?.Entries.GetValueOrDefault(id.ToString()) ?? new(null, null);
 
     static IReadOnlyList<SemanticFeature> FindFeaturePath(SemanticFeature feature, SemanticId slice)
     {

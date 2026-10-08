@@ -182,13 +182,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         var count = 0;
-        foreach (var input in request.Profile.Inputs)
+        foreach (var input in request.Profile.Inputs.Where(input => input.Name is not StringsCatalogInput.Name and not AuthoringMetadataInput.Name))
         {
-            if (input.Name == StringsCatalogInput.Name)
-            {
-                continue;
-            }
-
             if (CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact))
             {
                 if (artifact!.RelativePath == "Program.cs" && context.Strings is { } strings)

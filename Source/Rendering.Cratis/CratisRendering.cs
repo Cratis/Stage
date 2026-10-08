@@ -143,6 +143,57 @@ public static class CratisRendering
     }
 
     /// <summary>
+    /// Adds syntax-only documentation from the same compilation as a versioned, hashed renderer input.
+    /// </summary>
+    /// <param name="profile">The resolved profile, including any Scene or strings inputs.</param>
+    /// <param name="compilation">The compilation whose syntax and semantic identities own the metadata.</param>
+    /// <returns>The profile with documentation included, or the original profile when none is authored.</returns>
+    public static ArtifactRenderProfile WithAuthoringMetadata(ArtifactRenderProfile profile, SemanticCompilation compilation)
+    {
+        var input = AuthoringMetadataInput.Create(compilation);
+        var inputs = profile.Inputs.Where(existing => existing.Name != AuthoringMetadataInput.Name).ToImmutableArray();
+        return input is null && inputs.Length == profile.Inputs.Length ? profile : ArtifactRenderProfile.Create(
+            profile.Target,
+            profile.TargetVersion,
+            profile.Renderer,
+            profile.RendererVersion,
+            input is null ? inputs : inputs.Add(input));
+    }
+
+    /// <summary>
+    /// Plans a compilation with its syntax-only documentation and compiler attachment inputs.
+    /// </summary>
+    /// <param name="compilation">The compilation owning the model and authoring metadata.</param>
+    /// <param name="executionPlan">The admitted execution plan.</param>
+    /// <param name="scope">The semantic scope to render.</param>
+    /// <param name="options">The project and namespace choices.</param>
+    /// <param name="requirements">The compilation's implementation requirements.</param>
+    /// <param name="contents">The resolved implementation bodies.</param>
+    /// <param name="attachmentDiagnostics">The attachment loader's diagnostics.</param>
+    /// <param name="descriptors">The compilation's typed contexts.</param>
+    /// <returns>The deterministic artifact plan.</returns>
+    public static ArtifactRenderPlan Plan(
+        SemanticCompilation compilation,
+        SemanticExecutionPlan executionPlan,
+        ArtifactRenderScope scope,
+        CratisRenderingOptions options,
+        ImmutableArray<SemanticImplementationRequirement> requirements = default,
+        ImmutableDictionary<string, string>? contents = null,
+        ImmutableArray<Diagnostic> attachmentDiagnostics = default,
+        ImmutableArray<SemanticTypedContextDescriptor> descriptors = default)
+    {
+        var profile = WithAuthoringMetadata(CreateProfile(compilation.Model.Application.Name, options), compilation);
+        var request = new ArtifactRenderRequest(compilation.Model, executionPlan, profile, scope)
+        {
+            ImplementationRequirements = requirements.IsDefault ? [] : requirements,
+            ImplementationContents = contents ?? [],
+            AttachmentDiagnostics = attachmentDiagnostics.IsDefault ? [] : attachmentDiagnostics,
+            TypedContextDescriptors = descriptors.IsDefault ? [] : descriptors
+        };
+        return new CratisArtifactRenderPlanner().Plan(request);
+    }
+
+    /// <summary>
     /// Plans exact Cratis artifacts without file-system, process, network, environment, random, or clock access.
     /// </summary>
     /// <param name="model">The immutable executable semantic model.</param>

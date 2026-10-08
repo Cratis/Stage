@@ -95,7 +95,7 @@ internal static partial class SemanticCratisAdmission
             return true;
         }
 
-        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' compares a claim with an artifact value that is neither text nor Uuid.", id));
+        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' compares a claim with an artifact value that is neither text, Uuid, nor a supported always-denied scalar.", id));
         return false;
     }
 
@@ -135,9 +135,18 @@ internal static partial class SemanticCratisAdmission
                 ? composite.Properties : [];
         }
 
-        return property is { Type.IsCollection: false } && (property.Type.Kind == SemanticTypeReferenceKind.Primitive
-            ? property.Type.Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid
-            : property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts[property.Type.Target].Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid);
+        // Screenplay's SemanticValueValidator admits numbers and booleans only as non-text values.
+        // MatchClaim therefore always denies these targets; generated PolicyValues.Value also returns null.
+        // Date and DateTime are SemanticTextValue targets, not always-denied scalars, and stay refused.
+        var primitive = property?.Type.Kind switch
+        {
+            SemanticTypeReferenceKind.Primitive => property.Type.Primitive,
+            SemanticTypeReferenceKind.Concept => context.Concepts[property.Type.Target].Primitive,
+            _ => SemanticPrimitiveType.Unknown
+        };
+        return property is { Type.IsCollection: false } && primitive is
+            SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid or
+            SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean;
     }
 
     static bool CanRender(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch

@@ -13,8 +13,8 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
-/// Records Chronicle 19.32.0 MongoDB behavior for blocked nested-removal and child join-removal projection shapes when explicitly configured.
-/// Verifies clearing, recreation, removal from both parents, and the absence of failed partitions without relaxing Stage admission.
+/// Verifies Chronicle 19.32.0 MongoDB behavior for admitted nested clear/recreation and child join-removal shapes when explicitly configured.
+/// Checks clearing, recreation, removal from both parents, and the absence of failed partitions.
 /// </summary>
 public class when_verifying_scoped_projections_against_mongo : a_generated_application
 {
@@ -164,6 +164,9 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 Assert.NotNull(cleared);
                 Assert.Equal("Updated", cleared.Name.Value);
                 Assert.Null(cleared.Info);
+                var stageCleared = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
+                Assert.NotNull(stageCleared);
+                Assert.Null(stageCleared.Info);
                 await Append((EventSourceId)first, new ProjectRegistered(first, new ProjectName("Again")));
                 var recreated = await store.ReadModels.GetInstanceById<NestedProbe>((EventSourceId)first);
                 Console.WriteLine($"NESTED_AFTER_RECREATION={recreated?.Info?.Name.Value ?? "null"}");
@@ -171,6 +174,9 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 Assert.Equal("Again", recreated.Name.Value);
                 Assert.NotNull(recreated.Info);
                 Assert.Equal("Again", recreated.Info.Name.Value);
+                var stageRecreated = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
+                Assert.NotNull(stageRecreated);
+                Assert.Equal("Again", stageRecreated.Info?.Name.Value);
                 async Task Append(EventSourceId id, object fact)
                 {
                     var append = await store.EventLog.Append(id, fact);
@@ -186,7 +192,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                     }
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<NestedProbeProjection>());
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<ChildrenProbeProjection>());
-                    if (fact is ProjectRegistered or ProjectNoted or ProjectNoteRemovedViaJoin)
+                    if (fact is ProjectRegistered or ProjectRenamed or ProjectNoted or ProjectNoteRemovedViaJoin)
                     {
                         await store.Projections.WaitTillReachesEventSequenceNumber<ProjectSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
                     }
@@ -203,6 +209,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         var source = when_rendering_scoped_projections.ScopedSource
             .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
             .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
+            .Replace("        children notes identified by noteId", "          clear with ProjectRenamed key projectId\n        children notes identified by noteId", StringComparison.Ordinal)
             .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal);
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mongo"), "mongo", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));

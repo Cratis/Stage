@@ -89,6 +89,11 @@ internal static class GeneratedTypeNames
         {
             foreach (var name in Names(ns, type, application.Id, "Generated", generated: true)) yield return name;
         }
+        if (UsesCommandReceiptTime(selectedSlices.SelectMany(located => located.Slice.Commands)))
+        {
+            foreach (var name in Names("GeneratedCommands", "CommandReceiptTime", application.Id, "Generated")) yield return name;
+            foreach (var name in Names("GeneratedCommands", "CommandReceiptTimeUnavailable", application.Id, "Generated")) yield return name;
+        }
         if (selectedSlices.Any(located => !located.Slice.Reducers.IsEmpty))
         {
             foreach (var name in Names("TypedContexts", "TenantId", application.Id, "Generated")) yield return name;
@@ -104,6 +109,10 @@ internal static class GeneratedTypeNames
             if (namespaces.Contains((ns, name))) yield return (id, "Namespace", name);
         }
     }
+
+    internal static bool UsesCommandReceiptTime(IEnumerable<SemanticCommand> commands) =>
+        commands.Any(command => command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+            mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })));
 
     internal static IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> AllSlices(SemanticApplication application) =>
         application.Modules.SelectMany(module => module.Features.SelectMany(feature => Feature(feature, [module.Name, feature.Name])));

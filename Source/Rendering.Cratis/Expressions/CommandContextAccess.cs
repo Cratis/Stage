@@ -46,6 +46,8 @@ public sealed class CommandContextAccess(string subject, ICollection<string> dia
 
     internal string TenantValuesType { get; init; } = "PortableTenantValues";
 
+    internal string ReceiptTimeType { get; init; } = "CommandReceiptTime";
+
     /// <summary>
     /// The C# type a context value is rendered as, by path — so a caller can tell whether what the document maps
     /// it onto can hold it. A path the language does not name has no type, and neither has one that renders to a
@@ -87,7 +89,7 @@ public sealed class CommandContextAccess(string subject, ICollection<string> dia
         var segments = path.Split('.');
         return segments switch
         {
-            ["occurred"] => "DateTimeOffset.UtcNow",
+            ["occurred"] => $"{ReceiptTimeType}.OccurredAtReceipt({Use(HandlerCollaborator.Operation)})",
             ["tenant"] => $"({Use(HandlerCollaborator.Tenants)}.Current.IsDefault ? {TenantValuesType}.Default : {TenantValuesType}.Translate({Use(HandlerCollaborator.Tenants)}.Current.Value, global::Cratis.Arc.Tenancy.TenantId.Default.Value, global::Cratis.Arc.Tenancy.TenantId.NotSet.Value))",
             ["command", ..] when segments.Length > 1 => Property(segments),
             ["causedBy", var value] => CausedBy(value, path),

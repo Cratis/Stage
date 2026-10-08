@@ -95,6 +95,45 @@ public class when_planning_names_beside_generated_declarations
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("PolicyValues", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("CommandReceiptTime")]
+    [InlineData("CommandReceiptTimeUnavailable")]
+    public void should_reject_a_feature_that_declares_a_command_receipt_runtime_namespace(string feature)
+    {
+        var plan = invoice_model.Plan(invoice_model.Compile(CommandReceiptSource(occurrence: true)
+            .Replace("module Billing", "module GeneratedCommands", StringComparison.Ordinal)
+            .Replace("feature Invoicing", $"feature {feature}", StringComparison.Ordinal)));
+
+        Assert.False(plan.Success);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains(feature, StringComparison.Ordinal));
+        Assert.Empty(plan.Artifacts);
+    }
+
+    [Theory]
+    [InlineData("CommandReceiptTime")]
+    [InlineData("CommandReceiptTimeUnavailable")]
+    public void should_admit_receipt_runtime_names_when_the_runtime_is_not_emitted(string feature)
+    {
+        var plan = invoice_model.Plan(invoice_model.Compile(CommandReceiptSource(occurrence: false)
+            .Replace("module Billing", "module GeneratedCommands", StringComparison.Ordinal)
+            .Replace("feature Invoicing", $"feature {feature}", StringComparison.Ordinal)));
+
+        Assert.True(plan.Success, string.Join("; ", plan.Diagnostics));
+        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath == "GeneratedCommands/CommandReceiptTime.cs");
+        Assert.Empty(RenderedOutput.Errors(CSharp(plan)));
+    }
+
+    [Fact]
+    public void should_admit_and_compile_a_generated_commands_module_with_another_feature()
+    {
+        var plan = invoice_model.Plan(invoice_model.Compile(CommandReceiptSource(occurrence: true)
+            .Replace("module Billing", "module GeneratedCommands", StringComparison.Ordinal)));
+
+        Assert.True(plan.Success, string.Join("; ", plan.Diagnostics));
+        Assert.Contains(plan.Artifacts, artifact => artifact.RelativePath == "GeneratedCommands/CommandReceiptTime.cs");
+        Assert.Empty(RenderedOutput.Errors(CSharp(plan)));
+    }
+
     [Fact]
     public async Task should_reject_a_reducer_backed_read_model_property_that_collides_with_the_document_key()
     {
@@ -133,6 +172,16 @@ public class when_planning_names_beside_generated_declarations
 
         Assert.True(plan.Success, string.Join("; ", plan.Diagnostics));
         Assert.Empty(RenderedOutput.Errors(CSharp(plan)));
+    }
+
+    static string CommandReceiptSource(bool occurrence)
+    {
+        var source = invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource);
+        source = source[..source.IndexOf("      specification IssuingFirstInvoice", StringComparison.Ordinal)];
+        return occurrence
+            ? source.Replace("          description = description\n", "          description = description\n          issuedAt = $context.occurred\n", StringComparison.Ordinal)
+                .Replace("      event InvoiceIssued\n", "      event InvoiceIssued\n        issuedAt DateTime\n", StringComparison.Ordinal)
+            : source;
     }
 
     static string WithoutAuthorization(string source) => string.Join('\n', source.Split('\n')

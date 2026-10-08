@@ -306,6 +306,12 @@ public class CratisRenderer : IRenderer
             await WriteFile(TenantTranslationSource.Render(rootNamespace), targetDirectory, output, error, failures);
         }
 
+        if (file.Content.Contains($"global::{rootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt", StringComparison.Ordinal) &&
+            runtimeArtifacts.Add("command receipt time"))
+        {
+            await WriteFile(CommandReceiptTimeRendering.Render(rootNamespace), targetDirectory, output, error, failures);
+        }
+
         await WriteFile(file, targetDirectory, output, error, failures);
         await RenderSpecifications(slice, applicationSet, rootNamespace, targetDirectory, output, error, failures);
     }

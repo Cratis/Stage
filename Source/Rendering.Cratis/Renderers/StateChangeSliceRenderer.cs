@@ -118,7 +118,8 @@ public class StateChangeSliceRenderer : ISliceRenderer
         // which collaborators the handler has to ask for — a `$context` path is reachable only through one.
         var context = new CommandContextAccess($"Command '{command.Name}'", diagnostics)
         {
-            TenantValuesType = $"global::{rootNamespace}.GeneratedTenancy.PortableTenantValues"
+            TenantValuesType = $"global::{rootNamespace}.GeneratedTenancy.PortableTenantValues",
+            ReceiptTimeType = $"global::{rootNamespace}.GeneratedCommands.CommandReceiptTime"
         };
         var rendered = produces.Select(produced => (
             Event: Identifiers.ToPascalCase(produced.Event),

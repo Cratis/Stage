@@ -11,6 +11,8 @@ internal enum StageRuntimeEngine
 
 internal static class StageRuntimeEngineSelection
 {
+    internal static string Name(StageRuntimeEngine engine) => engine.ToString().ToLowerInvariant();
+
     internal static StageRuntimeEngine Read(string[] arguments)
     {
         var configured = arguments.FirstOrDefault(argument => argument.StartsWith("--engine=", StringComparison.Ordinal))?[9..]

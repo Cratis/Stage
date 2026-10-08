@@ -74,9 +74,9 @@ public class ReactionSliceRenderer : ISliceRenderer
     static void RenderReaction(CSharpCodeBuilder builder, ReactionSyntax reaction, SliceSyntax slice, List<string> diagnostics)
     {
         var typeName = Identifiers.ToPascalCase(reaction.Name);
-        var summary = reaction.Description ?? $"Reacts to events for {Identifiers.ToWords(reaction.Name)}.";
+        var summary = $"Reacts to events for {Identifiers.ToWords(reaction.Name)}.";
 
-        builder.BlankLine().Summary(summary).OpenBlock($"public class {typeName} : IReactor");
+        builder.BlankLine().Documentation(reaction.Description, fallbackSummary: summary).OpenBlock($"public class {typeName} : IReactor");
 
         var isFirst = true;
         foreach (var trigger in reaction.Triggers)
@@ -126,7 +126,7 @@ public class ReactionSliceRenderer : ISliceRenderer
         var eventTypeName = Identifiers.ToPascalCase(eventName);
         if (trigger.Description is not null)
         {
-            builder.Summary(trigger.Description);
+            builder.Documentation(trigger.Description);
         }
 
         builder.OpenBlock($"public IEnumerable<object>? {eventTypeName}({eventTypeName} @event, EventContext context)");

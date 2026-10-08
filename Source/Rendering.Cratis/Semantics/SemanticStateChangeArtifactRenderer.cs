@@ -80,7 +80,7 @@ internal static class SemanticStateChangeArtifactRenderer
             .Concat(command.Requirements.Select(requirement => requirement.Severity))
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
-        builder.Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
+        context.Docs(command.Id).Render(builder).Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
         if (severities.Length > 0)
         {
             // Screenplay rejects every validation failure; a caller must not loosen the modeled floor.
@@ -206,7 +206,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var name = Identifiers.ToPascalCase(@event.Name);
         var parameters = string.Join(", ", @event.Properties.Select(property =>
             $"{types.Type(property.Type, ReducerCollection(@event, property, context))} {Identifiers.ToPascalCase(property.Name)}"));
-        builder.Summary($"The event that occurs when {Identifiers.ToWords(@event.Name)}.")
+        context.Docs(@event.Id).Render(builder, $"The event that occurs when {Identifiers.ToWords(@event.Name)}.")
             .Attribute("global::Cratis.Chronicle.Events.EventTypeAttribute")
             .Line($"public record {name}({parameters});")
             .BlankLine();

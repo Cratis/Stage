@@ -37,9 +37,8 @@ public static class TypeRenderer
         }
 
         var parameters = string.Join(", ", type.Properties.Select(property => RenderParameter(property, type.Name, applicationSet, diagnostics)));
-        var summary = type.Description ?? $"Represents {Identifiers.ToWords(type.Name)}.";
-
-        builder.Summary(summary).Line($"public record {typeName}({parameters});");
+        builder.Documentation(type.Description, fallbackSummary: $"Represents {Identifiers.ToWords(type.Name)}.")
+            .Line($"public record {typeName}({parameters});");
 
         var path = new List<string>(folderSegments) { $"{typeName}.cs" };
         return new RenderedFile(Path.Combine([.. path]), builder.ToString()) { Diagnostics = diagnostics };

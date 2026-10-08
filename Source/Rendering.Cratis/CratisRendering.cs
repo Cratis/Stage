@@ -143,6 +143,25 @@ public static class CratisRendering
     }
 
     /// <summary>
+    /// Adds syntax-only documentation from the same compilation as a versioned, hashed renderer input.
+    /// </summary>
+    /// <param name="profile">The resolved profile, including any Scene or strings inputs.</param>
+    /// <param name="compilation">The compilation whose syntax and semantic identities own the metadata.</param>
+    /// <returns>The profile with documentation included, or the original profile when none is authored.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">Thrown when the compilation metadata is inconsistent or contains invalid XML characters.</exception>
+    public static ArtifactRenderProfile WithAuthoringMetadata(ArtifactRenderProfile profile, SemanticCompilation compilation)
+    {
+        var input = AuthoringMetadataInput.Create(compilation);
+        var inputs = profile.Inputs.Where(existing => existing.Name != AuthoringMetadataInput.Name).ToImmutableArray();
+        return input is null && inputs.Length == profile.Inputs.Length ? profile : ArtifactRenderProfile.Create(
+            profile.Target,
+            profile.TargetVersion,
+            profile.Renderer,
+            profile.RendererVersion,
+            input is null ? inputs : inputs.Add(input));
+    }
+
+    /// <summary>
     /// Plans exact Cratis artifacts without file-system, process, network, environment, random, or clock access.
     /// </summary>
     /// <param name="model">The immutable executable semantic model.</param>

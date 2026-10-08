@@ -15,7 +15,6 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts.Specifications.Semantic;
-using Cratis.Stage.Specifications.Admission;
 using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Types;
@@ -53,7 +52,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
                 break;
             }
 
-            var blocker = options.DefaultCaller is null ? SemanticRunAdmission.Check(plan, specification) : new SemanticUnsupportedCapability(StageExecutionCapability.Authorization, specification.Id.ToString(), "Explicit caller context is not admitted.");
+            var blocker = options.DefaultCaller is null ? SemanticSpecificationAdmission.Check(plan, specification) : new SemanticUnsupportedCapability(StageExecutionCapability.Authorization, specification.Id.ToString(), "Explicit caller context is not admitted.");
             if (blocker is not null)
             {
                 results.Add(Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: blocker));

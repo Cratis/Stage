@@ -26,5 +26,14 @@
 
     <ItemGroup>
         <ProjectReference Include="../Contracts/Contracts.csproj" />
+        <!-- Pure run admission shares the renderer's predicates without referencing the Testing executor. -->
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Semantics/Admission/SemanticScopedProjectionSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Semantics/Admission/SemanticFlatProjectionSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Naming/GeneratedPascalCase.cs" Link="Semantics/Admission/GeneratedPascalCase.cs" />
+        <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeNames.cs" Link="Semantics/Admission/GeneratedTypeNames.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleEventPropertyNameIsSafe.cs" Link="Semantics/Admission/ChronicleEventPropertyNameIsSafe.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleReadModelPropertyNamesAreSafe.cs" Link="Semantics/Admission/ChronicleReadModelPropertyNamesAreSafe.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/ProjectionReferencedEventNamesAreUnique.cs" Link="Semantics/Admission/ProjectionReferencedEventNamesAreUnique.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Semantics/Admission/SemanticVersionFeatures.cs" />
     </ItemGroup>
 </Project>

@@ -3,7 +3,6 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
-using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
@@ -20,7 +19,7 @@ internal sealed class SemanticRuntimeAdmission
         // ESM v5-v7 constructs the runtime cannot execute refuse the whole model rather than running without them:
         // a reaction, capture or trigger would never fire, and a generated value or response would be mis-executed.
         var application = plan.Model.Application;
-        foreach (var feature in SemanticVersionFeatures.InApplication(application).Concat(SemanticVersionFeatures.Slices(application).SelectMany(SemanticVersionFeatures.InSlice)))
+        foreach (var feature in SemanticRunAdmission.ModelFeatures(application))
         {
             var entry = Refused(feature);
             entries.Add(entry);
@@ -48,7 +47,7 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var command in plan.Commands.Values)
         {
-            if (SemanticVersionFeatures.InCommand(command).FirstOrDefault() is { } feature)
+            if (SemanticRunAdmission.CommandFeatures(command).FirstOrDefault() is { } feature)
             {
                 var entry = Refused(feature);
                 entries.Add(entry);
@@ -79,10 +78,11 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var specification in plan.Specifications.Values)
         {
-            // Live specifications never run, so a v5-v7 construct in one is reported precisely without blocking the model.
-            entries.Add(SemanticVersionFeatures.InSpecification(specification).FirstOrDefault() is { } feature
+            // A refused specification does not block the live model; runs report the same typed refusal.
+            var refusal = SemanticRunAdmission.Check(plan, specification);
+            entries.Add(SemanticRunAdmission.SpecificationFeatures(specification).FirstOrDefault() is { } feature
                 ? Refused(feature)
-                : new(specification.Id.ToString(), "specification", "unsupported", "Specification", "Live specification execution is not available; use the specification runner."));
+                : new(specification.Id.ToString(), "specification", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
         }
 
         Entries = entries;
@@ -93,6 +93,6 @@ internal sealed class SemanticRuntimeAdmission
 
     internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
 
-    static SemanticAdmissionEntry Refused(SemanticVersionFeature feature) =>
-        new(feature.Artifact.ToString(), feature.Kind, "unsupported", feature.Capability.ToString(), $"{feature.Code}: {feature.Message}");
+    static SemanticAdmissionEntry Refused(SemanticAdmissionFeature feature) =>
+        new(feature.Artifact, feature.Kind, "unsupported", feature.Capability, feature.Details);
 }

@@ -36,7 +36,7 @@ The image defaults to the two mounted folders, so the invocation above needs no 
 | `--spec <guid>` | — | Limit the structural run to a single specification. |
 | `--engine semantic` | `structural` | Opt in to executable semantic specifications and the versioned semantic report. |
 | `--specification <semantic-id>` | — | Select a semantic specification (semantic engine only). |
-| `--scope <semantic-id>[,<semantic-id>...]` | — | Select application, module, feature, slice or specification identities (semantic engine only). |
+| `--scope <semantic-id>[,<semantic-id>...]` | — | Select application, module, feature, slice or specification identities; repeatable (semantic engine only). |
 | `--catalog <file>` | — | Use an authoritative semantic identity catalog (semantic engine only). |
 | `--application <name>` | Input folder/file name | Preserve the application name across input layouts (semantic engine only). |
 
@@ -117,6 +117,15 @@ The types behind the file live in `Cratis.Stage.Contracts` (`SpecificationRunRes
 `SpecificationRunResultsFile`), so tooling should deserialize with those rather than reading the JSON by hand.
 
 ## Opt in to semantic execution
+
+A running Stage host with the semantic engine also exposes
+[`POST /stage/semantic/specifications/run`](index.md#run-specifications-in-a-semantic-session). The host launches
+this runner as a child process with `--engine semantic`, reads and validates its output file, and returns the
+same `stage-spec-run/1` report. Both paths create fresh isolated state per specification; neither runs against
+a live session's world or event store. Capability refusals remain typed `Unsupported` results with their details.
+Runs remain available when an admitted model's live world rebuild or Chronicle registration fails later;
+initial model compilation or runtime admission refusal instead returns HTTP 501.
+The host route is additive and does not change either runner's `results.json` format or the default engine.
 
 The semantic engine is opt-in in this minor version. Use `--engine semantic` for behavioral execution rather than the deprecated structural check:
 

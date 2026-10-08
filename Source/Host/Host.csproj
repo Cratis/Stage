@@ -37,15 +37,28 @@
 
     <ItemGroup>
         <ProjectReference Include="../Stage/Stage.csproj" />
-    </ItemGroup>
 
-    <ItemGroup>
-        <!-- Compile the renderer's ESM v5-v7 construct detection from its owning source so runtime admission cannot drift. -->
-        <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Semantics/SemanticVersionFeatures.cs" />
     </ItemGroup>
 
     <ItemGroup>
         <Content Remove="package.json" />
         <None Remove="package.json" />
     </ItemGroup>
+    <PropertyGroup>
+        <!-- BaseIntermediateOutputPath may already be absolute; NormalizeDirectory combines it safely. No trailing separator, so a quoted Windows path cannot end in an escaped quote. -->
+        <SpecificationRunnerArtifactsPath>$([MSBuild]::NormalizeDirectory($(MSBuildProjectDirectory), $(BaseIntermediateOutputPath), 'specrunner-artifacts').TrimEnd('\').TrimEnd('/'))</SpecificationRunnerArtifactsPath>
+    </PropertyGroup>
+    <!--
+        Local Debug hosts/specs use the same isolated layout as the image.
+        The nested publish gets its own artifacts path, so its restore/build never shares obj/ or bin/ with the
+        solution build of SpecRunner, Specifications, Stage or Contracts running on parallel MSBuild nodes.
+    -->
+    <Target Name="BuildSpecificationRunner" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+        <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../SpecRunner/SpecRunner.csproj&quot; --configuration Debug --output &quot;$(TargetDir)specrunner/&quot; --artifacts-path &quot;$(SpecificationRunnerArtifactsPath)&quot; --self-contained false -p:Version=$(Version)" />
+    </Target>
+    <!-- Publish in a separate probing directory: none of the runner's kernel/testing dependencies enter Host.deps.json. -->
+    <Target Name="PublishSpecificationRunner" AfterTargets="Publish">
+        <!-- A fresh CLI evaluation after restore avoids reusing Debug test imports in a Release runner publish. -->
+        <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../SpecRunner/SpecRunner.csproj&quot; --configuration $(Configuration) --output &quot;$(PublishDir)specrunner/&quot; --artifacts-path &quot;$(SpecificationRunnerArtifactsPath)&quot; --self-contained false -p:Version=$(Version)" />
+    </Target>
 </Project>

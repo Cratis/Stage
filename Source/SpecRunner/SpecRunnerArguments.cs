@@ -56,7 +56,10 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
         {
             if (args[index].StartsWith("--", StringComparison.Ordinal))
             {
-                values[args[index][2..]] = args[index + 1];
+                var key = args[index][2..];
+                values[key] = key.Equals("scope", StringComparison.OrdinalIgnoreCase) && values.TryGetValue(key, out var previous)
+                    ? $"{previous},{args[index + 1]}"
+                    : args[index + 1];
                 index++;
             }
         }

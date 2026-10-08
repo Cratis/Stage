@@ -9,13 +9,35 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
-namespace Cratis.Stage.Specifications.Admission;
+namespace Cratis.Stage.Semantics;
 
 /// <summary>
 /// Checks the entire reachable behavior before allowing a specification to execute.
 /// </summary>
-internal static class SemanticRunAdmission
+public static class SemanticRunAdmission
 {
+    /// <summary>
+    /// Finds later-version constructs that block live model admission.
+    /// </summary>
+    /// <param name="application">The application.</param>
+    /// <returns>The precise capability refusals.</returns>
+    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(SemanticApplication application) =>
+        SemanticVersionFeatures.InApplication(application).Concat(SemanticVersionFeatures.Slices(application).SelectMany(SemanticVersionFeatures.InSlice)).Select(Feature);
+
+    /// <summary>
+    /// Finds later-version constructs in a command.
+    /// </summary>
+    /// <param name="command">The command.</param>
+    /// <returns>The precise capability refusals.</returns>
+    public static IEnumerable<SemanticAdmissionFeature> CommandFeatures(SemanticCommand command) => SemanticVersionFeatures.InCommand(command).Select(Feature);
+
+    /// <summary>
+    /// Finds later-version assertions in a specification.
+    /// </summary>
+    /// <param name="specification">The specification.</param>
+    /// <returns>The precise capability refusals.</returns>
+    public static IEnumerable<SemanticAdmissionFeature> SpecificationFeatures(SemanticSpecification specification) => SemanticVersionFeatures.InSpecification(specification).Select(Feature);
+
     /// <summary>
     /// Returns the first unsupported construct in deterministic precedence order.
     /// </summary>
@@ -164,6 +186,8 @@ internal static class SemanticRunAdmission
         }
         return null;
     }
+
+    static SemanticAdmissionFeature Feature(SemanticVersionFeature feature) => new(feature.Artifact.ToString(), feature.Kind, feature.Capability.ToString(), $"{feature.Code}: {feature.Message}");
 
     // ESM v5-v7 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
     // an absence assertion, a generated value or a response would otherwise be dropped and the run could pass.

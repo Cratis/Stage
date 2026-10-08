@@ -11,11 +11,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cratis/scene.blueprint.default": "4.7.0",
-    "@cratis/scene.engine": "4.7.0",
-    "@cratis/scene.model": "4.7.0",
-    "@cratis/scene.primereact": "4.7.0",
-    "@cratis/scene.react": "4.7.0",
+    "@cratis/scene.blueprint.default": "4.9.0",
+    "@cratis/scene.engine": "4.9.0",
+    "@cratis/scene.model": "4.9.0",
+    "@cratis/scene.primereact": "4.9.0",
+    "@cratis/scene.react": "4.9.0",
     "@primereact/core": "11.2.0",
     "@primereact/headless": "11.2.0",
     "@primereact/ui": "11.2.0",

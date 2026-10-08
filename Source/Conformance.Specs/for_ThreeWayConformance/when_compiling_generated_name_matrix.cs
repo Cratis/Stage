@@ -597,18 +597,16 @@ public class when_compiling_generated_name_matrix
         var plan = SemanticExecutionPlan.Compile(model);
         Assert.True(plan.Success, string.Join("; ", plan.Issues));
         var options = new CratisRenderingOptions("Projects", "Projects");
-        var request = new ArtifactRenderRequest(
-            model,
-            plan.Plan!,
-            CratisRendering.CreateProfile("Projects", options),
-            new(ArtifactRenderScopeKind.Application, model.Application.Id));
-        var context = new SemanticApplicationContext(request, options);
-        var files = context.SelectedSlices().Select(slice => slice.Slice.Kind == SemanticSliceKind.StateChange
-            ? SemanticStateChangeArtifactRenderer.Render(slice, context)
-            : SemanticStateViewArtifactRenderer.Render(slice, context)).ToArray();
+        var rendered = CratisRendering.Plan(model, plan.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), options);
+        Assert.True(rendered.Success, string.Join("; ", rendered.Diagnostics));
+        var files = rendered.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
         Assert.Empty(RenderedOutput.Errors(files));
-        Assert.True(CratisRendering.Plan(model, plan.Plan!, request.Scope, options).Success);
-        Assert.Contains("global::System.DateTimeOffset.UtcNow", files[0].Content, StringComparison.Ordinal);
+        var command = files.Single(file => file.RelativePath.EndsWith("/RegisterProject.cs", StringComparison.Ordinal));
+        var receipt = files.Single(file => file.RelativePath == "GeneratedCommands/CommandReceiptTime.cs");
+        Assert.Contains("global::Projects.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation)", command.Content, StringComparison.Ordinal);
+        Assert.Contains("global::System.DateTimeOffset.FromUnixTimeMilliseconds(receivedAt.ToUnixTimeMilliseconds())", receipt.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("DateTimeOffset.UtcNow", command.Content, StringComparison.Ordinal);
     }
 
     [Fact]

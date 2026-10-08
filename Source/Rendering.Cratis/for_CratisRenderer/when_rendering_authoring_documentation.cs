@@ -27,10 +27,10 @@ public class when_rendering_authoring_documentation : Specification
         var application = compilation.Value!;
         var set = new ApplicationSet([application]);
         var slices = application.Modules.Single().Features.Single().Slices.ToArray();
-        _command = new StateChangeSliceRenderer().Render(new LocatedSlice(slices[0], ["Projects", "Registration", "RegisterProject"]), set, "Projects").Content;
-        _view = new StateViewSliceRenderer().Render(new LocatedSlice(slices[1], ["Projects", "Registration", "ProjectLookup"]), set, "Projects").Content;
+        _command = new StateChangeSliceRenderer().Render(new LocatedSlice(slices[0], ["Projects", "Registration"]), set, "Projects").Content;
+        _view = new StateViewSliceRenderer().Render(new LocatedSlice(slices[1], ["Projects", "Registration"]), set, "Projects").Content;
         _type = TypeRenderer.Render(application.Types.Single(), set, "Projects").Content;
-        _viewWithoutDeclaration = new StateViewSliceRenderer().Render(new LocatedSlice(slices[1] with { ReadModels = null }, ["Projects", "Registration", "ProjectLookup"]), set, "Projects").Content;
+        _viewWithoutDeclaration = new StateViewSliceRenderer().Render(new LocatedSlice(slices[1] with { ReadModels = null }, ["Projects", "Registration"]), set, "Projects").Content;
     }
 
     [Fact] void should_render_the_command_description() => _command.ShouldContain("/// Registers &lt;project&gt; &amp; name\n/// </summary>\n[Command]");

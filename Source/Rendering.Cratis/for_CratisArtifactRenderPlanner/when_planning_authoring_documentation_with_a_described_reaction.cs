@@ -17,6 +17,7 @@ public class when_planning_authoring_documentation_with_a_described_reaction : S
         when_rendering_authoring_documentation.Source.Replace(
             "    slice StateView ProjectLookup",
             """
+                slice Automation NotifyRegistration
                   reaction RegistrationNotification
                     description "Notifies about registration"
                     when ProjectRegistered

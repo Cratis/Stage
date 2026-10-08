@@ -33,11 +33,14 @@ public class when_rendering_authoring_documentation : Specification
         _viewWithoutDeclaration = new StateViewSliceRenderer().Render(new LocatedSlice(slices[1] with { ReadModels = null }, ["Projects", "Registration"]), set, "Projects").Content;
     }
 
-    [Fact] void should_render_the_command_description() => _command.ShouldContain("/// Registers &lt;project&gt; &amp; name\n/// </summary>\n[Command]");
+    [Fact] void should_render_the_command_description() => _command.ShouldContain("/// Registers &lt;project&gt; &amp; name\n/// </summary>");
+    [Fact] void should_render_command_markdown_before_attributes() => _command.ShouldContain("/// <remarks>\n/// # Command &lt;notes&gt; &amp; details\n///\n/// - **Keep** the requested name.\n/// </remarks>\n[Command]");
     [Fact] void should_render_the_event_description() => _command.ShouldContain("/// A &lt;project&gt; &amp; name were registered");
     [Fact] void should_copy_the_event_markdown_as_escaped_remarks() => _command.ShouldContain("/// <remarks>\n/// # Registration &lt;notes&gt; &amp; details\n///\n/// - **Keep** the project identity.");
     [Fact] void should_render_the_declared_read_model_description() => _view.ShouldContain("/// Shows &lt;project&gt; &amp; name");
+    [Fact] void should_render_read_model_markdown_before_attributes() => _view.ShouldContain("/// <remarks>\n/// # View &lt;notes&gt; &amp; details\n///\n/// - `name` may contain &lt;markup&gt; &amp; text.\n/// </remarks>\n[FromEvent<");
     [Fact] void should_render_the_query_description() => _view.ShouldContain("    /// Finds &lt;project&gt; &amp; name\n    /// </summary>\n    [AllowAnonymous]");
     [Fact] void should_render_the_composite_type_description() => _type.ShouldContain("/// Describes &lt;project&gt; &amp; details");
     [Fact] void should_render_an_inferred_model_without_a_declared_read_model_collection() => _viewWithoutDeclaration.ShouldContain("public record ProjectSummary(");
+    [Fact] void should_not_invent_documentation_for_an_inferred_read_model() => _viewWithoutDeclaration.ShouldNotContain("# View &lt;notes&gt; &amp; details");
 }

@@ -136,7 +136,7 @@ internal static partial class SemanticCratisAdmission
         }
 
         // Screenplay's SemanticValueValidator admits numbers and booleans only as non-text values.
-        // MatchClaim therefore always denies these targets; generated PolicyValues.Value also returns null.
+        // MatchClaim therefore always denies these targets; generated claim terms are the literal false.
         // Date and DateTime are SemanticTextValue targets, not always-denied scalars, and stay refused.
         var primitive = property?.Type.Kind switch
         {

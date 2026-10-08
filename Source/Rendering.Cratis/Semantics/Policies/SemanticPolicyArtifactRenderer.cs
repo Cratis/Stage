@@ -25,9 +25,9 @@ internal static class SemanticPolicyArtifactRenderer
             .Using("Cratis.Arc.Queries")
             .Using("Microsoft.Extensions.DependencyInjection");
         var operations = slices.SelectMany(slice => slice.Slice.Commands.Where(command => command.Authorization is not null)
-                .Select(command => (command.Id, Authorization: command.Authorization!, IsCommand: true, Argument: string.Empty, Subject: command.Properties.Single(property => property.IsIdentifier).Name)))
+                .Select(command => (command.Id, Authorization: command.Authorization!, IsCommand: true, Argument: string.Empty, Subject: command.Properties.Single(property => property.IsIdentifier).Name, Properties: (IReadOnlyList<SemanticProperty>)command.Properties)))
             .Concat(slices.SelectMany(slice => slice.Slice.Queries.Where(query => query.Authorization is not null)
-                .Select(query => (query.Id, Authorization: query.Authorization!, IsCommand: false, Argument: Identifiers.ToCamelCase(query.Argument.Name), Subject: Identifiers.ToCamelCase(query.Argument.Name)))))
+                .Select(query => (query.Id, Authorization: query.Authorization!, IsCommand: false, Argument: Identifiers.ToCamelCase(query.Argument.Name), Subject: query.Argument.Name, Properties: (IReadOnlyList<SemanticProperty>)[new(query.Argument.Id, query.Argument.Name, query.Argument.Type, false)]))))
             .OrderBy(operation => operation.Id.ToString(), StringComparer.Ordinal).ToArray();
 
         builder.Summary("Registers every generated authorization policy with Arc.")
@@ -41,7 +41,7 @@ internal static class SemanticPolicyArtifactRenderer
         builder.EndBlock().EndBlock().BlankLine();
         foreach (var operation in operations)
         {
-            var expression = Authorization(operation.Authorization, context.Application.Policies, operation.IsCommand, operation.Argument, operation.Subject);
+            var expression = Authorization(operation.Authorization, context, operation.Properties, operation.IsCommand, operation.Argument, operation.Subject);
             builder.Summary("Enforces the effective Screenplay authorization for one operation.")
                 .OpenBlock($"public sealed class {Name(operation.Id)} : global::Cratis.Arc.Authorization.IAuthorizationPolicy")
                 .Line("/// <inheritdoc/>")
@@ -95,26 +95,33 @@ internal static class SemanticPolicyArtifactRenderer
         };
     }
 
-    static string Authorization(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies, bool command, string argument, string subject) => authorization switch
+    static string Authorization(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject) => authorization switch
     {
-        SemanticPolicyReference reference => Condition(policies.Single(policy => policy.Name == reference.Name).Condition, command, argument, subject),
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => $"({Authorization(logical.Left, policies, command, argument, subject)} && {Authorization(logical.Right, policies, command, argument, subject)})",
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => $"({Authorization(logical.Left, policies, command, argument, subject)} || {Authorization(logical.Right, policies, command, argument, subject)})",
+        SemanticPolicyReference reference => Condition(context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, context, properties, command, argument, subject),
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject)} && {Authorization(logical.Right, context, properties, command, argument, subject)})",
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject)} || {Authorization(logical.Right, context, properties, command, argument, subject)})",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticAuthorization), authorization.GetType().Name)
     };
 
-    static string Condition(SemanticPolicyCondition condition, bool command, string argument, string subject) => condition switch
+    static string Condition(SemanticPolicyCondition condition, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject) => condition switch
     {
         SemanticAuthenticatedCondition => "context.Principal.Identity?.IsAuthenticated == true",
         SemanticRoleCondition role => $"context.Principal.IsInRole({Literal(role.Role)})",
-        SemanticClaimCondition claim => Claim(claim, command, argument, subject),
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => $"({Condition(logical.Left, command, argument, subject)} && {Condition(logical.Right, command, argument, subject)})",
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => $"({Condition(logical.Left, command, argument, subject)} || {Condition(logical.Right, command, argument, subject)})",
+        SemanticClaimCondition claim => Claim(claim, context, properties, command, argument, subject),
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => $"({Condition(logical.Left, context, properties, command, argument, subject)} && {Condition(logical.Right, context, properties, command, argument, subject)})",
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => $"({Condition(logical.Left, context, properties, command, argument, subject)} || {Condition(logical.Right, context, properties, command, argument, subject)})",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPolicyCondition), condition.GetType().Name)
     };
 
-    static string Claim(SemanticClaimCondition claim, bool command, string argument, string subject)
+    static string Claim(SemanticClaimCondition claim, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject)
     {
+        if (claim.TargetKind != SemanticClaimTargetKind.Literal &&
+            ClaimPrimitive(context, properties, claim.TargetKind == SemanticClaimTargetKind.Subject ? subject : claim.Value!) is
+                SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean)
+        {
+            return "false";
+        }
+
         var target = claim.TargetKind switch
         {
             SemanticClaimTargetKind.Literal => Literal(claim.Value!),
@@ -125,6 +132,25 @@ internal static class SemanticPolicyArtifactRenderer
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticClaimTargetKind), claim.TargetKind)
         };
         return $"PolicyValues.Match(context, {Literal(claim.Claim)}, {target})";
+    }
+
+    static SemanticPrimitiveType ClaimPrimitive(SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string path)
+    {
+        SemanticProperty? property = null;
+        foreach (var segment in path.Split('.'))
+        {
+            property = properties.SingleOrDefault(candidate => candidate.Name == segment);
+            if (property is null) return SemanticPrimitiveType.Unknown;
+            properties = property.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(property.Type.Target, out var composite)
+                ? composite.Properties : [];
+        }
+
+        return property?.Type.Kind switch
+        {
+            SemanticTypeReferenceKind.Primitive => property.Type.Primitive,
+            SemanticTypeReferenceKind.Concept => context.Concepts[property.Type.Target].Primitive,
+            _ => SemanticPrimitiveType.Unknown
+        };
     }
 
     static string PascalPath(string path) => string.Join('.', path.Split('.').Select(Identifiers.ToPascalCase));

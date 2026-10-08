@@ -19,10 +19,11 @@ public class when_admitting_nested_clear_with_a_matching_root_from : Specificati
 
     void Because()
     {
-        var source = when_rendering_scoped_projections.ScopedSource.Replace(
-            "        children notes identified by noteId",
-            "          clear with ProjectRenamed key projectId\n        children notes identified by noteId",
-            StringComparison.Ordinal);
+        // ClearWith binds to the event-source key, so its root from must use the same key.
+        var source = when_rendering_scoped_projections.ScopedSource
+            .Replace("projection ProjectSummaryProjection => ProjectSummary\n", "projection ProjectSummaryProjection => ProjectSummary\n        no automap\n", StringComparison.Ordinal)
+            .Replace("from ProjectRenamed key projectId", "from ProjectRenamed", StringComparison.Ordinal)
+            .Replace("        children notes identified by noteId", "          clear with ProjectRenamed\n        children notes identified by noteId", StringComparison.Ordinal);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("nested-clear"), "nested-clear", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));

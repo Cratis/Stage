@@ -88,14 +88,15 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                   query ProjectById => ProjectSummary?
                     by projectId ProjectId
                   projection ProjectSummaryProjection => ProjectSummary
+                    no automap
                     from ProjectRegistered key projectId
                       name = name
-                    from ProjectRenamed key projectId
+                    from ProjectRenamed
                       name = name
                     nested info
                       from ProjectRegistered key projectId
                         name = name
-                      clear with ProjectRenamed key projectId
+                      clear with ProjectRenamed
                     children notes identified by noteId
                       from ProjectNoted key noteId
                         parent projectId

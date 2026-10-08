@@ -43,6 +43,7 @@ internal static class AuthoringMetadataInput
         var eventRevisions = compilation.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(Slices)
             .SelectMany(slice => slice.Events).ToDictionary(@event => @event.Id, @event => @event.Revision.Value);
         var entries = new SortedDictionary<string, Metadata>(StringComparer.Ordinal);
+
         // All syntax generations share a semantic identity; only the ESM's current revision owns its metadata.
         foreach (var entry in index.Entries.Where(entry => entry.SemanticId is not null && ids.Contains(entry.SemanticId.Value) &&
             (entry.Node is not EventSyntax @event || @event.Generation == eventRevisions[entry.SemanticId.Value])))

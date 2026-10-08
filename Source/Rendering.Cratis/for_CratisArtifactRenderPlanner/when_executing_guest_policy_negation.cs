@@ -19,7 +19,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_executing_guest_policy_negation(context fixture) : IClassFixture<context>
 {
     [Fact] void should_build_debug_and_release_without_warnings() => (fixture.DebugWarnings + fixture.ReleaseWarnings).ShouldBeEmpty();
-    [Fact] void should_run_every_generated_guest_and_authenticated_vector() => fixture.Results.Length.ShouldEqual(32);
+    [Fact] void should_run_every_generated_guest_and_authenticated_vector() => fixture.Results.Length.ShouldEqual(36);
     [Fact] void should_match_the_reference_through_the_generated_pipelines() => fixture.Results.All(result => result.Outcome == "Passed").ShouldBeTrue();
 
     public class context : a_generated_invoice_application
@@ -86,6 +86,32 @@ public class when_executing_guest_policy_negation(context fixture) : IClassFixtu
 
                         """);
                     }
+
+                    if (index == 0)
+                    {
+                        // Successful protected queries need a command/event expectation to replay through
+                        // the generated QueryScenario; keep the specification in that command's slice.
+                        (string Specification, string Query)[] queries = [("GuestQuery", "GuestReport"), ("AlternativeGuestQuery", "EitherReport")];
+                        foreach (var (specification, query) in queries)
+                        {
+                            source.Append($$"""
+                                  specification {{specification}}
+                                    given caller
+                                    when File0
+                                      reportId = "r-1"
+                                      owner = "person"
+                                    then Filed0
+                                      for "r-1"
+                                      reportId = "r-1"
+                                    then query {{query}}
+                                      arguments
+                                        reportId = "r-1"
+                                      result
+                                        reportId = "r-1"
+
+                            """);
+                        }
+                    }
                 }
 
                 source.Append("""
@@ -104,32 +130,12 @@ public class when_executing_guest_policy_negation(context fixture) : IClassFixtu
                       projection Reports => Report
                         from Filed0 key reportId
                           reportId = reportId
-                      specification GuestQuery
-                        given caller
-                        given Filed0
-                          for "r-1"
-                          reportId = "r-1"
-                        then query GuestReport
-                          arguments
-                            reportId = "r-1"
-                          result
-                            reportId = "r-1"
                       specification DeniedGuestQuery
                         given caller
                         then query NoGuestReport
                           arguments
                             reportId = "r-1"
                         then denied
-                      specification AlternativeGuestQuery
-                        given caller
-                        given Filed0
-                          for "r-1"
-                          reportId = "r-1"
-                        then query EitherReport
-                          arguments
-                            reportId = "r-1"
-                          result
-                            reportId = "r-1"
                 """);
 
                 return source.ToString();

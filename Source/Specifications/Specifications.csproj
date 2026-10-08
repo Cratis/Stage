@@ -6,7 +6,7 @@
         <IsPackable>true</IsPackable>
         <!-- Type discovery references deprecated structural types from the Stage dependency. -->
         <NoWarn>$(NoWarn);CS0618</NoWarn>
-        <!-- This new package has no published 3.15.1 baseline to compare against. -->
+        <!-- Package validation cannot resolve the Chronicle kernel assemblies this package carries, so it stays off. -->
         <EnablePackageValidation>false</EnablePackageValidation>
         <Description>Isolated in-memory Screenplay semantic specification execution.</Description>
     </PropertyGroup>

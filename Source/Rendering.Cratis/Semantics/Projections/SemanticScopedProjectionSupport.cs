@@ -2,17 +2,20 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.RegularExpressions;
+
 using Cratis.Screenplay.Semantics;
 
+#pragma warning disable MA0110, SA1202 // The current SDK does not generate implementations for these regex members in this project.
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 /// <summary>
 /// Identifies the scoped projection subset that can be lowered without changing its meaning.
 /// </summary>
-internal static partial class SemanticScopedProjectionSupport
+internal static class SemanticScopedProjectionSupport
 {
-    [GeneratedRegex(@"\A[\w ._/:*+-]*\z", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex FluentTextLiteral { get; }
+    static readonly Regex _fluentTextLiteral = new(@"\A[\w ._/:*+-]*\z", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(1000));
+
+    static Regex FluentTextLiteral() => _fluentTextLiteral;
 
     /// <summary>
     /// Returns the first reason a scope cannot be represented by the emitted Chronicle projection.
@@ -334,7 +337,7 @@ internal static partial class SemanticScopedProjectionSupport
     static bool LiteralSupported(SemanticProjectionLiteral literal, SemanticTypeReference target, SemanticApplicationContext context)
     {
         var primitive = target.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[target.Target].Primitive : target.Primitive;
-        return primitive != SemanticPrimitiveType.Text || (literal.Value is SemanticTextValue text && FluentTextLiteral.IsMatch(text.Value));
+        return primitive != SemanticPrimitiveType.Text || (literal.Value is SemanticTextValue text && FluentTextLiteral().IsMatch(text.Value));
     }
 
     static bool HasOptionalIntermediate(

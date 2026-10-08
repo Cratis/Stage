@@ -12,6 +12,7 @@ import { InputText } from 'primereact/inputtext';
 import { InputNumber } from 'primereact/inputnumber';
 import type { InputNumberRootValueChangeEvent } from 'primereact/inputnumber';
 import { PrimeDataTable, PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
+import { dataChanged, useStageData } from './stageData';
 
 /**
  * Builds the minimal `ExternalComponent` PrimeReact's v11 adapters need - they read configuration off
@@ -32,46 +33,53 @@ interface RegisteredProps {
     interactions?: InteractionHandlers;
 }
 
-/** Fired after a command executed, so every table on screen re-reads its query. */
-const DATA_CHANGED = 'cratis.stage.data-changed';
-
 function text(element: ExternalComponent, name: string, fallback = ''): string {
     const value = element.properties[name];
     return typeof value === 'string' ? value : fallback;
 }
 
-function useModelData(route: string | undefined): { rows: Record<string, unknown>[]; error: string } {
+function useModelData(route: string | undefined): { rows: Record<string, unknown>[]; error: string; loading: boolean } {
     const [rows, setRows] = useState<Record<string, unknown>[]>([]);
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const read = useCallback(() => {
         if (!route) return;
+        setLoading(true);
         fetch(route.replace(/^\//, ''), { headers: { Accept: 'application/json' } })
             .then(async response => {
                 if (!response.ok) throw new Error(`The query answered ${response.status}.`);
-                return response.json();
+                return response.json() as Promise<unknown>;
             })
             .then(payload => {
-                const data = payload?.data ?? payload;
-                setRows(Array.isArray(data) ? data : data ? [data] : []);
+                const data = payload !== null && typeof payload === 'object' && 'data' in payload ? (payload as { data?: unknown }).data : payload;
+                setRows(Array.isArray(data) ? data.filter((row): row is Record<string, unknown> => row !== null && typeof row === 'object' && !Array.isArray(row)) : data && typeof data === 'object' && !Array.isArray(data) ? [data as Record<string, unknown>] : []);
                 setError('');
             })
-            .catch(reason => setError(reason instanceof Error ? reason.message : String(reason)));
+            .catch(reason => setError(reason instanceof Error ? reason.message : String(reason)))
+            .finally(() => setLoading(false));
     }, [route]);
 
     useEffect(() => {
         read();
-        globalThis.addEventListener(DATA_CHANGED, read);
-        return () => globalThis.removeEventListener(DATA_CHANGED, read);
+        globalThis.addEventListener('cratis.stage.data-changed', read);
+        return () => globalThis.removeEventListener('cratis.stage.data-changed', read);
     }, [read]);
 
-    return { rows, error };
+    return { rows, error, loading };
+}
+
+function rowsForRoute(route: string, data: ReturnType<typeof useStageData>, local: { rows: Record<string, unknown>[]; error: string; loading: boolean }): { rows: Record<string, unknown>[]; error: string; loading: boolean } {
+    const match = Object.values(data.queries).find(query => query.route === route || query.route.replace(/^\//, '') === route.replace(/^\//, ''));
+    return match ? { rows: match.rows, error: match.error, loading: match.loading } : local;
 }
 
 /** Reads a slice's read model through the query the Stage registered for it. */
 export function StageTable({ element, slots }: RegisteredProps) {
     const route = text(element, 'route');
-    const { rows, error } = useModelData(route || undefined);
+    const data = useStageData();
+    const local = useModelData(route || undefined);
+    const { rows, error, loading } = rowsForRoute(route, data, local);
     const modeled = (element.slots.columns ?? []).map(column => {
         const properties = (column as ExternalComponent).properties;
         return {
@@ -103,8 +111,11 @@ export function StageTable({ element, slots }: RegisteredProps) {
 
     return (
         <section className='stage-table' data-scene-id={element.id}>
+            {loading && <PrimeMessage element={syntheticElement(`${element.id}-loading`, { severity: 'info', text: 'Loading…' })} slots={{}} />}
             {error && <PrimeMessage element={syntheticElement(`${element.id}-error`, { severity: 'error', text: error })} slots={{}} />}
-            <PrimeDataTable element={tableElement} slots={{}} />
+            <div onClick={() => data.setSelected(rows[0])}>
+                <PrimeDataTable element={tableElement} slots={{}} />
+            </div>
         </section>
     );
 }
@@ -171,7 +182,7 @@ export function StageAction({ element, interactions }: RegisteredProps) {
             // its own trigger, not this element's `visible` seed past first render) - a successful command
             // clears the fields so the next open starts fresh, but cannot also close a dialog it does not own.
             setValues({});
-            globalThis.dispatchEvent(new CustomEvent(DATA_CHANGED));
+            dataChanged();
         } catch (reason) {
             setMessages([reason instanceof Error ? reason.message : String(reason)]);
         } finally {

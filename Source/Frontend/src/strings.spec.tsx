@@ -37,7 +37,7 @@ function sceneWith(text: string): StageSceneApplication {
         screenTemplates: [],
         screens: [{
             name: 'Invoices',
-            layout: 'Application',
+            layout: 'AppShell',
             forms: [],
             contributions: [],
             slotContent: { content: [title(text)] },

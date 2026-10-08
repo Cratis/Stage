@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
@@ -30,7 +31,7 @@ public class a_generated_application : a_register_project_render_request
             var plan = CreatePlan();
             if (!AllowBlockedPlan)
             {
-                plan.Success.ShouldBeTrue();
+                Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Artifact}: {diagnostic.Message}")));
             }
             foreach (var artifact in plan.Artifacts)
             {

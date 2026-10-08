@@ -40,6 +40,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- Compile the renderer's ESM v5-v7 construct detection from its owning source so runtime admission cannot drift. -->
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Semantics/SemanticVersionFeatures.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <Content Remove="package.json" />
         <None Remove="package.json" />
     </ItemGroup>

@@ -31,25 +31,46 @@ internal static class SemanticPolicyEvaluator
 
     static bool Authorization(SemanticAuthorization authorization, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties) => authorization switch
     {
+        // As in Screenplay's reference evaluator, only a definite true allows: an unknown policy result denies.
         SemanticPolicyReference reference => plan.Model.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is SemanticOpaquePolicyCondition
             ? throw new OpaquePolicyReached(reference.Name)
-            : Condition(plan.Model.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, plan, caller, principal, artifact, subject, properties),
+            : Condition(plan.Model.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, plan, caller, principal, artifact, subject, properties) == true,
         SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => Authorization(logical.Left, plan, caller, principal, artifact, subject, properties) && Authorization(logical.Right, plan, caller, principal, artifact, subject, properties),
         SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => Authorization(logical.Left, plan, caller, principal, artifact, subject, properties) || Authorization(logical.Right, plan, caller, principal, artifact, subject, properties),
         _ => throw new UnsupportedSemanticMapping()
     };
 
-    static bool Condition(SemanticPolicyCondition condition, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties) => condition switch
+    // Three-valued (Kleene) policy logic over bool?: null is unknown, and/or decide on a definite operand in either
+    // order, and not keeps unknown unknown. Plain Boolean negation would turn a negated unknown claim comparison into an allow.
+    static bool? Condition(SemanticPolicyCondition condition, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties) => condition switch
     {
         SemanticAuthenticatedCondition => principal.Identity?.IsAuthenticated == true,
         SemanticRoleCondition role => principal.IsInRole(role.Role),
         SemanticClaimCondition claim => ClaimMatches(claim, plan, caller, artifact, subject, properties),
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => Condition(logical.Left, plan, caller, principal, artifact, subject, properties) && Condition(logical.Right, plan, caller, principal, artifact, subject, properties),
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => Condition(logical.Left, plan, caller, principal, artifact, subject, properties) || Condition(logical.Right, plan, caller, principal, artifact, subject, properties),
+        SemanticNotPolicyCondition not => Not(Condition(not.Operand, plan, caller, principal, artifact, subject, properties)),
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => And(Condition(logical.Left, plan, caller, principal, artifact, subject, properties), Condition(logical.Right, plan, caller, principal, artifact, subject, properties)),
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => Or(Condition(logical.Left, plan, caller, principal, artifact, subject, properties), Condition(logical.Right, plan, caller, principal, artifact, subject, properties)),
         _ => throw new UnsupportedSemanticMapping()
     };
 
-    static bool ClaimMatches(SemanticClaimCondition claim, SemanticExecutionPlan plan, SemanticCaller caller, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties)
+    static bool? Not(bool? value) => value is null ? null : !value.Value;
+
+    static bool? And(bool? left, bool? right) => (left, right) switch
+    {
+        (false, _) or (_, false) => false,
+        (true, true) => true,
+        _ => null
+    };
+
+    static bool? Or(bool? left, bool? right) => (left, right) switch
+    {
+        (true, _) or (_, true) => true,
+        (false, false) => false,
+        _ => null
+    };
+
+    // A missing, null, absent-subject or non-text target makes the comparison unknown rather than false.
+    static bool? ClaimMatches(SemanticClaimCondition claim, SemanticExecutionPlan plan, SemanticCaller caller, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties)
     {
         var target = claim.TargetKind switch
         {
@@ -58,7 +79,9 @@ internal static class SemanticPolicyEvaluator
             SemanticClaimTargetKind.Artifact when claim.Value is not null => (ArtifactValue(claim.Value, artifact, plan, properties) as SemanticTextValue)?.Value,
             _ => null
         };
-        return target is not null && caller.Claims.Any(value =>
+        if (target is null) return null;
+
+        return caller.Claims.Any(value =>
             string.Equals(value.Type, claim.Claim, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(value.Value, target, StringComparison.Ordinal));
     }

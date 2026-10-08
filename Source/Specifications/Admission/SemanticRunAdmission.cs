@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Specifications.Admission;
@@ -25,6 +26,7 @@ internal static class SemanticRunAdmission
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
+        if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
 
         // A per-run result must not pass an application whose selected slice cannot be rendered.
         // Include declarations in the specification's slice even if the example never produces them.
@@ -161,6 +163,20 @@ internal static class SemanticRunAdmission
             return Block(StageExecutionCapability.IdentityAllocation, command.Id, "An accepted command requires an explicit destination.");
         }
         return null;
+    }
+
+    // ESM v5-v7 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
+    // an absence assertion, a generated value or a response would otherwise be dropped and the run could pass.
+    // Any automation construct in the model blocks every run, since its consequences could follow any command.
+    static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
+    {
+        var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
+        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application)
+            .Concat(slices.SelectMany(SemanticVersionFeatures.InSlice))
+            .Concat(SemanticVersionFeatures.InSpecification(specification))
+            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command))
+            .FirstOrDefault();
+        return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>

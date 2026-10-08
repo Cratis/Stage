@@ -749,7 +749,7 @@ public class when_rendering_a_pure_reducer
         var plan = Plan(compiled);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var token = plan.Artifacts.Single(_ => _.RelativePath == "TypedContexts/TenantId.cs");
-        var assembly = RenderedOutput.Load([new RenderedFile(token.RelativePath, System.Text.Encoding.UTF8.GetString(token.Bytes.AsSpan()))]);
+        var assembly = RenderedOutput.Load([new RenderedFile(token.RelativePath, System.Text.Encoding.UTF8.GetString(token.Bytes.AsSpan())), TenantTranslationSource.Render("Projects")]);
         var actual = assembly.GetType("Projects.TypedContexts.TenantId");
         var expected = typeof(Screenplay.Contexts.TenantId);
         Assert.Equal(Members(expected), Members(actual));

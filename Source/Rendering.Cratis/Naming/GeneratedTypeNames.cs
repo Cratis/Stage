@@ -88,6 +88,8 @@ internal static class GeneratedTypeNames
         {
             foreach (var name in Names("TypedContexts", "TenantId", application.Id, "Generated")) yield return name;
             foreach (var name in Names("TypedContexts", "ReducerContextValues", application.Id, "Generated")) yield return name;
+            foreach (var name in Names("GeneratedTenancy", "PortableTenantValues", application.Id, "Generated")) yield return name;
+            foreach (var name in Names("GeneratedTenancy", "AmbiguousTenant", application.Id, "Generated")) yield return name;
         }
 
         IEnumerable<(SemanticId Artifact, string Kind, string Name)> Names(string ns, string source, SemanticId id, string kind)

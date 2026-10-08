@@ -67,6 +67,11 @@
         </AssemblyAttribute>
     </ItemGroup>
     <ItemGroup>
+        <!-- One tenant translation implementation serves the Stage runtime and generated providers. -->
+        <EmbeddedResource Include="../Stage/Runtime/PortableTenantValues.cs" LogicalName="PortableTenantValues.cs" />
+        <EmbeddedResource Include="../Stage/Runtime/AmbiguousTenant.cs" LogicalName="AmbiguousTenant.cs" />
+    </ItemGroup>
+    <ItemGroup>
         <!-- Embed the pinned 10.0.12 reference pack; the resource version must match
              PureTransitionAdmission.ReferencePackVersion and Directory.Packages.props.
              WithCulture prevents System.IO.dll from becoming a spurious IO satellite assembly. -->

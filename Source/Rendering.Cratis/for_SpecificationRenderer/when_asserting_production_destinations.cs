@@ -113,9 +113,9 @@ public class when_asserting_production_destinations : given.a_slice_with_specifi
     {
         var application = Application("String", "destination");
         var command = application.Slices.Single().Slice.Commands.Single();
-        application = ReplaceCommand(application, command with { Produces = Enumerable.Repeat(command.Produces.Single(), productionCount).ToArray() });
+        application = ReplaceCommand(application, command with { Produces = [.. Enumerable.Repeat(command.Produces.Single(), productionCount)] });
         var (_, expected) = RenderAndInvoke(application, "elsewhere", [Event("Changed"), Event("Changed"), Event("Changed")]);
-        expected.Select(destination => destination.ToString()).ShouldEqual(new[] { "elsewhere", "elsewhere", "elsewhere" });
+        expected.Select(destination => destination.ToString()).ShouldEqual(["elsewhere", "elsewhere", "elsewhere"]);
     }
 
     [Fact]

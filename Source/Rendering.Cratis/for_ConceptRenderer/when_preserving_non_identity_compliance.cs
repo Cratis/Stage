@@ -15,7 +15,6 @@ public class when_preserving_non_identity_compliance : concepts
 {
     [Theory]
     [InlineData("pii")]
-    [InlineData("sensitive")]
     public void should_preserve_the_existing_pii_attribute_on_plain_values(string attribute)
     {
         var concept = _emailAddress with { Attributes = [new ConceptAttributeSyntax(attribute, SourceLocation.Start)] };

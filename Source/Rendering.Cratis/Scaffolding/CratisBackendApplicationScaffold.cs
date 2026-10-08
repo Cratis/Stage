@@ -89,6 +89,8 @@ public sealed class CratisBackendApplicationScaffold
             <ImplicitUsings>enable</ImplicitUsings>
             <Nullable>enable</Nullable>
             <IsPackable>false</IsPackable>
+            <!-- The source .play model is authoritative, so reverse code-to-model extraction is redundant. -->
+            <CratisEmbeddedScreenplayEnabled>false</CratisEmbeddedScreenplayEnabled>
             <IsTestProject Condition="'$(Configuration)' == 'Debug'">true</IsTestProject>
             <NoWarn Condition="'$(Configuration)' == 'Debug'">$(NoWarn);CS7022</NoWarn>
             <CratisProxiesOutputPath>$(MSBuildThisFileDirectory)</CratisProxiesOutputPath>

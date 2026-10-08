@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type React from 'react';
-import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
+import type { ExternalComponent, FormField, SceneElement } from '@cratis/scene.model';
 import { coreComponents } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
@@ -13,6 +13,8 @@ import { InputNumber } from 'primereact/inputnumber';
 import type { InputNumberRootValueChangeEvent } from 'primereact/inputnumber';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { dataChanged, useStageData, useStageQuery } from './stageData';
+
+export const stageCommandFormComponent = 'Stage:commandForm';
 
 /**
  * Builds the minimal `ExternalComponent` PrimeReact's v11 adapters need - they read configuration off
@@ -167,50 +169,78 @@ function schemaProperties(element: ExternalComponent): SchemaProperty[] {
     }
 }
 
-/** Executes a modeled command against the route the Stage registered for it. */
-export function StageAction({ element, interactions }: RegisteredProps) {
-    const label = text(element, 'label', text(element, 'command'));
-    const route = text(element, 'route');
-    const properties = schemaProperties(element);
+interface FormProperties {
+    command: string;
+    label: string;
+    fields: FormField[];
+    route?: string;
+}
+
+function formProperties(element: ExternalComponent): FormProperties | undefined {
+    const command = text(element, 'command');
+    if (!command) return undefined;
+    const fields = Array.isArray(element.properties.fields) ? element.properties.fields.filter(isRecord) as unknown as FormField[] : [];
+    return { command, label: text(element, 'label', command), fields, route: text(element, 'route') || undefined };
+}
+
+function propertyType(field: FormField, schema: SchemaProperty[]): string {
+    return schema.find(property => property.name === (field.sourceProperty ?? field.name))?.type ?? 'text';
+}
+
+function commandPayload(fields: FormField[], schema: SchemaProperty[], values: Record<string, string>): Record<string, unknown> {
+    const payload: Record<string, unknown> = {};
+    for (const field of fields) {
+        const raw = values[field.name];
+        if (raw === undefined || raw === '') continue;
+        payload[field.sourceProperty ?? field.name] = propertyType(field, schema) === 'number' ? Number(raw) : raw;
+    }
+
+    return payload;
+}
+
+async function executeCommand(route: string, payload: Record<string, unknown>): Promise<string[]> {
+    const response = await fetch(route.replace(/^\//, ''), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    const result = await response.json().catch(() => undefined);
+    const validation = (result?.validationResults ?? []) as { message?: string }[];
+    const exceptions = (result?.exceptionMessages ?? []) as string[];
+    const failures = [...validation.map(entry => entry.message ?? 'Rejected'), ...exceptions];
+
+    if (!response.ok || failures.length > 0) return failures.length > 0 ? failures : [`The command answered ${response.status}.`];
+    return [];
+}
+
+interface CommandFormProps {
+    form: FormProperties;
+    schema: SchemaProperty[];
+    onSuccess: () => void;
+}
+
+function CommandForm({ form, schema, onSuccess }: CommandFormProps) {
     const [values, setValues] = useState<Record<string, string>>({});
     const [messages, setMessages] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
 
-    if (!route) {
-        return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
-    }
-
     const execute = async () => {
+        if (!form.route) {
+            setMessages([`The modeled command “${form.command}” is not registered by this Stage.`]);
+            return;
+        }
+
         setBusy(true);
         setMessages([]);
         try {
-            const payload: Record<string, unknown> = {};
-            for (const property of properties) {
-                const raw = values[property.name];
-                if (raw === undefined || raw === '') continue;
-                payload[property.name] = property.type === 'number' ? Number(raw) : raw;
-            }
-
-            const response = await fetch(route.replace(/^\//, ''), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            const result = await response.json().catch(() => undefined);
-            const validation = (result?.validationResults ?? []) as { message?: string }[];
-            const exceptions = (result?.exceptionMessages ?? []) as string[];
-            const failures = [...validation.map(entry => entry.message ?? 'Rejected'), ...exceptions];
-
-            if (!response.ok || failures.length > 0) {
-                setMessages(failures.length > 0 ? failures : [`The command answered ${response.status}.`]);
+            const failures = await executeCommand(form.route, commandPayload(form.fields, schema, values));
+            if (failures.length > 0) {
+                setMessages(failures);
                 return;
             }
 
-            // PrimeDialog owns its own open/close state once shown (v11's compositional Dialog is driven by
-            // its own trigger, not this element's `visible` seed past first render) - a successful command
-            // clears the fields so the next open starts fresh, but cannot also close a dialog it does not own.
             setValues({});
-            dataChanged();
+            onSuccess();
         } catch (reason) {
             setMessages([reason instanceof Error ? reason.message : String(reason)]);
         } finally {
@@ -218,38 +248,61 @@ export function StageAction({ element, interactions }: RegisteredProps) {
         }
     };
 
-    const form = (
+    return (
         <form
             key='form'
             className='stage-form'
             onSubmit={event => { event.preventDefault(); void execute(); }}>
-            {properties.map(property => (
-                <label key={property.name} className='stage-form-field'>
-                    <span>{property.name}</span>
-                    {property.type === 'number' ? (
+            {form.fields.map(field => (
+                <label key={field.name} className='stage-form-field'>
+                    <span>{field.label ?? field.name}</span>
+                    {propertyType(field, schema) === 'number' ? (
                         <InputNumber.Root
-                            value={values[property.name] ? Number(values[property.name]) : undefined}
-                            onValueChange={(event: InputNumberRootValueChangeEvent) => setValues({ ...values, [property.name]: event.value === undefined || event.value === null ? '' : String(event.value) })}>
+                            value={values[field.name] ? Number(values[field.name]) : undefined}
+                            onValueChange={(event: InputNumberRootValueChangeEvent) => setValues({ ...values, [field.name]: event.value === undefined || event.value === null ? '' : String(event.value) })}>
                             <InputNumber.Input />
                         </InputNumber.Root>
                     ) : (
                         <InputText
-                            value={values[property.name] ?? ''}
-                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setValues({ ...values, [property.name]: event.target.value })}
+                            value={values[field.name] ?? ''}
+                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setValues({ ...values, [field.name]: event.target.value })}
                         />
                     )}
                 </label>
             ))}
-            {messages.map(message => <PrimeMessage key={message} element={syntheticElement(`${element.id}-message`, { severity: 'error', text: message })} slots={{}} />)}
-            <Button type='submit' disabled={busy}>{busy ? 'Working…' : `Execute ${label}`}</Button>
+            {messages.map(message => <PrimeMessage key={message} element={syntheticElement(`${form.command}-message`, { severity: 'error', text: message })} slots={{}} />)}
+            <Button type='submit' disabled={busy || !form.route}>{busy ? 'Working…' : `Execute ${form.label}`}</Button>
         </form>
     );
+}
+
+/** Renders an authored screen form bound to a modeled command. */
+export function StageCommandForm({ element }: RegisteredProps) {
+    const data = useStageData();
+    const form = formProperties(element);
+    if (!form) return <p className='stage-note'>This form is missing its command metadata.</p>;
+    const route = form.route ?? data.routes?.commands[form.command];
+    return <CommandForm form={{ ...form, route }} schema={schemaProperties(element)} onSuccess={() => data.refreshQuery()} />;
+}
+
+/** Executes a modeled command against the route the Stage registered for it. */
+export function StageAction({ element, interactions }: RegisteredProps) {
+    const label = text(element, 'label', text(element, 'command'));
+    const route = text(element, 'route');
+    const properties = schemaProperties(element);
+    const form: FormProperties = { command: text(element, 'command'), label, fields: properties.map(property => ({ name: property.name, label: property.name })), route };
+
+    if (!route) {
+        return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
+    }
+
+    const content = <CommandForm form={form} schema={properties} onSuccess={dataChanged} />;
 
     return (
         <div className='stage-action' data-scene-id={element.id}>
             <PrimeDialog
                 element={syntheticElement(element.id, { visible: open, header: label, triggerLabel: label })}
-                slots={{ content: [form] }}
+                slots={{ content: [content] }}
             />
         </div>
     );
@@ -264,6 +317,7 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     ...(coreComponents as Record<string, ComponentType<RegisteredProps>>),
     'core:table': StageTable,
     'core:action': StageAction,
+    [stageCommandFormComponent]: StageCommandForm,
 };
 
 /** Whether an element tree contains anything the Stage can act on. */

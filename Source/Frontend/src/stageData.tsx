@@ -36,6 +36,7 @@ interface TypedBindingExpression {
     path?: string;
     query?: string;
     componentId?: string;
+    componentPropertyPath?: string;
     property?: string;
     value?: unknown;
 }
@@ -44,6 +45,7 @@ export interface StageDataState {
     locale: string;
     locales: string[];
     screen: string;
+    routes: StageRoutes | undefined;
     queries: Record<string, QueryState>;
     selected: Record<string, unknown> | undefined;
     selections: Record<string, Record<string, unknown> | undefined>;
@@ -61,6 +63,7 @@ const emptyState: StageDataState = {
     locale: '',
     locales: [],
     screen: '',
+    routes: undefined,
     queries: {},
     selected: undefined,
     selections: {},
@@ -83,7 +86,7 @@ export interface StageDataProviderProps {
     children: React.ReactNode;
 }
 
-export function StageDataProvider({ locale, locales, screen, children }: StageDataProviderProps) {
+export function StageDataProvider({ routes, locale, locales, screen, children }: StageDataProviderProps) {
     const [queries, setQueries] = useState<Record<string, QueryState>>({});
     const [selections, setSelections] = useState<Record<string, Record<string, unknown> | undefined>>({});
     const [activeSelection, setActiveSelection] = useState<string>();
@@ -145,6 +148,7 @@ export function StageDataProvider({ locale, locales, screen, children }: StageDa
         locale,
         locales,
         screen,
+        routes,
         queries,
         selected,
         selections,
@@ -156,7 +160,7 @@ export function StageDataProvider({ locale, locales, screen, children }: StageDa
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, screen, selectRow, selected, selections]);
+    }), [clearSelection, locale, locales, queries, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, screen, selectRow, selected, selections]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
@@ -242,7 +246,7 @@ function resolveTypedBinding(
         case 'literal': return binding.value;
         case 'dataContext': return resolveDataPath(binding.path ?? binding.property, selected, selections);
         case 'queryResult': return resolveQueryResult(queries, binding.query, binding.path ?? binding.property);
-        case 'componentProperty': return resolveComponentProperty(localState, binding.componentId, binding.property);
+        case 'componentProperty': return resolveComponentProperty(localState, binding.componentId, binding.componentPropertyPath ?? binding.property);
         default: return undefined;
     }
 }

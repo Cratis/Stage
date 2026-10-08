@@ -7,7 +7,7 @@ import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
-import { StageAction, StageTable } from './stageComponents';
+import { StageAction, StageCommandForm, StageTable } from './stageComponents';
 import { StageDataProvider, useStageData, useStageQuery } from './stageData';
 import { element } from './testElements';
 
@@ -26,8 +26,8 @@ function renderWithData(ui: ReactElement) {
     );
 }
 
-function BindingProbe({ path, label = 'selection' }: { path: string; label?: string }) {
-    const value = useStageData().resolveBinding(path);
+function BindingProbe({ path, label = 'selection' }: { path: string | Record<string, unknown>; label?: string }) {
+    const value = useStageData().resolveBinding(path as never);
     return <output aria-label={label}>{value === undefined ? '' : String(value)}</output>;
 }
 
@@ -112,6 +112,26 @@ describe('a synthesized table', () => {
         expect(screen.getByLabelText('product').textContent).toEqual('Product one');
     });
 
+    it('resolves typed data context and query result bindings', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ data: [{ id: '1', invoiceNumber: 'INV-1' }] }),
+        }));
+        const table = element('invoices', 'core:table', { route: '/api/sales/invoices/all-invoices', query: 'AllInvoices', typeName: 'Invoice', dataKey: 'id' }, {
+            columns: [element('invoice-number', 'core:column', { property: 'invoiceNumber', label: 'Invoice' })],
+        });
+
+        renderWithData(<>
+            <StageTable element={table} slots={{}} />
+            <BindingProbe label='data' path={{ kind: 'dataContext', path: 'invoices.invoiceNumber' }} />
+            <BindingProbe label='query' path={{ kind: 'queryResult', query: 'AllInvoices', path: 'invoiceNumber' }} />
+        </>);
+        fireEvent.click((await screen.findByText('INV-1')).closest('tr')!);
+
+        expect(screen.getByLabelText('data').textContent).toEqual('INV-1');
+        expect(screen.getByLabelText('query').textContent).toEqual('INV-1');
+    });
+
     it('rebinds query arguments from selection without leaking stale arguments', async () => {
         const fetched = vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
@@ -130,6 +150,34 @@ describe('a synthesized table', () => {
         fireEvent.click((await screen.findByText('Customer two')).closest('tr')!);
 
         await waitFor(() => expect(fetched).toHaveBeenCalledWith('api/invoices?customerId=C2', expect.anything()));
+    });
+});
+
+describe('a native command form', () => {
+    it('uses form metadata, command route lookup and validation feedback', async () => {
+        const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ validationResults: [{ message: 'Order number is required' }] }) });
+        vi.stubGlobal('fetch', fetched);
+        const form = element('order-form', 'Stage:commandForm', {
+            command: 'RegisterOrder',
+            label: 'Register order',
+            fields: [{ name: 'orderNumber', label: 'Order #' }],
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }} locale='en' locales={['en']} screen='Orders'>
+                    <StageCommandForm element={form} slots={{}} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+        fireEvent.change(screen.getByLabelText('Order #'), { target: { value: 'O-1' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Execute Register order' }));
+
+        await waitFor(() => expect(fetched).toHaveBeenCalledWith('api/orders/register', expect.objectContaining({
+            method: 'POST',
+            body: JSON.stringify({ orderNumber: 'O-1' }),
+        })));
+        expect(await screen.findByText('Order number is required')).toBeDefined();
     });
 });
 

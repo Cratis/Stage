@@ -54,4 +54,23 @@ describe('composing a screen in the default blueprint', () => {
         const composed = compose({ layouts: [], screenTemplates: [], screens: [custom] }, custom);
         expect(composed.componentName).toBe('CustomShell');
     });
+
+    it('preserves template chrome and screen content in the same authored slot', () => {
+        const templated = screen('Orders', 'Workspace');
+        const composed = compose({
+            layouts: [],
+            screenTemplates: [{ name: 'Workspace', arrangement: undefined, content: { body: [element('template-title', 'core:title')] } }],
+            screens: [templated],
+        }, templated);
+        const template = slot(composed, 'content')[0];
+        expect(slot(template, 'body').map(_ => _.id)).toEqual(['template-title', 'Orders-body']);
+    });
+
+    it('adds native command forms to the composed screen content', () => {
+        const withForm = { ...screen('Orders'), forms: [{ name: 'Register order', forCommand: 'RegisterOrder', fields: [{ name: 'orderNumber', label: 'Order #' }] }] };
+        const composed = compose({ layouts: [], screenTemplates: [], screens: [withForm] }, withForm as Screen);
+        const form = slot(composed, 'content').find(_ => _.componentName === 'Stage:commandForm');
+        expect(form?.properties.command).toBe('RegisterOrder');
+        expect(form?.properties.fields).toEqual([{ name: 'orderNumber', label: 'Order #' }]);
+    });
 });

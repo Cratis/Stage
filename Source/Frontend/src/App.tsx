@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { useEffect, useMemo, useState } from 'react';
-import type { DialogTemplate, Layout, SceneElement, Screen, ScreenTemplate, Theme, UiProfile } from '@cratis/scene.model';
+import type { DialogTemplate, Form, Layout, SceneElement, Screen, ScreenTemplate, Theme, UiProfile } from '@cratis/scene.model';
 import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
 import { InteractionScope, SceneElementView, createBrowserDispatcher } from '@cratis/scene.react';
@@ -17,7 +17,7 @@ import {
 import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRoutes, type StageRoutes } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
-import { stageComponents } from './stageComponents';
+import { stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents, stageTemplateComponent } from './StageChrome';
 import { applicationChrome, resolveNames, screenFromHash, screenHash, stageProfile, stageRegistry, templateFor } from './blueprint';
@@ -57,9 +57,11 @@ export function composeStageScreen(scene: StageSceneApplication, screen: Screen,
     const profile = stageProfile(scene.uiProfiles);
     const template = templateFor(scene.screenTemplates, screen);
     const slotEntries = Object.entries(screen.slotContent);
+    const screenForms = screen.forms.map(form => commandFormElement(screen.name, form));
+    const templateSlots = template ? mergeSlots(template.content, screen.slotContent, { forms: screenForms }) : undefined;
     const content: SceneElement[] = template
-        ? [externalComponent(`template-${screen.name}`, stageTemplateComponent, { arrangement: template.arrangement }, screen.slotContent)]
-        : slotEntries.flatMap(([, elements]) => elements);
+        ? [externalComponent(`template-${screen.name}`, stageTemplateComponent, { arrangement: template.arrangement }, templateSlots)]
+        : [...slotEntries.flatMap(([, elements]) => elements), ...screenForms];
 
     const shell = shellComponentForLayout(screen.layout) ?? screen.layout;
     const chrome = shell === ComponentName.FullPageShell
@@ -71,6 +73,25 @@ export function composeStageScreen(scene: StageSceneApplication, screen: Screen,
     });
 
     return resolveNames(composed, profile);
+}
+
+function commandFormElement(screenName: string, form: Form): SceneElement {
+    return externalComponent(`form-${screenName}-${form.name}`, stageCommandFormComponent, {
+        command: form.forCommand,
+        label: form.name,
+        fields: form.fields,
+    });
+}
+
+function mergeSlots(...sources: (Record<string, SceneElement[]> | undefined)[]): Record<string, SceneElement[]> {
+    const merged: Record<string, SceneElement[]> = {};
+    for (const source of sources) {
+        for (const [slot, elements] of Object.entries(source ?? {})) {
+            merged[slot] = [...(merged[slot] ?? []), ...elements];
+        }
+    }
+
+    return merged;
 }
 
 export function App() {
@@ -183,6 +204,7 @@ interface StageSceneViewProps {
 
 function StageSceneView({ activity, element, routes, scene, select, setActivity, strings }: StageSceneViewProps) {
     const data = useStageData();
+    const [dialog, setDialog] = useState<DialogTemplate>();
 
     // Everything a document's interactions can do, pointed at the running application. The engine decides
     // what runs; this only says where a command goes and what a notification looks like.
@@ -224,10 +246,16 @@ function StageSceneView({ activity, element, routes, scene, select, setActivity,
         },
         navigateBack: () => globalThis.history?.back(),
         openDialog: async dialogTemplate => {
-            setActivity(`The modeled dialog “${dialogTemplate}” is not available in this Stage runtime.`);
-            return { isConfirmed: false };
+            const template = scene.dialogTemplates?.find(candidate => candidate.name === dialogTemplate);
+            if (!template) {
+                setActivity(`The modeled dialog “${dialogTemplate}” is not available in this Stage runtime.`);
+                return { isConfirmed: false };
+            }
+
+            setDialog(template);
+            return { isConfirmed: true };
         },
-        closeDialog: () => setActivity('Dialog closed.'),
+        closeDialog: () => setDialog(undefined),
         confirm: async message => globalThis.confirm(message),
         setState: (target, value) => data.setState(target, value),
         notify: (level, message) => setActivity(`${level}: ${message}`),
@@ -244,7 +272,30 @@ function StageSceneView({ activity, element, routes, scene, select, setActivity,
         <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity }}>
             <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key }} attachments={[]} onFindings={reportFindings}>
                 <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} />
+                {dialog && <StageDialog template={dialog} strings={strings} close={() => setDialog(undefined)} />}
             </InteractionScope>
         </StageChromeProvider>
+    );
+}
+
+interface StageDialogProps {
+    template: DialogTemplate;
+    strings: ReturnType<typeof useStrings>;
+    close: () => void;
+}
+
+function StageDialog({ template, strings, close }: StageDialogProps) {
+    const data = useStageData();
+    const profile = stageProfile(undefined);
+    const content = resolveStringsInElement(
+        resolveNames(externalComponent(`dialog-${template.name}`, stageTemplateComponent, { arrangement: template.arrangement }, template.content ?? {}), profile),
+        strings.dictionary,
+    );
+
+    return (
+        <section role='dialog' aria-label={template.displayName ?? template.name} className='stage-dialog'>
+            <button type='button' onClick={close}>Close</button>
+            <SceneElementView element={content} registry={registry} resolveBinding={data.resolveBinding} />
+        </section>
     );
 }

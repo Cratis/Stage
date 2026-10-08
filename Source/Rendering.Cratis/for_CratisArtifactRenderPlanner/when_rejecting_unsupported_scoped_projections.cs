@@ -25,7 +25,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("root-from-join-overlap")]
     [InlineData("join-removal-overlap")]
     [InlineData("nested-mismatched-key")]
-    [InlineData("nested-clear-with-root-from")]
     [InlineData("composite-key")]
     [InlineData("every-literal")]
     [InlineData("every-whole-number")]
@@ -188,13 +187,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 From = [nested.Scope.From[0] with { Key = SemanticProjectionKey.EventSourceIdentity }]
             } })]
             },
-            "nested-clear-with-root-from" => scope with
-            {
-                Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
-            {
-                Removals = [new SemanticProjectionRemoval(scope.From[1].EventContract, scope.From[1].Key, null)]
-            } })]
-            },
             "child-join" => scope with
             {
                 Children = [.. scope.Children.Select(children => children with
@@ -274,6 +266,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         if (variant == "composite-key")
         {
             Assert.Contains("keyed lookup", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("Chronicle#4265", diagnostic.Message, StringComparison.Ordinal);
         }
 
         if (variant == "join-event-source")
@@ -281,9 +274,9 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Contains("A join has an unsupported correlation key or mapping", diagnostic.Message, StringComparison.Ordinal);
         }
 
-        if (variant == "nested-clear-with-root-from")
+        if (variant == "all-events" || variant == "all-literal")
         {
-            Assert.Contains("Chronicle#4166", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("Chronicle#4266", diagnostic.Message, StringComparison.Ordinal);
         }
 
         if (variant == "composite-key" || variant == "every-whole-number" || variant == "every-enumerated-concept" ||

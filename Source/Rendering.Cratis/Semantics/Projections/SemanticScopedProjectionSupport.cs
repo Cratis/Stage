@@ -41,7 +41,7 @@ internal static class SemanticScopedProjectionSupport
 
         if (scope.Every is { SubscribesToAllEvents: true })
         {
-            return "FromAll cannot render: Chronicle v19.8.1 MongoDB does not materialize a read model for an unrelated event source even when its in-memory scenario does.";
+            return "FromAll cannot render: Chronicle#4266 remains open; MongoDB does not materialize a read model for an unrelated event source even when its in-memory scenario does.";
         }
 
         if (scope.Every is { IncludeChildren: true } && (scope.Children.Length > 0 || scope.Nested.Length > 0))
@@ -52,11 +52,6 @@ internal static class SemanticScopedProjectionSupport
         if (scope.JoinRemovals.Length > 0 && !child && !isNested)
         {
             return "Root remove via join is blocked by Chronicle#4125: the engine removes a child at the root path instead of deleting matching root instances.";
-        }
-
-        if (scope.Nested.Any(nested => nested.Scope.Removals.Length > 0))
-        {
-            return "Nested clear cannot render: after clear and a matching root from, Chronicle v19.8.0 cannot re-create the nested object; Chronicle#4166 remains unreleased.";
         }
 
         if (isNested && scope.JoinRemovals.Length > 0)
@@ -95,7 +90,7 @@ internal static class SemanticScopedProjectionSupport
             scope.Removals.Any(removal => removal.Key is SemanticProjectionCompositeKey || removal.ParentKey is SemanticProjectionCompositeKey) ||
             scope.JoinRemovals.Any(removal => removal.Key is SemanticProjectionCompositeKey))
         {
-            return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Chronicle v19.8.1 resolves projection keys, but Stage cannot look up those instances by their composite key.";
+            return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Chronicle#4265 remains open, so Stage cannot look up those instances by their composite key.";
         }
 
         if (child && identity is null)

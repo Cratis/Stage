@@ -99,12 +99,12 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
     }
 
     [Fact] void should_cover_every_later_version_refusal() => _plans.Select(plan => plan.Code).ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-027", "STAGE-ESM-028", "STAGE-ESM-029"]);
-    [Fact] void should_render_the_clean_slice_in_every_model() => _plans.All(plan => plan.Clean.Success).ShouldBeTrue();
+    [Fact] void should_render_the_clean_slice_in_every_model() => _plans.TrueForAll(plan => plan.Clean.Success).ShouldBeTrue();
     [Fact] void should_report_no_diagnostics_for_the_clean_slice() => _plans.SelectMany(plan => plan.Clean.Diagnostics).ShouldBeEmpty();
-    [Fact] void should_emit_the_clean_command() => _plans.All(plan => plan.Clean.Artifacts.Any(artifact => artifact.RelativePath == "Projects/Registration/RegisterProject/RegisterProject.cs")).ShouldBeTrue();
+    [Fact] void should_emit_the_clean_command() => _plans.TrueForAll(plan => plan.Clean.Artifacts.Any(artifact => artifact.RelativePath == "Projects/Registration/RegisterProject/RegisterProject.cs")).ShouldBeTrue();
     [Fact] void should_not_emit_the_unselected_sibling() => _plans.SelectMany(plan => plan.Clean.Artifacts).Any(artifact => artifact.RelativePath.StartsWith("Projects/Registration/Unsupported/", StringComparison.Ordinal)).ShouldBeFalse();
-    [Fact] void should_refuse_the_offending_slice_in_every_model() => _plans.All(plan => !plan.Refused.Success).ShouldBeTrue();
-    [Fact] void should_report_only_the_expected_refusal() => _plans.All(plan => plan.Refused.Diagnostics.Length > 0 && plan.Refused.Diagnostics.All(diagnostic => diagnostic.Code == plan.Code)).ShouldBeTrue();
-    [Fact] void should_name_the_offending_declaration() => _plans.All(plan => plan.Refused.Diagnostics.Any(diagnostic => diagnostic.Artifact == plan.Artifact)).ShouldBeTrue();
+    [Fact] void should_refuse_the_offending_slice_in_every_model() => _plans.TrueForAll(plan => !plan.Refused.Success).ShouldBeTrue();
+    [Fact] void should_report_only_the_expected_refusal() => _plans.TrueForAll(plan => plan.Refused.Diagnostics.Length > 0 && plan.Refused.Diagnostics.All(diagnostic => diagnostic.Code == plan.Code)).ShouldBeTrue();
+    [Fact] void should_name_the_offending_declaration() => _plans.TrueForAll(plan => plan.Refused.Diagnostics.Any(diagnostic => diagnostic.Artifact == plan.Artifact)).ShouldBeTrue();
     [Fact] void should_emit_no_partial_artifacts_for_the_offending_slice() => _plans.SelectMany(plan => plan.Refused.Artifacts).ShouldBeEmpty();
 }

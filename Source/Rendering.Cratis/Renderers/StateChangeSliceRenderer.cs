@@ -86,7 +86,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
             builder.Using("Cratis.Chronicle.Keys");
         }
 
-        builder.BlankLine().Documentation(command.Description).Attribute("Command").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
+        builder.BlankLine().Documentation(command.Description, command.Documentation).Attribute("Command").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
 
         CommandValidatorRenderer.Render(builder, command, typeName, applicationSet, diagnostics);
         RenderHandle(builder, command, applicationSet, diagnostics, rootNamespace);

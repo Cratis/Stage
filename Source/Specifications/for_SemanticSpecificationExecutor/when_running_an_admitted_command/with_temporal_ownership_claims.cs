@@ -29,12 +29,12 @@ public class with_temporal_ownership_claims : Specification
 
     void Establish()
     {
-        var source = new StringBuilder("policy Owns\n  require claim \"owner\" matches subject and claim \"owner\" matches invoiceId\npolicy NotBlocked\n  require not claim \"blocked\" matches schedule.deadline.value\n");
+        // The in-memory executor admits only scalar command values. Unknown-under-'not' parity
+        // is covered by the Int/Decimal target specifications from #230, not an absent composite here.
+        var source = new StringBuilder("policy Owns\n  require claim \"owner\" matches subject and claim \"owner\" matches invoiceId\n");
         for (var index = 0; index < _targets.Length; index++)
         {
-            source
-                .Append($"concept InvoiceId{index} : {_targets[index].Primitive}\n")
-                .Append($"type Deadline{index}\n  value {_targets[index].Primitive}\ntype Schedule{index}\n  deadline Deadline{index} optional\n");
+            source.Append($"concept InvoiceId{index} : {_targets[index].Primitive}\n");
         }
         source.Append("module Billing\n  feature Invoicing\n");
         for (var index = 0; index < _targets.Length; index++)
@@ -44,8 +44,7 @@ public class with_temporal_ownership_claims : Specification
                     slice StateChange Issue{{index}}
                       command Issue{{index}}
                         invoiceId InvoiceId{{index}} identifier
-                        schedule Schedule{{index}}
-                        authorize Owns and NotBlocked
+                        authorize Owns
                         produces Issued{{index}}
                           for invoiceId
                           invoiceId = invoiceId
@@ -63,25 +62,10 @@ public class with_temporal_ownership_claims : Specification
                               claim "OWNER" = {{JsonSerializer.Serialize(target.Claims[claim], _literalOptions)}}
                             when Issue{{index}}
                               invoiceId = {{JsonSerializer.Serialize(target.Target, _literalOptions)}}
-                              schedule = { "deadline": { "value": {{JsonSerializer.Serialize(target.Target, _literalOptions)}} } }
                             {{then}}
 
                     """);
             }
-
-            // Every command property must be supplied, even an optional one. Omit the optional composite
-            // member instead, so the claim target is unknown without an invalid command null literal.
-            source.Append($$"""
-                      specification NegatedUnknown
-                        given caller
-                          authenticated
-                          claim "owner" = {{JsonSerializer.Serialize(target.Target, _literalOptions)}}
-                        when Issue{{index}}
-                          invoiceId = {{JsonSerializer.Serialize(target.Target, _literalOptions)}}
-                          schedule = {}
-                        then denied
-
-                """);
         }
 
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("TemporalOwnership"));
@@ -107,7 +91,7 @@ public class with_temporal_ownership_claims : Specification
         }
     }
 
-    [Fact] void should_run_every_temporal_vector() => _vectors.ShouldEqual(_targets.Sum(target => target.Claims.Length + 1));
-    [Fact] void should_agree_with_the_reference_on_exact_text_and_negated_unknowns() => Assert.True(_mismatches.Count == 0, string.Join(Environment.NewLine, _mismatches));
+    [Fact] void should_run_every_temporal_vector() => _vectors.ShouldEqual(_targets.Sum(target => target.Claims.Length));
+    [Fact] void should_agree_with_the_reference_on_exact_text() => Assert.True(_mismatches.Count == 0, string.Join(Environment.NewLine, _mismatches));
 }
 #endif

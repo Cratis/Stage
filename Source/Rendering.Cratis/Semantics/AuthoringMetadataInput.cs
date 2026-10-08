@@ -39,10 +39,20 @@ internal static class AuthoringMetadataInput
             throw new InvalidArtifactRenderContract("Authoring metadata requires the syntax and identity catalog from the same semantic compilation.");
         }
 
+        var ids = DeclarationIds(compilation.Model).ToHashSet();
         var entries = new SortedDictionary<string, Metadata>(StringComparer.Ordinal);
-        foreach (var entry in index.Entries.Where(entry => entry.SemanticId is not null))
+        foreach (var entry in index.Entries.Where(entry => entry.SemanticId is not null && ids.Contains(entry.SemanticId.Value)))
         {
-            var metadata = Of(entry.Node);
+            Metadata metadata;
+            try
+            {
+                metadata = Of(entry.Node);
+            }
+            catch (XmlException exception)
+            {
+                throw new InvalidArtifactRenderContract($"Authoring metadata for declaration '{entry.SemanticId}' contains invalid XML characters: {exception.Message}");
+            }
+
             if (metadata.Description is null && metadata.Documentation is null)
             {
                 continue;

@@ -253,7 +253,9 @@ public class CSharpCodeBuilder
 
     internal static string NormalizeDocumentation(string text) => string.Join(
         '\n',
-        text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n').Select(line => line.TrimEnd())).TrimEnd();
+        text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n')
+            .Replace('\u0085', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n')
+            .Split('\n').Select(line => line.TrimEnd())).TrimEnd();
 
     void TextDocumentation(string tag, string text)
     {

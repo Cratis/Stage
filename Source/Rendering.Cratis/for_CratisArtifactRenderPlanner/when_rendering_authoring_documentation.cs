@@ -135,11 +135,17 @@ public class when_rendering_authoring_documentation : Specification
         return result.Value!;
     }
 
-    internal static ArtifactRenderPlan Plan(SemanticCompilation compilation) => CratisRendering.Plan(
-        compilation,
-        SemanticExecutionPlan.Compile(compilation.Model).Plan!,
-        new(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id),
-        new("Projects", "Projects"));
+    internal static ArtifactRenderPlan Plan(SemanticCompilation compilation)
+    {
+        var profile = CratisRendering.WithAuthoringMetadata(
+            CratisRendering.CreateProfile(compilation.Model.Application.Name, new("Projects", "Projects")),
+            compilation);
+        return new CratisArtifactRenderPlanner().Plan(new(
+            compilation.Model,
+            SemanticExecutionPlan.Compile(compilation.Model).Plan!,
+            profile,
+            new(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id)));
+    }
 
     static string Text(ArtifactRenderPlan plan, string name) => System.Text.Encoding.UTF8.GetString(
         plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith(name, StringComparison.Ordinal)).Bytes.AsSpan());

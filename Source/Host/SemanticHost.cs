@@ -124,6 +124,12 @@ internal static class SemanticHost
 
             return (loaded, SemanticHostScene.Load(modelPath, loaded.Model));
         }
+        catch (Exception exception) when (exception is UnsupportedGuardedInteraction or UnsupportedUiSyntax)
+        {
+            issues.Add(new StageUnsupportedIssue("Scene", "model", exception.Message));
+
+            return (null, null);
+        }
         catch (InvalidSemanticModel invalid)
         {
             issues.AddRange(invalid.Diagnostics.Select(message => new StageUnsupportedIssue("Plan", "model", message)));
@@ -180,11 +186,11 @@ internal static class SemanticHost
         }
         : new StageStatus("ready", new StageStatusModel(modelName), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" };
 
-    internal static void MapRefused(WebApplication app, List<StageUnsupportedIssue> issues)
+    internal static void MapRefused(WebApplication app, List<StageUnsupportedIssue> issues, string engine = "semantic")
     {
         app.MapGet("/stage/status", () => new StageStatus("unsupported", null, null)
         {
-            Engine = "semantic", Issues = issues
+            Engine = engine, Issues = issues
         });
         app.MapPost(SemanticSpecificationRuns.Route, (HttpContext context) => RefusedResponse(context, issues));
         MapRefusedApi(app, issues);

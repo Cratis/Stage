@@ -4,7 +4,6 @@
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Specifications;
 using Cratis.Stage.Contracts.Rendering;
-using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Screenplay;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Emission;
@@ -195,15 +194,20 @@ public class CratisRenderer : IRenderer
     {
         try
         {
-            foreach (var application in context.Applications)
+            var routes = new SyntaxRouteAdmission();
+            foreach (var source in context.Applications.SelectMany(application => application.EventSources))
             {
-                new SyntaxRouteAdmission().VisitApplication(application);
-                new UiSyntaxAdmission().VisitApplication(application);
+                routes.VisitEventSource(source);
+            }
+
+            foreach (var slice in slices)
+            {
+                routes.VisitSlice(slice.Slice);
             }
 
             EventSourceIdentityComplianceAdmission.EnsureAccepted(slices, context);
         }
-        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes or UnsupportedUiSyntax or UnsupportedGuardedInteraction)
+        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes)
         {
             await error.WriteLineAsync(exception.Message);
             throw new RenderingFailed([exception]);

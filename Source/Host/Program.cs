@@ -33,7 +33,8 @@ if (!warmMode && engine == StageRuntimeEngine.Semantic)
     return;
 }
 
-var stageApplication = warmMode ? null : await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath!);
+var issues = new List<StageUnsupportedIssue>();
+var stageApplication = warmMode ? null : await EventModelHost.LoadModel(modelPath!, issues);
 var model = stageApplication?.EventModel;
 var scene = stageApplication?.Scene;
 if (model is not null)
@@ -121,6 +122,14 @@ if (warmMode)
         return Results.Accepted();
     });
 
+    await app.RunAsync();
+    return;
+}
+
+if (issues.Count > 0)
+{
+    SemanticHost.MapRefused(app, issues, StageRuntimeEngineSelection.Name(engine));
+    app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = StageRuntimeEngineSelection.Name(engine), issues = issues.Select(issue => issue.Details) }, StageJson.Options));
     await app.RunAsync();
     return;
 }

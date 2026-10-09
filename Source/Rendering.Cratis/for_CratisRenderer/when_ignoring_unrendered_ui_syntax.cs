@@ -4,20 +4,19 @@
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
-using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
-public class when_refusing_new_ui_syntax : a_multi_slice_application
+public class when_ignoring_unrendered_ui_syntax : a_multi_slice_application
 {
     [Theory]
     [InlineData("template")]
     [InlineData("component")]
     [InlineData("navigation")]
     [InlineData("guarded")]
-    public async Task should_preflight_ui_before_legacy_rendering(string form)
+    public async Task should_render_backend_artifacts_without_admitting_ui(string form)
     {
         var location = SourceLocation.Start;
         var binding = new UiBindingSyntax(UiBindingKind.DataContext, "id", location);
@@ -33,11 +32,12 @@ public class when_refusing_new_ui_syntax : a_multi_slice_application
         _application = form == "template" ? _application with { Templates = [new("Assigned", location)] } :
             _application with { Modules = [module with { Features = [feature with { Slices = [slice] }] }] };
         var error = await Catch.Exception(() => _renderer.Render([_application], _targetDirectory, _output, _error));
-        error.ShouldBeOfExactType<RenderingFailed>();
-        var failure = ((RenderingFailed)error).Failures.Single();
-        if (form == "guarded") failure.ShouldBeOfExactType<UnsupportedGuardedInteraction>();
-        else failure.ShouldBeOfExactType<UnsupportedUiSyntax>();
-        _scaffolder.WasCalled.ShouldBeFalse();
-        _codeOutput.Files.ShouldBeEmpty();
+        error.ShouldBeNull();
+        _scaffolder.WasCalled.ShouldBeTrue();
+        _codeOutput.Files.ShouldNotBeEmpty();
+        _codeOutput.Files.ShouldContain(file => file.Content.Contains("RegisterInvoice", StringComparison.Ordinal));
+        _codeOutput.Files.ShouldNotContain(file => file.RelativePath.EndsWith(".tsx", StringComparison.Ordinal));
+        _codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
+        _output.ToString().ShouldContain("Rendering complete.");
     }
 }

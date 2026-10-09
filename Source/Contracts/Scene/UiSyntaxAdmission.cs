@@ -7,7 +7,7 @@ namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
 /// Refuses the UI surface added in Screenplay 4.94–4.101 until Stage can translate it faithfully.
-/// Shared by render planning, Host scene loading and legacy rendering.
+/// Shared by render planning and Host scene loading.
 /// </summary>
 public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
 {

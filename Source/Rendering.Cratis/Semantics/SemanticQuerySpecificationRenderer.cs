@@ -152,6 +152,7 @@ internal static class SemanticQuerySpecificationRenderer
     /// <param name="expected">The query result to compare.</param>
     /// <param name="context">The indexed semantic application.</param>
     /// <returns>The generated query specification source.</returns>
+    /// <exception cref="UnsupportedSemanticRendering">Thrown when the query does not declare the keyed argument required by this renderer.</exception>
     internal static RenderedFile RenderSeededQuery(
         SemanticSpecification specification,
         SemanticSpecificationQueryResult expected,

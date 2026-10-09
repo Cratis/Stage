@@ -93,7 +93,9 @@ internal static class SemanticRunProjectionAdmission
             readModel.Properties.Select(property => property.Name),
             plan.Queries.Values.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
             !GeneratedPascalCase.QueriesAreUnique(plan.Queries.Values.Where(query => query.ReadModel == readModel.Id)
-                .Select(query => (query.Name, QueryType(query.Argument.Type, plan), query.Argument.Name))))
+                .Select(query => query.Argument is { } argument
+                    ? (query.Name, QueryType(argument.Type, plan), argument.Name)
+                    : (query.Name, string.Empty, string.Empty))))
         {
             return "A read-model property or query name collides in generated C#.";
         }

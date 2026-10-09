@@ -60,7 +60,7 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         _query = query;
         _context = context;
         _byId = byId;
-        Parameters = byId ? new QueryParameters { { query?.Argument.Name ?? "id", typeof(string) } } : QueryParameters.Empty;
+        Parameters = byId ? new QueryParameters { { query?.Argument?.Name ?? "id", typeof(string) } } : QueryParameters.Empty;
     }
 
     /// <inheritdoc/>
@@ -124,7 +124,7 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
             throw UnsupportedWorld(reason);
         }
 
-        var argumentName = _query?.Argument.Name ?? "id";
+        var argumentName = _query?.Argument?.Name ?? "id";
         var key = context.Arguments?.TryGetValue(argumentName, out var value) == true ? value?.ToString() : null;
         if (_query is not null)
         {
@@ -152,7 +152,11 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
 
     SemanticValue Key(QueryContext context)
     {
-        var argument = _query!.Argument;
+        if (_query?.Argument is not { } argument)
+        {
+            return SemanticValue.Null;
+        }
+
         var text = context.Arguments?.TryGetValue(argument.Name, out var value) == true ? value?.ToString() : null;
         return SemanticQueryKeys.From(text, argument.Type, _runtime.Plan.Model.Application);
     }

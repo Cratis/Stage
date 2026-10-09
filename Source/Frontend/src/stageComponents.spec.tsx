@@ -325,14 +325,42 @@ describe('a native command form', () => {
         const dueDate = container.querySelector('[data-field="dueDate"]') as HTMLElement;
         expect(shell.dataset.generationMode).toEqual(FormGenerationMode.Auto);
         expect(layout.style.gridTemplateColumns).toContain('minmax(160px, 192px)');
-        expect(layout.style.gridTemplateColumns).toContain('minmax(0, 60%)');
-        expect(layout.style.columnGap).toEqual('16px');
-        expect(layout.style.rowGap).toEqual('12px');
+        expect(layout.style.gridTemplateColumns).toContain('minmax(0, 2fr)');
+        expect(getComputedStyle(layout).columnGap).toEqual('16px');
+        expect(getComputedStyle(layout).rowGap).toEqual('12px');
         expect(amount.dataset.row).toEqual('2');
         expect(amount.dataset.column).toEqual('1');
         expect(amount.style.gridColumn).toEqual('1 / span 2');
-        expect(amount.style.width).toEqual('50%');
+        expect(getComputedStyle(amount).width).toEqual('50%');
         expect(dueDate.style.gridRow).toEqual('3 / span 2');
+        shell.style.width = '20rem';
+        expect(getComputedStyle(layout).gridTemplateColumns).toContain('minmax(160px, 192px)');
+        shell.style.width = '60rem';
+        expect(getComputedStyle(layout).gridTemplateColumns).toContain('minmax(0, 2fr)');
+        expect(screen.getByText(/Column 2 combines a fractional width with maxWidth/)).toBeDefined();
+    });
+
+    it('reports unsupported field-level fractional widths instead of dropping them silently', () => {
+        const form = element('profile-form', 'Stage:commandForm', {
+            command: 'RegisterProfile',
+            label: 'Register profile',
+            layout: {
+                columns: [{ index: 1, width: { unit: FormWidthUnit.Fraction, value: 1 } }],
+                placements: [{ field: 'name', row: 1, column: 1, width: { unit: FormWidthUnit.Fraction, value: 1 } }],
+            },
+            fields: [{ name: 'name', label: 'Name' }],
+        });
+
+        const { container } = renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RegisterProfile: '/api/profiles/register' }, queries: {} }} locale='en' locales={['en']} screen='Profiles'>
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+
+        expect(screen.getByText(/fractional field width/)).toBeDefined();
+        expect((container.querySelector('[data-field="name"]') as HTMLElement).style.width).toEqual('');
     });
 
     it('keeps dirty field values when a query refresh updates Stage data', async () => {
@@ -369,6 +397,35 @@ describe('a native command form', () => {
         dataChanged();
 
         expect(await screen.findByText('O-2')).toBeDefined();
+        expect((screen.getByLabelText('Order #') as HTMLInputElement).value).toEqual('O-99');
+    });
+
+    it('keeps dirty field values across equivalent scene reloads and layout-only rebinds', () => {
+        const form = element('order-form', 'Stage:commandForm', {
+            command: 'RegisterOrder',
+            label: 'Register order',
+            fields: [{ name: 'orderNumber', label: 'Order #' }],
+            schema: JSON.stringify({ required: ['orderNumber'], properties: { orderNumber: { type: 'string' } } }),
+        });
+        const viewFor = (formElement: typeof form) => (
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }} locale='en' locales={['en']} screen='Orders'>
+                    <StageCommandForm element={formElement} />
+                </StageDataProvider>
+            </PrimeReactProvider>
+        );
+        const { rerender } = renderWithoutProvider(viewFor(form));
+        fireEvent.change(screen.getByLabelText('Order #'), { target: { value: 'O-99' } });
+
+        rerender(viewFor(JSON.parse(JSON.stringify(form)) as typeof form));
+        expect((screen.getByLabelText('Order #') as HTMLInputElement).value).toEqual('O-99');
+
+        const layoutOnlyChange = JSON.parse(JSON.stringify(form)) as typeof form;
+        layoutOnlyChange.properties.layout = {
+            columns: [{ index: 1, width: { unit: FormWidthUnit.Fraction, value: 1 } }],
+            placements: [{ field: 'orderNumber', row: 1, column: 1 }],
+        };
+        rerender(viewFor(layoutOnlyChange));
         expect((screen.getByLabelText('Order #') as HTMLInputElement).value).toEqual('O-99');
     });
 
@@ -411,6 +468,63 @@ describe('a native command form', () => {
             && (call[1] as RequestInit | undefined)?.method === 'POST'
             && (call[1] as RequestInit | undefined)?.body === JSON.stringify({ orderNumber: 'O-3' }))).toBe(true));
         expect(await screen.findByText('O-2')).toBeDefined();
+    });
+
+    it('treats an explicit empty required list as optional command input', async () => {
+        const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult() });
+        vi.stubGlobal('fetch', fetched);
+        const form = element('order-form', 'Stage:commandForm', {
+            command: 'RegisterOrder',
+            label: 'Register order',
+            fields: [{ name: 'amount', label: 'Amount' }, { name: 'note', label: 'Note' }],
+            schema: JSON.stringify({
+                required: [],
+                properties: {
+                    amount: { type: ['number', 'null'] },
+                    note: { type: 'string' },
+                },
+            }),
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }} locale='en' locales={['en']} screen='Orders'>
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Execute Register order' }));
+
+        await waitFor(() => expect(fetched).toHaveBeenCalled());
+        expect(screen.getByLabelText('Amount').getAttribute('aria-invalid')).not.toEqual('true');
+        expect(fetched.mock.calls[0][1]).toEqual(expect.objectContaining({ method: 'POST', body: JSON.stringify({}) }));
+    });
+
+    it('fails visibly for object and array command schema fields', () => {
+        const form = element('payload-form', 'Stage:commandForm', {
+            command: 'SubmitPayload',
+            label: 'Submit payload',
+            fields: [{ name: 'payload', label: 'Payload' }, { name: 'tags', label: 'Tags' }],
+            schema: JSON.stringify({
+                required: ['payload'],
+                properties: {
+                    payload: { type: 'object' },
+                    tags: { type: 'array', items: { type: 'string' } },
+                },
+            }),
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { SubmitPayload: '/api/payloads/submit' }, queries: {} }} locale='en' locales={['en']} screen='Payloads'>
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+
+        expect(screen.getByText(/Payload.*object fields are not supported/)).toBeDefined();
+        expect(screen.getByText(/Tags.*array fields are not supported/)).toBeDefined();
+        expect(screen.queryByRole('button', { name: 'Execute Submit payload' })).toBeNull();
     });
 
     it('uses form metadata, command route lookup and validation feedback', async () => {

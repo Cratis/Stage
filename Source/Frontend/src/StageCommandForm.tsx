@@ -13,8 +13,9 @@ import { useStageData } from './stageData';
 
 interface SchemaProperty {
     name: string;
-    type: 'text' | 'number' | 'boolean' | 'date' | 'object';
+    type?: 'text' | 'number' | 'boolean' | 'date';
     required: boolean;
+    unsupportedReason?: string;
 }
 
 interface NativeFormProperties {
@@ -34,6 +35,11 @@ interface StageCommandContent {
     [key: string]: unknown;
 }
 
+interface JsonSchemaDefinition {
+    type?: unknown;
+    format?: unknown;
+}
+
 type StageCommandConstructor = new () => Command<StageCommandContent, object>;
 
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
@@ -43,13 +49,17 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const schema = useMemo(() => schemaProperties(element), [element]);
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const route = form?.route ?? (form ? data.routes?.commands[form.command] : undefined);
-    const commandType = useMemo(() => route ? commandTypeFor(route, fields, schema) : undefined, [route, fields, schema]);
+    const commandSignature = useMemo(() => route ? commandSignatureFor(route, fields, schema) : '', [route, fields, schema]);
+    const commandType = useMemo(() => route ? commandTypeFor(route, fields, schema) : undefined, [route, commandSignature]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
+    const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
+    const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
     const [messages, setMessages] = useState<string[]>([]);
 
     if (!form) return <p className='stage-note'>This form is missing its command metadata.</p>;
     if (!route && !data.routesReady) return <p className='stage-note'>The modeled command “{form.command}” is waiting for Stage routes.</p>;
     if (!route || !commandType) return <p className='stage-note'>The modeled command “{form.command}” is not registered by this Stage.</p>;
+    if (unsupportedSchemaMessages.length > 0) return <UnsupportedForm form={form} messages={unsupportedSchemaMessages} />;
 
     return (
         <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
@@ -65,10 +75,19 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                     setMessages([]);
                     data.refreshQuery();
                 }}>
+                {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 <button type='submit'>Execute {form.label}</button>
             </NativeCommandForm>
+        </section>
+    );
+}
+
+function UnsupportedForm({ form, messages }: { form: NativeFormProperties; messages: string[] }) {
+    return (
+        <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
+            {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
         </section>
     );
 }
@@ -90,7 +109,7 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
 
 function fieldsFor(form: NativeFormProperties, schema: SchemaProperty[]): FormField[] {
     if (form.generationMode === FormGenerationMode.Manual || form.fields.length > 0) return form.fields;
-    return schema.map(property => ({ name: property.name, label: property.name }));
+    return schema.filter(property => !property.unsupportedReason).map(property => ({ name: property.name, label: property.name }));
 }
 
 function renderFields(form: NativeFormProperties, fields: FormField[], schema: SchemaProperty[]): ReactNode {
@@ -143,10 +162,29 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
             data-field={field.name}
             data-row={placement?.row}
             data-column={placement?.column}
+            data-width-unit={placement?.width?.unit}
             style={style}>
             {fieldElement}
         </span>
     );
+}
+
+function commandSignatureFor(route: string, fields: FormField[], schema: SchemaProperty[]): string {
+    const schemaByName = new Map(schema.map(property => [property.name, property]));
+    return JSON.stringify({
+        route: route.replace(/^\//, ''),
+        fields: fields.map(field => {
+            const property = field.sourceProperty ?? field.name;
+            const schemaProperty = schemaByName.get(property);
+            return {
+                name: field.name,
+                sourceProperty: field.sourceProperty,
+                property,
+                type: schemaProperty?.type ?? 'text',
+                required: schemaProperty?.required ?? true,
+            };
+        }),
+    });
 }
 
 function commandTypeFor(route: string, fields: FormField[], schema: SchemaProperty[]): StageCommandConstructor {
@@ -217,7 +255,8 @@ function columnTrack(index: number, columns: FormColumn[]): string {
     const width = widthToCss(column?.width);
     const minWidth = widthToCss(column?.minWidth);
     const maxWidth = widthToCss(column?.maxWidth);
-    if (minWidth || maxWidth) return `minmax(${minWidth ?? '0'}, ${maxWidth ?? width ?? '1fr'})`;
+    if (column?.width?.unit === FormWidthUnit.Fraction && maxWidth) return `minmax(${minWidth ?? '0'}, ${width ?? '1fr'})`;
+    if (minWidth || maxWidth) return `minmax(${minWidth ?? '0'}, ${maxWidth && width ? `min(${width}, ${maxWidth})` : maxWidth ?? width ?? '1fr'})`;
     return width ?? '1fr';
 }
 
@@ -226,7 +265,7 @@ function placementStyle(placement: FormFieldPlacement | undefined): CSSPropertie
     return {
         gridColumn: `${placement.column} / span ${placement.columnSpan ?? 1}`,
         gridRow: `${placement.row} / span ${placement.rowSpan ?? 1}`,
-        width: widthToCss(placement.width),
+        width: placement.width?.unit === FormWidthUnit.Fraction ? undefined : widthToCss(placement.width),
     };
 }
 
@@ -245,7 +284,6 @@ function constructorFor(type: SchemaProperty['type'] | undefined) {
         case 'number': return Number;
         case 'boolean': return Boolean;
         case 'date': return Date;
-        case 'object': return Object;
         default: return String;
     }
 }
@@ -265,28 +303,62 @@ function messagesFromResult(result: { validationResults: { message: string }[]; 
     ];
 }
 
+function unsupportedSchemaMessagesFor(fields: FormField[], schema: SchemaProperty[]): string[] {
+    const schemaByName = new Map(schema.map(property => [property.name, property]));
+    return fields.flatMap(field => {
+        const property = schemaByName.get(field.sourceProperty ?? field.name);
+        return property?.unsupportedReason ? [`The field “${field.label ?? field.name}” uses unsupported schema metadata: ${property.unsupportedReason}.`] : [];
+    });
+}
+
+function unsupportedGeometryMessagesFor(layout: CommandFormLayout | undefined, fields: FormField[]): string[] {
+    if (!layout) return [];
+
+    const placementMessages = placementsFor(layout, fields)
+        .filter(placement => placement.width?.unit === FormWidthUnit.Fraction)
+        .map(placement => `The field “${placement.field}” uses a fractional field width, which cannot be applied to an individual form control.`);
+    const columnMessages = layout.columns
+        .filter(column => column.width?.unit === FormWidthUnit.Fraction && !!column.maxWidth)
+        .map(column => `Column ${column.index} combines a fractional width with maxWidth; Stage keeps the fractional track and ignores maxWidth for that column.`);
+
+    return [...placementMessages, ...columnMessages];
+}
+
 function schemaProperties(element: ExternalComponent): SchemaProperty[] {
     const schema = text(element, 'schema');
     if (!schema) return [];
     try {
-        const parsed = JSON.parse(schema) as { required?: string[]; properties?: Record<string, { type?: string; format?: string }> };
-        const required = new Set(parsed.required ?? []);
-        return Object.entries(parsed.properties ?? {}).map(([name, definition]) => ({
-            name,
-            type: propertyType(definition),
-            required: required.size === 0 || required.has(name),
-        }));
+        const parsed = JSON.parse(schema) as { required?: unknown; properties?: Record<string, JsonSchemaDefinition> };
+        const hasRequired = Object.prototype.hasOwnProperty.call(parsed, 'required');
+        const required = Array.isArray(parsed.required) ? new Set(parsed.required.filter((name): name is string => typeof name === 'string')) : new Set<string>();
+        return Object.entries(parsed.properties ?? {}).map(([name, definition]) => {
+            const resolved = propertyType(definition);
+            return {
+                name,
+                type: resolved.type,
+                unsupportedReason: resolved.unsupportedReason,
+                required: hasRequired ? required.has(name) : true,
+            };
+        });
     } catch {
         return [];
     }
 }
 
-function propertyType(definition: { type?: string; format?: string } | undefined): SchemaProperty['type'] {
-    if (definition?.type === 'integer' || definition?.type === 'number') return 'number';
-    if (definition?.type === 'boolean') return 'boolean';
-    if (definition?.format === 'date' || definition?.format === 'date-time') return 'date';
-    if (definition?.type === 'object') return 'object';
-    return 'text';
+function propertyType(definition: JsonSchemaDefinition | undefined): Pick<SchemaProperty, 'type' | 'unsupportedReason'> {
+    const schemaType = definition?.type;
+    if (Array.isArray(schemaType)) {
+        const nonNullTypes = schemaType.filter(type => type !== 'null');
+        if (nonNullTypes.length === 1) return propertyType({ ...definition, type: nonNullTypes[0] });
+        return { unsupportedReason: `union type ${JSON.stringify(schemaType)}` };
+    }
+
+    if (schemaType === 'integer' || schemaType === 'number') return { type: 'number' };
+    if (schemaType === 'boolean') return { type: 'boolean' };
+    if (definition?.format === 'date' || definition?.format === 'date-time') return { type: 'date' };
+    if (schemaType === 'array' || schemaType === 'object') return { unsupportedReason: `${schemaType} fields are not supported by the native Stage command form` };
+    if (schemaType === undefined || schemaType === 'string') return { type: 'text' };
+    return { unsupportedReason: `type ${String(schemaType)}` };
 }
 
 function text(element: ExternalComponent, name: string, fallback = ''): string {

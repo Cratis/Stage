@@ -44,7 +44,8 @@ internal static class SemanticReadModelSpecificationRenderer
         var needsCommon = false;
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
 
-        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+        context.Docs(specification.Id).Render(builder)
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .BlankLine()
             .OpenBlock("async global::System.Threading.Tasks.Task Establish()");

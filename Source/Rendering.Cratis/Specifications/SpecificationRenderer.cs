@@ -121,7 +121,7 @@ public static class SpecificationRenderer
         }
 
         // The scenario owns and disposes a service provider, so the specification owning it disposes it too.
-        builder.BlankLine().OpenBlock($"public class {name} : Specification, IDisposable")
+        builder.BlankLine().Documentation(specification.Description).OpenBlock($"public class {name} : Specification, IDisposable")
             .Line($"readonly CommandScenario<{commandType}> _scenario = new();")
             .Line("CommandResult _result = null!;")
             .BlankLine()

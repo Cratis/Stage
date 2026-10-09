@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Xml;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Syntax;
+using Cratis.Screenplay.Syntax.Specifications;
 using Cratis.Screenplay.Workspaces;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -83,6 +84,7 @@ internal static class AuthoringMetadataInput
         ReadModelSyntax declaration => new(Normalize(declaration.Description), Normalize(declaration.Documentation)),
         QuerySyntax declaration => new(Normalize(declaration.Description), null),
         TypeSyntax declaration => new(Normalize(declaration.Description), null),
+        SpecificationSyntax declaration => new(Normalize(declaration.Description), null),
         ReactionSyntax declaration => new(Normalize(declaration.Description), null),
         ReactionTriggerSyntax declaration => new(Normalize(declaration.Description), null),
         _ => new(null, null)
@@ -129,7 +131,8 @@ internal static class AuthoringMetadataInput
                 .SelectMany(slice => slice.Events.Select(declaration => declaration.Id)
                     .Concat(slice.Commands.Select(declaration => declaration.Id))
                     .Concat(slice.ReadModels.Select(declaration => declaration.Id))
-                    .Concat(slice.Queries.Select(declaration => declaration.Id))));
+                    .Concat(slice.Queries.Select(declaration => declaration.Id))
+                    .Concat(slice.Specifications.Select(declaration => declaration.Id))));
 
     static IEnumerable<SemanticSlice> Slices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(Slices));
 

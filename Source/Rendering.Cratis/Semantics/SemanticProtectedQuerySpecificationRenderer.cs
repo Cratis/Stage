@@ -64,7 +64,8 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             }
         }
 
-        builder.OpenBlock($"public class {name} : global::Cratis.Specifications.Specification, global::System.IDisposable")
+        context.Docs(specification.Id).Render(builder)
+            .OpenBlock($"public class {name} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{readModelName}> _scenario = new();")
             .Line("readonly global::Cratis.Arc.Authorization.CurrentPrincipalAccessor _principalAccessor = new(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
             .Line("global::Cratis.Arc.Queries.QueryResult _result = null!;")

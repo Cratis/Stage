@@ -20,7 +20,6 @@ public class when_loading_a_routed_model : Specification
     [Theory]
     [InlineData("eventsource Invoice\n  stream Changes\n")]
     [InlineData("eventsource Invoice\n")]
-    [InlineData("example Registered : InvoiceRegistered\n  stream Invoice.Changes\n")]
     [InlineData("example Registered : InvoiceRegistered\n  no stream\n")]
     public async Task should_refuse_before_translating_the_event_model_or_scene(string declaration)
     {

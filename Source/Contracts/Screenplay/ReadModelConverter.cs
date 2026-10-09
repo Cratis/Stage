@@ -79,7 +79,10 @@ public static class ReadModelConverter
             projection is not null ? ProjectionConverter.Convert(projection) : null)
         {
             SelectedProjectionName = projection?.Name,
-            IgnoredProjectionNames = [.. projections.Skip(1).Select(ignored => ignored.Name)]
+            IgnoredProjectionNames = [.. projections.Skip(1).Select(ignored => ignored.Name)],
+            Queries = [.. queries
+                .Where(query => string.Equals(query.ReturnType.Name, name, StringComparison.Ordinal))
+                .Select(query => new ReadModelQueryDefinition(query.Name, query.By?.Name, query.ReturnType.IsCollection))]
         };
     }
 

@@ -39,6 +39,7 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
     readonly SemanticKeyedQuery? _query;
     readonly IHttpContextAccessor _context;
     readonly bool _byId;
+    readonly IReadOnlyList<string> _filters;
 
     internal SemanticRuntimeQueryPerformer(
         Type type,
@@ -48,7 +49,8 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         SemanticReadModel model,
         SemanticKeyedQuery? query,
         IHttpContextAccessor context,
-        bool byId)
+        bool byId,
+        IReadOnlyList<string>? filters = null)
     {
         ReadModelType = type;
         Type = type;
@@ -60,6 +62,7 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         _query = query;
         _context = context;
         _byId = byId;
+        _filters = filters ?? [];
         Parameters = byId ? new QueryParameters { { query?.Argument?.Name ?? "id", typeof(string) } } : QueryParameters.Empty;
     }
 
@@ -145,10 +148,21 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
             throw UnsupportedWorld(fault);
         }
 
-        var instances = snapshot.Select(Convert).ToArray();
-        return _byId
-            ? instances.FirstOrDefault(instance => instance is DynamicReadModel model && string.Equals(model.Id, key, StringComparison.OrdinalIgnoreCase))
-            : instances;
+        IReadOnlyList<object> instances = [.. snapshot.Select(Convert)];
+        if (_byId)
+        {
+            return instances.FirstOrDefault(instance => instance is DynamicReadModel model && string.Equals(model.Id, key, StringComparison.OrdinalIgnoreCase));
+        }
+
+        foreach (var filter in _filters)
+        {
+            if (ReadModelArgumentFilter.TryGetArgument(context.Arguments, filter, out var argument))
+            {
+                instances = ReadModelArgumentFilter.Matching(instances, filter, argument);
+            }
+        }
+
+        return instances;
     }
 
     SemanticValue Key(QueryContext context)

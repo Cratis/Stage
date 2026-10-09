@@ -34,6 +34,23 @@ public sealed class StageQueryPerformer : IQueryPerformer
     const int MaximumInstances = 500;
     readonly bool _byId;
     readonly string _readModelIdentifier;
+    readonly string? _parameter;
+    readonly bool _isCollection;
+    readonly IReadOnlyList<string> _filters;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StageQueryPerformer"/> class for a conventional query that is not
+    /// narrowed by any modeled <c language="csharp">by</c> parameter.
+    /// </summary>
+    /// <param name="readModelType">The emitted runtime read model type.</param>
+    /// <param name="readModelIdentifier">The identifier the read model is registered with in Chronicle.</param>
+    /// <param name="queryName">The conventional query name (for example <c language="csharp">GetUserById</c> or <c language="csharp">AllUsers</c>).</param>
+    /// <param name="location">The route location segments for the query.</param>
+    /// <param name="byId">Whether the query fetches a single instance by identifier.</param>
+    public StageQueryPerformer(Type readModelType, string readModelIdentifier, string queryName, IReadOnlyList<string> location, bool byId)
+        : this(readModelType, readModelIdentifier, queryName, location, byId, parameter: null, isCollection: true, filters: null)
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StageQueryPerformer"/> class.
@@ -43,7 +60,18 @@ public sealed class StageQueryPerformer : IQueryPerformer
     /// <param name="queryName">The conventional query name (for example <c language="csharp">GetUserById</c> or <c language="csharp">AllUsers</c>).</param>
     /// <param name="location">The route location segments for the query.</param>
     /// <param name="byId">Whether the query fetches a single instance by identifier.</param>
-    public StageQueryPerformer(Type readModelType, string readModelIdentifier, string queryName, IReadOnlyList<string> location, bool byId)
+    /// <param name="parameter">The read-model property a modeled query is narrowed by, or <see langword="null"/> for a conventional query.</param>
+    /// <param name="isCollection">Whether a modeled query with a parameter returns every match rather than the first.</param>
+    /// <param name="filters">The modeled <c language="csharp">by</c> parameters an unkeyed collection query honors when a caller supplies them.</param>
+    public StageQueryPerformer(
+        Type readModelType,
+        string readModelIdentifier,
+        string queryName,
+        IReadOnlyList<string> location,
+        bool byId,
+        string? parameter = null,
+        bool isCollection = true,
+        IReadOnlyList<string>? filters = null)
     {
         ReadModelType = readModelType;
         Type = readModelType;
@@ -52,7 +80,15 @@ public sealed class StageQueryPerformer : IQueryPerformer
         Location = location;
         _byId = byId;
         _readModelIdentifier = readModelIdentifier;
-        Parameters = byId ? new QueryParameters { { "id", typeof(string) } } : QueryParameters.Empty;
+        _parameter = parameter;
+        _isCollection = isCollection;
+        _filters = filters ?? [];
+        Parameters = (byId, parameter) switch
+        {
+            (true, _) => new QueryParameters { { "id", typeof(string) } },
+            (false, { } named) => new QueryParameters { { named, typeof(string) } },
+            _ => QueryParameters.Empty
+        };
     }
 
     /// <inheritdoc/>
@@ -93,9 +129,22 @@ public sealed class StageQueryPerformer : IQueryPerformer
     {
         var instances = await Instances(context);
 
+        if (_parameter is not null)
+        {
+            ReadModelArgumentFilter.TryGetArgument(context.Arguments, _parameter, out var argument);
+            var matching = ReadModelArgumentFilter.Matching(instances, _parameter, argument);
+
+            if (_isCollection)
+            {
+                return matching;
+            }
+
+            return matching.Count > 0 ? matching[0] : null;
+        }
+
         if (!_byId)
         {
-            return instances;
+            return Filtered(instances, context);
         }
 
         var arguments = context.Arguments;
@@ -146,6 +195,21 @@ public sealed class StageQueryPerformer : IQueryPerformer
         }
 
         return parsed;
+    }
+
+    IReadOnlyList<object> Filtered(IReadOnlyList<object> instances, QueryContext context)
+    {
+        // The conventional collection route is the fallback a screen reaches when it has no keyed route. A caller
+        // naming a modeled by-parameter on it is asking for the narrowed set, so it is never handed the whole one.
+        foreach (var filter in _filters)
+        {
+            if (ReadModelArgumentFilter.TryGetArgument(context.Arguments, filter, out var argument))
+            {
+                instances = ReadModelArgumentFilter.Matching(instances, filter, argument);
+            }
+        }
+
+        return instances;
     }
 
     string Identity(JsonElement identity) => identity.ValueKind switch

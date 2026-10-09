@@ -44,7 +44,8 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
                 if (targets.Length > 0 && targets.All(query => query.Authorization is null))
                 {
                     _performers.Add(new SemanticRuntimeQueryPerformer(type, $"Get{name}ById", located.CanonicalLocation, runtime, readModel, null, context, true));
-                    _performers.Add(new SemanticRuntimeQueryPerformer(type, $"All{ModelNaming.Pluralize(name)}", located.CanonicalLocation, runtime, readModel, null, context, false));
+                    var filters = targets.Select(query => query.Argument?.Name).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                    _performers.Add(new SemanticRuntimeQueryPerformer(type, $"All{ModelNaming.Pluralize(name)}", located.CanonicalLocation, runtime, readModel, null, context, false, filters));
                 }
             }
 

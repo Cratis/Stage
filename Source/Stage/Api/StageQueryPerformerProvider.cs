@@ -9,7 +9,8 @@ namespace Cratis.Stage.Api;
 
 /// <summary>
 /// Provides query performers to Arc by convention — for every read model in the event model it exposes a
-/// <c language="csharp">Get&lt;ReadModel&gt;ById</c> and an <c language="csharp">All&lt;ReadModels&gt;</c> query.
+/// <c language="csharp">Get&lt;ReadModel&gt;ById</c> and an <c language="csharp">All&lt;ReadModels&gt;</c> query, plus every
+/// modeled query that is narrowed by a <c language="csharp">by</c> parameter.
 /// </summary>
 public sealed class StageQueryPerformerProvider : IQueryPerformerProvider
 {
@@ -46,8 +47,28 @@ public sealed class StageQueryPerformerProvider : IQueryPerformerProvider
             // by - see StageChronicleDefinitions, which registers exactly this identifier.
             var identifier = readModel.Id.ToString();
 
+            var parameters = readModel.Queries
+                .Select(query => query.Parameter)
+                .OfType<string>()
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
             _performers.Add(new StageQueryPerformer(readModelType, identifier, $"Get{name}ById", located.CanonicalLocation, byId: true));
-            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"All{ModelNaming.Pluralize(name)}", located.CanonicalLocation, byId: false));
+            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"All{ModelNaming.Pluralize(name)}", located.CanonicalLocation, byId: false, filters: parameters));
+
+            // A modeled query with a by-parameter is served as itself, narrowed by that parameter - not by the
+            // conventional collection route, which answers every instance.
+            foreach (var query in readModel.Queries.Where(query => query.Parameter is not null))
+            {
+                _performers.Add(new StageQueryPerformer(
+                    readModelType,
+                    identifier,
+                    ModelNaming.ToIdentifier(query.Name),
+                    located.CanonicalLocation,
+                    byId: false,
+                    parameter: query.Parameter,
+                    isCollection: query.IsCollection));
+            }
         }
     }
 

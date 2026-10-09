@@ -27,4 +27,10 @@ public record ReadModelDefinition(
     /// Empty when no projections were ignored or their source is unknown.
     /// </summary>
     public IReadOnlyList<string> IgnoredProjectionNames { get; init; } = [];
+
+    /// <summary>
+    /// Gets the modeled queries over this read model, in declaration order. A query with a parameter is served
+    /// narrowed by that parameter; empty when the slice declares no query for the read model or its source is unknown.
+    /// </summary>
+    public IReadOnlyList<ReadModelQueryDefinition> Queries { get; init; } = [];
 }

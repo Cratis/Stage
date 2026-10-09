@@ -81,7 +81,8 @@ internal static class SemanticQuerySpecificationRenderer
             }
         }
 
-        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+        context.Docs(specification.Id).Render(builder)
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
             .Line("readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line($"{readModelName}? _result;")
@@ -170,7 +171,8 @@ internal static class SemanticQuerySpecificationRenderer
             builder.Using($"{context.RootNamespace}.Common");
         }
 
-        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+        context.Docs(specification.Id).Render(builder)
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line($"{readModelName}? _result;")
             .BlankLine()

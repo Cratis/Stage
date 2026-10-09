@@ -75,7 +75,8 @@ internal static class SemanticCommandSpecificationRenderer
         // has to dispose it in turn. Generated code is built in someone else's repository, frequently with
         // analysis as errors, and an undisposed owned resource is a build failure there that they cannot fix
         // by editing the file.
-        builder.OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
+        context.Docs(specification.Id).Render(builder)
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{commandName}> _scenario = new();")
             .Line("global::Cratis.Arc.Commands.CommandResult _result = null!;");
         if (seedInLog || specification.ThenDenied || !specification.ThenErrors.IsEmpty)

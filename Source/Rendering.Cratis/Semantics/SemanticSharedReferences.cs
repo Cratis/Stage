@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -33,7 +34,7 @@ internal static class SemanticSharedReferences
             foreach (var projection in slice.Projections)
             {
                 ReadModel(projection.ReadModel);
-                foreach (var transition in projection.Transitions) Event(transition.EventContract);
+                foreach (var eventContract in ProjectionReferencedEventNamesAreUnique.Contracts(projection)) Event(eventContract);
             }
             foreach (var reducer in slice.Reducers)
             {

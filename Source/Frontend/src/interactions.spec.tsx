@@ -189,6 +189,56 @@ describe('when a modeled interaction is clicked', () => {
         expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
     });
 
+    it('should apply a navigation hash that changes while the scene is loading', async () => {
+        globalThis.history.replaceState(null, '', '#/InvoiceList');
+        let loadScene: ((response: Response) => void) | undefined;
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return new Promise<Response>(resolve => { loadScene = resolve; });
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        globalThis.history.replaceState(null, '', '#/InvoiceDetails');
+        globalThis.dispatchEvent(new HashChangeEvent('hashchange'));
+        loadScene?.({ ok: true, json: () => Promise.resolve(navigationScene) } as Response);
+
+        expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
+    });
+
+    it('should render a native command form after routes finish loading', async () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        let loadRoutes: ((response: Response) => void) | undefined;
+        const formScene = {
+            layouts: [],
+            screenTemplates: [],
+            screens: [{
+                name: 'Orders',
+                layout: 'AppShell',
+                screenTemplate: null,
+                forms: [{ name: 'Register order', forCommand: 'RegisterOrder', fields: [{ name: 'orderNumber', label: 'Order #' }] }],
+                contributions: [],
+                behaviors: [],
+                slotContent: { content: [] },
+            }],
+        };
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(formScene) } as Response);
+            if (url === 'stage/routes') return new Promise<Response>(resolve => { loadRoutes = resolve; });
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({ isSuccess: true }) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        expect(await screen.findByText(/waiting for Stage routes/)).toBeDefined();
+        loadRoutes?.({ ok: true, json: () => Promise.resolve({ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }) } as Response);
+
+        expect(await screen.findByLabelText('Order #')).toBeDefined();
+        expect(consoleError.mock.calls.map(call => String(call[0])).join('\n')).not.toContain('Rendered more hooks');
+        consoleError.mockRestore();
+    });
+
     it('should open an authored dialog and render its content', async () => {
         vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
             const url = String(input);

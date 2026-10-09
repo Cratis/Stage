@@ -11,26 +11,40 @@ export interface StageRoutes {
     queries: Record<string, string>;
 }
 
+export interface StageRouteState {
+    routes: StageRoutes | undefined;
+    ready: boolean;
+}
+
 export const stageRoutes = 'stage/routes';
 
 /**
- * Reads the routes the Stage registered.
+ * Reads the routes the Stage registered and says when that lookup has finished.
  *
  * An element carries the route it is backed by, but an interaction only names a command - so running one needs
- * this lookup. Answering `undefined` until it arrives is deliberate: a dispatcher that guessed a URL would
- * turn a missing registration into a 404 at the worst possible moment instead of a message.
+ * this lookup. Readiness is separate from the routes object because an empty or failed route lookup is a real
+ * loaded state; guessing a URL while it is still pending would turn a valid command into a transient 404.
  */
-export function useStageRoutes(): StageRoutes | undefined {
-    const [routes, setRoutes] = useState<StageRoutes>();
+export function useStageRouteState(): StageRouteState {
+    const [state, setState] = useState<StageRouteState>({ routes: undefined, ready: false });
 
     useEffect(() => {
         const abort = new AbortController();
         fetch(stageRoutes, { signal: abort.signal })
             .then(response => (response.ok ? response.json() as Promise<StageRoutes> : undefined))
-            .then(resolved => { if (resolved) setRoutes(resolved); })
-            .catch(() => { /* A Stage that serves no routes still renders; nothing can be executed, and that is reported when tried. */ });
+            .then(routes => {
+                if (!abort.signal.aborted) setState({ routes, ready: true });
+            })
+            .catch(() => {
+                if (!abort.signal.aborted) setState({ routes: undefined, ready: true });
+            });
         return () => abort.abort();
     }, []);
 
-    return routes;
+    return state;
+}
+
+/** Reads the routes the Stage registered. */
+export function useStageRoutes(): StageRoutes | undefined {
+    return useStageRouteState().routes;
 }

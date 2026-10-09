@@ -124,7 +124,7 @@ internal static class SemanticHost
 
             return (loaded, SemanticHostScene.Load(modelPath, loaded.Model));
         }
-        catch (Exception exception) when (exception is UnsupportedGuardedInteraction or UnsupportedUiSyntax)
+        catch (Exception exception) when (exception is UnsupportedUiSyntax)
         {
             issues.Add(new StageUnsupportedIssue("Scene", "model", exception.Message));
 

@@ -11,6 +11,19 @@ namespace Cratis.Stage.Contracts.Scene.for_UiSyntaxAdmission;
 
 public class when_refusing_new_ui_members : Specification
 {
+    // Members the Scene converters still drop and the screen composition corpus does not admit.
+    [Theory]
+    [InlineData(typeof(ScreenNavigateSyntax), "Route")]
+    [InlineData(typeof(ScreenNavigateSyntax), "Parameters")]
+    [InlineData(typeof(DialogTemplateSyntax), "Outlets")]
+    public void should_refuse_instead_of_dropping_the_authored_member(Type type, string member)
+    {
+        var error = Catch.Exception(() => new UiSyntaxAdmission().VisitNode(Authored(type, member)));
+        error.ShouldBeOfExactType<UnsupportedUiSyntax>();
+        error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
+    }
+
+    // Members the Scene converters translate, or the canonical screen composition corpus admits.
     [Theory]
     [InlineData(typeof(ApplicationSyntax), "Templates")]
     [InlineData(typeof(ModuleSyntax), "Templates")]
@@ -29,9 +42,6 @@ public class when_refusing_new_ui_members : Specification
     [InlineData(typeof(DialogTemplateSyntax), "Category")]
     [InlineData(typeof(DialogTemplateSyntax), "TemplateType")]
     [InlineData(typeof(DialogTemplateSyntax), "Exposes")]
-    [InlineData(typeof(DialogTemplateSyntax), "Outlets")]
-    [InlineData(typeof(ScreenNavigateSyntax), "Route")]
-    [InlineData(typeof(ScreenNavigateSyntax), "Parameters")]
     [InlineData(typeof(UiProfileSyntax), "Icons")]
     [InlineData(typeof(ScreenComponentSyntax), "Context")]
     [InlineData(typeof(ScreenComponentSyntax), "Properties")]
@@ -40,24 +50,22 @@ public class when_refusing_new_ui_members : Specification
     [InlineData(typeof(ScreenComponentSyntax), "Icon")]
     [InlineData(typeof(ScreenComponentSyntax), "Outlets")]
     [InlineData(typeof(ScreenToolbarSyntax), "Items")]
-    public void should_refuse_instead_of_dropping_the_authored_member(Type type, string member)
-    {
-        var node = (SyntaxNode)Create(type);
-        var property = type.GetProperty(member)!;
-        property.SetValue(node, AuthoredValue(property.PropertyType));
-        var error = Catch.Exception(() => new UiSyntaxAdmission().VisitNode(node));
-        error.ShouldBeOfExactType<UnsupportedUiSyntax>();
-        error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
-    }
+    public void should_admit_the_translated_or_corpus_member(Type type, string member) =>
+        Catch.Exception(() => new UiSyntaxAdmission().VisitNode(Authored(type, member))).ShouldBeNull();
 
     [Theory]
     [InlineData(UiBindingKind.DataContext)]
     [InlineData(UiBindingKind.QueryResult)]
     [InlineData(UiBindingKind.ComponentProperty)]
-    public void should_refuse_every_binding_source(UiBindingKind kind)
+    public void should_admit_every_binding_source(UiBindingKind kind) =>
+        Catch.Exception(() => new UiSyntaxAdmission().VisitNode(new UiBindingSyntax(kind, "id", SourceLocation.Start))).ShouldBeNull();
+
+    static SyntaxNode Authored(Type type, string member)
     {
-        var error = Catch.Exception(() => new UiSyntaxAdmission().VisitNode(new UiBindingSyntax(kind, "id", SourceLocation.Start)));
-        error.ShouldBeOfExactType<UnsupportedUiSyntax>();
+        var node = (SyntaxNode)Create(type);
+        var property = type.GetProperty(member)!;
+        property.SetValue(node, AuthoredValue(property.PropertyType));
+        return node;
     }
 
     // Neutral constructor values keep each test independent: only the named additive member is authored.

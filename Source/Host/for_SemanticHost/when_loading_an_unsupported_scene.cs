@@ -13,27 +13,17 @@ namespace Cratis.Stage.Host.for_SemanticHost;
 public class when_loading_an_unsupported_scene : given.a_model_path
 {
     [Theory]
-    [InlineData("semantic", "click")]
-    [InlineData("semantic", "select")]
-    [InlineData("semantic", "toolbar")]
-    [InlineData("eventmodel", "click")]
-    [InlineData("eventmodel", "select")]
-    [InlineData("eventmodel", "toolbar")]
-    public async Task should_record_scene_refusals_instead_of_crashing_the_host(string engine, string form)
+    [InlineData("semantic", "route \"projects/overview\"")]
+    [InlineData("semantic", "parameter name from data.name")]
+    [InlineData("eventmodel", "route \"projects/overview\"")]
+    [InlineData("eventmodel", "parameter name from data.name")]
+    public async Task should_record_scene_refusals_instead_of_crashing_the_host(string engine, string navigation)
     {
-        var screen = form == "toolbar" ? """
+        var screen = $$"""
                 screen Overview
-                  toolbar Actions
-                    item register action RegisterProject
-        """ : $$"""
-                screen Overview
-                  table ProjectSummary
-                    column name
-                    on {{form}}
-                      when item.name == "open"
-                        notify info "Open"
+                  navigate to Overview
+                    {{navigation}}
         """;
-        if (form == "select") screen += "\n              otherwise\n                notify info \"Closed\"";
         await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n" + screen);
         var issues = new List<StageUnsupportedIssue>();
         LoadedSemanticModel? model = null;
@@ -51,9 +41,9 @@ public class when_loading_an_unsupported_scene : given.a_model_path
         var issue = Assert.Single(issues);
         issue.Capability.ShouldEqual("Scene");
         issue.Artifact.ShouldEqual("model");
-        var diagnosticCode = form == "toolbar" ? UnsupportedUiSyntax.DiagnosticCode : UnsupportedGuardedInteraction.DiagnosticCode;
+        const string diagnosticCode = UnsupportedUiSyntax.DiagnosticCode;
         issue.Details.ShouldContain(diagnosticCode);
-        if (form != "toolbar") issue.Details.ShouldContain("https://github.com/Cratis/Stage/issues/209");
+        issue.Details.ShouldContain("ScreenNavigateSyntax.Route/Parameters");
 
         await using var app = WebApplication.CreateBuilder().Build();
         SemanticHost.MapRefused(app, issues, engine);

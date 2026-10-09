@@ -14,7 +14,7 @@ internal static class EventModelHost
         {
             return await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath);
         }
-        catch (Exception exception) when (exception is UnsupportedGuardedInteraction or UnsupportedUiSyntax)
+        catch (Exception exception) when (exception is UnsupportedUiSyntax)
         {
             issues.Add(new StageUnsupportedIssue("Scene", "model", exception.Message));
 

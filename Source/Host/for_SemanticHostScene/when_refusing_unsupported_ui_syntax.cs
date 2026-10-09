@@ -8,21 +8,20 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticHostScene;
 
-public class when_refusing_guarded_interactions : Specification
+public class when_refusing_unsupported_ui_syntax : Specification
 {
     string _directory = null!;
 
     void Establish()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"stage-guarded-interactions-{Guid.NewGuid():N}");
+        _directory = Path.Combine(Path.GetTempPath(), $"stage-unsupported-ui-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_directory);
     }
 
     [Theory]
-    [InlineData("click", false)]
-    [InlineData("double click", false)]
-    [InlineData("select", true)]
-    public void should_refuse_before_returning_a_host_scene(string trigger, bool otherwise)
+    [InlineData("route \"items/details\"")]
+    [InlineData("parameter status from data.status")]
+    public void should_refuse_before_returning_a_host_scene(string navigation)
     {
         var source = $$"""
             module Work
@@ -33,13 +32,9 @@ public class when_refusing_guarded_interactions : Specification
                   query ItemDetails => Item[]
                   screen Details
                     data Item[] via query ItemDetails
-                    table Item
-                      column status
-                      on {{trigger}}
-                        when item.status == "open"
-                          notify info "Open"
+                    navigate to Details
+                      {{navigation}}
             """;
-        if (otherwise) source += "\n            otherwise\n              notify info \"Closed\"";
 
         // Host loads presentation from source separately; the admitted backend model has no screens.
         var plan = compiled_plan.From("""
@@ -50,13 +45,13 @@ public class when_refusing_guarded_interactions : Specification
                     id Uuid identifier
                     produces event Updated
             """);
-        var path = Path.Combine(_directory, "Guarded.play");
+        var path = Path.Combine(_directory, "Navigation.play");
         File.WriteAllText(path, source);
         var error = Catch.Exception(() => SemanticHostScene.Load(path, plan.Model));
-        error.ShouldBeOfExactType<UnsupportedGuardedInteraction>();
-        error.Message.ShouldContain(UnsupportedGuardedInteraction.DiagnosticCode);
-        error.Message.ShouldContain("https://github.com/Cratis/Stage/issues/209");
-        ((UnsupportedGuardedInteraction)error).Location.Line.ShouldEqual(11);
+        error.ShouldBeOfExactType<UnsupportedUiSyntax>();
+        error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
+        ((UnsupportedUiSyntax)error).Member.ShouldEqual("ScreenNavigateSyntax.Route/Parameters");
+        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(9);
     }
 
     void Destroy() => Directory.Delete(_directory, recursive: true);

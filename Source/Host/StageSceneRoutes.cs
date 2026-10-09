@@ -91,10 +91,10 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
         {
             foreach (var name in candidate.Names)
             {
-                var simple = name[(name.LastIndexOf('.') + 1)..];
-                if (simple.Length == 0) continue;
-
-                routes.TryAdd(simple, candidate.Route);
+                foreach (var alias in AliasesOf(name))
+                {
+                    routes.TryAdd(alias, candidate.Route);
+                }
             }
         }
 
@@ -140,6 +140,28 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
         };
     }
 
+    static IEnumerable<string> AliasesOf(string name)
+    {
+        var simple = name[(LastSeparator(name) + 1)..];
+        if (simple.Length > 0)
+        {
+            yield return simple;
+        }
+
+        if (string.Equals(simple, "StageLegacy", StringComparison.Ordinal))
+        {
+            var separator = LastSeparator(name);
+            var withoutSuffix = separator > 0 ? name[..separator] : string.Empty;
+            var legacyCommand = withoutSuffix[(LastSeparator(withoutSuffix) + 1)..];
+            if (legacyCommand.Length > 0)
+            {
+                yield return legacyCommand;
+            }
+        }
+    }
+
+    static int LastSeparator(string name) => Math.Max(name.LastIndexOf('.'), name.LastIndexOf('+'));
+
     static SceneElements.SceneElement WithRoute(SceneElements.SceneElement element, IReadOnlyList<EndpointCandidate> candidates)
     {
         if (element is not SceneElements.ExternalComponent component)
@@ -152,9 +174,7 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
             slot => (IReadOnlyList<SceneElements.SceneElement>)[.. slot.Value.Select(child => WithRoute(child, candidates))],
             StringComparer.Ordinal);
 
-        if (component.Properties.TryGetValue(SceneSynthesizer.TypeNameProperty, out var value) &&
-            value is string typeName &&
-            Resolve(candidates, typeName, component.ComponentName) is { } match)
+        if (RouteMatch(component, candidates) is { } match)
         {
             var properties = new Dictionary<string, object?>(component.Properties, StringComparer.Ordinal)
             {
@@ -166,6 +186,19 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
         }
 
         return component with { Slots = nested };
+    }
+
+    static EndpointCandidate? RouteMatch(SceneElements.ExternalComponent component, IReadOnlyList<EndpointCandidate> candidates)
+    {
+        if (component.Properties.TryGetValue(SceneSynthesizer.TypeNameProperty, out var typeName) && typeName is string namedType)
+        {
+            return Resolve(candidates, namedType, component.ComponentName);
+        }
+
+        return string.Equals(component.ComponentName, "core:action", StringComparison.Ordinal) &&
+            component.Properties.TryGetValue("command", out var command) && command is string commandName
+                ? Resolve(candidates, commandName, component.ComponentName)
+                : null;
     }
 
     static EndpointCandidate? Resolve(IReadOnlyList<EndpointCandidate> candidates, string typeName, string componentName)

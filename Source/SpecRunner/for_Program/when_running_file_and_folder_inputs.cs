@@ -71,6 +71,7 @@ public class when_running_file_and_folder_inputs : Specification
         File.WriteAllText(Path.Combine(_directory, "input.txt"), Source);
         File.WriteAllText(Path.Combine(_directory, "input.play.txt"), Source);
         File.WriteAllText(Path.Combine(_directory, "invalid.play"), "module");
+        File.WriteAllText(Path.Combine(_directory, "routed.play"), "eventsource Invoice\n  stream Changes\n" + Source);
     }
 
     async Task Because()
@@ -95,6 +96,7 @@ public class when_running_file_and_folder_inputs : Specification
         await RejectModel("text file", "input.txt", "must have a .play extension");
         await RejectModel("disguised text file", "input.play.txt", "must have a .play extension");
         await RejectModel("invalid syntax", "invalid.play", "Invalid module declaration");
+        await RejectModel("routed model", "routed.play", "STAGE-ESM-030:");
     }
 
     [Fact] void should_complete_the_file_run() => _fromFile.ExitCode.ShouldEqual(0);
@@ -117,6 +119,7 @@ public class when_running_file_and_folder_inputs : Specification
     [Fact] void should_reject_a_text_file_without_writing_results() => AssertRejected("text file");
     [Fact] void should_reject_a_disguised_text_file_without_writing_results() => AssertRejected("disguised text file");
     [Fact] void should_reject_invalid_syntax_without_writing_results() => AssertRejected("invalid syntax");
+    [Fact] void should_reject_a_routed_model_without_writing_results() => AssertRejected("routed model");
 
     Task Destroy()
     {
@@ -158,7 +161,9 @@ public class when_running_file_and_folder_inputs : Specification
     Task RejectModel(string name, string input, params string[] diagnostics)
     {
         var path = Path.Combine(_directory, input);
-        return Reject(name, output => ["--model", path, "--output", output], 1, [path, .. diagnostics]);
+        // Admission refusals carry the authored location; the syntax compiler does not attach the input path.
+        var expected = diagnostics.Contains("STAGE-ESM-030:", StringComparer.Ordinal) ? diagnostics : [path, .. diagnostics];
+        return Reject(name, output => ["--model", path, "--output", output], 1, expected);
     }
 
     async Task Reject(string name, Func<string, string[]> arguments, int exitCode, params string[] diagnostics)

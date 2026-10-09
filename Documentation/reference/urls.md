@@ -106,6 +106,24 @@ instances of the read model. `All<ReadModels>` returns that window. `Get<ReadMod
 for an instance whose identity matches `id` (compared case-insensitively) and returns `data: null` when none does,
 including an instance that exists beyond the first 500.
 
+A query the model narrows with `by` is also served under its own name. Given this declaration:
+
+```screenplay
+query CommentsForWorkItem => observable CommentView[]
+  by workItemId WorkItemId
+```
+
+the query only returns instances whose `workItemId` matches the argument:
+
+```text
+GET /api/<module>/<feature>[/<sub-feature>]/<slice>/comments-for-work-item?workItemId=<id>
+```
+
+The match compares the read-model property with the argument case-insensitively, and falls back to the instance
+identity when the read model does not carry the property. A missing or empty argument returns an empty result, never
+the whole read model. `All<ReadModels>` keeps returning every instance, but when a caller supplies a modeled `by`
+parameter such as `?workItemId=<id>`, it applies the same narrowing.
+
 Each answers with Arc's `QueryResult` envelope. On success, `isAuthorized` is `true` and `data` holds the
 instances — an array for `All<ReadModels>`, a single object for `Get<ReadModel>ById`. Each instance carries its
 identity as `id` next to the properties the projection wrote:

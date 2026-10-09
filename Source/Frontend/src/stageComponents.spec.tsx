@@ -193,6 +193,59 @@ describe('a synthesized table', () => {
 });
 
 describe('a native command form', () => {
+    it('opens from a routed authored action', async () => {
+        const fetched = vi.fn();
+        vi.stubGlobal('fetch', fetched);
+        const action = element('create-action', 'core:action', {
+            command: 'CreateWorkItem',
+            label: 'Create work item',
+            route: '/api/workspaces/tracking/create-work-item/create-work-item',
+            fields: [{ name: 'title', label: 'Title' }],
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { CreateWorkItem: '/api/workspaces/tracking/create-work-item/create-work-item' }, queries: {} }} locale='en' locales={['en']} screen='WorkItemList'>
+                    <StageAction element={action} slots={{}} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Create work item' }));
+
+        expect(await screen.findByLabelText('Title')).toBeDefined();
+        expect(screen.queryByText(/not exposed as an API yet/)).toBeNull();
+    });
+
+    it.each([
+        ['CreateWorkItem', '/api/workspaces/tracking/create-work-item', [{ name: 'workItemId', label: 'Work item ID' }, { name: 'title', label: 'Title' }], { 'Work item ID': '00000000-0000-0000-0000-000000000001', Title: 'First item' }],
+        ['RenameWorkItem', '/api/workspaces/tracking/rename-work-item', [{ name: 'workItemId', label: 'Work item ID' }, { name: 'title', label: 'New title' }], { 'Work item ID': '00000000-0000-0000-0000-000000000001', 'New title': 'Renamed item' }],
+        ['AddComment', '/api/workspaces/tracking/add-comment', [{ name: 'commentId', label: 'Comment ID' }, { name: 'workItemId', label: 'Work item ID' }, { name: 'text', label: 'Text' }], { 'Comment ID': '00000000-0000-0000-0000-000000000002', 'Work item ID': '00000000-0000-0000-0000-000000000001', Text: 'A comment' }],
+    ])('validates and submits the canonical %s command form', async (command, route, fields, values) => {
+        const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult() });
+        vi.stubGlobal('fetch', fetched);
+        const form = element(`${command}-form`, 'Stage:commandForm', { command, label: command, fields });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { [command]: route }, queries: {} }} locale='en' locales={['en']} screen='WorkItemList'>
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+        fireEvent.click(screen.getByRole('button', { name: `Execute ${command}` }));
+        await waitFor(() => expect(screen.getByLabelText(fields[0].label).getAttribute('aria-invalid')).toEqual('true'));
+        expect(fetched).not.toHaveBeenCalled();
+
+        for (const [label, value] of Object.entries(values)) {
+            fireEvent.change(screen.getByLabelText(label), { target: { value } });
+        }
+        fireEvent.click(screen.getByRole('button', { name: `Execute ${command}` }));
+
+        await waitFor(() => expect(fetched).toHaveBeenCalled());
+        expect(String(fetched.mock.calls[0][0])).toEqual(`http://localhost:3000${route}`);
+        expect(fetched.mock.calls[0][1].method).toEqual('POST');
+    });
+
     it('keeps invalid required fields inside the native form boundary', async () => {
         const fetched = vi.fn();
         vi.stubGlobal('fetch', fetched);

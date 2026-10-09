@@ -63,7 +63,13 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
             ConvertModuleScreens(module, layouts[0].Name, screens, scope);
         }
 
-        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, screens);
+        var runtime = new SceneRuntimeAdmission();
+        runtime.VisitApplication(syntax);
+
+        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, screens)
+        {
+            RuntimeIssues = runtime.Issues
+        };
     }
 
     static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope)

@@ -122,7 +122,10 @@ internal static class SemanticHost
         {
             var loaded = await SemanticModelLoader.LoadFromPathAsync(modelPath);
 
-            return (loaded, SemanticHostScene.Load(modelPath, loaded.Model));
+            var scene = SemanticHostScene.Load(modelPath, loaded.Model);
+            issues.AddRange(scene.RuntimeIssues.Select(issue => new StageUnsupportedIssue("Scene", issue.Artifact, issue.Details)));
+
+            return scene.RuntimeIssues.Count > 0 ? (null, null) : (loaded, scene);
         }
         catch (Exception exception) when (exception is UnsupportedUiSyntax)
         {

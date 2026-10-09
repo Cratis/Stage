@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json.Serialization;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneProfiles = Cratis.Scene.Model.Profiles;
 using SceneScreens = Cratis.Scene.Model.Screens;
@@ -24,4 +25,11 @@ public record SceneApplication(
     IReadOnlyList<SceneLayouts.Layout> Layouts,
     IReadOnlyList<SceneScreens.ScreenTemplate> ScreenTemplates,
     IReadOnlyList<SceneScreens.DialogTemplate> DialogTemplates,
-    IReadOnlyList<SceneScreens.Screen> Screens);
+    IReadOnlyList<SceneScreens.Screen> Screens)
+{
+    /// <summary>
+    /// Gets source constructs that cannot run in the pinned Scene runtime. These are not Scene wire members.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<SceneRuntimeIssue> RuntimeIssues { get; init; } = [];
+}

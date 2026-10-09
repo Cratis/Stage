@@ -13,7 +13,8 @@ namespace Cratis.Stage.Contracts.Scene;
 public sealed class UnsupportedGuardedScreenAction(string label, SourceLocation location) : Exception(
     $"{DiagnosticCode}: Guarded screen action '{label}' at {location} cannot be rendered by the pinned Scene packages. " +
     "Scene needs selected-item binding and ordered first-match command alternatives with nonmatching null or missing fields, " +
-    "hidden or executable fallbacks, and hiding when no item is selected. No action was emitted.")
+    "hidden or executable fallbacks, and hiding when no item is selected. No runnable application or live scene was produced. " +
+    "See https://github.com/Cratis/Scene/issues/68 and https://github.com/Cratis/Stage/issues/209.")
 {
     /// <summary>
     /// The stable diagnostic code for guarded screen actions requiring Scene renderer support.

@@ -3,7 +3,8 @@
 
 import { useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import type { ExternalComponent, FormField } from '@cratis/scene.model';
+import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
+import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { Command } from '@cratis/arc/commands';
 import { PropertyDescriptor } from '@cratis/arc/reflection';
 import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
@@ -16,45 +17,13 @@ interface SchemaProperty {
     required: boolean;
 }
 
-enum FormFieldGenerationMode {
-    Auto = 'auto',
-    Manual = 'manual',
-}
-
-enum FormLayoutMode {
-    Auto = 'auto',
-    Manual = 'manual',
-}
-
-interface FormFieldPlacement {
-    name: string;
-    width?: string;
-    minWidth?: string;
-    maxWidth?: string;
-    grow?: number;
-}
-
-interface FormColumnGeometry {
-    fields: FormFieldPlacement[];
-    width?: string;
-    minWidth?: string;
-    maxWidth?: string;
-    grow?: number;
-    resizable: boolean;
-}
-
-interface FormLayoutGeometry {
-    mode: FormLayoutMode;
-    columns: FormColumnGeometry[];
-}
-
 interface NativeFormProperties {
     command: string;
     label: string;
     fields: FormField[];
     route?: string;
-    fieldGenerationMode: FormFieldGenerationMode;
-    layout: FormLayoutGeometry;
+    generationMode: FormGenerationMode;
+    layout?: CommandFormLayout;
 }
 
 interface StageCommandFormProps {
@@ -83,7 +52,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     if (!route || !commandType) return <p className='stage-note'>The modeled command “{form.command}” is not registered by this Stage.</p>;
 
     return (
-        <section className='stage-command-form' data-command={form.command} data-layout-mode={form.layout.mode}>
+        <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
             <NativeCommandForm
                 command={commandType}
                 validateOn='both'
@@ -109,47 +78,44 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
     if (!command) return undefined;
 
     const fields = Array.isArray(element.properties.fields) ? element.properties.fields.filter(isRecord) as unknown as FormField[] : [];
-    const fieldGenerationMode = element.properties.mode === FormFieldGenerationMode.Manual ? FormFieldGenerationMode.Manual : FormFieldGenerationMode.Auto;
-    const layout = layoutGeometryFor(element.properties, fields);
-
     return {
         command,
         label: text(element, 'label', command),
         fields,
         route: text(element, 'route') || undefined,
-        fieldGenerationMode,
-        layout,
+        generationMode: generationModeFor(element.properties.generationMode),
+        layout: layoutFor(element.properties.layout),
     };
 }
 
 function fieldsFor(form: NativeFormProperties, schema: SchemaProperty[]): FormField[] {
-    if (form.fieldGenerationMode === FormFieldGenerationMode.Manual || form.fields.length > 0) return form.fields;
+    if (form.generationMode === FormGenerationMode.Manual || form.fields.length > 0) return form.fields;
     return schema.map(property => ({ name: property.name, label: property.name }));
 }
 
 function renderFields(form: NativeFormProperties, fields: FormField[], schema: SchemaProperty[]): ReactNode {
-    if (form.layout.columns.length === 0) return fields.map(field => renderField(field, schema));
+    const layout = form.layout;
+    const placements = layout ? placementsFor(layout, fields) : [];
+    if (!layout || (layout.columns.length === 0 && placements.length === 0)) return fields.map(field => renderField(field, schema));
 
     const byName = new Map(fields.map(field => [field.name, field]));
-    const rendered = new Set<string>();
-    const columns = form.layout.columns;
-    const columnsStyle: CSSProperties = {
-        gridTemplateColumns: columns.map(columnWidth).join(' '),
+    const columnCount = gridColumnCount(layout, placements);
+    const layoutStyle: CSSProperties = {
+        gridTemplateColumns: Array.from({ length: columnCount }, (_value, index) => columnTrack(index + 1, layout.columns)).join(' '),
+        columnGap: widthToCss(layout.columnGap),
+        rowGap: widthToCss(layout.rowGap),
     };
+    const placedFields = new Set<string>();
 
     return (
-        <div className='stage-command-form__layout' data-layout-mode={form.layout.mode} style={columnsStyle}>
-            {columns.map((column, index) => (
-                <div key={index} className='stage-command-form__column' data-resizable={column.resizable ? 'true' : undefined} style={columnStyle(column)}>
-                    {column.fields.map(placement => {
-                        const field = byName.get(placement.name);
-                        if (!field) return null;
-                        rendered.add(field.name);
-                        return renderField(field, schema, placement);
-                    })}
-                    {index === columns.length - 1 && fields.filter(field => !rendered.has(field.name)).map(field => renderField(field, schema))}
-                </div>
-            ))}
+        <div className='stage-command-form__layout' style={layoutStyle}>
+            {placements.map(placement => {
+                const field = byName.get(placement.field);
+                if (!field) return null;
+                placedFields.add(field.name);
+                return renderField(field, schema, placement);
+            })}
+            {fields.filter(field => !placedFields.has(field.name)).map(field => renderField(field, schema))}
         </div>
     );
 }
@@ -169,10 +135,18 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
         }
     })();
 
-    const style = placementStyle(placement ?? placementForField(field));
-    if (!style) return <span key={field.name} className='stage-command-form__field'>{fieldElement}</span>;
-
-    return <span key={field.name} className='stage-command-form__field' data-field={field.name} style={style}>{fieldElement}</span>;
+    const style = placementStyle(placement);
+    return (
+        <span
+            key={field.name}
+            className='stage-command-form__field'
+            data-field={field.name}
+            data-row={placement?.row}
+            data-column={placement?.column}
+            style={style}>
+            {fieldElement}
+        </span>
+    );
 }
 
 function commandTypeFor(route: string, fields: FormField[], schema: SchemaProperty[]): StageCommandConstructor {
@@ -205,112 +179,65 @@ function commandTypeFor(route: string, fields: FormField[], schema: SchemaProper
     };
 }
 
-function layoutGeometryFor(properties: Record<string, unknown>, fields: FormField[]): FormLayoutGeometry {
-    const configured = geometryValue(properties.geometry) ?? geometryValue(properties.layout) ?? geometryValue(properties.formLayout);
-    const rawColumns = configured?.columns ?? properties.columns;
-    const columns = parseColumns(rawColumns);
-    if (columns.length > 0) return { mode: configured?.mode ?? FormLayoutMode.Manual, columns };
-
-    const fieldColumns = columnsFromFieldMetadata(fields);
-    if (fieldColumns.length > 0) return { mode: configured?.mode ?? FormLayoutMode.Manual, columns: fieldColumns };
-
-    return { mode: configured?.mode ?? FormLayoutMode.Auto, columns: [] };
+function generationModeFor(value: unknown): FormGenerationMode {
+    return value === FormGenerationMode.Manual ? FormGenerationMode.Manual : FormGenerationMode.Auto;
 }
 
-function geometryValue(value: unknown): { mode?: FormLayoutMode; columns?: unknown } | undefined {
+function layoutFor(value: unknown): CommandFormLayout | undefined {
     if (!isRecord(value)) return undefined;
+    const layout = value as Partial<CommandFormLayout>;
     return {
-        mode: value.mode === FormLayoutMode.Manual ? FormLayoutMode.Manual : value.mode === FormLayoutMode.Auto ? FormLayoutMode.Auto : undefined,
-        columns: value.columns,
+        columns: Array.isArray(layout.columns) ? layout.columns.filter(isFormColumn) : [],
+        placements: Array.isArray(layout.placements) ? layout.placements.filter(isFormFieldPlacement) : [],
+        columnGap: isFormWidth(layout.columnGap) ? layout.columnGap : undefined,
+        rowGap: isFormWidth(layout.rowGap) ? layout.rowGap : undefined,
     };
 }
 
-function parseColumns(value: unknown): FormColumnGeometry[] {
-    if (!Array.isArray(value)) return [];
-    return value.map(parseColumn).filter((column): column is FormColumnGeometry => column.fields.length > 0);
-}
-
-function parseColumn(value: unknown): FormColumnGeometry {
-    if (Array.isArray(value)) {
-        return { fields: value.map(parsePlacement).filter(isPlacement), resizable: false };
-    }
-
-    if (!isRecord(value)) return { fields: [], resizable: false };
-    const fields = Array.isArray(value.fields) ? value.fields.map(parsePlacement).filter(isPlacement) : [];
-    return {
-        fields,
-        width: stringValue(value.width),
-        minWidth: stringValue(value.minWidth),
-        maxWidth: stringValue(value.maxWidth),
-        grow: numberValue(value.grow),
-        resizable: value.resizable === true,
-    };
-}
-
-function parsePlacement(value: unknown): FormFieldPlacement | undefined {
-    if (typeof value === 'string') return { name: value };
-    if (!isRecord(value)) return undefined;
-    const name = stringValue(value.name) ?? stringValue(value.field) ?? stringValue(value.fieldName);
-    if (!name) return undefined;
-
-    return {
-        name,
-        width: stringValue(value.width),
-        minWidth: stringValue(value.minWidth),
-        maxWidth: stringValue(value.maxWidth),
-        grow: numberValue(value.grow),
-    };
-}
-
-function columnsFromFieldMetadata(fields: FormField[]): FormColumnGeometry[] {
-    const columns = new Map<string, FormFieldPlacement[]>();
+function placementsFor(layout: CommandFormLayout, fields: FormField[]): FormFieldPlacement[] {
+    const byField = new Map(layout.placements.map(placement => [placement.field, placement]));
     for (const field of fields) {
-        const metadata = field as FormField & Record<string, unknown>;
-        const column = metadata.column ?? metadata.columnIndex;
-        if (column === undefined || column === null) continue;
-        const columnKey = String(column);
-        columns.set(columnKey, [...(columns.get(columnKey) ?? []), placementForField(field)]);
+        if (byField.has(field.name) || !isFormFieldPlacement(field.placement)) continue;
+        byField.set(field.name, field.placement);
     }
 
-    return [...columns.entries()]
-        .sort(([left], [right]) => Number(left) - Number(right))
-        .map(([, placements]) => ({ fields: placements, resizable: false }));
+    return [...byField.values()].sort((left, right) => left.row - right.row || left.column - right.column || left.field.localeCompare(right.field));
 }
 
-function placementForField(field: FormField): FormFieldPlacement {
-    const metadata = field as FormField & Record<string, unknown>;
-    return {
-        name: field.name,
-        width: stringValue(metadata.width),
-        minWidth: stringValue(metadata.minWidth),
-        maxWidth: stringValue(metadata.maxWidth),
-        grow: numberValue(metadata.grow),
-    };
+function gridColumnCount(layout: CommandFormLayout, placements: FormFieldPlacement[]): number {
+    return Math.max(
+        1,
+        ...layout.columns.map(column => column.index),
+        ...placements.map(placement => placement.column + (placement.columnSpan ?? 1) - 1),
+    );
 }
 
-function columnWidth(column: FormColumnGeometry): string {
-    if (column.width) return column.width;
-    if (column.minWidth || column.maxWidth) return `minmax(${column.minWidth ?? '0'}, ${column.maxWidth ?? `${column.grow ?? 1}fr`})`;
-    return `minmax(0, ${column.grow ?? 1}fr)`;
-}
-
-function columnStyle(column: FormColumnGeometry): CSSProperties {
-    return {
-        minWidth: column.minWidth,
-        maxWidth: column.maxWidth,
-        resize: column.resizable ? 'horizontal' : undefined,
-        overflow: column.resizable ? 'auto' : undefined,
-    };
+function columnTrack(index: number, columns: FormColumn[]): string {
+    const column = columns.find(candidate => candidate.index === index);
+    const width = widthToCss(column?.width);
+    const minWidth = widthToCss(column?.minWidth);
+    const maxWidth = widthToCss(column?.maxWidth);
+    if (minWidth || maxWidth) return `minmax(${minWidth ?? '0'}, ${maxWidth ?? width ?? '1fr'})`;
+    return width ?? '1fr';
 }
 
 function placementStyle(placement: FormFieldPlacement | undefined): CSSProperties | undefined {
-    if (!placement?.width && !placement?.minWidth && !placement?.maxWidth && placement?.grow === undefined) return undefined;
+    if (!placement) return undefined;
     return {
-        width: placement.width,
-        minWidth: placement.minWidth,
-        maxWidth: placement.maxWidth,
-        flexGrow: placement.grow,
+        gridColumn: `${placement.column} / span ${placement.columnSpan ?? 1}`,
+        gridRow: `${placement.row} / span ${placement.rowSpan ?? 1}`,
+        width: widthToCss(placement.width),
     };
+}
+
+function widthToCss(width: FormWidth | undefined): string | undefined {
+    if (!width) return undefined;
+    switch (width.unit) {
+        case FormWidthUnit.Fraction: return `${width.value ?? 1}fr`;
+        case FormWidthUnit.Pixels: return `${width.value ?? 0}px`;
+        case FormWidthUnit.Percent: return `${width.value ?? 100}%`;
+        case FormWidthUnit.Auto: return 'auto';
+    }
 }
 
 function constructorFor(type: SchemaProperty['type'] | undefined) {
@@ -362,21 +289,21 @@ function propertyType(definition: { type?: string; format?: string } | undefined
     return 'text';
 }
 
-function stringValue(value: unknown): string | undefined {
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
-function numberValue(value: unknown): number | undefined {
-    return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
-}
-
 function text(element: ExternalComponent, name: string, fallback = ''): string {
     const value = element.properties[name];
     return typeof value === 'string' ? value : fallback;
 }
 
-function isPlacement(value: FormFieldPlacement | undefined): value is FormFieldPlacement {
-    return !!value;
+function isFormColumn(value: unknown): value is FormColumn {
+    return isRecord(value) && typeof value.index === 'number' && Number.isInteger(value.index) && value.index > 0;
+}
+
+function isFormFieldPlacement(value: unknown): value is FormFieldPlacement {
+    return isRecord(value) && typeof value.field === 'string' && typeof value.row === 'number' && typeof value.column === 'number' && value.row > 0 && value.column > 0;
+}
+
+function isFormWidth(value: unknown): value is FormWidth {
+    return isRecord(value) && Object.values(FormWidthUnit).includes(value.unit as FormWidthUnit);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

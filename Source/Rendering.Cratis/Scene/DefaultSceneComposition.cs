@@ -109,6 +109,14 @@ internal static class DefaultSceneComposition
 
     static SceneElements.ExternalComponent? QueryInputForm(SemanticApplicationContext context, SemanticKeyedQuery query)
     {
+        if (query.Cardinality == SemanticQueryCardinality.Many)
+        {
+            // This composition API has no diagnostic channel. The omission is explicitly inventoried
+            // in SemanticSurfaceLedger.DefaultSceneListQueries rather than inventing a single-result form.
+            _ = SemanticSurfaceLedger.DefaultSceneListQueries;
+            return null;
+        }
+
         if (query.Argument is null)
         {
             return null;

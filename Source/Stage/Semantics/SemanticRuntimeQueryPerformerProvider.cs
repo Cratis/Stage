@@ -53,7 +53,7 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
                 var model = runtime.Plan.ReadModels[query.ReadModel];
                 var name = ModelNaming.ToIdentifier(model.Name);
                 var type = factory.CreateReadModelType(located.TypeNamespace, name);
-                _performers.Add(new SemanticRuntimeQueryPerformer(type, ModelNaming.ToIdentifier(query.Name), located.CanonicalLocation, runtime, model, query, context, true));
+                _performers.Add(new SemanticRuntimeQueryPerformer(type, ModelNaming.ToIdentifier(query.Name), located.CanonicalLocation, runtime, model, query, context, query.Argument is not null));
             }
         }
     }

@@ -23,6 +23,7 @@ export interface StageQueryRequest {
     name?: string;
     route?: string;
     arguments?: Record<string, unknown>;
+    ready?: boolean;
 }
 
 export interface StageQueryResult {
@@ -45,6 +46,7 @@ export interface StageDataState {
     selectRow: (scope: string, row: Record<string, unknown> | undefined) => void;
     clearSelection: (scope: string) => void;
     setState: (key: string, value: unknown) => void;
+    setComponentOutput: (componentId: string, path: string, value: unknown) => void;
     refreshQuery: (query?: string) => void;
     resolveBinding: (binding: BindingExpression | string | undefined) => unknown;
     registerQueryResult: (scope: string, state: QueryState | undefined) => void;
@@ -64,6 +66,7 @@ const emptyState: StageDataState = {
     selectRow: () => undefined,
     clearSelection: () => undefined,
     setState: () => undefined,
+    setComponentOutput: () => undefined,
     refreshQuery: () => undefined,
     resolveBinding: () => undefined,
     registerQueryResult: () => undefined,
@@ -86,6 +89,7 @@ export function StageDataProvider({ routes, routesReady = true, locale, locales,
     const [selections, setSelections] = useState<Record<string, Record<string, unknown> | undefined>>({});
     const [activeSelection, setActiveSelection] = useState<string>();
     const [localState, setLocalState] = useState<Record<string, unknown>>({});
+    const [componentOutputState, setComponentOutputState] = useState<Record<string, Record<string, unknown>>>({});
     const [refreshRequests, setRefreshRequests] = useState<{ query?: string; version: number }>({ version: 0 });
 
     const registerQueryResult = useCallback((scope: string, state: QueryState | undefined) => {
@@ -113,6 +117,13 @@ export function StageDataProvider({ routes, routesReady = true, locale, locales,
         setActiveSelection(current => current === scope ? undefined : current);
     }, []);
 
+    const setComponentOutput = useCallback((componentId: string, path: string, value: unknown) => {
+        setComponentOutputState(current => {
+            const componentState = isRecord(current[componentId]) ? current[componentId] : {};
+            return { ...current, [componentId]: writePath(componentState, path.split('.').filter(Boolean), value) };
+        });
+    }, []);
+
     const refreshQuery = useCallback((query?: string) =>
         setRefreshRequests(current => ({ query, version: current.version + 1 })), []);
 
@@ -135,14 +146,14 @@ export function StageDataProvider({ routes, routesReady = true, locale, locales,
 
         if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, screen, locale, locales);
 
-        const scope = bindingScope(selected, queries, localState);
+        const scope = bindingScope(selected, queries, localState, componentOutputState, selections);
         const diagnostics = validateBindingExpression(binding, scope);
         if (diagnostics.length > 0) {
             console.warn(`Scene binding could not be resolved: ${diagnostics.map(_ => `${_.code}:${_.message}`).join('; ')}`);
         }
 
         return createBindingResolver(scope)(binding);
-    }, [locale, locales, localState, queries, screen, selected, selections]);
+    }, [componentOutputState, locale, locales, localState, queries, screen, selected, selections]);
 
     const state = useMemo<StageDataState>(() => ({
         locale,
@@ -155,13 +166,14 @@ export function StageDataProvider({ routes, routesReady = true, locale, locales,
         selections,
         selectRow,
         clearSelection,
-        setState: (key, value) => setLocalState(current => writeComponentOutput(current, key, value)),
+        setState: (key, value) => setLocalState(current => writePath(current, key.split('.').filter(Boolean), value)),
+        setComponentOutput,
         refreshQuery,
         resolveBinding,
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, routesReady, screen, selectRow, selected, selections]);
+    }), [clearSelection, locale, locales, queries, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, routesReady, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
@@ -175,10 +187,16 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const [loading, setLoading] = useState(false);
     const [localRefresh, setLocalRefresh] = useState(0);
     const latest = useRef(0);
+    const ready = request.ready ?? true;
+    const active = !!request.route && ready;
     const argumentsKey = JSON.stringify(request.arguments ?? {});
 
     useEffect(() => {
-        if (!request.route) {
+        if (!active || !request.route) {
+            latest.current += 1;
+            setRows([]);
+            setError('');
+            setLoading(false);
             registerQueryResult(request.scope, undefined);
             return;
         }
@@ -203,6 +221,7 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
             })
             .catch(reason => {
                 if (latest.current !== sequence || abort.signal.aborted) return;
+                setRows([]);
                 setError(reason instanceof Error ? reason.message : String(reason));
             })
             .finally(() => {
@@ -210,7 +229,7 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
             });
 
         return () => abort.abort();
-    }, [argumentsKey, localRefresh, registerQueryResult, request.name, request.route, request.scope]);
+    }, [active, argumentsKey, localRefresh, registerQueryResult, request.name, request.route, request.scope]);
 
     useEffect(() => {
         if (refreshVersion === 0) return;
@@ -219,15 +238,20 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     }, [refreshQueryName, refreshVersion, request.name, request.scope]);
 
     useEffect(() => {
+        if (!active || !request.route) {
+            registerQueryResult(request.scope, undefined);
+            return;
+        }
+
         registerQueryResult(request.scope, {
             name: request.name,
-            route: request.route ?? '',
+            route: request.route,
             rows,
             loading,
             error,
             arguments: JSON.parse(argumentsKey) as Record<string, unknown>,
         });
-    }, [argumentsKey, error, loading, registerQueryResult, request.name, request.route, request.scope, rows]);
+    }, [active, argumentsKey, error, loading, registerQueryResult, request.name, request.route, request.scope, rows]);
 
     return { rows, loading, error, refresh: () => setLocalRefresh(current => current + 1) };
 }
@@ -236,7 +260,13 @@ export function dataChanged() {
     globalThis.dispatchEvent(new CustomEvent(DATA_CHANGED));
 }
 
-function bindingScope(selected: Record<string, unknown> | undefined, queries: Record<string, QueryState>, localState: Record<string, unknown>) {
+function bindingScope(
+    selected: Record<string, unknown> | undefined,
+    queries: Record<string, QueryState>,
+    localState: Record<string, unknown>,
+    componentOutputState: Record<string, Record<string, unknown>>,
+    selections: Record<string, Record<string, unknown> | undefined>,
+) {
     const queryResults = Object.fromEntries(Object.entries(queries).flatMap(([scope, state]) => [
         [scope, queryValue(state.rows)],
         ...(state.name ? [[state.name, queryValue(state.rows)] as const] : []),
@@ -245,7 +275,8 @@ function bindingScope(selected: Record<string, unknown> | undefined, queries: Re
     return {
         dataContext: selected,
         queryResults,
-        componentOutputs: componentOutputs(localState),
+        componentOutputs: componentOutputs(componentOutputState, selections),
+        state: localState,
     };
 }
 
@@ -253,16 +284,17 @@ function queryValue(rows: Record<string, unknown>[]): unknown {
     return rows.length === 1 ? rows[0] : rows;
 }
 
-function componentOutputs(localState: Record<string, unknown>): Record<string, Record<string, unknown>> {
-    return Object.fromEntries(Object.entries(localState).filter(([, value]) => isRecord(value))) as Record<string, Record<string, unknown>>;
-}
+function componentOutputs(
+    componentOutputState: Record<string, Record<string, unknown>>,
+    selections: Record<string, Record<string, unknown> | undefined>,
+): Record<string, Record<string, unknown>> {
+    const outputs: Record<string, Record<string, unknown>> = { ...componentOutputState };
+    for (const [componentId, selection] of Object.entries(selections)) {
+        if (!selection) continue;
+        outputs[componentId] = { ...selection, ...(outputs[componentId] ?? {}) };
+    }
 
-function writeComponentOutput(current: Record<string, unknown>, key: string, value: unknown): Record<string, unknown> {
-    const [componentId, ...path] = key.split('.');
-    if (path.length === 0) return { ...current, [key]: value };
-
-    const componentState = isRecord(current[componentId]) ? current[componentId] : {};
-    return { ...current, [componentId]: writePath(componentState, path, value), [key]: value };
+    return outputs;
 }
 
 function writePath(current: Record<string, unknown>, path: string[], value: unknown): Record<string, unknown> {

@@ -32,9 +32,9 @@ function BindingProbe({ path, label = 'selection' }: { path: string | Record<str
     return <output aria-label={label}>{value === undefined ? '' : String(value)}</output>;
 }
 
-function ComponentOutput({ name, value }: { name: string; value: unknown }) {
-    const { setState } = useStageData();
-    useEffect(() => { setState(name, value); }, []);
+function ComponentOutput({ componentId, path, value }: { componentId: string; path: string; value: unknown }) {
+    const { setComponentOutput } = useStageData();
+    useEffect(() => { setComponentOutput(componentId, path, value); }, [componentId, path, setComponentOutput, value]);
     return null;
 }
 
@@ -158,7 +158,7 @@ describe('a synthesized table', () => {
     it('uses the shared typed resolver for nested component paths, null behavior and diagnostics', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         renderWithData(<>
-            <ComponentOutput name='editor.value.text' value='Nested title' />
+            <ComponentOutput componentId='editor' path='value.text' value='Nested title' />
             <BindingProbe label='component' path={{ kind: 'componentProperty', componentId: 'editor', componentPropertyPath: 'value.text' }} />
             <BindingProbe label='preserve' path={{ kind: 'dataContext', path: 'missing', nullBehavior: 'preserve' }} />
             <BindingProbe label='type' path={{ kind: 'literal', path: '', value: 'not a number', expectedValueType: 'number' }} />
@@ -191,6 +191,74 @@ describe('a synthesized table', () => {
 
         await waitFor(() => expect(fetched).toHaveBeenCalledWith('api/invoices?customerId=C2', expect.anything()));
     });
+
+    it('publishes selected rows as exact component outputs, including dotted ids', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ data: [{ id: 'W1', title: 'Work one' }, { id: 'W2', title: 'Work two' }] }),
+        }));
+        const table = element('work.items.table', 'core:table', { route: '/api/work-items', typeName: 'WorkItems', dataKey: 'id' }, {
+            columns: [element('title', 'core:column', { property: 'title', label: 'Title' })],
+        });
+
+        renderWithData(<>
+            <StageTable element={table} slots={{}} />
+            <BindingProbe label='component-id' path={{ kind: 'componentProperty', componentId: 'work.items.table', componentPropertyPath: 'id', path: 'id' }} />
+            <BindingProbe label='component-title' path={{ kind: 'componentProperty', componentId: 'work.items.table', componentPropertyPath: 'title', path: 'title' }} />
+        </>);
+        fireEvent.click((await screen.findByText('Work two')).closest('tr')!);
+
+        expect(screen.getByLabelText('component-id').textContent).toEqual('W2');
+        expect(screen.getByLabelText('component-title').textContent).toEqual('Work two');
+    });
+
+    it('suppresses dependent queries on null selection and ignores stale async responses', async () => {
+        let resolveFirstComments: ((response: Response) => void) | undefined;
+        const fetched = vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'api/work-items') {
+                return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'A', title: 'Item A' }, { id: 'B', title: 'Item B' }] }) } as Response);
+            }
+
+            if (url === 'api/comments?workItemId=A') {
+                return new Promise<Response>(resolve => { resolveFirstComments = resolve; });
+            }
+
+            if (url === 'api/comments?workItemId=B') {
+                return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'B-comment', text: 'B comment' }] }) } as Response);
+            }
+
+            return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'unfiltered', text: 'Unfiltered comment' }] }) } as Response);
+        });
+        vi.stubGlobal('fetch', fetched);
+        const workItems = element('workItems', 'core:table', { route: '/api/work-items', typeName: 'WorkItems', dataKey: 'id' }, {
+            columns: [element('title', 'core:column', { property: 'title', label: 'Title' })],
+        });
+        const comments = element('comments', 'core:table', {
+            route: '/api/comments',
+            query: 'CommentsForWorkItem',
+            typeName: 'Comments',
+            dataKey: 'id',
+            queryArguments: { workItemId: { kind: 'componentProperty', componentId: 'workItems', componentPropertyPath: 'id', path: 'id' } },
+        }, {
+            columns: [element('comment-text', 'core:column', { property: 'text', label: 'Comment' })],
+        });
+
+        renderWithData(<><StageTable element={workItems} slots={{}} /><StageTable element={comments} slots={{}} /></>);
+        fireEvent.click((await screen.findByText('Item A')).closest('tr')!);
+        await waitFor(() => expect(fetched).toHaveBeenCalledWith('api/comments?workItemId=A', expect.anything()));
+        fireEvent.click(screen.getByText('Item B').closest('tr')!);
+        expect(await screen.findByText('B comment')).toBeDefined();
+
+        resolveFirstComments?.({ ok: true, json: async () => ({ data: [{ id: 'A-comment', text: 'A comment' }] }) } as Response);
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(screen.queryByText('A comment')).toBeNull();
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'Clear selection' })[0]);
+        await waitFor(() => expect(screen.queryByText('B comment')).toBeNull());
+        expect(fetched.mock.calls.map(call => String(call[0]))).not.toContain('api/comments');
+        expect(screen.queryByText('Unfiltered comment')).toBeNull();
+    });
 });
 
 describe('a native command form', () => {
@@ -215,6 +283,42 @@ describe('a native command form', () => {
 
         expect(await screen.findByLabelText('Title')).toBeDefined();
         expect(screen.queryByText(/not exposed as an API yet/)).toBeNull();
+    });
+
+    it('fails closed when command field and schema metadata are missing', () => {
+        const fetched = vi.fn();
+        vi.stubGlobal('fetch', fetched);
+        const form = element('create-form', 'Stage:commandForm', { command: 'CreateWorkItem', label: 'Create work item' });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { CreateWorkItem: '/api/workspaces/tracking/create-work-item' }, queries: {} }} locale='en' locales={['en']} screen='WorkItemList'>
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+
+        expect(screen.getByText(/has no form fields or schema metadata/)).toBeDefined();
+        expect(screen.queryByRole('button', { name: 'Execute Create work item' })).toBeNull();
+        expect(fetched).not.toHaveBeenCalled();
+    });
+
+    it('preserves intentionally parameterless commands', async () => {
+        const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult() });
+        vi.stubGlobal('fetch', fetched);
+        const form = element('refresh-form', 'Stage:commandForm', { command: 'RefreshDashboard', label: 'Refresh dashboard', schema: JSON.stringify({ required: [], properties: {} }) });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RefreshDashboard: '/api/dashboard/refresh' }, queries: {} }} locale='en' locales={['en']} screen='Dashboard'>
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Execute Refresh dashboard' }));
+
+        await waitFor(() => expect(fetched).toHaveBeenCalled());
+        expect(fetched.mock.calls[0][1]).toEqual(expect.objectContaining({ method: 'POST', body: JSON.stringify({}) }));
     });
 
     it.each([

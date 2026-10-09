@@ -47,6 +47,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
     const form = useMemo(() => formProperties(element), [element]);
     const schema = useMemo(() => schemaProperties(element), [element]);
+    const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const route = form?.route ?? (form ? data.routes?.commands[form.command] : undefined);
     const commandSignature = useMemo(() => route ? commandSignatureFor(route, fields, schema) : '', [route, fields, schema]);
@@ -59,6 +60,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     if (!form) return <p className='stage-note'>This form is missing its command metadata.</p>;
     if (!route && !data.routesReady) return <p className='stage-note'>The modeled command “{form.command}” is waiting for Stage routes.</p>;
     if (!route || !commandType) return <p className='stage-note'>The modeled command “{form.command}” is not registered by this Stage.</p>;
+    if (fields.length === 0 && !hasSchemaMetadata && element.properties.parameterless !== true) {
+        return <UnsupportedForm form={form} messages={[`The modeled command “${form.command}” has no form fields or schema metadata, so Stage will not submit an empty command body.`]} />;
+    }
+
     if (unsupportedSchemaMessages.length > 0) return <UnsupportedForm form={form} messages={unsupportedSchemaMessages} />;
 
     return (

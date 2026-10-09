@@ -63,9 +63,18 @@ public static class SceneSynthesizer
     public static SceneApplication Synthesize(SceneApplication scene, ExecutableSemanticModel model)
     {
         var schemas = new SemanticSceneSchemas(model.Application);
-        var readModels = SemanticModelWalker.Slices(model).SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
+        var slices = SemanticModelWalker.Slices(model).ToArray();
+        var readModels = slices.SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
+        var commands = slices
+            .SelectMany(located => located.Slice.Commands)
+            .GroupBy(command => command.Name, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => CommandFormRuntimeMetadata.FromSchema(group.Key, schemas.ForProperties(group.First().Properties)),
+                StringComparer.Ordinal);
+        var sceneWithCommandForms = CommandFormRuntimeMetadata.Apply(scene, commands);
 
-        return Synthesize(scene, SemanticModelWalker.Slices(model).Select(located =>
+        return Synthesize(sceneWithCommandForms, slices.Select(located =>
         {
             var slice = located.Slice;
             var readModelId = slice.Projections.FirstOrDefault()?.ReadModel ?? slice.Queries.FirstOrDefault()?.ReadModel;

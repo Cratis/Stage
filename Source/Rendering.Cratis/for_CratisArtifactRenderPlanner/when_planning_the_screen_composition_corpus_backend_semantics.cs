@@ -61,6 +61,15 @@ public class when_planning_the_screen_composition_corpus_backend_semantics : Spe
     [Fact] void should_emit_the_by_parameter_query_shape() => _stateViewArtifacts.ShouldContain("workItemId");
     [Fact] void should_take_the_work_item_as_the_comments_query_argument() => _stateViewArtifacts.ShouldContain("CommentsForWorkItem(global::Cratis.Chronicle.ReadModels.IReadModels readModels, ");
     [Fact] void should_narrow_the_comments_query_by_its_work_item() => _stateViewArtifacts.ShouldContain(".Default.Equals(instance.WorkItemId, workItemId)");
+    [Fact] void should_register_the_list_query_under_its_own_name() => Bindings.ShouldContain("import { AllWorkItems as ");
+    [Fact] void should_register_the_lookup_query_under_its_own_name() => Bindings.ShouldContain("import { WorkItemById as ");
+    [Fact] void should_register_the_comments_query_under_its_own_name() => Bindings.ShouldContain("import { CommentsForWorkItem as ");
+    [Fact] void should_register_each_query_identity_once() => Registrations.ShouldContainOnly(["AllWorkItems", "CommentsForWorkItem", "GetWorkItem", "WorkItemById"]);
+
+    string Bindings => Encoding.UTF8.GetString(_plan.Artifacts.Single(_ => _.RelativePath.EndsWith("src/bindings.ts", StringComparison.Ordinal)).Bytes.AsSpan());
+    IReadOnlyList<string> Registrations => [.. Bindings.Split('\n')
+        .Where(line => line.StartsWith("registerQueryIdentity(\"", StringComparison.Ordinal))
+        .Select(line => line["registerQueryIdentity(\"".Length..line.IndexOf('"', "registerQueryIdentity(\"".Length)])];
 
     string ArtifactText => string.Join('\n', _plan.Artifacts.Select(_ => Encoding.UTF8.GetString(_.Bytes.AsSpan())));
 }

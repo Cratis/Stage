@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Cratis.Screenplay.Diagnostics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
@@ -29,7 +30,7 @@ public static partial class CratisRendering
         var result = await SemanticModelLoader.LoadAsync(sources.Root, sources.Paths, sources.CatalogPath, options.ApplicationName, cancellationToken);
         if (!result.Success)
         {
-            return CratisPlanResult.Create(options.ApplicationName, [], [.. result.Diagnostics.Select(diagnostic => CratisPlanResult.Error(diagnostic.Code, diagnostic.Message, source: diagnostic.Source))]);
+            return CratisPlanResult.Create(options.ApplicationName, [], [.. result.Diagnostics.Select(diagnostic => new CratisPlanDiagnostic(diagnostic.Code, RenderSeverity(diagnostic.Severity), diagnostic.Message, default, diagnostic.Source))]);
         }
         cancellationToken.ThrowIfCancellationRequested();
         var plan = PlanLoaded(result.Loaded!, selection, options, prepared.Profile!);
@@ -99,6 +100,13 @@ public static partial class CratisRendering
 
         return CratisPlanResult.Create(plan.ApplicationName, plan.Artifacts, diagnostics, plan.SemanticRevision, plan);
     }
+
+    static ArtifactRenderDiagnosticSeverity RenderSeverity(DiagnosticSeverity severity) => severity switch
+    {
+        DiagnosticSeverity.Error => ArtifactRenderDiagnosticSeverity.Error,
+        DiagnosticSeverity.Warning => ArtifactRenderDiagnosticSeverity.Warning,
+        _ => ArtifactRenderDiagnosticSeverity.Information
+    };
 
     static (ArtifactRenderProfile? Profile, CratisPlanDiagnostic? Diagnostic) Prepare(CratisPlanOptions options, bool scaffoldOnly)
     {

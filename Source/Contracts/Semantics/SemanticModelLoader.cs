@@ -40,7 +40,13 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
 /// <param name="Code">The stable STAGE-PLAN or original PLAY code.</param>
 /// <param name="Message">The failure details.</param>
 /// <param name="Source">The root-relative file and location, if available.</param>
-public sealed record SemanticModelLoadDiagnostic(string Code, string Message, string? Source = null);
+public sealed record SemanticModelLoadDiagnostic(string Code, string Message, string? Source = null)
+{
+    /// <summary>
+    /// Gets the original compiler severity, or error for a source-loading refusal.
+    /// </summary>
+    public DiagnosticSeverity Severity { get; init; } = DiagnosticSeverity.Error;
+}
 
 /// <summary>
 /// Carries either an executable source model or loading diagnostics.
@@ -164,14 +170,20 @@ public static class SemanticModelLoader
             return Failure("STAGE-PLAN-005", exception.Message);
         }
 
-        return Compile(root, applicationName, catalog, [.. documents], cancellationToken);
+        try
+        {
+            return Compile(root, applicationName, catalog, [.. documents], cancellationToken);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return Failure("STAGE-PLAN-005", exception.Message);
+        }
     }
 
     static string[] Discover(string root, ImmutableArray<string> paths, List<SemanticModelLoadDiagnostic> diagnostics)
     {
         var files = new List<string>();
-        var supplied = (paths.IsDefaultOrEmpty ? [root] : paths).Order(StringComparer.Ordinal).Select(path => Path.GetFullPath(path, root)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
-        foreach (var fullPath in supplied)
+        foreach (var fullPath in (paths.IsDefaultOrEmpty ? [root] : paths).Order(StringComparer.Ordinal).Select(path => Path.GetFullPath(path, root)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
         {
             var relative = Path.GetRelativePath(root, fullPath).Replace('\\', '/');
             if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathRooted(relative))
@@ -196,15 +208,16 @@ public static class SemanticModelLoader
             }
         }
 
-        foreach (var file in files.Order(StringComparer.Ordinal).Where(file => !PhysicallyContained(root, file)))
+        var orderedFiles = files.Distinct(StringComparer.Ordinal).OrderBy(file => Path.GetRelativePath(root, file).Replace('\\', '/'), StringComparer.Ordinal).ToArray();
+        foreach (var file in orderedFiles.Where(file => !PhysicallyContained(root, file)))
         {
             diagnostics.Add(new("STAGE-PLAN-001", "A source link must remain under the supplied root.", Path.GetRelativePath(root, file).Replace('\\', '/')));
         }
 
-        return [.. files.Distinct(StringComparer.Ordinal).OrderBy(file => Path.GetRelativePath(root, file).Replace('\\', '/'), StringComparer.Ordinal)];
+        return orderedFiles;
     }
 
-    static void AddFolderFiles(string root, string folder, List<string> files, List<SemanticModelLoadDiagnostic> diagnostics, IReadOnlySet<string> ancestors)
+    static void AddFolderFiles(string root, string folder, List<string> files, List<SemanticModelLoadDiagnostic> diagnostics, HashSet<string> ancestors)
     {
         var relative = Path.GetRelativePath(root, folder).Replace('\\', '/');
         try
@@ -278,7 +291,7 @@ public static class SemanticModelLoader
         if (!compiled.Success)
         {
             return new(null, [new("STAGE-PLAN-003", "Screenplay compilation failed."),
-                .. compiled.Diagnostics.Select(diagnostic => new SemanticModelLoadDiagnostic(diagnostic.Code, diagnostic.Message, $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column})"))]);
+                .. compiled.Diagnostics.Select(diagnostic => new SemanticModelLoadDiagnostic(diagnostic.Code, diagnostic.Message, $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column})") { Severity = diagnostic.Severity })]);
         }
         var model = compiled.Value!.Model;
         var plan = SemanticExecutionPlan.Compile(model);

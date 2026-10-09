@@ -15,7 +15,7 @@ import {
     shellComponentForLayout,
 } from '@cratis/scene.blueprint.default';
 import '@cratis/scene.blueprint.default/styles.css';
-import { useStageRoutes, type StageRoutes } from './stageRoutes';
+import { useStageRouteState, type StageRoutes } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
 import { stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
@@ -96,7 +96,8 @@ function mergeSlots(...sources: (Record<string, SceneElement[]> | undefined)[]):
 
 export function App() {
     const [scene, setScene] = useState<StageSceneApplication>();
-    const routes = useStageRoutes();
+    const routeState = useStageRouteState();
+    const routes = routeState.routes;
     const strings = useStrings();
     const [selectedScreen, setSelectedScreen] = useState(() => screenFromHash(globalThis.location?.hash ?? '') ?? '');
     const [error, setError] = useState('');
@@ -117,7 +118,11 @@ export function App() {
             })
             .then(application => {
                 setScene(application);
-                setSelectedScreen(current => application.screens.some(screen => screen.name === current) ? current : application.screens[0]?.name ?? '');
+                setSelectedScreen(current => {
+                    const hashScreen = screenFromHash(globalThis.location?.hash ?? '');
+                    if (hashScreen && application.screens.some(screen => screen.name === hashScreen)) return hashScreen;
+                    return application.screens.some(screen => screen.name === current) ? current : application.screens[0]?.name ?? '';
+                });
             })
             .catch(reason => {
                 if (!abort.signal.aborted) setError(reason instanceof Error ? reason.message : String(reason));
@@ -177,11 +182,12 @@ export function App() {
         <LayoutConfigProvider>
             <LayoutThemeProvider>
                 <ColorSchemeMirror />
-                <StageDataProvider routes={routes} locale={strings.locale} locales={strings.locales} screen={screen.name}>
+                <StageDataProvider routes={routes} routesReady={routeState.ready} locale={strings.locale} locales={strings.locales} screen={screen.name}>
                     <StageSceneView
                         activity={activity}
                         element={element}
                         routes={routes}
+                        routesReady={routeState.ready}
                         scene={scene}
                         setActivity={setActivity}
                         select={select}
@@ -196,13 +202,14 @@ interface StageSceneViewProps {
     activity: string;
     element: SceneElement;
     routes: StageRoutes | undefined;
+    routesReady: boolean;
     scene: StageSceneApplication;
     select: (screen: string) => void;
     setActivity: (activity: string) => void;
     strings: ReturnType<typeof useStrings>;
 }
 
-function StageSceneView({ activity, element, routes, scene, select, setActivity, strings }: StageSceneViewProps) {
+function StageSceneView({ activity, element, routes, routesReady, scene, select, setActivity, strings }: StageSceneViewProps) {
     const data = useStageData();
     const [dialog, setDialog] = useState<DialogTemplate>();
 
@@ -211,6 +218,11 @@ function StageSceneView({ activity, element, routes, scene, select, setActivity,
     const dispatcher = createBrowserDispatcher({
         executeCommand: async (command, args): Promise<CommandOutcome> => {
             const route = routes?.commands[command];
+            if (!route && !routesReady) {
+                setActivity(`The modeled command “${command}” is waiting for Stage routes.`);
+                return { isSuccess: false, validationErrors: [] };
+            }
+
             if (!route) {
                 setActivity(`The modeled command “${command}” is not registered by this Stage.`);
                 return { isSuccess: false, validationErrors: [] };

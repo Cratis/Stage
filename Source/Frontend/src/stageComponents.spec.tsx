@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
 import { StageAction, StageCommandForm, StageTable } from './stageComponents';
-import { StageDataProvider, useStageData, useStageQuery } from './stageData';
+import { dataChanged, StageDataProvider, useStageData, useStageQuery } from './stageData';
 import { element } from './testElements';
 
 // PrimeReact 11's components read their configuration from a `PrimeReactProvider` up the tree - without
@@ -220,7 +220,13 @@ describe('a native command form', () => {
             command: 'RegisterProfile',
             label: 'Register profile',
             mode: 'auto',
-            columns: [['name', 'enabled'], ['amount', 'dueDate']],
+            geometry: {
+                mode: 'manual',
+                columns: [
+                    { width: '12rem', resizable: true, fields: [{ name: 'name', width: '10rem' }, 'enabled'] },
+                    { grow: 2, fields: [{ name: 'amount', width: '9rem' }, 'dueDate'] },
+                ],
+            },
             schema: JSON.stringify({
                 required: ['name', 'enabled', 'amount', 'dueDate'],
                 properties: {
@@ -232,7 +238,7 @@ describe('a native command form', () => {
             }),
         });
 
-        renderWithoutProvider(
+        const { container } = renderWithoutProvider(
             <PrimeReactProvider>
                 <StageDataProvider routes={{ commands: { RegisterProfile: '/api/profiles/register' }, queries: {} }} locale='en' locales={['en']} screen='Profiles'>
                     <StageCommandForm element={form} />
@@ -244,6 +250,51 @@ describe('a native command form', () => {
         expect(screen.getByLabelText('enabled')).toBeDefined();
         expect(screen.getByLabelText('amount')).toBeDefined();
         expect(screen.getByLabelText('dueDate')).toBeDefined();
+        const layout = container.querySelector('.stage-command-form__layout') as HTMLElement;
+        const columns = [...container.querySelectorAll('.stage-command-form__column')] as HTMLElement[];
+        const amount = container.querySelector('[data-field="amount"]') as HTMLElement;
+        expect(layout.dataset.layoutMode).toEqual('manual');
+        expect(layout.style.gridTemplateColumns).toContain('12rem');
+        expect(layout.style.gridTemplateColumns).toContain('2fr');
+        expect(columns[0].dataset.resizable).toEqual('true');
+        expect(amount.style.width).toEqual('9rem');
+    });
+
+    it('keeps dirty field values when a query refresh updates Stage data', async () => {
+        let reads = 0;
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'api/orders') {
+                reads += 1;
+                return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: String(reads), orderNumber: `O-${reads}` }] }) });
+            }
+
+            return Promise.resolve({ ok: true, json: async () => commandResult() });
+        }));
+        const table = element('orders', 'core:table', { route: '/api/orders', typeName: 'Orders', dataKey: 'id' }, {
+            columns: [element('order-number', 'core:column', { property: 'orderNumber', label: 'Order' })],
+        });
+        const form = element('order-form', 'Stage:commandForm', {
+            command: 'RegisterOrder',
+            label: 'Register order',
+            fields: [{ name: 'orderNumber', label: 'Order #' }],
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }} locale='en' locales={['en']} screen='Orders'>
+                    <StageTable element={table} slots={{}} />
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+        await screen.findByText('O-1');
+        fireEvent.change(screen.getByLabelText('Order #'), { target: { value: 'O-99' } });
+
+        dataChanged();
+
+        expect(await screen.findByText('O-2')).toBeDefined();
+        expect((screen.getByLabelText('Order #') as HTMLInputElement).value).toEqual('O-99');
     });
 
     it('uses form metadata, command route lookup and validation feedback', async () => {

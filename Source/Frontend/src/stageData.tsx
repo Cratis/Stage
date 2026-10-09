@@ -38,6 +38,7 @@ export interface StageDataState {
     locales: string[];
     screen: string;
     routes: StageRoutes | undefined;
+    routesReady: boolean;
     queries: Record<string, QueryState>;
     selected: Record<string, unknown> | undefined;
     selections: Record<string, Record<string, unknown> | undefined>;
@@ -56,6 +57,7 @@ const emptyState: StageDataState = {
     locales: [],
     screen: '',
     routes: undefined,
+    routesReady: true,
     queries: {},
     selected: undefined,
     selections: {},
@@ -72,13 +74,14 @@ const StageDataContext = createContext<StageDataState>(emptyState);
 
 export interface StageDataProviderProps {
     routes: StageRoutes | undefined;
+    routesReady?: boolean;
     locale: string;
     locales: string[];
     screen: string;
     children: React.ReactNode;
 }
 
-export function StageDataProvider({ routes, locale, locales, screen, children }: StageDataProviderProps) {
+export function StageDataProvider({ routes, routesReady = true, locale, locales, screen, children }: StageDataProviderProps) {
     const [queries, setQueries] = useState<Record<string, QueryState>>({});
     const [selections, setSelections] = useState<Record<string, Record<string, unknown> | undefined>>({});
     const [activeSelection, setActiveSelection] = useState<string>();
@@ -146,6 +149,7 @@ export function StageDataProvider({ routes, locale, locales, screen, children }:
         locales,
         screen,
         routes,
+        routesReady,
         queries,
         selected,
         selections,
@@ -157,7 +161,7 @@ export function StageDataProvider({ routes, locale, locales, screen, children }:
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, screen, selectRow, selected, selections]);
+    }), [clearSelection, locale, locales, queries, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, routesReady, screen, selectRow, selected, selections]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }

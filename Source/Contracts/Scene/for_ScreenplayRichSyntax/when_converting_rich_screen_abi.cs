@@ -16,7 +16,7 @@ public class when_converting_rich_screen_abi : Specification
     CommandFormLayout _layout = null!;
     object? _literalValue;
     string _stableId = null!;
-    FormGenerationMode? _generationMode;
+    Cratis.Scene.Model.Forms.FormGenerationMode? _generationMode;
 
     void Establish()
     {
@@ -62,7 +62,7 @@ public class when_converting_rich_screen_abi : Specification
     [Fact] void should_carry_binding_mode() => _literalBinding.Mode.ShouldEqual(BindingMode.TwoWay);
     [Fact] void should_carry_binding_null_behavior() => _literalBinding.NullBehavior.ShouldEqual(BindingNullBehavior.Clear);
     [Fact] void should_carry_expected_value_type() => _literalBinding.ExpectedValueType.ShouldEqual("boolean");
-    [Fact] void should_carry_generation_mode() => _generationMode.ShouldEqual(FormGenerationMode.Manual);
+    [Fact] void should_carry_generation_mode() => _generationMode.ShouldEqual(Cratis.Scene.Model.Forms.FormGenerationMode.Manual);
     [Fact] void should_carry_layout_columns() => _layout.Columns.Count.ShouldEqual(2);
     [Fact] void should_carry_fractional_column_width() => _layout.Columns[0].Width!.Unit.ShouldEqual(FormWidthUnit.Fraction);
     [Fact] void should_carry_pixel_minimum_width() => _layout.Columns[0].MinWidth!.Value.ShouldEqual(240d);

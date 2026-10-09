@@ -81,17 +81,23 @@ export function StageActivity() {
 }
 
 /**
- * Mirrors the active theme's colour scheme onto the document root.
+ * Mirrors the active theme's colour scheme and page colors onto the document.
  *
- * The theme provider scopes its scheme to its own element, but PrimeReact portals a dialog or an overlay to
- * `body`, outside that element. Without this, a dark theme would paint the shell dark and open every dialog
- * light.
+ * The theme provider scopes its tokens to its own element, but PrimeReact portals a dialog or an overlay to
+ * `body`, outside that element, and the page behind the shell is `body` too. Without this, a dark theme would
+ * paint the shell dark, leave the page around it light and open every dialog light.
  */
 export function ColorSchemeMirror() {
     const theme = useSceneTheme();
+    const background = theme?.tokens?.['surface.background'];
+    const color = theme?.tokens?.['text.color'];
     useEffect(() => {
-        document.documentElement.setAttribute('data-scene-color-scheme', theme?.isDark ? 'dark' : 'light');
-    }, [theme?.isDark]);
+        const scheme = theme?.isDark ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-scene-color-scheme', scheme);
+        document.body.setAttribute('data-scene-color-scheme', scheme);
+        document.body.style.backgroundColor = background ?? '';
+        document.body.style.color = color ?? '';
+    }, [theme?.isDark, background, color]);
 
     return null;
 }

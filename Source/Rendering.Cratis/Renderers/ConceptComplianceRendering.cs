@@ -26,12 +26,20 @@ internal static class ConceptComplianceRendering
         }
         else if (secret is not null)
         {
-            var encrypted = complianceDetails && (secret.Scope is not null || secret.Reason is not null)
-                ? $"Encrypted(EncryptionScope.{Identifiers.ToPascalCase(secret.Scope ?? "subject")}, {CSharpCodeBuilder.StringLiteral(secret.Reason ?? string.Empty)})"
-                : "Encrypted";
-            builder.Using("Cratis.Chronicle.ProtectedValues").Attribute(encrypted)
+            builder.Using("Cratis.Chronicle.ProtectedValues").Attribute(Encrypted(secret, complianceDetails))
                 .Using("Cratis.Arc.Chronicle.Commands").Attribute("NotAudited");
         }
+    }
+
+    static string Encrypted(ConceptAttributeSyntax secret, bool complianceDetails)
+    {
+        var scope = Identifiers.ToPascalCase(secret.Scope ?? "subject");
+        if (complianceDetails && (secret.Scope is not null || secret.Reason is not null))
+        {
+            return $"Encrypted(EncryptionScope.{scope}, {CSharpCodeBuilder.StringLiteral(secret.Reason ?? string.Empty)})";
+        }
+
+        return scope == "Subject" ? "Encrypted" : $"Encrypted(EncryptionScope.{scope})";
     }
 
     static string Details(ConceptAttributeSyntax pii)

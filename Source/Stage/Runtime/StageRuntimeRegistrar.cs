@@ -17,7 +17,7 @@ namespace Cratis.Stage.Runtime;
 
 /// <summary>
 /// Registers the read models and projections modeled in an <see cref="EventModel"/> with a running Chronicle at
-/// startup, purely from the runtime model data — no compiled read-model type or attributes. Once registered, Chronicle
+/// startup and on reconnect, purely from the runtime model data — no compiled read-model type or attributes. Once registered, Chronicle
 /// builds and maintains the read-model documents as events are appended.
 /// </summary>
 public static class StageRuntimeRegistrar
@@ -45,43 +45,50 @@ public static class StageRuntimeRegistrar
 
             await eventStore.Connection.Connect();
 
-            var accessor = (IChronicleServicesAccessor)eventStore.Connection;
-            await accessor.Services.EventStores.EnsureEventStore(new EnsureEventStoreRequest { Name = eventStore.Name });
+            // GetEventStore already connects. Subscribe for subsequent connections, then register the current one.
+            eventStore.Connection.Lifecycle.OnConnected += RegisterDefinitions;
+            await RegisterDefinitions();
 
-            // Event types come first — projections reference them, and the Workbench lists them.
-            if (eventTypes.Count > 0)
+            async Task RegisterDefinitions()
             {
-                await accessor.Services.EventTypes.RegisterEventTypes(new ChronicleEventTypes.RegisterEventTypesRequest
+                var accessor = (IChronicleServicesAccessor)eventStore.Connection;
+                await accessor.Services.EventStores.EnsureEventStore(new EnsureEventStoreRequest { Name = eventStore.Name });
+
+                // Event types come first — projections reference them, and the Workbench lists them.
+                if (eventTypes.Count > 0)
+                {
+                    await accessor.Services.EventTypes.RegisterEventTypes(new ChronicleEventTypes.RegisterEventTypesRequest
+                    {
+                        EventStore = eventStore.Name,
+                        Types = eventTypes,
+                    });
+
+                    StageRuntimeRegistrarLogging.RegisteredEventTypes(logger, eventTypes.Count, eventStoreName);
+                }
+
+                if (readModels.Count == 0)
+                {
+                    StageRuntimeRegistrarLogging.NoReadModels(logger, model.Name);
+                    return;
+                }
+
+                await accessor.Services.ReadModels.RegisterMany(new ChronicleReadModels.RegisterManyRequest
                 {
                     EventStore = eventStore.Name,
-                    Types = eventTypes,
+                    Owner = ChronicleReadModels.ReadModelOwner.Client,
+                    ReadModels = readModels,
+                    Source = ChronicleReadModels.ReadModelSource.User,
                 });
 
-                StageRuntimeRegistrarLogging.RegisteredEventTypes(logger, eventTypes.Count, eventStoreName);
+                await accessor.Services.Projections.Register(new ChronicleProjections.RegisterRequest
+                {
+                    EventStore = eventStore.Name,
+                    Owner = ChronicleProjections.ProjectionOwner.Client,
+                    Projections = projections,
+                });
+
+                StageRuntimeRegistrarLogging.Registered(logger, readModels.Count, eventStoreName);
             }
-
-            if (readModels.Count == 0)
-            {
-                StageRuntimeRegistrarLogging.NoReadModels(logger, model.Name);
-                return;
-            }
-
-            await accessor.Services.ReadModels.RegisterMany(new ChronicleReadModels.RegisterManyRequest
-            {
-                EventStore = eventStore.Name,
-                Owner = ChronicleReadModels.ReadModelOwner.Client,
-                ReadModels = readModels,
-                Source = ChronicleReadModels.ReadModelSource.User,
-            });
-
-            await accessor.Services.Projections.Register(new ChronicleProjections.RegisterRequest
-            {
-                EventStore = eventStore.Name,
-                Owner = ChronicleProjections.ProjectionOwner.Client,
-                Projections = projections,
-            });
-
-            StageRuntimeRegistrarLogging.Registered(logger, readModels.Count, eventStoreName);
         }
         catch (Exception exception)
         {

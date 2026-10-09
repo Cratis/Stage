@@ -49,6 +49,10 @@ public static class CratisServiceConfiguration
                 options.EventStore = eventStore;
                 options.ProgramIdentifier = programIdentifier;
 
+                // Stage registers modeled artifacts over raw contracts. An empty discovered Client full set
+                // would retire those projections on reconnect; Stage owns their registration lifecycle instead.
+                options.AutoDiscoverAndRegister = false;
+
                 // No credentials. The kernel this connects to is in the same container, reached over loopback,
                 // and started with authentication turned off (see entrypoint-stage.sh) — there is nothing for a
                 // token to prove. Acquiring one is not free either: warming the kernel's token endpoint for that

@@ -26,7 +26,9 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("join-removal-overlap")]
     [InlineData("nested-mismatched-key")]
     [InlineData("composite-key")]
-    [InlineData("every-literal")]
+    [InlineData("every-unsafe-literal")]
+    [InlineData("every-with-join")]
+    [InlineData("every-arithmetic-collision")]
     [InlineData("every-whole-number")]
     [InlineData("every-enumerated-concept")]
     [InlineData("event-source-with-property-key")]
@@ -60,10 +62,13 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 .Replace("from ProjectRegistered key projectId\n          name = name\n      projection ProjectSummaryProjection", "from ProjectRegistered\n          key ProjectKey\n            projectId = projectId\n          name = name\n        from ProjectRenamed\n          key ProjectKey\n            projectId = projectId\n          name = name\n      projection ProjectSummaryProjection", StringComparison.Ordinal);
         }
 
-        if (variant == "unsafe-text-literal")
+        if (Variant(variant, "unsafe-text-literal", "every-unsafe-literal", "every-with-join"))
         {
-            source = source.Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
-                .Replace("name = name\n          increment visits", "name = name\n          label = \"a)b\"\n          increment visits", StringComparison.Ordinal);
+            source = source.Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal);
+            if (variant == "unsafe-text-literal")
+            {
+                source = source.Replace("name = name\n          increment visits", "name = name\n          label = \"a)b\"\n          increment visits", StringComparison.Ordinal);
+            }
         }
 
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", source);
@@ -95,13 +100,25 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 Nested = [],
                 Every = scope.Every! with { IncludeChildren = true, SubscribesToAllEvents = true }
             },
-            "every-literal" or "all-literal" => scope with
+            "every-unsafe-literal" or "every-with-join" or "all-literal" => scope with
             {
+                Joins = variant == "every-unsafe-literal" ? [] : scope.Joins,
                 Every = scope.Every! with
                 {
                     SubscribesToAllEvents = variant == "all-literal",
                     IncludeChildren = variant == "all-literal",
-                    Mappings = [new SemanticProjectionMapping([nameTarget], SemanticProjectionOperation.Set, new SemanticProjectionLiteral(SemanticValue.Text("fixed")))]
+                    Mappings = [new SemanticProjectionMapping(
+                        [variant == "all-literal" ? nameTarget : view.ReadModels.Single(model => model.Name == "ProjectSummary").Properties.Single(property => property.Name == "label").Id],
+                        SemanticProjectionOperation.Set,
+                        variant == "every-unsafe-literal" ? unsafeLiteral : new SemanticProjectionLiteral(SemanticValue.Text("fixed")))]
+                }
+            },
+            "every-arithmetic-collision" => scope with
+            {
+                Joins = [],
+                Every = scope.Every! with
+                {
+                    Mappings = [new SemanticProjectionMapping([visitsTarget], SemanticProjectionOperation.Set, new SemanticProjectionLiteral(SemanticValue.Number(12.5m)))]
                 }
             },
             "unsafe-text-literal" => scope,
@@ -258,9 +275,31 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = SemanticCratisAdmission.Evaluate(context, context.SelectedSlices());
         var diagnostic = Assert.Single(diagnostics, _ => _.Code == "STAGE-ESM-017" && _.Artifact == projection.Id);
-        if (variant == "every-including-children" || variant == "nested-join" || variant == "root-join-removal")
+        if (variant == "every-including-children" || variant == "nested-join")
         {
             Assert.Contains("Chronicle#4125", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "root-join-removal")
+        {
+            Assert.Contains("https://github.com/Cratis/Chronicle/issues/4263", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("https://github.com/Cratis/Screenplay/issues/563", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "every-arithmetic-collision")
+        {
+            Assert.Contains("An every literal collides", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "every-with-join")
+        {
+            Assert.Contains("Every literals at a level with joins", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("https://github.com/Cratis/Chronicle/issues/4663", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "every-unsafe-literal")
+        {
+            Assert.Contains("Every mappings need a Chronicle fluent equivalent", diagnostic.Message, StringComparison.Ordinal);
         }
 
         if (variant == "composite-key")

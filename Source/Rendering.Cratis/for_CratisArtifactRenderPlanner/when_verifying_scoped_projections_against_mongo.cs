@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
 /// Verifies Chronicle 19.32.0 MongoDB behavior for admitted nested clear/recreation and child join-removal shapes when explicitly configured.
-/// Checks clearing, recreation, removal from both parents, and the absence of failed partitions.
+/// Checks clearing, recreation, every literals including collisions, removal from both parents, and the absence of failed partitions.
 /// </summary>
 public class when_verifying_scoped_projections_against_mongo : a_generated_application
 {
@@ -144,7 +144,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 Assert.Equal("B", Assert.Single(secondBefore.Notes).Name.Value);
                 var stageBefore = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
                 Assert.Equal("fixed", stageBefore?.Label);
-                Assert.Single(stageBefore!.Notes);
+                Assert.Equal("child", Assert.Single(stageBefore!.Notes).Name.Value);
                 await Append((EventSourceId)note, new ProjectNoteRemovedViaJoin(note));
                 var stageAfterFirst = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
                 var stageAfterSecond = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)second);
@@ -176,7 +176,10 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 Assert.Equal("Again", recreated.Info.Name.Value);
                 var stageRecreated = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
                 Assert.NotNull(stageRecreated);
-                Assert.Equal("Again", stageRecreated.Info?.Name.Value);
+                Assert.Equal("nested", stageRecreated.Info?.Name.Value);
+                Assert.Equal("fixed", stageRecreated.Label);
+                await Append((EventSourceId)first, new ProjectRemoved());
+                Assert.Null(await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first));
                 async Task Append(EventSourceId id, object fact)
                 {
                     var append = await store.EventLog.Append(id, fact);
@@ -192,7 +195,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                     }
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<NestedProbeProjection>());
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<ChildrenProbeProjection>());
-                    if (fact is ProjectRegistered or ProjectRenamed or ProjectNoted or ProjectNoteRemovedViaJoin)
+                    if (fact is ProjectRegistered or ProjectRenamed or ProjectNamed or ProjectRemoved or ProjectNoted or ProjectNoteRemovedViaJoin)
                     {
                         await store.Projections.WaitTillReachesEventSequenceNumber<ProjectSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
                     }
@@ -208,13 +211,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
 
         // ClearWith binds to the event-source key, so its root from must use the same key.
-        var source = when_rendering_scoped_projections.ScopedSource
-            .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
-            .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
-            .Replace("projection ProjectSummaryProjection => ProjectSummary\n", "projection ProjectSummaryProjection => ProjectSummary\n        no automap\n", StringComparison.Ordinal)
-            .Replace("from ProjectRenamed key projectId", "from ProjectRenamed", StringComparison.Ordinal)
-            .Replace("        children notes identified by noteId", "          clear with ProjectRenamed\n        children notes identified by noteId", StringComparison.Ordinal)
-            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal);
+        var source = every_literal_projection.Source;
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mongo"), "mongo", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));

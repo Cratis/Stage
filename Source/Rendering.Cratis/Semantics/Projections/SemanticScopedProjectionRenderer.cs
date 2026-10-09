@@ -75,7 +75,7 @@ internal static class SemanticScopedProjectionRenderer
                 code.Line($"from.Set(model => model.{target}).{source};");
             }
 
-            RenderMappings(code, from.Mappings, properties, @event, context, "from");
+            RenderMappings(code, WithEveryLiterals(from.Mappings, scope), properties, @event, context, "from");
             code.EndBlock().Line(");");
         }
 
@@ -89,7 +89,7 @@ internal static class SemanticScopedProjectionRenderer
             code.EndBlock().Line(");");
         }
 
-        if (scope.Every is { } every)
+        if (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Source is not SemanticProjectionLiteral))
         {
             code.OpenBlock($"{receiver}.{(every.SubscribesToAllEvents ? "FromAll" : "FromEvery")}(every =>");
             if (!every.IncludeChildren)
@@ -97,13 +97,10 @@ internal static class SemanticScopedProjectionRenderer
                 code.Line("every.ExcludeChildProjections();");
             }
 
-            foreach (var mapping in every.Mappings)
+            foreach (var mapping in every.Mappings.Where(mapping => mapping.Source is not SemanticProjectionLiteral))
             {
                 var target = Path(mapping.Target, properties, context);
-                var expression = mapping.Source is SemanticProjectionLiteral literal
-                    ? $"ToValue({Literal(literal, mapping.Target, properties, context)})"
-                    : "ToEventSourceId()";
-                code.Line($"every.Set(model => model.{target}).{expression};");
+                code.Line($"every.Set(model => model.{target}).ToEventSourceId();");
             }
 
             code.EndBlock().Line(");");
@@ -152,6 +149,14 @@ internal static class SemanticScopedProjectionRenderer
             RenderScope(code, children.Scope, context, type.Properties, "children");
             code.EndBlock().Line(");");
         }
+    }
+
+    // IAllSetBuilder has no ToValue (Chronicle#4663). At admitted join-free levels the kernel
+    // applies every after from mappings, not removals. Only an exact colliding Set is replaced.
+    static IEnumerable<SemanticProjectionMapping> WithEveryLiterals(IEnumerable<SemanticProjectionMapping> mappings, SemanticProjectionScope scope)
+    {
+        var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
+        return mappings.Where(mapping => !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals);
     }
 
     static void RenderKey(CSharpCodeBuilder code, SemanticProjectionKey key, SemanticEventContract @event, SemanticApplicationContext context, string receiver, string method)

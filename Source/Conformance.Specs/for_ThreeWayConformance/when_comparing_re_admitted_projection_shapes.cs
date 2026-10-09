@@ -19,7 +19,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// </summary>
 public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admitted_projection_shapes.context fixture, ITestOutputHelper output) : IClassFixture<when_comparing_re_admitted_projection_shapes.context>
 {
-    [Fact] void should_compare_all_three_sequences() => fixture.Outcomes.Length.ShouldEqual(3);
+    [Fact] void should_compare_all_three_sequences() => fixture.Outcomes.Length.ShouldEqual(4);
     [Fact] void should_match_every_executed_path() => Report(fixture, output);
     [Fact] void should_report_the_stage_executor_projection_gap() => Assert.All(fixture.Outcomes, outcome => Assert.Contains("Reference=Passed, Stage=Unsupported(Projection), Rendered=Passed", outcome, StringComparison.Ordinal));
 
@@ -60,6 +60,30 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                   event ProjectRenamed
                     projectId ProjectId
                     name ProjectName
+                  specification RenamingAProjectWithEveryLiteral
+                    given ProjectRegistered
+                      for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name = "First"
+                    when RenameProject
+                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name = "Renamed"
+                    then ProjectRenamed
+                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name = "Renamed"
+                    then readmodel ProjectSummary
+                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name = "Renamed"
+                      label = "fixed"
+                slice StateChange NameProject
+                  command NameProject
+                    projectId ProjectId identifier
+                    name ProjectName
+                    produces ProjectNamed
+                      for projectId
+                      name = name
+                  event ProjectNamed
+                    name ProjectName
                 slice StateChange NoteProject
                   command NoteProject
                     noteId ProjectId identifier
@@ -86,6 +110,7 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                   readmodel ProjectSummary
                     projectId ProjectId
                     name ProjectName
+                    label String
                     info ProjectInfo?
                     notes ProjectNote[]
                   query ProjectById => ProjectSummary?
@@ -94,8 +119,12 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                     no automap
                     from ProjectRegistered key projectId
                       name = name
+                      label = "local"
                     from ProjectRenamed
                       name = name
+                    every
+                      exclude children
+                      label = "fixed"
                     nested info
                       from ProjectRegistered key projectId
                         name = name
@@ -133,6 +162,7 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                     then readmodel ProjectSummary
                       projectId = "{{First}}"
                       name = "Again"
+                      label = "fixed"
                 """;
             var joined = new[] { ("First", First), ("Second", Second) }.Select(parent => $$"""
                   specification RemovingJoinedChildFrom{{parent.Item1}}Parent
@@ -166,6 +196,7 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                     then readmodel ProjectSummary
                       projectId = "{{parent.Item2}}"
                       notes = []
+                      label = "fixed"
                 """);
             var specifications = string.Join('\n', new[] { recreation }.Concat(joined)).Split('\n').Select(line => "    " + line);
             var source = Source.Replace("    slice StateChange RenameProject", string.Join('\n', specifications) + "\n    slice StateChange RenameProject", StringComparison.Ordinal);

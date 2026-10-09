@@ -50,6 +50,22 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
             }
 
             [Fact]
+            public async Task should_apply_every_literals_on_from_and_not_removal()
+            {
+                var scenario = new ReadModelScenario<ProjectSummary>();
+                await scenario.Given.ForEventSource(new EventSourceId(First)).Events(
+                    new ProjectRegistered(new ProjectId(Guid.Parse(First)), new ProjectName("Collision")));
+                var projected = scenario.InstanceForEventSourceId(new EventSourceId(First));
+                Assert.Equal("fixed", projected?.Label);
+                Assert.Equal("nested", projected?.Info?.Name.Value);
+                await scenario.Given.ForEventSource(new EventSourceId(First)).Events(
+                    new ProjectRenamed(new ProjectId(Guid.Parse(First)), new ProjectName("Renamed")));
+                Assert.Equal("fixed", scenario.InstanceForEventSourceId(new EventSourceId(First))?.Label);
+                await scenario.Given.ForEventSource(new EventSourceId(First)).Events(new ProjectRemoved());
+                Assert.Null(scenario.InstanceForEventSourceId(new EventSourceId(First)));
+            }
+
+            [Fact]
             public async Task should_remove_a_joined_child_from_both_parents()
             {
                 var scenario = new ReadModelScenario<ProjectSummary>();
@@ -60,8 +76,8 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
                 await scenario.Given.ForEventSource(new EventSourceId(Note)).Events(
                     new ProjectNoted(new ProjectId(Guid.Parse(Note)), new ProjectId(Guid.Parse(First)), new ProjectName("A")),
                     new ProjectNoted(new ProjectId(Guid.Parse(Note)), new ProjectId(Guid.Parse(Second)), new ProjectName("B")));
-                Assert.Single(scenario.InstanceForEventSourceId(new EventSourceId(First))!.Notes);
-                Assert.Single(scenario.InstanceForEventSourceId(new EventSourceId(Second))!.Notes);
+                Assert.Equal("child", Assert.Single(scenario.InstanceForEventSourceId(new EventSourceId(First))!.Notes).Name.Value);
+                Assert.Equal("child", Assert.Single(scenario.InstanceForEventSourceId(new EventSourceId(Second))!.Notes).Name.Value);
                 await scenario.Given.ForEventSource(new EventSourceId(Note)).Events(
                     new ProjectNoteRemovedViaJoin(new ProjectId(Guid.Parse(Note))));
                 Assert.Empty(scenario.InstanceForEventSourceId(new EventSourceId(First))!.Notes);
@@ -78,11 +94,10 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
 
     protected override ArtifactRenderPlan CreatePlan()
     {
-        var source = when_rendering_scoped_projections.ScopedSource
-            .Replace("notes ProjectNote[]", "label String?\n        fixedId Uuid?\n        fixedCount Decimal?\n        fixedDate Date?\n        notes ProjectNote[]", StringComparison.Ordinal)
-            .Replace("increment visits", "label = \"fixed\"\n          fixedId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n          fixedCount = 12.5\n          fixedDate = \"2026-09-26\"\n          increment visits", StringComparison.Ordinal)
-            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal);
-        Assert.Contains("label String?", source, StringComparison.Ordinal);
+        var source = every_literal_projection.Source
+            .Replace("notes ProjectNote[]", "fixedId Uuid?\n        fixedCount Decimal?\n        fixedDate Date?\n        notes ProjectNote[]", StringComparison.Ordinal)
+            .Replace("increment visits", "fixedId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n          fixedCount = 12.5\n          fixedDate = \"2026-09-26\"\n          increment visits", StringComparison.Ordinal);
+        Assert.Contains("label String", source, StringComparison.Ordinal);
         Assert.Contains("label = \"fixed\"", source, StringComparison.Ordinal);
         Assert.Contains("remove via join on ProjectNoteRemovedViaJoin", source, StringComparison.Ordinal);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
@@ -111,7 +126,10 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
         BuildWarnings(_release).ShouldEqual(string.Empty);
         _tests.ShouldContain("Passed!");
         var code = ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs");
-        code.ShouldContain("ToValue(\"fixed\")");
+        code.ShouldContain("from.Set(model => model.Label).ToValue(\"fixed\")");
+        code.ShouldNotContain("join.Set(model => model.Label)");
+        code.ShouldNotContain("every.Set(model => model.Label)");
+        code.ShouldNotContain("from.Set(model => model.Label).ToValue(\"local\")");
         code.ShouldContain("children.RemovedWithJoin<global::Projects.Projects.Registration.RegisterProject.ProjectNoteRemovedViaJoin>");
     }
 }

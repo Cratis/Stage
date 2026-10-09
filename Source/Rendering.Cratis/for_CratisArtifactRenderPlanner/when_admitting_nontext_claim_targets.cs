@@ -119,6 +119,7 @@ public class when_admitting_nontext_claim_targets : Specification
     {
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         plan.Success.ShouldBeTrue();
-        return Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath == Path.Combine("GeneratedPolicies", "Policies.cs")).Bytes.AsSpan());
+        return string.Join('\n', plan.Artifacts.Where(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/StagePolicy_", StringComparison.Ordinal))
+            .Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
     }
 }

@@ -38,7 +38,7 @@ public class when_rendering_an_unkeyed_list_policy : for_SemanticCratisAdmission
                 static partial void RegisterGenerated(Microsoft.Extensions.DependencyInjection.IServiceCollection services);
             }
             """);
-        var assembly = RenderedOutput.Load([policy, registration]);
+        var assembly = RenderedOutput.Load([.. policy, registration]);
         var services = new ServiceCollection();
         assembly.GetType($"{_context.RootNamespace}.GeneratedPolicies.Registration")!.GetMethod("Register")!.Invoke(null, [services]);
         _registrations = [.. services.Where(service => service.ServiceType == typeof(AuthorizationPolicyRegistration)).Select(service => (AuthorizationPolicyRegistration)service.ImplementationInstance!)];

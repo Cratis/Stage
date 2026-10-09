@@ -41,4 +41,24 @@ describe('the Stage theme', () => {
 
         await waitFor(() => expect(document.documentElement.getAttribute('data-scene-color-scheme')).toEqual('dark'));
     });
+
+    it('paints the page body with the active theme so switching to dark changes the applied background', async () => {
+        const { rerender } = render(
+            <SceneThemeProvider theme={{ name: 'Scene Default Light', compatibleWith: [], isDark: false, tokens: { 'surface.background': '#f6f7f9', 'text.color': '#1f2430' } }}>
+                <ColorSchemeMirror />
+            </SceneThemeProvider>,
+        );
+        await waitFor(() => expect(getComputedStyle(document.body).backgroundColor).toEqual('rgb(246, 247, 249)'));
+        const light = getComputedStyle(document.body).backgroundColor;
+
+        rerender(
+            <SceneThemeProvider theme={{ name: 'Scene Default Dark', compatibleWith: [], isDark: true, tokens: { 'surface.background': '#0f1117', 'text.color': '#e6e8ef' } }}>
+                <ColorSchemeMirror />
+            </SceneThemeProvider>,
+        );
+
+        await waitFor(() => expect(getComputedStyle(document.body).backgroundColor).toEqual('rgb(15, 17, 23)'));
+        expect(getComputedStyle(document.body).backgroundColor).not.toEqual(light);
+        expect(getComputedStyle(document.body).color).toEqual('rgb(230, 232, 239)');
+    });
 });

@@ -11,6 +11,7 @@ import { Button } from 'primereact/button';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm } from './StageCommandForm';
+import { navigateToScreen } from './stageNavigation';
 
 export const stageCommandFormComponent = 'Stage:commandForm';
 
@@ -82,16 +83,26 @@ function rowIdentity(row: Record<string, unknown>, dataKey: string): unknown {
     return row[dataKey] ?? row.id ?? row.key;
 }
 
-/** Reads a slice's read model through the query the Stage registered for it. */
+/**
+ * Reads a slice's read model through the query the Stage registered for it.
+ *
+ * A table the model says navigates on a row click (`navigate to WorkItemDetails by workItemId`) carries that
+ * parameter in the address: clicking a row on another screen navigates there with the row's identity, clicking a
+ * row on the target screen itself updates the parameter in place, and opening an address that already carries it
+ * selects the row it names. The parameter is then what every query and command on the screen is scoped by.
+ */
 export function StageTable({ element, slots }: RegisteredProps) {
-    const route = text(element, 'route');
-    const queryName = text(element, 'query', text(element, 'typeName', element.id));
     const data = useStageData();
+    const queryName = text(element, 'query', text(element, 'typeName', element.id));
+    const route = (text(element, 'query') ? data.routes?.queries[text(element, 'query')] : undefined) ?? text(element, 'route');
     const queryArguments = useMemo(() => queryArgumentsFor(element, data), [data, element]);
     const { rows, error, loading } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
     const columns = columnsFor(element, rows);
-    const dataKey = text(element, 'dataKey', 'id');
+    const navigateTo = text(element, 'navigateOnRowClickToScreen');
+    const navigateBy = text(element, 'navigateOnRowClickByParameter');
+    const dataKey = text(element, 'dataKey') || navigateBy || 'id';
     const selected = data.selections[element.id];
+    const linkedIdentity = navigateBy ? data.parameters[navigateBy] : undefined;
 
     useEffect(() => {
         if (!selected) return;
@@ -102,8 +113,40 @@ export function StageTable({ element, slots }: RegisteredProps) {
             return;
         }
 
-        if (!rebound && selectedIdentity !== undefined) data.clearSelection(element.id);
-    }, [data, dataKey, element.id, rows, selected]);
+        if (!rebound && selectedIdentity !== undefined && !loading) data.clearSelection(element.id);
+    }, [data, dataKey, element.id, loading, rows, selected]);
+
+    // The address is the source of truth for a navigating table's selection: it is what a reload, a shared link
+    // and the back button all restore.
+    useEffect(() => {
+        if (!navigateBy) return;
+        if (linkedIdentity === undefined) {
+            if (selected) data.clearSelection(element.id);
+            return;
+        }
+
+        if (selected && String(rowIdentity(selected, dataKey)) === linkedIdentity) return;
+        const linkedRow = rows.find(row => String(rowIdentity(row, dataKey)) === linkedIdentity);
+        if (linkedRow) data.selectRow(element.id, linkedRow);
+    }, [data, dataKey, element.id, linkedIdentity, navigateBy, rows, selected]);
+
+    const select = (row: Record<string, unknown>) => {
+        const identity = rowIdentity(row, dataKey);
+        if (navigateBy && identity !== undefined && identity !== null) {
+            const parameters = { ...(navigateTo && navigateTo !== data.screen ? {} : data.parameters), [navigateBy]: String(identity) };
+            if (!navigateTo || navigateTo === data.screen) data.selectRow(element.id, row);
+            navigateToScreen(navigateTo || data.screen, parameters);
+            return;
+        }
+
+        data.selectRow(element.id, row);
+    };
+    const clear = () => {
+        data.clearSelection(element.id);
+        if (!navigateBy || data.parameters[navigateBy] === undefined) return;
+        const { [navigateBy]: _, ...remaining } = data.parameters;
+        navigateToScreen(data.screen, remaining);
+    };
 
     if (!route) {
         return (
@@ -113,9 +156,6 @@ export function StageTable({ element, slots }: RegisteredProps) {
             </section>
         );
     }
-
-    const select = (row: Record<string, unknown>) => data.selectRow(element.id, row);
-    const clear = () => data.clearSelection(element.id);
 
     return (
         <section className='stage-table' data-scene-id={element.id}>

@@ -13,6 +13,11 @@ internal static class EventModelHost
         try
         {
             var application = await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath);
+            if (application.Scene.RuntimeIssues.All(SafeSceneApplication.CanServeWithoutUnsafeBehavior))
+            {
+                return application with { Scene = SafeSceneApplication.From(application.Scene) };
+            }
+
             issues.AddRange(application.Scene.RuntimeIssues.Select(issue => new StageUnsupportedIssue("Scene", issue.Artifact, issue.Details)));
 
             return application.Scene.RuntimeIssues.Count > 0 ? null : application;

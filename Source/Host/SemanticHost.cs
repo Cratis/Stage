@@ -89,15 +89,7 @@ internal static class SemanticHost
         app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
         app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
 
-        var routes = new StageSceneRoutes(scene!, app.Services, app.Logger);
-        var strings = new StageStrings(modelPath);
-
-        // The EventModel visitor names the application after its first modeled module (or EventModel
-        // when none is declared), rather than after the source folder used by the semantic compiler.
-        app.MapGet("/stage/scene", () => Results.Json(routes.Scene, StageJson.Options));
-        app.MapGet("/stage/routes", () => Results.Json(new StageRoutes(routes.CommandRoutes, routes.QueryRoutes), StageJson.Options));
-        app.MapGet("/stage/locales", () => Results.Json(strings.Locales(), StageJson.Options));
-        app.MapGet("/stage/strings/{locale}", (string locale) => Results.Json(strings.Dictionary(locale), StageJson.Options));
+        MapSceneEndpoints(app, scene!, modelPath);
         app.MapFallbackToFile("index.html");
         await app.StartAsync();
         try
@@ -123,6 +115,11 @@ internal static class SemanticHost
             var loaded = await SemanticModelLoader.LoadFromPathAsync(modelPath);
 
             var scene = SemanticHostScene.Load(modelPath, loaded.Model);
+            if (scene.RuntimeIssues.All(SafeSceneApplication.CanServeWithoutUnsafeBehavior))
+            {
+                return (loaded, SafeSceneApplication.From(scene));
+            }
+
             issues.AddRange(scene.RuntimeIssues.Select(issue => new StageUnsupportedIssue("Scene", issue.Artifact, issue.Details)));
 
             return scene.RuntimeIssues.Count > 0 ? (null, null) : (loaded, scene);
@@ -143,6 +140,19 @@ internal static class SemanticHost
 
             return (null, null);
         }
+    }
+
+    internal static void MapSceneEndpoints(WebApplication app, SceneApplication scene, string modelPath)
+    {
+        var routes = new StageSceneRoutes(scene, app.Services, app.Logger);
+        var strings = new StageStrings(modelPath);
+
+        // The EventModel visitor names the application after its first modeled module (or EventModel
+        // when none is declared), rather than after the source folder used by the semantic compiler.
+        app.MapGet("/stage/scene", () => Results.Json(routes.Scene, StageJson.Options));
+        app.MapGet("/stage/routes", () => Results.Json(new StageRoutes(routes.CommandRoutes, routes.QueryRoutes), StageJson.Options));
+        app.MapGet("/stage/locales", () => Results.Json(strings.Locales(), StageJson.Options));
+        app.MapGet("/stage/strings/{locale}", (string locale) => Results.Json(strings.Dictionary(locale), StageJson.Options));
     }
 
     internal static void UseReadinessGate(IApplicationBuilder app, Func<SemanticWorld?> world, List<StageUnsupportedIssue> issues) => app.Use(async (context, next) =>

@@ -13,43 +13,33 @@ namespace Cratis.Stage.Host.for_SemanticHost;
 public class when_loading_guarded_scene_runtime : given.a_model_path
 {
     [Theory]
-    [InlineData("semantic", "action", "STAGE-SCENE-ACTION-001")]
-    [InlineData("eventmodel", "action", "STAGE-SCENE-ACTION-001")]
-    [InlineData("semantic", "interaction", "STAGE-SCENE-INTERACTION-001")]
-    [InlineData("eventmodel", "interaction", "STAGE-SCENE-INTERACTION-001")]
-    public async Task should_record_refusals_and_serve_unsupported_responses(string engine, string kind, string code)
+    [InlineData("semantic")]
+    [InlineData("eventmodel")]
+    public async Task should_serve_a_safe_scene_for_guarded_screen_actions(string engine)
     {
-        var directive = kind == "action" ? """
-                  action "Register"
-                    when item.name == "Ready" execute RegisterProject
-                    otherwise hidden
-        """ : """
-                  on click
-                    when item.name == "Ready"
-                      execute RegisterProject
-                    otherwise
-                      notify info "Not ready"
-        """;
-        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n        screen Overview\n" + directive);
+        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n        screen Overview\n          action \"Register\"\n            when item.name == \"Ready\" execute RegisterProject\n            otherwise hidden");
         var issues = new List<StageUnsupportedIssue>();
-        LoadedSemanticModel? model = null;
-        SceneApplication? scene = null;
-        StageApplication? legacy = null;
-        var error = await Catch.Exception(async () =>
-        {
-            if (engine == "semantic") (model, scene) = await SemanticHost.LoadModel(_path, issues);
-            else legacy = await EventModelHost.LoadModel(_path, issues);
-        });
-        error.ShouldBeNull();
-        model.ShouldBeNull();
-        scene.ShouldBeNull();
-        legacy.ShouldBeNull();
-        var issue = Assert.Single(issues);
-        issue.Capability.ShouldEqual("Scene");
-        issue.Details.ShouldContain(code);
 
+        var scene = await LoadScene(engine, issues);
+
+        scene.ShouldNotBeNull();
+        issues.ShouldBeEmpty();
+        var sceneJson = System.Text.Json.JsonSerializer.Serialize(scene, StageJson.Options);
+        sceneJson.ShouldContain("Overview");
+        sceneJson.ShouldNotContain("alternatives");
+        sceneJson.ShouldNotContain("otherwise");
+    }
+
+    [Theory]
+    [InlineData("semantic")]
+    [InlineData("eventmodel")]
+    public async Task should_map_scene_runtime_endpoints_for_the_safe_scene(string engine)
+    {
+        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n        screen Overview\n          action \"Register\"\n            when item.name == \"Ready\" execute RegisterProject\n            otherwise hidden");
+        var issues = new List<StageUnsupportedIssue>();
+        var scene = await LoadScene(engine, issues);
         await using var app = WebApplication.CreateBuilder().Build();
-        SemanticHost.MapRefused(app, issues, engine);
+        SemanticHost.MapSceneEndpoints(app, scene!, _path);
         var pipeline = new ApplicationBuilder(app.Services);
         pipeline.UseRouting();
         pipeline.UseEndpoints(endpoints =>
@@ -58,28 +48,68 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
         });
         var request = pipeline.Build();
         await using var scope = app.Services.CreateAsyncScope();
-        foreach (var path in new[] { "/stage/status", "/api/commands/RegisterProject" })
+
+        var sceneResponse = await ResponseFor(request, scope.ServiceProvider, "/stage/scene");
+        var routesResponse = await ResponseFor(request, scope.ServiceProvider, "/stage/routes");
+        var localesResponse = await ResponseFor(request, scope.ServiceProvider, "/stage/locales");
+
+        sceneResponse.Status.ShouldEqual(StatusCodes.Status200OK);
+        sceneResponse.Body.ShouldContain("Overview");
+        sceneResponse.Body.ShouldNotContain("alternatives");
+        sceneResponse.Body.ShouldNotContain("otherwise");
+        routesResponse.Status.ShouldEqual(StatusCodes.Status200OK);
+        routesResponse.Body.ShouldContain("commands");
+        routesResponse.Body.ShouldContain("queries");
+        localesResponse.Status.ShouldEqual(StatusCodes.Status200OK);
+    }
+
+    [Theory]
+    [InlineData("semantic")]
+    [InlineData("eventmodel")]
+    public async Task should_serve_a_safe_scene_for_guarded_interactions(string engine)
+    {
+        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + """
+
+                screen Overview
+                  on click
+                    when item.name == "Ready"
+                      execute RegisterProject
+                    otherwise
+                      notify info "Not ready"
+        """);
+        var issues = new List<StageUnsupportedIssue>();
+
+        var scene = await LoadScene(engine, issues);
+
+        scene.ShouldNotBeNull();
+        issues.ShouldBeEmpty();
+        var sceneJson = System.Text.Json.JsonSerializer.Serialize(scene, StageJson.Options);
+        sceneJson.ShouldContain("Overview");
+        sceneJson.ShouldNotContain("alternatives");
+        sceneJson.ShouldNotContain("otherwise");
+    }
+
+    async Task<SceneApplication?> LoadScene(string engine, List<StageUnsupportedIssue> issues)
+    {
+        if (engine == "semantic")
         {
-            await using var body = new MemoryStream();
-            var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
-            context.Request.Method = "GET";
-            context.Request.Path = path;
-            context.Response.Body = body;
-            await request(context);
-            var response = System.Text.Encoding.UTF8.GetString(body.ToArray());
-            if (path == "/stage/status")
-            {
-                context.Response.StatusCode.ShouldEqual(StatusCodes.Status200OK);
-                response.ShouldContain("unsupported");
-                response.ShouldContain(engine);
-            }
-            else
-            {
-                context.Response.StatusCode.ShouldEqual(StatusCodes.Status501NotImplemented);
-                context.Response.Headers["Stage-Unsupported-Capability"].ToString().ShouldEqual("Scene");
-            }
-            response.ShouldContain(code);
+            var (model, scene) = await SemanticHost.LoadModel(_path, issues);
+            model.ShouldNotBeNull();
+            return scene;
         }
+
+        return (await EventModelHost.LoadModel(_path, issues))?.Scene;
+    }
+
+    static async Task<(int Status, string Body)> ResponseFor(RequestDelegate request, IServiceProvider services, string path)
+    {
+        await using var body = new MemoryStream();
+        var context = new DefaultHttpContext { RequestServices = services };
+        context.Request.Method = "GET";
+        context.Request.Path = path;
+        context.Response.Body = body;
+        await request(context);
+        return (context.Response.StatusCode, System.Text.Encoding.UTF8.GetString(body.ToArray()));
     }
 
     [Theory]

@@ -31,5 +31,9 @@ public static class ScreenTemplateConverter
             template.Name,
             template.FitsSlot,
             SlotConverter.Convert(template.Slots),
-            ArrangementConverter.Convert(template.Arrangement));
+            ArrangementConverter.Convert(template.Arrangement))
+        {
+            Metadata = new(template.TemplateType, template.Category),
+            Outlets = [.. template.Outlets.Select(outlet => new SceneScreens.Outlet(outlet.Name))]
+        };
 }

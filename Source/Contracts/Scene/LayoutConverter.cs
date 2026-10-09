@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using SceneLayouts = Cratis.Scene.Model.Layouts;
+using SceneScreens = Cratis.Scene.Model.Screens;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
@@ -25,5 +26,9 @@ public static class LayoutConverter
     /// <param name="layout">The <see cref="ScreenplaySyntax.LayoutSyntax"/> to convert.</param>
     /// <returns>The converted <see cref="SceneLayouts.Layout"/>.</returns>
     public static SceneLayouts.Layout Convert(ScreenplaySyntax.LayoutSyntax layout) =>
-        new(layout.Name, SlotConverter.Convert(layout.Slots), ArrangementConverter.Convert(layout.Arrangement));
+        new(layout.Name, SlotConverter.Convert(layout.Slots), ArrangementConverter.Convert(layout.Arrangement))
+        {
+            Metadata = new(layout.TemplateType, layout.Category),
+            Outlets = [.. layout.Outlets.Select(outlet => new SceneScreens.Outlet(outlet.Name))]
+        };
 }

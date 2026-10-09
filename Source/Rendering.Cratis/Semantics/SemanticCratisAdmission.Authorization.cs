@@ -58,8 +58,21 @@ internal static partial class SemanticCratisAdmission
     static bool ValidateQueryAuthorization(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics)
     {
         var subject = query.Argument is null ? null : new SemanticProperty(query.Argument.Id, query.Argument.Name, query.Argument.Type, false);
-        return ValidateAuthorization(context, query.Authorization, query.Id, query.Name, subject, diagnostics) &&
-            ValidateClaimTargets(
+        if (!ValidateAuthorization(context, query.Authorization, query.Id, query.Name, subject, diagnostics))
+        {
+            return false;
+        }
+
+        if (subject is null && query.Authorization is { } authorization &&
+            (Claims(authorization, context.Application.Policies).Any(claim => claim.TargetKind != SemanticClaimTargetKind.Literal) ||
+                OpaquePolicies(authorization, context.Application.Policies).Any(policy =>
+                    context.PolicyContextReads[(((SemanticOpaquePolicyCondition)policy.Condition).RequirementId, query.Id)].Contains("Subject"))))
+        {
+            diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{query.Name}' references an argument or subject, but the query has no argument.", query.Id));
+            return false;
+        }
+
+        return ValidateClaimTargets(
                 context,
                 query.Authorization,
                 subject is null ? [] : [subject],

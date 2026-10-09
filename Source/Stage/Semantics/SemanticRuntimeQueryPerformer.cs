@@ -131,6 +131,7 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
             var result = await _runtime.Query(_query, Key(context), _context.HttpContext?.User ?? new());
             return result switch
             {
+                SemanticAccepted accepted when _query.Cardinality == SemanticQueryCardinality.Many => accepted.Queries.Single().Results.Select(Convert).ToArray(),
                 SemanticAccepted accepted => accepted.Queries.Single().Results.FirstOrDefault() is { } instance ? Convert(instance) : null,
                 SemanticRejected rejected => throw new SemanticQueryRejected(rejected.Details),
                 SemanticUnsupported unsupported => throw Unsupported(unsupported),

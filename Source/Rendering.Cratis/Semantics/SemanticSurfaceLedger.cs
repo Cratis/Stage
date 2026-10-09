@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Semantics;
+
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
@@ -21,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.101.0; ESM v1–v7 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.114.0; ESM v1–v7 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v7 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -31,6 +33,29 @@ internal static class SemanticSurfaceLedger
     /// Gets the dispositions keyed by TypeName.MemberName.
     /// </summary>
     public static IReadOnlyDictionary<string, SemanticSurfaceDisposition> Entries { get; } = Build();
+
+    /// <summary>
+    /// Gets the query shape matrix. Snapshot optional lookups require a key; live collections may be keyed or unkeyed.
+    /// Other cardinality/delivery/key combinations fail STAGE-ESM-010 before rendering.
+    /// </summary>
+    public static IReadOnlyDictionary<(SemanticQueryCardinality Cardinality, SemanticQueryDelivery Delivery, bool Keyed), SemanticSurfaceDisposition> QueryShapes { get; } =
+        (from cardinality in Enum.GetValues<SemanticQueryCardinality>()
+         from delivery in Enum.GetValues<SemanticQueryDelivery>()
+         from keyed in new[] { false, true }
+         select (Cardinality: cardinality, Delivery: delivery, Keyed: keyed))
+        .ToDictionary(shape => shape, shape =>
+            (shape.Cardinality == SemanticQueryCardinality.ZeroOrOne && shape.Delivery == SemanticQueryDelivery.Snapshot && shape.Keyed) ||
+            (shape.Cardinality == SemanticQueryCardinality.Many && shape.Delivery == SemanticQueryDelivery.Live)
+                ? new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered)
+                : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-010"));
+
+    /// <summary>
+    /// Gets the default Scene disposition for list queries. Composition has no diagnostic channel;
+    /// only optional snapshot lookups have a default query input form, not collection results.
+    /// </summary>
+    public static SemanticSurfaceDisposition DefaultSceneListQueries { get; } = new(
+        SemanticSurfaceDispositionKind.Ignored,
+        "Default Scene omits keyed and unkeyed list queries; collection result composition is not supported.");
 
     static Dictionary<string, SemanticSurfaceDisposition> Build()
     {
@@ -128,7 +153,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown EventSourceIdentity CausedBySubject CausedByName CausedByUserName");
         Add(entries, "SemanticValueExpression", rejected("STAGE-ESM-006"), "Value");
 
-        // State view: one transition keyed by the produced event source and an optional snapshot lookup.
+        // State view: an optional snapshot lookup by identifier or a live collection (keyed by one `by` or unkeyed).
+        // QueryShapes records the cross-product rather than treating an enum value as universally supported.
         Add(entries, "SemanticReadModel", rendered, "Id Name Properties");
         Add(entries, "SemanticProjection", rendered, "Id Name ReadModel Transitions");
         Add(entries, "SemanticProjection", rendered, "Scope");
@@ -139,10 +165,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticKeyedQuery", rendered, "Argument Cardinality Delivery Id KeyProperty Name ReadModel");
         Add(entries, "SemanticKeyedQuery", rendered, "Authorization");
         Add(entries, "SemanticReadModelQueryArgument", rendered, "Id Name Type");
-        Add(entries, "SemanticQueryCardinality", rendered, "ZeroOrOne");
-        Add(entries, "SemanticQueryCardinality", rejected("STAGE-ESM-010"), "Unknown One Many");
-        Add(entries, "SemanticQueryDelivery", rendered, "Snapshot");
-        Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown Live");
+        Add(entries, "SemanticQueryCardinality", rendered, "ZeroOrOne Many");
+        Add(entries, "SemanticQueryCardinality", rejected("STAGE-ESM-010"), "Unknown One");
+        Add(entries, "SemanticQueryDelivery", rendered, "Snapshot Live");
+        Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown");
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
         // from and identical key fail STAGE-ESM-017. Composite keys remain rejected because Stage
@@ -187,7 +213,7 @@ internal static class SemanticSurfaceLedger
         // incomplete or ambiguous unordered duplicate replay fails STAGE-ESM-011. Unordered event
         // assertions compare the produced stream even when the expected fact omits its source.
         // Protected query results and query-only denials execute through Arc QueryScenario with fixture principals;
-        // streaming queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
+        // live collections render as collection reads; live single-result queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
         // fail STAGE-ESM-011 before log seeding. An unauthenticated caller fixture with roles or claims
         // also fails STAGE-ESM-011 before rendering: Arc supplies an empty guest principal.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");

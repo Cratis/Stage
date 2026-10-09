@@ -29,6 +29,7 @@ public class when_planning_semantic_scopes : a_register_project_render_request
     [Fact] void should_include_only_the_selected_slice_for_the_slice_scope() => SlicePaths(_slicePlan).ShouldContainOnly(["Projects/Registration/RegisterProject/RegisterProject.cs"]);
     [Fact] void should_use_the_same_slice_path_in_every_containing_scope() => Plans().All(_ => _.Artifacts.Any(artifact => artifact.RelativePath == RegisterProjectPath)).ShouldBeTrue();
     [Fact] void should_use_the_same_slice_bytes_in_every_containing_scope() => Plans().Select(PlanBytes).Skip(1).All(bytes => bytes.SequenceEqual(PlanBytes(_application))).ShouldBeTrue();
+    [Fact] void should_use_the_same_common_bytes_in_every_scope() => Plans().Skip(1).All(plan => plan.Artifacts.Where(artifact => artifact.RelativePath.StartsWith("Common/", StringComparison.Ordinal)).All(artifact => artifact.Bytes.SequenceEqual(_application.Artifacts.Single(expected => expected.RelativePath == artifact.RelativePath).Bytes))).ShouldBeTrue();
     [Fact] void should_only_include_scaffolding_for_the_application_scope() => new[] { _modulePlan, _featurePlan, _slicePlan }.All(_ => _.Artifacts.All(artifact => artifact.RelativePath != "Projects.csproj")).ShouldBeTrue();
 
     const string RegisterProjectPath = "Projects/Registration/RegisterProject/RegisterProject.cs";

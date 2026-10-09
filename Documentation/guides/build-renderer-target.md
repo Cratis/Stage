@@ -333,6 +333,10 @@ Selection and dependency closure remain target responsibilities. Define whether 
 
 Do not call a fragment compilable. Admission must include every semantic dependency required by the documented policy. Application scope normally includes application-wide configuration, scaffolding, and common types; narrower scopes should not silently acquire destination-dependent files.
 
+The Cratis target includes the concepts, composite types and authorization policies referenced by selected slices, including transitive composite-type dependencies. Unreferenced shared declarations are excluded from module, feature and slice plans; application plans still include all concepts and composite types. Shared artifacts keep the same paths and bytes across scopes.
+
+Cratis scoped plans target an already-scaffolded repository. They do not include the application scaffold or other slices' event and read-model declarations. Those declarations must already exist when a selected slice references them. Each protected operation has its own `GeneratedPolicies/StagePolicy_*.cs` file; the shared policy runtime does not depend on which operations are selected, so regenerating one slice preserves other operations' policies.
+
 Any artifact present in two scopes must have the same normalized path, kind, and exact bytes. Scope changes selection only; they must not change how the same artifact is rendered.
 
 ## Produce deterministic artifacts

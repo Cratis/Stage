@@ -52,9 +52,9 @@ public class with_event_source_routes : Specification
 
     [Fact] void should_compile_an_esm_v8_model() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V8);
     [Fact] void should_block_the_event_source_and_routed_command() => _admission.Blocking.Select(entry => entry.Kind).ShouldContainOnly(["eventsource", "command"]);
-    [Fact] void should_report_the_same_typed_refusal_as_rendering() => _admission.Blocking.All(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_report_the_same_typed_refusal_as_rendering() => _admission.Blocking.All(entry => entry.Details!.StartsWith("STAGE-ESM-030:", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_refuse_the_routed_specification() => _admission.Entries.Single(entry => entry.Kind == "specification").Status.ShouldEqual("unsupported");
-    [Fact] void should_block_specification_execution_before_routes_are_ignored() => SemanticRunAdmission.Check(_plan, _plan.Specifications.Values.Single())!.Details.ShouldContain("STAGE-ESM-016:");
+    [Fact] void should_block_specification_execution_before_routes_are_ignored() => SemanticRunAdmission.Check(_plan, _plan.Specifications.Values.Single())!.Details.ShouldContain("STAGE-ESM-030:");
 
     [Theory]
     [InlineData("given")]
@@ -73,6 +73,6 @@ public class with_event_source_routes : Specification
             "unrouted" => baseline with { ThenEvents = [occurrence with { Route = null, Unrouted = true }] },
             _ => specification
         };
-        SemanticRunAdmission.SpecificationFeatures(routed).ShouldContain(feature => feature.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
+        SemanticRunAdmission.SpecificationFeatures(routed).ShouldContain(feature => feature.Details.StartsWith("STAGE-ESM-030:", StringComparison.Ordinal));
     }
 }

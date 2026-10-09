@@ -194,15 +194,14 @@ public class CratisRenderer : IRenderer
     {
         try
         {
-            var routes = new SyntaxRouteAdmission();
-            foreach (var source in context.Applications.SelectMany(application => application.EventSources))
+            // Routes are checked across every application, not only the selected slices: shared application-,
+            // module- and feature-level examples reach a selected slice through ApplicationSet.ExpandSpecification,
+            // and a selected slice may append to any event-source stream. This fails closed, so a scoped render is
+            // refused when an unrelated sibling uses routes; routes are Screenplay 4.94+ syntax, so no previously
+            // renderable model is affected (#177 tracks rendering them).
+            foreach (var application in context.Applications)
             {
-                routes.VisitEventSource(source);
-            }
-
-            foreach (var slice in slices)
-            {
-                routes.VisitSlice(slice.Slice);
+                new SyntaxRouteAdmission().VisitApplication(application);
             }
 
             EventSourceIdentityComplianceAdmission.EnsureAccepted(slices, context);

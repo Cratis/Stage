@@ -10,13 +10,13 @@ namespace Cratis.Stage.Rendering.Cratis;
 /// </summary>
 /// <param name="location">The authored route location.</param>
 public sealed class UnsupportedEventRoutes(SourceLocation location) : Exception(
-    $"{DiagnosticCode}: Event-source streams and event routes at {location} cannot be rendered faithfully. " +
+    $"{DiagnosticCode}: Named event sources, streams and event-source routes at {location} are not yet supported by the Cratis renderer. " +
     "Support is tracked at https://github.com/Cratis/Stage/issues/177.")
 {
     /// <summary>
     /// The stable diagnostic code shared with semantic route admission.
     /// </summary>
-    public const string DiagnosticCode = "STAGE-ESM-016";
+    public const string DiagnosticCode = "STAGE-ESM-030";
 
     /// <summary>
     /// Gets the authored route location.

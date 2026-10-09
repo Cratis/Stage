@@ -51,20 +51,6 @@ internal static class SemanticSurfaceLedger
         Add(entries, "EventContractId", ignored("Stable contract identity is already validated by Screenplay; the generated event uses its name."), "IsSet");
         Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay."), "IsValid");
         Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
-
-        // ESM v8 event sources, streams and routes remain outside Stage's audited version pairs (#177).
-        // The envelope admission refuses the entire v8 model before any artifacts or execution are produced.
-        Add(entries, "SemanticApplication", rejected("STAGE-ESM-016"), "EventSources");
-        Add(entries, "SemanticEventSource", rejected("STAGE-ESM-016"), "Id IdentifierType Name SourceKind Streams");
-        Add(entries, "SemanticEventStream", rejected("STAGE-ESM-016"), "Id Name StreamIdParts StreamIdType StreamKind");
-        Add(entries, "SemanticStreamIdPart", rejected("STAGE-ESM-016"), "Name Type");
-        Add(entries, "SemanticCommand", rejected("STAGE-ESM-016"), "Route");
-        Add(entries, "SemanticCommandRoute", rejected("STAGE-ESM-016"), "Source Stream StreamId StreamIdParts");
-        Add(entries, "SemanticCommandRoutePart", rejected("STAGE-ESM-016"), "Part Value");
-        Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-016"), "Route");
-        Add(entries, "SemanticSpecificationEvent", rejected("STAGE-ESM-016"), "Route Unrouted");
-        Add(entries, "SemanticFixtureRoute", rejected("STAGE-ESM-016"), "Source Stream StreamId StreamIdParts");
-        Add(entries, "SemanticFixtureRoutePart", rejected("STAGE-ESM-016"), "Part Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies");
         Add(entries, "SemanticApplication", rejected("STAGE-ESM-030"), "EventSources");
         Add(entries, "SemanticModule", rendered, "Features Id Name");

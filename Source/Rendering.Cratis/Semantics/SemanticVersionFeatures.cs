@@ -46,9 +46,9 @@ internal static class SemanticVersionFeatures
     internal const string Responses = "STAGE-ESM-029";
 
     /// <summary>
-    /// The code for unaudited ESM v8 event sources, streams and routes.
+    /// The code for ESM v8 event sources, streams and routes, shared with renderer admission and the semantic surface ledger.
     /// </summary>
-    internal const string Routes = "STAGE-ESM-016";
+    internal const string Routes = "STAGE-ESM-030";
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -67,7 +67,7 @@ internal static class SemanticVersionFeatures
         (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
         .Concat((application.EventSources.IsDefault ? [] : application.EventSources).Select(source => new SemanticVersionFeature(
-            Routes, StageExecutionCapability.IdentityAllocation, source.Id, "eventsource", $"Event source '{source.Name}' declares ESM v8 routing, which Stage does not support yet.")));
+            Routes, StageExecutionCapability.IdentityAllocation, source.Id, "eventsource", "Named event sources and streams are not yet supported by the Cratis ESM planner.")));
 
     /// <summary>
     /// Finds the structural automation constructs of one slice: its kind, reactions and captures.
@@ -101,7 +101,7 @@ internal static class SemanticVersionFeatures
     {
         if (command.Route is not null)
         {
-            yield return new(Routes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' declares an ESM v8 route, which Stage does not support yet.");
+            yield return new(Routes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' has an event-source route, which the Cratis ESM planner cannot render yet.");
         }
 
         foreach (var property in command.Properties.Where(property => property.IsGenerated))
@@ -124,7 +124,7 @@ internal static class SemanticVersionFeatures
     {
         if (specification.WhenAppended?.Route is not null || specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is not null || occurrence.Unrouted))
         {
-            yield return new(Routes, StageExecutionCapability.IdentityAllocation, specification.Id, "specification", $"Specification '{specification.Name}' asserts ESM v8 routing, which Stage does not support yet.");
+            yield return new(Routes, StageExecutionCapability.IdentityAllocation, specification.Id, "specification", $"Specification '{specification.Name}' uses event-source routing assertions, which the Cratis ESM planner cannot render yet.");
         }
 
         if (specification.GivenClock is not null || specification.WhenClock is not null || specification.WhenTrigger is not null ||

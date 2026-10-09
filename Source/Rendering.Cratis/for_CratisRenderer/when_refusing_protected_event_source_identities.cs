@@ -79,6 +79,9 @@ public class when_refusing_protected_event_source_identities : a_multi_slice_app
         var selected = context.Slices.Single(slice => slice.Slice.Name == "Protected");
         var conceptError = Catch.Exception(() => ConceptRenderer.Render(context.Concepts["ProtectedValue"], context, "Generated"));
         conceptError.ShouldBeOfExactType<UnsupportedProtectedEventSourceIdentity>();
+        var optedInError = Catch.Exception(() => ConceptRenderer.Render(context.Concepts["ProtectedValue"], context, "Generated", complianceDetails: true));
+        optedInError.ShouldBeOfExactType<UnsupportedProtectedEventSourceIdentity>();
+        optedInError.Message.ShouldContain(UnsupportedProtectedEventSourceIdentity.DiagnosticCode);
         ISliceRenderer renderer = selected.Slice.Type == SliceType.StateChange ? new StateChangeSliceRenderer() : new StateViewSliceRenderer();
         var sliceError = Catch.Exception(() => renderer.Render(selected, context, "Generated"));
         sliceError.ShouldBeOfExactType<UnsupportedProtectedEventSourceIdentity>();

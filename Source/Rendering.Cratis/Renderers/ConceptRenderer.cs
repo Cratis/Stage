@@ -34,7 +34,18 @@ public static class ConceptRenderer
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> the concept was declared in.</param>
     /// <param name="rootNamespace">The root namespace of the target application.</param>
     /// <returns>The <see cref="RenderedFile"/>.</returns>
-    public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace)
+    public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace) =>
+        Render(concept, applicationSet, rootNamespace, false);
+
+    /// <summary>
+    /// Renders a concept with optional compliance details and secret encryption scope/reason.
+    /// </summary>
+    /// <param name="concept">The concept to render.</param>
+    /// <param name="applicationSet">The surrounding declarations and placements.</param>
+    /// <param name="rootNamespace">The target application's root namespace.</param>
+    /// <param name="complianceDetails">Whether to emit registration-changing protection details; defaults to off through the original overload.</param>
+    /// <returns>The generated concept file.</returns>
+    public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace, bool complianceDetails)
     {
         EventSourceIdentityComplianceAdmission.EnsureAccepted(concept, applicationSet);
         var typeName = Identifiers.ToPascalCase(concept.Name);
@@ -50,7 +61,7 @@ public static class ConceptRenderer
         }
         else
         {
-            RenderConceptType(builder, concept, typeName, applicationSet);
+            RenderConceptType(builder, concept, typeName, applicationSet, complianceDetails);
         }
 
         var path = new List<string>(folderSegments) { $"{typeName}.cs" };
@@ -68,7 +79,7 @@ public static class ConceptRenderer
         builder.EndBlock();
     }
 
-    static void RenderConceptType(CSharpCodeBuilder builder, ConceptSyntax concept, string typeName, ApplicationSet applicationSet)
+    static void RenderConceptType(CSharpCodeBuilder builder, ConceptSyntax concept, string typeName, ApplicationSet applicationSet, bool complianceDetails)
     {
         var clrType = PrimitiveClrType(concept.Type);
         var isIdentifier = applicationSet.IdentifierConceptNames.Contains(concept.Name);
@@ -80,15 +91,7 @@ public static class ConceptRenderer
             builder.Using("Cratis.Chronicle.Events");
         }
 
-        if (HasAttribute(concept, "pii"))
-        {
-            builder.Using("Cratis.Chronicle.Compliance.GDPR").Attribute("PII");
-        }
-        else if (HasAttribute(concept, "sensitive"))
-        {
-            builder.Using("Cratis.Chronicle.ProtectedValues").Attribute("Encrypted")
-                .Using("Cratis.Arc.Chronicle.Commands").Attribute("NotAudited");
-        }
+        ConceptComplianceRendering.Render(builder, concept, complianceDetails);
 
         builder.Summary($"Represents {typeName}.")
             .OpenBlock($"public record {typeName}({clrType} Value) : {baseType}(Value)")
@@ -182,8 +185,6 @@ public static class ConceptRenderer
         ruleMethods.Add((methodName, rule.Code!.Code));
         return $".Must({methodName})";
     }
-
-    static bool HasAttribute(ConceptSyntax concept, string name) => concept.Attributes.Any(attribute => attribute.Name == name);
 
     static string PrimitiveClrType(string screenplayType) => screenplayType switch
     {

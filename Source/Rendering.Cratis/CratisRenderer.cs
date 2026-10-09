@@ -46,6 +46,12 @@ public class CratisRenderer : IRenderer
     }
 
     /// <summary>
+    /// Gets whether concept rendering emits compliance details and secret scope/reason.
+    /// Defaults to false to preserve existing event registration metadata.
+    /// </summary>
+    public bool ComplianceDetails { get; init; }
+
+    /// <summary>
     /// Creates a <see cref="CratisRenderer"/> wired with the slice renderers and local file system output,
     /// rendering into the target directory without scaffolding a project around it.
     /// </summary>
@@ -55,7 +61,14 @@ public class CratisRenderer : IRenderer
     /// engine it needs cannot be hosted beside MSBuild.
     /// </remarks>
     /// <returns>The <see cref="CratisRenderer"/>.</returns>
-    public static CratisRenderer CreateDefault()
+    public static CratisRenderer CreateDefault() => CreateDefault(false);
+
+    /// <summary>
+    /// Creates the default syntax renderer with optional registration-changing compliance details.
+    /// </summary>
+    /// <param name="complianceDetails">Whether to emit personal-data qualifiers/reasons and secret scope/reason.</param>
+    /// <returns>The configured renderer.</returns>
+    public static CratisRenderer CreateDefault(bool complianceDetails)
     {
         var reactionRenderer = new ReactionSliceRenderer();
         var sliceRenderers = new Dictionary<SliceType, ISliceRenderer>
@@ -66,7 +79,7 @@ public class CratisRenderer : IRenderer
             [SliceType.Translate] = reactionRenderer,
         };
 
-        return new CratisRenderer(new TargetDirectoryScaffolder(), sliceRenderers, new LocalFileSystemOutput());
+        return new CratisRenderer(new TargetDirectoryScaffolder(), sliceRenderers, new LocalFileSystemOutput()) { ComplianceDetails = complianceDetails };
     }
 
     /// <inheritdoc/>
@@ -181,9 +194,19 @@ public class CratisRenderer : IRenderer
     {
         try
         {
+            // Routes are checked across every application, not only the selected slices: shared application-,
+            // module- and feature-level examples reach a selected slice through ApplicationSet.ExpandSpecification,
+            // and a selected slice may append to any event-source stream. This fails closed, so a scoped render is
+            // refused when an unrelated sibling uses routes; routes are Screenplay 4.94+ syntax, so no previously
+            // renderable model is affected (#177 tracks rendering them).
+            foreach (var application in context.Applications)
+            {
+                new SyntaxRouteAdmission().VisitApplication(application);
+            }
+
             EventSourceIdentityComplianceAdmission.EnsureAccepted(slices, context);
         }
-        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression)
+        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes)
         {
             await error.WriteLineAsync(exception.Message);
             throw new RenderingFailed([exception]);
@@ -217,7 +240,7 @@ public class CratisRenderer : IRenderer
         foreach (var concept in applicationSet.Concepts.Values)
         {
             await RenderFile(
-                () => ConceptRenderer.Render(concept, applicationSet, rootNamespace),
+                () => ConceptRenderer.Render(concept, applicationSet, rootNamespace, ComplianceDetails),
                 $"concept '{concept.Name}'",
                 targetDirectory,
                 output,

@@ -4,6 +4,8 @@
   href: urls.md
 - name: Scene UI render plans
   href: render-plans.md
+- name: Concept compliance rendering
+  href: compliance-rendering.md
 - name: Default generated Scene
   href: default-scene-composition.md
 - name: How the Stage renders a model

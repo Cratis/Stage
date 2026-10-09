@@ -43,11 +43,24 @@ interface TableColumn {
     label: string;
 }
 
-function queryArgumentsFor(element: ExternalComponent, data: ReturnType<typeof useStageData>): Record<string, unknown> {
-    const value = element.properties.queryArguments;
-    if (!isRecord(value)) return {};
+interface QueryArguments {
+    values: Record<string, unknown>;
+    ready: boolean;
+}
 
-    return Object.fromEntries(Object.entries(value).map(([name, argument]) => [name, isBinding(argument) ? data.resolveBinding(argument) : argument]));
+function queryArgumentsFor(element: ExternalComponent, data: ReturnType<typeof useStageData>): QueryArguments {
+    const value = element.properties.queryArguments;
+    if (!isRecord(value)) return { values: {}, ready: true };
+
+    const values: Record<string, unknown> = {};
+    let ready = true;
+    for (const [name, argument] of Object.entries(value)) {
+        const resolved = isBinding(argument) ? data.resolveBinding(argument) : argument;
+        values[name] = resolved;
+        if (resolved === undefined || resolved === null || resolved === '') ready = false;
+    }
+
+    return { values, ready };
 }
 
 function columnsFor(element: ExternalComponent, rows: Record<string, unknown>[]): TableColumn[] {
@@ -75,7 +88,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
     const queryName = text(element, 'query', text(element, 'typeName', element.id));
     const data = useStageData();
     const queryArguments = useMemo(() => queryArgumentsFor(element, data), [data, element]);
-    const { rows, error, loading } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments });
+    const { rows, error, loading } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
     const columns = columnsFor(element, rows);
     const dataKey = text(element, 'dataKey', 'id');
     const selected = data.selections[element.id];

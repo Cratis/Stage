@@ -39,6 +39,20 @@ public sealed class StageQueryPerformer : IQueryPerformer
     readonly IReadOnlyList<string> _filters;
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="StageQueryPerformer"/> class for a conventional query that is not
+    /// narrowed by any modeled <c language="csharp">by</c> parameter.
+    /// </summary>
+    /// <param name="readModelType">The emitted runtime read model type.</param>
+    /// <param name="readModelIdentifier">The identifier the read model is registered with in Chronicle.</param>
+    /// <param name="queryName">The conventional query name (for example <c language="csharp">GetUserById</c> or <c language="csharp">AllUsers</c>).</param>
+    /// <param name="location">The route location segments for the query.</param>
+    /// <param name="byId">Whether the query fetches a single instance by identifier.</param>
+    public StageQueryPerformer(Type readModelType, string readModelIdentifier, string queryName, IReadOnlyList<string> location, bool byId)
+        : this(readModelType, readModelIdentifier, queryName, location, byId, parameter: null, isCollection: true, filters: null)
+    {
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="StageQueryPerformer"/> class.
     /// </summary>
     /// <param name="readModelType">The emitted runtime read model type.</param>

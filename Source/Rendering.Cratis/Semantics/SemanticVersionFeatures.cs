@@ -7,7 +7,7 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// One ESM v5–v7 construct Stage can neither render nor execute yet.
+/// One ESM v5–v8 construct Stage can neither render nor execute yet.
 /// </summary>
 /// <param name="Code">The typed STAGE-ESM diagnostic code.</param>
 /// <param name="Capability">The execution capability the construct needs.</param>
@@ -17,7 +17,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal sealed record SemanticVersionFeature(string Code, StageExecutionCapability Capability, SemanticId Artifact, string Kind, string Message);
 
 /// <summary>
-/// Finds the ESM v5–v7 constructs that renderer admission, the specification executor and the Host runtime refuse.
+/// Finds the ESM v5–v8 constructs that renderer admission, the specification executor and the Host runtime refuse.
 /// </summary>
 /// <remarks>
 /// One detection serves all three (the Host and the specification executor compile this file), so a construct cannot
@@ -46,6 +46,11 @@ internal static class SemanticVersionFeatures
     internal const string Responses = "STAGE-ESM-029";
 
     /// <summary>
+    /// The code for unaudited ESM v8 event sources, streams and routes.
+    /// </summary>
+    internal const string Routes = "STAGE-ESM-016";
+
+    /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
     /// </summary>
     /// <param name="application">The semantic application.</param>
@@ -60,7 +65,9 @@ internal static class SemanticVersionFeatures
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InApplication(SemanticApplication application) =>
         (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
-            Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."));
+            Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
+        .Concat((application.EventSources.IsDefault ? [] : application.EventSources).Select(source => new SemanticVersionFeature(
+            Routes, StageExecutionCapability.IdentityAllocation, source.Id, "eventsource", $"Event source '{source.Name}' declares ESM v8 routing, which Stage does not support yet.")));
 
     /// <summary>
     /// Finds the structural automation constructs of one slice: its kind, reactions and captures.
@@ -92,6 +99,11 @@ internal static class SemanticVersionFeatures
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InCommand(SemanticCommand command)
     {
+        if (command.Route is not null)
+        {
+            yield return new(Routes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' declares an ESM v8 route, which Stage does not support yet.");
+        }
+
         foreach (var property in command.Properties.Where(property => property.IsGenerated))
         {
             yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}' (ESM v7), which Stage does not support yet.");
@@ -110,6 +122,11 @@ internal static class SemanticVersionFeatures
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InSpecification(SemanticSpecification specification)
     {
+        if (specification.WhenAppended?.Route is not null || specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is not null || occurrence.Unrouted))
+        {
+            yield return new(Routes, StageExecutionCapability.IdentityAllocation, specification.Id, "specification", $"Specification '{specification.Name}' asserts ESM v8 routing, which Stage does not support yet.");
+        }
+
         if (specification.GivenClock is not null || specification.WhenClock is not null || specification.WhenTrigger is not null ||
             specification.WhenCapture is not null || !specification.GivenCaptures.IsDefaultOrEmpty)
         {

@@ -163,7 +163,7 @@ internal static class DefaultSceneComposition
             ComponentName = "Cratis.Components:queryInputForm",
             Properties = new Dictionary<string, object?>(StringComparer.Ordinal)
             {
-                ["query"] = query.Name,
+                [SceneElementProperties.Query] = query.Name,
                 ["inputs"] = new[] { input },
                 ["resultField"] = ProxyPropertyName(result.Name),
                 ["label"] = $"Find {Identifiers.ToWords(context.ReadModels[query.ReadModel].Name)}",

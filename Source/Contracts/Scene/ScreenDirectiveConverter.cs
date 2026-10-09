@@ -130,7 +130,7 @@ public static class ScreenDirectiveConverter
                 ["target"] = item.Target,
                 ["label"] = item.Label,
                 ["icon"] = item.Icon,
-                ["parameters"] = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ConvertBinding(parameter.Binding), StringComparer.Ordinal),
+                ["parameters"] = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ScreenplayRichSyntax.Binding(parameter.Binding), StringComparer.Ordinal),
                 ["presentation"] = item.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
             })).ToList();
 
@@ -139,66 +139,31 @@ public static class ScreenDirectiveConverter
 
     static SceneElements.ExternalComponent ConvertComponent(ScreenplaySyntax.ScreenComponentSyntax component, string id, BehaviorScope scope)
     {
+        var stableId = ScreenplayRichSyntax.StableId(component);
         var properties = new Dictionary<string, object?>
         {
             ["name"] = component.Name,
-            ["context"] = component.Context is null ? null : ConvertBinding(component.Context),
+            ["context"] = component.Context is null ? null : ScreenplayRichSyntax.Binding(component.Context),
             ["icon"] = component.Icon,
             ["presentation"] = component.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
-            ["exposes"] = component.Exposes.ToDictionary(exposed => exposed.Name, exposed => ConvertBinding(exposed.Binding), StringComparer.Ordinal),
+            ["exposes"] = component.Exposes.ToDictionary(exposed => exposed.Name, exposed => ScreenplayRichSyntax.Binding(exposed.Binding), StringComparer.Ordinal),
         };
 
         foreach (var property in component.Properties)
         {
-            properties[property.Property] = property.Binding is null ? property.Value : ConvertBinding(property.Binding);
+            properties[property.Property] = property.Binding is null ? ScreenplayRichSyntax.ComponentPropertyValue(property) : ScreenplayRichSyntax.Binding(property.Binding);
         }
 
         var slots = component.Outlets.ToDictionary(
             outlet => outlet.Name,
-            outlet => Convert(outlet.Directives, $"{id}.{outlet.Name}", scope),
+            outlet => Convert(outlet.Directives, $"{stableId}.{outlet.Name}", scope),
             StringComparer.Ordinal);
 
-        return SceneElementFactory.Component(id, component.Component, properties, slots) with
+        return SceneElementFactory.Component(stableId, component.Component, properties, slots) with
         {
-            Behaviors = scope.Resolve(component.Behaviors, component.UsedBehaviors, id)
+            Behaviors = scope.Resolve(component.Behaviors, component.UsedBehaviors, stableId)
         };
     }
-
-    static SceneCommon.BindingExpression ConvertBinding(ScreenplaySyntax.UiBindingSyntax binding) =>
-        new(
-            binding.Path,
-            BindingKind(binding.BindingKind),
-            binding.Query,
-            binding.ComponentId,
-            binding.ComponentPropertyPath,
-            BindingMode(binding.Mode),
-            BindingNullBehavior(binding.NullBehavior),
-            binding.ExpectedValueType);
-
-    static SceneCommon.BindingSourceKind BindingKind(ScreenplaySyntax.UiBindingKind kind) =>
-        kind switch
-        {
-            ScreenplaySyntax.UiBindingKind.QueryResult => SceneCommon.BindingSourceKind.QueryResult,
-            ScreenplaySyntax.UiBindingKind.ComponentProperty => SceneCommon.BindingSourceKind.ComponentProperty,
-            _ => SceneCommon.BindingSourceKind.DataContext,
-        };
-
-    static SceneCommon.BindingMode? BindingMode(ScreenplaySyntax.UiBindingMode? mode) =>
-        mode switch
-        {
-            ScreenplaySyntax.UiBindingMode.TwoWay => SceneCommon.BindingMode.TwoWay,
-            ScreenplaySyntax.UiBindingMode.OneWay => SceneCommon.BindingMode.OneWay,
-            _ => null,
-        };
-
-    static SceneCommon.BindingNullBehavior? BindingNullBehavior(ScreenplaySyntax.UiBindingNullBehavior? behavior) =>
-        behavior switch
-        {
-            ScreenplaySyntax.UiBindingNullBehavior.Clear => SceneCommon.BindingNullBehavior.Clear,
-            ScreenplaySyntax.UiBindingNullBehavior.Preserve => SceneCommon.BindingNullBehavior.Preserve,
-            ScreenplaySyntax.UiBindingNullBehavior.Propagate => SceneCommon.BindingNullBehavior.Propagate,
-            _ => null,
-        };
 
     static SceneElements.ExternalComponent ConvertGuardedAction(ScreenplaySyntax.ScreenGuardedActionSyntax action, string id)
     {

@@ -33,15 +33,14 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         ("child_removal_existing_and_missing", [new("ProjectRegistered", First, First, "First"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoteRemoved", Note, First, null, Note), new("ProjectNoteRemoved", OtherNote, First, null, OtherNote)]),
         ("child_removal_via_join", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", Note, Second, "B", Note), new("ProjectNoteRemovedViaJoin", Note, null, null, Note)]),
         ("two_parents_with_distinct_children", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", OtherNote, Second, "B", OtherNote)]),
-        ("every_on_from_and_join", [new("ProjectRegistered", First, First, "First"), new("ProjectNamed", First, null, "Joined"), new("ProjectRenamed", First, First, "Renamed")]),
-        ("every_literal_on_join_before_from", [new("ProjectNamed", First, null, "Joined"), new("ProjectRegistered", First, First, "First")]),
+        ("every_on_from", [new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Renamed")]),
         ("every_literal_does_not_recreate_removed_root", [new("ProjectRegistered", First, First, "First"), new("ProjectRemoved", First)]),
-        ("local_after_join_keeps_joined_name", [new("ProjectNamed", First, null, "Joined"), new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Renamed")])
+        ("later_from_keeps_every_literal", [new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Renamed")])
     ];
     ExecutableSemanticModel _model = null!;
     SemanticExecutionPlan _execution = null!;
     string _testOutput = null!;
-    string _localAfterJoinExpected = null!;
+    string _laterFromExpected = null!;
 
     protected override ArtifactRenderPlan CreatePlan()
     {
@@ -66,9 +65,9 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         foreach (var (name, facts) in _cases)
         {
             var expected = Reference(facts);
-            if (name == "local_after_join_keeps_joined_name")
+            if (name == "later_from_keeps_every_literal")
             {
-                _localAfterJoinExpected = expected;
+                _laterFromExpected = expected;
             }
 
             AddGeneratedSpecification($"Projects/Registration/ProjectLookup/when_{name}.cs", GeneratedSpecification(name, facts, expected));
@@ -81,8 +80,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     [Fact] void should_match_all_reference_snapshots() => _testOutput.ShouldContain("Passed!");
     [Fact] void should_not_admit_from_all_when_mongo_cannot_match_reference() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
 
-    // Screenplay backfills the earlier join after each local from-mapping; Chronicle's generated spec must agree.
-    [Fact] void should_keep_joined_name_after_a_later_local_write() => _localAfterJoinExpected.ShouldContain("\"name\":\"Joined\"");
+    [Fact] void should_keep_the_literal_after_a_later_local_write() => _laterFromExpected.ShouldContain("\"label\":\"fixed\"");
 
     string Reference(Fact[] facts)
     {

@@ -50,7 +50,7 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
             }
 
             [Fact]
-            public async Task should_apply_every_literals_on_from_join_and_not_removal()
+            public async Task should_apply_every_literals_on_from_and_not_removal()
             {
                 var scenario = new ReadModelScenario<ProjectSummary>();
                 await scenario.Given.ForEventSource(new EventSourceId(First)).Events(
@@ -58,10 +58,6 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
                 var projected = scenario.InstanceForEventSourceId(new EventSourceId(First));
                 Assert.Equal("fixed", projected?.Label);
                 Assert.Equal("nested", projected?.Info?.Name.Value);
-                await scenario.Given.ForEventSource(new EventSourceId(First)).Events(new ProjectNamed(new ProjectName("Joined")));
-                projected = scenario.InstanceForEventSourceId(new EventSourceId(First));
-                Assert.Equal("fixed", projected?.Label);
-                Assert.Equal("Joined", projected?.Name.Value);
                 await scenario.Given.ForEventSource(new EventSourceId(First)).Events(
                     new ProjectRenamed(new ProjectId(Guid.Parse(First)), new ProjectName("Renamed")));
                 Assert.Equal("fixed", scenario.InstanceForEventSourceId(new EventSourceId(First))?.Label);
@@ -131,7 +127,7 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
         _tests.ShouldContain("Passed!");
         var code = ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs");
         code.ShouldContain("from.Set(model => model.Label).ToValue(\"fixed\")");
-        code.ShouldContain("join.Set(model => model.Label).ToValue(\"fixed\")");
+        code.ShouldNotContain("join.Set(model => model.Label)");
         code.ShouldNotContain("every.Set(model => model.Label)");
         code.ShouldNotContain("from.Set(model => model.Label).ToValue(\"local\")");
         code.ShouldContain("children.RemovedWithJoin<global::Projects.Projects.Registration.RegisterProject.ProjectNoteRemovedViaJoin>");

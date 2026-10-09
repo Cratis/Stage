@@ -145,10 +145,6 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 var stageBefore = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
                 Assert.Equal("fixed", stageBefore?.Label);
                 Assert.Equal("child", Assert.Single(stageBefore!.Notes).Name.Value);
-                await Append((EventSourceId)first, new ProjectNamed(new ProjectName("Joined")));
-                var stageJoined = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
-                Assert.Equal("fixed", stageJoined?.Label);
-                Assert.Equal("Joined", stageJoined?.Name.Value);
                 await Append((EventSourceId)note, new ProjectNoteRemovedViaJoin(note));
                 var stageAfterFirst = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)first);
                 var stageAfterSecond = await store.ReadModels.GetInstanceById<ProjectSummary>((EventSourceId)second);

@@ -139,8 +139,8 @@ internal static class SemanticSurfaceLedger
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
         // from and identical key fail STAGE-ESM-017. Composite keys remain rejected because Stage
-        // cannot issue keyed lookups for composite read models (Chronicle#4265). Every literals lower to from/join
-        // Set mappings; collisions with joins or non-Set operations remain refused. FromAll (Chronicle#4266) and
+        // cannot issue keyed lookups for composite read models (Chronicle#4265). Every literals lower to from
+        // Set mappings only at join-free levels (Chronicle#4663); prefix overlaps and non-Set collisions remain refused. FromAll (Chronicle#4266) and
         // text literals outside Chronicle's fluent $value grammar, expression-like event-property
         // names (including derived functions), unsafe read-model property paths and camel-case
         // collisions, and unvalidated $eventSourceId mapping targets also fail STAGE-ESM-017.

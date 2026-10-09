@@ -87,12 +87,18 @@ internal static class SemanticScopedProjectionSupport
         }
 
         var everyLiterals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
-        if (everyLiterals.Any(literal => scope.Joins.SelectMany(join => join.Mappings).Any(mapping => mapping.Target.SequenceEqual(literal.Target)) ||
-            scope.From.SelectMany(from => from.Mappings).Any(mapping => mapping.Target.SequenceEqual(literal.Target) && mapping.Operation != SemanticProjectionOperation.Set)))
+        if (everyLiterals.Length > 0 && scope.Joins.Length > 0)
         {
-            // Screenplay backfills join mappings without every; replacing a join mapping would change replay.
-            // Arithmetic may fail before the later literal assignment, so it cannot simply be discarded either.
-            return "An every literal collides with a join or non-Set from mapping; the rewrite cannot preserve backfill or intermediate operations.";
+            return "Every literals at a level with joins need https://github.com/Cratis/Chronicle/issues/4663: lowering them onto from blocks can change join backfill eligibility and values.";
+        }
+
+        if (everyLiterals.Any(literal => scope.From.SelectMany(from => from.Mappings).Any(mapping =>
+            mapping.Target.Take(Math.Min(mapping.Target.Length, literal.Target.Length)).SequenceEqual(literal.Target.Take(Math.Min(mapping.Target.Length, literal.Target.Length))) &&
+            (mapping.Target.Length != literal.Target.Length || mapping.Operation != SemanticProjectionOperation.Set))))
+        {
+            // Only an exact Set can be replaced. Prefix overlaps and intermediate operations
+            // need an exact lowering before the every literal can render.
+            return "An every literal collides with an overlapping or non-Set from mapping; only an exact Set target can be replaced.";
         }
 
         if (scope.From.Any(from => from.Key is SemanticProjectionCompositeKey || from.ParentKey is SemanticProjectionCompositeKey) ||

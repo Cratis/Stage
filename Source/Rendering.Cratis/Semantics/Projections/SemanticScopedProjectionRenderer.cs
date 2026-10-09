@@ -85,7 +85,7 @@ internal static class SemanticScopedProjectionRenderer
             var on = properties.Single(_ => _.Id == join.On);
             code.OpenBlock($"{receiver}.Join<{new SemanticTypeSystem(context).EventType(@event)}>(join =>")
                 .Line($"join.On(model => model.{Identifiers.ToPascalCase(on.Name)});");
-            RenderMappings(code, WithEveryLiterals(join.Mappings, scope), properties, @event, context, "join");
+            RenderMappings(code, join.Mappings, properties, @event, context, "join");
             code.EndBlock().Line(");");
         }
 
@@ -151,8 +151,8 @@ internal static class SemanticScopedProjectionRenderer
         }
     }
 
-    // IAllSetBuilder has no ToValue (Chronicle#4663). The kernel applies every only on from/join
-    // events at this level, not removals. Admission proves that replacing a colliding Set is exact.
+    // IAllSetBuilder has no ToValue (Chronicle#4663). At admitted join-free levels the kernel
+    // applies every after from mappings, not removals. Only an exact colliding Set is replaced.
     static IEnumerable<SemanticProjectionMapping> WithEveryLiterals(IEnumerable<SemanticProjectionMapping> mappings, SemanticProjectionScope scope)
     {
         var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];

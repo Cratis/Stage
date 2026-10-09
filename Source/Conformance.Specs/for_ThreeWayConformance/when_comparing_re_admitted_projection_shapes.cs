@@ -60,6 +60,21 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                   event ProjectRenamed
                     projectId ProjectId
                     name ProjectName
+                  specification RenamingAProjectWithEveryLiteral
+                    given ProjectRegistered
+                      for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name = "First"
+                    when RenameProject
+                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name = "Renamed"
+                    then ProjectRenamed
+                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name = "Renamed"
+                    then readmodel ProjectSummary
+                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      name = "Renamed"
+                      label = "fixed"
                 slice StateChange NameProject
                   command NameProject
                     projectId ProjectId identifier
@@ -69,20 +84,6 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                       name = name
                   event ProjectNamed
                     name ProjectName
-                  specification NamingAProjectWithEveryLiteral
-                    given ProjectRegistered
-                      for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                      name = "First"
-                    when NameProject
-                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                      name = "Joined"
-                    then ProjectNamed
-                      name = "Joined"
-                    then readmodel ProjectSummary
-                      projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                      name = "Joined"
-                      label = "fixed"
                 slice StateChange NoteProject
                   command NoteProject
                     noteId ProjectId identifier
@@ -121,9 +122,6 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                       label = "local"
                     from ProjectRenamed
                       name = name
-                    join project on projectId
-                      with ProjectNamed
-                        name = name
                     every
                       exclude children
                       label = "fixed"

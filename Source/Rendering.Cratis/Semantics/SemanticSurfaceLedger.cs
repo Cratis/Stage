@@ -139,14 +139,15 @@ internal static class SemanticSurfaceLedger
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
         // from and identical key fail STAGE-ESM-017. Composite keys remain rejected because Stage
-        // cannot issue keyed lookups for composite read models (Chronicle#4265). Literal mappings in every/all and
+        // cannot issue keyed lookups for composite read models (Chronicle#4265). Every literals lower to from/join
+        // Set mappings; collisions with joins or non-Set operations remain refused. FromAll (Chronicle#4266) and
         // text literals outside Chronicle's fluent $value grammar, expression-like event-property
         // names (including derived functions), unsafe read-model property paths and camel-case
         // collisions, and unvalidated $eventSourceId mapping targets also fail STAGE-ESM-017.
         // FromAll stays rejected (Chronicle#4266): MongoDB does not materialize an unrelated source observed in memory.
         // Child join removal across parents and nested clear/recreation render on Chronicle 19.32.0;
-        // differential and MongoDB probes cover both sequences. Root join removal and joins/children
-        // inside nested remain blocked by Chronicle#4125. Nested clear requires a matching root from
+        // differential and MongoDB probes cover both sequences. Root join removal remains blocked by
+        // Chronicle#4263 and Screenplay#563; joins/children inside nested by Chronicle#4125. Nested clear requires a matching root from
         // and identical key.
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");

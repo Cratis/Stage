@@ -34,6 +34,8 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         ("child_removal_via_join", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", Note, Second, "B", Note), new("ProjectNoteRemovedViaJoin", Note, null, null, Note)]),
         ("two_parents_with_distinct_children", [new("ProjectRegistered", First, First, "First"), new("ProjectRegistered", Second, Second, "Second"), new("ProjectNoted", Note, First, "A", Note), new("ProjectNoted", OtherNote, Second, "B", OtherNote)]),
         ("every_on_from_and_join", [new("ProjectRegistered", First, First, "First"), new("ProjectNamed", First, null, "Joined"), new("ProjectRenamed", First, First, "Renamed")]),
+        ("every_literal_on_join_before_from", [new("ProjectNamed", First, null, "Joined"), new("ProjectRegistered", First, First, "First")]),
+        ("every_literal_does_not_recreate_removed_root", [new("ProjectRegistered", First, First, "First"), new("ProjectRemoved", First)]),
         ("local_after_join_keeps_joined_name", [new("ProjectNamed", First, null, "Joined"), new("ProjectRegistered", First, First, "First"), new("ProjectRenamed", First, First, "Renamed")])
     ];
     ExecutableSemanticModel _model = null!;
@@ -46,13 +48,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
 
         // ClearWith binds to the event-source key, so its root from must use the same key.
-        var source = when_rendering_scoped_projections.ScopedSource
-            .Replace("notes ProjectNote[]", "label String?\n        notes ProjectNote[]", StringComparison.Ordinal)
-            .Replace("increment visits", "label = \"fixed\"\n          increment visits", StringComparison.Ordinal)
-            .Replace("projection ProjectSummaryProjection => ProjectSummary\n", "projection ProjectSummaryProjection => ProjectSummary\n        no automap\n", StringComparison.Ordinal)
-            .Replace("from ProjectRenamed key projectId", "from ProjectRenamed", StringComparison.Ordinal)
-            .Replace("        children notes identified by noteId", "          clear with ProjectRenamed\n        children notes identified by noteId", StringComparison.Ordinal)
-            .Replace("remove with ProjectNoteRemoved key noteId\n            parent projectId", "remove with ProjectNoteRemoved key noteId\n            parent projectId\n          remove via join on ProjectNoteRemovedViaJoin key noteId", StringComparison.Ordinal);
+        var source = every_literal_projection.Source;
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));

@@ -51,7 +51,7 @@ internal static class SemanticScopedProjectionSupport
 
         if (scope.JoinRemovals.Length > 0 && !child && !isNested)
         {
-            return "Root remove via join is blocked by Chronicle#4125: the engine removes a child at the root path instead of deleting matching root instances.";
+            return "Root remove via join is blocked by https://github.com/Cratis/Chronicle/issues/4263 and https://github.com/Cratis/Screenplay/issues/563: deleting matching root instances has no verified runtime or reference semantics.";
         }
 
         if (isNested && scope.JoinRemovals.Length > 0)
@@ -80,10 +80,19 @@ internal static class SemanticScopedProjectionSupport
 
         if (scope.Every is { Mappings.Length: > 0 } every &&
             (every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
-                mapping.Source is not SemanticProjectionEventSourceIdentity) ||
+                mapping.Source is not SemanticProjectionEventSourceIdentity and not SemanticProjectionLiteral) ||
              !EveryMappingsSupported(every.Mappings, properties, context, protectedIdentity)))
         {
             return "Every mappings need a Chronicle fluent equivalent for each bound value and operation.";
+        }
+
+        var everyLiterals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
+        if (everyLiterals.Any(literal => scope.Joins.SelectMany(join => join.Mappings).Any(mapping => mapping.Target.SequenceEqual(literal.Target)) ||
+            scope.From.SelectMany(from => from.Mappings).Any(mapping => mapping.Target.SequenceEqual(literal.Target) && mapping.Operation != SemanticProjectionOperation.Set)))
+        {
+            // Screenplay backfills join mappings without every; replacing a join mapping would change replay.
+            // Arithmetic may fail before the later literal assignment, so it cannot simply be discarded either.
+            return "An every literal collides with a join or non-Set from mapping; the rewrite cannot preserve backfill or intermediate operations.";
         }
 
         if (scope.From.Any(from => from.Key is SemanticProjectionCompositeKey || from.ParentKey is SemanticProjectionCompositeKey) ||
@@ -136,7 +145,7 @@ internal static class SemanticScopedProjectionSupport
                     context,
                     protectedIdentity,
                     from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }) ||
-                !EstablishesRequiredProperties(from.Mappings, properties, context, protectedIdentity))
+                !EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals), properties, context, protectedIdentity))
             {
                 return "A from block has an unsupported key, parent key, event, or mapping.";
             }
@@ -250,7 +259,8 @@ internal static class SemanticScopedProjectionSupport
         mappings.All(mapping => Target(mapping.Target, targets, context) is { Type.IsCollection: false } target &&
             !HasOptionalIntermediate(mapping.Target, targets, context) &&
             (target.Type.Kind == SemanticTypeReferenceKind.Concept || target.Type.Kind == SemanticTypeReferenceKind.Primitive) &&
-            EventSourceMappingSupported(mapping, targets, context, identity));
+            ((mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
+             EventSourceMappingSupported(mapping, targets, context, identity)));
 
     static bool KeySupported(SemanticProjectionKey key, SemanticEventContract @event, SemanticApplicationContext context) =>
         key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } ||

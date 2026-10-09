@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import { HorizontalAlignment, VerticalAlignment, Visibility, type ExternalComponent, type Screen } from '@cratis/scene.model';
+import { FormGenerationMode, FormWidthUnit, HorizontalAlignment, VerticalAlignment, Visibility, type ExternalComponent, type Screen } from '@cratis/scene.model';
 import { composeStageScreen } from './App';
 
 const screens = (scene: unknown) => (scene as { screens: Screen[] }).screens;
@@ -66,11 +66,26 @@ describe('composing a screen in the default blueprint', () => {
         expect(slot(template, 'body').map(_ => _.id)).toEqual(['template-title', 'Orders-body']);
     });
 
-    it('adds native command forms to the composed screen content', () => {
-        const withForm = { ...screen('Orders'), forms: [{ name: 'Register order', forCommand: 'RegisterOrder', fields: [{ name: 'orderNumber', label: 'Order #' }] }] };
+    it('adds native command forms with Scene 4.12 geometry to the composed screen content', () => {
+        const layout = {
+            columns: [{ index: 1, width: { unit: FormWidthUnit.Fraction, value: 1 } }],
+            placements: [{ field: 'orderNumber', row: 1, column: 1 }],
+        };
+        const withForm = {
+            ...screen('Orders'),
+            forms: [{
+                name: 'Register order',
+                forCommand: 'RegisterOrder',
+                generationMode: FormGenerationMode.Manual,
+                layout,
+                fields: [{ name: 'orderNumber', label: 'Order #' }],
+            }],
+        };
         const composed = compose({ layouts: [], screenTemplates: [], screens: [withForm] }, withForm as Screen);
         const form = slot(composed, 'content').find(_ => _.componentName === 'Stage:commandForm');
         expect(form?.properties.command).toBe('RegisterOrder');
+        expect(form?.properties.generationMode).toBe(FormGenerationMode.Manual);
+        expect(form?.properties.layout).toEqual(layout);
         expect(form?.properties.fields).toEqual([{ name: 'orderNumber', label: 'Order #' }]);
     });
 });

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
+import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
 import { StageAction, StageCommandForm, StageTable } from './stageComponents';
 import { dataChanged, StageDataProvider, useStageData, useStageQuery } from './stageData';
@@ -215,17 +216,32 @@ describe('a native command form', () => {
         expect(fetched).not.toHaveBeenCalled();
     });
 
-    it('generates rich fields automatically and honors manually placed unequal columns', () => {
+    it('consumes the Scene 4.12 command form geometry contract', () => {
         const form = element('profile-form', 'Stage:commandForm', {
             command: 'RegisterProfile',
             label: 'Register profile',
-            mode: 'auto',
-            geometry: {
-                mode: 'manual',
+            generationMode: FormGenerationMode.Auto,
+            layout: {
                 columns: [
-                    { width: '12rem', resizable: true, fields: [{ name: 'name', width: '10rem' }, 'enabled'] },
-                    { grow: 2, fields: [{ name: 'amount', width: '9rem' }, 'dueDate'] },
+                    {
+                        index: 1,
+                        width: { unit: FormWidthUnit.Pixels, value: 192 },
+                        minWidth: { unit: FormWidthUnit.Pixels, value: 160 },
+                    },
+                    {
+                        index: 2,
+                        width: { unit: FormWidthUnit.Fraction, value: 2 },
+                        maxWidth: { unit: FormWidthUnit.Percent, value: 60 },
+                    },
                 ],
+                placements: [
+                    { field: 'name', row: 1, column: 1, width: { unit: FormWidthUnit.Pixels, value: 144 } },
+                    { field: 'enabled', row: 1, column: 2 },
+                    { field: 'amount', row: 2, column: 1, columnSpan: 2, width: { unit: FormWidthUnit.Percent, value: 50 } },
+                    { field: 'dueDate', row: 3, column: 1, rowSpan: 2 },
+                ],
+                columnGap: { unit: FormWidthUnit.Pixels, value: 16 },
+                rowGap: { unit: FormWidthUnit.Pixels, value: 12 },
             },
             schema: JSON.stringify({
                 required: ['name', 'enabled', 'amount', 'dueDate'],
@@ -250,14 +266,20 @@ describe('a native command form', () => {
         expect(screen.getByLabelText('enabled')).toBeDefined();
         expect(screen.getByLabelText('amount')).toBeDefined();
         expect(screen.getByLabelText('dueDate')).toBeDefined();
+        const shell = container.querySelector('.stage-command-form') as HTMLElement;
         const layout = container.querySelector('.stage-command-form__layout') as HTMLElement;
-        const columns = [...container.querySelectorAll('.stage-command-form__column')] as HTMLElement[];
         const amount = container.querySelector('[data-field="amount"]') as HTMLElement;
-        expect(layout.dataset.layoutMode).toEqual('manual');
-        expect(layout.style.gridTemplateColumns).toContain('12rem');
-        expect(layout.style.gridTemplateColumns).toContain('2fr');
-        expect(columns[0].dataset.resizable).toEqual('true');
-        expect(amount.style.width).toEqual('9rem');
+        const dueDate = container.querySelector('[data-field="dueDate"]') as HTMLElement;
+        expect(shell.dataset.generationMode).toEqual(FormGenerationMode.Auto);
+        expect(layout.style.gridTemplateColumns).toContain('minmax(160px, 192px)');
+        expect(layout.style.gridTemplateColumns).toContain('minmax(0, 60%)');
+        expect(layout.style.columnGap).toEqual('16px');
+        expect(layout.style.rowGap).toEqual('12px');
+        expect(amount.dataset.row).toEqual('2');
+        expect(amount.dataset.column).toEqual('1');
+        expect(amount.style.gridColumn).toEqual('1 / span 2');
+        expect(amount.style.width).toEqual('50%');
+        expect(dueDate.style.gridRow).toEqual('3 / span 2');
     });
 
     it('keeps dirty field values when a query refresh updates Stage data', async () => {
@@ -295,6 +317,47 @@ describe('a native command form', () => {
 
         expect(await screen.findByText('O-2')).toBeDefined();
         expect((screen.getByLabelText('Order #') as HTMLInputElement).value).toEqual('O-99');
+    });
+
+    it('posts valid native command values and refreshes scoped queries', async () => {
+        let reads = 0;
+        const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+            const url = String(input);
+            if (url === 'api/orders') {
+                reads += 1;
+                return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: String(reads), orderNumber: `O-${reads}` }] }) });
+            }
+
+            if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
+            return Promise.resolve({ ok: false, json: async () => ({}) });
+        });
+        vi.stubGlobal('fetch', fetched);
+        const table = element('orders', 'core:table', { route: '/api/orders', typeName: 'Orders', dataKey: 'id' }, {
+            columns: [element('order-number', 'core:column', { property: 'orderNumber', label: 'Order' })],
+        });
+        const form = element('order-form', 'Stage:commandForm', {
+            command: 'RegisterOrder',
+            label: 'Register order',
+            fields: [{ name: 'orderNumber', label: 'Order #' }],
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }} locale='en' locales={['en']} screen='Orders'>
+                    <StageTable element={table} slots={{}} />
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+
+        expect(await screen.findByText('O-1')).toBeDefined();
+        fireEvent.change(screen.getByLabelText('Order #'), { target: { value: 'O-3' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Execute Register order' }));
+
+        await waitFor(() => expect(fetched.mock.calls.some(call => String(call[0]).endsWith('/api/orders/register')
+            && (call[1] as RequestInit | undefined)?.method === 'POST'
+            && (call[1] as RequestInit | undefined)?.body === JSON.stringify({ orderNumber: 'O-3' }))).toBe(true));
+        expect(await screen.findByText('O-2')).toBeDefined();
     });
 
     it('uses form metadata, command route lookup and validation feedback', async () => {

@@ -79,6 +79,8 @@ function commandFormElement(screenName: string, form: Form): SceneElement {
     return externalComponent(`form-${screenName}-${form.name}`, stageCommandFormComponent, {
         command: form.forCommand,
         label: form.name,
+        generationMode: form.generationMode,
+        layout: form.layout,
         fields: form.fields,
     });
 }

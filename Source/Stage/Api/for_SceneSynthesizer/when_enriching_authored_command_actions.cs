@@ -43,10 +43,11 @@ public class when_enriching_authored_command_actions : given.a_scene_model
     [Fact] void should_generate_fields_from_the_command_schema() => Fields.Select(field => field.Name).ShouldContainOnly(["projectId", "name", "stage", "description", "tags"]);
     [Fact] void should_generate_human_readable_field_labels() => Fields.Select(field => field.Label).ShouldContainOnly(["Project Id", "Name", "Stage", "Description", "Tags"]);
     [Fact] void should_keep_required_schema_metadata() => Required.ShouldContainOnly(["projectId", "name", "stage", "tags"]);
-    [Fact] void should_serialize_the_fields_into_the_runtime_payload() => _payload.ShouldContain("\"fields\":[{\"name\":\"projectId\",\"label\":\"Project Id\"");
+    [Fact] void should_serialize_the_field_name_into_the_runtime_payload() => _payload.ShouldContain("\"name\":\"projectId\"");
+    [Fact] void should_serialize_the_field_label_into_the_runtime_payload() => _payload.ShouldContain("\"label\":\"Project Id\"");
 
     IReadOnlyDictionary<string, object?> ActionProperties => _result.Screens.Single().SlotContent[DefaultLayout.ContentSlotName].OfType<ExternalComponent>().Single().Properties;
-    IReadOnlyList<CommandFormField> Fields => (IReadOnlyList<CommandFormField>)ActionProperties["fields"]!;
+    IReadOnlyList<FormField> Fields => (IReadOnlyList<FormField>)ActionProperties["fields"]!;
     IReadOnlyList<string> Required
     {
         get

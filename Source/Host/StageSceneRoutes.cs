@@ -195,17 +195,22 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
             return Resolve(candidates, namedType, component.ComponentName);
         }
 
-        return string.Equals(component.ComponentName, "core:action", StringComparison.Ordinal) &&
-            component.Properties.TryGetValue("command", out var command) && command is string commandName
-                ? Resolve(candidates, commandName, component.ComponentName)
-                : null;
+        return IsCommandComponent(component) && component.Properties.TryGetValue("command", out var command) && command is string commandName
+            ? Resolve(candidates, commandName, component.ComponentName)
+            : null;
     }
+
+    static bool IsCommandComponent(SceneElements.ExternalComponent component) => IsCommandComponent(component.ComponentName);
+
+    static bool IsCommandComponent(string componentName) =>
+        string.Equals(componentName, "core:action", StringComparison.Ordinal) ||
+        string.Equals(componentName, "Stage:commandForm", StringComparison.Ordinal);
 
     static EndpointCandidate? Resolve(IReadOnlyList<EndpointCandidate> candidates, string typeName, string componentName)
     {
         // A command is posted; a read model is read. Matching the verb as well keeps a command's execute route
         // from answering for a table, and a query route from being posted to.
-        var method = componentName == "core:action" ? "POST" : "GET";
+        var method = IsCommandComponent(componentName) ? "POST" : "GET";
         var matching = candidates
             .Where(candidate =>
                 string.Equals(candidate.Method, method, StringComparison.Ordinal) &&

@@ -28,10 +28,18 @@ public class when_attaching_routes_to_authored_actions : Specification
             Properties = new Dictionary<string, object?> { ["command"] = "CreateWorkItem" },
             Slots = new Dictionary<string, IReadOnlyList<SceneElement>>()
         };
+        var form = new ExternalComponent
+        {
+            Id = "create-form",
+            Name = "Create work item form",
+            ComponentName = "Stage:commandForm",
+            Properties = new Dictionary<string, object?> { ["command"] = "CreateWorkItem" },
+            Slots = new Dictionary<string, IReadOnlyList<SceneElement>>()
+        };
         var screen = new Screen(
             "WorkItemList",
             "AppShell",
-            new Dictionary<string, IReadOnlyList<SceneElement>> { ["content"] = [action] },
+            new Dictionary<string, IReadOnlyList<SceneElement>> { ["content"] = [action, form] },
             [],
             [],
             null);
@@ -47,11 +55,15 @@ public class when_attaching_routes_to_authored_actions : Specification
             NullLogger.Instance);
     }
 
-    [Fact] void should_attach_the_command_route() => Properties["route"].ShouldEqual("/api/workspaces/tracking/create-work-item");
-    [Fact] void should_attach_the_post_method() => Properties["method"].ShouldEqual("POST");
+    [Fact] void should_attach_the_command_route() => ActionProperties["route"].ShouldEqual("/api/workspaces/tracking/create-work-item");
+    [Fact] void should_attach_the_post_method() => ActionProperties["method"].ShouldEqual("POST");
+    [Fact] void should_attach_the_command_form_route() => FormProperties["route"].ShouldEqual("/api/workspaces/tracking/create-work-item");
+    [Fact] void should_attach_the_command_form_post_method() => FormProperties["method"].ShouldEqual("POST");
     [Fact] void should_expose_the_same_command_route_by_command_name() => _commandRoutes["CreateWorkItem"].ShouldEqual("/api/workspaces/tracking/create-work-item");
 
-    IReadOnlyDictionary<string, object?> Properties => _scene.Screens.Single().SlotContent["content"].OfType<ExternalComponent>().Single().Properties;
+    IReadOnlyDictionary<string, object?> ActionProperties => Components.Single(_ => _.Id == "create").Properties;
+    IReadOnlyDictionary<string, object?> FormProperties => Components.Single(_ => _.Id == "create-form").Properties;
+    IEnumerable<ExternalComponent> Components => _scene.Screens.Single().SlotContent["content"].OfType<ExternalComponent>();
 
     static RouteEndpoint Endpoint(string pattern, string method, params object[] metadata) => new(
         _ => Task.CompletedTask,

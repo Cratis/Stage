@@ -50,7 +50,7 @@ public class when_enriching_canonical_command_actions : Specification
     IReadOnlyList<ExternalComponent> Actions => [.. _result.Screens.Single().SlotContent[DefaultLayout.ContentSlotName].OfType<ExternalComponent>()];
 
     IReadOnlyList<string> FieldsFor(string command) =>
-        [.. ((IReadOnlyList<CommandFormField>)Actions.Single(action => (string)action.Properties["command"]! == command).Properties["fields"]!).Select(field => field.Name)];
+        [.. ((IReadOnlyList<FormField>)Actions.Single(action => (string)action.Properties["command"]! == command).Properties["fields"]!).Select(field => field.Name)];
 
     static ExternalComponent Action(string command) => new()
     {

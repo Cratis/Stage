@@ -43,14 +43,18 @@ public static class SceneSynthesizer
     /// <returns>The scene to serve: the translated one when it declares screens, otherwise one with synthesized screens.</returns>
     public static SceneApplication Synthesize(SceneApplication scene, EventModel model)
     {
-        var commands = StageModelWalker.Slices(model)
+        var slices = StageModelWalker.Slices(model).ToArray();
+        var commands = slices
             .Where(located => located.Slice.Command is not null)
-            .ToDictionary(located => located.Slice.Command!.Name, located => CommandFormMetadata.FromSchema(located.Slice.Command!.Name, located.Slice.Command!.Schema), StringComparer.Ordinal);
-        var enriched = CommandFormMetadataEnricher.Enrich(scene, commands);
+            .ToDictionary(
+                located => located.Slice.Command!.Name,
+                located => CommandFormRuntimeMetadata.FromSchema(located.Slice.Command!.Name, located.Slice.Command!.Schema),
+                StringComparer.Ordinal);
+        var enriched = CommandFormRuntimeMetadata.Apply(scene, commands);
 
         return Synthesize(
             enriched,
-            StageModelWalker.Slices(model).Select(located => new SynthesizedSlice(
+            slices.Select(located => new SynthesizedSlice(
                 located.Slice.Name,
                 located.TypeNamespace,
                 SynthesizedSceneContent.For(
@@ -71,13 +75,18 @@ public static class SceneSynthesizer
     public static SceneApplication Synthesize(SceneApplication scene, ExecutableSemanticModel model)
     {
         var schemas = new SemanticSceneSchemas(model.Application);
-        var readModels = SemanticModelWalker.Slices(model).SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
-        var commands = SemanticModelWalker.Slices(model)
+        var slices = SemanticModelWalker.Slices(model).ToArray();
+        var readModels = slices.SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
+        var commands = slices
             .SelectMany(located => located.Slice.Commands)
-            .ToDictionary(command => command.Name, command => CommandFormMetadata.FromSchema(command.Name, schemas.ForProperties(command.Properties)), StringComparer.Ordinal);
-        var enriched = CommandFormMetadataEnricher.Enrich(scene, commands);
+            .GroupBy(command => command.Name, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => CommandFormRuntimeMetadata.FromSchema(group.Key, schemas.ForProperties(group.First().Properties)),
+                StringComparer.Ordinal);
+        var enriched = CommandFormRuntimeMetadata.Apply(scene, commands);
 
-        return Synthesize(enriched, SemanticModelWalker.Slices(model).Select(located =>
+        return Synthesize(enriched, slices.Select(located =>
         {
             var slice = located.Slice;
             var readModelId = slice.Projections.FirstOrDefault()?.ReadModel ?? slice.Queries.FirstOrDefault()?.ReadModel;

@@ -15,7 +15,7 @@ internal static class SynthesizedSceneContent
         string? readModelName,
         string? readModelSchema,
         string? commandName,
-        CommandFormMetadata? commandMetadata)
+        CommandFormRuntimeCommand? commandMetadata)
     {
         var content = new List<SceneElements.SceneElement>
         {

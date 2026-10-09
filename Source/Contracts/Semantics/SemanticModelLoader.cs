@@ -183,20 +183,21 @@ public static class SemanticModelLoader
     static string[] Discover(string root, ImmutableArray<string> paths, List<SemanticModelLoadDiagnostic> diagnostics)
     {
         var files = new List<string>();
-        foreach (var fullPath in (paths.IsDefaultOrEmpty ? [root] : paths).Order(StringComparer.Ordinal).Select(path => Path.GetFullPath(path, root)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+        foreach (var path in (paths.IsDefaultOrEmpty ? [root] : paths).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
         {
+            var fullPath = Path.GetFullPath(path, root);
             var relative = Path.GetRelativePath(root, fullPath).Replace('\\', '/');
             if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathRooted(relative))
             {
                 diagnostics.Add(new("STAGE-PLAN-001", "A source must be under the supplied root.", relative));
             }
-            else if ((Directory.Exists(fullPath) || File.Exists(fullPath)) && !PhysicallyContained(root, fullPath))
+            else if (ContainsSourceLink(root, path))
             {
-                diagnostics.Add(new("STAGE-PLAN-001", "A source link must remain under the supplied root.", relative));
+                diagnostics.Add(new("STAGE-PLAN-001", "Source paths under the supplied root must not contain links or reparse points.", relative));
             }
             else if (Directory.Exists(fullPath))
             {
-                AddFolderFiles(root, fullPath, files, diagnostics, new HashSet<string>(StringComparer.Ordinal));
+                AddFolderFiles(root, fullPath, files, diagnostics);
             }
             else if (File.Exists(fullPath) && string.Equals(Path.GetExtension(fullPath), ".play", StringComparison.OrdinalIgnoreCase))
             {
@@ -208,31 +209,33 @@ public static class SemanticModelLoader
             }
         }
 
-        var orderedFiles = files.Distinct(StringComparer.Ordinal).OrderBy(file => Path.GetRelativePath(root, file).Replace('\\', '/'), StringComparer.Ordinal).ToArray();
-        foreach (var file in orderedFiles.Where(file => !PhysicallyContained(root, file)))
-        {
-            diagnostics.Add(new("STAGE-PLAN-001", "A source link must remain under the supplied root.", Path.GetRelativePath(root, file).Replace('\\', '/')));
-        }
-
-        return orderedFiles;
+        return [.. files.Distinct(StringComparer.Ordinal).OrderBy(file => Path.GetRelativePath(root, file).Replace('\\', '/'), StringComparer.Ordinal)];
     }
 
-    static void AddFolderFiles(string root, string folder, List<string> files, List<SemanticModelLoadDiagnostic> diagnostics, HashSet<string> ancestors)
+    static void AddFolderFiles(string root, string folder, List<string> files, List<SemanticModelLoadDiagnostic> diagnostics)
     {
         var relative = Path.GetRelativePath(root, folder).Replace('\\', '/');
         try
         {
-            var physical = PhysicalPath(folder);
-            if (!PhysicallyContained(root, folder) || ancestors.Contains(physical))
+            if (ContainsSourceLink(root, folder))
             {
-                diagnostics.Add(new("STAGE-PLAN-001", "A source directory link must remain under the root and must not create a cycle.", relative));
+                diagnostics.Add(new("STAGE-PLAN-001", "Source directories under the supplied root must not contain links or reparse points.", relative));
                 return;
             }
-            files.AddRange(Directory.GetFiles(folder, "*.play"));
-            var next = new HashSet<string>(ancestors, StringComparer.Ordinal) { physical };
-            foreach (var child in Directory.GetDirectories(folder).Order(StringComparer.Ordinal))
+            foreach (var entry in Directory.GetFileSystemEntries(folder).Order(StringComparer.Ordinal))
             {
-                AddFolderFiles(root, child, files, diagnostics, next);
+                if (ContainsSourceLink(root, entry))
+                {
+                    diagnostics.Add(new("STAGE-PLAN-001", "Source paths under the supplied root must not contain links or reparse points.", Path.GetRelativePath(root, entry).Replace('\\', '/')));
+                }
+                else if (Directory.Exists(entry))
+                {
+                    AddFolderFiles(root, entry, files, diagnostics);
+                }
+                else if (entry.EndsWith(".play", OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+                {
+                    files.Add(entry);
+                }
             }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -241,24 +244,24 @@ public static class SemanticModelLoader
         }
     }
 
-    static bool PhysicallyContained(string root, string path)
+    static bool ContainsSourceLink(string root, string path)
     {
-        var relative = Path.GetRelativePath(PhysicalPath(root), PhysicalPath(path)).Replace('\\', '/');
+        var pathRoot = Path.GetPathRoot(path)!;
+        var current = Path.IsPathFullyQualified(path) ? pathRoot : root;
+        if (!Path.IsPathFullyQualified(path) && Path.IsPathRooted(path) && Path.EndsInDirectorySeparator(pathRoot)) current = Path.GetPathRoot(root)!;
+        var segments = path[pathRoot.Length..];
 
-        return relative != ".." && !relative.StartsWith("../", StringComparison.Ordinal) && !Path.IsPathRooted(relative);
-    }
-
-    static string PhysicalPath(string path)
-    {
-        var current = Path.GetPathRoot(path)!;
-        foreach (var segment in path[current.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        // Inspect each segment before a later '..' can remove it. Root and its ancestors are trusted.
+        foreach (var segment in segments.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries))
         {
-            current = Path.Combine(current, segment);
+            current = Path.GetFullPath(Path.Combine(current, segment));
+            var relative = Path.GetRelativePath(root, current).Replace('\\', '/');
+            if (string.Equals(relative, ".", StringComparison.Ordinal) || string.Equals(relative, "..", StringComparison.Ordinal) || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathRooted(relative)) continue;
             FileSystemInfo info = Directory.Exists(current) ? new DirectoryInfo(current) : new FileInfo(current);
-            current = info.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? current;
+            if (info.LinkTarget is not null || (info.Exists && info.Attributes.HasFlag(FileAttributes.ReparsePoint))) return true;
         }
 
-        return current;
+        return false;
     }
 
     static async Task<(SemanticIdentityCatalog? Catalog, SemanticModelLoadDiagnostic? Error)> ReadCatalog(string root, string? path, string name, CancellationToken cancellationToken)
@@ -288,16 +291,16 @@ public static class SemanticModelLoader
         var documentSet = SemanticDocumentSet.Create(documents, catalog, attachments.Contents);
         var compiled = new SemanticModelCompiler().Compile(name, documentSet);
         cancellationToken.ThrowIfCancellationRequested();
+        var diagnostics = compiled.Diagnostics.Select(diagnostic => new SemanticModelLoadDiagnostic(diagnostic.Code, diagnostic.Message, $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column})") { Severity = diagnostic.Severity }).ToImmutableArray();
         if (!compiled.Success)
         {
-            return new(null, [new("STAGE-PLAN-003", "Screenplay compilation failed."),
-                .. compiled.Diagnostics.Select(diagnostic => new SemanticModelLoadDiagnostic(diagnostic.Code, diagnostic.Message, $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column})") { Severity = diagnostic.Severity })]);
+            return new(null, [new("STAGE-PLAN-003", "Screenplay compilation failed."), .. diagnostics]);
         }
         var model = compiled.Value!.Model;
         var plan = SemanticExecutionPlan.Compile(model);
         if (!plan.Success)
         {
-            return new(null, [.. plan.Issues.Select(issue => new SemanticModelLoadDiagnostic("STAGE-PLAN-004", $"{issue.Artifact}: {issue.Details}"))]);
+            return new(null, [.. diagnostics, .. plan.Issues.Select(issue => new SemanticModelLoadDiagnostic("STAGE-PLAN-004", $"{issue.Artifact}: {issue.Details}"))]);
         }
 
         var loaded = new LoadedSemanticModel(model, plan.Plan!)
@@ -308,7 +311,7 @@ public static class SemanticModelLoader
             AttachmentDiagnostics = attachments.Diagnostics
         };
 
-        return new(loaded, []);
+        return new(loaded, diagnostics);
     }
 
     static SemanticModelLoadResult Failure(string code, string message, string? source = null) => new(null, [new(code, message, source)]);

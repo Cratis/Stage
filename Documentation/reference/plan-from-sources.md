@@ -47,8 +47,12 @@ selection and rendering without I/O, for callers that already compiled their sou
 | `Paths` | Files and/or folders, absolute or relative to `Root`. Folders are searched recursively. Empty selects all of `Root`. |
 | `CatalogPath` | Optional authoritative identity catalog, absolute or root-relative. |
 
-Files must exist, have a `.play` extension, and remain under `Root`. Duplicate files
-listed individually and through folders are compiled once. Root-relative paths are
+Files must exist, have a `.play` extension, and remain under `Root`. Symbolic links
+and reparse points below `Root` are refused, even when their targets are inside it.
+This includes linked files, linked directories, and paths containing a link before
+`..`. Folder searches report directory links without following them. `Root` itself
+may sit under a linked mount. Duplicate files listed individually and through folders
+are compiled once. Root-relative paths are
 sorted ordinally, so listing order does not change identities, output bytes, or digest.
 
 **Keep `Root` stable between calls.** Root-relative document paths determine document
@@ -142,7 +146,7 @@ is exposed separately: equal output digests do not promise equal input revisions
 
 | Code | Outcome |
 | --- | --- |
-| `STAGE-PLAN-001` | Source missing, not a `.play` file, invalid path, or outside root. |
+| `STAGE-PLAN-001` | Source missing, not a `.play` file, invalid path, outside root, or containing a link or reparse point below root. |
 | `STAGE-PLAN-002` | No `.play` files found. |
 | `STAGE-PLAN-003` | Compilation failed; original `PLAY` diagnostics and locations accompany it. |
 | `STAGE-PLAN-004` | Execution-plan admission refused. |

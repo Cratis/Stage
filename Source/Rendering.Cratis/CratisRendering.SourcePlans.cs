@@ -33,7 +33,7 @@ public static partial class CratisRendering
             return CratisPlanResult.Create(options.ApplicationName, [], [.. result.Diagnostics.Select(diagnostic => new CratisPlanDiagnostic(diagnostic.Code, RenderSeverity(diagnostic.Severity), diagnostic.Message, default, diagnostic.Source))]);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        var plan = PlanLoaded(result.Loaded!, selection, options, prepared.Profile!);
+        var plan = PlanLoaded(result.Loaded!, selection, options, prepared.Profile!, result.Diagnostics);
         cancellationToken.ThrowIfCancellationRequested();
 
         return plan;
@@ -73,14 +73,15 @@ public static partial class CratisRendering
         return CratisPlanResult.Create(options.ApplicationName, [.. artifacts], []);
     }
 
-    static CratisPlanResult PlanLoaded(LoadedSemanticModel loaded, PlanSelection selection, CratisPlanOptions options, ArtifactRenderProfile profile)
+    static CratisPlanResult PlanLoaded(LoadedSemanticModel loaded, PlanSelection selection, CratisPlanOptions options, ArtifactRenderProfile profile, ImmutableArray<SemanticModelLoadDiagnostic> compilationDiagnostics = default)
     {
+        ImmutableArray<CratisPlanDiagnostic> sourceDiagnostics = compilationDiagnostics.IsDefault ? [] : [.. compilationDiagnostics.Select(diagnostic => new CratisPlanDiagnostic(diagnostic.Code, RenderSeverity(diagnostic.Severity), diagnostic.Message, default, diagnostic.Source))];
         if (loaded.Model.Application.Name != options.ApplicationName)
         {
-            return CratisPlanResult.Create(options.ApplicationName, [], [CratisPlanResult.Error("STAGE-PLAN-030", "The options' application name must match the loaded application.")], loaded.Model.Revision);
+            return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, CratisPlanResult.Error("STAGE-PLAN-030", "The options' application name must match the loaded application.")], loaded.Model.Revision);
         }
         var resolved = PlanSelectionResolver.Resolve(loaded.Model.Application, selection);
-        if (!resolved.Diagnostics.IsEmpty) return CratisPlanResult.Create(options.ApplicationName, [], resolved.Diagnostics, loaded.Model.Revision);
+        if (!resolved.Diagnostics.IsEmpty) return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, .. resolved.Diagnostics], loaded.Model.Revision);
         var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, resolved.Scopes[0])
         {
             AdditionalScopes = resolved.Scopes.RemoveAt(0),
@@ -92,11 +93,15 @@ public static partial class CratisRendering
         var context = new SemanticApplicationContext(request, new(options.ProjectName, options.RootNamespace));
         if (context.SelectedSlices().Count == 0)
         {
-            return CratisPlanResult.Create(options.ApplicationName, [], [CratisPlanResult.Error("STAGE-PLAN-014", "The selection matches no slices.")], loaded.Model.Revision);
+            return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, CratisPlanResult.Error("STAGE-PLAN-014", "The selection matches no slices.")], loaded.Model.Revision);
         }
         var plan = new CratisArtifactRenderPlanner().Plan(request);
 
-        var diagnostics = plan.Diagnostics.Select(diagnostic => new CratisPlanDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Message, diagnostic.Artifact, null)).ToImmutableArray();
+        var diagnostics = sourceDiagnostics.AddRange(plan.Diagnostics.Select(diagnostic => new CratisPlanDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Message, diagnostic.Artifact, null)));
+        if (!sourceDiagnostics.IsEmpty)
+        {
+            plan = ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. sourceDiagnostics.Select(diagnostic => new ArtifactRenderDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}", diagnostic.Artifact))]);
+        }
 
         return CratisPlanResult.Create(plan.ApplicationName, plan.Artifacts, diagnostics, plan.SemanticRevision, plan);
     }

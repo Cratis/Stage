@@ -38,7 +38,7 @@ public static class ConceptRenderer
         Render(concept, applicationSet, rootNamespace, false);
 
     /// <summary>
-    /// Renders a concept with optional compliance details and secret encryption scope/reason.
+    /// Renders a concept honoring its secret encryption scope, with optional compliance details and secret reasons.
     /// </summary>
     /// <param name="concept">The concept to render.</param>
     /// <param name="applicationSet">The surrounding declarations and placements.</param>

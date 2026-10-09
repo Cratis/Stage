@@ -46,8 +46,8 @@ public class CratisRenderer : IRenderer
     }
 
     /// <summary>
-    /// Gets whether concept rendering emits compliance details and secret scope/reason.
-    /// Defaults to false to preserve existing event registration metadata.
+    /// Gets whether concept rendering emits compliance details and secret reasons.
+    /// Defaults to false to omit free-text registration metadata; secret encryption scope is always honored.
     /// </summary>
     public bool ComplianceDetails { get; init; }
 
@@ -66,7 +66,7 @@ public class CratisRenderer : IRenderer
     /// <summary>
     /// Creates the default syntax renderer with optional registration-changing compliance details.
     /// </summary>
-    /// <param name="complianceDetails">Whether to emit personal-data qualifiers/reasons and secret scope/reason.</param>
+    /// <param name="complianceDetails">Whether to emit personal-data qualifiers/reasons and secret reasons.</param>
     /// <returns>The configured renderer.</returns>
     public static CratisRenderer CreateDefault(bool complianceDetails)
     {

@@ -50,8 +50,9 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const route = form?.route ?? (form ? data.routes?.commands[form.command] : undefined);
-    const commandSignature = useMemo(() => route ? commandSignatureFor(route, fields, schema) : '', [route, fields, schema]);
-    const commandType = useMemo(() => route ? commandTypeFor(route, fields, schema) : undefined, [route, commandSignature]);
+    const initialValues = useMemo(() => initialCommandValues(fields, data.parameters), [fields, data.parameters]);
+    const commandSignature = useMemo(() => route ? commandSignatureFor(route, fields, schema, initialValues) : '', [route, fields, schema, initialValues]);
+    const commandType = useMemo(() => route ? commandTypeFor(route, fields, schema, initialValues) : undefined, [route, commandSignature]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -70,6 +71,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
         <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
             <NativeCommandForm
                 command={commandType}
+                initialValues={initialValues}
                 validateOn='both'
                 validateAllFieldsOnChange
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
@@ -174,10 +176,30 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
     );
 }
 
-function commandSignatureFor(route: string, fields: FormField[], schema: SchemaProperty[]): string {
+/**
+ * The values a command starts with from the screen it is executed on.
+ *
+ * A screen navigated to `by workItemId` is about that work item, so a command on it that takes a `workItemId`
+ * is about the same one: the parameter is carried in by exact name. Nothing else is guessed - a property the
+ * screen has no parameter for stays empty and its required validation still applies, so a command is never
+ * submitted for an entity the user did not pick.
+ */
+function initialCommandValues(fields: FormField[], parameters: Record<string, string>): StageCommandContent {
+    const values: StageCommandContent = {};
+    for (const field of fields) {
+        const property = field.sourceProperty ?? field.name;
+        const parameter = parameters[property];
+        if (parameter !== undefined && parameter !== '') values[property] = parameter;
+    }
+
+    return values;
+}
+
+function commandSignatureFor(route: string, fields: FormField[], schema: SchemaProperty[], initialValues: StageCommandContent): string {
     const schemaByName = new Map(schema.map(property => [property.name, property]));
     return JSON.stringify({
         route: route.replace(/^\//, ''),
+        initialValues,
         fields: fields.map(field => {
             const property = field.sourceProperty ?? field.name;
             const schemaProperty = schemaByName.get(property);
@@ -192,7 +214,7 @@ function commandSignatureFor(route: string, fields: FormField[], schema: SchemaP
     });
 }
 
-function commandTypeFor(route: string, fields: FormField[], schema: SchemaProperty[]): StageCommandConstructor {
+function commandTypeFor(route: string, fields: FormField[], schema: SchemaProperty[], initialValues: StageCommandContent): StageCommandConstructor {
     const descriptors = fields.map(field => {
         const property = field.sourceProperty ?? field.name;
         const schemaProperty = schema.find(_ => _.name === property);
@@ -206,6 +228,7 @@ function commandTypeFor(route: string, fields: FormField[], schema: SchemaProper
 
         constructor() {
             super(Object, false);
+            (this as unknown as { _values: StageCommandContent })._values = { ...initialValues };
             for (const descriptor of descriptors) {
                 Object.defineProperty(this, descriptor.name, {
                     configurable: true,

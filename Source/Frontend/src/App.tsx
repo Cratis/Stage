@@ -21,6 +21,8 @@ import { stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents, stageTemplateComponent } from './StageChrome';
 import { applicationChrome, resolveNames, screenFromHash, screenHash, stageProfile, stageRegistry, templateFor } from './blueprint';
+import { bindDataSources } from './stageDataSources';
+import { screenParameters } from './stageNavigation';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -72,7 +74,7 @@ export function composeStageScreen(scene: StageSceneApplication, screen: Screen,
         [SlotName.Content]: [...content, externalComponent('activity', stageActivityComponent)],
     });
 
-    return resolveNames(composed, profile);
+    return resolveNames(bindDataSources(composed), profile);
 }
 
 function commandFormElement(screenName: string, form: Form): SceneElement {
@@ -102,13 +104,15 @@ export function App() {
     const routes = routeState.routes;
     const strings = useStrings();
     const [selectedScreen, setSelectedScreen] = useState(() => screenFromHash(globalThis.location?.hash ?? '') ?? '');
+    const [parameters, setParameters] = useState(() => screenParameters(globalThis.location?.hash ?? ''));
     const [error, setError] = useState('');
     const [activity, setActivity] = useState('');
 
     const select = (name: string) => {
         setSelectedScreen(name);
+        setParameters({});
         setActivity('');
-        if (globalThis.location && screenFromHash(globalThis.location.hash) !== name) globalThis.history?.replaceState(null, '', screenHash(name));
+        if (globalThis.location && (screenFromHash(globalThis.location.hash) !== name || globalThis.location.hash.includes('?'))) globalThis.history?.replaceState(null, '', screenHash(name));
     };
 
     useEffect(() => {
@@ -120,6 +124,7 @@ export function App() {
             })
             .then(application => {
                 setScene(application);
+                setParameters(screenParameters(globalThis.location?.hash ?? ''));
                 setSelectedScreen(current => {
                     const hashScreen = screenFromHash(globalThis.location?.hash ?? '');
                     if (hashScreen && application.screens.some(screen => screen.name === hashScreen)) return hashScreen;
@@ -136,8 +141,11 @@ export function App() {
         const hashChanged = () => {
             const name = screenFromHash(globalThis.location.hash);
             if (name && scene?.screens.some(screen => screen.name === name)) {
-                setSelectedScreen(name);
-                setActivity('');
+                setSelectedScreen(current => {
+                    if (current !== name) setActivity('');
+                    return name;
+                });
+                setParameters(screenParameters(globalThis.location.hash));
             }
         };
         const command = (event: Event) => {
@@ -184,7 +192,7 @@ export function App() {
         <LayoutConfigProvider>
             <LayoutThemeProvider>
                 <ColorSchemeMirror />
-                <StageDataProvider routes={routes} routesReady={routeState.ready} locale={strings.locale} locales={strings.locales} screen={screen.name}>
+                <StageDataProvider routes={routes} routesReady={routeState.ready} parameters={parameters} locale={strings.locale} locales={strings.locales} screen={screen.name}>
                     <StageSceneView
                         activity={activity}
                         element={element}

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using SceneCommon = Cratis.Scene.Model.Common;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneInteractions = Cratis.Scene.Model.Interactions;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
@@ -19,8 +20,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <c language="csharp">SceneElement</c> subtype per widget - the <c language="csharp">core:*</c> components don't have to exist in
 /// <c language="csharp">Scene.React</c> yet for the translated model to be correct; rendering them is a separate, later
 /// concern (a <c language="csharp">core</c> package addition), the same reasoning Cratis/Scene#5 used to leave
-/// <c language="csharp">Scene.React</c> untouched. Guarded actions are an exception: their command selection and visibility
-/// require renderer support, so they are refused rather than translated into a component Scene cannot execute.
+/// <c language="csharp">Scene.React</c> untouched. Guarded actions keep their alternatives and fallback in the
+/// component's open property bag so a runtime can evaluate them without the converter choosing a branch.
 /// </remarks>
 public static class ScreenDirectiveConverter
 {
@@ -31,7 +32,6 @@ public static class ScreenDirectiveConverter
     /// <param name="directives">The sibling directives to convert.</param>
     /// <param name="path">The id path of the directives' parent, used to derive unique element ids.</param>
     /// <returns>The converted elements, in declaration order.</returns>
-    /// <exception cref="UnsupportedGuardedScreenAction">Thrown when a directive is a guarded action requiring Scene renderer support.</exception>
     /// <remarks>
     /// Behavior directives are skipped rather than converted. They share the screen body with content because
     /// that is where they are written, but they are what the content <em>does</em>, not more of it - they are
@@ -50,7 +50,6 @@ public static class ScreenDirectiveConverter
     /// <param name="behaviors">What a <c language="csharp">uses</c> clause resolves against.</param>
     /// <param name="attached">Where to collect what was attached at this level, when anything is listening.</param>
     /// <returns>The converted elements, in declaration order.</returns>
-    /// <exception cref="UnsupportedGuardedScreenAction">Thrown when a directive is a guarded action requiring Scene renderer support.</exception>
     public static IReadOnlyList<SceneElements.SceneElement> Convert(
         IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives,
         string path,
@@ -99,7 +98,7 @@ public static class ScreenDirectiveConverter
                 ["navigateToScreen"] = action.Navigate?.Screen,
                 ["navigateByParameter"] = action.Navigate?.By,
             }),
-            ScreenplaySyntax.ScreenGuardedActionSyntax action => throw new UnsupportedGuardedScreenAction(action.Label, action.Location),
+            ScreenplaySyntax.ScreenGuardedActionSyntax action => ConvertGuardedAction(action, id),
             ScreenplaySyntax.ScreenSectionSyntax section => ConvertSection(section, id, scope),
             ScreenplaySyntax.ScreenNavigateSyntax navigate => SceneElementFactory.Component(id, "core:navigate", new Dictionary<string, object?>
             {
@@ -109,6 +108,8 @@ public static class ScreenDirectiveConverter
             ScreenplaySyntax.ScreenTitleSyntax title => SceneElementFactory.Component(id, "core:title", new Dictionary<string, object?> { ["text"] = title.Text }),
             ScreenplaySyntax.ScreenTableSyntax table => ConvertTable(table, id, scope),
             ScreenplaySyntax.ScreenSummarySyntax summary => ConvertSummary(summary, id),
+            ScreenplaySyntax.ScreenToolbarSyntax toolbar => ConvertToolbar(toolbar, id),
+            ScreenplaySyntax.ScreenComponentSyntax component => ConvertComponent(component, id, scope),
             ScreenplaySyntax.ScreenCodeSyntax code => SceneElementFactory.Component(id, "core:code", new Dictionary<string, object?>
             {
                 ["language"] = code.Code.Language,
@@ -117,9 +118,142 @@ public static class ScreenDirectiveConverter
             _ => throw new UnknownScreenDirective(directive.GetType().Name),
         };
 
-    /// <summary>
-    /// Converts a section, attaching what was written inside it to the section itself.
-    /// </summary>
+    static SceneElements.ExternalComponent ConvertToolbar(ScreenplaySyntax.ScreenToolbarSyntax toolbar, string id)
+    {
+        var items = toolbar.Items.Select((item, index) => (SceneElements.SceneElement)SceneElementFactory.Component(
+            $"{id}.{index}-item",
+            "core:toolbarItem",
+            new Dictionary<string, object?>
+            {
+                ["name"] = item.Name,
+                ["kind"] = item.Kind.ToString(),
+                ["target"] = item.Target,
+                ["label"] = item.Label,
+                ["icon"] = item.Icon,
+                ["parameters"] = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ConvertBinding(parameter.Binding), StringComparer.Ordinal),
+                ["presentation"] = item.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
+            })).ToList();
+
+        return SceneElementFactory.Component(id, "core:toolbar", new Dictionary<string, object?> { ["name"] = toolbar.Name }, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["items"] = items });
+    }
+
+    static SceneElements.ExternalComponent ConvertComponent(ScreenplaySyntax.ScreenComponentSyntax component, string id, BehaviorScope scope)
+    {
+        var properties = new Dictionary<string, object?>
+        {
+            ["name"] = component.Name,
+            ["context"] = component.Context is null ? null : ConvertBinding(component.Context),
+            ["icon"] = component.Icon,
+            ["presentation"] = component.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
+            ["exposes"] = component.Exposes.ToDictionary(exposed => exposed.Name, exposed => ConvertBinding(exposed.Binding), StringComparer.Ordinal),
+        };
+
+        foreach (var property in component.Properties)
+        {
+            properties[property.Property] = property.Binding is null ? property.Value : ConvertBinding(property.Binding);
+        }
+
+        var slots = component.Outlets.ToDictionary(
+            outlet => outlet.Name,
+            outlet => Convert(outlet.Directives, $"{id}.{outlet.Name}", scope),
+            StringComparer.Ordinal);
+
+        return SceneElementFactory.Component(id, component.Component, properties, slots) with
+        {
+            Behaviors = scope.Resolve(component.Behaviors, component.UsedBehaviors, id)
+        };
+    }
+
+    static SceneCommon.BindingExpression ConvertBinding(ScreenplaySyntax.UiBindingSyntax binding) =>
+        new(
+            binding.Path,
+            BindingKind(binding.BindingKind),
+            binding.Query,
+            binding.ComponentId,
+            binding.ComponentPropertyPath,
+            BindingMode(binding.Mode),
+            BindingNullBehavior(binding.NullBehavior),
+            binding.ExpectedValueType);
+
+    static SceneCommon.BindingSourceKind BindingKind(ScreenplaySyntax.UiBindingKind kind) =>
+        kind switch
+        {
+            ScreenplaySyntax.UiBindingKind.QueryResult => SceneCommon.BindingSourceKind.QueryResult,
+            ScreenplaySyntax.UiBindingKind.ComponentProperty => SceneCommon.BindingSourceKind.ComponentProperty,
+            _ => SceneCommon.BindingSourceKind.DataContext,
+        };
+
+    static SceneCommon.BindingMode? BindingMode(ScreenplaySyntax.UiBindingMode? mode) =>
+        mode switch
+        {
+            ScreenplaySyntax.UiBindingMode.TwoWay => SceneCommon.BindingMode.TwoWay,
+            ScreenplaySyntax.UiBindingMode.OneWay => SceneCommon.BindingMode.OneWay,
+            _ => null,
+        };
+
+    static SceneCommon.BindingNullBehavior? BindingNullBehavior(ScreenplaySyntax.UiBindingNullBehavior? behavior) =>
+        behavior switch
+        {
+            ScreenplaySyntax.UiBindingNullBehavior.Clear => SceneCommon.BindingNullBehavior.Clear,
+            ScreenplaySyntax.UiBindingNullBehavior.Preserve => SceneCommon.BindingNullBehavior.Preserve,
+            ScreenplaySyntax.UiBindingNullBehavior.Propagate => SceneCommon.BindingNullBehavior.Propagate,
+            _ => null,
+        };
+
+    static SceneElements.ExternalComponent ConvertGuardedAction(ScreenplaySyntax.ScreenGuardedActionSyntax action, string id)
+    {
+        var properties = new Dictionary<string, object?>
+        {
+            ["label"] = action.Label,
+            ["navigateToScreen"] = action.Navigate?.Screen,
+            ["navigateByParameter"] = action.Navigate?.By,
+            ["alternatives"] = action.Alternatives.Select(alternative => new Dictionary<string, object?>
+            {
+                ["command"] = alternative.Command,
+                ["condition"] = ConvertCondition(alternative.Condition),
+                ["arguments"] = ConvertArguments(alternative.Arguments),
+            }).ToList(),
+        };
+
+        if (action.Otherwise is not null)
+        {
+            properties["otherwise"] = new Dictionary<string, object?>
+            {
+                ["outcome"] = action.Otherwise.Outcome.ToString(),
+                ["command"] = action.Otherwise.Command,
+                ["arguments"] = ConvertArguments(action.Otherwise.Arguments),
+            };
+        }
+
+        return SceneElementFactory.Component(id, "core:action", properties);
+    }
+
+    static Dictionary<string, SceneCommon.BindingExpression> ConvertArguments(IEnumerable<ScreenplaySyntax.InteractionArgumentSyntax> arguments) =>
+        arguments.ToDictionary(argument => argument.Name, argument => new SceneCommon.BindingExpression(argument.Binding), StringComparer.Ordinal);
+
+    static Dictionary<string, object?> ConvertCondition(ScreenplaySyntax.ConditionSyntax condition) =>
+        condition switch
+        {
+            ScreenplaySyntax.ComparisonConditionSyntax comparison => new Dictionary<string, object?>
+            {
+                ["kind"] = "comparison",
+                ["left"] = new SceneCommon.BindingExpression(comparison.Left),
+                ["operator"] = comparison.Operator.ToString(),
+                ["right"] = ConvertExpression(comparison.Right),
+            },
+            _ => new Dictionary<string, object?>
+            {
+                ["kind"] = condition.GetType().Name,
+            },
+        };
+
+    static object? ConvertExpression(ScreenplaySyntax.ExpressionSyntax expression) =>
+        expression switch
+        {
+            ScreenplaySyntax.LiteralExpressionSyntax literal => literal.Value,
+            _ => new Dictionary<string, object?> { ["kind"] = expression.GetType().Name },
+        };
+
     static SceneElements.ExternalComponent ConvertSection(ScreenplaySyntax.ScreenSectionSyntax section, string id, BehaviorScope scope)
     {
         var attached = new List<SceneInteractions.Behavior>();
@@ -189,6 +323,8 @@ public static class ScreenDirectiveConverter
             ScreenplaySyntax.ScreenTitleSyntax => "title",
             ScreenplaySyntax.ScreenTableSyntax => "table",
             ScreenplaySyntax.ScreenSummarySyntax => "summary",
+            ScreenplaySyntax.ScreenToolbarSyntax => "toolbar",
+            ScreenplaySyntax.ScreenComponentSyntax => "component",
             ScreenplaySyntax.ScreenCodeSyntax => "code",
             _ => throw new UnknownScreenDirective(directive.GetType().Name),
         };

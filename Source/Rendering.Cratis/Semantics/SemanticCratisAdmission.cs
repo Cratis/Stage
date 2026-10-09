@@ -55,6 +55,12 @@ internal static partial class SemanticCratisAdmission
             return [.. diagnostics];
         }
 
+        ValidateEventSourceRoutes(context, slices, diagnostics);
+        if (diagnostics.Count > 0)
+        {
+            return [.. diagnostics];
+        }
+
         ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
@@ -167,6 +173,27 @@ internal static partial class SemanticCratisAdmission
                 .Concat(located.Slice.Queries.Select(query => query.Authorization)))
             .OfType<SemanticAuthorization>()
             .Any(authorization => OpaquePolicies(authorization, context.Application.Policies).Any());
+
+    static void ValidateEventSourceRoutes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (!context.Application.EventSources.IsEmpty)
+        {
+            diagnostics.Add(Error("STAGE-ESM-030", "Named event sources and streams are not yet supported by the Cratis ESM planner.", context.Application.Id));
+        }
+
+        foreach (var command in slices.SelectMany(_ => _.Slice.Commands).Where(_ => _.Route is not null))
+        {
+            diagnostics.Add(Error("STAGE-ESM-030", $"Command '{command.Name}' has an event-source route, which the Cratis ESM planner cannot render yet.", command.Id));
+        }
+
+        foreach (var specification in slices.SelectMany(_ => _.Slice.Specifications))
+        {
+            if (specification.WhenAppended?.Route is not null || specification.ThenEvents.Any(_ => _.Route is not null || _.Unrouted))
+            {
+                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' uses event-source routing assertions, which the Cratis ESM planner cannot render yet.", specification.Id));
+            }
+        }
+    }
 
     static bool IsProperty(SemanticExpression? expression, SemanticExpressionRootKind root, IEnumerable<SemanticId> candidates) =>
         expression is SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property } resolved &&

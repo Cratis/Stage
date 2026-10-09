@@ -30,5 +30,8 @@ public static class DialogTemplateConverter
         new(
             template.Name,
             SlotConverter.Convert(template.Slots),
-            ArrangementConverter.Convert(template.Arrangement));
+            ArrangementConverter.Convert(template.Arrangement))
+        {
+            Metadata = new(template.TemplateType, template.Category)
+        };
 }

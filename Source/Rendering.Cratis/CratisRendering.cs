@@ -92,6 +92,8 @@ public static class CratisRendering
     /// <param name="defaultLocale">The locale required to contain every referenced message key.</param>
     /// <returns>The immutable Cratis render profile.</returns>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the options or strings input is invalid.</exception>
+    /// <exception cref="Contracts.Scene.UnsupportedGuardedScreenAction">Thrown when the Scene contains guarded screen actions.</exception>
+    /// <exception cref="Contracts.Scene.UnsupportedGuardedInteraction">Thrown when the Scene contains guarded interaction alternatives.</exception>
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
@@ -102,6 +104,11 @@ public static class CratisRendering
         if (options is null)
         {
             throw new InvalidCratisBackendApplicationScaffold("Cratis rendering requires explicit project and root namespace options.");
+        }
+
+        if (scene is not null)
+        {
+            Contracts.Scene.SceneRuntimeAdmission.RequireSupported(scene);
         }
 
         var request = CratisBackendApplicationScaffoldRequest.Create(

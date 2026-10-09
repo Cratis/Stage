@@ -50,6 +50,28 @@ internal static class SceneCompositionAdmission
         return true;
     }
 
+    /// <summary>
+    /// Detects guarded actions in the converted wire model, including manually authored Scene inputs.
+    /// </summary>
+    /// <param name="json">The admitted Scene JSON.</param>
+    /// <returns>Whether any nested component contains guarded action alternatives or a fallback.</returns>
+    public static bool HasGuardedAction(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return HasGuardedAction(document.RootElement);
+    }
+
+    static bool HasGuardedAction(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.Object =>
+            (value.TryGetProperty("componentName", out var name) && name.ValueKind == JsonValueKind.String && name.GetString() == "core:action" &&
+                value.TryGetProperty("properties", out var properties) && properties.ValueKind == JsonValueKind.Object &&
+                (properties.TryGetProperty("alternatives", out _) || properties.TryGetProperty("otherwise", out _))) ||
+            value.EnumerateObject().Any(property => HasGuardedAction(property.Value)),
+        JsonValueKind.Array => value.EnumerateArray().Any(HasGuardedAction),
+        _ => false
+    };
+
     static bool IsScreen(JsonElement screen) =>
         screen.ValueKind == JsonValueKind.Object &&
         screen.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String &&

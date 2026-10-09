@@ -12,7 +12,10 @@ internal static class EventModelHost
     {
         try
         {
-            return await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath);
+            var application = await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath);
+            issues.AddRange(application.Scene.RuntimeIssues.Select(issue => new StageUnsupportedIssue("Scene", issue.Artifact, issue.Details)));
+
+            return application.Scene.RuntimeIssues.Count > 0 ? null : application;
         }
         catch (Exception exception) when (exception is UnsupportedUiSyntax)
         {

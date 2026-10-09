@@ -15,7 +15,7 @@ internal static class SynthesizedSceneContent
         string? readModelName,
         string? readModelSchema,
         string? commandName,
-        string? commandSchema)
+        CommandFormRuntimeCommand? commandMetadata)
     {
         var content = new List<SceneElements.SceneElement>
         {
@@ -62,7 +62,9 @@ internal static class SynthesizedSceneContent
                     ["command"] = commandName,
                     ["label"] = Humanize(commandName),
                     [SceneSynthesizer.TypeNameProperty] = $"{typeNamespace}.{ModelNaming.ToIdentifier(commandName)}",
-                    [SceneSynthesizer.SchemaProperty] = commandSchema
+                    [SceneSynthesizer.SchemaProperty] = commandMetadata?.Schema,
+                    ["fields"] = commandMetadata?.Fields ?? [],
+                    ["metadataStatus"] = commandMetadata is null ? "missing" : "available"
                 }));
         }
 

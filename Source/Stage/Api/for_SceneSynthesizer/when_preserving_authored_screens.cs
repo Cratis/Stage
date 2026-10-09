@@ -19,5 +19,5 @@ public class when_preserving_authored_screens : given.a_scene_model
 
     void Because() => _result = SceneSynthesizer.Synthesize(_authored, _semanticModel);
 
-    [Fact] void should_preserve_the_authored_scene_without_synthesizing_defaults() => ReferenceEquals(_result, _authored).ShouldBeTrue();
+    [Fact] void should_preserve_the_authored_scene_without_synthesizing_defaults() => _result.Screens.Select(screen => screen.Name).ShouldContainOnly(["AuthoredOverview"]);
 }

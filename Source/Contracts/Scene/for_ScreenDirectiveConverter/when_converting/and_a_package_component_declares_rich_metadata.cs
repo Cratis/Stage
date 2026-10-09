@@ -24,7 +24,7 @@ public class and_a_package_component_declares_rich_metadata : Specification
             },
             Properties =
             [
-                new("title", null, "Work items", SourceLocation.Start),
+                new("title", null, new LiteralExpressionSyntax("Work items", SourceLocation.Start), SourceLocation.Start),
                 new(
                     "selectedItem",
                     new UiBindingSyntax(UiBindingKind.ComponentProperty, "selectedItem.workItemId", SourceLocation.Start)

@@ -41,18 +41,30 @@ public static class SceneSynthesizer
     /// <param name="scene">The translated scene, which decides whether anything is synthesized at all.</param>
     /// <param name="model">The event model to derive screens from.</param>
     /// <returns>The scene to serve: the translated one when it declares screens, otherwise one with synthesized screens.</returns>
-    public static SceneApplication Synthesize(SceneApplication scene, EventModel model) => Synthesize(
-        scene,
-        StageModelWalker.Slices(model).Select(located => new SynthesizedSlice(
-            located.Slice.Name,
-            located.TypeNamespace,
-            SynthesizedSceneContent.For(
+    public static SceneApplication Synthesize(SceneApplication scene, EventModel model)
+    {
+        var slices = StageModelWalker.Slices(model).ToArray();
+        var commands = slices
+            .Where(located => located.Slice.Command is not null)
+            .ToDictionary(
+                located => located.Slice.Command!.Name,
+                located => CommandFormRuntimeMetadata.FromSchema(located.Slice.Command!.Name, located.Slice.Command!.Schema),
+                StringComparer.Ordinal);
+        var enriched = CommandFormRuntimeMetadata.Apply(scene, commands);
+
+        return Synthesize(
+            enriched,
+            slices.Select(located => new SynthesizedSlice(
                 located.Slice.Name,
                 located.TypeNamespace,
-                located.Slice.ReadModel?.Name,
-                located.Slice.ReadModel?.Schema,
-                located.Slice.Command?.Name,
-                located.Slice.Command?.Schema))));
+                SynthesizedSceneContent.For(
+                    located.Slice.Name,
+                    located.TypeNamespace,
+                    located.Slice.ReadModel?.Name,
+                    located.Slice.ReadModel?.Schema,
+                    located.Slice.Command?.Name,
+                    located.Slice.Command is null ? null : commands[located.Slice.Command.Name]))));
+    }
 
     /// <summary>
     /// Synthesizes the screens an executable semantic model implies without a legacy event-model projection.
@@ -72,9 +84,9 @@ public static class SceneSynthesizer
                 group => group.Key,
                 group => CommandFormRuntimeMetadata.FromSchema(group.Key, schemas.ForProperties(group.First().Properties)),
                 StringComparer.Ordinal);
-        var sceneWithCommandForms = CommandFormRuntimeMetadata.Apply(scene, commands);
+        var enriched = CommandFormRuntimeMetadata.Apply(scene, commands);
 
-        return Synthesize(sceneWithCommandForms, slices.Select(located =>
+        return Synthesize(enriched, slices.Select(located =>
         {
             var slice = located.Slice;
             var readModelId = slice.Projections.FirstOrDefault()?.ReadModel ?? slice.Queries.FirstOrDefault()?.ReadModel;
@@ -87,7 +99,7 @@ public static class SceneSynthesizer
                 readModel?.Name,
                 readModel is null ? null : SemanticSchemas.Schema(readModel.Properties, model.Application),
                 command?.Name,
-                command is null ? null : schemas.ForProperties(command.Properties)));
+                command is null ? null : commands[command.Name]));
         }));
     }
 

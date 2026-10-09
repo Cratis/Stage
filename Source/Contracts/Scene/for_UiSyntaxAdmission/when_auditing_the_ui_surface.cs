@@ -20,7 +20,7 @@ public class when_auditing_the_ui_surface : Specification
     [InlineData(typeof(InteractionBindingSyntax), "Actions Alternatives Condition Otherwise Trigger")]
     [InlineData(typeof(InteractionAlternativeSyntax), "Actions Condition")]
     [InlineData(typeof(InteractionOtherwiseSyntax), "Actions")]
-    [InlineData(typeof(FormSyntax), "Behaviors ColumnMode Columns Description Fields For Name OnSubmit Populate UsedBehaviors")]
+    [InlineData(typeof(FormSyntax), "Behaviors ColumnMode Columns Description Fields For GenerationMode Layout Name OnSubmit Populate UsedBehaviors")]
     [InlineData(typeof(FormColumnSyntax), "Label Property")]
     [InlineData(typeof(LayoutSyntax), "Arrangement Behaviors Category Exposes Name Outlets Slots TemplateType UsedBehaviors")]
     [InlineData(typeof(ScreenTemplateSyntax), "Arrangement Behaviors Category Exposes FitsSlot FitsSlotLocation Name Outlets Slots TemplateType UsedBehaviors")]
@@ -29,7 +29,7 @@ public class when_auditing_the_ui_surface : Specification
     [InlineData(typeof(TemplateOutletSyntax), "Name")]
     [InlineData(typeof(ScreenSyntax), "Description Directives File Name")]
     [InlineData(typeof(ScreenNavigateSyntax), "By Parameters Route Screen")]
-    [InlineData(typeof(ScreenComponentSyntax), "Behaviors Component Context Exposes Icon Name Outlets Presentation Properties UsedBehaviors")]
+    [InlineData(typeof(ScreenComponentSyntax), "Behaviors Component Context Exposes Icon Name Outlets Presentation Properties StableId UsedBehaviors")]
     [InlineData(typeof(ComponentPropertySyntax), "Binding Property Value")]
     [InlineData(typeof(ComponentExposedValueSyntax), "Binding Name")]
     [InlineData(typeof(PresentationValueSyntax), "Name Value")]
@@ -38,7 +38,7 @@ public class when_auditing_the_ui_surface : Specification
     [InlineData(typeof(ToolbarItemSyntax), "Icon Kind Label Name Parameters Presentation Target")]
     [InlineData(typeof(ScreenNavigationParameterSyntax), "Binding Name")]
     [InlineData(typeof(TemplateAssignmentSyntax), "Name")]
-    [InlineData(typeof(UiBindingSyntax), "BindingKind ComponentId ComponentPropertyPath ExpectedValueType Mode NullBehavior Path Query RawText")]
+    [InlineData(typeof(UiBindingSyntax), "BindingKind ComponentId ComponentPropertyPath ExpectedValueType Literal Mode NullBehavior Path Query RawText")]
     [InlineData(typeof(UiProfileSyntax), "DefaultSizeClass Icons Layout Name Packages Platforms Theme")]
     public void should_require_a_decision_for_every_added_member(Type type, string audited)
     {
@@ -50,7 +50,7 @@ public class when_auditing_the_ui_surface : Specification
     [Theory]
     [InlineData(typeof(FormColumnMode), "Unspecified Auto Manual")]
     [InlineData(typeof(ToolbarItemKind), "Unknown Action Navigate Dialog")]
-    [InlineData(typeof(UiBindingKind), "Invalid DataContext QueryResult ComponentProperty")]
+    [InlineData(typeof(UiBindingKind), "Invalid DataContext QueryResult ComponentProperty Literal")]
     [InlineData(typeof(UiBindingMode), "OneWay TwoWay")]
     [InlineData(typeof(UiBindingNullBehavior), "Propagate Clear Preserve")]
     public void should_require_a_decision_for_every_added_variant(Type type, string audited) => string.Join(' ', Enum.GetNames(type)).ShouldEqual(audited);

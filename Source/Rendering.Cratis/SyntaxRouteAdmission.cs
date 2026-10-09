@@ -12,7 +12,8 @@ internal sealed class SyntaxRouteAdmission : ScreenplaySyntaxWalker
     {
         var routed = node switch
         {
-            EventSourceSyntax source => source.Streams.Any(),
+            // Any declared event source is refused, matching semantic admission (SemanticCratisAdmission.ValidateEventSourceRoutes).
+            EventSourceSyntax => true,
             CommandSyntax command => command.Stream is not null,
             SpecificationExampleSyntax example => example.Stream is not null || example.NoStream is not null,
             SpecificationRedeliverySyntax redelivery => redelivery.Stream is not null || redelivery.NoStream is not null,

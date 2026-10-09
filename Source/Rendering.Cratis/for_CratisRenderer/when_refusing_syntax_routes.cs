@@ -14,6 +14,7 @@ public class when_refusing_syntax_routes : a_multi_slice_application
 {
     [Theory]
     [InlineData("source")]
+    [InlineData("source-without-streams")]
     [InlineData("command")]
     [InlineData("example-stream")]
     [InlineData("example-no-stream")]
@@ -32,7 +33,12 @@ public class when_refusing_syntax_routes : a_multi_slice_application
         _application = _application with
         {
             Modules = [module],
-            EventSources = form == "source" ? [new EventSourceSyntax("Invoice", location) { Streams = [new("Changes", location)] }] : []
+            EventSources = form switch
+            {
+                "source" => [new EventSourceSyntax("Invoice", location) { Streams = [new("Changes", location)] }],
+                "source-without-streams" => [new EventSourceSyntax("Invoice", location)],
+                _ => []
+            }
         };
         var context = new ApplicationSet([_application]);
         foreach (var scope in new[] { "application", "module", "feature", "slice" })
@@ -84,7 +90,7 @@ public class when_refusing_syntax_routes : a_multi_slice_application
                 "feature" => _renderer.Render(selectedFeature, context, _targetDirectory, _output, _error, module: "Billing"),
                 _ => _renderer.Render(selected, context, _targetDirectory, _output, _error, module: "Billing", feature: "Invoices")
             });
-            ((RenderingFailed)error!).Failures.Single().ShouldBeOfExactType<UnsupportedEventRoutes>();
+            ((RenderingFailed)error).Failures.Single().ShouldBeOfExactType<UnsupportedEventRoutes>();
             _scaffolder.WasCalled.ShouldBeFalse();
             _codeOutput.Files.ShouldBeEmpty();
         }
@@ -116,7 +122,7 @@ public class when_refusing_syntax_routes : a_multi_slice_application
             var error = await Catch.Exception(() => scope == "application"
                 ? _renderer.Render([_application], _targetDirectory, _output, _error)
                 : _renderer.Render(selected, context, _targetDirectory, _output, _error, module: "Billing", feature: "Invoices"));
-            var failure = ((RenderingFailed)error!).Failures.Single();
+            var failure = ((RenderingFailed)error).Failures.Single();
             failure.ShouldBeOfExactType<UnsupportedEventRoutes>();
             ((UnsupportedEventRoutes)failure).Location.ShouldEqual(location);
             failure.Message.ShouldContain("STAGE-ESM-030:");

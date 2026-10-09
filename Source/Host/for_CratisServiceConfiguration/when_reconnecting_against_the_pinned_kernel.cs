@@ -31,9 +31,11 @@ public class when_reconnecting_against_the_pinned_kernel
         var name = $"StageReconnect{Guid.NewGuid():N}";
         var builder = WebApplication.CreateBuilder();
         builder.AddStageCratis(name, "Stage reconnect probe");
-        builder.Services.PostConfigure<ChronicleOptions>(options => options.ConnectionString = address);
+
+        // The ASP.NET Core client is built from ChronicleAspNetCoreOptions, not IOptions<ChronicleOptions>.
+        builder.Services.PostConfigure<ChronicleAspNetCoreOptions>(options => options.ConnectionString = address);
         await using var app = builder.Build();
-        var options = app.Services.GetRequiredService<IOptions<ChronicleOptions>>().Value;
+        var options = app.Services.GetRequiredService<IOptions<ChronicleAspNetCoreOptions>>().Value;
         Assert.False(options.AutoDiscoverAndRegister);
         var client = app.Services.GetRequiredService<IChronicleClient>();
         var model = EventModelLoader.LoadFromSource("""

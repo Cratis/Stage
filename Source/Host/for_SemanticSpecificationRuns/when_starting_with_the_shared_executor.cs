@@ -89,7 +89,7 @@ public class when_starting_with_the_shared_executor : Specification
         _handlers = [.. _app.Services.GetRequiredService<ICommandHandlerProviders>().Handlers.Select(handler => handler.CommandType.Assembly.GetName().Name!)];
     }
 
-    [Fact] void should_leave_chronicle_artifact_registration_to_stage() => _app.Services.GetRequiredService<IOptions<ChronicleOptions>>().Value.AutoDiscoverAndRegister.ShouldBeFalse();
+    [Fact] void should_leave_chronicle_artifact_registration_to_stage() => _app.Services.GetRequiredService<IOptions<ChronicleAspNetCoreOptions>>().Value.AutoDiscoverAndRegister.ShouldBeFalse();
     [Fact] void should_start_and_serve_status() => _status.ShouldEqual(HttpStatusCode.OK);
     [Fact] void should_keep_the_host_ready_after_a_run() => _stageStatus.State.ShouldEqual("ready");
     [Fact] void should_run_the_specification_in_the_child() => _report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);

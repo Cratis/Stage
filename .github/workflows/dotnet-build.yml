@@ -132,26 +132,37 @@ jobs:
           --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured"
           --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
 
-      # A zero exit from dotnet test can mean that nothing ran. Require both named probes to
+      - name: Run Stage projection reconnect probe
+        env:
+          STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
+        run: >-
+          dotnet test Source/Host/Host.csproj --configuration Debug
+          --filter "FullyQualifiedName~when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured"
+          --logger "trx;LogFileName=stage-reconnect.trx" --results-directory ./TestResults/reducer-mongo
+
+      # A zero exit from dotnet test can mean that nothing ran. Require every named probe to
       # execute and pass, so a missing or skipped probe cannot silently make this gate green.
-      - name: Require both live probes to execute and pass
+      - name: Require all live probes to execute and pass
         run: |
           python3 - <<'PY'
           import xml.etree.ElementTree as ET
-          root = ET.parse("TestResults/reducer-mongo/billing-mongo.trx").getroot()
+          roots = [ET.parse("TestResults/reducer-mongo/" + name).getroot()
+                   for name in ("billing-mongo.trx", "stage-reconnect.trx")]
           ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
-          results = root.findall("t:Results/t:UnitTestResult", ns)
+          results = [result for root in roots for result in root.findall("t:Results/t:UnitTestResult", ns)]
           prefix = "Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner."
           expected = {
               prefix + "when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured",
               prefix + "when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured",
+              "Cratis.Stage.Host.for_CratisServiceConfiguration.when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured",
           }
-          counters = root.find("t:ResultSummary/t:Counters", ns)
+          counters = [root.find("t:ResultSummary/t:Counters", ns) for root in roots]
           if (len(results) != len(expected)
                   or {result.get("testName") for result in results} != expected
                   or any(result.get("outcome") != "Passed" for result in results)
-                  or counters is None or counters.get("executed") != str(len(expected))):
-              raise SystemExit("Both Billing and scoped-projection Mongo probes must execute and pass, not skip.")
+                  or any(counter is None for counter in counters)
+                  or sum(int(counter.get("executed", "0")) for counter in counters) != len(expected)):
+              raise SystemExit("Billing, scoped-projection and Stage reconnect probes must execute and pass, not skip.")
           PY
 
       - name: Capture kernel logs

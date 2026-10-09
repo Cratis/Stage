@@ -25,13 +25,6 @@ internal static class SemanticChronicleRegistration
         var store = await client.GetEventStore(name);
         await store.Connection.Connect();
         var accessor = (IChronicleServicesAccessor)store.Connection;
-        (await accessor.Services.EventStores.EnsureEventStore(new EnsureEventStoreRequest { Name = store.Name })).EnsureSuccess();
-        var tail = (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
-        {
-            EventStore = store.Name,
-            Namespace = EventStoreNamespaceName.Default,
-            EventSequenceId = EventSequenceId.Log
-        })).EnsureSuccess().SequenceNumber;
         var registrations = plan.Events.Values.Select(@event =>
         {
             var schema = SemanticSchemas.Schema(@event.Properties, plan.Model.Application);
@@ -44,16 +37,32 @@ internal static class SemanticChronicleRegistration
                 Generations = [new ChronicleEvents.EventTypeGenerationDefinition { Generation = 1, Schema = schema }]
             };
         }).ToArray();
-        if (registrations.Length > 0)
+
+        // Only register contracts on reconnect: the published semantic world must not be rebuilt or replaced.
+        store.Connection.Lifecycle.OnConnected += RegisterEventTypes;
+        await RegisterEventTypes();
+        var tail = (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
         {
-            (await accessor.Services.EventTypes.RegisterEventTypes(new ChronicleEventTypes.RegisterEventTypesRequest
-            {
-                EventStore = store.Name,
-                Types = registrations
-            })).EnsureSuccess();
-        }
+            EventStore = store.Name,
+            Namespace = EventStoreNamespaceName.Default,
+            EventSequenceId = EventSequenceId.Log
+        })).EnsureSuccess().SequenceNumber;
 
         return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, plan, tail);
+
+        async Task RegisterEventTypes()
+        {
+            var connectedAccessor = (IChronicleServicesAccessor)store.Connection;
+            (await connectedAccessor.Services.EventStores.EnsureEventStore(new EnsureEventStoreRequest { Name = store.Name })).EnsureSuccess();
+            if (registrations.Length > 0)
+            {
+                (await connectedAccessor.Services.EventTypes.RegisterEventTypes(new ChronicleEventTypes.RegisterEventTypesRequest
+                {
+                    EventStore = store.Name,
+                    Types = registrations
+                })).EnsureSuccess();
+            }
+        }
     }
 
     internal static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, ulong tail)

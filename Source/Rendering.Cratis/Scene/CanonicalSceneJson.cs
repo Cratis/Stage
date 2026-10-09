@@ -49,6 +49,7 @@ public static class CanonicalSceneJson
         ArgumentNullException.ThrowIfNull(application);
 
         var node = JsonSerializer.SerializeToNode(application, _readOptions) ?? new JsonObject();
+        PreserveLiteralNullValues(node);
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream, _writeOptions))
         {
@@ -56,6 +57,31 @@ public static class CanonicalSceneJson
         }
 
         return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    static void PreserveLiteralNullValues(JsonNode? node)
+    {
+        switch (node)
+        {
+            case JsonObject o:
+                if (o.TryGetPropertyValue("kind", out var kind) && kind?.GetValue<string>() == "literal" && !o.ContainsKey("value"))
+                {
+                    o["value"] = null;
+                }
+
+                foreach (var property in o.ToList())
+                {
+                    PreserveLiteralNullValues(property.Value);
+                }
+                break;
+
+            case JsonArray a:
+                foreach (var item in a)
+                {
+                    PreserveLiteralNullValues(item);
+                }
+                break;
+        }
     }
 
     static void Write(JsonNode? node, Utf8JsonWriter writer)

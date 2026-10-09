@@ -32,7 +32,13 @@ public static class FormConverter
     /// <param name="form">The <see cref="ScreenplaySyntax.FormSyntax"/> to convert.</param>
     /// <returns>The converted <see cref="SceneModel.Form"/>.</returns>
     public static SceneModel.Form Convert(ScreenplaySyntax.FormSyntax form) =>
-        new(form.Name, form.For, ConvertPopulateSource(form.Populate), [.. form.Fields.Select(ConvertField)]);
+        new(
+            form.Name,
+            form.For,
+            ConvertPopulateSource(form.Populate),
+            [.. form.Fields.Select(ConvertField)],
+            ScreenplayRichSyntax.GenerationMode(form),
+            ScreenplayRichSyntax.Layout(form));
 
     static SceneModel.PopulateSource? ConvertPopulateSource(ScreenplaySyntax.FormPopulateSource? populate) =>
         populate switch
@@ -48,5 +54,5 @@ public static class FormConverter
         };
 
     static SceneModel.FormField ConvertField(ScreenplaySyntax.FormFieldSyntax field) =>
-        new(field.Property, field.From, field.ComposeUsing, field.Label);
+        new(field.Property, field.From, field.ComposeUsing, field.Label, ScreenplayRichSyntax.FieldPlacement(field));
 }

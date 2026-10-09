@@ -55,8 +55,8 @@ internal static partial class SemanticCratisAdmission
                 readModel.Properties.Select(property => property.Name),
                 slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
                 !GeneratedPascalCase.QueriesAreUnique(slice.Queries.Where(query => query.ReadModel == readModel.Id)
-                    .Where(query => TypeExists(context, query.Argument.Type))
-                    .Select(query => (query.Name, new SemanticTypeSystem(context).Type(query.Argument.Type), query.Argument.Name))))
+                    .Where(query => query.Argument is null || TypeExists(context, query.Argument.Type))
+                    .Select(query => (query.Name, query.Argument is null ? string.Empty : new SemanticTypeSystem(context).Type(query.Argument.Type), query.Argument?.Name ?? string.Empty))))
             {
                 diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' has property or query names that collide in generated C#.", readModel.Id));
                 continue;
@@ -118,12 +118,16 @@ internal static partial class SemanticCratisAdmission
         {
             var readModel = slice.ReadModels.SingleOrDefault(_ => _.Id == query.ReadModel);
             var identifiers = readModel?.Properties.Where(_ => _.IsIdentifier).ToArray() ?? [];
-            if (query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
-                query.Delivery != SemanticQueryDelivery.Snapshot || identifiers.Length != 1 ||
-                query.KeyProperty != identifiers[0].Id || !TypeExists(context, query.Argument.Type) ||
-                HasValidatedConcept(context, query.Argument.Type, []))
+            var isSnapshotLookup = query.Cardinality == SemanticQueryCardinality.ZeroOrOne &&
+                query.Delivery == SemanticQueryDelivery.Snapshot && identifiers.Length == 1 &&
+                query.Argument is not null && query.KeyProperty == identifiers[0].Id && TypeExists(context, query.Argument.Type) &&
+                !HasValidatedConcept(context, query.Argument.Type, []);
+            var isLiveCollection = query.Cardinality == SemanticQueryCardinality.Many &&
+                query.Delivery == SemanticQueryDelivery.Live && readModel is not null &&
+                (query.Argument is null || (TypeExists(context, query.Argument.Type) && readModel.Properties.Any(_ => _.Id == query.KeyProperty)));
+            if (!isSnapshotLookup && !isLiveCollection)
             {
-                diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is not an optional snapshot lookup by the read-model identifier.", query.Id));
+                diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is neither an optional snapshot lookup by identifier nor an observable collection query the renderer can preserve.", query.Id));
             }
         }
     }

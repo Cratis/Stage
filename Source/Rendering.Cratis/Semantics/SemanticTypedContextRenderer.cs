@@ -109,6 +109,7 @@ internal static class SemanticTypedContextRenderer
             }
             if (context.Queries.TryGetValue(id, out var query))
             {
+                if (query.Argument is null) throw Rejected($"Shape '{id}' names a query without arguments.");
                 var expected = new SemanticContextProperty(query.Argument.Name, query.Argument.Id, query.Argument.Type);
                 if (properties.Length != 1 || properties[0] != expected) throw Rejected($"Shape '{id}' differs from query arguments.");
                 var localName = $"{name}_{Identifiers.ToPascalCase(memberName)}Shape";

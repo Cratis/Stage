@@ -54,7 +54,7 @@ internal static partial class SemanticCratisAdmission
             var identifiers = model.Properties.Where(_ => _.IsIdentifier).ToArray();
             if (identifiers.Length != 1 || !new SemanticTypeSystem(context).SupportsReducerIdentifier(identifiers[0].Type) ||
                 !slice.Queries.Any(query => query.ReadModel == model.Id && query.KeyProperty == identifiers[0].Id &&
-                    query.Argument.Type == identifiers[0].Type && query.Cardinality == SemanticQueryCardinality.ZeroOrOne &&
+                    query.Argument is not null && query.Argument.Type == identifiers[0].Type && query.Cardinality == SemanticQueryCardinality.ZeroOrOne &&
                     query.Delivery == SemanticQueryDelivery.Snapshot))
             {
                 diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' needs a required Guid/Text identifier (or identifier concept) and a matching keyed query.", reducer.ReadModel));

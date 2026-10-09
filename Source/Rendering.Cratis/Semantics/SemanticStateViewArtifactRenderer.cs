@@ -31,7 +31,7 @@ internal static class SemanticStateViewArtifactRenderer
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels");
         if (located.Slice.ReadModels.SelectMany(_ => _.Properties).Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)) ||
-            located.Slice.Queries.Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Argument.Type)))
+            located.Slice.Queries.Any(_ => _.Argument is not null && SemanticTypeSystem.DeclarationNeedsCommon(_.Argument.Type)))
         {
             builder.Using($"{context.RootNamespace}.Common");
         }
@@ -129,11 +129,30 @@ internal static class SemanticStateViewArtifactRenderer
         SemanticApplicationContext context)
     {
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var methodName = Identifiers.ToPascalCase(query.Name);
+        var documentation = context.Docs(query.Id).Render(builder.BlankLine())
+            .Attribute(SemanticAuthorizationAttributes.For(query));
+        if (query.Argument is null)
+        {
+            documentation.ExpressionMember(
+                $"public static async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels)",
+                $"await readModels.GetInstances<{readModelName}>()");
+            return;
+        }
+
         var argumentName = Identifiers.EscapeKeyword(Identifiers.ToCamelCase(query.Argument.Name));
-        context.Docs(query.Id).Render(builder.BlankLine())
-            .Attribute(SemanticAuthorizationAttributes.For(query))
-            .ExpressionMember(
-                $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {Identifiers.ToPascalCase(query.Name)}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {types.Type(query.Argument.Type)} {argumentName})",
-                $"await readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){argumentName})");
+        var argumentType = types.Type(query.Argument.Type);
+        if (query.Cardinality == SemanticQueryCardinality.Many)
+        {
+            var property = readModel.Properties.Single(_ => _.Id == query.KeyProperty);
+            documentation.ExpressionMember(
+                $"public static async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argumentType} {argumentName})",
+                $"global::System.Linq.Enumerable.Where(await readModels.GetInstances<{readModelName}>(), instance => global::System.Collections.Generic.EqualityComparer<{argumentType}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {argumentName}))");
+            return;
+        }
+
+        documentation.ExpressionMember(
+            $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argumentType} {argumentName})",
+            $"await readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){argumentName})");
     }
 }

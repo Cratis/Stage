@@ -26,7 +26,8 @@ internal static class SemanticSpecificationArtifactRenderer
             return [SemanticQuerySpecificationRenderer.RenderSeededQuery(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];
         }
 
-        if (SemanticSpecificationAdmission.CanDenyQueryOnly(specification, context))
+        if (SemanticSpecificationAdmission.CanDenyQueryOnly(specification, context) ||
+            SemanticSpecificationAdmission.CanProjectQueryOnly(specification, context))
         {
             return [SemanticQuerySpecificationRenderer.Render(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];
         }

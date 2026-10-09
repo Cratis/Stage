@@ -74,7 +74,9 @@ public static class SemanticRunAdmission
                     readModel.Properties.Select(property => property.Name),
                     slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
                 !GeneratedPascalCase.QueriesAreUnique(slice.Queries.Where(query => query.ReadModel == readModel.Id)
-                    .Select(query => (query.Name, SemanticRunProjectionAdmission.QueryType(query.Argument.Type, plan), query.Argument.Name))));
+                    .Select(query => query.Argument is { } argument
+                        ? (query.Name, SemanticRunProjectionAdmission.QueryType(argument.Type, plan), argument.Name)
+                        : (query.Name, string.Empty, string.Empty))));
             if (collidingReadModel is not null) return Block(StageExecutionCapability.Projection, collidingReadModel.Id, "A read-model property name or query collides in generated C#.");
             var collidingConstraint = slice.Constraints.FirstOrDefault(constraint =>
                 !GeneratedPascalCase.ConstraintTypeNameIsSafe(constraint.Name));

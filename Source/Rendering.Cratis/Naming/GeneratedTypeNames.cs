@@ -61,7 +61,10 @@ internal static class GeneratedTypeNames
             }
             foreach (var projection in slice.Projections.Where(projection => projection.Scope is not null))
             {
-                foreach (var name in Names(ns, projection.Name, projection.Id, "Projection")) yield return name;
+                var projectionName = GeneratedPascalCase.From(projection.Name);
+                var implementationName = slice.ReadModels.Any(readModel => GeneratedPascalCase.From(readModel.Name) == projectionName)
+                    ? $"{projectionName}Projection" : projectionName;
+                foreach (var name in Names(ns, implementationName, projection.Id, "Projection")) yield return name;
             }
         }
         foreach (var (path, owner, constraint) in constraints ?? selectedSlices.SelectMany(located => located.Slice.Constraints.Select(constraint => ((IEnumerable<string>)located.Path, located.Slice.Id, constraint))))

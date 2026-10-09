@@ -27,7 +27,8 @@ internal static class SemanticProtectedQuerySpecificationRenderer
 
         var readModelName = new SemanticTypeSystem(context).SliceType(readModel.Id, readModel.Name);
         var types = new SemanticTypeSystem(context);
-        var key = types.Value(expected.Key, query.Argument.Type);
+        var argument = query.Argument ?? throw UnsupportedSemanticRendering.For("protected query argument", query.Name);
+        var key = types.Value(expected.Key, argument.Type);
         var builder = new CSharpCodeBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{name}")
             .Using("System.Security.Claims")

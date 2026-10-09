@@ -34,7 +34,7 @@ public class when_planning_the_screen_composition_corpus_scene : Specification
     [Fact] void should_preserve_the_folder_navigation_contribution() => _folderScene.Screens.SelectMany(_ => _.Contributions).Any(_ => _.ContributionPointName == "Navigation").ShouldBeTrue();
     [Fact] void should_preserve_dialog_template_metadata() => _typedScene.DialogTemplates.Single(_ => _.Name == "EditWorkItemDialog").Metadata!.Type.ShouldEqual("commandForm");
     [Fact] void should_preserve_layout_outlet_metadata() => _typedScene.Layouts.Single().Outlets!.Single().Name.ShouldEqual("details");
-    [Fact] void should_preserve_package_profile_choices() => string.Join(",", _typedScene.UiProfiles.Single().Packages).ShouldEqual("core,scene.web,Cratis.Components");
+    [Fact] void should_preserve_package_profile_choices() => string.Join(',', _typedScene.UiProfiles.Single().Packages).ShouldEqual("core,scene.web,Cratis.Components");
     [Fact] void should_emit_the_typed_grid_component() => TypedGrid.ComponentName.ShouldEqual("scene.web.DataGrid");
     [Fact] void should_preserve_component_property_bindings() => SelectedItemBinding.Kind.ShouldEqual(BindingSourceKind.ComponentProperty);
     [Fact] void should_preserve_component_property_null_behavior() => SelectedItemBinding.NullBehavior.ShouldEqual(BindingNullBehavior.Clear);

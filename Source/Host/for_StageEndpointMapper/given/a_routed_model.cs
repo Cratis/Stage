@@ -38,6 +38,7 @@ public class a_routed_model : Specification
     protected readonly List<CommandContext> _commands = [];
     protected readonly List<QueryContext> _queries = [];
     protected readonly List<string> _readModelRequests = [];
+    protected readonly Dictionary<string, IReadOnlyList<string>> _readModelDocuments = new(StringComparer.Ordinal);
     protected bool _rejectQueries;
     protected ISemanticRuntime? _semanticRuntime;
     protected readonly List<(Type BoundType, string EventSourceId, IReadOnlyList<ProducedEventPayload> Events)> _appends = [];
@@ -252,6 +253,11 @@ public class a_routed_model : Specification
         {
             var request = call.Arg<GetInstancesRequest>();
             _readModelRequests.Add(request.ReadModel);
+            if (_readModelDocuments.TryGetValue(request.ReadModel, out var stored))
+            {
+                return new GetInstancesResponse { Instances = [.. stored], TotalCount = stored.Count };
+            }
+
             return new GetInstancesResponse { Instances = [documents[request.ReadModel]], TotalCount = 1 };
         });
         var store = Substitute.For<IEventStore>();

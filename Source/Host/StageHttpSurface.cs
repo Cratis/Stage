@@ -104,7 +104,14 @@ internal sealed class StageHttpSurface
 
         if (located.Slice.ReadModel is { } readModel)
         {
-            yield return new(located.Location, located.CanonicalLocation, located.TypeNamespace, located.Slice.Id, ModelNaming.ToIdentifier(readModel.Name), false);
+            yield return new(
+                located.Location,
+                located.CanonicalLocation,
+                located.TypeNamespace,
+                located.Slice.Id,
+                ModelNaming.ToIdentifier(readModel.Name),
+                false,
+                [.. readModel.Queries.Where(query => query.Parameter is not null).Select(query => ModelNaming.ToIdentifier(query.Name))]);
         }
     }
 

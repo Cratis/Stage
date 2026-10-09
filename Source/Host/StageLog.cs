@@ -16,4 +16,7 @@ internal static partial class StageLog
 
     [LoggerMessage(LogLevel.Information, "Synthesized {ScreenCount} screen(s) for a model that declares none")]
     internal static partial void SynthesizedScreens(ILogger logger, int screenCount);
+
+    [LoggerMessage(LogLevel.Warning, "Scene element '{ElementId}' has no route: {Diagnostic}")]
+    internal static partial void RouteNotResolved(ILogger logger, string elementId, string diagnostic);
 }

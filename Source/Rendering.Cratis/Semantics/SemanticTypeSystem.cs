@@ -198,7 +198,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// </summary>
     /// <param name="name">The modeled type name.</param>
     /// <returns>The C# type name.</returns>
-    public string CommonType(string name) => $"global::{context.RootNamespace}.Common.{Identifiers.ToPascalCase(name)}";
+    public string CommonType(string name) => $"global::{context.CommonNamespace}.{Identifiers.ToPascalCase(name)}";
 
     /// <summary>
     /// Gets a fully qualified generated event type name.

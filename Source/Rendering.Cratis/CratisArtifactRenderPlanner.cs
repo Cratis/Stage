@@ -199,7 +199,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         var count = 0;
-        foreach (var input in request.Profile.Inputs.Where(input => input.Name is not StringsCatalogInput.Name and not AuthoringMetadataInput.Name))
+        foreach (var input in request.Profile.Inputs.Where(input => input.Name is not StringsCatalogInput.Name and not AuthoringMetadataInput.Name and not DomainPlacementInput.Name))
         {
             if (CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact))
             {

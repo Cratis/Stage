@@ -24,6 +24,7 @@ internal sealed class SemanticApplicationContext
         Request = request;
         Application = request.Model.Application;
         RootNamespace = options.RootNamespace;
+        Domain = DomainPlacementInput.From(request.Profile);
         Strings = StringsCatalogInput.From(request.Profile);
         var metadata = request.Profile.Inputs.SingleOrDefault(input => input.Name == AuthoringMetadataInput.Name);
         Documentation = metadata is not null && AuthoringMetadataInput.TryRead(metadata, request.Model, out var catalog) ? catalog : null;
@@ -34,7 +35,7 @@ internal sealed class SemanticApplicationContext
         {
             foreach (var feature in module.Features)
             {
-                IndexFeature(module, feature, [module.Name]);
+                IndexFeature(module, feature, [.. Domain, module.Name]);
             }
         }
 
@@ -122,6 +123,10 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
 
+    internal IReadOnlyList<string> Domain { get; }
+    internal string CommonFolder => string.Join('/', Domain.Append("Common"));
+    internal string CommonNamespace => string.Join('.', new[] { RootNamespace }.Concat(Domain).Append("Common"));
+
     internal AuthoringMetadataInput.Catalog? Documentation { get; }
 
     internal Dictionary<string, IReadOnlySet<string>> ReducerContextReads { get; } = new(StringComparer.Ordinal);
@@ -140,14 +145,15 @@ internal sealed class SemanticApplicationContext
     /// Gets the slices selected by the request scope in deterministic model order.
     /// </summary>
     /// <returns>The selected slices.</returns>
-    public IReadOnlyList<LocatedSemanticSlice> SelectedSlices() => Request.Scope.Kind switch
-    {
-        ArtifactRenderScopeKind.Application => [.. _slices.Values],
-        ArtifactRenderScopeKind.Module => [.. _slices.Values.Where(_ => _.Module.Id == Request.Scope.Artifact)],
-        ArtifactRenderScopeKind.Feature => [.. _slices.Values.Where(_ => _.FeaturePath.Any(feature => feature.Id == Request.Scope.Artifact))],
-        ArtifactRenderScopeKind.Slice => [_slices[Request.Scope.Artifact]],
-        _ => []
-    };
+    public IReadOnlyList<LocatedSemanticSlice> SelectedSlices() =>
+        [.. _slices.Values.Where(slice => new[] { Request.Scope }.Concat(Request.AdditionalScopes).Any(scope => scope.Kind switch
+        {
+            ArtifactRenderScopeKind.Application => true,
+            ArtifactRenderScopeKind.Module => slice.Module.Id == scope.Artifact,
+            ArtifactRenderScopeKind.Feature => slice.FeaturePath.Any(feature => feature.Id == scope.Artifact),
+            ArtifactRenderScopeKind.Slice => slice.Slice.Id == scope.Artifact,
+            _ => false
+        }))];
 
     /// <summary>
     /// Gets the location of a semantic slice.

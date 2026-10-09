@@ -38,7 +38,7 @@ internal static class SemanticStateChangeArtifactRenderer
         if (command.Properties.Concat(located.Slice.Events.SelectMany(_ => _.Properties))
             .Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)))
         {
-            builder.Using($"{context.RootNamespace}.Common");
+            builder.Using(context.CommonNamespace);
         }
 
         foreach (var eventContract in command.Produces.Select(_ => context.Events[_.EventContract]))

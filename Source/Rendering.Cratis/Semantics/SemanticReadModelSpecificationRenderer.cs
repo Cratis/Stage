@@ -123,7 +123,7 @@ internal static class SemanticReadModelSpecificationRenderer
         builder.EndBlock();
         if (needsCommon)
         {
-            builder.Using($"{context.RootNamespace}.Common");
+            builder.Using(context.CommonNamespace);
         }
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 

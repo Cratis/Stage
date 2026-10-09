@@ -21,7 +21,7 @@ internal static class SemanticCommonArtifactRenderer
     public static RenderedFile Render(SemanticConcept concept, SemanticApplicationContext context)
     {
         var name = Identifiers.ToPascalCase(concept.Name);
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.Common");
+        var builder = new CSharpCodeBuilder().Namespace(context.CommonNamespace);
         if (!concept.Values.IsEmpty)
         {
             RenderEnum(builder, concept, name);
@@ -31,7 +31,7 @@ internal static class SemanticCommonArtifactRenderer
             RenderConcept(builder, concept, name, context.IdentifierConcepts.Contains(concept.Id), context.RootNamespace);
         }
 
-        return new(Path.Combine("Common", $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
+        return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
     }
 
     /// <summary>
@@ -46,10 +46,10 @@ internal static class SemanticCommonArtifactRenderer
         var name = Identifiers.ToPascalCase(type.Name);
         var parameters = string.Join(", ", type.Properties.Select(_ => $"{types.Type(_.Type)} {Identifiers.ToPascalCase(_.Name)}"));
         var builder = new CSharpCodeBuilder()
-            .Namespace($"{context.RootNamespace}.Common");
+            .Namespace(context.CommonNamespace);
         context.Docs(type.Id).Render(builder, $"Represents {Identifiers.ToWords(type.Name)}.")
             .Line($"public record {name}({parameters});");
-        return new(Path.Combine("Common", $"{name}.cs"), builder.ToString()) { Sources = [type.Id] };
+        return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [type.Id] };
     }
 
     static void RenderEnum(CSharpCodeBuilder builder, SemanticConcept concept, string name)

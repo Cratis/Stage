@@ -16,7 +16,8 @@ internal static class GeneratedTypeNames
         IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> slices,
         IEnumerable<(IEnumerable<string> Path, SemanticId Owner, SemanticConstraint Constraint)>? constraints = null,
         bool rendersStringsCatalog = false,
-        IEnumerable<(string Namespace, string Name)>? opaquePolicyTypes = null)
+        IEnumerable<(string Namespace, string Name)>? opaquePolicyTypes = null,
+        string commonNamespace = "Common")
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         var namespaces = new HashSet<(string Namespace, string Name)>();
@@ -30,13 +31,13 @@ internal static class GeneratedTypeNames
         var seen = new HashSet<(string Namespace, string Name)>();
         foreach (var concept in application.Concepts)
         {
-            foreach (var name in Names("Common", concept.Name, concept.Id, "Concept")) yield return name;
+            foreach (var name in Names(commonNamespace, concept.Name, concept.Id, "Concept")) yield return name;
             if (!concept.Values.IsEmpty || concept.Validations.IsEmpty) continue;
-            foreach (var name in Names("Common", $"{GeneratedPascalCase.From(concept.Name)}Validator", concept.Id, "Concept")) yield return name;
+            foreach (var name in Names(commonNamespace, $"{GeneratedPascalCase.From(concept.Name)}Validator", concept.Id, "Concept")) yield return name;
         }
         foreach (var type in application.Types)
         {
-            foreach (var name in Names("Common", type.Name, type.Id, "Type")) yield return name;
+            foreach (var name in Names(commonNamespace, type.Name, type.Id, "Type")) yield return name;
         }
         foreach (var (path, slice) in selectedSlices)
         {

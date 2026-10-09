@@ -22,7 +22,7 @@ public sealed record CratisRenderingOptions(string ProjectName, string RootNames
 /// <summary>
 /// Provides the complete package-owned Cratis v1 target policy used by every planning caller.
 /// </summary>
-public static class CratisRendering
+public static partial class CratisRendering
 {
     /// <summary>
     /// The only Stage v1 forward-rendering target identity.

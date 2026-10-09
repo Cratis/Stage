@@ -36,7 +36,7 @@ internal static class SemanticCommandSpecificationRenderer
         if (command.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
             when.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
         {
-            builder.Using($"{context.RootNamespace}.Common");
+            builder.Using(context.CommonNamespace);
         }
 
         if (specification.GivenCaller is not null)
@@ -103,7 +103,7 @@ internal static class SemanticCommandSpecificationRenderer
                 @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
             {
-                builder.Using($"{context.RootNamespace}.Common");
+                builder.Using(context.CommonNamespace);
             }
 
             var eventArguments = @event.Properties.Select(property =>
@@ -224,7 +224,7 @@ internal static class SemanticCommandSpecificationRenderer
                     var elementType = property.Type with { IsCollection = false, IsOptional = false };
                     if (SemanticTypeSystem.DeclarationNeedsCommon(elementType))
                     {
-                        builder.Using($"{context.RootNamespace}.Common");
+                        builder.Using(context.CommonNamespace);
                     }
 
                     builder.Line($"static readonly {types.Type(elementType)}[] {ExpectedCollectionName(property, index)} = {types.Value(value, property.Type)};");
@@ -260,7 +260,7 @@ internal static class SemanticCommandSpecificationRenderer
                 @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     expected.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
             {
-                builder.Using($"{context.RootNamespace}.Common");
+                builder.Using(context.CommonNamespace);
             }
 
             var predicate = @event.Properties.IsEmpty ? "true" : string.Join(" && ", @event.Properties.Select(property =>
@@ -307,7 +307,7 @@ internal static class SemanticCommandSpecificationRenderer
                 var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
                 if (SemanticTypeSystem.ValueNeedsCommon(value, property.Type))
                 {
-                    builder.Using($"{context.RootNamespace}.Common");
+                    builder.Using(context.CommonNamespace);
                 }
 
                 return EventPropertyPredicate(property, value, types, index);
@@ -317,7 +317,7 @@ internal static class SemanticCommandSpecificationRenderer
             var source = $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}";
             if (SemanticTypeSystem.ValueNeedsCommon(identity.Value, identity.Type))
             {
-                builder.Using($"{context.RootNamespace}.Common");
+                builder.Using(context.CommonNamespace);
             }
 
             builder.Line($"var match{index} = remaining.FindIndex(entry => entry.Event.Content is {types.EventType(@event)} @event{source}{string.Concat(predicates.Select(predicate => $" && {predicate}"))});")

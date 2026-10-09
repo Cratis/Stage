@@ -86,7 +86,7 @@ public class when_rendering_policy_negation : Specification
         if (!_plan.Success) return;
         var sources = _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
-        _generatedPolicies = sources.Single(file => file.RelativePath.EndsWith("Policies.cs", StringComparison.Ordinal)).Content;
+        _generatedPolicies = string.Join('\n', sources.Where(file => file.RelativePath.StartsWith("GeneratedPolicies/StagePolicy_", StringComparison.Ordinal)).Select(file => file.Content));
         var assembly = RenderedOutput.Load(sources);
         var executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
         var commands = _model.Application.Modules.Single().Features.Single().Slices.Select(slice => slice.Commands.Single()).ToArray();

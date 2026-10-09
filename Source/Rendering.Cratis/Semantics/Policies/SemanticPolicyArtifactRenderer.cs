@@ -15,15 +15,9 @@ internal static class SemanticPolicyArtifactRenderer
 {
     public static string Name(SemanticId id) => $"StagePolicy_{id.ToString().Replace('-', '_').Replace(':', '_')}";
 
-    public static RenderedFile Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
+    public static IEnumerable<RenderedFile> Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var builder = new CSharpCodeBuilder()
-            .Namespace($"{context.RootNamespace}.GeneratedPolicies")
-            .Using("System.Reflection")
-            .Using("Cratis.Arc.Authorization")
-            .Using("Cratis.Arc.Commands")
-            .Using("Cratis.Arc.Queries")
-            .Using("Microsoft.Extensions.DependencyInjection");
+        yield return RenderShared(context);
         var operations = slices.SelectMany(slice => slice.Slice.Commands.Where(command => command.Authorization is not null)
                 .Select(command => (command.Id, Authorization: command.Authorization!, IsCommand: true, Argument: string.Empty, Subject: command.Properties.Single(property => property.IsIdentifier).Name, Properties: (IReadOnlyList<SemanticProperty>)command.Properties)))
             .Concat(slices.SelectMany(slice => slice.Slice.Queries.Where(query => query.Authorization is not null)
@@ -36,22 +30,11 @@ internal static class SemanticPolicyArtifactRenderer
                         Properties: (IReadOnlyList<SemanticProperty>)(argument is null ? [] : [new(argument.Id, argument.Name, argument.Type, false)]));
                 })))
             .OrderBy(operation => operation.Id.ToString(), StringComparer.Ordinal).ToArray();
-        var negates = operations.Any(operation => Negates(operation.Authorization, context.Application.Policies));
-
-        builder.Summary("Registers every generated authorization policy with Arc.")
-            .OpenBlock("public static partial class Registration")
-            .OpenBlock("static partial void RegisterGenerated(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         foreach (var operation in operations)
         {
-            // Arc strips guest roles and claims. Opt in only when this operation's effective authorization
-            // can allow that empty principal; the policy still checks the actual request, including unknown targets.
-            var anonymous = AllowsGuest(operation.Authorization, context, operation.Properties, operation.Subject) ? ", evaluatesAnonymous: true" : string.Empty;
-            builder.Line($"services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}{anonymous});");
-        }
-
-        builder.EndBlock().EndBlock().BlankLine();
-        foreach (var operation in operations)
-        {
+            var builder = new CSharpCodeBuilder()
+                .Namespace($"{context.RootNamespace}.GeneratedPolicies")
+                .Using("Cratis.Arc.Authorization");
             var expression = Authorization(operation.Authorization, context, operation.Properties, operation.IsCommand, operation.Argument, operation.Subject, operation.Id);
             const string signature = "public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)";
             builder.Summary("Enforces the effective Screenplay authorization for one operation.")
@@ -72,8 +55,39 @@ internal static class SemanticPolicyArtifactRenderer
                 builder.ExpressionMember(signature, $"global::System.Threading.Tasks.ValueTask.FromResult({expression})");
             }
 
-            builder.EndBlock().BlankLine();
+            // Arc strips guest roles and claims. Preserve this operation's exact anonymous opt-in.
+            var anonymous = AllowsGuest(operation.Authorization, context, operation.Properties, operation.Subject) ? ", evaluatesAnonymous: true" : string.Empty;
+            builder.BlankLine()
+                .Line("// Module initialization registers a known generated policy, without assembly scanning.")
+                .Line("#pragma warning disable CA2255 // Generated application registration is intentionally initialized at module load.")
+                .Line("[global::System.Runtime.CompilerServices.ModuleInitializer]")
+                .OpenBlock("internal static void RegisterPolicy()")
+                .Line($"Registration.Add({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}, services => services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}{anonymous}));")
+                .EndBlock()
+                .Line("#pragma warning restore CA2255")
+                .EndBlock();
+            yield return new(Path.Combine("GeneratedPolicies", $"{Name(operation.Id)}.cs"), builder.ToString()) { Sources = [operation.Id] };
         }
+    }
+
+    /// <summary>
+    /// Renders the selection-independent policy registry and value helpers.
+    /// </summary>
+    /// <param name="context">The semantic application.</param>
+    /// <returns>The shared runtime file.</returns>
+    public static RenderedFile RenderShared(SemanticApplicationContext context)
+    {
+        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.GeneratedPolicies");
+        builder.Summary("Registers every generated authorization policy with Arc.")
+            .OpenBlock("public static partial class Registration")
+            .Line("static readonly global::System.Collections.Generic.List<(string Name, global::System.Action<global::Microsoft.Extensions.DependencyInjection.IServiceCollection> Apply)> _policies = [];")
+            .BlankLine()
+            .ExpressionMember("internal static void Add(string name, global::System.Action<global::Microsoft.Extensions.DependencyInjection.IServiceCollection> apply)", "_policies.Add((name, apply))")
+            .BlankLine()
+            .OpenBlock("static partial void RegisterGenerated(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)")
+            .OpenBlock("foreach (var policy in _policies.OrderBy(policy => policy.Name, global::System.StringComparer.Ordinal))")
+            .Line("policy.Apply(services);")
+            .EndBlock().EndBlock().EndBlock().BlankLine();
 
         // Reflection is limited to the declared public property path, using ordinal names. Missing values
         // deny; an empty-string text target matches an empty claim. Uuid, Date and DateTime targets must be canonical.
@@ -81,18 +95,15 @@ internal static class SemanticPolicyArtifactRenderer
             .ExpressionMember(
                 "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
                 "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && global::System.String.Equals(value.Value, target, global::System.StringComparison.Ordinal))");
-        if (negates)
-        {
-            // Screenplay's three-valued policy logic, with null as unknown: a comparison whose target is missing, null
-            // or not text is unknown, negation keeps it unknown, and/or decide on a definite operand in either order,
-            // and only a definite true allows.
-            builder.ExpressionMember(
-                    "public static bool? Truth(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
-                    "target is null ? null : Match(context, claim, target)")
-                .ExpressionMember("public static bool? Not(bool? value)", "value is null ? null : !value.Value")
-                .ExpressionMember("public static bool? And(bool? left, bool? right)", "(left, right) switch { (false, _) or (_, false) => false, (true, true) => true, _ => null }")
-                .ExpressionMember("public static bool? Or(bool? left, bool? right)", "(left, right) switch { (true, _) or (_, true) => true, (false, false) => false, _ => null }");
-        }
+
+        // Always emit Screenplay's three-valued helpers: shared bytes never depend on selected operations.
+        // Missing targets stay unknown under negation; only a definite true allows.
+        builder.ExpressionMember(
+                "public static bool? Truth(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
+                "target is null ? null : Match(context, claim, target)")
+            .ExpressionMember("public static bool? Not(bool? value)", "value is null ? null : !value.Value")
+            .ExpressionMember("public static bool? And(bool? left, bool? right)", "(left, right) switch { (false, _) or (_, false) => false, (true, true) => true, _ => null }")
+            .ExpressionMember("public static bool? Or(bool? left, bool? right)", "(left, right) switch { (true, _) or (_, true) => true, (false, false) => false, _ => null }");
 
         builder
             .OpenBlock("public static string? Uuid(object? value)")
@@ -145,11 +156,7 @@ internal static class SemanticPolicyArtifactRenderer
             .EndBlock()
             .EndBlock();
 
-        // ESM policies are named rules without SemanticIds; the generated registrations realize protected operations.
-        return new(Path.Combine("GeneratedPolicies", "Policies.cs"), builder.ToString())
-        {
-            Sources = [.. operations.Select(_ => _.Id)]
-        };
+        return new(Path.Combine("GeneratedPolicies", "Policies.cs"), builder.ToString()) { Sources = [context.Application.Id] };
     }
 
     /// <summary>
@@ -175,12 +182,19 @@ internal static class SemanticPolicyArtifactRenderer
             return [];
         }
 
-        var operations = bodies.Select(_ => _.Descriptor.OperationId!.Value).Distinct().ToArray();
-        return
-        [
-            SemanticPolicyContextRuntime.RenderRuntime(context, bodies.Select(_ => _.Descriptor)) with { Sources = [.. operations] },
-            SemanticPolicyContextRuntime.RenderBodies(context, bodies, evaluators: true) with { Sources = [.. operations] }
-        ];
+        return new[]
+        {
+            SemanticPolicyContextRuntime.RenderRuntime(context) with { Sources = [context.Application.Id] },
+            SemanticPolicyContextRuntime.RenderSharedBodies(context) with { Sources = [context.Application.Id] }
+        }.Concat(bodies.SelectMany(site => new[]
+        {
+            SemanticPolicyContextRuntime.RenderWrapper(context, site.Descriptor) with { Sources = [site.Descriptor.OperationId!.Value] },
+            SemanticPolicyContextRuntime.RenderBodies(context, [site], evaluators: true) with
+            {
+                RelativePath = Path.Combine("GeneratedPolicies", $"PolicyBodies_{SemanticTypedContextRenderer.Suffix(site.Descriptor)}.cs"),
+                Sources = [site.Descriptor.OperationId!.Value]
+            }
+        }));
     }
 
     internal static IEnumerable<(string RequirementId, SemanticId Operation)> OpaqueSites(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
@@ -291,13 +305,6 @@ internal static class SemanticPolicyArtifactRenderer
         (true, _) or (_, true) => true,
         (false, false) => false,
         _ => null
-    };
-
-    static bool Negates(SemanticAuthorization authorization, IEnumerable<SemanticPolicy> policies) => authorization switch
-    {
-        SemanticPolicyReference reference => Negates(policies.Single(policy => policy.Name == reference.Name).Condition),
-        SemanticLogicalAuthorization logical => Negates(logical.Left, policies) || Negates(logical.Right, policies),
-        _ => false
     };
 
     static bool Negates(SemanticPolicyCondition condition) => condition switch

@@ -161,15 +161,18 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             {
                 artifacts.Add(PlannedArtifact.CreateText(StringsCatalogInput.RelativePath, StringsCatalogInput.Render(strings, context.RootNamespace), [context.Application.Id]));
             }
+        }
 
-            artifacts.AddRange(context.Application.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
-            artifacts.AddRange(context.Application.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
-            if (slices.Any(slice => slice.Slice.Commands.Any(command => command.Authorization is not null) ||
-                slice.Slice.Queries.Any(query => query.Authorization is not null)))
-            {
-                artifacts.Add(Artifact(SemanticPolicyArtifactRenderer.Render(context, slices)));
-                artifacts.AddRange(SemanticPolicyArtifactRenderer.RenderOpaque(context, slices).Select(Artifact));
-            }
+        var shared = request.Scope.Kind == ArtifactRenderScopeKind.Application
+            ? (context.Application.Concepts, context.Application.Types)
+            : SemanticSharedReferences.Collect(context, slices);
+        artifacts.AddRange(shared.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
+        artifacts.AddRange(shared.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
+        if (slices.Any(slice => slice.Slice.Commands.Any(command => command.Authorization is not null) ||
+            slice.Slice.Queries.Any(query => query.Authorization is not null)))
+        {
+            artifacts.AddRange(SemanticPolicyArtifactRenderer.Render(context, slices).Select(Artifact));
+            artifacts.AddRange(SemanticPolicyArtifactRenderer.RenderOpaque(context, slices).Select(Artifact));
         }
 
         foreach (var located in slices)

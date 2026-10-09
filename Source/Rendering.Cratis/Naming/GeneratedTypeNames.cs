@@ -80,13 +80,19 @@ internal static class GeneratedTypeNames
             foreach (var name in Names(string.Empty, "GeneratedStrings", application.Id, "Generated")) yield return name;
         }
 
-        // The backend scaffold always emits GeneratedPolicies.Registration; Policies.cs adds PolicyValues
-        // beside it when any operation is authorized.
+        // The scaffold declares Registration; the selection-independent Policies.cs implements it and
+        // adds PolicyValues. Each protected operation has a separate policy declaration.
         foreach (var name in Names("GeneratedPolicies", "Registration", application.Id, "Generated")) yield return name;
         if (selectedSlices.Any(located => located.Slice.Commands.Any(command => command.Authorization is not null) ||
             located.Slice.Queries.Any(query => query.Authorization is not null)))
         {
             foreach (var name in Names("GeneratedPolicies", "PolicyValues", application.Id, "Generated")) yield return name;
+            foreach (var operation in selectedSlices.SelectMany(located => located.Slice.Commands.Where(command => command.Authorization is not null).Select(command => command.Id)
+                .Concat(located.Slice.Queries.Where(query => query.Authorization is not null).Select(query => query.Id))))
+            {
+                var policyName = $"StagePolicy_{operation.ToString().Replace('-', '_').Replace(':', '_')}";
+                foreach (var name in Names("GeneratedPolicies", policyName, operation, "Generated", generated: true)) yield return name;
+            }
         }
         foreach (var (ns, type) in opaquePolicyTypes ?? [])
         {

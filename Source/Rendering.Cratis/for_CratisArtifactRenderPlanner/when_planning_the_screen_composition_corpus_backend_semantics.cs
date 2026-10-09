@@ -52,13 +52,13 @@ public class when_planning_the_screen_composition_corpus_backend_semantics : Spe
             .Select(_ => _.Content));
     }
 
-    [Fact] void should_preserve_only_the_specification_generation_refusals() =>
-        _plan.Diagnostics.Select(_ => _.Code).ShouldEqual(["STAGE-ESM-011", "STAGE-ESM-011", "STAGE-ESM-011"]);
-
-    [Fact] void should_not_reject_the_observable_query_shapes() => _plan.Diagnostics.Select(_ => _.Code).ShouldNotContain("STAGE-ESM-010");
-    [Fact] void should_not_reject_the_corpus_projections() => _plan.Diagnostics.Select(_ => _.Code).ShouldNotContain("STAGE-ESM-017");
-    [Fact] void should_not_reject_the_corpus_command_mappings() => _plan.Diagnostics.Select(_ => _.Code).ShouldNotContain("STAGE-ESM-006");
+    [Fact] void should_plan_without_stage_diagnostics() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_emit_the_listing_query_specification() => ArtifactText.ShouldContain("when_listing_created_work_items_is_queried");
+    [Fact] void should_emit_the_comments_query_specification() => ArtifactText.ShouldContain("Needs compact layout");
+    [Fact] void should_emit_the_details_query_specification() => ArtifactText.ShouldContain("when_showing_renamed_details_is_queried");
     [Fact] void should_emit_the_observable_work_item_list_query() => _stateViewArtifacts.ShouldContain("AllWorkItems");
     [Fact] void should_emit_the_observable_comments_query() => _stateViewArtifacts.ShouldContain("CommentsForWorkItem");
     [Fact] void should_emit_the_by_parameter_query_shape() => _stateViewArtifacts.ShouldContain("workItemId");
+
+    string ArtifactText => string.Join('\n', _plan.Artifacts.Select(_ => Encoding.UTF8.GetString(_.Bytes.AsSpan())));
 }

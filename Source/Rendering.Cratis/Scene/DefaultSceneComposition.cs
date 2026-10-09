@@ -109,6 +109,11 @@ internal static class DefaultSceneComposition
 
     static SceneElements.ExternalComponent? QueryInputForm(SemanticApplicationContext context, SemanticKeyedQuery query)
     {
+        if (query.Argument is null)
+        {
+            return null;
+        }
+
         var keyType = Scalar(context, query.Argument.Type);
         if (query.Cardinality != SemanticQueryCardinality.ZeroOrOne || query.Delivery != SemanticQueryDelivery.Snapshot ||
             keyType is not (SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid))

@@ -26,8 +26,12 @@ internal static class SemanticPolicyArtifactRenderer
             .Using("Microsoft.Extensions.DependencyInjection");
         var operations = slices.SelectMany(slice => slice.Slice.Commands.Where(command => command.Authorization is not null)
                 .Select(command => (command.Id, Authorization: command.Authorization!, IsCommand: true, Argument: string.Empty, Subject: command.Properties.Single(property => property.IsIdentifier).Name, Properties: (IReadOnlyList<SemanticProperty>)command.Properties)))
-            .Concat(slices.SelectMany(slice => slice.Slice.Queries.Where(query => query.Authorization is not null)
-                .Select(query => (query.Id, Authorization: query.Authorization!, IsCommand: false, Argument: Identifiers.ToCamelCase(query.Argument.Name), Subject: query.Argument.Name, Properties: (IReadOnlyList<SemanticProperty>)[new(query.Argument.Id, query.Argument.Name, query.Argument.Type, false)]))))
+            .Concat(slices.SelectMany(slice => slice.Slice.Queries.Where(query => query.Authorization is not null && query.Argument is not null)
+                .Select(query =>
+                {
+                    var argument = query.Argument ?? throw UnsupportedSemanticRendering.For("protected query argument", query.Name);
+                    return (query.Id, Authorization: query.Authorization!, IsCommand: false, Argument: Identifiers.ToCamelCase(argument.Name), Subject: argument.Name, Properties: (IReadOnlyList<SemanticProperty>)[new(argument.Id, argument.Name, argument.Type, false)]);
+                })))
             .OrderBy(operation => operation.Id.ToString(), StringComparer.Ordinal).ToArray();
         var negates = operations.Any(operation => Negates(operation.Authorization, context.Application.Policies));
 

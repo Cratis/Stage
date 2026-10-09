@@ -23,6 +23,22 @@ internal static partial class SemanticSpecificationAdmission
         context.Projections.Values.Any(projection => projection.ReadModel == readModel && projection.Scope is not null) &&
         (exactly || values.Any(value => value.Value is SemanticNullValue));
 
+    internal static bool CanProjectQueryOnly(SemanticSpecification specification, SemanticApplicationContext context)
+    {
+        if (specification.When is not null || specification.WhenAppended is not null || specification.GivenCaller is not null ||
+            specification.GivenEvents.IsEmpty || !specification.GivenReadModels.IsEmpty || specification.ThenQueries.Length != 1 ||
+            !specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenErrors.IsEmpty ||
+            specification.ThenDenied || !specification.ThenAbsentReadModels.IsEmpty)
+        {
+            return false;
+        }
+
+        var expected = specification.ThenQueries[0];
+        return context.Queries.TryGetValue(expected.Query, out var query) && query.Authorization is null &&
+            !context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel) && QueryMatches(context, expected) &&
+            HasExpectedProjectionEvents(context, specification, expected);
+    }
+
     static bool HasExpectedProjectionEvent(
         SemanticApplicationContext context,
         SemanticSpecification specification,
@@ -74,12 +90,28 @@ internal static partial class SemanticSpecificationAdmission
 
     static bool QueryMatches(SemanticApplicationContext context, SemanticSpecificationQueryResult expected) =>
         context.Queries.TryGetValue(expected.Query, out var query) &&
-        context.ReadModels.TryGetValue(query.ReadModel, out var readModel) && IsScalar(expected.Key) &&
+        context.ReadModels.TryGetValue(query.ReadModel, out var readModel) && (query.Argument is null || IsScalar(expected.Key)) &&
         !CannotCompareScopedPresence(context, query.ReadModel, expected.Exactly, []) &&
-        expected.Results.Length == 1 && expected.Results.All(result => result.ReadModel == query.ReadModel &&
+        expected.Results.Length > 0 && expected.Results.All(result => result.ReadModel == query.ReadModel &&
             !CannotCompareScopedPresence(context, query.ReadModel, result.Exactly, result.Values) &&
-            Equals(result.Key, expected.Key) &&
+            (query.Cardinality == SemanticQueryCardinality.Many || Equals(result.Key, expected.Key)) &&
             ValuesMatch(result.Values, readModel.Properties, result.Exactly || expected.Exactly) &&
             CanCompareQueryResult(result.Values, readModel.Properties) &&
             IsScalar(result.Key));
+
+    static bool HasExpectedProjectionEvents(SemanticApplicationContext context, SemanticSpecification specification, SemanticSpecificationQueryResult expected)
+    {
+        if (!context.Queries.TryGetValue(expected.Query, out var query)) return false;
+        var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == query.ReadModel);
+        if (projection?.Scope is { } scope)
+        {
+            return expected.Results.All(result => specification.GivenEvents.Any(given =>
+                Equals(given.EventSource?.Value, result.Key) && scope.From.Any(from => from.EventContract == given.EventContract)) ||
+                specification.GivenEvents.Any(given => scope.From.Any(from => from.EventContract == given.EventContract)));
+        }
+
+        return projection?.Transitions.Length == 1 &&
+            expected.Results.All(result => specification.GivenEvents.Any(given =>
+                given.EventContract == projection.Transitions[0].EventContract && Equals(given.EventSource?.Value, result.Key)));
+    }
 }

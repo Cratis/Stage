@@ -26,6 +26,7 @@ internal static partial class SemanticSpecificationAdmission
         {
             var valid = specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) && (CanDenyQueryOnly(specification, context) ||
                 (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
+                (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
                     !AssertsUncontrolledOccurrence(specification, command!) &&

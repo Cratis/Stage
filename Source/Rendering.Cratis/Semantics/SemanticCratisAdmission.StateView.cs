@@ -123,7 +123,7 @@ internal static partial class SemanticCratisAdmission
                 query.Argument is not null && query.KeyProperty == identifiers[0].Id && TypeExists(context, query.Argument.Type) &&
                 !HasValidatedConcept(context, query.Argument.Type, []);
             var isLiveCollection = query.Cardinality == SemanticQueryCardinality.Many &&
-                query.Delivery == SemanticQueryDelivery.Live &&
+                query.Delivery == SemanticQueryDelivery.Live && readModel is not null &&
                 (query.Argument is null || (TypeExists(context, query.Argument.Type) && readModel.Properties.Any(_ => _.Id == query.KeyProperty)));
             if (!isSnapshotLookup && !isLiveCollection)
             {

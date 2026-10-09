@@ -25,10 +25,18 @@ rather than placeholders. A name no package declares renders a placeholder that 
 ## Guarded actions require Scene support
 
 A simple `action … execute <Command>` translates to `core:action`. Guarded actions with ordered
-`when … execute` alternatives are not supported by the pinned Scene packages. Stage refuses them during
-Scene translation with `UnsupportedGuardedScreenAction` (`STAGE-SCENE-ACTION-001`), identifying the action
-label and source location. This also applies inside sections and template slots; no guarded-action component
-is emitted.
+`when … execute` alternatives are not supported by the pinned Scene packages. Contract translation and
+package planning preserve them, but runnable application rendering and live Host serving refuse them with
+`STAGE-SCENE-ACTION-001`, identifying the action label and source location when source is available.
+This also applies inside sections and template slots, and to guarded actions supplied as Scene JSON.
+
+Guarded `on click`, `on double click`, and `on select` alternatives are refused at the same runtime boundaries
+with `STAGE-SCENE-INTERACTION-001`. The Host records these refusals as unsupported capabilities:
+`/stage/status` reports `unsupported`, and `/api` requests return HTTP 501 rather than executing an
+unconditional action. Unguarded actions and interactions remain supported.
+
+These refusals track [Stage #209](https://github.com/Cratis/Stage/issues/209) and the required
+[Scene runtime support (#68)](https://github.com/Cratis/Scene/issues/68).
 
 Supporting them requires Scene to resolve a selected item, choose only the first matching alternative, treat
 missing or null fields as nonmatching, and run the fallback command or hide the action if no condition matches.

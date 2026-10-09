@@ -40,6 +40,7 @@ export interface StageDataState {
     screen: string;
     routes: StageRoutes | undefined;
     routesReady: boolean;
+    parameters: Record<string, string>;
     queries: Record<string, QueryState>;
     selected: Record<string, unknown> | undefined;
     selections: Record<string, Record<string, unknown> | undefined>;
@@ -60,6 +61,7 @@ const emptyState: StageDataState = {
     screen: '',
     routes: undefined,
     routesReady: true,
+    parameters: {},
     queries: {},
     selected: undefined,
     selections: {},
@@ -78,13 +80,16 @@ const StageDataContext = createContext<StageDataState>(emptyState);
 export interface StageDataProviderProps {
     routes: StageRoutes | undefined;
     routesReady?: boolean;
+    parameters?: Record<string, string>;
     locale: string;
     locales: string[];
     screen: string;
     children: React.ReactNode;
 }
 
-export function StageDataProvider({ routes, routesReady = true, locale, locales, screen, children }: StageDataProviderProps) {
+const noParameters: Record<string, string> = {};
+
+export function StageDataProvider({ routes, routesReady = true, parameters = noParameters, locale, locales, screen, children }: StageDataProviderProps) {
     const [queries, setQueries] = useState<Record<string, QueryState>>({});
     const [selections, setSelections] = useState<Record<string, Record<string, unknown> | undefined>>({});
     const [activeSelection, setActiveSelection] = useState<string>();
@@ -142,9 +147,9 @@ export function StageDataProvider({ routes, routesReady = true, locale, locales,
 
     const resolveBinding = useCallback((binding: BindingExpression | string | undefined): unknown => {
         if (binding === undefined) return undefined;
-        if (typeof binding === 'string') return resolvePath(binding, selected, selections, queries, localState, screen, locale, locales);
+        if (typeof binding === 'string') return resolvePath(binding, selected, selections, queries, localState, parameters, screen, locale, locales);
 
-        if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, screen, locale, locales);
+        if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, parameters, screen, locale, locales);
 
         const scope = bindingScope(selected, queries, localState, componentOutputState, selections);
         const diagnostics = validateBindingExpression(binding, scope);
@@ -153,7 +158,7 @@ export function StageDataProvider({ routes, routesReady = true, locale, locales,
         }
 
         return createBindingResolver(scope)(binding);
-    }, [componentOutputState, locale, locales, localState, queries, screen, selected, selections]);
+    }, [componentOutputState, locale, locales, localState, parameters, queries, screen, selected, selections]);
 
     const state = useMemo<StageDataState>(() => ({
         locale,
@@ -161,6 +166,7 @@ export function StageDataProvider({ routes, routesReady = true, locale, locales,
         screen,
         routes,
         routesReady,
+        parameters,
         queries,
         selected,
         selections,
@@ -173,7 +179,7 @@ export function StageDataProvider({ routes, routesReady = true, locale, locales,
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, routesReady, screen, selectRow, selected, selections, setComponentOutput]);
+    }), [clearSelection, locale, locales, queries, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
@@ -310,6 +316,7 @@ function resolvePath(
     selections: Record<string, Record<string, unknown> | undefined>,
     queries: Record<string, QueryState>,
     localState: Record<string, unknown>,
+    parameters: Record<string, string>,
     screen: string,
     locale: string,
     locales: string[],
@@ -325,6 +332,7 @@ function resolvePath(
     if (parts[0] === 'query') return resolveQueryResult(queries, parts[1], parts.slice(2).join('.'));
     if (parts[0] === 'data' || parts[0] === 'selected' || parts[0] === 'current') return resolveDataPath(parts.slice(1).join('.'), selected, selections);
     if (parts[0] === 'state') return valueAt(localState, parts.slice(1));
+    if (parts[0] === 'parameters') return parts.length === 1 ? parameters : parameters[parts[1]];
 
     return valueAt(selected, parts) ?? resolveQueryResult(queries, undefined, parts.join('.')) ?? valueAt(localState, parts);
 }

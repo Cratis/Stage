@@ -119,9 +119,9 @@ export function screenHash(name: string): string {
     return `#/${encodeURIComponent(name)}`;
 }
 
-/** The screen name a hash addresses, or undefined when it addresses none. */
+/** The screen name a hash addresses, or undefined when it addresses none. Parameters after `?` are not part of it. */
 export function screenFromHash(hash: string): string | undefined {
-    const match = /^#\/(.+)$/.exec(hash);
+    const match = /^#\/([^?]+)/.exec(hash);
     if (!match) return undefined;
     try {
         return decodeURIComponent(match[1]);

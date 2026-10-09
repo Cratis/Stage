@@ -86,9 +86,9 @@ public static class ScreenDirectiveConverter
         {
             ScreenplaySyntax.ScreenDataSyntax data => SceneElementFactory.Component(id, "core:data", new Dictionary<string, object?>
             {
-                ["typeName"] = data.Type.Name,
+                [SceneElementProperties.TypeName] = data.Type.Name,
                 ["isCollection"] = data.Type.IsCollection,
-                ["query"] = data.Query,
+                [SceneElementProperties.Query] = data.Query,
                 ["by"] = data.By,
             }),
             ScreenplaySyntax.ScreenActionSyntax action => SceneElementFactory.Component(id, "core:action", new Dictionary<string, object?>

@@ -190,6 +190,18 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
 
     static EndpointCandidate? RouteMatch(SceneElements.ExternalComponent component, IReadOnlyList<EndpointCandidate> candidates)
     {
+        // A read model can back more than one modeled query - an observable collection and a by-id lookup both
+        // returning the same read model, for example - so the query's own name, when the element carries one,
+        // disambiguates where the read model's type name alone cannot. Tried first and used only if it actually
+        // resolves, so an element whose query name happens not to match any candidate still falls back below
+        // rather than silently losing its route.
+        if (component.Properties.TryGetValue(SceneElementProperties.Query, out var queryName) &&
+            queryName is string query &&
+            Resolve(candidates, query, component.ComponentName) is { } byQuery)
+        {
+            return byQuery;
+        }
+
         if (component.Properties.TryGetValue(SceneSynthesizer.TypeNameProperty, out var typeName) && typeName is string namedType)
         {
             return Resolve(candidates, namedType, component.ComponentName);
@@ -217,12 +229,31 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
                 candidate.Names.Any(name => name.Contains(typeName, StringComparison.Ordinal)))
             .ToList();
 
-        // A read model backs both an "all" route and a "by id" route; the collection is what a table shows,
-        // and it is the shorter of the two because the id route takes an argument the table has no value for.
+        // A read model backs both an "all" route and a "by id" route, and both carry the read model's type name
+        // somewhere in their full identity because they share the same slice-qualified namespace prefix.
+        // Preferring the candidates that are not themselves a single-item lookup picks the collection query
+        // even when an "all" route's text is the longer of the two - pluralizing a longer read model name can
+        // make it longer than a short "by id" route, so route length alone cannot tell them apart.
+        var withoutById = matching.Where(candidate => !IsByIdLookup(candidate)).ToList();
+        if (withoutById.Count > 0)
+        {
+            matching = withoutById;
+        }
+
+        // Among what is left - the collection route's own canonical and legacy aliases, typically - the
+        // canonical one is the shorter, since no alias here takes an argument nobody supplied.
         matching.Sort((left, right) => left.Route.Length.CompareTo(right.Route.Length));
 
         return matching.Count > 0 ? matching[0] : null;
     }
+
+    // Every single-item lookup Arc generates for a read model - whether explicitly modeled (WorkItemById) or
+    // conventional (GetWorkItemSummaryById) - carries a simple name ending in "ById"; no collection query does.
+    // A legacy alias's own simple name is "StageLegacy", not the query's name, so this reuses AliasesOf - the
+    // same lookup that already knows how to see past that suffix to the name underneath - rather than a second,
+    // narrower way of reading the same identity.
+    static bool IsByIdLookup(EndpointCandidate candidate) =>
+        candidate.Names.SelectMany(AliasesOf).Any(alias => alias.EndsWith("ById", StringComparison.Ordinal));
 
     static List<EndpointCandidate> Candidates(EndpointDataSource endpoints)
     {

@@ -23,6 +23,15 @@ public static class SceneElementProperties
     public const string TypeName = "typeName";
 
     /// <summary>
+    /// The property a query-bound element carries the modeled query's own name in - distinct from
+    /// <see cref="TypeName"/>, which names the read model the query returns. A read model can back more than
+    /// one modeled query (an observable collection and a by-id lookup both returning the same read model, for
+    /// example), so only the query name - not the read model's type name - tells them apart when resolving a
+    /// route.
+    /// </summary>
+    public const string Query = "query";
+
+    /// <summary>
     /// The property the host writes the resolved API route into.
     /// </summary>
     public const string Route = "route";

@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="Module">The containing module.</param>
 /// <param name="FeaturePath">The containing feature path.</param>
 /// <param name="Slice">The slice.</param>
-/// <param name="Path">The module, feature, and slice display path.</param>
+/// <param name="Path">The placement path: optional domain, module, features, and slice.</param>
 internal sealed record LocatedSemanticSlice(
     SemanticModule Module,
     IReadOnlyList<SemanticFeature> FeaturePath,

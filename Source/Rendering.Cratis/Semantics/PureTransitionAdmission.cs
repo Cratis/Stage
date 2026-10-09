@@ -176,8 +176,8 @@ internal static class PureTransitionAdmission
                 .Concat(slice.Constraints.Select(_ => (Id: (SemanticId?)null, _.Name)))
                 .Concat(slice.Commands.Select(_ => (Id: (SemanticId?)null, Name: _.Name + "Validator")))
                 .Select(_ => (_.Id, Namespace: sliceNamespace, Name: Identifiers.ToPascalCase(_.Name)));
-        }).Concat(context.Application.Concepts.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.RootNamespace + ".Common", Name: Identifiers.ToPascalCase(_.Name))))
-            .Concat(context.Application.Types.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.RootNamespace + ".Common", Name: Identifiers.ToPascalCase(_.Name))));
+        }).Concat(context.Application.Concepts.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.CommonNamespace, Name: Identifiers.ToPascalCase(_.Name))))
+            .Concat(context.Application.Types.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.CommonNamespace, Name: Identifiers.ToPascalCase(_.Name))));
         var allDeclarations = peerDeclarations.ToArray();
         var peers = allDeclarations.Where(declaration => !stubbed.Contains(declaration))
             .Select(declaration => declaration.Name).ToHashSet(StringComparer.Ordinal);
@@ -199,7 +199,7 @@ internal static class PureTransitionAdmission
         {
             if (!concept.Values.IsEmpty)
             {
-                definitions.Add($"namespace {context.RootNamespace}.Common {{ public enum {Identifiers.ToPascalCase(concept.Name)} {{ {string.Join(", ", concept.Values.Select(Identifiers.ToPascalCase))} }} }}");
+                definitions.Add($"namespace {context.CommonNamespace} {{ public enum {Identifiers.ToPascalCase(concept.Name)} {{ {string.Join(", ", concept.Values.Select(Identifiers.ToPascalCase))} }} }}");
                 continue;
             }
 
@@ -210,12 +210,12 @@ internal static class PureTransitionAdmission
             var baseType = context.IdentifierConcepts.Contains(concept.Id)
                 ? $"global::Cratis.Chronicle.Events.EventSourceId<{scalar}>"
                 : $"global::Cratis.Concepts.ConceptAs<{scalar}>";
-            definitions.Add($"namespace {context.RootNamespace}.Common {{ public record {Identifiers.ToPascalCase(concept.Name)}({scalar} Value) : {baseType}(Value); }}");
+            definitions.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(concept.Name)}({scalar} Value) : {baseType}(Value); }}");
         }
 
         foreach (var composite in context.Application.Types)
         {
-            definitions.Add($"namespace {context.RootNamespace}.Common {{ public record {Identifiers.ToPascalCase(composite.Name)}({Parameters(composite.Properties)}); }}");
+            definitions.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(composite.Name)}({Parameters(composite.Properties)}); }}");
         }
 
         definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
@@ -234,7 +234,7 @@ internal static class PureTransitionAdmission
         // same namespace and exact using directives as SemanticReducerArtifactRenderer.Render.
         var declarations = "global using System; global using System.Collections.Generic; global using System.Linq; " +
             "global using System.IO; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks; " +
-            (context.Application.Concepts.IsEmpty && context.Application.Types.IsEmpty ? string.Empty : $"using {context.RootNamespace}.Common; ") +
+            (context.Application.Concepts.IsEmpty && context.Application.Types.IsEmpty ? string.Empty : $"using {context.CommonNamespace}; ") +
             "namespace Cratis.Concepts { public record ConceptAs<T>(T Value); } " +
             "namespace Cratis.Chronicle.Events { public class EventContext {} public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue); } " +
             "namespace Cratis.Chronicle.Reducers { public interface IReducerFor<T> {} } " +

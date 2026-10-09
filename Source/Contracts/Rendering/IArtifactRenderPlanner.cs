@@ -73,6 +73,11 @@ public sealed record ArtifactRenderRequest(
     ArtifactRenderProfile Profile,
     ArtifactRenderScope Scope)
 {
+    /// <summary>
+    /// Gets additional scopes whose slices are unioned with <see cref="Scope"/>. Application scope cannot be combined with others.
+    /// </summary>
+    public ImmutableArray<ArtifactRenderScope> AdditionalScopes { get; init; } = [];
+
     /// <summary>Compiler requirements for the model; the planner verifies their content revisions before using a body.</summary>
     public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
 

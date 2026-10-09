@@ -105,6 +105,7 @@ internal static class SemanticStateChangeArtifactRenderer
             {
                 var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
                 if (mapping.Source is SemanticEventContextExpression) return "occurred";
+                if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                 var commandProperty = command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target);
                 var expression = Identifiers.ToPascalCase(commandProperty.Name);
                 return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
@@ -139,6 +140,7 @@ internal static class SemanticStateChangeArtifactRenderer
             var arguments = @event.Properties.Select(property =>
             {
                 var mapping = command.Produces[0].Mappings.Single(_ => _.TargetProperty == property.Id);
+                if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                 var source = (SemanticResolvedExpression)mapping.Source;
                 var commandProperty = command.Properties.Single(_ => _.Id == source.Target);
                 var expression = Identifiers.ToPascalCase(commandProperty.Name);

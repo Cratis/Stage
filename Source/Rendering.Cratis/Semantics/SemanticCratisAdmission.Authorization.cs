@@ -55,16 +55,19 @@ internal static partial class SemanticCratisAdmission
             ValidateClaimTargets(context, command.Authorization, command.Properties, subject, command.Id, command.Name, diagnostics);
     }
 
-    static bool ValidateQueryAuthorization(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics) =>
-        ValidateAuthorization(context, query.Authorization, query.Id, query.Name, new(query.Argument.Id, query.Argument.Name, query.Argument.Type, false), diagnostics) &&
-        ValidateClaimTargets(
-            context,
-            query.Authorization,
-            [new(query.Argument.Id, query.Argument.Name, query.Argument.Type, false)],
-            new(query.Argument.Id, query.Argument.Name, query.Argument.Type, false),
-            query.Id,
-            query.Name,
-            diagnostics);
+    static bool ValidateQueryAuthorization(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var subject = query.Argument is null ? null : new SemanticProperty(query.Argument.Id, query.Argument.Name, query.Argument.Type, false);
+        return ValidateAuthorization(context, query.Authorization, query.Id, query.Name, subject, diagnostics) &&
+            ValidateClaimTargets(
+                context,
+                query.Authorization,
+                subject is null ? [] : [subject],
+                subject,
+                query.Id,
+                query.Name,
+                diagnostics);
+    }
 
     static bool ValidateAuthorization(SemanticApplicationContext context, SemanticAuthorization? authorization, SemanticId id, string name, SemanticProperty? subject, List<ArtifactRenderDiagnostic> diagnostics)
     {

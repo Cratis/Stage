@@ -150,11 +150,15 @@ internal static class SemanticScopedProjectionSupport
                     @event,
                     context,
                     protectedIdentity,
-                    from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }) ||
-                !EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals), properties, context, protectedIdentity))
+                    from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }))
             {
                 return "A from block has an unsupported key, parent key, event, or mapping.";
             }
+        }
+
+        if (!scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals), properties, context, protectedIdentity)))
+        {
+            return "At least one from block must establish the required read-model properties.";
         }
 
         foreach (var join in scope.Joins)
@@ -373,8 +377,12 @@ internal static class SemanticScopedProjectionSupport
 
     static bool MatchesKey(SemanticProjectionMapping mapping, SemanticProjectionKey key, SemanticId identity) =>
         mapping.Target.Length == 1 && mapping.Target[0] == identity && mapping.Operation == SemanticProjectionOperation.Set &&
-        key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty keyProperty } &&
-        mapping.Source is SemanticProjectionEventProperty source && source.Path.SequenceEqual(keyProperty.Path);
+        key switch
+        {
+            SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } => mapping.Source is SemanticProjectionEventSourceIdentity,
+            SemanticProjectionValueKey { Value: SemanticProjectionEventProperty keyProperty } => mapping.Source is SemanticProjectionEventProperty source && source.Path.SequenceEqual(keyProperty.Path),
+            _ => false
+        };
 
     static SemanticPrimitiveType UnderlyingPrimitive(SemanticTypeReference type, SemanticApplicationContext context) =>
         type.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[type.Target].Primitive : type.Primitive;

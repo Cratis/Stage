@@ -24,8 +24,10 @@ internal static class SemanticScopedProjectionRenderer
     {
         var builder = new CSharpCodeBuilder();
         var modelName = Identifiers.ToPascalCase(readModel.Name);
+        var projectionName = Identifiers.ToPascalCase(projection.Name);
+        var implementationName = projectionName == modelName ? $"{projectionName}Projection" : projectionName;
         builder.Summary($"Projects events onto {modelName}.")
-            .OpenBlock($"public class {Identifiers.ToPascalCase(projection.Name)} : global::Cratis.Chronicle.Projections.IProjectionFor<{modelName}>")
+            .OpenBlock($"public class {implementationName} : global::Cratis.Chronicle.Projections.IProjectionFor<{modelName}>")
             .Summary("Defines the event transitions for this projection.")
             .Line("/// <param name=\"builder\">The projection builder.</param>")
             .OpenBlock($"public void Define(global::Cratis.Chronicle.Projections.IProjectionBuilderFor<{modelName}> builder)")

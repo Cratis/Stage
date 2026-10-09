@@ -54,11 +54,18 @@ public static class BehaviorConverter
             _ => throw new UnknownInteractionTrigger(trigger.GetType().Name),
         };
 
-    static SceneModel.InteractionBinding ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding) =>
-        new(
+    static SceneModel.InteractionBinding ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding)
+    {
+        if (binding.Alternatives.Any() || binding.Otherwise is not null)
+        {
+            throw new UnsupportedGuardedInteraction(binding.Location);
+        }
+
+        return new(
             ConvertTrigger(binding.Trigger),
             [.. binding.Actions.Select(InteractionActionConverter.Convert)],
             binding.Condition is null ? null : new SceneCommon.BindingExpression(binding.Condition));
+    }
 
     /// <summary>
     /// Normalizes an interval to seconds, which is the one unit the model carries.

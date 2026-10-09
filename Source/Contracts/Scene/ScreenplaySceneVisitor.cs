@@ -38,6 +38,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     /// <inheritdoc/>
     public SceneApplication Visit(ScreenplaySyntax.ApplicationSyntax syntax)
     {
+        new UiSyntaxAdmission().VisitApplication(syntax);
         var uiProfiles = syntax.UiProfiles?.SelectMany(UiProfileConverter.Convert).ToList() ?? [];
         var themes = syntax.Themes?.Select(ThemeConverter.Convert).ToList() ?? [];
         var scope = BehaviorScope.For(syntax, _findings);

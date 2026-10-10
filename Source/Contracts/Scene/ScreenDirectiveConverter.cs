@@ -97,6 +97,7 @@ public static class ScreenDirectiveConverter
                 ["label"] = action.Label,
                 ["navigateToScreen"] = action.Navigate?.Screen,
                 ["navigateByParameter"] = action.Navigate?.By,
+                [SceneElementProperties.Destination] = action.Navigate is null ? null : CompositionConverter.Destination(action.Navigate),
             }),
             ScreenplaySyntax.ScreenGuardedActionSyntax action => ConvertGuardedAction(action, id),
             ScreenplaySyntax.ScreenSectionSyntax section => ConvertSection(section, id, scope),
@@ -104,6 +105,7 @@ public static class ScreenDirectiveConverter
             {
                 ["targetScreen"] = navigate.Screen,
                 ["by"] = navigate.By,
+                [SceneElementProperties.Destination] = CompositionConverter.Destination(navigate),
             }),
             ScreenplaySyntax.ScreenTitleSyntax title => SceneElementFactory.Component(id, "core:title", new Dictionary<string, object?> { ["text"] = title.Text }),
             ScreenplaySyntax.ScreenTableSyntax table => ConvertTable(table, id, scope),

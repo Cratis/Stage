@@ -6,14 +6,14 @@ using Cratis.Screenplay.Syntax;
 namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
-/// Refuses the UI members added in Screenplay 4.94–4.101 that the Scene converters neither translate nor admit through
-/// the canonical screen composition corpus. Shared by render planning and Host scene loading.
+/// Refuses the UI members the Scene converters do not translate. Shared by render planning and Host scene loading.
 /// </summary>
 /// <remarks>
 /// Package components, toolbars, UI bindings, template metadata and outlets on layouts and screen templates are
-/// translated by the converters. Template assignments, template exposures, form columns, UI profile icons and guarded
-/// interaction alternatives are part of the admitted screen composition corpus. Navigation routes and parameters on a
-/// screen <c>navigate</c> directive and dialog template outlets are neither, so they are refused rather than dropped.
+/// translated by the converters, and so is the typed composition ABI of Screenplay 4.120: exposures, instance values,
+/// screen contributions, template slot content and picker metadata, grid/grow/span arrangements, and a
+/// <c>navigate</c> directive's route, outlet and parameters (as a Scene <c>DestinationReference</c>). Dialog template
+/// outlets have no Scene counterpart - a Scene dialog template declares none - so they are refused rather than dropped.
 /// </remarks>
 public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
 {
@@ -22,7 +22,6 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
     {
         var member = node switch
         {
-            ScreenNavigateSyntax navigate when navigate.Route is not null || navigate.Parameters.Any() => "ScreenNavigateSyntax.Route/Parameters",
             DialogTemplateSyntax dialog when dialog.Outlets.Any() => "DialogTemplateSyntax.Outlets",
             _ => null
         };

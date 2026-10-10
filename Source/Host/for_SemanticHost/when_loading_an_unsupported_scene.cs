@@ -12,18 +12,18 @@ namespace Cratis.Stage.Host.for_SemanticHost;
 
 public class when_loading_an_unsupported_scene : given.a_model_path
 {
+    // A Scene dialog template declares no outlets, so an outlet on one is refused rather than dropped.
     [Theory]
-    [InlineData("semantic", "route \"projects/overview\"")]
-    [InlineData("semantic", "parameter name from data.name")]
-    [InlineData("eventmodel", "route \"projects/overview\"")]
-    [InlineData("eventmodel", "parameter name from data.name")]
-    public async Task should_record_scene_refusals_instead_of_crashing_the_host(string engine, string navigation)
+    [InlineData("semantic")]
+    [InlineData("eventmodel")]
+    public async Task should_record_scene_refusals_instead_of_crashing_the_host(string engine)
     {
-        var screen = $$"""
-                screen Overview
-                  navigate to Overview
-                    {{navigation}}
-        """;
+        const string screen = """
+            module Confirmations
+              dialog template ConfirmProject
+                body
+                outlet details
+            """;
         await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n" + screen);
         var issues = new List<StageUnsupportedIssue>();
         LoadedSemanticModel? model = null;
@@ -43,7 +43,7 @@ public class when_loading_an_unsupported_scene : given.a_model_path
         issue.Artifact.ShouldEqual("model");
         const string diagnosticCode = UnsupportedUiSyntax.DiagnosticCode;
         issue.Details.ShouldContain(diagnosticCode);
-        issue.Details.ShouldContain("ScreenNavigateSyntax.Route/Parameters");
+        issue.Details.ShouldContain("DialogTemplateSyntax.Outlets");
 
         await using var app = WebApplication.CreateBuilder().Build();
         SemanticHost.MapRefused(app, issues, engine);

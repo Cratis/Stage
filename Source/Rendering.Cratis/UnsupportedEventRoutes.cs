@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Diagnostics;
+using Cratis.Stage.Contracts.Screenplay;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -16,7 +17,7 @@ public sealed class UnsupportedEventRoutes(SourceLocation location) : Exception(
     /// <summary>
     /// The stable diagnostic code shared with semantic route admission.
     /// </summary>
-    public const string DiagnosticCode = "STAGE-ESM-030";
+    public const string DiagnosticCode = UnsupportedEventSourceRoutes.DiagnosticCode;
 
     /// <summary>
     /// Gets the authored route location.

@@ -4,6 +4,7 @@
 using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Screenplay;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Running;
@@ -61,6 +62,11 @@ public static partial class Program
             model = await EventModelLoader.LoadFromPathAsync(arguments.ModelPath);
         }
         catch (InvalidEventModel exception)
+        {
+            await error.WriteLineAsync(exception.Message);
+            return 1;
+        }
+        catch (UnsupportedEventSourceRoutes exception)
         {
             await error.WriteLineAsync(exception.Message);
             return 1;

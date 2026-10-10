@@ -3,6 +3,7 @@
 
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Contracts.Screenplay;
 
 namespace Cratis.Stage.Host;
 
@@ -21,6 +22,12 @@ internal static class EventModelHost
             issues.AddRange(application.Scene.RuntimeIssues.Select(issue => new StageUnsupportedIssue("Scene", issue.Artifact, issue.Details)));
 
             return application.Scene.RuntimeIssues.Count > 0 ? null : application;
+        }
+        catch (UnsupportedEventSourceRoutes exception)
+        {
+            issues.Add(new StageUnsupportedIssue("Plan", "model", exception.Message));
+
+            return null;
         }
         catch (Exception exception) when (exception is UnsupportedUiSyntax)
         {

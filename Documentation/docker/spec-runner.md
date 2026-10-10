@@ -11,7 +11,9 @@ Unlike [the Stage container](index.md), it starts no server and needs no event s
 pipeline or an editor's "verify my model" action. The default structural engine is **deprecated**: it checks
 model consistency, not behavior, and will be removed in the next major version. This minor version retains
 `structural` as the default for existing `results.json` consumers; each structural run prints one deprecation
-notice to standard error. Migrate to `--engine semantic` and the semantic report format described below.
+notice to standard error. Structural runs refuse named event sources, streams and event-source routes with
+`STAGE-ESM-030` on standard error, exit `1`, and write no results file. Routes run only on the semantic
+engine. Migrate to `--engine semantic` and the semantic report format described below.
 
 ```bash
 docker run --rm \
@@ -60,7 +62,7 @@ requires both `--model` and `--output`; the defaults above are supplied by the c
 | Code | Meaning |
 |---|---|
 | `0` | The run completed and `results.json` was written. **A failing specification is still a completed run** — read the outcomes from the file. |
-| `1` | The input path is missing, the file extension is unsupported, the folder is empty, or model compilation fails. An actionable error is written to standard error. |
+| `1` | The input path is missing, the file extension is unsupported, the folder is empty, model compilation fails, or a structural run refuses named event sources, streams or event-source routes (`STAGE-ESM-030`). An actionable error is written to standard error; no results file is written. |
 | `2` | A required argument (`--model` or `--output`) was missing. A usage line is written to standard error. |
 
 Input failures do not write results or delete or overwrite an existing output file. Compiler errors identify the

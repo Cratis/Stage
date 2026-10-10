@@ -124,7 +124,10 @@ Anything Chronicle-related can also be set with the kernel's own environment var
 
 ## Opt in to semantic execution
 
-By default the host runs the existing EventModel engine. Set `Stage__Runtime__Engine=semantic` to use the
+By default the host runs the existing EventModel engine. That engine refuses named event sources, streams
+and event-source routes with `STAGE-ESM-030`, before registering anything with Chronicle. The host stays
+in refused mode: `/stage/status` reports `state: "unsupported"` and `/api/**` returns HTTP 501.
+Routes run only on the semantic engine. Set `Stage__Runtime__Engine=semantic` to use the
 Screenplay executable semantic model (ESM) for command decisions and keyed snapshot queries:
 
 ```bash
@@ -159,7 +162,7 @@ Do not treat a successful rebuild as proof that another client could not append 
 After rebuild, an external append detected before a command faults the runtime instead of committing
 against stale state. The semantic engine does not register Chronicle projection mirrors: its read models
 are available through Stage's in-process queries, not as projection views in the Chronicle Workbench.
-The default EventModel engine continues to register its own Chronicle projections. Commands that require
+For admitted, unrouted models, the default EventModel engine continues to register its own Chronicle projections. Commands that require
 allocation of a new event-source identity return `Unsupported(IdentityAllocation)`; explicitly name a
 `produces … for` destination to make them executable. Unsupported event revisions or duplicate event names
 put the running host in refused mode (`state: "unsupported"` and HTTP 501 for `/api/**`). The semantic engine runs modeled specifications through the shared executor on request, with fresh isolated state rather than the live world or Chronicle log (see below). Scene synthesis still uses the legacy presentation converter, but that converter is

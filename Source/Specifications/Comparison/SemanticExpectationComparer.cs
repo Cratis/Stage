@@ -45,10 +45,16 @@ internal static class SemanticExpectationComparer
             return failures;
         }
 
-        if (expected.WhenAppended is not null && expected.ThenEvents.IsEmpty) return failures;
-
-        CompareFacts(expected, actual, failures, plan!);
-        if (expected.ThenEvents.Length != actual.Count) return failures;
+        if (expected.WhenAppended is null || expected.ThenEvents.Length > 0)
+        {
+            // Screenplay v4.114.0 SemanticScenario.Perform counts the direct append as one action fact.
+            // Stage admits no reactions, so no facts follow that action in the current executable subset.
+            var actionFacts = -1;
+            if (plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6)) actionFacts = expected.WhenAppended is null ? actual.Count : 1;
+            var following = actual;
+            if (actionFacts >= 0 && expected.WhenAppended is not null) following = [.. actual.Skip(actionFacts)];
+            CompareFacts(expected, following, failures, plan);
+        }
 
         if (expected.When?.EventSource is { } source && destinations.Any(destination => !AreEqual(destination, source.Value)))
         {

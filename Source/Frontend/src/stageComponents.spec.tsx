@@ -611,6 +611,63 @@ describe('a native command form', () => {
         expect(await screen.findByText('O-2')).toBeDefined();
     });
 
+    it('posts command arguments resolved from input value outputs and selected items', async () => {
+        const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+            if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
+            return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'W2', workItemId: 'W2', title: 'Work two' }] }) });
+        });
+        vi.stubGlobal('fetch', fetched);
+        const table = element('work.items', 'core:table', { route: '/api/work-items', typeName: 'WorkItems', dataKey: 'id' }, {
+            columns: [element('title', 'core:column', { property: 'title', label: 'Title' })],
+        });
+        const form = element('comment-form', 'Stage:commandForm', {
+            command: 'AddComment',
+            label: 'Add comment',
+            fields: [{ name: 'workItemId', label: 'Work item' }, { name: 'text', label: 'Comment' }],
+            arguments: [
+                { name: 'workItemId', source: 'component.work.items.workItemId' },
+                { name: 'text', source: 'component.comment.input.value' },
+            ],
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { AddComment: '/api/comments/add' }, queries: {} }} locale='en' locales={['en']} screen='Comments'>
+                    <ComponentOutput componentId='comment.input' path='value' value='Looks good' />
+                    <StageTable element={table} slots={{}} />
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+
+        fireEvent.click((await screen.findByText('Work two')).closest('tr')!);
+        await waitFor(() => expect((screen.getByLabelText('Work item') as HTMLInputElement).value).toEqual('W2'));
+        expect((screen.getByLabelText('Comment') as HTMLInputElement).value).toEqual('Looks good');
+        fireEvent.click(screen.getByRole('button', { name: 'Execute Add comment' }));
+
+        await waitFor(() => expect(fetched.mock.calls.some(call => String(call[0]).endsWith('/api/comments/add')
+            && (call[1] as RequestInit | undefined)?.body === JSON.stringify({ workItemId: 'W2', text: 'Looks good' }))).toBe(true));
+    });
+
+    it('leaves a field empty when its argument source resolves to nothing', () => {
+        const form = element('comment-form', 'Stage:commandForm', {
+            command: 'AddComment',
+            label: 'Add comment',
+            fields: [{ name: 'text', label: 'Comment' }],
+            arguments: [{ name: 'text', source: 'component.missing.input.value' }],
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { AddComment: '/api/comments/add' }, queries: {} }} locale='en' locales={['en']} screen='Comments'>
+                    <StageCommandForm element={form} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+
+        expect((screen.getByLabelText('Comment') as HTMLInputElement).value).toEqual('');
+    });
+
     it('treats an explicit empty required list as optional command input', async () => {
         const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult() });
         vi.stubGlobal('fetch', fetched);

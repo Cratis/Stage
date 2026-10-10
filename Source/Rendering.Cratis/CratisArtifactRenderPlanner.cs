@@ -216,10 +216,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             if (CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact))
             {
-                // Contract/package planning may preserve guarded actions, but a runnable application must not
-                // publish them. Inspect the wire model here so manually built Scenes and JSON cannot bypass admission.
+                // A runnable application carries guarded actions and interactions the Stage runtime evaluates, and
+                // never one it cannot. Inspect the wire model here so manually built Scenes and JSON cannot bypass
+                // admission.
                 if (artifact!.RelativePath == SceneCompositionInput.RelativePath &&
-                    SceneCompositionAdmission.HasGuardedAction(System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))
+                    Contracts.Scene.SceneGuards.HasUnevaluableGuard(System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))
                 {
                     var refusal = new Contracts.Scene.UnsupportedGuardedScreenAction("scene.json", Screenplay.Diagnostics.SourceLocation.Start);
                     diagnostics.Add(Error(Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode, refusal.Message, request.Model.Application.Id));

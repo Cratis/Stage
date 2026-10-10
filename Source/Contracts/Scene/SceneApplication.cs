@@ -39,7 +39,7 @@ public record SceneApplication(
     public IReadOnlyList<SceneExposure.InstanceContribution> InstanceContributions { get; init; } = [];
 
     /// <summary>
-    /// Gets source constructs that cannot run in the pinned Scene runtime. These are not Scene wire members.
+    /// Gets source constructs the Stage runtime cannot run, such as a guard it cannot evaluate. These are not Scene wire members.
     /// </summary>
     [JsonIgnore]
     public IReadOnlyList<SceneRuntimeIssue> RuntimeIssues { get; init; } = [];

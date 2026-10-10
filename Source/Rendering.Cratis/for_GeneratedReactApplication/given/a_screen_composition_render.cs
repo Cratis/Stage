@@ -1,8 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
@@ -21,9 +19,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication.given;
 /// </summary>
 /// <remarks>
 /// The corpus is compiled twice from the same folder form - once into the executable semantic model, once into
-/// the authored Scene - and the Scene travels to the planner as the <c language="json">scene.json</c> input with its
-/// guarded actions removed, which is the runnable subset the CLI hands to Stage. A Scene that still carried them
-/// would be refused by the planner, and that refusal is specified on its own.
+/// the authored Scene - and the Scene travels to the planner as the <c language="json">scene.json</c> input as authored,
+/// with its guarded Close action and its guarded double click, which the Stage runtime evaluates.
 /// </remarks>
 public class a_screen_composition_render : Specification
 {
@@ -56,10 +53,10 @@ public class a_screen_composition_render : Specification
     }
 
     /// <summary>
-    /// Plans the application from the runnable Scene, as <c language="shell">cratis render</c> hands it to Stage.
+    /// Plans the application from the authored Scene, guarded actions and interactions included.
     /// </summary>
     /// <returns>The plan.</returns>
-    protected ArtifactRenderPlan Plan() => Plan(RunnableSceneJson(_scene));
+    protected ArtifactRenderPlan Plan() => Plan(CanonicalSceneJson.Serialize(_scene));
 
     /// <summary>
     /// Writes every planned artifact beneath a directory, at its relative path.
@@ -105,48 +102,6 @@ public class a_screen_composition_render : Specification
     /// <returns>The UTF-8 text.</returns>
     protected static string Text(ArtifactRenderPlan plan, string relativePath) =>
         System.Text.Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath == relativePath).Bytes.AsSpan());
-
-    /// <summary>
-    /// The runnable Scene payload: the authored Scene with every guarded action removed, as the CLI produces it.
-    /// </summary>
-    /// <param name="scene">The translated authored Scene.</param>
-    /// <returns>The Scene JSON without guarded actions.</returns>
-    protected static string RunnableSceneJson(SceneApplication scene)
-    {
-        var node = JsonNode.Parse(CanonicalSceneJson.Serialize(scene))!;
-        RemoveGuardedActions(node);
-        return node.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
-    }
-
-    static void RemoveGuardedActions(JsonNode? node)
-    {
-        if (node is JsonArray array)
-        {
-            for (var index = array.Count - 1; index >= 0; index--)
-            {
-                if (IsGuardedAction(array[index]))
-                {
-                    array.RemoveAt(index);
-                    continue;
-                }
-
-                RemoveGuardedActions(array[index]);
-            }
-        }
-        else if (node is JsonObject @object)
-        {
-            foreach (var property in @object.ToArray())
-            {
-                RemoveGuardedActions(property.Value);
-            }
-        }
-    }
-
-    static bool IsGuardedAction(JsonNode? node) =>
-        node is JsonObject @object &&
-        @object["componentName"]?.GetValue<string>() == "core:action" &&
-        @object["properties"] is JsonObject properties &&
-        (properties.ContainsKey("alternatives") || properties.ContainsKey("otherwise"));
 
     static SceneApplication SceneFor(IEnumerable<CanonicalCorpusDocument> documents)
     {

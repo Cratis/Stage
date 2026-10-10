@@ -10,23 +10,43 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_refusing_guarded_scene_runtime : Specification
 {
-    [Theory]
-    [InlineData("action", "STAGE-SCENE-ACTION-001")]
-    [InlineData("interaction", "STAGE-SCENE-INTERACTION-001")]
-    public void should_refuse_before_creating_runnable_frontend_inputs(string kind, string code)
-    {
-        var directive = kind == "action" ? """
+    const string GuardedAction = """
                     action "Register"
                       when item.name == "Ready" execute RegisterProject
                       otherwise hidden
-            """ : """
+            """;
+
+    const string GuardedInteraction = """
                     on click
                       when item.name == "Ready"
                         execute RegisterProject
                       otherwise
                         notify info "Not ready"
             """;
-        var scene = Scene(directive);
+
+    [Theory]
+    [InlineData("action")]
+    [InlineData("interaction")]
+    public void should_render_guards_the_runtime_evaluates(string kind)
+    {
+        var scene = Scene(kind == "action" ? GuardedAction : GuardedInteraction);
+        var profile = CratisRendering.CreateProfile("Projects", new("Projects", "Projects"), scene);
+
+        scene.RuntimeIssues.ShouldBeEmpty();
+        profile.Inputs.Any(input => input.Name.EndsWith("scene.json", StringComparison.Ordinal)).ShouldBeTrue();
+    }
+
+    // Screenplay refuses an unevaluable guard while compiling, so the issue admission records for one is placed on
+    // the Scene directly: whatever produced it, it is refused before any runnable input is created.
+    [Theory]
+    [InlineData("action", "STAGE-SCENE-ACTION-001")]
+    [InlineData("interaction", "STAGE-SCENE-INTERACTION-001")]
+    public void should_refuse_unevaluable_guards_before_creating_runnable_frontend_inputs(string kind, string code)
+    {
+        var scene = Scene(kind == "action" ? GuardedAction : GuardedInteraction) with
+        {
+            RuntimeIssues = [new(code, "Register", global::Cratis.Screenplay.Diagnostics.SourceLocation.Start, "unevaluable")]
+        };
         var error = Catch.Exception(() => CratisRendering.CreateProfile("Projects", new("Projects", "Projects"), scene));
         error.ShouldNotBeNull();
         error.Message.ShouldContain(code);

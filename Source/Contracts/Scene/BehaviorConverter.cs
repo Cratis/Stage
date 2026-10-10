@@ -29,7 +29,7 @@ public static class BehaviorConverter
     /// <param name="behavior">The <see cref="ScreenplaySyntax.BehaviorSyntax"/> to convert.</param>
     /// <returns>The converted <see cref="SceneModel.Behavior"/>.</returns>
     public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior) =>
-        new(behavior.Name, [.. behavior.Bindings.Select(ConvertBinding)], behavior.Order);
+        new(behavior.Name, [.. behavior.Bindings.SelectMany(ConvertBinding)], behavior.Order);
 
     /// <summary>
     /// Converts a sequence of <see cref="ScreenplaySyntax.BehaviorSyntax"/> into Scene behaviors.
@@ -54,11 +54,42 @@ public static class BehaviorConverter
             _ => throw new UnknownInteractionTrigger(trigger.GetType().Name),
         };
 
-    static SceneModel.InteractionBinding ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding) =>
-        new(
-            ConvertTrigger(binding.Trigger),
-            [.. binding.Actions.Select(InteractionActionConverter.Convert)],
-            binding.Condition is null ? null : new SceneCommon.BindingExpression(binding.Condition));
+    // An unguarded binding is one Scene binding. A guarded one - `when ... otherwise` - becomes one binding per branch
+    // with the same trigger, in authored order, each conditioned on being the branch that holds for the subject (see
+    // SceneGuards), so the Scene interaction engine runs exactly one of them.
+    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding)
+    {
+        var trigger = ConvertTrigger(binding.Trigger);
+        var alternatives = binding.Alternatives.ToArray();
+        if (alternatives.Length == 0 && binding.Otherwise is null)
+        {
+            yield return new(
+                trigger,
+                [.. binding.Actions.Select(InteractionActionConverter.Convert)],
+                binding.Condition is null ? null : new SceneCommon.BindingExpression(binding.Condition));
+            yield break;
+        }
+
+        var conditions = alternatives.Select(alternative => (object?)SceneGuards.Convert(alternative.Condition)).ToList();
+        for (var index = 0; index < alternatives.Length; index++)
+        {
+            yield return new(
+                trigger,
+                [.. alternatives[index].Actions.Select(InteractionActionConverter.Convert)],
+                Guard(new Dictionary<string, object?> { ["kind"] = "firstMatch", ["index"] = index, ["alternatives"] = conditions }));
+        }
+
+        if (binding.Otherwise is not null)
+        {
+            yield return new(
+                trigger,
+                [.. binding.Otherwise.Actions.Select(InteractionActionConverter.Convert)],
+                Guard(new Dictionary<string, object?> { ["kind"] = "otherwise", ["alternatives"] = conditions }));
+        }
+    }
+
+    static SceneCommon.BindingExpression Guard(Dictionary<string, object?> selection) =>
+        new(SceneGuards.GuardPath, Value: selection);
 
     /// <summary>
     /// Normalizes an interval to seconds, which is the one unit the model carries.

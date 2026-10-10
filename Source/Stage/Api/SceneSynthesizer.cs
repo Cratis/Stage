@@ -74,7 +74,6 @@ public static class SceneSynthesizer
     /// <returns>The authored scene, or the same default screen composition used for an event model.</returns>
     public static SceneApplication Synthesize(SceneApplication scene, ExecutableSemanticModel model)
     {
-        var schemas = new SemanticSceneSchemas(model.Application);
         var slices = SemanticModelWalker.Slices(model).ToArray();
         var readModels = slices.SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
         var commands = slices
@@ -82,7 +81,7 @@ public static class SceneSynthesizer
             .GroupBy(command => command.Name, StringComparer.Ordinal)
             .ToDictionary(
                 group => group.Key,
-                group => CommandFormRuntimeMetadata.FromSchema(group.Key, schemas.ForProperties(group.First().Properties)),
+                group => CommandFormRuntimeMetadata.FromSchema(group.Key, CommandFormSchemas.For(model.Application, group.First().Properties)),
                 StringComparer.Ordinal);
         var enriched = CommandFormRuntimeMetadata.Apply(scene, commands);
 

@@ -271,6 +271,16 @@ public sealed class ArtifactRenderPlan
     public SemanticRevision SemanticRevision { get; }
 
     /// <summary>
+    /// Gets the primary requested scope. Scope is selection metadata and does not contribute to the output-only digest.
+    /// </summary>
+    public ArtifactRenderScope Scope { get; init; } = null!;
+
+    /// <summary>
+    /// Gets the additional requested scopes whose union was planned, without contributing to the output-only digest.
+    /// </summary>
+    public ImmutableArray<ArtifactRenderScope> AdditionalScopes { get; init; } = [];
+
+    /// <summary>
     /// Gets artifacts in ordinal relative-path order.
     /// </summary>
     public ImmutableArray<PlannedArtifact> Artifacts { get; }
@@ -340,7 +350,11 @@ public sealed class ArtifactRenderPlan
                     .ThenBy(_ => _.Code, StringComparer.Ordinal)
                     .ThenBy(_ => _.Artifact.ToString(), StringComparer.Ordinal)
                     .ThenBy(_ => _.Message, StringComparer.Ordinal)
-            ]);
+            ])
+        {
+            Scope = request.Scope,
+            AdditionalScopes = request.AdditionalScopes
+        };
     }
 
     /// <summary>

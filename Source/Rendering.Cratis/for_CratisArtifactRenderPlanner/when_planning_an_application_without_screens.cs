@@ -75,7 +75,12 @@ public class when_planning_an_application_without_screens : a_register_project_r
     [Fact] void should_freeze_the_complete_binding_module_bytes() => Artifact(SceneBindingsRenderer.RelativePath)!.Sha256.ShouldEqual("4823d01d04ac795068ac52d87afc3e7be57c826dda63b005f1c3e7a057196f2f");
     [Fact] void should_repeat_the_exact_scene_bytes() => _planner.Plan(_request).Artifacts.Single(_ => _.RelativePath == SceneCompositionInput.RelativePath).Bytes.SequenceEqual(Artifact(SceneCompositionInput.RelativePath)!.Bytes).ShouldBeTrue();
     [Fact] void should_not_emit_http_literals_or_unmodeled_queries() => new[] { "http://", "https://", "/api/", "AllProjects" }.Any(value => Text(Artifact(SceneCompositionInput.RelativePath)!).Contains(value, StringComparison.Ordinal)).ShouldBeFalse();
-    [Fact] void should_not_emit_screen_specific_typescript() => _plan.Artifacts.Where(_ => _.RelativePath.EndsWith(".tsx", StringComparison.Ordinal)).Select(_ => _.RelativePath).ShouldContainOnly(".frontend/main.tsx");
+
+    /// <summary>
+    /// The only components are the shell's entry point and the Stage runtime every generated application shares;
+    /// a screen is composed in the Scene document, never written as its own component.
+    /// </summary>
+    [Fact] void should_not_emit_screen_specific_typescript() => _plan.Artifacts.Where(_ => _.RelativePath.EndsWith(".tsx", StringComparison.Ordinal) && !_.RelativePath.StartsWith(".frontend/stage/", StringComparison.Ordinal)).Select(_ => _.RelativePath).ShouldContainOnly(".frontend/main.tsx");
 
     bool MatchesPattern(string value) => Regex.IsMatch(value, $"^(?:{_input.GetProperty("pattern").GetString()})$", RegexOptions.None, TimeSpan.FromSeconds(1));
 

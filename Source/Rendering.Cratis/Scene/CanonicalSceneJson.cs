@@ -50,6 +50,29 @@ public static class CanonicalSceneJson
 
         var node = JsonSerializer.SerializeToNode(application, _readOptions) ?? new JsonObject();
         PreserveLiteralNullValues(node);
+        return Write(node);
+    }
+
+    /// <summary>
+    /// Converts a Scene model value to the canonical JSON shape the TypeScript Scene model reads.
+    /// </summary>
+    /// <param name="value">The value, such as an element or a form field.</param>
+    /// <returns>The JSON node.</returns>
+    internal static JsonNode? ToNode(object? value)
+    {
+        var node = JsonSerializer.SerializeToNode(value, _readOptions);
+        PreserveLiteralNullValues(node);
+        return node;
+    }
+
+    /// <summary>
+    /// Writes a JSON node canonically: object members in ordinal order and no indentation, so the same document
+    /// is always the same bytes.
+    /// </summary>
+    /// <param name="node">The node to write.</param>
+    /// <returns>The canonical JSON text.</returns>
+    internal static string Write(JsonNode? node)
+    {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream, _writeOptions))
         {

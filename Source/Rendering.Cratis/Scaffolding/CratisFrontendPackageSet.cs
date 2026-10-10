@@ -197,11 +197,19 @@ public sealed class CratisFrontendPackageSet
     /// </remarks>
     public string TypesNodePackageVersion { get; }
 
+    /// <summary>
+    /// Gets the package set the current era emits.
+    /// </summary>
+    /// <remarks>
+    /// Every package the emitted Stage frontend runtime imports is pinned to the version the Stage frontend itself
+    /// builds with (<c language="shell">Source/Frontend/package.json</c>), so the runtime a generated application
+    /// compiles is the runtime the live Stage was verified with. A specification compares the two.
+    /// </remarks>
     internal static CratisFrontendPackageSet Current { get; } = new(
-        "22.50.5",
-        "22.50.5",
-        "22.50.5",
-        "7.19.8",
+        "22.58.2",
+        "22.58.2",
+        "22.58.2",
+        "7.22.8",
         "7.8.2",
         "4.10.0",
         "0.2.2",
@@ -213,8 +221,8 @@ public sealed class CratisFrontendPackageSet
         "6.1.1",
         "19.3.0",
         "19.3.0",
-        "4.14.0",
-        "4.10.0",
+        "4.26.2",
+        "4.12.0",
         "11.2.0",
         "8.0.2",
         "3.0.1",

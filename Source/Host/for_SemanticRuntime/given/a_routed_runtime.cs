@@ -54,9 +54,11 @@ public class a_routed_runtime : Specification
     protected string _period = "2026-10";
     ServiceProvider _provider = null!;
 
+    protected virtual string ModelSource => Source;
+
     void Establish()
     {
-        _plan = compiled_plan.From(Source);
+        _plan = compiled_plan.From(ModelSource);
         _contracts = Substitute.For<IServices>();
         _contracts.Sequences.TailSequenceNumber(Arg.Any<TailSequenceNumberRequest>()).Returns(QueryResult<EventSequenceTailResponse>.Success(Guid.Empty, new() { SequenceNumber = ulong.MaxValue }));
         _contracts.Sequences.AppendManyForEventSources(Arg.Do<AppendManyForEventSourcesRequest>(request => _append = request)).Returns(Cratis.Chronicle.Contracts.Commands.CommandResult<AppendManyResponse>.Success(Guid.Empty, new() { IsSuccess = true }));

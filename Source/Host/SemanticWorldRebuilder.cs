@@ -72,15 +72,21 @@ internal static class SemanticWorldRebuilder
         var producers = plan.Commands.Values.SelectMany(command => command.Produces
             .Where(produced => produced.EventContract == contract.Id)
             .Select(produced => (Command: command, Produced: produced))).ToArray();
-        var destinations = producers.Select(producer => producer.Produced.Destination is SemanticResolvedExpression resolved
-            ? producer.Command.Properties.Single(property => property.Id == resolved.Target).Type
-            : producer.Command.Destination?.Type).Distinct().ToArray();
-        if (destinations is not [{ IsOptional: false, IsCollection: false }])
+        var destinationType = route is null ? null : plan.Model.Application.EventSources
+            .Single(source => source.SourceKind == route.SourceKind).IdentifierType;
+        if (destinationType is null)
         {
-            throw new SemanticWorldRebuildRefused($"Event '{contract.Name}' has no unambiguous typed destination.");
-        }
+            // Screenplay falls back across all producers, not just those on the stored route.
+            var destinations = producers.Select(producer => producer.Produced.Destination is SemanticResolvedExpression resolved
+                ? producer.Command.Properties.Single(property => property.Id == resolved.Target).Type
+                : producer.Command.Destination?.Type).Distinct().ToArray();
+            if (destinations is not [{ IsOptional: false, IsCollection: false }])
+            {
+                throw new SemanticWorldRebuildRefused($"Event '{contract.Name}' has no unambiguous typed destination.");
+            }
 
-        var destinationType = destinations[0]!;
+            destinationType = destinations[0]!;
+        }
         var destination = Text(context.EventSourceId, destinationType, plan.Model.Application);
         if ((DateTimeOffset?)context.Occurred is not { } occurred)
         {

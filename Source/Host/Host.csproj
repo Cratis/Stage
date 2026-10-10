@@ -35,6 +35,14 @@
         <PackageReference Include="Cratis.OpenTelemetry" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <!--
+            Spec-only: the canonical screen-composition corpus the scene route specs load. Debug-only and
+            PrivateAssets="All", as in Rendering.Cratis and Specifications - specs are stripped from Release.
+        -->
+        <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="../Stage/Stage.csproj" />
 

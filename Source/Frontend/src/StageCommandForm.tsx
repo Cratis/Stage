@@ -80,7 +80,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 onFailed={result => setMessages(messagesFromResult(result))}
                 onSuccess={() => {
                     setMessages([]);
-                    data.refreshQuery();
+                    data.refreshAfterCommand();
                 }}>
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}

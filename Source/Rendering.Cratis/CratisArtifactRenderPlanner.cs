@@ -155,6 +155,19 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                     SceneBindingsRenderer.RelativePath,
                     SceneBindingsRenderer.Render(context),
                     [context.Application.Id]));
+
+                // The document and module the emitted Stage runtime renders the composition from.
+                var sceneJson = composed is not null
+                    ? CanonicalSceneJson.Serialize(composed)
+                    : System.Text.Encoding.UTF8.GetString(artifacts.Single(_ => _.RelativePath == SceneCompositionInput.RelativePath).Bytes.AsSpan());
+                artifacts.Add(PlannedArtifact.CreateText(
+                    StageSceneDocument.RelativePath,
+                    StageSceneDocument.Render(sceneJson, context),
+                    [context.Application.Id]));
+                artifacts.Add(PlannedArtifact.CreateText(
+                    StageModuleRenderer.RelativePath,
+                    StageModuleRenderer.Render(context),
+                    [context.Application.Id]));
             }
 
             if (context.Strings is { } strings)

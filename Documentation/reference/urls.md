@@ -106,7 +106,9 @@ instances of the read model. `All<ReadModels>` returns that window. `Get<ReadMod
 for an instance whose identity matches `id` (compared case-insensitively) and returns `data: null` when none does,
 including an instance that exists beyond the first 500.
 
-A query the model narrows with `by` is also served under its own name. Given this declaration:
+Every query the model declares is also served under its own name, so `query AllWorkItems => WorkItemSummary[]`
+answers at `.../all-work-items`. A query that shares a conventional name takes that name's place. A query the model
+narrows with `by` only returns what its argument names. Given this declaration:
 
 ```screenplay
 query CommentsForWorkItem => observable CommentView[]
@@ -171,6 +173,22 @@ outcomes as `GET`: the same data, the same errors, and the same pipeline rejecti
 compatibility aliases without disabling `GET`. Canonical query names are always included.
 OpenAPI describes the `GET` operation; Arc keeps the alternate `QUERY` transport out of API description while
 mapping it at the same canonical path when enabled.
+
+### Which route a screen calls
+
+The scene served at `/stage/scene` attaches a `route` to every element that reads data. An element declared as
+`data AllWorkItems` gets the route of `AllWorkItems` and nothing else, even when another query such as
+`WorkItemById` returns the same read model. An element that names only a read model gets that read model's
+`All<ReadModels>` route. `/stage/routes` maps each query and command by its own name.
+
+One fallback is defined: an unkeyed collection binding (`data AllWorkItems` with no `by`) whose query has no endpoint
+of its own reads its read model's `All<ReadModels>`, which answers the same rows. A keyed binding such as
+`data CommentsForWorkItem by workItemId` is never widened to the unfiltered collection.
+
+When a name otherwise matches no endpoint, or several distinct ones (the same query name in two slices, for
+example), Stage attaches no route rather than guessing. The element then carries `routeStatus` (`unresolved` or `ambiguous`) and a
+`routeDiagnostic` naming the candidates. `/stage/routes` leaves an ambiguous name out and lists it under
+`diagnostics`.
 
 ## Legacy compatibility and admission
 

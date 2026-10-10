@@ -75,9 +75,9 @@ jobs:
       - name: Build & run tests
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
-        # The compile-backed generated-name matrix runs in its own job below, in parallel, so this job
-        # stays inside its timeout. Every other spec runs here.
-        run: dotnet test --configuration Debug --filter "FullyQualifiedName!~when_compiling_generated_name_matrix"
+        # The compile-backed generated-name matrix and the generated React application build run in their own
+        # jobs below, in parallel, so this job stays inside its timeout. Every other spec runs here.
+        run: dotnet test --configuration Debug --filter "FullyQualifiedName!~when_compiling_generated_name_matrix&FullyQualifiedName!~when_building_the_generated_screen_composition_application"
 
       # The version is a sentinel, not a release. Package validation compares assembly versions, and one
       # below the baseline is rejected on that alone before the API surface is ever looked at - so it has to
@@ -216,3 +216,72 @@ jobs:
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
         run: dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Debug --filter "FullyQualifiedName~when_compiling_generated_name_matrix"
+
+  # Renders the canonical screen-composition corpus into a generated React application, builds it the way its author
+  # would (Debug backend with its proxies and generated specifications, npm install, frontend build), then serves it
+  # on its own backend against the pinned Chronicle kernel and runs the browser scenarios used against a live Stage.
+  generated-react:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Verification/generated-react-browser/package-lock.json
+
+      - name: Render and build the generated application
+        env:
+          STAGE_GENERATED_REACT_KEEP: ${{ runner.temp }}/generated-react
+        run: >-
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
+          --filter "FullyQualifiedName~when_building_the_generated_screen_composition_application"
+          --logger "trx;LogFileName=generated-react.trx" --results-directory ./TestResults/generated-react
+
+      # A zero exit from dotnet test can mean that nothing ran.
+      - name: Require the build specification to execute and pass
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          root = ET.parse("TestResults/generated-react/generated-react.trx").getroot()
+          results = root.findall("t:Results/t:UnitTestResult", ns)
+          if len(results) != 7 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 7 passing generated React build assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
+          print(f"{len(results)} generated React build assertions passed")
+          PY
+
+      - name: Build the generated backend for serving
+        working-directory: ${{ runner.temp }}/generated-react
+        run: dotnet build Workspaces.csproj --configuration Release --nologo
+
+      - name: Install the browser harness
+        working-directory: Verification/generated-react-browser
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          node screen-composition.cjs --self-test
+
+      - name: Run the browser scenarios against the generated application
+        env:
+          STAGE_GENERATED_REACT_CHRONICLE_IMAGE: cratis/chronicle:19.32.0-development
+        run: Verification/generated-react-browser/run.sh "${{ runner.temp }}/generated-react" "$PWD/TestResults/generated-react/browser-result.json"
+
+      - name: Upload build and browser results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-react-results
+          path: TestResults/generated-react
+          if-no-files-found: error
+          retention-days: 7

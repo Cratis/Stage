@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import type { StringsDictionary } from '@cratis/scene.engine';
+import { useStageSource } from './stageSource';
 
 export interface Strings {
     /** Every locale at least one `.strings` file next to the model declares. */
@@ -28,31 +29,30 @@ export interface Strings {
  * `IStringsFiles.FindIn` orders by relative path) is what a running Stage actually offers today.
  */
 export function useStrings(): Strings {
+    const source = useStageSource();
     const [locales, setLocales] = useState<string[]>([]);
     const [locale, setLocale] = useState('');
     const [dictionary, setDictionary] = useState<StringsDictionary>({});
 
     useEffect(() => {
         const abort = new AbortController();
-        fetch('stage/locales', { signal: abort.signal })
-            .then(response => response.ok ? response.json() as Promise<string[]> : [])
+        source.locales(abort.signal)
             .then(available => {
                 setLocales(available);
                 setLocale(current => current || available[0] || '');
             })
             .catch(() => { /* No .strings files, or the model has none yet - $strings. references stay literal. */ });
         return () => abort.abort();
-    }, []);
+    }, [source]);
 
     useEffect(() => {
         if (!locale) return;
         const abort = new AbortController();
-        fetch(`stage/strings/${encodeURIComponent(locale)}`, { signal: abort.signal })
-            .then(response => response.ok ? response.json() as Promise<StringsDictionary> : {})
+        source.strings(locale, abort.signal)
             .then(setDictionary)
             .catch(() => setDictionary({}));
         return () => abort.abort();
-    }, [locale]);
+    }, [locale, source]);
 
     return { locales, locale, setLocale, dictionary };
 }

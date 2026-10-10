@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { useEffect, useMemo } from 'react';
-import type React from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { coreComponents } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
@@ -206,8 +205,13 @@ export { StageCommandForm };
 
 /** Executes a modeled command against the route the Stage registered for it. */
 export function StageAction({ element, interactions }: RegisteredProps) {
+    const data = useStageData();
     const label = text(element, 'label', text(element, 'command'));
-    const route = text(element, 'route');
+
+    // The same resolution a command form uses: the route the element was planned with, then the route the
+    // running application registered the command under. Neither means the action stays disabled.
+    const command = text(element, 'command');
+    const route = text(element, 'route') || (command ? data.routes?.commands[command] ?? '' : '');
 
     if (!route) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;

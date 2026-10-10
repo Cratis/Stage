@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
 import { stageTheme } from './stageTheme';
 import { App, StageSceneApplication } from './App';
+import { StageSourceProvider, staticStageSource } from './stageSource';
 
 const scene: StageSceneApplication = {
     layouts: [],
@@ -55,5 +56,23 @@ describe('the Stage frontend', () => {
 
         expect(await screen.findByRole('heading', { name: 'Invoices' })).toBeDefined();
         expect(fetch).toHaveBeenCalledWith('stage/scene', expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    });
+
+    it('renders content a generated application built in without requesting the Stage endpoints', async () => {
+        const source = staticStageSource({ scene, routes: { commands: {}, queries: {} }, strings: { en: { greeting: 'Hello' } } });
+
+        render(<PrimeReactProvider theme={stageTheme}><StageSourceProvider source={source}><App /></StageSourceProvider></PrimeReactProvider>);
+
+        expect(await screen.findByRole('heading', { name: 'Invoices' })).toBeDefined();
+        expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('answers locales and dictionaries from built-in strings', async () => {
+        const source = staticStageSource({ scene, routes: { commands: {}, queries: {} }, strings: { en: { greeting: 'Hello' }, nb: {} } });
+        const signal = new AbortController().signal;
+
+        expect(await source.locales(signal)).toEqual(['en', 'nb']);
+        expect(await source.strings('en', signal)).toEqual({ greeting: 'Hello' });
+        expect(await source.strings('de', signal)).toEqual({});
     });
 });

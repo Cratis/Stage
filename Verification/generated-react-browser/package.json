@@ -1,0 +1,12 @@
+{
+  "name": "@cratis/stage-generated-react-browser",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Browser scenarios run against a generated React application rendered from the canonical screen-composition corpus.",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "playwright": "1.64.0"
+  }
+}

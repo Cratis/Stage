@@ -12,11 +12,12 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold;
 
 public class when_creating_the_current_frontend_scaffold : a_current_frontend_scaffold
 {
-    static readonly string[] _expectedPaths =
+    static readonly string[] _expectedShellPaths =
     [
         ".frontend/index.css",
         ".frontend/index.html",
         ".frontend/main.tsx",
+        ".frontend/styledPrimeReact.ts",
         ".frontend/tsconfig.json",
         ".frontend/tsconfig.node.json",
         ".frontend/vite.config.ts",
@@ -25,7 +26,9 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         "tsconfig.json"
     ];
 
-    [Fact] void should_create_the_exact_frontend_roster_in_ordinal_order() => _first.Select(PathOf).SequenceEqual(_expectedPaths).ShouldBeTrue();
+    [Fact] void should_create_the_exact_shell_roster() => _first.Select(PathOf).Where(path => !IsRuntime(path)).SequenceEqual(_expectedShellPaths).ShouldBeTrue();
+    [Fact] void should_emit_the_stage_runtime_beside_the_shell() => _first.Select(PathOf).Count(IsRuntime).ShouldBeGreaterThan(10);
+    [Fact] void should_create_the_roster_in_ordinal_order() => _first.Select(PathOf).SequenceEqual(_first.Select(PathOf).Order(StringComparer.Ordinal)).ShouldBeTrue();
     [Fact] void should_version_every_input_with_the_scaffold_contract() => _first.All(input => input.Version == "2").ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_names() => _second.Select(input => input.Name).SequenceEqual(_first.Select(input => input.Name)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_hashes() => _second.Select(input => input.Sha256).SequenceEqual(_first.Select(input => input.Sha256)).ShouldBeTrue();
@@ -59,12 +62,14 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     /// </summary>
     [Fact] void should_mount_the_components_provider() => Content(".frontend/main.tsx").ShouldContain("<CratisComponentsProvider>");
 
-    [Fact] void should_render_the_composed_screen() => Content(".frontend/main.tsx").ShouldContain("SceneElementView");
-    [Fact] void should_read_the_composition_the_planner_emitted() => Content(".frontend/main.tsx").ShouldContain("from '../scene.json'");
-    [Fact] void should_register_the_generated_proxies_before_rendering() => Content(".frontend/main.tsx").ShouldContain("import '../src/bindings'");
-    [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("cratisComponentsPackage.components");
+    [Fact] void should_render_the_composed_screen_through_the_stage_runtime() => Content(".frontend/main.tsx").ShouldContain("import { App } from './stage/App';");
+    [Fact] void should_read_the_content_the_planner_emitted() => Content(".frontend/main.tsx").ShouldContain("from '../src/stage'");
+    [Fact] void should_serve_the_runtime_from_the_built_in_content() => Content(".frontend/main.tsx").ShouldContain("const source = staticStageSource(stage);");
+    [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("<App components={cratisComponentsPackage.components} />");
     [Fact] void should_render_core_diagnostics_and_cratis_components_through_one_registry() =>
-        Content(".frontend/main.tsx").ShouldContain("{ ...coreComponents, ...cratisComponentsPackage.components }");
+        Content(".frontend/stage/blueprint.ts").ShouldContain("{ ...coreComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...overrides }");
+    [Fact] void should_apply_the_stage_theme() => Content(".frontend/main.tsx").ShouldContain("<PrimeReactProvider license={primeUiLicense} theme={stageTheme}>");
+    [Fact] void should_serve_styled_primereact_components() => Content(".frontend/vite.config.ts").ShouldContain("styledPrimeReact(),");
     [Fact] void should_load_the_metadata_reflection_polyfill_first() => Content(".frontend/main.tsx").Split('\n')[0].ShouldEqual("import 'reflect-metadata';");
     [Fact] void should_build_into_the_hosted_web_root() => Content(".frontend/vite.config.ts").ShouldContain("outDir: '../wwwroot'");
     [Fact] void should_emit_arc_metadata_for_the_frontend() => Content(".frontend/vite.config.ts").ShouldContain("EmitMetadataPlugin");
@@ -78,6 +83,8 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_type_the_react_shell_it_compiles() => DependencyVersions().ShouldContain("@types/react=");
     [Fact] void should_ignore_the_bundled_web_root_and_node_modules() => Content(".gitignore").ShouldContain("wwwroot/");
     [Fact] void should_not_emit_wildcard_range_or_latest_versions() => HasForbiddenValues().ShouldBeFalse();
+
+    static bool IsRuntime(string path) => path.StartsWith(".frontend/stage/", StringComparison.Ordinal);
 
     JsonDocument PackageJson() => JsonDocument.Parse(Content("package.json"));
 
@@ -99,17 +106,17 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         '|',
         new[]
         {
-            "@cratis/arc=22.50.5",
-            "@cratis/arc.react=22.50.5",
-            "@cratis/arc.vite=22.50.5",
-            "@cratis/components=4.14.0",
-            "@cratis/fundamentals=7.19.8",
-            "@cratis/scene.blueprint.default=4.10.0",
-            "@cratis/scene.components=4.10.0",
-            "@cratis/scene.engine=4.10.0",
-            "@cratis/scene.model=4.10.0",
-            "@cratis/scene.primereact=4.10.0",
-            "@cratis/scene.react=4.10.0",
+            "@cratis/arc=22.58.2",
+            "@cratis/arc.react=22.58.2",
+            "@cratis/arc.vite=22.58.2",
+            "@cratis/components=4.26.2",
+            "@cratis/fundamentals=7.22.8",
+            "@cratis/scene.blueprint.default=4.12.0",
+            "@cratis/scene.components=4.12.0",
+            "@cratis/scene.engine=4.12.0",
+            "@cratis/scene.model=4.12.0",
+            "@cratis/scene.primereact=4.12.0",
+            "@cratis/scene.react=4.12.0",
             "@primereact/core=11.2.0",
             "@primereact/headless=11.2.0",
             "@primereact/hooks=11.2.0",

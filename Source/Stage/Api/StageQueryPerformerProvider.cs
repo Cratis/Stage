@@ -10,7 +10,7 @@ namespace Cratis.Stage.Api;
 /// <summary>
 /// Provides query performers to Arc by convention — for every read model in the event model it exposes a
 /// <c language="csharp">Get&lt;ReadModel&gt;ById</c> and an <c language="csharp">All&lt;ReadModels&gt;</c> query, plus every
-/// modeled query that is narrowed by a <c language="csharp">by</c> parameter.
+/// modeled query under its own name - narrowed by its <c language="csharp">by</c> parameter when it declares one.
 /// </summary>
 public sealed class StageQueryPerformerProvider : IQueryPerformerProvider
 {
@@ -53,17 +53,34 @@ public sealed class StageQueryPerformerProvider : IQueryPerformerProvider
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 
-            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"Get{name}ById", located.CanonicalLocation, byId: true));
-            _performers.Add(new StageQueryPerformer(readModelType, identifier, $"All{ModelNaming.Pluralize(name)}", located.CanonicalLocation, byId: false, filters: parameters));
+            // Every modeled query is served as itself, under its own name: an authored data binding names the
+            // query it wants, and resolving it to another query over the same read model answers the wrong
+            // question - a by-id lookup called with no argument shows an empty list. A modeled query that happens
+            // to share a conventional name takes that name's place rather than registering it twice.
+            var modeled = readModel.Queries
+                .Select(query => (Name: ModelNaming.ToIdentifier(query.Name), Query: query))
+                .DistinctBy(query => query.Name, StringComparer.Ordinal)
+                .ToArray();
+            var modeledNames = modeled.Select(query => query.Name).ToHashSet(StringComparer.Ordinal);
+            var byIdName = $"Get{name}ById";
+            var allName = $"All{ModelNaming.Pluralize(name)}";
 
-            // A modeled query with a by-parameter is served as itself, narrowed by that parameter - not by the
-            // conventional collection route, which answers every instance.
-            foreach (var query in readModel.Queries.Where(query => query.Parameter is not null))
+            if (!modeledNames.Contains(byIdName))
+            {
+                _performers.Add(new StageQueryPerformer(readModelType, identifier, byIdName, located.CanonicalLocation, byId: true));
+            }
+
+            if (!modeledNames.Contains(allName))
+            {
+                _performers.Add(new StageQueryPerformer(readModelType, identifier, allName, located.CanonicalLocation, byId: false, filters: parameters));
+            }
+
+            foreach (var (queryName, query) in modeled)
             {
                 _performers.Add(new StageQueryPerformer(
                     readModelType,
                     identifier,
-                    ModelNaming.ToIdentifier(query.Name),
+                    queryName,
                     located.CanonicalLocation,
                     byId: false,
                     parameter: query.Parameter,

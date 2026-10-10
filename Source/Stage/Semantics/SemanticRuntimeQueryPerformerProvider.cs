@@ -43,9 +43,21 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
                 var targets = runtime.Plan.Queries.Values.Where(query => query.ReadModel == readModel.Id).ToArray();
                 if (targets.Length > 0 && targets.All(query => query.Authorization is null))
                 {
-                    _performers.Add(new SemanticRuntimeQueryPerformer(type, $"Get{name}ById", located.CanonicalLocation, runtime, readModel, null, context, true));
-                    var filters = targets.Select(query => query.Argument?.Name).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-                    _performers.Add(new SemanticRuntimeQueryPerformer(type, $"All{ModelNaming.Pluralize(name)}", located.CanonicalLocation, runtime, readModel, null, context, false, filters));
+                    // A modeled query that shares a conventional name is served as itself below; registering the
+                    // conventional one too would give two performers one identity.
+                    var modeledNames = located.Slice.Queries.Select(query => ModelNaming.ToIdentifier(query.Name)).ToHashSet(StringComparer.Ordinal);
+                    var byIdName = $"Get{name}ById";
+                    var allName = $"All{ModelNaming.Pluralize(name)}";
+                    if (!modeledNames.Contains(byIdName))
+                    {
+                        _performers.Add(new SemanticRuntimeQueryPerformer(type, byIdName, located.CanonicalLocation, runtime, readModel, null, context, true));
+                    }
+
+                    if (!modeledNames.Contains(allName))
+                    {
+                        var filters = targets.Select(query => query.Argument?.Name).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                        _performers.Add(new SemanticRuntimeQueryPerformer(type, allName, located.CanonicalLocation, runtime, readModel, null, context, false, filters));
+                    }
                 }
             }
 

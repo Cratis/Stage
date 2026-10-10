@@ -102,13 +102,12 @@ public static class SpecificationRenderer
         ApplicationSet applicationSet,
         string rootNamespace)
     {
-        var expanded = applicationSet.ExpandSpecification(specification, slice).ToArray();
-        if (expanded.Length != 1)
+        if (specification.Parameters.Any() || specification.Cases.Any())
         {
             throw new InvalidEventModel(string.Join('.', slice.FullPath), [$"Specification '{specification.Name}' is a case table; render each specification it expands into separately."]);
         }
 
-        specification = expanded[0];
+        specification = applicationSet.ExpandSpecification(specification, slice).Single();
         var diagnostics = new List<string>();
         var name = Behavior(specification.Name);
         var commandType = Identifiers.ToPascalCase(command.Name);

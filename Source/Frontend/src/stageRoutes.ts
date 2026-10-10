@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { useEffect, useState } from 'react';
+import { stageEndpoints, useStageSource } from './stageSource';
 
 /**
  * Where the running application registered its modeled commands and queries.
@@ -16,7 +17,7 @@ export interface StageRouteState {
     ready: boolean;
 }
 
-export const stageRoutes = 'stage/routes';
+export const stageRoutes = stageEndpoints.routes;
 
 /**
  * Reads the routes the Stage registered and says when that lookup has finished.
@@ -26,12 +27,12 @@ export const stageRoutes = 'stage/routes';
  * loaded state; guessing a URL while it is still pending would turn a valid command into a transient 404.
  */
 export function useStageRouteState(): StageRouteState {
+    const source = useStageSource();
     const [state, setState] = useState<StageRouteState>({ routes: undefined, ready: false });
 
     useEffect(() => {
         const abort = new AbortController();
-        fetch(stageRoutes, { signal: abort.signal })
-            .then(response => (response.ok ? response.json() as Promise<StageRoutes> : undefined))
+        source.routes(abort.signal)
             .then(routes => {
                 if (!abort.signal.aborted) setState({ routes, ready: true });
             })
@@ -39,7 +40,7 @@ export function useStageRouteState(): StageRouteState {
                 if (!abort.signal.aborted) setState({ routes: undefined, ready: true });
             });
         return () => abort.abort();
-    }, []);
+    }, [source]);
 
     return state;
 }

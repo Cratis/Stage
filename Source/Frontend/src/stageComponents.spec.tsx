@@ -285,6 +285,43 @@ describe('a native command form', () => {
         expect(screen.queryByText(/not exposed as an API yet/)).toBeNull();
     });
 
+    it('opens from an authored action routed only by the registered command routes', async () => {
+        vi.stubGlobal('fetch', vi.fn());
+        const action = element('rename-action', 'core:action', {
+            command: 'RenameWorkItem',
+            label: 'Rename',
+            fields: [{ name: 'title', label: 'Title' }],
+        });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RenameWorkItem: '/api/workspaces/tracking/rename-work-item' }, queries: {} }} locale='en' locales={['en']} screen='WorkItemDetails'>
+                    <StageAction element={action} slots={{}} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+
+        expect(screen.getByRole('button', { name: 'Rename' }).hasAttribute('disabled')).toBe(false);
+        fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+        expect(await screen.findByLabelText('Title')).toBeDefined();
+    });
+
+    it('stays disabled when neither the element nor the registered routes route the command', () => {
+        vi.stubGlobal('fetch', vi.fn());
+        const action = element('close-action', 'core:action', { command: 'CloseWorkItem', label: 'Close' });
+
+        renderWithoutProvider(
+            <PrimeReactProvider>
+                <StageDataProvider routes={{ commands: { RenameWorkItem: '/api/workspaces/tracking/rename-work-item' }, queries: {} }} locale='en' locales={['en']} screen='WorkItemDetails'>
+                    <StageAction element={action} slots={{}} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+
+        expect(screen.getByRole('button', { name: 'Close' }).hasAttribute('disabled')).toBe(true);
+        expect(screen.getByRole('button', { name: 'Close' }).getAttribute('title')).toBe('This command is not exposed as an API yet');
+    });
+
     it('fails closed when command field and schema metadata are missing', () => {
         const fetched = vi.fn();
         vi.stubGlobal('fetch', fetched);
@@ -728,6 +765,44 @@ describe('a synthesized action', () => {
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
         expect(await screen.findByText('INV-2')).toBeDefined();
+    });
+
+    it('reads its queries again once an asynchronous projection has had time to apply the command', async () => {
+        let queryReads = 0;
+        let commandAnswered = false;
+        let readsWhenAnswered = 0;
+        const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+            const url = String(input);
+            if (url === 'api/sales/invoices/all-invoices') {
+                queryReads += 1;
+
+                // The projection catches up only after the command's own refresh has already read the old state.
+                const projected = commandAnswered && queryReads > readsWhenAnswered + 1;
+                const rows = projected ? [{ id: 'INV-1', invoiceNumber: 'INV-1' }, { id: 'INV-8', invoiceNumber: 'INV-8' }] : [{ id: 'INV-1', invoiceNumber: 'INV-1' }];
+                return Promise.resolve({ ok: true, json: async () => ({ data: rows }) });
+            }
+
+            if (init?.method === 'POST') {
+                commandAnswered = true;
+                readsWhenAnswered = queryReads;
+                return Promise.resolve({ ok: true, json: async () => commandResult() });
+            }
+
+            return Promise.resolve({ ok: false, json: async () => ({}) });
+        });
+        vi.stubGlobal('fetch', fetched);
+        const table = element('invoices', 'core:table', { route: '/api/sales/invoices/all-invoices', typeName: 'Invoice', dataKey: 'id' }, {
+            columns: [element('invoice-number', 'core:column', { property: 'invoiceNumber', label: 'Invoice' })],
+        });
+
+        renderWithData(<><StageTable element={table} slots={{}} /><StageAction element={action} slots={{}} /></>);
+        expect(await screen.findByText('INV-1')).toBeDefined();
+        fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
+        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-8' } });
+        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '14' } });
+        fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
+
+        expect(await screen.findByText('INV-8', {}, { timeout: 2_000 })).toBeDefined();
     });
 });
 

@@ -10,10 +10,10 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// Creates the deterministic in-memory inputs for the framework frontend shell of a first-run Cratis application.
 /// </summary>
 /// <remarks>
-/// The shell carries Scene and the component library the composed screen binds through, because a planned
-/// <c language="json">scene.json</c> and its binding module import them. They were left out while the emitted era predated
-/// the Scene capabilities a composition needs; the era has since moved, so the packages are pinned by
-/// <see cref="CratisFrontendPackageSet"/> yet, and selecting them may require moving that era forward.
+/// The shell mounts the Stage frontend runtime - the same modules a live Stage renders with, emitted under
+/// <c language="shell">.frontend/stage</c> - over the Scene, routes and strings the planner emits in
+/// <c language="shell">src/stage.ts</c>. Its packages are pinned by <see cref="CratisFrontendPackageSet"/> to the versions
+/// the Stage frontend itself builds with, so the runtime compiles against what it was written for.
 /// </remarks>
 public sealed class CratisFrontendApplicationScaffold
 {
@@ -21,7 +21,7 @@ public sealed class CratisFrontendApplicationScaffold
     /// Creates the complete frontend application scaffold without writing to a file system.
     /// </summary>
     /// <param name="request">The validated scaffold request.</param>
-    /// <returns>Nine normalized UTF-8 text inputs in ordinal relative-path order.</returns>
+    /// <returns>The normalized UTF-8 text inputs - the shell and the Stage frontend runtime - in ordinal relative-path order.</returns>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the request is missing.</exception>
     public ImmutableArray<ArtifactRenderInput> Create(CratisBackendApplicationScaffoldRequest request)
     {
@@ -47,6 +47,7 @@ public sealed class CratisFrontendApplicationScaffold
         return
         [
             .. artifacts
+                .Concat(StageFrontendRuntime.Files)
                 .OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal)
                 .Select(artifact => Input(artifact.RelativePath, profile.Version, artifact.Content))
         ];
@@ -167,56 +168,28 @@ public sealed class CratisFrontendApplicationScaffold
         """
         import 'reflect-metadata';
         import './index.css';
+        import 'primeicons/primeicons.css';
+        import '@cratis/scene.primereact/primeReactTheme.css';
         import React from 'react';
         import ReactDOM from 'react-dom/client';
         import { Arc } from '@cratis/arc.react';
         import { CratisComponentsProvider } from '@cratis/components';
-        import { InteractionScope, SceneElementView, coreComponents, createBrowserDispatcher } from '@cratis/scene.react';
+        import { PrimeReactProvider } from '@primereact/core/config';
         import { cratisComponentsPackage } from '@cratis/scene.components';
-        import { primeReactComponents } from '@cratis/scene.primereact';
-        import { LayoutConfigProvider, LayoutThemeProvider, composeScreenElement, defaultBlueprintComponents } from '@cratis/scene.blueprint.default';
-        import '@cratis/scene.blueprint.default/styles.css';
-        import type { Screen } from '@cratis/scene.model';
-        import composition from '../scene.json';
-        import '../src/bindings';
+        import { App } from './stage/App';
+        import { StageSourceProvider, staticStageSource } from './stage/stageSource';
+        import { stageTheme } from './stage/stageTheme';
+        import { stage } from '../src/stage';
 
-        // The screen is composed, not written here: `scene.json` states what this application shows and
-        // `src/bindings` registers the generated proxies under the names it refers to. Editing this file to
-        // add a screen would put it outside the composition the backend was generated from.
-        //
-        // Typed by the screen rather than by a whole-application type: Scene has no "translated application"
-        // concept in TypeScript, and inventing one here would not match what the package actually exports.
-        const scene = composition as unknown as { screens: Screen[] };
-        const arcBoundComponents = { ...coreComponents, ...cratisComponentsPackage.components };
-        const components = { ...arcBoundComponents, ...primeReactComponents, ...defaultBlueprintComponents };
-        const dispatcher = createBrowserDispatcher({
-            notify: (level, message) => console.info(`${level}: ${message}`),
-            onUnsupported: action => console.warn(`Unsupported Scene action: ${action}`),
-        });
+        // The screens are composed, not written here: `src/stage` holds the Scene this application was rendered
+        // with, the routes its generated proxies registered and its strings, and `./stage` is the same runtime a
+        // live Stage renders that Scene with. Editing this file to add a screen would put it outside the
+        // composition the backend was generated from.
+        const source = staticStageSource(stage);
 
-        function Application() {
-            const [screenName, setScreenName] = React.useState(() => globalThis.location.hash.slice(2));
-            const screen = scene.screens.find(candidate => candidate.name === decodeURIComponent(screenName)) ?? scene.screens[0];
-            React.useEffect(() => {
-                const hashChanged = () => setScreenName(globalThis.location.hash.slice(2));
-                globalThis.addEventListener('hashchange', hashChanged);
-                return () => globalThis.removeEventListener('hashchange', hashChanged);
-            }, []);
-
-            if (!screen) return <main id="application">This application has no screens.</main>;
-
-            return (
-                <LayoutConfigProvider>
-                    <LayoutThemeProvider>
-                        <InteractionScope dispatcher={dispatcher} context={{ resolve: () => undefined }} attachments={[]}>
-                            <main id="application">
-                                <SceneElementView element={composeScreenElement(screen)} registry={components} resolveBinding={() => undefined} />
-                            </main>
-                        </InteractionScope>
-                    </LayoutThemeProvider>
-                </LayoutConfigProvider>
-            );
-        }
+        // PrimeReact 11 verifies a license key at runtime and otherwise shows its unlicensed presentation. The key
+        // comes from PRIMEUI_LICENSE (or STAGE_PRIMEUI_LICENSE) when the application is built - see vite.config.ts.
+        const primeUiLicense = import.meta.env.STAGE_PRIMEUI_LICENSE || '';
 
         // A lazy CSS import orders user-owned tokens after the managed styles, before React renders.
         const customStyles = import.meta.glob('../Customizations/styles.css');
@@ -224,11 +197,15 @@ public sealed class CratisFrontendApplicationScaffold
 
         ReactDOM.createRoot(document.getElementById('root')!).render(
             <React.StrictMode>
-                <CratisComponentsProvider>
-                    <Arc>
-                        <Application />
-                    </Arc>
-                </CratisComponentsProvider>
+                <PrimeReactProvider license={primeUiLicense} theme={stageTheme}>
+                    <CratisComponentsProvider>
+                        <Arc>
+                            <StageSourceProvider source={source}>
+                                <App components={cratisComponentsPackage.components} />
+                            </StageSourceProvider>
+                        </Arc>
+                    </CratisComponentsProvider>
+                </PrimeReactProvider>
             </React.StrictMode>
         );
         """;
@@ -267,9 +244,14 @@ public sealed class CratisFrontendApplicationScaffold
         import react from '@vitejs/plugin-react';
         import { fileURLToPath } from 'node:url';
         import { EmitMetadataPlugin } from '@cratis/arc.vite';
+        import { styledPrimeReact } from './styledPrimeReact';
 
         export default defineConfig({
             root: fileURLToPath(new URL('./', import.meta.url)),
+            envPrefix: 'STAGE_',
+            define: {
+                'import.meta.env.STAGE_PRIMEUI_LICENSE': JSON.stringify(process.env.STAGE_PRIMEUI_LICENSE || process.env.PRIMEUI_LICENSE || ''),
+            },
             optimizeDeps: {
                 exclude: ['tslib'],
             },
@@ -281,6 +263,7 @@ public sealed class CratisFrontendApplicationScaffold
                 cssCodeSplit: false,
             },
             plugins: [
+                styledPrimeReact(),
                 react(),
                 EmitMetadataPlugin({ tsconfigPath: fileURLToPath(new URL('./tsconfig.json', import.meta.url)) }) as PluginOption,
             ],
@@ -309,10 +292,10 @@ public sealed class CratisFrontendApplicationScaffold
         """
         {
             "compilerOptions": {
-                "target": "ES2020",
+                "target": "ES2022",
                 "useDefineForClassFields": false,
                 "lib": [
-                    "ES2020",
+                    "ES2022",
                     "DOM",
                     "DOM.Iterable"
                 ],
@@ -337,11 +320,14 @@ public sealed class CratisFrontendApplicationScaffold
                 }
             ],
             "include": [
+                "./**/*.ts",
+                "./**/*.tsx",
                 "../**/*.ts",
                 "../**/*.tsx"
             ],
             "exclude": [
                 "vite.config.ts",
+                "styledPrimeReact.ts",
                 "../node_modules/**",
                 "../wwwroot/**"
             ]
@@ -360,7 +346,7 @@ public sealed class CratisFrontendApplicationScaffold
                 "strict": true,
                 "types": ["node"]
             },
-            "include": ["vite.config.ts"]
+            "include": ["vite.config.ts", "styledPrimeReact.ts"]
         }
         """;
 

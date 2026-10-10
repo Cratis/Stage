@@ -19,20 +19,20 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "94512cfe3844dcb4e2291b1771fe2657ac3dc5927c4e8339dbe1b5f52953553c";
+    const string Digest = "0b6de442c6fa46a19cbf80f2374a69a0508cf3c7f7ed5f91823d84b408c817b6";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
-        .frontend/main.tsx 61532310e2937a19d6b76d50faa5623e6af3942e35566111a7a89051820a4287 2055
+        .frontend/main.tsx f1be33ab4c4b17540e101e671276f76ac33b0b9f79f1cd536f2f1cf5eb235d65 2253
         .frontend/stage/App.tsx 40e54ee189a7584ba40124b91706c8c72290096bc81c0aa52591ce3ff812cfa4 16159
         .frontend/stage/FlowArrangementView.tsx 828b0518dd9d98a23605452355cb9a8a4e070bf98f61b6c014b0f705585cec93 2792
         .frontend/stage/StageChrome.tsx a23311d5824fc19e1dd8015f387fdc35e8a0606a23927451dfafd3ae268516af 4933
-        .frontend/stage/StageCommandForm.tsx 0733683713edacb617fbf4e89ddcca9d47de7c2f955cfaa336eb1d20884eb97a 20149
+        .frontend/stage/StageCommandForm.tsx 2dea1ddde16ec3a946a52bb4a7044928bb25de32b7702089634e48f1157fed5d 22440
         .frontend/stage/app.css 42eb2fa27e29780a4d0df89cbac8f4204754dc641f5719e0c656e12615a5381b 3410
         .frontend/stage/blueprint.ts 5b63faeb807b97da4f534afc3c050292ca914931955f498ce55a76c600a37885 6594
         .frontend/stage/stageComponents.tsx a884c6b2cd30bd7a79070d1e464eb0595a2c2a73a0fb139f49f35d2e6d4028cb 11905
-        .frontend/stage/stageData.tsx da86b67a8219152fdc4a89abe8c44970fadeebe5e2f373617287f82289eae265 16977
+        .frontend/stage/stageData.tsx c0f551136b1880d43c048c3096141dc52fcb2ae9cbb31ad70e993347ad9b3ca5 17707
         .frontend/stage/stageDataSources.ts e6a0658e2e916d19c62daf538d31f64f8e11c28837a30eeb748935fa64132bd0 3323
         .frontend/stage/stageNavigation.ts dcb9ebe679ac6744a1aefb6fe6b0b76474cb6fdbf139f7daaa49f45f8f52e3fd 1875
         .frontend/stage/stageRoutes.ts 7d85720c1d04fbf81da0bb6a287b67a58fa5ec6e275f04595250c16cc4b9a348 1792

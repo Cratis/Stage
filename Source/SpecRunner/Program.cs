@@ -107,7 +107,7 @@ public static partial class Program
         try
         {
             var loaded = await SemanticModelLoader.LoadFromPathAsync(arguments.ModelPath, arguments.CatalogPath, arguments.ApplicationName);
-            var result = await new SemanticSpecificationExecutor().Run(loaded.Plan, new SemanticSpecificationSelection([.. scopes]), new SemanticSpecificationRunOptions());
+            var result = await new SemanticSpecificationExecutor().Run(loaded.Plan, new SemanticSpecificationSelection([.. scopes]), new SemanticSpecificationRunOptions { SpecificationOrigins = loaded.SpecificationOrigins });
             await SemanticSpecificationRunReportFile.WriteToFile(result, arguments.OutputPath);
             await output.WriteLineAsync($"Ran {result.Results.Count} semantic specification(s). Results written to {arguments.OutputPath}.");
             return 0;

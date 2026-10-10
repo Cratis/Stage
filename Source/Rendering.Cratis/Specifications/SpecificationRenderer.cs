@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Specifications;
+using Cratis.Stage.Contracts;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 
@@ -87,12 +88,13 @@ public static class SpecificationRenderer
     /// <summary>
     /// Renders a specification.
     /// </summary>
-    /// <param name="specification">The specification to render.</param>
+    /// <param name="specification">The specification to render. A specification case table is refused; render each case it expands into instead.</param>
     /// <param name="command">The command the slice declares.</param>
     /// <param name="slice">The located slice the specification belongs to.</param>
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve types against.</param>
     /// <param name="rootNamespace">The root namespace of the target application.</param>
     /// <returns>The <see cref="RenderedFile"/>.</returns>
+    /// <exception cref="InvalidEventModel">The specification's examples cannot be resolved, or it is a case table.</exception>
     public static RenderedFile Render(
         SpecificationSyntax specification,
         CommandSyntax command,
@@ -100,7 +102,13 @@ public static class SpecificationRenderer
         ApplicationSet applicationSet,
         string rootNamespace)
     {
-        specification = applicationSet.ExpandSpecification(specification, slice);
+        var expanded = applicationSet.ExpandSpecification(specification, slice).ToArray();
+        if (expanded.Length != 1)
+        {
+            throw new InvalidEventModel(string.Join('.', slice.FullPath), [$"Specification '{specification.Name}' is a case table; render each specification it expands into separately."]);
+        }
+
+        specification = expanded[0];
         var diagnostics = new List<string>();
         var name = Behavior(specification.Name);
         var commandType = Identifiers.ToPascalCase(command.Name);

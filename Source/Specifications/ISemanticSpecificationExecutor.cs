@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Screenplay.Syntax.Specifications;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 
 namespace Cratis.Stage.Specifications;
@@ -55,6 +56,11 @@ public sealed record SemanticSpecificationSelection(ImmutableArray<SemanticId> S
 /// </summary>
 public sealed record SemanticSpecificationRunOptions
 {
+    /// <summary>
+    /// Gets the source-bound origins used to describe case failures.
+    /// </summary>
+    public ImmutableDictionary<SemanticId, EffectiveSpecification> SpecificationOrigins { get; init; } = [];
+
     /// <summary>
     /// Gets the clock used for event occurrence times.
     /// </summary>

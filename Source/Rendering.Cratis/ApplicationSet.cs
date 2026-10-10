@@ -100,16 +100,16 @@ public class ApplicationSet
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> ConceptPlacements { get; }
 
-    internal SpecificationSyntax ExpandSpecification(SpecificationSyntax specification, LocatedSlice slice)
+    internal IEnumerable<SpecificationSyntax> ExpandSpecification(SpecificationSyntax specification, LocatedSlice slice)
     {
         if (Applications.Count == 0)
         {
-            if (specification.Examples.Any())
+            if (specification.Examples.Any() || specification.Parameters.Any() || specification.Cases.Any())
             {
-                throw new InvalidEventModel(string.Join('.', slice.FullPath), ["Specification examples require the owning application's declarations."]);
+                throw new InvalidEventModel(string.Join('.', slice.FullPath), ["Specification examples and case tables require the owning application's declarations."]);
             }
 
-            return specification;
+            return [specification];
         }
 
         var declarations = Applications[0] with
@@ -122,15 +122,16 @@ public class ApplicationSet
 
         // A scoped render may omit or replace output folders; examples still resolve where the slice was declared.
         var declarationScope = Slices.FirstOrDefault(candidate => ReferenceEquals(candidate.Slice, slice.Slice))?.FullPath ?? slice.FullPath;
-        var effective = SpecificationExpansion.Expand(specification, declarations, declarationScope);
+        var specifications = SpecificationExpansion.ExpandAll(specification, declarations, declarationScope);
         var ownPath = string.Join('.', declarationScope);
-        return effective with
+
+        return [.. specifications.Select(effective => effective with
         {
             When = effective.When is { } when && when.CommandType.StartsWith($"{ownPath}.", StringComparison.Ordinal)
                 ? when with { CommandType = when.CommandType[(ownPath.Length + 1)..] }
                 : effective.When,
             ThenEvents = [.. effective.ThenEvents.Select(@event => @event with { EventType = RenderedEventName(@event.EventType) })]
-        };
+        })];
     }
 
     static Dictionary<string, TSyntax> BuildLookup<TSyntax>(IEnumerable<TSyntax> items, Func<TSyntax, string> name)

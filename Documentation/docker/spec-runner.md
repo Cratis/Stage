@@ -146,6 +146,11 @@ reader. The process returns `0` after writing the report even when a specificati
 read its outcomes. Invalid semantic IDs, engine names, or structural-only flags with `--engine semantic` return `2`.
 Missing or invalid catalog/model inputs return `1` with a diagnostic.
 
+A specification case table produces one result per case, named `<Spec>_<Case>`. When a case fails,
+each failure starts with `Case '<Case>' of '<Spec>':` and includes `Effective fixtures:` with the
+substituted values and their origins, such as `when: name = "large" (case)`. Passing cases have no
+failure text. The Host's semantic specification run endpoint returns the same case details.
+
 The semantic engine runs admitted commands through Arc's in-memory command pipeline, with a fresh Chronicle
 in-memory event log per specification. It supports explicit-source Given events and direct `when appended`
 events, unconditional command production with literal or command-property mappings, and event assertions

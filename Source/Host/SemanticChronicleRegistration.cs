@@ -11,6 +11,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Semantics;
 using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
+using ChronicleEventSources = Cratis.Chronicle.Contracts.EventSources;
 using ChronicleEventTypes = Cratis.Chronicle.Contracts.EventTypes;
 using ChronicleSequences = Cratis.Chronicle.Contracts.Sequences;
 
@@ -38,9 +39,22 @@ internal static class SemanticChronicleRegistration
             };
         }).ToArray();
 
+        var sources = (plan.Model.Application.EventSources.IsDefault ? [] : plan.Model.Application.EventSources)
+            .Select(source => new ChronicleEventSources.EventSourceDefinition
+            {
+                Name = source.SourceKind,
+                Owner = ChronicleEventSources.EventSourceOwner.Client,
+                Concurrency = ChronicleEventSources.ConcurrencyDimensions.None,
+                Streams = [.. source.Streams.Select(stream => new ChronicleEventSources.EventStreamDefinition
+                {
+                    Name = stream.StreamKind,
+                    Concurrency = ChronicleEventSources.ConcurrencyDimensions.None
+                })]
+            }).ToArray();
+
         // Only register contracts on reconnect: the published semantic world must not be rebuilt or replaced.
-        store.Connection.Lifecycle.OnConnected += RegisterEventTypes;
-        await RegisterEventTypes();
+        store.Connection.Lifecycle.OnConnected += RegisterContracts;
+        await RegisterContracts();
         var tail = (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
         {
             EventStore = store.Name,
@@ -50,7 +64,7 @@ internal static class SemanticChronicleRegistration
 
         return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, plan, tail);
 
-        async Task RegisterEventTypes()
+        async Task RegisterContracts()
         {
             var connectedAccessor = (IChronicleServicesAccessor)store.Connection;
             (await connectedAccessor.Services.EventStores.EnsureEventStore(new EnsureEventStoreRequest { Name = store.Name })).EnsureSuccess();
@@ -60,6 +74,14 @@ internal static class SemanticChronicleRegistration
                 {
                     EventStore = store.Name,
                     Types = registrations
+                })).EnsureSuccess();
+            }
+            if (sources.Length > 0)
+            {
+                (await connectedAccessor.Services.EventSources.RegisterEventSources(new ChronicleEventSources.RegisterEventSourcesRequest
+                {
+                    EventStore = store.Name,
+                    Sources = sources
                 })).EnsureSuccess();
             }
         }

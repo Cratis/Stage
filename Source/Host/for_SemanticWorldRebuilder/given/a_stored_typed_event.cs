@@ -55,6 +55,9 @@ public class a_stored_typed_event : Specification
                 EventType = new Cratis.Chronicle.Contracts.Sequences.EventType { Id = contract.Name, Generation = 1 },
                 EventSourceId = "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                 SequenceNumber = 0,
+                EventSourceType = "Default",
+                EventStreamType = "All",
+                EventStreamId = "Default",
                 Occurred = new() { Value = "2026-09-24T12:00:00.0000000+00:00" }
             }
         };

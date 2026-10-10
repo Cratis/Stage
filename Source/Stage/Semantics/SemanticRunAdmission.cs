@@ -22,14 +22,16 @@ public static class SemanticRunAdmission
     /// <param name="application">The application.</param>
     /// <returns>The precise capability refusals.</returns>
     public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(SemanticApplication application) =>
-        SemanticVersionFeatures.InApplication(application).Concat(SemanticVersionFeatures.Slices(application).SelectMany(SemanticVersionFeatures.InSlice)).Select(Feature);
+        SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
+            .Concat(SemanticVersionFeatures.Slices(application).SelectMany(SemanticVersionFeatures.InSlice)).Select(Feature);
 
     /// <summary>
     /// Finds later-version constructs in a command.
     /// </summary>
     /// <param name="command">The command.</param>
     /// <returns>The precise capability refusals.</returns>
-    public static IEnumerable<SemanticAdmissionFeature> CommandFeatures(SemanticCommand command) => SemanticVersionFeatures.InCommand(command).Select(Feature);
+    public static IEnumerable<SemanticAdmissionFeature> CommandFeatures(SemanticCommand command) =>
+        SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)).Select(Feature);
 
     /// <summary>
     /// Finds later-version assertions in a specification.

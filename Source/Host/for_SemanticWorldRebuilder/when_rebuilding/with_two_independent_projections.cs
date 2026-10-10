@@ -60,6 +60,9 @@ public class with_two_independent_projections : a_rebuildable_world
                 EventType = new Cratis.Chronicle.Contracts.Sequences.EventType { Id = plan.Events.Values.Single(@event => @event.Name.Contains("ProjectRenamed", StringComparison.Ordinal)).Name, Generation = 1 },
                 EventSourceId = _event.Context.EventSourceId,
                 SequenceNumber = 1,
+                EventSourceType = _event.Context.EventSourceType,
+                EventStreamType = _event.Context.EventStreamType,
+                EventStreamId = _event.Context.EventStreamId,
                 Occurred = _event.Context.Occurred,
                 Tags = []
             },

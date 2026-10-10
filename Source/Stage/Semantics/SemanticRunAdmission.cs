@@ -38,7 +38,8 @@ public static class SemanticRunAdmission
     /// </summary>
     /// <param name="specification">The specification.</param>
     /// <returns>The precise capability refusals.</returns>
-    public static IEnumerable<SemanticAdmissionFeature> SpecificationFeatures(SemanticSpecification specification) => SemanticVersionFeatures.InSpecification(specification).Select(Feature);
+    public static IEnumerable<SemanticAdmissionFeature> SpecificationFeatures(SemanticSpecification specification) =>
+        SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)).Select(Feature);
 
     /// <summary>
     /// Returns the first unsupported construct in deterministic precedence order.
@@ -199,10 +200,10 @@ public static class SemanticRunAdmission
     static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
-        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application)
+        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
             .Concat(slices.SelectMany(SemanticVersionFeatures.InSlice))
-            .Concat(SemanticVersionFeatures.InSpecification(specification))
-            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command))
+            .Concat(SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)))
+            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))
             .FirstOrDefault();
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }

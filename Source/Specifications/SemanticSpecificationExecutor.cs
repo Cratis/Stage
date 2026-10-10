@@ -112,7 +112,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         var eventTypes = plan.Events.Keys.Select(runtimeTypes.For).ToArray();
         var defaults = new Defaults(new SemanticClientArtifactsProvider(eventTypes));
         using var eventScenario = new EventScenario(defaults);
-        var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventScenario.EventLog, plan.Model.SemanticVersion);
+        var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventScenario.EventLog, plan);
 
         // A new Chronicle-backed event log and scenario are created for each specification.
         foreach (var given in specification.GivenEvents)
@@ -127,7 +127,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             {
                 return Rejected(slice, specification, SemanticConstraintEvaluator.Message(violation), violation.Name);
             }
-            await context.Append(new SemanticSpecificationEvent(appended.EventContract, appended.Values) { EventSource = appended.EventSource }, appended.EventSource.Value, cancellationToken);
+            await context.Append(new SemanticSpecificationEvent(appended.EventContract, appended.Values) { EventSource = appended.EventSource, Route = appended.Route }, appended.EventSource.Value, cancellationToken);
             return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
         }
 
@@ -148,6 +148,10 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
 
         if (allowed)
         {
+            if (!context.TryResolveRoute(out var routeFailure))
+            {
+                return Rejected(slice, specification, SemanticStreamIdFormatter.FailureMessage(routeFailure));
+            }
             var candidates = command.Produces.Select(context.Produce)
                 .Select(item => new SemanticConstraintEvaluator.Fact(item.Fact.EventContract, item.Destination, item.Fact.Values)).ToArray();
             if (SemanticConstraintEvaluator.FindViolation(plan, history, candidates) is { } constraint)
@@ -206,7 +210,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
 
         var facts = context.Facts.Skip(specification.GivenEvents.Length).ToArray();
         var destinations = context.Destinations.Skip(specification.GivenEvents.Length).ToArray();
-        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, null).ToList();
+        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, null, plan: plan).ToList();
         var projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
         failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
         var trace = new SemanticExecutionTrace(

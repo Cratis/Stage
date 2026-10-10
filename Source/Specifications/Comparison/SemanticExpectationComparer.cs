@@ -10,7 +10,7 @@ namespace Cratis.Stage.Specifications.Comparison;
 internal static class SemanticExpectationComparer
 {
     // Mirrors SemanticSpecificationRunner.Compare/CompareFacts for the admitted fact/error subset.
-    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, IReadOnlyList<SemanticValue> destinations, string? rejection, string? rejectionCode = null, bool denied = false)
+    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, IReadOnlyList<SemanticValue> destinations, string? rejection, string? rejectionCode = null, bool denied = false, SemanticExecutionPlan? plan = null)
     {
         var failures = new List<string>();
         if (expected.ThenDenied)
@@ -45,25 +45,15 @@ internal static class SemanticExpectationComparer
             return failures;
         }
 
-        if (expected.WhenAppended is not null && expected.ThenEvents.IsEmpty) return failures;
-
-        if (expected.ThenEvents.Length != actual.Count)
+        if (expected.WhenAppended is null || expected.ThenEvents.Length > 0)
         {
-            failures.Add($"Expected {expected.ThenEvents.Length} fact(s), got {actual.Count}.");
-            return failures;
-        }
-
-        var remaining = actual.ToList();
-        for (var index = 0; index < expected.ThenEvents.Length; index++)
-        {
-            var assertion = expected.ThenEvents[index];
-            var match = expected.ThenEventsInAnyOrder ? remaining.FindIndex(candidate => Matches(assertion, candidate)) : index;
-            if (match < 0 || !Matches(assertion, expected.ThenEventsInAnyOrder ? remaining[match] : actual[index]))
-            {
-                failures.Add($"Fact at index {index} does not match the expected event contract and values.");
-            }
-
-            if (expected.ThenEventsInAnyOrder && match >= 0) remaining.RemoveAt(match);
+            // Screenplay v4.114.0 SemanticScenario.Perform counts the direct append as one action fact.
+            // Stage admits no reactions, so no facts follow that action in the current executable subset.
+            var actionFacts = -1;
+            if (plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6)) actionFacts = expected.WhenAppended is null ? actual.Count : 1;
+            var following = actual;
+            if (actionFacts >= 0 && expected.WhenAppended is not null) following = [.. actual.Skip(actionFacts)];
+            CompareFacts(expected, following, failures, plan);
         }
 
         if (expected.When?.EventSource is { } source && destinations.Any(destination => !AreEqual(destination, source.Value)))
@@ -97,11 +87,6 @@ internal static class SemanticExpectationComparer
         return failures;
     }
 
-    internal static bool Matches(SemanticSpecificationEvent expected, SemanticSpecificationEvent actual) =>
-        expected.EventContract == actual.EventContract && expected.Values.Length == actual.Values.Length &&
-        expected.Values.All(value => actual.Values.Any(candidate => candidate.TargetProperty == value.TargetProperty && AreEqual(candidate.Value, value.Value))) &&
-        (expected.EventSource is null || (actual.EventSource is not null && expected.EventSource.Type == actual.EventSource.Type && AreEqual(expected.EventSource.Value, actual.EventSource.Value)));
-
     // Match Screenplay v4.24.0 SemanticValueRules.AreEqual, including numeric scale and nested values.
     internal static bool AreEqual(SemanticValue left, SemanticValue right) => (left, right) switch
     {
@@ -114,6 +99,69 @@ internal static class SemanticExpectationComparer
             a.Properties.All(property => b.Properties.Any(candidate => candidate.TargetProperty == property.TargetProperty && AreEqual(property.Value, candidate.Value))),
         _ => false
     };
+
+    static void CompareFacts(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, List<string> failures, SemanticExecutionPlan plan)
+    {
+        if (expected.ThenEvents.Length != actual.Count)
+        {
+            failures.Add($"Expected {expected.ThenEvents.Length} fact(s), got {actual.Count}.");
+            return;
+        }
+
+        bool Matches(SemanticSpecificationEvent assertion, SemanticSpecificationEvent fact) => MatchesRoute(assertion, fact, plan);
+
+        if (expected.ThenEventsInAnyOrder && plan.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8))
+        {
+            // Match Screenplay v4.114.0: augmenting paths reassign earlier wildcard matches.
+            var assignments = Enumerable.Repeat(-1, actual.Count).ToArray();
+            for (var index = 0; index < expected.ThenEvents.Length; index++)
+            {
+                if (!Assign(index, new bool[actual.Count]))
+                {
+                    failures.Add($"Fact at index {index} does not match the expected event contract and values.");
+                }
+            }
+
+            bool Assign(int expectation, bool[] visited)
+            {
+                for (var fact = 0; fact < actual.Count; fact++)
+                {
+                    if (visited[fact] || !Matches(expected.ThenEvents[expectation], actual[fact])) continue;
+                    visited[fact] = true;
+                    if (assignments[fact] < 0 || Assign(assignments[fact], visited))
+                    {
+                        assignments[fact] = expectation;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+        else
+        {
+            // Keep the pre-v8 greedy matcher unchanged.
+            var remaining = actual.ToList();
+            for (var index = 0; index < expected.ThenEvents.Length; index++)
+            {
+                var assertion = expected.ThenEvents[index];
+                var match = expected.ThenEventsInAnyOrder ? remaining.FindIndex(candidate => Matches(assertion, candidate)) : index;
+                if (match < 0 || !Matches(assertion, expected.ThenEventsInAnyOrder ? remaining[match] : actual[index]))
+                {
+                    failures.Add($"Fact at index {index} does not match the expected event contract and values.");
+                }
+
+                if (expected.ThenEventsInAnyOrder && match >= 0) remaining.RemoveAt(match);
+            }
+        }
+    }
+
+    static bool MatchesRoute(SemanticSpecificationEvent expected, SemanticSpecificationEvent actual, SemanticExecutionPlan plan) =>
+        expected.EventContract == actual.EventContract && expected.Values.Length == actual.Values.Length &&
+        expected.Values.All(value => actual.Values.Any(candidate => candidate.TargetProperty == value.TargetProperty && AreEqual(candidate.Value, value.Value))) &&
+        (expected.Route is null || SemanticRunRoutes.Format(plan, expected.Route) == SemanticRunRoutes.Format(plan, actual.Route)) &&
+        (!expected.Unrouted || actual.Route is null) &&
+        (expected.EventSource is null || (actual.EventSource is not null && expected.EventSource.Type == actual.EventSource.Type && AreEqual(expected.EventSource.Value, actual.EventSource.Value)));
 
     static bool MatchesState(SemanticSpecificationReadModel state, IReadOnlyList<SemanticRunProjections.Projected> rows, bool exactly = false) =>
         rows.Any(row => row.ReadModel == state.ReadModel && AreEqual(row.Key, state.Key) &&

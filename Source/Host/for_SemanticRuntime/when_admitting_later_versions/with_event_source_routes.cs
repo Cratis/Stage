@@ -53,15 +53,15 @@ public class with_event_source_routes : Specification
     [Fact] void should_compile_an_esm_v8_model() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V8);
     [Fact] void should_admit_the_event_source_and_routed_command() => _admission.Blocking.ShouldBeEmpty();
     [Fact] void should_support_the_routed_command() => _admission.Entries.Single(entry => entry.Kind == "command").Status.ShouldEqual("supported");
-    [Fact] void should_refuse_the_routed_specification() => _admission.Entries.Single(entry => entry.Kind == "specification").Status.ShouldEqual("unsupported");
-    [Fact] void should_block_specification_execution_before_routes_are_ignored() => SemanticRunAdmission.Check(_plan, _plan.Specifications.Values.Single())!.Details.ShouldContain("STAGE-ESM-030:");
+    [Fact] void should_support_the_routed_specification() => _admission.Entries.Single(entry => entry.Kind == "specification").Status.ShouldEqual("supported");
+    [Fact] void should_admit_routed_specification_execution() => SemanticRunAdmission.Check(_plan, _plan.Specifications.Values.Single()).ShouldBeNull();
 
     [Theory]
     [InlineData("given")]
     [InlineData("then")]
     [InlineData("append")]
     [InlineData("unrouted")]
-    public void should_classify_every_occurrence_routing_form_as_unsupported(string form)
+    public void should_admit_every_occurrence_routing_form(string form)
     {
         var specification = _plan.Specifications.Values.Single();
         var occurrence = specification.ThenEvents.Single();
@@ -73,6 +73,6 @@ public class with_event_source_routes : Specification
             "unrouted" => baseline with { ThenEvents = [occurrence with { Route = null, Unrouted = true }] },
             _ => specification
         };
-        SemanticRunAdmission.SpecificationFeatures(routed).ShouldContain(feature => feature.Details.StartsWith("STAGE-ESM-030:", StringComparison.Ordinal));
+        SemanticRunAdmission.SpecificationFeatures(routed).ShouldBeEmpty();
     }
 }

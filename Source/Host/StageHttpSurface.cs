@@ -111,7 +111,7 @@ internal sealed class StageHttpSurface
                 located.Slice.Id,
                 ModelNaming.ToIdentifier(readModel.Name),
                 false,
-                [.. readModel.Queries.Where(query => query.Parameter is not null).Select(query => ModelNaming.ToIdentifier(query.Name))]);
+                [.. readModel.Queries.Select(query => ModelNaming.ToIdentifier(query.Name)).Distinct(StringComparer.Ordinal)]);
         }
     }
 
@@ -165,7 +165,7 @@ internal sealed class StageHttpSurface
             string[] names = artifact.Command ? [artifact.Name] : [.. artifact.Queries ?? []];
             if (!artifact.Command && artifact.Compatibility)
             {
-                names = [$"Get{artifact.Name}ById", $"All{ModelNaming.Pluralize(artifact.Name)}", .. names];
+                names = [.. new[] { $"Get{artifact.Name}ById", $"All{ModelNaming.Pluralize(artifact.Name)}" }.Except(names, StringComparer.Ordinal), .. names];
             }
             var operations = names.SelectMany(IEnumerable<StageHttpOperation> (string name) =>
             {

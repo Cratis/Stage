@@ -7,7 +7,14 @@ namespace Cratis.Stage.Host;
 /// Where the modeled commands and queries live in the running application.
 /// </summary>
 /// <param name="Commands">The route each command is posted to, by command name.</param>
-/// <param name="Queries">The route each query is read from, by read model name.</param>
+/// <param name="Queries">The route each query is read from, by query name.</param>
 public record StageRoutes(
     IReadOnlyDictionary<string, string> Commands,
-    IReadOnlyDictionary<string, string> Queries);
+    IReadOnlyDictionary<string, string> Queries)
+{
+    /// <summary>
+    /// Gets every name left out of <see cref="Commands"/> or <see cref="Queries"/> because several distinct
+    /// operations answer to it.
+    /// </summary>
+    public IReadOnlyList<string> Diagnostics { get; init; } = [];
+}

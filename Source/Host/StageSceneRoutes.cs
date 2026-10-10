@@ -34,12 +34,23 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
     /// </summary>
     public const string DiagnosticsVariable = "STAGE_ROUTE_DIAGNOSTICS";
 
-    readonly Lazy<IReadOnlyDictionary<string, string>> _commandRoutes = new(
-        () => RoutesByName(services.GetRequiredService<EndpointDataSource>(), "POST"),
+    /// <summary>
+    /// The property an element carries when its route could not be resolved: <c language="csharp">unresolved</c> or
+    /// <c language="csharp">ambiguous</c>.
+    /// </summary>
+    public const string RouteStatusProperty = "routeStatus";
+
+    /// <summary>
+    /// The property an element carries explaining why its route could not be resolved.
+    /// </summary>
+    public const string RouteDiagnosticProperty = "routeDiagnostic";
+
+    readonly Lazy<NamedRoutes> _commandRoutes = new(
+        () => Named(services.GetRequiredService<EndpointDataSource>(), "POST"),
         LazyThreadSafetyMode.ExecutionAndPublication);
 
-    readonly Lazy<IReadOnlyDictionary<string, string>> _queryRoutes = new(
-        () => RoutesByName(services.GetRequiredService<EndpointDataSource>(), "GET"),
+    readonly Lazy<NamedRoutes> _queryRoutes = new(
+        () => Named(services.GetRequiredService<EndpointDataSource>(), "GET"),
         LazyThreadSafetyMode.ExecutionAndPublication);
 
     readonly Lazy<SceneApplication> _resolved = new(
@@ -63,12 +74,18 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
     /// about where the same command lives.
     /// </para>
     /// </remarks>
-    public IReadOnlyDictionary<string, string> CommandRoutes => _commandRoutes.Value;
+    public IReadOnlyDictionary<string, string> CommandRoutes => _commandRoutes.Value.Routes;
 
     /// <summary>
-    /// Gets the route each modeled query is read from, by read model name.
+    /// Gets the route each modeled query is read from, by query name.
     /// </summary>
-    public IReadOnlyDictionary<string, string> QueryRoutes => _queryRoutes.Value;
+    public IReadOnlyDictionary<string, string> QueryRoutes => _queryRoutes.Value.Routes;
+
+    /// <summary>
+    /// Gets why a name is missing from <see cref="CommandRoutes"/> or <see cref="QueryRoutes"/>: every name that
+    /// several distinct operations answer to, which is left out rather than resolved to one of them.
+    /// </summary>
+    public IReadOnlyList<string> Diagnostics => [.. _commandRoutes.Value.Diagnostics, .. _queryRoutes.Value.Diagnostics];
 
     /// <summary>
     /// Builds the name to route lookup for one verb.
@@ -77,40 +94,24 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
     /// <param name="method">The verb to collect.</param>
     /// <returns>The route by name.</returns>
     /// <remarks>
-    /// The shortest route wins a tie for the same reason it does when resolving an element's: a read model
-    /// backs both a collection route and a by-id route, and the collection is the one without an argument
-    /// nobody supplied.
+    /// A name is the operation's own - the query or command name - so <c language="csharp">AllWorkItems</c> and
+    /// <c language="csharp">WorkItemById</c> are two entries even though one read model backs both. A name that
+    /// several distinct operations answer to (the same command name in two slices, say) is left out: choosing one
+    /// would send the caller to whichever happens to have the shorter route.
     /// </remarks>
-    public static IReadOnlyDictionary<string, string> RoutesByName(EndpointDataSource endpoints, string method)
-    {
-        var routes = new Dictionary<string, string>(StringComparer.Ordinal);
-
-        foreach (var candidate in Candidates(endpoints)
-            .Where(candidate => string.Equals(candidate.Method, method, StringComparison.Ordinal))
-            .OrderBy(candidate => candidate.Route.Length))
-        {
-            foreach (var name in candidate.Names)
-            {
-                foreach (var alias in AliasesOf(name))
-                {
-                    routes.TryAdd(alias, candidate.Route);
-                }
-            }
-        }
-
-        return routes;
-    }
+    public static IReadOnlyDictionary<string, string> RoutesByName(EndpointDataSource endpoints, string method) =>
+        Named(endpoints, method).Routes;
 
     /// <summary>
     /// Attaches the route of every element that names a modeled artifact.
     /// </summary>
     /// <param name="scene">The scene to attach routes to.</param>
     /// <param name="endpoints">The registered endpoints.</param>
-    /// <param name="logger">The logger used for the optional endpoint report.</param>
-    /// <returns>The scene, with routes attached where one was found.</returns>
+    /// <param name="logger">The logger used for the endpoint report and route diagnostics.</param>
+    /// <returns>The scene, with routes attached where exactly one was found and a diagnostic where none or several were.</returns>
     public static SceneApplication WithRoutes(SceneApplication scene, EndpointDataSource endpoints, ILogger logger)
     {
-        var candidates = Candidates(endpoints);
+        var candidates = StageRouteCandidates.From(endpoints);
 
         if (string.Equals(Environment.GetEnvironmentVariable(DiagnosticsVariable), "1", StringComparison.Ordinal))
         {
@@ -133,36 +134,38 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
                 {
                     SlotContent = screen.SlotContent.ToDictionary(
                         slot => slot.Key,
-                        slot => (IReadOnlyList<SceneElements.SceneElement>)[.. slot.Value.Select(element => WithRoute(element, candidates))],
+                        slot => (IReadOnlyList<SceneElements.SceneElement>)[.. slot.Value.Select(element => WithRoute(element, candidates, logger))],
                         StringComparer.Ordinal)
                 })
             ]
         };
     }
 
-    static IEnumerable<string> AliasesOf(string name)
+    static NamedRoutes Named(EndpointDataSource endpoints, string method)
     {
-        var simple = name[(LastSeparator(name) + 1)..];
-        if (simple.Length > 0)
+        var operations = StageRouteCandidates.From(endpoints)
+            .Where(candidate => candidate.Identity is not null && string.Equals(candidate.Method, method, StringComparison.Ordinal))
+            .GroupBy(candidate => candidate.Identity!, StringComparer.Ordinal)
+            .Select(operation => (Identity: operation.Key, operation.OrderBy(candidate => candidate.Route.Length).First().Route));
+
+        var routes = new Dictionary<string, string>(StringComparer.Ordinal);
+        var diagnostics = new List<string>();
+        foreach (var name in operations.GroupBy(operation => StageRouteCandidates.SimpleName(operation.Identity), StringComparer.Ordinal))
         {
-            yield return simple;
+            var answering = name.ToArray();
+            if (answering.Length == 1)
+            {
+                routes[name.Key] = answering[0].Route;
+                continue;
+            }
+
+            diagnostics.Add($"{method} '{name.Key}' is ambiguous between {string.Join(", ", answering.Select(operation => operation.Identity).Order(StringComparer.Ordinal))}; it is not resolved by name.");
         }
 
-        if (string.Equals(simple, "StageLegacy", StringComparison.Ordinal))
-        {
-            var separator = LastSeparator(name);
-            var withoutSuffix = separator > 0 ? name[..separator] : string.Empty;
-            var legacyCommand = withoutSuffix[(LastSeparator(withoutSuffix) + 1)..];
-            if (legacyCommand.Length > 0)
-            {
-                yield return legacyCommand;
-            }
-        }
+        return new(routes, diagnostics);
     }
 
-    static int LastSeparator(string name) => Math.Max(name.LastIndexOf('.'), name.LastIndexOf('+'));
-
-    static SceneElements.SceneElement WithRoute(SceneElements.SceneElement element, IReadOnlyList<EndpointCandidate> candidates)
+    static SceneElements.SceneElement WithRoute(SceneElements.SceneElement element, IReadOnlyList<StageRouteCandidate> candidates, ILogger logger)
     {
         if (element is not SceneElements.ExternalComponent component)
         {
@@ -171,155 +174,117 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
 
         var nested = component.Slots.ToDictionary(
             slot => slot.Key,
-            slot => (IReadOnlyList<SceneElements.SceneElement>)[.. slot.Value.Select(child => WithRoute(child, candidates))],
+            slot => (IReadOnlyList<SceneElements.SceneElement>)[.. slot.Value.Select(child => WithRoute(child, candidates, logger))],
             StringComparer.Ordinal);
 
-        if (RouteMatch(component, candidates) is { } match)
+        if (Request(component) is not { } request)
         {
-            var properties = new Dictionary<string, object?>(component.Properties, StringComparer.Ordinal)
-            {
-                [SceneSynthesizer.RouteProperty] = match.Route,
-                ["method"] = match.Method
-            };
-
-            return component with { Properties = properties, Slots = nested };
+            return component with { Slots = nested };
         }
 
-        return component with { Slots = nested };
+        var properties = new Dictionary<string, object?>(component.Properties, StringComparer.Ordinal);
+        var resolution = StageRouteCandidates.Resolve(candidates, request.Method, request.Selects);
+        if (resolution is { Match: null, IsAmbiguous: false } && request.Equivalent is { } equivalent)
+        {
+            resolution = StageRouteCandidates.Resolve(candidates, request.Method, equivalent);
+        }
+
+        if (resolution.Match is { } match)
+        {
+            properties[SceneSynthesizer.RouteProperty] = match.Route;
+            properties["method"] = match.Method;
+            properties.Remove(RouteStatusProperty);
+            properties.Remove(RouteDiagnosticProperty);
+        }
+        else
+        {
+            // No route is attached rather than a guessed one: a list bound to the wrong query on the same read
+            // model renders, calls a route that exists, and silently shows the wrong data.
+            var diagnostic = resolution.IsAmbiguous
+                ? $"{request.Description} is ambiguous between {string.Join(", ", resolution.Candidates)}."
+                : $"{request.Description} does not match any registered {request.Method} endpoint.";
+            properties[RouteStatusProperty] = resolution.IsAmbiguous ? "ambiguous" : "unresolved";
+            properties[RouteDiagnosticProperty] = diagnostic;
+            StageLog.RouteNotResolved(logger, component.Id, diagnostic);
+        }
+
+        return component with { Properties = properties, Slots = nested };
     }
 
-    static EndpointCandidate? RouteMatch(SceneElements.ExternalComponent component, IReadOnlyList<EndpointCandidate> candidates)
+    static RouteRequest? Request(SceneElements.ExternalComponent component)
     {
-        // A read model can back more than one modeled query - an observable collection and a by-id lookup both
-        // returning the same read model, for example - so the query's own name, when the element carries one,
-        // disambiguates where the read model's type name alone cannot. Tried first and used only if it actually
-        // resolves, so an element whose query name happens not to match any candidate still falls back below
-        // rather than silently losing its route.
-        if (component.Properties.TryGetValue(SceneElementProperties.Query, out var queryName) &&
-            queryName is string query &&
-            Resolve(candidates, query, component.ComponentName) is { } byQuery)
+        var typeName = Text(component, SceneSynthesizer.TypeNameProperty);
+        if (IsCommandComponent(component.ComponentName))
         {
-            return byQuery;
+            // A synthesized action carries the command's full type name; an authored one only its name.
+            if (typeName is not null)
+            {
+                return new("POST", identity => StageRouteCandidates.Names(identity, typeName), $"Command type '{typeName}'");
+            }
+
+            return Text(component, "command") is { } command
+                ? new("POST", identity => StageRouteCandidates.SimpleName(identity) == command, $"Command '{command}'")
+                : null;
         }
 
-        if (component.Properties.TryGetValue(SceneSynthesizer.TypeNameProperty, out var typeName) && typeName is string namedType)
+        // An authored data binding names its query: that query, and only that query, is what it reads. The read
+        // model it returns narrows the search when the element carries one, so a same-named query over another
+        // read model is not taken for it.
+        if (Text(component, SceneElementProperties.Query) is { } query)
         {
-            return Resolve(candidates, namedType, component.ComponentName);
+            return new(
+                "GET",
+                identity => StageRouteCandidates.SimpleName(identity) == query && (typeName is null || StageRouteCandidates.IsOwnedBy(identity, typeName)),
+                $"Query '{query}'{(typeName is null ? string.Empty : $" over '{typeName}'")}")
+            {
+                Equivalent = UnkeyedCollection(component, typeName)
+            };
         }
 
-        return IsCommandComponent(component) && component.Properties.TryGetValue("command", out var command) && command is string commandName
-            ? Resolve(candidates, commandName, component.ComponentName)
-            : null;
+        // A synthesized element names only the read model; what it shows is that read model's collection.
+        if (typeName is not null)
+        {
+            var collection = StageRouteCandidates.ConventionalCollection(typeName);
+            return new(
+                "GET",
+                identity => StageRouteCandidates.SimpleName(identity) == collection && StageRouteCandidates.IsOwnedBy(identity, typeName),
+                $"Collection query '{collection}' over '{typeName}'");
+        }
+
+        return null;
     }
 
-    static bool IsCommandComponent(SceneElements.ExternalComponent component) => IsCommandComponent(component.ComponentName);
+    // An unkeyed collection query over a read model answers every instance of it - exactly what the read model's
+    // conventional All<ReadModels> answers. When the host serves no endpoint under the query's own name, that
+    // conventional collection is the same rows by definition, not a guess: it is one exact identity, never a
+    // single-item lookup. A keyed binding (one with a by-parameter) or a single-result one has no such equivalent,
+    // so it stays unresolved rather than being widened to the unfiltered set.
+    static Func<string, bool>? UnkeyedCollection(SceneElements.ExternalComponent component, string? typeName)
+    {
+        if (typeName is null ||
+            Text(component, "by") is not null ||
+            !component.Properties.TryGetValue("isCollection", out var isCollection) ||
+            isCollection is not true)
+        {
+            return null;
+        }
+
+        var collection = StageRouteCandidates.ConventionalCollection(typeName);
+
+        return identity => StageRouteCandidates.SimpleName(identity) == collection && StageRouteCandidates.IsOwnedBy(identity, typeName);
+    }
+
+    static string? Text(SceneElements.ExternalComponent component, string property) =>
+        component.Properties.TryGetValue(property, out var value) && value is string { Length: > 0 } text ? text : null;
 
     static bool IsCommandComponent(string componentName) =>
         string.Equals(componentName, "core:action", StringComparison.Ordinal) ||
         string.Equals(componentName, "Stage:commandForm", StringComparison.Ordinal);
 
-    static EndpointCandidate? Resolve(IReadOnlyList<EndpointCandidate> candidates, string typeName, string componentName)
+    sealed record RouteRequest(string Method, Func<string, bool> Selects, string Description)
     {
-        // A command is posted; a read model is read. Matching the verb as well keeps a command's execute route
-        // from answering for a table, and a query route from being posted to.
-        var method = IsCommandComponent(componentName) ? "POST" : "GET";
-        var matching = candidates
-            .Where(candidate =>
-                string.Equals(candidate.Method, method, StringComparison.Ordinal) &&
-                candidate.Names.Any(name => name.Contains(typeName, StringComparison.Ordinal)))
-            .ToList();
-
-        // A read model backs both an "all" route and a "by id" route, and both carry the read model's type name
-        // somewhere in their full identity because they share the same slice-qualified namespace prefix.
-        // Preferring the candidates that are not themselves a single-item lookup picks the collection query
-        // even when an "all" route's text is the longer of the two - pluralizing a longer read model name can
-        // make it longer than a short "by id" route, so route length alone cannot tell them apart.
-        var withoutById = matching.Where(candidate => !IsByIdLookup(candidate)).ToList();
-        if (withoutById.Count > 0)
-        {
-            matching = withoutById;
-        }
-
-        // Among what is left - the collection route's own canonical and legacy aliases, typically - the
-        // canonical one is the shorter, since no alias here takes an argument nobody supplied.
-        matching.Sort((left, right) => left.Route.Length.CompareTo(right.Route.Length));
-
-        return matching.Count > 0 ? matching[0] : null;
+        public Func<string, bool>? Equivalent { get; init; }
     }
 
-    // Every single-item lookup Arc generates for a read model - whether explicitly modeled (WorkItemById) or
-    // conventional (GetWorkItemSummaryById) - carries a simple name ending in "ById"; no collection query does.
-    // A legacy alias's own simple name is "StageLegacy", not the query's name, so this reuses AliasesOf - the
-    // same lookup that already knows how to see past that suffix to the name underneath - rather than a second,
-    // narrower way of reading the same identity.
-    static bool IsByIdLookup(EndpointCandidate candidate) =>
-        candidate.Names.SelectMany(AliasesOf).Any(alias => alias.EndsWith("ById", StringComparison.Ordinal));
-
-    static List<EndpointCandidate> Candidates(EndpointDataSource endpoints)
-    {
-        var candidates = new List<EndpointCandidate>();
-
-        foreach (var endpoint in endpoints.Endpoints.OfType<RouteEndpoint>())
-        {
-            var pattern = endpoint.RoutePattern.RawText;
-            if (string.IsNullOrEmpty(pattern))
-            {
-                continue;
-            }
-
-            // A command registers an execute route and a validate route against the same type. The validate
-            // route is a companion, never what an action posts to.
-            if (pattern.EndsWith("/validate", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            var methods = endpoint.Metadata.GetMetadata<HttpMethodMetadata>()?.HttpMethods ?? [];
-            var method = "GET";
-            if (methods.Contains("POST"))
-            {
-                method = "POST";
-            }
-            else if (methods.Count > 0)
-            {
-                method = methods[0];
-            }
-
-            var names = NamesOf(endpoint).ToList();
-            if (names.Count == 0)
-            {
-                continue;
-            }
-
-            candidates.Add(new EndpointCandidate($"/{pattern.TrimStart('/')}", method, names));
-        }
-
-        return candidates;
-    }
-
-    static IEnumerable<string> NamesOf(Endpoint endpoint)
-    {
-        foreach (var metadata in endpoint.Metadata)
-        {
-            switch (metadata)
-            {
-                case Type type when type.FullName is { Length: > 0 } full:
-                    yield return full;
-                    break;
-                case IEndpointNameMetadata named when named.EndpointName is { Length: > 0 } name:
-                    yield return name;
-                    break;
-                case IRouteNameMetadata routed when routed.RouteName is { Length: > 0 } routeName:
-                    yield return routeName;
-                    break;
-            }
-        }
-
-        if (endpoint.DisplayName is { Length: > 0 } displayName)
-        {
-            yield return displayName;
-        }
-    }
-
-    sealed record EndpointCandidate(string Route, string Method, IReadOnlyList<string> Names);
+    sealed record NamedRoutes(IReadOnlyDictionary<string, string> Routes, IReadOnlyList<string> Diagnostics);
 }

@@ -23,6 +23,6 @@ public class and_rendered_specifications_are_routed : Specification
                   amount = 5
         """));
 
-    [Fact] void should_refuse_even_without_an_explicit_route_assertion() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-030"]);
-    [Fact] void should_not_emit_unrouted_specifications() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_admit_without_an_explicit_route_assertion() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_emit_the_command_specification() => _plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("when_depositing.cs", StringComparison.Ordinal)).ShouldBeTrue();
 }

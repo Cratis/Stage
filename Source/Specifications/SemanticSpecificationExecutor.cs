@@ -139,8 +139,14 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             return Rejected(slice, specification, failure);
         }
 
-        // The reference reaches identity allocation after validation: an accepted command whose events have no
-        // destination and no stated source needs an allocated identity, which this engine does not provide.
+        // The reference resolves the route after authorization and validation, before identity allocation.
+        if (allowed && !context.TryResolveRoute(out var routeFailure))
+        {
+            return Rejected(slice, specification, SemanticStreamIdFormatter.FailureMessage(routeFailure));
+        }
+
+        // An accepted command whose events have no destination and no stated source needs an allocated
+        // identity, which this engine does not provide.
         if (allowed && when!.EventSource is null && command.Destination?.Value is null && command.Produces.Any(produced => produced.Destination is null))
         {
             return Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.IdentityAllocation, command.Id.ToString(), "An accepted command requires an explicit destination."));
@@ -148,10 +154,6 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
 
         if (allowed)
         {
-            if (!context.TryResolveRoute(out var routeFailure))
-            {
-                return Rejected(slice, specification, SemanticStreamIdFormatter.FailureMessage(routeFailure));
-            }
             var candidates = command.Produces.Select(context.Produce)
                 .Select(item => new SemanticConstraintEvaluator.Fact(item.Fact.EventContract, item.Destination, item.Fact.Values)).ToArray();
             if (SemanticConstraintEvaluator.FindViolation(plan, history, candidates) is { } constraint)
@@ -214,7 +216,14 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         var projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
         failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
         var trace = new SemanticExecutionTrace(
-            [.. facts.Select((fact, index) => new SemanticTraceFact(fact.EventContract.ToString(), fact.EventSource?.Type.Kind == SemanticTypeReferenceKind.Concept ? fact.EventSource.Type.Target.ToString() : fact.EventSource?.Type.Primitive.ToString(), SemanticRunContext.Canonical(destinations[index]), fact.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))],
+            [.. facts.Select((fact, index) => new SemanticTraceFact(
+                fact.EventContract.ToString(),
+                fact.EventSource?.Type.Kind == SemanticTypeReferenceKind.Concept ? fact.EventSource.Type.Target.ToString() : fact.EventSource?.Type.Primitive.ToString(),
+                SemanticRunContext.Canonical(destinations[index]),
+                fact.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value)))
+            {
+                Route = SemanticRunRoutes.Format(plan, fact.Route)
+            })],
             projected.ToDictionary(row => $"{row.ReadModel}:{SemanticRunContext.Canonical(row.Key)}", row => JsonSerializer.Serialize(row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value)))),
             specification.ThenQueries.Select((query, index) => (query, index)).ToDictionary(
                 entry => $"{entry.index}:{entry.query.Query}:{SemanticRunContext.Canonical(entry.query.Key)}",

@@ -185,7 +185,8 @@ public static class SemanticRunAdmission
             return Block(StageExecutionCapability.Command, command.Id, "The destination expression is not admitted.");
         }
 
-        if (specification.ThenErrors.IsEmpty && when.EventSource is null && command.Destination?.Value is null && command.Produces.Any(produced => produced.Destination is null))
+        // A routed command can reject its route before reaching identity allocation; defer that decision to execution.
+        if (specification.ThenErrors.IsEmpty && command.Route is null && when.EventSource is null && command.Destination?.Value is null && command.Produces.Any(produced => produced.Destination is null))
         {
             return Block(StageExecutionCapability.IdentityAllocation, command.Id, "An accepted command requires an explicit destination.");
         }

@@ -5,11 +5,12 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public class when_refusing_event_source_routes : Specification
+public class when_planning_event_source_routes : Specification
 {
     internal const string Source = """
         concept AccountId : Uuid
@@ -52,7 +53,14 @@ public class when_refusing_event_source_routes : Specification
 
     [Fact] void should_compile_an_esm_v8_model() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V8);
     [Fact] void should_retain_the_routed_command() => _model.Application.Modules.Single().Features.Single().Slices.Single().Commands.Single().Route.ShouldNotBeNull();
-    [Fact] void should_refuse_the_unaudited_version() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-016"]);
-    [Fact] void should_not_report_a_successful_plan() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_emit_no_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_admit_the_routed_model() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_emit_the_definition() => _plan.Artifacts.Any(artifact => artifact.RelativePath == "EventSources/AccountEventSource.cs").ShouldBeTrue();
+    [Fact] void should_compile_the_generated_application()
+    {
+        // Like the existing compile specs, include the scaffold declarations but not the top-level
+        // bootstrap: the Roslyn library harness references Arc/Chronicle, not the Cratis meta-package.
+        var files = _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs" && !artifact.RelativePath.StartsWith("Frontend/", StringComparison.Ordinal))
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        for_CratisRenderer.RenderedOutput.Errors(files).ShouldBeEmpty();
+    }
 }

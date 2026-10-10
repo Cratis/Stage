@@ -17,7 +17,9 @@ internal static class GeneratedTypeNames
         IEnumerable<(IEnumerable<string> Path, SemanticId Owner, SemanticConstraint Constraint)>? constraints = null,
         bool rendersStringsCatalog = false,
         IEnumerable<(string Namespace, string Name)>? opaquePolicyTypes = null,
-        string commonNamespace = "Common")
+        string commonNamespace = "Common",
+        IEnumerable<SemanticEventSource>? eventSources = null,
+        string eventSourcesNamespace = "EventSources")
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         var namespaces = new HashSet<(string Namespace, string Name)>();
@@ -29,6 +31,14 @@ internal static class GeneratedTypeNames
             }
         }
         var seen = new HashSet<(string Namespace, string Name)>();
+        foreach (var source in eventSources ?? application.EventSources)
+        {
+            foreach (var name in Names(eventSourcesNamespace, EventSourceName(source.Name), source.Id, "EventSource", generated: true)) yield return name;
+        }
+        if (UsesStreamIds(selectedSlices.SelectMany(slice => slice.Slice.Commands)))
+        {
+            foreach (var name in Names("GeneratedEventSources", "StreamIds", application.Id, "Generated")) yield return name;
+        }
         foreach (var concept in application.Concepts)
         {
             foreach (var name in Names(commonNamespace, concept.Name, concept.Id, "Concept")) yield return name;
@@ -119,6 +129,15 @@ internal static class GeneratedTypeNames
             if (namespaces.Contains((ns, name))) yield return (id, "Namespace", name);
         }
     }
+
+    internal static string EventSourceName(string source)
+    {
+        var name = GeneratedPascalCase.From(source);
+        return name.EndsWith("EventSource", StringComparison.Ordinal) ? name : $"{name}EventSource";
+    }
+
+    internal static bool UsesStreamIds(IEnumerable<SemanticCommand> commands) =>
+        commands.Any(command => command.Route is { } route && (route.StreamId is SemanticResolvedExpression || !route.StreamIdParts.IsDefaultOrEmpty));
 
     internal static bool UsesCommandReceiptTime(IEnumerable<SemanticCommand> commands) =>
         commands.Any(command => command.Produces.Any(produced => produced.Mappings.Any(mapping =>

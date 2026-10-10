@@ -28,7 +28,7 @@ internal static partial class SemanticCratisAdmission
         _ = SemanticSurfaceLedger.Entries;
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         var model = context.Request.Model;
-        if (!EsmSchemaV7Support.Supports(model.LanguageVersion, model.SemanticVersion))
+        if (!EsmSchemaV8Support.Supports(model.LanguageVersion, model.SemanticVersion))
         {
             diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", model.Application.Id));
             return [.. diagnostics];
@@ -71,7 +71,9 @@ internal static partial class SemanticCratisAdmission
                 ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
             rendersStringsCatalog: context.Strings is not null,
             opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices),
-            commonNamespace: string.Join('.', context.Domain.Append("Common"))))
+            commonNamespace: string.Join('.', context.Domain.Append("Common")),
+            eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
+            eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources"))))
         {
             var message = kind == "Namespace"
                 ? $"Generated type '{name}' collides with a generated C# namespace."
@@ -177,21 +179,25 @@ internal static partial class SemanticCratisAdmission
 
     static void ValidateEventSourceRoutes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (!context.Application.EventSources.IsEmpty)
+        foreach (var source in SemanticEventSourceArtifactRenderer.Selected(context, slices))
         {
-            diagnostics.Add(Error("STAGE-ESM-030", "Named event sources and streams are not yet supported by the Cratis ESM planner.", context.Application.Id));
-        }
-
-        foreach (var command in slices.SelectMany(_ => _.Slice.Commands).Where(_ => _.Route is not null))
-        {
-            diagnostics.Add(Error("STAGE-ESM-030", $"Command '{command.Name}' has an event-source route, which the Cratis ESM planner cannot render yet.", command.Id));
+            if (source.SourceKind == "Default")
+            {
+                diagnostics.Add(Error("STAGE-ESM-030", "The stored event source name 'Default' is reserved by Chronicle.", source.Id));
+            }
+            foreach (var stream in source.Streams.Where(stream => stream.StreamKind == "All"))
+            {
+                diagnostics.Add(Error("STAGE-ESM-030", "The stored event stream name 'All' is reserved by Chronicle.", stream.Id));
+            }
         }
 
         foreach (var specification in slices.SelectMany(_ => _.Slice.Specifications))
         {
-            if (specification.WhenAppended?.Route is not null || specification.ThenEvents.Any(_ => _.Route is not null || _.Unrouted))
+            if ((specification.When is { } action && context.Commands[action.Command].Route is not null) ||
+                specification.WhenAppended?.Route is not null ||
+                specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is not null || occurrence.Unrouted))
             {
-                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' uses event-source routing assertions, which the Cratis ESM planner cannot render yet.", specification.Id));
+                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' requires routed rendered specifications, which are not yet supported.", specification.Id));
             }
         }
     }

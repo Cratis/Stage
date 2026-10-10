@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.114.0; ESM v1–v7 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.114.0; ESM v1–v8 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v7 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -77,7 +77,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay."), "IsValid");
         Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies");
-        Add(entries, "SemanticApplication", rejected("STAGE-ESM-030"), "EventSources");
+        Add(entries, "SemanticApplication", rendered, "EventSources");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
         Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications");
@@ -112,14 +112,14 @@ internal static class SemanticSurfaceLedger
         // contract-then-production order; duplicate tags fail admission because Chronicle deduplicates.
         // Requirements use the same catalog-backed message resolution as property and concept validation.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
-        Add(entries, "SemanticCommand", rejected("STAGE-ESM-030"), "Route");
+        Add(entries, "SemanticCommand", rendered, "Route");
         Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "CodeValidations");
         Add(entries, "SemanticCodeValidation", rejected("STAGE-ESM-005"), "RequirementId");
-        Add(entries, "SemanticCommandRoute", rejected("STAGE-ESM-030"), "Source Stream StreamId StreamIdParts");
-        Add(entries, "SemanticCommandRoutePart", rejected("STAGE-ESM-030"), "Part Value");
-        Add(entries, "SemanticEventSource", rejected("STAGE-ESM-030"), "Id IdentifierType Name SourceKind Streams");
-        Add(entries, "SemanticEventStream", rejected("STAGE-ESM-030"), "Id Name StreamIdParts StreamIdType StreamKind");
-        Add(entries, "SemanticStreamIdPart", rejected("STAGE-ESM-030"), "Name Type");
+        Add(entries, "SemanticCommandRoute", rendered, "Source Stream StreamId StreamIdParts");
+        Add(entries, "SemanticCommandRoutePart", rendered, "Part Value");
+        Add(entries, "SemanticEventSource", rendered, "Id IdentifierType Name SourceKind Streams");
+        Add(entries, "SemanticEventStream", rendered, "Id Name StreamIdParts StreamIdType StreamKind");
+        Add(entries, "SemanticStreamIdPart", rendered, "Name Type");
 
         // The render request now carries compiler requirements and resolved bodies by requirement id.
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are

@@ -44,7 +44,8 @@ public class when_refusing_the_canonical_v6_corpus : Specification
     [Fact] void should_classify_every_v6_member_as_rejected()
     {
         var entries = SemanticSurfaceLedger.Entries.Values.Where(entry => entry.Detail == "STAGE-ESM-024").ToArray();
-        entries.Length.ShouldEqual(100);
+        // 102: the v6 capture surface plus the events source of a capture (ESM v9), which is still a capture.
+        entries.Length.ShouldEqual(102);
         entries.All(entry => entry.Kind == SemanticSurfaceDispositionKind.Rejected).ShouldBeTrue();
     }
 

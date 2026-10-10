@@ -23,11 +23,13 @@ internal static partial class PureTransitionAdmission
 
         // Anonymous records can carry randomized string hashes; no synthesized method is trusted.
         var type = symbol.ContainingType;
-        if (type is null || IsUnadmittable(symbol, type))
-        {
-            return false;
-        }
+        return type is not null && !IsUnadmittable(symbol, type) && AllowedMember(symbol, compilation, rootNamespace, out entry);
+    }
 
+    static bool AllowedMember(ISymbol symbol, Compilation compilation, string rootNamespace, out string entry)
+    {
+        var type = symbol.ContainingType;
+        entry = string.Empty;
         if (IsConceptValueMember(symbol, type, compilation))
         {
             entry = "generated";
@@ -40,12 +42,7 @@ internal static partial class PureTransitionAdmission
             return AllowedGenerated(symbol, type, rootNamespace);
         }
 
-        if (SafeValueType(type))
-        {
-            return AllowedValueType(symbol, type, out entry);
-        }
-
-        return AllowedLibrary(symbol, type, out entry);
+        return SafeValueType(type) ? AllowedValueType(symbol, type, out entry) : AllowedLibrary(symbol, type, out entry);
     }
 
     static bool AllowedLibrary(ISymbol symbol, INamedTypeSymbol type, out string entry) =>
@@ -63,52 +60,64 @@ internal static partial class PureTransitionAdmission
     // The pinned ConceptAs<T> and EventSourceId<T> expose auto-property getters only.
     // Mirror their declaring types in the synthetic compilation, rather than admitting a
     // synthetic owned Value that binds differently from the real inherited property.
-    static bool IsConceptValueMember(ISymbol symbol, INamedTypeSymbol type, Compilation compilation)
+    static bool IsConceptValueMember(ISymbol symbol, INamedTypeSymbol type, Compilation compilation) =>
+        IsConceptValueName(symbol, type) &&
+        symbol is IPropertySymbol { IsStatic: false, IsIndexer: false, GetMethod: not null } conceptProperty &&
+        SymbolEqualityComparer.Default.Equals(conceptProperty.Type, type.TypeArguments[0]) &&
+        SafeValue(conceptProperty.Type, compilation);
+
+    static bool IsConceptValueName(ISymbol symbol, INamedTypeSymbol type)
     {
-        var genericOwner = type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var name = symbol.Name;
-        return ((genericOwner == "global::Cratis.Concepts.ConceptAs<T>" && name == "Value") ||
-                (genericOwner == "global::Cratis.Chronicle.Events.EventSourceId<T>" && name == "TypedValue")) &&
-            symbol is IPropertySymbol { IsStatic: false, IsIndexer: false, GetMethod: not null } conceptProperty &&
-            SymbolEqualityComparer.Default.Equals(conceptProperty.Type, type.TypeArguments[0]) &&
-            SafeValue(conceptProperty.Type, compilation);
+        var genericOwner = FullName(type.OriginalDefinition);
+        return (genericOwner == "global::Cratis.Concepts.ConceptAs<T>" && symbol.Name == "Value") ||
+            (genericOwner == "global::Cratis.Chronicle.Events.EventSourceId<T>" && symbol.Name == "TypedValue");
     }
+
+    static string FullName(INamedTypeSymbol type) => type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
     // Both the declaring type and the member must belong to this exact synthetic source tree.
     // This excludes Microsoft.Win32, all referenced application assemblies and unrelated source files.
-    static bool IsSyntheticSource(ISymbol symbol, INamedTypeSymbol type, Compilation compilation, string rootNamespace)
+    static bool IsSyntheticSource(ISymbol symbol, INamedTypeSymbol type, Compilation compilation, string rootNamespace) =>
+        type.ContainingAssembly.Name == compilation.AssemblyName &&
+        type.Locations.Length > 0 && AllInSource(type.Locations, compilation) &&
+        IsInNamespace(type, rootNamespace) &&
+        AllInSource(symbol.Locations, compilation);
+
+    static bool AllInSource(IEnumerable<Location> locations, Compilation compilation) =>
+        locations.All(_ => _.IsInSource && compilation.SyntaxTrees.Contains(_.SourceTree));
+
+    static bool IsInNamespace(INamedTypeSymbol type, string rootNamespace)
     {
         var typeNamespace = type.ContainingNamespace.ToDisplayString();
-        return type.ContainingAssembly.Name == compilation.AssemblyName &&
-            type.Locations.Length > 0 && type.Locations.All(_ => _.IsInSource && compilation.SyntaxTrees.Contains(_.SourceTree)) &&
-            (typeNamespace == rootNamespace || typeNamespace.StartsWith(rootNamespace + ".", StringComparison.Ordinal)) &&
-            symbol.Locations.All(_ => _.IsInSource && compilation.SyntaxTrees.Contains(_.SourceTree));
+        return typeNamespace == rootNamespace || typeNamespace.StartsWith(rootNamespace + ".", StringComparison.Ordinal);
     }
 
     static bool AllowedGenerated(ISymbol symbol, INamedTypeSymbol type, string rootNamespace)
     {
-        var full = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var name = symbol.Name;
-        if (IsTenantMember(symbol, full, rootNamespace) || IsIdentityLookup(symbol, full, rootNamespace))
+        if (IsTenantMember(symbol, type, rootNamespace) || IsIdentityLookup(symbol, type, rootNamespace))
         {
             return true;
         }
 
-        return name != "ToString" &&
+        return symbol.Name != "ToString" &&
             (type.Name.StartsWith("TypedContext_", StringComparison.Ordinal)
                 ? symbol is IPropertySymbol
                 : symbol is IMethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.PropertyGet } or
                     IPropertySymbol or IFieldSymbol { IsConst: true });
     }
 
-    static bool IsTenantMember(ISymbol symbol, string full, string rootNamespace) =>
-        full == $"global::{rootNamespace}.TypedContexts.TenantId" &&
-        ((symbol is IFieldSymbol { IsStatic: true, IsReadOnly: true } && NameIs(symbol.Name, "Default", "NotSet")) ||
-            (symbol is IMethodSymbol { IsImplicitlyDeclared: true, MethodKind: MethodKind.UserDefinedOperator } && NameIs(symbol.Name, "op_Equality", "op_Inequality")));
+    static bool IsTenantMember(ISymbol symbol, INamedTypeSymbol type, string rootNamespace) =>
+        FullName(type) == $"global::{rootNamespace}.TypedContexts.TenantId" && (IsTenantField(symbol) || IsTenantOperator(symbol));
+
+    static bool IsTenantField(ISymbol symbol) =>
+        symbol is IFieldSymbol { IsStatic: true, IsReadOnly: true } && NameIs(symbol.Name, "Default", "NotSet");
+
+    static bool IsTenantOperator(ISymbol symbol) =>
+        symbol is IMethodSymbol { IsImplicitlyDeclared: true, MethodKind: MethodKind.UserDefinedOperator } && NameIs(symbol.Name, "op_Equality", "op_Inequality");
 
     // Stage's policy Identity mirrors Screenplay's audited lookups: ordinal roles, ordinal-ignore-case claim names.
-    static bool IsIdentityLookup(ISymbol symbol, string full, string rootNamespace) =>
-        full == $"global::{rootNamespace}.TypedContexts.{SemanticPolicyContextRuntime.IdentityType}" &&
+    static bool IsIdentityLookup(ISymbol symbol, INamedTypeSymbol type, string rootNamespace) =>
+        FullName(type) == $"global::{rootNamespace}.TypedContexts.{SemanticPolicyContextRuntime.IdentityType}" &&
         symbol is IMethodSymbol { MethodKind: MethodKind.Ordinary, IsStatic: false, Parameters.Length: 1 } lookup &&
         lookup.Parameters[0].Type.SpecialType == SpecialType.System_String &&
         NameIs(symbol.Name, "HasRole", "HasClaim", "ClaimValue", "ClaimValues");
@@ -136,16 +145,20 @@ internal static partial class PureTransitionAdmission
         _ => false
     };
 
-    static bool AllowedStringMethod(IMethodSymbol method)
-    {
-        var name = method.Name;
-        return (name == "Substring" && method.Parameters.Length is 1 or 2 &&
-                method.Parameters.All(parameter => parameter.Type.SpecialType == SpecialType.System_Int32)) ||
-            NameIs(name, "IsNullOrEmpty", "op_Equality", "op_Inequality") ||
-            (name == "Concat" && method.Parameters.All(parameter => parameter.Type.SpecialType == SpecialType.System_String)) ||
-            (NameIs(name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf") &&
-                method.Parameters.Any(parameter => parameter.Type.ToDisplayString() == "System.StringComparison"));
-    }
+    static bool AllowedStringMethod(IMethodSymbol method) =>
+        IsSubstring(method) || IsTextConcat(method) || IsOrdinalComparison(method) ||
+        NameIs(method.Name, "IsNullOrEmpty", "op_Equality", "op_Inequality");
+
+    static bool IsSubstring(IMethodSymbol method) =>
+        method.Name == "Substring" && method.Parameters.Length is 1 or 2 &&
+        method.Parameters.All(parameter => parameter.Type.SpecialType == SpecialType.System_Int32);
+
+    static bool IsTextConcat(IMethodSymbol method) =>
+        method.Name == "Concat" && method.Parameters.All(parameter => parameter.Type.SpecialType == SpecialType.System_String);
+
+    static bool IsOrdinalComparison(IMethodSymbol method) =>
+        NameIs(method.Name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf") &&
+        method.Parameters.Any(parameter => parameter.Type.ToDisplayString() == "System.StringComparison");
 
     // Returns null when the type is not one of these audited value libraries.
     static bool? AllowedValueLibrary(ISymbol symbol, INamedTypeSymbol type, out string entry)
@@ -210,7 +223,7 @@ internal static partial class PureTransitionAdmission
         if (full.StartsWith("global::System.Collections.", StringComparison.Ordinal))
         {
             entry = "collections";
-            return AllowedCollectionMember(symbol, full);
+            return AllowedCollectionMember(symbol, type);
         }
 
         if (full == "global::System.Linq.Enumerable")
@@ -262,29 +275,40 @@ internal static partial class PureTransitionAdmission
         decimalMath.Parameters[0].Type.SpecialType == SpecialType.System_Decimal &&
         decimalMath.ReturnType.SpecialType == SpecialType.System_Decimal;
 
-    static bool AllowedTime(ISymbol symbol)
+    static bool AllowedTime(ISymbol symbol) => symbol switch
     {
-        var name = symbol.Name;
-        if (symbol is IPropertySymbol) return NameIs(name, "Year", "Month", "Day", "Hour", "Minute", "Second", "Ticks");
-        return symbol is IMethodSymbol method &&
-            ((NameIs(name, "op_Equality", "op_Inequality", "op_LessThan", "op_LessThanOrEqual", "op_GreaterThan", "op_GreaterThanOrEqual", "op_Addition", "op_Subtraction") &&
-                method.Parameters.All(parameter => NameIs(parameter.Type.ToDisplayString(), "System.DateTimeOffset", "System.TimeSpan"))) ||
-             (NameIs(name, "Add", "AddDays", "AddHours", "AddMinutes", "AddSeconds", "AddMilliseconds", "AddTicks", "AddMonths", "AddYears") &&
-                method.Parameters.Length == 1 &&
-                (Number(method.Parameters[0].Type) || method.Parameters[0].Type.ToDisplayString() == "System.TimeSpan")));
-    }
+        IPropertySymbol => NameIs(symbol.Name, "Year", "Month", "Day", "Hour", "Minute", "Second", "Ticks"),
+        IMethodSymbol method => IsTimeOperator(method) || IsTimeAdd(method),
+        _ => false
+    };
 
-    static bool AllowedCollectionMember(ISymbol symbol, string full)
-    {
-        var name = symbol.Name;
-        var immutableArray = full.StartsWith("global::System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal);
-        return (immutableArray && (NameIs(name, "Length", "IsDefault", "Empty", "GetEnumerator") || symbol is IPropertySymbol { IsIndexer: true })) ||
-            (full.StartsWith("global::System.Collections.Generic.IEnumerable<", StringComparison.Ordinal) && name == "GetEnumerator") ||
-            (immutableArray && NameIs(name, "Current", "MoveNext"));
-    }
+    static bool IsTimeOperator(IMethodSymbol method) =>
+        NameIs(method.Name, "op_Equality", "op_Inequality", "op_LessThan", "op_LessThanOrEqual", "op_GreaterThan", "op_GreaterThanOrEqual", "op_Addition", "op_Subtraction") &&
+        method.Parameters.All(parameter => NameIs(parameter.Type.ToDisplayString(), "System.DateTimeOffset", "System.TimeSpan"));
+
+    static bool IsTimeAdd(IMethodSymbol method) =>
+        NameIs(method.Name, "Add", "AddDays", "AddHours", "AddMinutes", "AddSeconds", "AddMilliseconds", "AddTicks", "AddMonths", "AddYears") &&
+        method.Parameters.Length == 1 &&
+        (Number(method.Parameters[0].Type) || method.Parameters[0].Type.ToDisplayString() == "System.TimeSpan");
+
+    static bool AllowedCollectionMember(ISymbol symbol, INamedTypeSymbol type) =>
+        IsImmutableArrayMember(symbol, type) || IsEnumerableEnumerator(symbol, type) || IsImmutableArrayIteration(symbol, type);
+
+    static bool IsImmutableArrayMember(ISymbol symbol, INamedTypeSymbol type) =>
+        FullName(type).StartsWith("global::System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal) &&
+        (NameIs(symbol.Name, "Length", "IsDefault", "Empty", "GetEnumerator") || symbol is IPropertySymbol { IsIndexer: true });
+
+    static bool IsEnumerableEnumerator(ISymbol symbol, INamedTypeSymbol type) =>
+        FullName(type).StartsWith("global::System.Collections.Generic.IEnumerable<", StringComparison.Ordinal) && symbol.Name == "GetEnumerator";
+
+    static bool IsImmutableArrayIteration(ISymbol symbol, INamedTypeSymbol type) =>
+        FullName(type).StartsWith("global::System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal) && NameIs(symbol.Name, "Current", "MoveNext");
 
     static bool AllowedLinq(ISymbol symbol) =>
         NameIs(symbol.Name, "Where", "Select", "Any", "All", "Count", "First", "FirstOrDefault", "Last", "LastOrDefault", "Take", "Skip", "Sum", "Aggregate", "ToArray", "Concat") &&
-        (symbol.Name != "Aggregate" || symbol is IMethodSymbol { Parameters.Length: 3 }) &&
-        (symbol.Name != "Sum" || (symbol is IMethodSymbol sum && DecimalSumReturn(sum.ReturnType)));
+        IsAuditedAggregate(symbol) && IsAuditedSum(symbol);
+
+    static bool IsAuditedAggregate(ISymbol symbol) => symbol.Name != "Aggregate" || symbol is IMethodSymbol { Parameters.Length: 3 };
+
+    static bool IsAuditedSum(ISymbol symbol) => symbol.Name != "Sum" || (symbol is IMethodSymbol sum && DecimalSumReturn(sum.ReturnType));
 }

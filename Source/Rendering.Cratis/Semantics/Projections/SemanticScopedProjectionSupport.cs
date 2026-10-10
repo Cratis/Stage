@@ -543,7 +543,7 @@ internal static class SemanticScopedProjectionSupport
         {
             var property = properties.SingleOrDefault(_ => _.Id == children.Property);
             var element = IsCollectionOfComposites(property) && context.Types.TryGetValue(property!.Type.Target, out var found) ? found : null;
-            if (element is null || !element.Properties.Any(_ => _.Id == children.IdentifiedBy))
+            if (element?.Properties.Any(_ => _.Id == children.IdentifiedBy) != true)
             {
                 return "A children block has an unsupported collection or identity.";
             }

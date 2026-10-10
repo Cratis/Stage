@@ -33,16 +33,22 @@ internal static partial class PureTransitionAdmission
     static bool IsUnsafeOperand(IOperation operand, Compilation compilation) =>
         !SafeValue(operand.Type, compilation) && operand.ConstantValue is not { HasValue: true, Value: null };
 
-    static bool AreComparableOperands(IBinaryOperation operation)
-    {
-        var left = operation.LeftOperand.Type;
-        var right = operation.RightOperand.Type;
-        return (Number(left) && Number(right)) ||
-            (left?.SpecialType == SpecialType.System_Boolean && right?.SpecialType == SpecialType.System_Boolean) ||
-            IsTextOperands(operation) ||
-            (IsTimeType(left) && IsTimeType(right)) ||
-            IsEqualityOnSameType(operation);
-    }
+    static bool AreComparableOperands(IBinaryOperation operation) =>
+        AreNumericOperands(operation) ||
+        AreBooleanOperands(operation) ||
+        IsTextOperands(operation) ||
+        AreTimeOperands(operation) ||
+        IsEqualityOnSameType(operation);
+
+    static bool AreNumericOperands(IBinaryOperation operation) =>
+        Number(operation.LeftOperand.Type) && Number(operation.RightOperand.Type);
+
+    static bool AreBooleanOperands(IBinaryOperation operation) =>
+        operation.LeftOperand.Type?.SpecialType == SpecialType.System_Boolean &&
+        operation.RightOperand.Type?.SpecialType == SpecialType.System_Boolean;
+
+    static bool AreTimeOperands(IBinaryOperation operation) =>
+        IsTimeType(operation.LeftOperand.Type) && IsTimeType(operation.RightOperand.Type);
 
     static bool IsEqualityOnSameType(IBinaryOperation operation)
     {
@@ -55,18 +61,23 @@ internal static partial class PureTransitionAdmission
     static bool IsTimeType(ITypeSymbol? type) =>
         NameIs(type?.ToDisplayString() ?? string.Empty, "System.DateTimeOffset", "System.TimeSpan");
 
-    static bool SafeConversion(IConversionOperation operation)
-    {
-        if (operation.OperatorMethod is not null) return false;
-        if (operation.Operand.ConstantValue.HasValue && operation.Operand.ConstantValue.Value is null) return true;
-        var from = operation.Operand.Type;
-        var to = operation.Type;
-        if (from is null || to is null) return false;
-        if (IsAlwaysSafeConversion(operation, from, to)) return true;
-        if (Number(from) && Number(to)) return IsSafeNumericConversion(operation, from, to);
-        if (IsNullableUnwrap(from, to) || IsNullableWrap(from, to)) return operation.Conversion.IsImplicit;
-        return IsEnumerableConversion(operation, from, to);
-    }
+    static bool SafeConversion(IConversionOperation operation) =>
+        operation.OperatorMethod is null && (IsNullConstant(operation) || IsSafeTypedConversion(operation));
+
+    static bool IsNullConstant(IConversionOperation operation) =>
+        operation.Operand.ConstantValue.HasValue && operation.Operand.ConstantValue.Value is null;
+
+    static bool IsSafeTypedConversion(IConversionOperation operation) =>
+        operation.Operand.Type is { } from && operation.Type is { } to &&
+        (IsAlwaysSafeConversion(operation, from, to) ||
+            (Number(from) && Number(to)
+                ? IsSafeNumericConversion(operation, from, to)
+                : IsSafeReferenceConversion(operation, from, to)));
+
+    static bool IsSafeReferenceConversion(IConversionOperation operation, ITypeSymbol from, ITypeSymbol to) =>
+        IsNullableUnwrap(from, to) || IsNullableWrap(from, to)
+            ? operation.Conversion.IsImplicit
+            : IsEnumerableConversion(operation, from, to);
 
     static bool IsSafeNumericConversion(IConversionOperation operation, ITypeSymbol from, ITypeSymbol to) =>
         operation.Conversion.IsImplicit || from.SpecialType == SpecialType.System_Decimal || to.SpecialType == SpecialType.System_Decimal;
@@ -77,12 +88,18 @@ internal static partial class PureTransitionAdmission
         (from is IArrayTypeSymbol || from.ToDisplayString().StartsWith("System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal));
 
     static bool IsAlwaysSafeConversion(IConversionOperation operation, ITypeSymbol from, ITypeSymbol to) =>
-        (operation.Parent is IThrowOperation && operation.Conversion.IsImplicit && ValidThrow(operation.Operand)) ||
-        (operation.Parent is IForEachLoopOperation && from is IArrayTypeSymbol && to.ToDisplayString() == "System.Collections.IEnumerable") ||
-        (to.Name == "IFormatProvider" && IsInvariantProvider(operation.Operand) && operation.Conversion.IsImplicit) ||
+        IsThrowOrForeachConversion(operation, from, to) ||
+        IsInvariantProviderConversion(operation, to) ||
         SymbolEqualityComparer.Default.Equals(from, to) ||
         IsImplicitCharToNumber(operation, from, to) ||
         IsCharInTextConcatenation(operation, from, to);
+
+    static bool IsThrowOrForeachConversion(IConversionOperation operation, ITypeSymbol from, ITypeSymbol to) =>
+        (operation.Parent is IThrowOperation && operation.Conversion.IsImplicit && ValidThrow(operation.Operand)) ||
+        (operation.Parent is IForEachLoopOperation && from is IArrayTypeSymbol && to.ToDisplayString() == "System.Collections.IEnumerable");
+
+    static bool IsInvariantProviderConversion(IConversionOperation operation, ITypeSymbol to) =>
+        to.Name == "IFormatProvider" && IsInvariantProvider(operation.Operand) && operation.Conversion.IsImplicit;
 
     static bool IsImplicitCharToNumber(IConversionOperation operation, ITypeSymbol from, ITypeSymbol to) =>
         from.SpecialType == SpecialType.System_Char && Number(to) && operation.Conversion.IsImplicit;

@@ -181,6 +181,16 @@ internal static partial class PureTransitionAdmission
         public Verdict? Visit(IOperation operation) =>
             TypeRejection(operation) ?? StructureRejection(operation) ?? SymbolRejection(operation);
 
+        static Verdict? EnumFieldRejection(IOperation operation) => operation switch
+        {
+            IFieldReferenceOperation enumField when IsUnauditedEnumField(enumField) =>
+                Forbid($"Enum field '{enumField.Field.ToDisplayString()}' is admitted only as an audited method argument."),
+            _ => null
+        };
+
+        static bool IsUnauditedEnumField(IFieldReferenceOperation field) =>
+            NameIs(field.Field.ContainingType.ToDisplayString(), "System.StringComparison", "System.MidpointRounding") && !AuditedEnumArgument(field);
+
         static Verdict? StringRejection(IOperation operation) => operation switch
         {
             ICompoundAssignmentOperation compound when IsNonStringCompound(compound) =>
@@ -190,11 +200,19 @@ internal static partial class PureTransitionAdmission
             _ => null
         };
 
-        static Verdict? ForbiddenRejection(IOperation operation) => operation switch
+        static Verdict? ForbiddenRejection(IOperation operation) =>
+            DynamicRejection(operation) ?? ExceptionRejection(operation);
+
+        static Verdict? DynamicRejection(IOperation operation) => operation switch
         {
             IDynamicInvocationOperation or IDynamicMemberReferenceOperation or IDynamicObjectCreationOperation or IDynamicIndexerAccessOperation =>
                 Forbid($"Forbidden pure operation '{operation.Kind}'."),
             _ when operation.Type?.TypeKind is TypeKind.Dynamic or TypeKind.Pointer => Forbid($"Forbidden pure operation '{operation.Kind}'."),
+            _ => null
+        };
+
+        static Verdict? ExceptionRejection(IOperation operation) => operation switch
+        {
             IObjectCreationOperation constructed when IsExceptionType(constructed) && !IsThrownCreation(constructed) =>
                 Forbid("Exception construction is admitted only inside a throw expression."),
             IThrowOperation thrown when !ValidThrow(thrown.Exception) =>
@@ -248,6 +266,9 @@ internal static partial class PureTransitionAdmission
             ConversionRejection(operation) ??
             ConstructionRejection(operation) ??
             StringRejection(operation) ??
+            UsageRejection(operation);
+
+        Verdict? UsageRejection(IOperation operation) =>
             StaticWriteRejection(operation) ??
             KindRejection(operation) ??
             WrapperRejection(operation) ??
@@ -288,18 +309,20 @@ internal static partial class PureTransitionAdmission
             _ => null
         };
 
-        Verdict? MemberRejection(IOperation operation) => operation switch
+        Verdict? MemberRejection(IOperation operation) =>
+            EnumFieldRejection(operation) ?? PropertyRejection(operation);
+
+        Verdict? PropertyRejection(IOperation operation) => operation switch
         {
-            IFieldReferenceOperation enumField when
-                NameIs(enumField.Field.ContainingType.ToDisplayString(), "System.StringComparison", "System.MidpointRounding") && !AuditedEnumArgument(enumField) =>
-                Forbid($"Enum field '{enumField.Field.ToDisplayString()}' is admitted only as an audited method argument."),
             IPropertyReferenceOperation provider when IsInvariantProviderMisuse(provider) =>
                 Forbid("CultureInfo.InvariantCulture is admitted only for numeric ToString."),
-            IPropertyReferenceOperation value when !SafeDataType(value.Type, Compilation) &&
-                !(value.Property.Name == "InvariantCulture" && IsInvariantProvider(value)) =>
+            IPropertyReferenceOperation value when IsUnsafePropertyType(value) =>
                 Forbid($"Property '{value.Property.ToDisplayString()}' returns a type outside the pure allowlist."),
             _ => null
         };
+
+        bool IsUnsafePropertyType(IPropertyReferenceOperation value) =>
+            !SafeDataType(value.Type, Compilation) && !(value.Property.Name == "InvariantCulture" && IsInvariantProvider(value));
 
         Verdict? ConversionRejection(IOperation operation) => operation switch
         {
@@ -342,16 +365,16 @@ internal static partial class PureTransitionAdmission
 
         bool IsWrapperValue(IOperation operation) => ValueTypeName(operation) == Wrapper;
 
-        Verdict? SymbolRejection(IOperation operation)
-        {
-            var symbol = BoundSymbol(operation, model);
-            if (symbol is null)
-            {
-                return IsUnresolvable(operation, model)
-                    ? Forbid($"Unresolved operation '{operation.Kind}' is outside the pure allowlist.")
-                    : null;
-            }
+        Verdict? SymbolRejection(IOperation operation) =>
+            BoundSymbol(operation, model) is { } symbol ? BoundRejection(operation, symbol) : UnresolvedRejection(operation);
 
+        Verdict? UnresolvedRejection(IOperation operation) =>
+            IsUnresolvable(operation, model)
+                ? Forbid($"Unresolved operation '{operation.Kind}' is outside the pure allowlist.")
+                : null;
+
+        Verdict? BoundRejection(IOperation operation, ISymbol symbol)
+        {
             if (IsArrayForeach(operation, model))
             {
                 _used.Add("collections");

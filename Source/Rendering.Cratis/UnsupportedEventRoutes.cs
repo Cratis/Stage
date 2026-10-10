@@ -11,8 +11,8 @@ namespace Cratis.Stage.Rendering.Cratis;
 /// </summary>
 /// <param name="location">The authored route location.</param>
 public sealed class UnsupportedEventRoutes(SourceLocation location) : Exception(
-    $"{DiagnosticCode}: Named event sources, streams and event-source routes at {location} are not yet supported by the Cratis renderer. " +
-    "Support is tracked at https://github.com/Cratis/Stage/issues/177.")
+    $"{DiagnosticCode}: Named event sources, streams and event-source routes at {location} are not supported by the legacy syntax renderer. " +
+    "Use the semantic planner to render event-source routes.")
 {
     /// <summary>
     /// The stable diagnostic code shared with semantic route admission.

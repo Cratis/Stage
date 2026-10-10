@@ -26,13 +26,13 @@ internal static class SemanticVersionFeatureAdmission
     {
         var features = slices.Select(located => located.Slice).SelectMany(slice =>
             SemanticVersionFeatures.InSlice(slice)
-                .Concat(slice.Commands.SelectMany(SemanticVersionFeatures.InCommand))
-                .Concat(slice.Specifications.SelectMany(SemanticVersionFeatures.InSpecification)));
+                .Concat(slice.Commands.SelectMany(command => SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command))))
+                .Concat(slice.Specifications.SelectMany(specification => SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)))));
 
         // Application triggers belong to no slice; only an application render would otherwise drop them.
         if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
-            features = SemanticVersionFeatures.InApplication(context.Application).Concat(features);
+            features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application)).Concat(features);
         }
 
         return [.. features.Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, feature.Message, feature.Artifact))];

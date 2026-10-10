@@ -19,7 +19,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "cf58df5362670a27312e56ad935b97a6d9881af7fed1e67da4f6e3876ff8c166";
+    const string Digest = "eb530c6a1ee11cc1512138793b9e8b914a07eccbdc321f6351e90434153be9d6";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
@@ -54,7 +54,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Directory.Packages.props af799a176bf7be0de5e660924f4bde3444170788e9633399a1f65f0b72c9602f 133
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
-        Workspaces.csproj 2328c0c2f682dbe16d3b4e40459a7439be7654daed2d43000881c6c12faff81b 2379
+        Workspaces.csproj dae69e0bcd187188095508d82bf4f6b356f670cedce49ddfdda6a67d4802311f 2379
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
         Workspaces/Tracking/AddComment/when_adding_acomment.cs 317e90a82f631bd47dd13a15aaba8c2dae99c23e0459631c7274be2101570c95 1884
@@ -71,7 +71,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/WorkItemList.cs 00f31c1ade25d846d6646b4e0e99a3f9cbdb26a023838fc9bac261ae73275c9b 3220
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs fdbc398936fe6c3a5fd324deaeda4d06ab7471822bedd879cbd2ed1faa3227b7 2424
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
-        docker-compose.yml 859dad3906953dad53c7c4d6a3e51a3ee037cdbe9a1a6bff104b92079787e2c0 259
+        docker-compose.yml bc5063d052c5b7f41013f9d21e86ad9e683fe2e5d7a75aa5330e875a249dad12 259
         package.json 538002df101a3086c889645afac4d7d23e038505031d477e969af861df0c0be5 1431
         scene.json f324f8408a350075c3bcd5543dcdf66c56bd98330cb19ba82902937a150f7800 3908
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467

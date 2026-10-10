@@ -66,7 +66,7 @@ jobs:
         run: |
           git init "$RUNNER_TEMP/chronicle-source"
           git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
-          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin a8d4ed1aa9013723d26d0e64f80e5af435548678
+          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 30dc461bd08f9b397ad00ca213d36350553d3ed1
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
       # The specs live inline beside the code and are stripped from Release builds, where the test SDK is not
@@ -122,14 +122,14 @@ jobs:
             --connect-timeout 5 --max-time 10 --retry-max-time 120 \
             https://localhost:35000/health
 
-      - name: Run Billing deletion and scoped-projection persistence probes
+      - name: Run Billing deletion, scoped-projection and routed-append persistence probes
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
           # Keeps the generated application's own build and test logs with the uploaded results.
           AI_WORK_KEEP: ${{ github.workspace }}/TestResults/reducer-mongo
         run: >-
           dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
-          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured"
+          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured|FullyQualifiedName~when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured"
           --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
 
       - name: Run Stage projection reconnect probe
@@ -154,6 +154,7 @@ jobs:
           expected = {
               prefix + "when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured",
               prefix + "when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured",
+              prefix + "when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured",
               "Cratis.Stage.Host.for_CratisServiceConfiguration.when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured",
           }
           counters = [root.find("t:ResultSummary/t:Counters", ns) for root in roots]
@@ -162,7 +163,7 @@ jobs:
                   or any(result.get("outcome") != "Passed" for result in results)
                   or any(counter is None for counter in counters)
                   or sum(int(counter.get("executed", "0")) for counter in counters) != len(expected)):
-              raise SystemExit("Billing, scoped-projection and Stage reconnect probes must execute and pass, not skip.")
+              raise SystemExit("Billing, scoped-projection, routed-append and Stage reconnect probes must execute and pass, not skip.")
           PY
 
       - name: Capture kernel logs
@@ -209,7 +210,7 @@ jobs:
         run: |
           git init "$RUNNER_TEMP/chronicle-source"
           git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
-          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin a8d4ed1aa9013723d26d0e64f80e5af435548678
+          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 30dc461bd08f9b397ad00ca213d36350553d3ed1
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
       - name: Run generated-name matrix

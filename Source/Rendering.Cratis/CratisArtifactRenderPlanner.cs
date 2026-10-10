@@ -72,7 +72,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     {
         var artifacts = new List<PlannedArtifact>();
         var diagnostics = new List<ArtifactRenderDiagnostic>();
-        if (!EsmSchemaV7Support.Supports(request.Model.LanguageVersion, request.Model.SemanticVersion))
+        if (!EsmSchemaV8Support.Supports(request.Model.LanguageVersion, request.Model.SemanticVersion))
         {
             return CreatePlan(request, [], [Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", request.Model.Application.Id)]);
         }
@@ -119,6 +119,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)))
         {
             artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace)));
+        }
+
+        if (GeneratedTypeNames.UsesStreamIds(slices.SelectMany(slice => slice.Slice.Commands)))
+        {
+            artifacts.Add(Artifact(StreamIdsRendering.Render(context.RootNamespace)));
         }
 
         if (selectedReducers.Count > 0)
@@ -181,6 +186,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             : SemanticSharedReferences.Collect(context, slices);
         artifacts.AddRange(shared.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
         artifacts.AddRange(shared.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
+        artifacts.AddRange(SemanticEventSourceArtifactRenderer.Selected(context, slices).Select(source => Artifact(SemanticEventSourceArtifactRenderer.Render(source, context))));
         if (slices.Any(slice => slice.Slice.Commands.Any(command => command.Authorization is not null) ||
             slice.Slice.Queries.Any(query => query.Authorization is not null)))
         {

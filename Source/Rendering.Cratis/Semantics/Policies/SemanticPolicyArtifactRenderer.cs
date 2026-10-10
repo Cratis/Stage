@@ -15,6 +15,9 @@ internal static class SemanticPolicyArtifactRenderer
 {
     public static string Name(SemanticId id) => $"StagePolicy_{id.ToString().Replace('-', '_').Replace(':', '_')}";
 
+    public static string PolicyName(SemanticApplicationContext context, SemanticId id) =>
+        string.Join('.', context.Domain.Append(Name(id)));
+
     public static IEnumerable<RenderedFile> Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
         yield return RenderShared(context);
@@ -33,8 +36,12 @@ internal static class SemanticPolicyArtifactRenderer
         foreach (var operation in operations)
         {
             var builder = new CSharpCodeBuilder()
-                .Namespace($"{context.RootNamespace}.GeneratedPolicies")
+                .Namespace(context.PoliciesNamespace)
                 .Using("Cratis.Arc.Authorization");
+            if (context.Domain.Count > 0)
+            {
+                builder.Using($"{context.RootNamespace}.GeneratedPolicies");
+            }
             var expression = Authorization(operation.Authorization, context, operation.Properties, operation.IsCommand, operation.Argument, operation.Subject, operation.Id);
             const string signature = "public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)";
             builder.Summary("Enforces the effective Screenplay authorization for one operation.")
@@ -57,16 +64,18 @@ internal static class SemanticPolicyArtifactRenderer
 
             // Arc strips guest roles and claims. Preserve this operation's exact anonymous opt-in.
             var anonymous = AllowsGuest(operation.Authorization, context, operation.Properties, operation.Subject) ? ", evaluatesAnonymous: true" : string.Empty;
+            var registration = context.Domain.Count == 0 ? "Registration" : $"global::{context.RootNamespace}.GeneratedPolicies.Registration";
+            var policyName = CSharpCodeBuilder.StringLiteral(PolicyName(context, operation.Id));
             builder.BlankLine()
                 .Line("// Module initialization registers a known generated policy, without assembly scanning.")
                 .Line("#pragma warning disable CA2255 // Generated application registration is intentionally initialized at module load.")
                 .Line("[global::System.Runtime.CompilerServices.ModuleInitializer]")
                 .OpenBlock("internal static void RegisterPolicy()")
-                .Line($"Registration.Add({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}, services => services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}{anonymous}));")
+                .Line($"{registration}.Add({policyName}, services => services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({policyName}{anonymous}));")
                 .EndBlock()
                 .Line("#pragma warning restore CA2255")
                 .EndBlock();
-            yield return new(Path.Combine("GeneratedPolicies", $"{Name(operation.Id)}.cs"), builder.ToString()) { Sources = [operation.Id] };
+            yield return new(Path.Combine(context.PoliciesFolder, $"{Name(operation.Id)}.cs"), builder.ToString()) { Sources = [operation.Id] };
         }
     }
 
@@ -191,7 +200,7 @@ internal static class SemanticPolicyArtifactRenderer
             SemanticPolicyContextRuntime.RenderWrapper(context, site.Descriptor) with { Sources = [site.Descriptor.OperationId!.Value] },
             SemanticPolicyContextRuntime.RenderBodies(context, [site], evaluators: true) with
             {
-                RelativePath = Path.Combine("GeneratedPolicies", $"PolicyBodies_{SemanticTypedContextRenderer.Suffix(site.Descriptor)}.cs"),
+                RelativePath = Path.Combine(context.PoliciesFolder, $"PolicyBodies_{SemanticTypedContextRenderer.Suffix(site.Descriptor)}.cs"),
                 Sources = [site.Descriptor.OperationId!.Value]
             }
         }));

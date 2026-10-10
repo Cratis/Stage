@@ -16,7 +16,7 @@ internal static class SemanticTypedContextRenderer
     {
         var suffix = Suffix(descriptor);
         var name = $"TypedContext_{suffix}";
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.TypedContexts");
+        var builder = new CSharpCodeBuilder().Namespace(context.TypedContextsNamespace);
         var definitions = descriptor.Types.ToDictionary(definition => definition.Id);
         foreach (var definition in definitions.Values)
         {
@@ -65,7 +65,7 @@ internal static class SemanticTypedContextRenderer
         builder.OpenBlock($"public record {name}({string.Join(", ", members)})");
         foreach (var expression in derived) builder.Line(expression);
         builder.EndBlock();
-        return new(Path.Combine("TypedContexts", $"{name}.cs"), builder.ToString())
+        return new(Path.Combine(context.TypedContextsFolder, $"{name}.cs"), builder.ToString())
         {
             Sources = descriptor.OperationId is { } operation ? [operation] : []
         };

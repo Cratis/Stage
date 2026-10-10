@@ -131,7 +131,7 @@ internal static class SemanticStateViewArtifactRenderer
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
         var methodName = Identifiers.ToPascalCase(query.Name);
         var documentation = context.Docs(query.Id).Render(builder.BlankLine())
-            .Attribute(SemanticAuthorizationAttributes.For(query));
+            .Attribute(SemanticAuthorizationAttributes.For(query, context));
         if (query.Argument is null)
         {
             documentation.ExpressionMember(

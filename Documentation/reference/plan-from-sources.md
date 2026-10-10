@@ -96,7 +96,9 @@ are refused. The first segment cannot collide with scaffold paths or the reserve
 | Slice | `{Domain}/{Module}/{Feature}/{SubFeature…}/{Slice}/{File}.cs` | `{RootNamespace}.{Domain}.{Module}.{Feature}.{SubFeature…}.{Slice}` |
 | Concept or composite type | `{Domain}/Common/{Name}.cs` | `{RootNamespace}.{Domain}.Common` |
 | Scaffold | Application root | `RootNamespace` |
-| Generated policies and runtime helpers | Application-root generated folders | Application-root namespace prefixes |
+| Operation policies and opaque-policy bodies | `{Domain}/GeneratedPolicies/{File}.cs` | `{RootNamespace}.{Domain}.GeneratedPolicies` |
+| Policy and reducer use-site wrappers | `{Domain}/TypedContexts/{File}.cs` | `{RootNamespace}.{Domain}.TypedContexts` |
+| Shared registries and runtime helpers | Application-root generated folders | Application-root namespace prefixes |
 
 With root namespace `Acme.Shop`, domain `Sales`, and slice `PayOrder` in
 `Orders/Checkout/Payments`, a command lives at
@@ -107,13 +109,18 @@ With root namespace `Acme.Shop`, domain `Sales`, and slice `PayOrder` in
 Empty domain preserves existing artifact bytes and paths. Common artifact bytes stay
 identical across scopes using the same domain and source model.
 
-### Application-root identity limitation
+Operation policy, opaque-policy body, and typed-context wrapper files carry the domain
+in their paths and namespaces. Arc policy names also include the normalized domain,
+and each operation's authorization attribute uses that registered name. Separate
+per-domain plans can therefore reuse operation identities without overwriting each
+other's authorization. Shared `Policies.cs`, `PolicyBodies.cs`, `PolicyContext.cs`,
+stream-id, command-receipt-time, and tenant-translation helpers remain at the application
+root; their bytes do not depend on the selected domain.
 
-For v1, generated policy and typed-context files remain at the application root and
-are keyed by semantic identity, not domain. Distinct domains under one application
-must not reuse identical semantic operation identities. Changing only `Domain` does
-not create new semantic identities or Chronicle event-type identities; it is placement,
-not an isolation boundary.
+Chronicle event-type ids remain application-wide. Changing `Domain` does not create
+new event-type identities or an isolation boundary. Domains must still avoid duplicate
+event-type ids; identity evolution is tracked by
+[Screenplay #71](https://github.com/Cratis/Screenplay/issues/71).
 
 ## Scaffold-only mode
 

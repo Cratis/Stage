@@ -206,7 +206,7 @@ internal static partial class SemanticCratisAdmission
                 (specification.When is null || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
                 (fixtures.Length > 0 || (specification.When is { } action && context.Commands[action.Command].Route is not null)))
             {
-                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' requires a read-model or query scenario that preserves routed replay fixtures.", specification.Id));
+                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' requires a read-model or query scenario that preserves routed replay fixtures (Cratis/Chronicle#4738).", specification.Id));
             }
         }
     }

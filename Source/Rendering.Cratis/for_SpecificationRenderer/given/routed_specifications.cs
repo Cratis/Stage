@@ -102,6 +102,39 @@ internal static class routed_specifications
         });
     }
 
+    internal static ExecutableSemanticModel SingleAnyOrder(bool legacy = false)
+    {
+        var model = Compile();
+        var module = model.Application.Modules.Single();
+        var feature = module.Features.Single();
+        var slice = feature.Slices.Single();
+        var command = slice.Commands.Single();
+        var specification = slice.Specifications.Single();
+        var changed = slice with
+        {
+            Commands = [command with { Route = legacy ? null : command.Route }],
+            Specifications = [specification with
+            {
+                GivenEvents = [],
+                When = specification.When! with { EventSource = new(command.Properties[0].Type, SemanticValue.Text("acc-1")) },
+                ThenEventsInAnyOrder = true,
+                ThenEvents = [specification.ThenEvents[0] with
+                {
+                    EventSource = new(command.Properties[0].Type, SemanticValue.Text("acc-2")),
+                    Route = legacy ? null : specification.ThenEvents[0].Route
+                }]
+            }]
+        };
+        var application = model.Application with
+        {
+            EventSources = legacy ? [] : model.Application.EventSources,
+            Policies = legacy ? [new("NotGuest", new SemanticNotPolicyCondition(new SemanticRoleCondition("Guest")))] : model.Application.Policies,
+            Modules = [module with { Features = [feature with { Slices = [changed] }] }]
+        };
+
+        return ExecutableSemanticModel.Create(legacy ? LanguageVersion.V7 : LanguageVersion.V8, legacy ? SemanticVersion.V7 : SemanticVersion.V8, application);
+    }
+
     internal static ExecutableSemanticModel Assignment(bool legacy = false)
     {
         var model = Compile();

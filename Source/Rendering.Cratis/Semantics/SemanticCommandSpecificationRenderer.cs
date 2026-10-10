@@ -253,7 +253,8 @@ internal static class SemanticCommandSpecificationRenderer
             builder.Line("[global::Xunit.FactAttribute] void should_append_exactly_one_new_event() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(1);");
         }
 
-        if (specification.ThenEventsInAnyOrder && specification.ThenEvents.Length > 1)
+        if (specification.ThenEventsInAnyOrder &&
+            (specification.ThenEvents.Length > 1 || context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8)))
         {
             RenderUnorderedEvents(builder, specification, command, context, types, seedInLog);
             return;

@@ -61,6 +61,12 @@ internal static partial class SemanticCratisAdmission
             return [.. diagnostics];
         }
 
+        ValidateWholeNumberLiterals(context, slices, diagnostics);
+        if (diagnostics.Count > 0)
+        {
+            return [.. diagnostics];
+        }
+
         ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);

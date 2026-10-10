@@ -127,7 +127,7 @@ internal static class SemanticTypedContextRenderer
             if (reference is null) throw Rejected("A model property has no type.");
             var scalar = reference.Kind switch
             {
-                SemanticTypeReferenceKind.Primitive when reference.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime => SemanticTypeSystem.Primitive(reference.Primitive),
+                SemanticTypeReferenceKind.Primitive when reference.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime => new SemanticTypeSystem(context).Primitive(reference.Primitive),
                 SemanticTypeReferenceKind.Concept when definitions.TryGetValue(reference.Target, out var definition) &&
                     definition.Kind == reference.Kind => $"global::{context.CommonNamespace}.{Identifiers.ToPascalCase(definition.Name)}",
                 SemanticTypeReferenceKind.CompositeType when definitions.TryGetValue(reference.Target, out var definition) &&

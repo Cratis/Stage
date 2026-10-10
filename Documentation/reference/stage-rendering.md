@@ -44,6 +44,16 @@ The action must be hidden when no item is selected, even if it has a fallback co
 command input bindings and post-success navigation for the selected alternative. Stage does not replace these
 semantics with a single unconditional command.
 
+## Generated C# whole numbers
+
+The semantic Cratis renderer maps whole-number primitives and concepts to `long` for ESM v8 and later,
+and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
+fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
+
+Moving an existing model from v7 to v8 widens stored event schemas from int32 to int64. Chronicle refuses
+that change within the same generation; plan a new event generation before upgrading
+([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
+
 ## Chrome
 
 The topbar, sidebar, menu, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them:

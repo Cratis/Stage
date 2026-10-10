@@ -12,41 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="context">The indexed semantic application.</param>
 internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
 {
-    /// <summary>
-    /// Gets the C# primitive represented by a semantic primitive.
-    /// </summary>
-    /// <param name="primitive">The semantic primitive.</param>
-    /// <returns>The C# primitive type syntax.</returns>
-    /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
-    public static string Primitive(SemanticPrimitiveType primitive) => primitive switch
-    {
-        SemanticPrimitiveType.Uuid => "global::System.Guid",
-        SemanticPrimitiveType.Text => "string",
-        SemanticPrimitiveType.WholeNumber => "int",
-        SemanticPrimitiveType.DecimalNumber => "decimal",
-        SemanticPrimitiveType.Boolean => "bool",
-        SemanticPrimitiveType.Date => "global::System.DateOnly",
-        SemanticPrimitiveType.DateTime => "global::System.DateTimeOffset",
-        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
-    };
-
-    /// <summary>
-    /// Gets the sentinel expression for a primitive.
-    /// </summary>
-    /// <param name="primitive">The primitive.</param>
-    /// <returns>The sentinel expression.</returns>
-    /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
-    public static string NotSet(SemanticPrimitiveType primitive) => primitive switch
-    {
-        SemanticPrimitiveType.Uuid => "global::System.Guid.Empty",
-        SemanticPrimitiveType.Text => "string.Empty",
-        SemanticPrimitiveType.WholeNumber => "0",
-        SemanticPrimitiveType.DecimalNumber => "0m",
-        SemanticPrimitiveType.Boolean => "false",
-        SemanticPrimitiveType.Date => "global::System.DateOnly.MinValue",
-        SemanticPrimitiveType.DateTime => "global::System.DateTimeOffset.MinValue",
-        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
-    };
+    readonly bool _usesLongWholeNumbers = context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8);
 
     /// <summary>
     /// Determines whether a rendered declaration names a shared concept or composite type.
@@ -77,6 +43,42 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         return type.Kind == SemanticTypeReferenceKind.Concept ||
             (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue);
     }
+
+    /// <summary>
+    /// Gets the C# primitive represented by a semantic primitive.
+    /// </summary>
+    /// <param name="primitive">The semantic primitive.</param>
+    /// <returns>The C# primitive type syntax.</returns>
+    /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
+    public string Primitive(SemanticPrimitiveType primitive) => primitive switch
+    {
+        SemanticPrimitiveType.Uuid => "global::System.Guid",
+        SemanticPrimitiveType.Text => "string",
+        SemanticPrimitiveType.WholeNumber => _usesLongWholeNumbers ? "long" : "int",
+        SemanticPrimitiveType.DecimalNumber => "decimal",
+        SemanticPrimitiveType.Boolean => "bool",
+        SemanticPrimitiveType.Date => "global::System.DateOnly",
+        SemanticPrimitiveType.DateTime => "global::System.DateTimeOffset",
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
+    };
+
+    /// <summary>
+    /// Gets the sentinel expression for a primitive.
+    /// </summary>
+    /// <param name="primitive">The primitive.</param>
+    /// <returns>The sentinel expression.</returns>
+    /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
+    public string NotSet(SemanticPrimitiveType primitive) => primitive switch
+    {
+        SemanticPrimitiveType.Uuid => "global::System.Guid.Empty",
+        SemanticPrimitiveType.Text => "string.Empty",
+        SemanticPrimitiveType.WholeNumber => _usesLongWholeNumbers ? "0L" : "0",
+        SemanticPrimitiveType.DecimalNumber => "0m",
+        SemanticPrimitiveType.Boolean => "false",
+        SemanticPrimitiveType.Date => "global::System.DateOnly.MinValue",
+        SemanticPrimitiveType.DateTime => "global::System.DateTimeOffset.MinValue",
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
+    };
 
     /// <summary>
     /// Gets the C# type syntax for a semantic type reference.
@@ -224,18 +226,18 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             ? $"{type}.{Identifiers.ToPascalCase(text.Value)}"
             : throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/enum {concept.Name}", value is SemanticTextValue unknown ? unknown.Value : value.Kind.ToString());
 
-    static string PrimitiveValue(SemanticValue value, SemanticPrimitiveType primitive) => (value, primitive) switch
+    static string Literal(string value) =>
+        $"\"{value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+
+    string PrimitiveValue(SemanticValue value, SemanticPrimitiveType primitive) => (value, primitive) switch
     {
         (SemanticTextValue text, SemanticPrimitiveType.Uuid) => $"global::System.Guid.Parse({Literal(text.Value)})",
         (SemanticTextValue text, SemanticPrimitiveType.Date) => $"global::System.DateOnly.Parse({Literal(text.Value)}, global::System.Globalization.CultureInfo.InvariantCulture)",
         (SemanticTextValue text, SemanticPrimitiveType.DateTime) => $"global::System.DateTimeOffset.Parse({Literal(text.Value)}, global::System.Globalization.CultureInfo.InvariantCulture)",
         (SemanticTextValue text, SemanticPrimitiveType.Text) => Literal(text.Value),
         (SemanticNumberValue number, SemanticPrimitiveType.DecimalNumber) => $"{number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}m",
-        (SemanticNumberValue number, SemanticPrimitiveType.WholeNumber) => number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        (SemanticNumberValue number, SemanticPrimitiveType.WholeNumber) => number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + (_usesLongWholeNumbers ? "L" : string.Empty),
         (SemanticBooleanValue boolean, SemanticPrimitiveType.Boolean) => boolean.Value ? "true" : "false",
         _ => throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/{nameof(SemanticPrimitiveType)}", $"{value.Kind}/{primitive}")
     };
-
-    static string Literal(string value) =>
-        $"\"{value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 }

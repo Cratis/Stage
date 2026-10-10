@@ -35,7 +35,7 @@ For a keyed stream, the handler returns `EventForEventSourceId` wrappers with `E
 |---|---|
 | Text | Nonempty, well-formed UTF-16, Unicode NFC; returned unchanged |
 | UUID | Lowercase, hyphenated `D` form using the invariant culture |
-| Whole number | Invariant decimal text from the generated `int` value |
+| Whole number | Invariant decimal text from the generated `long` value |
 | Composite | Replace `%` with `%25`, then `|` with `%7C` in each formatted part; join with `|` |
 
 For example, parts `a|b%` and `%7C` produce `a%7Cb%25|%257C`. Scalar identities are not composite-escaped. Text is **not normalized**: decomposed text, empty text and lone surrogates fail rather than silently changing identity.

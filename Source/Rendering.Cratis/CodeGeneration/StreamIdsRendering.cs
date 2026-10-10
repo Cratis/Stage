@@ -40,7 +40,7 @@ internal static class StreamIdsRendering
             .Summary("Formats a whole number in invariant decimal.")
             .Line("/// <param name=\"value\">The whole number.</param>")
             .Line("/// <returns>The canonical identity.</returns>")
-            .ExpressionMember("internal static string Integer(int value)", "value.ToString(global::System.Globalization.CultureInfo.InvariantCulture)").BlankLine()
+            .ExpressionMember("internal static string Integer(long value)", "value.ToString(global::System.Globalization.CultureInfo.InvariantCulture)").BlankLine()
             .Summary("Escapes canonical parts in declaration order.")
             .Line("/// <param name=\"parts\">The canonical scalar identities.</param>")
             .Line("/// <returns>The composite identity.</returns>")

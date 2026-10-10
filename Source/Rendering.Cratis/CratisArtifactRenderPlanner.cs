@@ -121,7 +121,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace)));
         }
 
-        if (GeneratedTypeNames.UsesStreamIds(slices.SelectMany(slice => slice.Slice.Commands)))
+        if (GeneratedTypeNames.UsesStreamIds(slices.Select(slice => slice.Slice)))
         {
             artifacts.Add(Artifact(StreamIdsRendering.Render(context.RootNamespace)));
         }

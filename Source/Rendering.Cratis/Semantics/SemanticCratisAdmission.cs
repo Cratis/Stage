@@ -194,11 +194,19 @@ internal static partial class SemanticCratisAdmission
 
         foreach (var specification in slices.SelectMany(_ => _.Slice.Specifications))
         {
-            if ((specification.When is { } action && context.Commands[action.Command].Route is not null) ||
-                specification.WhenAppended?.Route is not null ||
-                specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is not null || occurrence.Unrouted))
+            var fixtures = specification.GivenEvents.Concat(specification.ThenEvents).Where(occurrence => occurrence.Route is not null).ToArray();
+            if (fixtures.Any(occurrence => !SemanticSpecificationRouteRendering.CanFormat(occurrence.Route!, context)))
             {
-                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' requires routed rendered specifications, which are not yet supported.", specification.Id));
+                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' has a fixture route whose stream identity cannot be formatted portably.", specification.Id));
+            }
+
+            // ReadModelScenario collects only source ids and event content, not routes. Do not seed a routed
+            // fixture into its projected/query companion specification with the route silently discarded.
+            if (specification.WhenAppended is null &&
+                (specification.When is null || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
+                (fixtures.Length > 0 || (specification.When is { } action && context.Commands[action.Command].Route is not null)))
+            {
+                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' requires a read-model or query scenario that preserves routed replay fixtures (Cratis/Chronicle#4738).", specification.Id));
             }
         }
     }

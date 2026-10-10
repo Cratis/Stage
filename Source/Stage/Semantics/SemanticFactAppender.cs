@@ -124,6 +124,10 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
             Events = [.. facts.Select(fact => new ChronicleSequences.EventForEventSourceId
             {
                 EventSourceId = SemanticJsonValues.ToObject(fact.Destination)?.ToString() ?? string.Empty,
+                EventSource = fact.Route?.SourceKind,
+                EventSourceType = fact.Route?.SourceKind ?? string.Empty,
+                EventStreamType = fact.Route?.StreamKind ?? string.Empty,
+                EventStreamId = fact.Route?.StreamId ?? string.Empty,
                 EventType = new ChronicleSequences.EventType { Id = plan.Events[fact.EventContract].Name, Generation = 1 },
                 Content = JsonSerializer.Serialize(fact.Values.ToDictionary(
                     entry => plan.Events[fact.EventContract].Properties.Single(property => property.Id == entry.TargetProperty).Name,

@@ -7,7 +7,7 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// One ESM v5–v8 construct Stage can neither render nor execute yet.
+/// One ESM v5–v8 construct a Stage execution or rendering path refuses.
 /// </summary>
 /// <param name="Code">The typed STAGE-ESM diagnostic code.</param>
 /// <param name="Capability">The execution capability the construct needs.</param>
@@ -20,8 +20,8 @@ internal sealed record SemanticVersionFeature(string Code, StageExecutionCapabil
 /// Finds the ESM v5–v8 constructs that renderer admission, the specification executor and the Host runtime refuse.
 /// </summary>
 /// <remarks>
-/// One detection serves all three (the Host and the specification executor compile this file), so a construct cannot
-/// be refused by one and silently skipped by another. Admitting a version never admits these constructs.
+/// One detection serves all three (the Host and the specification executor compile this file). Routes have separate
+/// detectors so the Host can execute them while renderer and specification admission continue to refuse them.
 /// </remarks>
 internal static class SemanticVersionFeatures
 {
@@ -66,8 +66,16 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> InApplication(SemanticApplication application) =>
         (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
-        .Concat((application.EventSources.IsDefault ? [] : application.EventSources).Select(source => new SemanticVersionFeature(
-            Routes, StageExecutionCapability.IdentityAllocation, source.Id, "eventsource", "Named event sources and streams are not yet supported by the Cratis ESM planner.")));
+        .Concat(RoutesInApplication(application));
+
+    /// <summary>
+    /// Finds named event sources and streams the renderer cannot render yet.
+    /// </summary>
+    /// <param name="application">The semantic application.</param>
+    /// <returns>The routed declarations.</returns>
+    public static IEnumerable<SemanticVersionFeature> RoutesInApplication(SemanticApplication application) =>
+        (application.EventSources.IsDefault ? [] : application.EventSources).Select(source => new SemanticVersionFeature(
+            Routes, StageExecutionCapability.IdentityAllocation, source.Id, "eventsource", "Named event sources and streams are not yet supported by the Cratis ESM planner."));
 
     /// <summary>
     /// Finds the structural automation constructs of one slice: its kind, reactions and captures.
@@ -99,9 +107,9 @@ internal static class SemanticVersionFeatures
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InCommand(SemanticCommand command)
     {
-        if (command.Route is not null)
+        foreach (var route in RoutesInCommand(command))
         {
-            yield return new(Routes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' has an event-source route, which the Cratis ESM planner cannot render yet.");
+            yield return route;
         }
 
         foreach (var property in command.Properties.Where(property => property.IsGenerated))
@@ -122,9 +130,9 @@ internal static class SemanticVersionFeatures
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InSpecification(SemanticSpecification specification)
     {
-        if (specification.WhenAppended?.Route is not null || specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is not null || occurrence.Unrouted))
+        foreach (var route in RoutesInSpecification(specification))
         {
-            yield return new(Routes, StageExecutionCapability.IdentityAllocation, specification.Id, "specification", $"Specification '{specification.Name}' uses event-source routing assertions, which the Cratis ESM planner cannot render yet.");
+            yield return route;
         }
 
         if (specification.GivenClock is not null || specification.WhenClock is not null || specification.WhenTrigger is not null ||
@@ -147,6 +155,32 @@ internal static class SemanticVersionFeatures
         if (specification.ThenReturns is not null)
         {
             yield return new(Responses, StageExecutionCapability.Command, specification.Id, "specification", $"Specification '{specification.Name}' asserts a command response (ESM v7), which Stage does not support yet.");
+        }
+    }
+
+    /// <summary>
+    /// Finds a command route the renderer cannot render yet.
+    /// </summary>
+    /// <param name="command">The command.</param>
+    /// <returns>The routed command, if any.</returns>
+    public static IEnumerable<SemanticVersionFeature> RoutesInCommand(SemanticCommand command)
+    {
+        if (command.Route is not null)
+        {
+            yield return new(Routes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' has an event-source route, which the Cratis ESM planner cannot render yet.");
+        }
+    }
+
+    /// <summary>
+    /// Finds routing fixtures and assertions the specification executor cannot execute yet.
+    /// </summary>
+    /// <param name="specification">The specification.</param>
+    /// <returns>The routed specification, if any.</returns>
+    public static IEnumerable<SemanticVersionFeature> RoutesInSpecification(SemanticSpecification specification)
+    {
+        if (specification.WhenAppended?.Route is not null || specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is not null || occurrence.Unrouted))
+        {
+            yield return new(Routes, StageExecutionCapability.IdentityAllocation, specification.Id, "specification", $"Specification '{specification.Name}' uses event-source routing assertions, which the Cratis ESM planner cannot render yet.");
         }
     }
 

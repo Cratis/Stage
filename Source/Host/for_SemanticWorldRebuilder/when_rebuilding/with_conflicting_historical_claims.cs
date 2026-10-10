@@ -21,6 +21,9 @@ public class with_conflicting_historical_claims : a_rebuildable_world
                 EventType = _event.Context.EventType,
                 EventSourceId = "d7772ed1-59ea-429f-8973-8ef5b8c60470",
                 SequenceNumber = 1,
+                EventSourceType = _event.Context.EventSourceType,
+                EventStreamType = _event.Context.EventStreamType,
+                EventStreamId = _event.Context.EventStreamId,
                 Occurred = _event.Context.Occurred,
                 Tags = _event.Context.Tags
             },

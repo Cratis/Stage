@@ -51,8 +51,8 @@ public class with_event_source_routes : Specification
     void Because() => _admission = new(_plan);
 
     [Fact] void should_compile_an_esm_v8_model() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V8);
-    [Fact] void should_block_the_event_source_and_routed_command() => _admission.Blocking.Select(entry => entry.Kind).ShouldContainOnly(["eventsource", "command"]);
-    [Fact] void should_report_the_same_typed_refusal_as_rendering() => _admission.Blocking.All(entry => entry.Details!.StartsWith("STAGE-ESM-030:", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_admit_the_event_source_and_routed_command() => _admission.Blocking.ShouldBeEmpty();
+    [Fact] void should_support_the_routed_command() => _admission.Entries.Single(entry => entry.Kind == "command").Status.ShouldEqual("supported");
     [Fact] void should_refuse_the_routed_specification() => _admission.Entries.Single(entry => entry.Kind == "specification").Status.ShouldEqual("unsupported");
     [Fact] void should_block_specification_execution_before_routes_are_ignored() => SemanticRunAdmission.Check(_plan, _plan.Specifications.Values.Single())!.Details.ShouldContain("STAGE-ESM-030:");
 

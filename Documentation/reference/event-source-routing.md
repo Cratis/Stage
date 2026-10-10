@@ -3,7 +3,7 @@ title: Event-source routing
 description: Look up how the Cratis semantic planner renders named sources, streams and portable stream identities.
 ---
 
-The Cratis semantic planner admits Screenplay ESM v8 event-source routes. A generated command appends to the declared source type, stream type and stream identity, rather than Chronicle's defaults. This requires Chronicle 19.37.8 and Arc 22.50.5 in the generated application profile.
+The Cratis semantic planner admits Screenplay ESM v8 event-source routes. A generated command appends to the declared source type, stream type and stream identity, rather than Chronicle's defaults. The generated application profile pins Chronicle 19.39.1 and Arc 22.65.3; Chronicle registers the event-source definitions used by Arc's hosted command pipeline.
 
 ## Generated definitions
 

@@ -102,8 +102,8 @@ Application scope adds exactly eight deterministic backend scaffold artifacts: `
 `appsettings.json`, and `docker-compose.yml`. The local MSBuild and central-package boundaries isolate the generated
 application from parent repositories. `Program.cs` remains active in Debug beside inline generated specifications;
 the project locally suppresses only their expected CS7022 entry-point warning. The profile pins .NET 10,
-Cratis/Arc 22.50.5, the verified specification dependencies, an explicit Cratis.Chronicle 19.37.8 client
-reference, and `cratis/chronicle:19.37.8-development`. The explicit client reference keeps the client matched to the
+Cratis/Arc 22.65.3, the verified specification dependencies, an explicit Cratis.Chronicle 19.39.1 client
+reference, and `cratis/chronicle:19.39.1-development`. The explicit client reference keeps the client matched to the
 image instead of relying on the metapackage's transitive Chronicle 19.31.2. Rendered applications disable reverse
 code-to-model extraction because their source `.play` model is authoritative. The frontend scaffold
 uses the same Arc era with Components 4.14.0, Scene 4.2.0, and Fundamentals 7.19.8. It emits no repository

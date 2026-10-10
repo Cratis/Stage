@@ -42,6 +42,10 @@ internal static class SemanticPolicyContextRuntime
         if (sites.Count == 0) yield break;
 
         yield return ("GeneratedPolicies", "PolicyBodies");
+        if (context.Domain.Count > 0)
+        {
+            yield return (string.Join('.', context.Domain.Append("GeneratedPolicies")), "PolicyBodies");
+        }
         yield return ("TypedContexts", "Claim");
         yield return ("TypedContexts", IdentityType);
         yield return ("TypedContexts", "PolicyContextValues");
@@ -51,7 +55,7 @@ internal static class SemanticPolicyContextRuntime
         {
             if (descriptor?.OperationId is { } operation && sites.Contains((descriptor.RequirementId, operation)))
             {
-                yield return ("TypedContexts", Wrapper(descriptor));
+                yield return (string.Join('.', context.Domain.Append("TypedContexts")), Wrapper(descriptor));
             }
         }
     }
@@ -90,10 +94,11 @@ internal static class SemanticPolicyContextRuntime
     /// <returns>The rendered wrapper.</returns>
     internal static RenderedFile RenderWrapper(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor)
     {
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.TypedContexts")
+        var identity = context.Domain.Count == 0 ? IdentityType : $"global::{context.RootNamespace}.TypedContexts.{IdentityType}";
+        var builder = new CSharpCodeBuilder().Namespace(context.TypedContextsNamespace)
             .Summary("The policy context a verified opaque policy body reads.")
-            .Line($"public sealed record {Wrapper(descriptor)}(string Subject, {IdentityType} Identity, global::System.DateTimeOffset Occurred);");
-        return new(Path.Combine("TypedContexts", $"{Wrapper(descriptor)}.cs"), builder.ToString());
+            .Line($"public sealed record {Wrapper(descriptor)}(string Subject, {identity} Identity, global::System.DateTimeOffset Occurred);");
+        return new(Path.Combine(context.TypedContextsFolder, $"{Wrapper(descriptor)}.cs"), builder.ToString());
     }
 
     /// <summary>
@@ -121,9 +126,18 @@ internal static class SemanticPolicyContextRuntime
         var builder = new CSharpCodeBuilder();
         Identity(builder, analysis: true);
         builder.Line("public sealed record PolicyArtifactUnavailable;")
-            .Line("public sealed record PolicyTenantUnavailable;")
-            .Line($"public sealed record {Wrapper(descriptor)}(PolicyArtifactUnavailable Artifact, string Subject, {IdentityType} Identity, PolicyTenantUnavailable Tenant, global::System.DateTimeOffset Occurred);");
-        return $"namespace {context.RootNamespace}.TypedContexts\n{{\n{builder}\n}}\n";
+            .Line("public sealed record PolicyTenantUnavailable;");
+        var runtime = $"global::{context.RootNamespace}.TypedContexts";
+        var wrapper = context.Domain.Count == 0
+            ? $"public sealed record {Wrapper(descriptor)}(PolicyArtifactUnavailable Artifact, string Subject, {IdentityType} Identity, PolicyTenantUnavailable Tenant, global::System.DateTimeOffset Occurred);"
+            : $"public sealed record {Wrapper(descriptor)}({runtime}.PolicyArtifactUnavailable Artifact, string Subject, {runtime}.{IdentityType} Identity, {runtime}.PolicyTenantUnavailable Tenant, global::System.DateTimeOffset Occurred);";
+        if (context.Domain.Count == 0)
+        {
+            builder.Line(wrapper);
+            return $"namespace {context.RootNamespace}.TypedContexts\n{{\n{builder}\n}}\n";
+        }
+
+        return $"namespace {context.RootNamespace}.TypedContexts\n{{\n{builder}\n}}\nnamespace {context.TypedContextsNamespace}\n{{\n{wrapper}\n}}\n";
     }
 
     /// <summary>
@@ -137,8 +151,9 @@ internal static class SemanticPolicyContextRuntime
     {
         // The body is compiled in this exact namespace, class and signature both by admission and by the
         // application; the class has no usings so only SDK implicit globals and enclosing namespaces bind.
-        var contexts = $"global::{context.RootNamespace}.TypedContexts";
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.GeneratedPolicies")
+        var contexts = $"global::{context.TypedContextsNamespace}";
+        var runtime = $"global::{context.RootNamespace}.TypedContexts";
+        var builder = new CSharpCodeBuilder().Namespace(context.PoliciesNamespace)
             .Summary("Evaluates verified opaque policy bodies against Stage's typed policy context.")
             .OpenBlock("internal static partial class PolicyBodies");
         foreach (var (descriptor, body) in bodies)
@@ -153,7 +168,7 @@ internal static class SemanticPolicyContextRuntime
                     .Line("return false;")
                     .EndBlock()
                     .BlankLine()
-                    .Line($"return {Body(descriptor)}(new {contexts}.{Wrapper(descriptor)}(subject, {contexts}.PolicyContextValues.From(context.Principal), context.ReceivedAt));")
+                    .Line($"return {Body(descriptor)}(new {contexts}.{Wrapper(descriptor)}(subject, {runtime}.PolicyContextValues.From(context.Principal), context.ReceivedAt));")
                     .EndBlock()
                     .BlankLine();
             }

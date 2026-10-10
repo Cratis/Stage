@@ -146,14 +146,15 @@ internal static class SemanticCommandSpecificationRenderer
 
         if (specification.ThenDenied)
         {
-            var policy = $"global::{context.RootNamespace}.GeneratedPolicies.StagePolicy_{command.Id.ToString().Replace('-', '_').Replace(':', '_')}";
+            var policy = $"global::{context.PoliciesNamespace}.{Policies.SemanticPolicyArtifactRenderer.Name(command.Id)}";
+            var policyName = context.Domain.Count == 0 ? $"nameof({policy})" : CSharpCodeBuilder.StringLiteral(Policies.SemanticPolicyArtifactRenderer.PolicyName(context, command.Id));
             builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
                 .Using("Cratis.Arc.Authorization")
                 .Using("Microsoft.Extensions.DependencyInjection")
                 .Line("[global::Xunit.FactAttribute] void should_be_denied() => _result.IsAuthorized.ShouldBeFalse();")
                 .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);")
                 .OpenBlock("[global::Xunit.FactAttribute] void should_resolve_the_registered_policy()")
-                .Line($"_scenario.Services.Any(registration => registration.ImplementationInstance is global::Cratis.Arc.Authorization.AuthorizationPolicyRegistration policy && policy.Name == nameof({policy}) && policy.PolicyType == typeof({policy})).ShouldBeTrue();")
+                .Line($"_scenario.Services.Any(registration => registration.ImplementationInstance is global::Cratis.Arc.Authorization.AuthorizationPolicyRegistration policy && policy.Name == {policyName} && policy.PolicyType == typeof({policy})).ShouldBeTrue();")
                 .Line("using var provider = _scenario.Services.BuildServiceProvider();")
                 .Line("using var scope = provider.CreateScope();")
                 .Line($"scope.ServiceProvider.GetRequiredService<{policy}>().ShouldNotBeNull();")

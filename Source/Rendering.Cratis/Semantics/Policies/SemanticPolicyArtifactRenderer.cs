@@ -15,6 +15,9 @@ internal static class SemanticPolicyArtifactRenderer
 {
     public static string Name(SemanticId id) => $"StagePolicy_{id.ToString().Replace('-', '_').Replace(':', '_')}";
 
+    public static string PolicyName(SemanticApplicationContext context, SemanticId id) =>
+        string.Join('.', context.Domain.Append(Name(id)));
+
     public static IEnumerable<RenderedFile> Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
         yield return RenderShared(context);
@@ -33,7 +36,7 @@ internal static class SemanticPolicyArtifactRenderer
         foreach (var operation in operations)
         {
             var builder = new CSharpCodeBuilder()
-                .Namespace($"{context.RootNamespace}.GeneratedPolicies")
+                .Namespace(context.PoliciesNamespace)
                 .Using("Cratis.Arc.Authorization");
             var expression = Authorization(operation.Authorization, context, operation.Properties, operation.IsCommand, operation.Argument, operation.Subject, operation.Id);
             const string signature = "public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)";
@@ -57,16 +60,18 @@ internal static class SemanticPolicyArtifactRenderer
 
             // Arc strips guest roles and claims. Preserve this operation's exact anonymous opt-in.
             var anonymous = AllowsGuest(operation.Authorization, context, operation.Properties, operation.Subject) ? ", evaluatesAnonymous: true" : string.Empty;
+            var registration = context.Domain.Count == 0 ? "Registration" : $"global::{context.RootNamespace}.GeneratedPolicies.Registration";
+            var policyName = CSharpCodeBuilder.StringLiteral(PolicyName(context, operation.Id));
             builder.BlankLine()
                 .Line("// Module initialization registers a known generated policy, without assembly scanning.")
                 .Line("#pragma warning disable CA2255 // Generated application registration is intentionally initialized at module load.")
                 .Line("[global::System.Runtime.CompilerServices.ModuleInitializer]")
                 .OpenBlock("internal static void RegisterPolicy()")
-                .Line($"Registration.Add({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}, services => services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({CSharpCodeBuilder.StringLiteral(Name(operation.Id))}{anonymous}));")
+                .Line($"{registration}.Add({policyName}, services => services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({policyName}{anonymous}));")
                 .EndBlock()
                 .Line("#pragma warning restore CA2255")
                 .EndBlock();
-            yield return new(Path.Combine("GeneratedPolicies", $"{Name(operation.Id)}.cs"), builder.ToString()) { Sources = [operation.Id] };
+            yield return new(Path.Combine(context.PoliciesFolder, $"{Name(operation.Id)}.cs"), builder.ToString()) { Sources = [operation.Id] };
         }
     }
 
@@ -191,7 +196,7 @@ internal static class SemanticPolicyArtifactRenderer
             SemanticPolicyContextRuntime.RenderWrapper(context, site.Descriptor) with { Sources = [site.Descriptor.OperationId!.Value] },
             SemanticPolicyContextRuntime.RenderBodies(context, [site], evaluators: true) with
             {
-                RelativePath = Path.Combine("GeneratedPolicies", $"PolicyBodies_{SemanticTypedContextRenderer.Suffix(site.Descriptor)}.cs"),
+                RelativePath = Path.Combine(context.PoliciesFolder, $"PolicyBodies_{SemanticTypedContextRenderer.Suffix(site.Descriptor)}.cs"),
                 Sources = [site.Descriptor.OperationId!.Value]
             }
         }));
@@ -250,11 +255,13 @@ internal static class SemanticPolicyArtifactRenderer
                 _ => string.Empty
             };
             text = command
-                ? $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{targetType})"
-                : $"PolicyValues.Query(context, {Literal(argument)}, {Literal(argument)}{targetType})";
+                ? $"{Values(context)}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{targetType})"
+                : $"{Values(context)}.Query(context, {Literal(argument)}, {Literal(argument)}{targetType})";
         }
 
-        return $"PolicyBodies.{SemanticPolicyContextRuntime.Evaluate(descriptor)}(ref unavailable, context, {text})";
+        var bodies = context.Domain.Count == 0 ? "PolicyBodies" : $"global::{context.PoliciesNamespace}.PolicyBodies";
+
+        return $"{bodies}.{SemanticPolicyContextRuntime.Evaluate(descriptor)}(ref unavailable, context, {text})";
     }
 
     static string Condition(SemanticPolicyCondition condition, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject) => condition switch
@@ -321,9 +328,9 @@ internal static class SemanticPolicyArtifactRenderer
         SemanticAuthenticatedCondition => "context.Principal.Identity?.IsAuthenticated == true",
         SemanticRoleCondition role => $"context.Principal.IsInRole({Literal(role.Role)})",
         SemanticClaimCondition claim => Claim(claim, context, properties, command, argument, subject, truth: true),
-        SemanticNotPolicyCondition not => $"PolicyValues.Not({Truth(not.Operand, context, properties, command, argument, subject)})",
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => $"PolicyValues.And({Truth(logical.Left, context, properties, command, argument, subject)}, {Truth(logical.Right, context, properties, command, argument, subject)})",
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => $"PolicyValues.Or({Truth(logical.Left, context, properties, command, argument, subject)}, {Truth(logical.Right, context, properties, command, argument, subject)})",
+        SemanticNotPolicyCondition not => $"{Values(context)}.Not({Truth(not.Operand, context, properties, command, argument, subject)})",
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => $"{Values(context)}.And({Truth(logical.Left, context, properties, command, argument, subject)}, {Truth(logical.Right, context, properties, command, argument, subject)})",
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => $"{Values(context)}.Or({Truth(logical.Left, context, properties, command, argument, subject)}, {Truth(logical.Right, context, properties, command, argument, subject)})",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPolicyCondition), condition.GetType().Name)
     };
 
@@ -349,14 +356,18 @@ internal static class SemanticPolicyArtifactRenderer
         var target = claim.TargetKind switch
         {
             SemanticClaimTargetKind.Literal => Literal(claim.Value!),
-            SemanticClaimTargetKind.Artifact when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(claim.Value!))}{targetType})",
-            SemanticClaimTargetKind.Artifact => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(QueryPath(claim.Value!))}{targetType})",
-            SemanticClaimTargetKind.Subject when command => $"PolicyValues.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{targetType})",
-            SemanticClaimTargetKind.Subject => $"PolicyValues.Query(context, {Literal(argument)}, {Literal(argument)}{targetType})",
+            SemanticClaimTargetKind.Artifact when command => $"{Values(context)}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(claim.Value!))}{targetType})",
+            SemanticClaimTargetKind.Artifact => $"{Values(context)}.Query(context, {Literal(argument)}, {Literal(QueryPath(claim.Value!))}{targetType})",
+            SemanticClaimTargetKind.Subject when command => $"{Values(context)}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{targetType})",
+            SemanticClaimTargetKind.Subject => $"{Values(context)}.Query(context, {Literal(argument)}, {Literal(argument)}{targetType})",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticClaimTargetKind), claim.TargetKind)
         };
-        return $"PolicyValues.{(truth ? "Truth" : "Match")}(context, {Literal(claim.Claim)}, {target})";
+        return $"{Values(context)}.{(truth ? "Truth" : "Match")}(context, {Literal(claim.Claim)}, {target})";
     }
+
+    static string Values(SemanticApplicationContext context) => context.Domain.Count == 0
+        ? "PolicyValues"
+        : $"global::{context.RootNamespace}.GeneratedPolicies.PolicyValues";
 
     static string PascalPath(string path) => string.Join('.', path.Split('.').Select(Identifiers.ToPascalCase));
 

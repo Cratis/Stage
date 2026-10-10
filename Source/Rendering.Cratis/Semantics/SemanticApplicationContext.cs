@@ -126,6 +126,10 @@ internal sealed class SemanticApplicationContext
     internal IReadOnlyList<string> Domain { get; }
     internal string CommonFolder => string.Join('/', Domain.Append("Common"));
     internal string CommonNamespace => string.Join('.', new[] { RootNamespace }.Concat(Domain).Append("Common"));
+    internal string PoliciesFolder => string.Join('/', Domain.Append("GeneratedPolicies"));
+    internal string PoliciesNamespace => string.Join('.', new[] { RootNamespace }.Concat(Domain).Append("GeneratedPolicies"));
+    internal string TypedContextsFolder => string.Join('/', Domain.Append("TypedContexts"));
+    internal string TypedContextsNamespace => string.Join('.', new[] { RootNamespace }.Concat(Domain).Append("TypedContexts"));
 
     internal AuthoringMetadataInput.Catalog? Documentation { get; }
 

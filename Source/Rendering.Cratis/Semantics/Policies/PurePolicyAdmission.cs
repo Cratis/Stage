@@ -41,7 +41,7 @@ internal static class PurePolicyAdmission
             .Single(declaration => declaration.Identifier.Text == SemanticPolicyContextRuntime.Body(descriptor));
 
         // Name refused reads before compile errors, so `context.Artifact.Amount` reports the read, not CS1061.
-        var refused = RefusedRead(method.Body!, model, context.RootNamespace);
+        var refused = RefusedRead(method.Body!, model, context);
         if (refused is not null) return Reject("STAGE-ESM-015", refused);
 
         // Enclosing generated namespaces outrank the SDK's implicit global usings and could rebind a type the body names.
@@ -69,7 +69,7 @@ internal static class PurePolicyAdmission
             return Reject("STAGE-ESM-019", $"Policy body {PureTransitionAdmission.SourceLocation(requirement, body, error.Location.SourceSpan.Start - offset)}: {detail}");
         }
 
-        var verdict = PureTransitionAdmission.Walk(model, method.Body!, descriptor);
+        var verdict = PureTransitionAdmission.Walk(model, method.Body!, descriptor, context.RootNamespace);
         if (verdict.Accepted && verdict.ContextReads.Any(read => !SemanticPolicyContextRuntime.SuppliedMembers.Contains(read, StringComparer.Ordinal)))
         {
             return Reject("STAGE-ESM-015", "The policy body reads a PolicyContext member Stage does not supply.");
@@ -80,14 +80,14 @@ internal static class PurePolicyAdmission
 
     static PureTransitionAdmission.Verdict Reject(string code, string reason) => new(code, reason, [], []);
 
-    static string? RefusedRead(BlockSyntax body, SemanticModel model, string rootNamespace)
+    static string? RefusedRead(BlockSyntax body, SemanticModel model, SemanticApplicationContext context)
     {
-        var contexts = $"{rootNamespace}.TypedContexts";
+        var contexts = new[] { $"{context.RootNamespace}.TypedContexts", context.TypedContextsNamespace };
         foreach (var name in body.DescendantNodes().OfType<SimpleNameSyntax>().Where(name => name is not IdentifierNameSyntax { IsVar: true }))
         {
             var symbol = model.GetSymbolInfo(name).Symbol;
             var owner = symbol?.ContainingType;
-            if (symbol is IPropertySymbol && owner?.ContainingNamespace.ToDisplayString() == contexts)
+            if (symbol is IPropertySymbol && owner is not null && contexts.Contains(owner.ContainingNamespace.ToDisplayString(), StringComparer.Ordinal))
             {
                 if (owner.Name.StartsWith("TypedContext_", StringComparison.Ordinal) && SemanticPolicyContextRuntime.RefusedMembers.Contains(symbol.Name, StringComparer.Ordinal))
                 {
@@ -108,7 +108,7 @@ internal static class PurePolicyAdmission
             }
 
             // Bodies read the context; they never name, construct or default Stage's runtime context types.
-            if (symbol is INamedTypeSymbol type && type.ContainingNamespace.ToDisplayString() == contexts)
+            if (symbol is INamedTypeSymbol type && contexts.Contains(type.ContainingNamespace.ToDisplayString(), StringComparer.Ordinal))
             {
                 return $"The policy body names Stage's runtime context type '{type.Name}'.";
             }
@@ -120,7 +120,7 @@ internal static class PurePolicyAdmission
         {
             var operation = model.GetOperation(node);
             if (operation is IObjectCreationOperation or IWithOperation or IDefaultValueOperation &&
-                operation.Type is INamedTypeSymbol type && type.ContainingNamespace.ToDisplayString() == contexts)
+                operation.Type is INamedTypeSymbol type && contexts.Contains(type.ContainingNamespace.ToDisplayString(), StringComparer.Ordinal))
             {
                 return $"The policy body constructs or defaults Stage's runtime context type '{type.Name}'.";
             }

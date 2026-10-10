@@ -68,7 +68,7 @@ internal static class SemanticCommandSpecificationRenderer
         var constrainedEvents = context.Constraints.Select(_ => _.Constraint)
             .SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy)).ToHashSet();
         var seedInLog = !specification.GivenEvents.IsEmpty &&
-            (specification.GivenEvents.Any(given => constrainedEvents.Contains(given.EventContract)) ||
+            (specification.GivenEvents.Any(given => given.Route is not null || constrainedEvents.Contains(given.EventContract)) ||
              command.Produces.Any(produced => constrainedEvents.Contains(produced.EventContract)));
 
         // The scenario owns a service provider and disposes it, so the specification that owns the scenario
@@ -110,9 +110,16 @@ internal static class SemanticCommandSpecificationRenderer
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var eventSource = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
             var eventValue = $"new {types.EventType(@event)}({string.Join(", ", eventArguments)})";
-            builder.Line(seedInLog
-                ? $"await _scenario.EventScenario.Given.ForEventSource({eventSource}).Events({eventValue});"
-                : $"_scenario.Given.ForEventSource({eventSource}).Events({eventValue});");
+            if (given.Route is { } route)
+            {
+                builder.Line($"(await _scenario.EventLog.Append({eventSource}, {eventValue}, {SemanticSpecificationRouteRendering.Arguments(route, context)})).IsSuccess.ShouldBeTrue();");
+            }
+            else
+            {
+                builder.Line(seedInLog
+                    ? $"await _scenario.EventScenario.Given.ForEventSource({eventSource}).Events({eventValue});"
+                    : $"_scenario.Given.ForEventSource({eventSource}).Events({eventValue});");
+            }
         }
 
         if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
@@ -271,7 +278,7 @@ internal static class SemanticCommandSpecificationRenderer
             }));
             var sourceValue = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
             var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
-            if (specification.ThenEvents.Length == 1 && !seedInLog)
+            if (specification.ThenEvents.Length == 1 && !seedInLog && expected.Route is null && !expected.Unrouted)
             {
                 builder.Line($"[global::Xunit.FactAttribute] async global::System.Threading.Tasks.Task {name}() => await _scenario.ShouldHaveAppendedEvent<{types.SliceType(command.Id, command.Name)}, {types.EventType(@event)}>({sourceValue}, @event => {predicate});");
             }
@@ -280,7 +287,8 @@ internal static class SemanticCommandSpecificationRenderer
                 var appended = seedInLog
                     ? $"_scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).ToArray()[_givenEventCount + {index}]"
                     : $"_scenario.AppendedEvents[{index}]";
-                builder.Line($"[global::Xunit.FactAttribute] void {name}_at_position_{index + 1}() => ({appended}.Event.Context.EventSourceId == {sourceValue} && {appended}.Event.Content is {types.EventType(@event)} @event && {predicate}).ShouldBeTrue();");
+                var route = SemanticSpecificationRouteRendering.Predicate(expected, context, appended);
+                builder.Line($"[global::Xunit.FactAttribute] void {name}_at_position_{index + 1}() => ({appended}.Event.Context.EventSourceId == {sourceValue} && {appended}.Event.Content is {types.EventType(@event)} @event && {predicate}{route}).ShouldBeTrue();");
             }
         }
     }
@@ -293,6 +301,13 @@ internal static class SemanticCommandSpecificationRenderer
         SemanticTypeSystem types,
         bool seedInLog)
     {
+        if (context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8))
+        {
+            RenderAssignedEvents(builder, specification, context, types, seedInLog);
+            return;
+        }
+
+        // Preserve the pre-v8 greedy matcher byte-for-byte.
         builder.OpenBlock("[global::Xunit.FactAttribute] void should_append_the_expected_event_multiset()")
             .Line(seedInLog
                 ? "var remaining = _scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).Skip(_givenEventCount).ToList();"
@@ -327,6 +342,55 @@ internal static class SemanticCommandSpecificationRenderer
         }
 
         builder.EndBlock();
+    }
+
+    static void RenderAssignedEvents(
+        CSharpCodeBuilder builder,
+        SemanticSpecification specification,
+        SemanticApplicationContext context,
+        SemanticTypeSystem types,
+        bool seedInLog)
+    {
+        builder.OpenBlock("[global::Xunit.FactAttribute] void should_append_the_expected_event_multiset()")
+            .Line(seedInLog
+                ? "var actual = _scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).Skip(_givenEventCount).ToArray();"
+                : "var actual = _scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).ToArray();")
+            .Line($"actual.Length.ShouldEqual({specification.ThenEvents.Length});")
+            .Line("var assignments = global::System.Linq.Enumerable.Repeat(-1, actual.Length).ToArray();")
+            .OpenBlock($"for (var expectation = 0; expectation < {specification.ThenEvents.Length}; expectation++)")
+            .Line("Assign(expectation, new bool[actual.Length]).ShouldBeTrue();")
+            .EndBlock().BlankLine()
+            .OpenBlock("bool Assign(int expectation, bool[] visited)")
+            .OpenBlock("for (var fact = 0; fact < actual.Length; fact++)")
+            .Line("if (visited[fact] || !Matches(expectation, fact)) continue;")
+            .Line("visited[fact] = true;")
+            .OpenBlock("if (assignments[fact] < 0 || Assign(assignments[fact], visited))")
+            .Line("assignments[fact] = expectation;")
+            .Line("return true;")
+            .EndBlock().EndBlock()
+            .Line("return false;")
+            .EndBlock().BlankLine()
+            .OpenBlock("bool Matches(int expectation, int fact)")
+            .Line("var entry = actual[fact];")
+            .OpenBlock("return expectation switch");
+        foreach (var (expected, index) in specification.ThenEvents.Select((value, index) => (value, index)))
+        {
+            var @event = context.Events[expected.EventContract];
+            var predicates = @event.Properties.Select(property => EventPropertyPredicate(property, expected.Values.Single(value => value.TargetProperty == property.Id).Value, types, index));
+            var sources = new[] { expected.EventSource, specification.When!.EventSource }.OfType<SemanticEventSourceIdentity>();
+            var source = string.Concat(sources.Select(identity =>
+                $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}"));
+            if (sources.Any(identity => SemanticTypeSystem.ValueNeedsCommon(identity.Value, identity.Type)) ||
+                @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(expected.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type)))
+            {
+                builder.Using(context.CommonNamespace);
+            }
+            var route = SemanticSpecificationRouteRendering.Predicate(expected, context, "entry");
+            builder.Line($"{index} => entry.Event.Content is {types.EventType(@event)} @event{source}{string.Concat(predicates.Select(predicate => $" && {predicate}"))}{route},");
+        }
+        builder.Line("_ => false")
+            .EndBlock().Line(";")
+            .EndBlock().EndBlock();
     }
 
     static string ExpectedCollectionName(SemanticProperty property, int index) => $"_expected_event_{index}_{Identifiers.ToSnakeCase(property.Name)}";

@@ -224,11 +224,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenAppended");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");
-        Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-030"), "Route");
+        Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "Route");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");
-        Add(entries, "SemanticSpecificationEvent", rejected("STAGE-ESM-030"), "Route Unrouted");
-        Add(entries, "SemanticFixtureRoute", rejected("STAGE-ESM-030"), "Source Stream StreamId StreamIdParts");
-        Add(entries, "SemanticFixtureRoutePart", rejected("STAGE-ESM-030"), "Part Value");
+        Add(entries, "SemanticSpecificationEvent", rendered, "Route Unrouted");
+        Add(entries, "SemanticFixtureRoute", rendered, "Source Stream StreamId StreamIdParts");
+        Add(entries, "SemanticFixtureRoutePart", rendered, "Part Value");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Key ReadModel Values");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Exactly");
         Add(entries, "SemanticSpecificationQueryResult", rendered, "Key Query Results Exactly");

@@ -19,7 +19,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "cf58df5362670a27312e56ad935b97a6d9881af7fed1e67da4f6e3876ff8c166";
+    const string Digest = "94512cfe3844dcb4e2291b1771fe2657ac3dc5927c4e8339dbe1b5f52953553c";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
@@ -72,7 +72,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs fdbc398936fe6c3a5fd324deaeda4d06ab7471822bedd879cbd2ed1faa3227b7 2424
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 859dad3906953dad53c7c4d6a3e51a3ee037cdbe9a1a6bff104b92079787e2c0 259
-        package.json 538002df101a3086c889645afac4d7d23e038505031d477e969af861df0c0be5 1431
+        package.json 50cc84f178ad59101a8e0cc010b8de555b57327a9b93add941aa8bfe4d0c476d 1431
         scene.json f324f8408a350075c3bcd5543dcdf66c56bd98330cb19ba82902937a150f7800 3908
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
         src/stage-scene.json f324f8408a350075c3bcd5543dcdf66c56bd98330cb19ba82902937a150f7800 3908

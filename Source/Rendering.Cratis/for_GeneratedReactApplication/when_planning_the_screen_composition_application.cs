@@ -57,7 +57,9 @@ public class when_planning_the_screen_composition_application : a_screen_composi
     [Fact] void should_not_carry_a_timestamp() => HasTimestamp(_allText).ShouldBeFalse();
     [Fact] void should_check_the_guids_the_corpus_specifications_declare() => Guids(_allText).ShouldContain("3fa85f64-5717-4562-b3fc-2c963f66afa6");
     [Fact] void should_not_carry_a_guid_the_corpus_does_not_declare() => UndeclaredGuids().ShouldBeEmpty();
-    [Fact] void should_not_carry_the_machine_user_or_paths() => EnvironmentValues().Where(value => _allText.Contains(value, StringComparison.OrdinalIgnoreCase)).ShouldBeEmpty();
+    [Fact] void should_not_carry_the_machine_user_or_paths() => MachineIdentity.FoundIn(_allText).ShouldBeEmpty();
+    [Fact] void should_carry_the_ci_user_name_only_as_an_ordinary_word() => _allText.Contains("xunit.runner.visualstudio", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_not_carry_the_ci_user_as_an_identity() => MachineIdentity.ContainsUser(_allText, "runner").ShouldBeFalse();
 
     string[] Paths() => [.. _first.Artifacts.Select(_ => _.RelativePath)];
 
@@ -89,16 +91,6 @@ public class when_planning_the_screen_composition_application : a_screen_composi
         return [.. Guids(_allText).Distinct(StringComparer.OrdinalIgnoreCase)
             .Where(guid => !declared.Contains(guid, StringComparison.OrdinalIgnoreCase))];
     }
-
-    static string[] EnvironmentValues() => [.. new[]
-    {
-        Environment.MachineName,
-        Environment.UserName,
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar),
-        Environment.CurrentDirectory,
-        AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar)
-    }.Where(value => value.Length > 3)];
 
     // An ISO 8601 date and time, as a build or generation stamp writes one: dddd-dd-ddTdd:dd.
     static bool HasTimestamp(string text) =>

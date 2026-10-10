@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { DialogTemplate, Form, Layout, SceneElement, Screen, ScreenTemplate, Theme, UiProfile } from '@cratis/scene.model';
 import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
-import { InteractionScope, SceneElementView, createBrowserDispatcher } from '@cratis/scene.react';
+import { InteractionScope, SceneElementView, createBrowserDispatcher, type ComponentRegistry } from '@cratis/scene.react';
 import {
     ComponentName,
     LayoutConfigProvider,
@@ -23,6 +23,7 @@ import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageCh
 import { applicationChrome, resolveNames, screenFromHash, screenHash, stageProfile, stageRegistry, templateFor } from './blueprint';
 import { bindDataSources } from './stageDataSources';
 import { screenParameters } from './stageNavigation';
+import { useStageSource } from './stageSource';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -42,9 +43,16 @@ interface SceneNavigateDetail {
     targetScreen: string;
 }
 
-const endpoint = 'stage/scene';
-
-const registry = stageRegistry({ ...stageComponents, ...stageChromeComponents });
+/**
+ * The registry a Stage renders with: Scene's core vocabulary, PrimeReact and the default blueprint, then any
+ * components the host adds, then the Stage's own table, action, form and chrome - which always win, because they
+ * are what reach the running application.
+ * @param components Components the host adds, such as a package an application composes with.
+ * @returns The registry.
+ */
+export function stageApplicationRegistry(components: ComponentRegistry = {}): ComponentRegistry {
+    return stageRegistry({ ...components, ...stageComponents, ...stageChromeComponents });
+}
 
 /**
  * Composes one screen the way the default blueprint composes its own: the application shell for the screen's
@@ -98,7 +106,14 @@ function mergeSlots(...sources: (Record<string, SceneElement[]> | undefined)[]):
     return merged;
 }
 
-export function App() {
+export interface AppProps {
+    /** Components the host adds to the registry, beneath the Stage's own. */
+    components?: ComponentRegistry;
+}
+
+export function App({ components }: AppProps = {}) {
+    const source = useStageSource();
+    const registry = useMemo(() => stageApplicationRegistry(components), [components]);
     const [scene, setScene] = useState<StageSceneApplication>();
     const routeState = useStageRouteState();
     const routes = routeState.routes;
@@ -117,11 +132,7 @@ export function App() {
 
     useEffect(() => {
         const abort = new AbortController();
-        fetch(endpoint, { signal: abort.signal })
-            .then(response => {
-                if (!response.ok) throw new Error(`The Stage returned ${response.status}.`);
-                return response.json() as Promise<StageSceneApplication>;
-            })
+        source.scene(abort.signal)
             .then(application => {
                 setScene(application);
                 setParameters(screenParameters(globalThis.location?.hash ?? ''));
@@ -135,7 +146,7 @@ export function App() {
                 if (!abort.signal.aborted) setError(reason instanceof Error ? reason.message : String(reason));
             });
         return () => abort.abort();
-    }, []);
+    }, [source]);
 
     useEffect(() => {
         const hashChanged = () => {
@@ -196,6 +207,7 @@ export function App() {
                     <StageSceneView
                         activity={activity}
                         element={element}
+                        registry={registry}
                         routes={routes}
                         routesReady={routeState.ready}
                         scene={scene}
@@ -211,6 +223,7 @@ export function App() {
 interface StageSceneViewProps {
     activity: string;
     element: SceneElement;
+    registry: ComponentRegistry;
     routes: StageRoutes | undefined;
     routesReady: boolean;
     scene: StageSceneApplication;
@@ -219,7 +232,7 @@ interface StageSceneViewProps {
     strings: ReturnType<typeof useStrings>;
 }
 
-function StageSceneView({ activity, element, routes, routesReady, scene, select, setActivity, strings }: StageSceneViewProps) {
+function StageSceneView({ activity, element, registry, routes, routesReady, scene, select, setActivity, strings }: StageSceneViewProps) {
     const data = useStageData();
     const [dialog, setDialog] = useState<DialogTemplate>();
 
@@ -255,7 +268,7 @@ function StageSceneView({ activity, element, routes, routesReady, scene, select,
             // whether it worked. Reading the body is what makes 'on failure' mean what the document says.
             const validationErrors = (result.validationResults ?? []).map(_ => ({ member: _.members[0] ?? '', message: _.message }));
             if (validationErrors.length > 0) setActivity(validationErrors.map(_ => _.message).join(' '));
-            if (validationErrors.length === 0) data.refreshQuery();
+            if (validationErrors.length === 0) data.refreshAfterCommand();
 
             return { isSuccess: result.isSuccess !== false && validationErrors.length === 0, validationErrors };
         },
@@ -294,7 +307,7 @@ function StageSceneView({ activity, element, routes, routesReady, scene, select,
         <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity }}>
             <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key }} attachments={[]} onFindings={reportFindings}>
                 <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} />
-                {dialog && <StageDialog template={dialog} strings={strings} close={() => setDialog(undefined)} />}
+                {dialog && <StageDialog template={dialog} registry={registry} strings={strings} close={() => setDialog(undefined)} />}
             </InteractionScope>
         </StageChromeProvider>
     );
@@ -302,11 +315,12 @@ function StageSceneView({ activity, element, routes, routesReady, scene, select,
 
 interface StageDialogProps {
     template: DialogTemplate;
+    registry: ComponentRegistry;
     strings: ReturnType<typeof useStrings>;
     close: () => void;
 }
 
-function StageDialog({ template, strings, close }: StageDialogProps) {
+function StageDialog({ template, registry, strings, close }: StageDialogProps) {
     const data = useStageData();
     const profile = stageProfile(undefined);
     const content = resolveStringsInElement(

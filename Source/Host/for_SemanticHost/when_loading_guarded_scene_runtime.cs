@@ -15,7 +15,7 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
     [Theory]
     [InlineData("semantic")]
     [InlineData("eventmodel")]
-    public async Task should_serve_a_safe_scene_for_guarded_screen_actions(string engine)
+    public async Task should_serve_guarded_screen_actions_the_runtime_evaluates(string engine)
     {
         await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n        screen Overview\n          action \"Register\"\n            when item.name == \"Ready\" execute RegisterProject\n            otherwise hidden");
         var issues = new List<StageUnsupportedIssue>();
@@ -26,14 +26,15 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
         issues.ShouldBeEmpty();
         var sceneJson = System.Text.Json.JsonSerializer.Serialize(scene, StageJson.Options);
         sceneJson.ShouldContain("Overview");
-        sceneJson.ShouldNotContain("alternatives");
-        sceneJson.ShouldNotContain("otherwise");
+        sceneJson.ShouldContain("\"alternatives\"");
+        sceneJson.ShouldContain("\"right\":\"Ready\"");
+        sceneJson.ShouldContain("\"outcome\":\"Hidden\"");
     }
 
     [Theory]
     [InlineData("semantic")]
     [InlineData("eventmodel")]
-    public async Task should_map_scene_runtime_endpoints_for_the_safe_scene(string engine)
+    public async Task should_serve_the_guarded_action_from_the_scene_endpoint(string engine)
     {
         await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n        screen Overview\n          action \"Register\"\n            when item.name == \"Ready\" execute RegisterProject\n            otherwise hidden");
         var issues = new List<StageUnsupportedIssue>();
@@ -55,8 +56,8 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
 
         sceneResponse.Status.ShouldEqual(StatusCodes.Status200OK);
         sceneResponse.Body.ShouldContain("Overview");
-        sceneResponse.Body.ShouldNotContain("alternatives");
-        sceneResponse.Body.ShouldNotContain("otherwise");
+        sceneResponse.Body.ShouldContain("\"alternatives\"");
+        sceneResponse.Body.ShouldContain("\"command\":\"RegisterProject\"");
         routesResponse.Status.ShouldEqual(StatusCodes.Status200OK);
         routesResponse.Body.ShouldContain("commands");
         routesResponse.Body.ShouldContain("queries");
@@ -66,7 +67,7 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
     [Theory]
     [InlineData("semantic")]
     [InlineData("eventmodel")]
-    public async Task should_serve_a_safe_scene_for_guarded_interactions(string engine)
+    public async Task should_serve_guarded_interactions_as_one_binding_per_branch(string engine)
     {
         await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + """
 
@@ -85,8 +86,10 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
         issues.ShouldBeEmpty();
         var sceneJson = System.Text.Json.JsonSerializer.Serialize(scene, StageJson.Options);
         sceneJson.ShouldContain("Overview");
-        sceneJson.ShouldNotContain("alternatives");
-        sceneJson.ShouldNotContain("otherwise");
+        sceneJson.ShouldContain(SceneGuards.GuardPath);
+        sceneJson.ShouldContain("\"kind\":\"firstMatch\"");
+        sceneJson.ShouldContain("\"kind\":\"otherwise\"");
+        sceneJson.ShouldContain("Not ready");
     }
 
     async Task<SceneApplication?> LoadScene(string engine, List<StageUnsupportedIssue> issues)

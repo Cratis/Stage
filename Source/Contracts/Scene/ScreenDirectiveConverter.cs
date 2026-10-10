@@ -177,7 +177,7 @@ public static class ScreenDirectiveConverter
             ["alternatives"] = action.Alternatives.Select(alternative => new Dictionary<string, object?>
             {
                 ["command"] = alternative.Command,
-                ["condition"] = ConvertCondition(alternative.Condition),
+                ["condition"] = SceneGuards.Convert(alternative.Condition),
                 ["arguments"] = ConvertArguments(alternative.Arguments),
             }).ToList(),
         };
@@ -197,29 +197,6 @@ public static class ScreenDirectiveConverter
 
     static Dictionary<string, SceneCommon.BindingExpression> ConvertArguments(IEnumerable<ScreenplaySyntax.InteractionArgumentSyntax> arguments) =>
         arguments.ToDictionary(argument => argument.Name, argument => new SceneCommon.BindingExpression(argument.Binding), StringComparer.Ordinal);
-
-    static Dictionary<string, object?> ConvertCondition(ScreenplaySyntax.ConditionSyntax condition) =>
-        condition switch
-        {
-            ScreenplaySyntax.ComparisonConditionSyntax comparison => new Dictionary<string, object?>
-            {
-                ["kind"] = "comparison",
-                ["left"] = new SceneCommon.BindingExpression(comparison.Left),
-                ["operator"] = comparison.Operator.ToString(),
-                ["right"] = ConvertExpression(comparison.Right),
-            },
-            _ => new Dictionary<string, object?>
-            {
-                ["kind"] = condition.GetType().Name,
-            },
-        };
-
-    static object? ConvertExpression(ScreenplaySyntax.ExpressionSyntax expression) =>
-        expression switch
-        {
-            ScreenplaySyntax.LiteralExpressionSyntax literal => literal.Value,
-            _ => new Dictionary<string, object?> { ["kind"] = expression.GetType().Name },
-        };
 
     static SceneElements.ExternalComponent ConvertSection(ScreenplaySyntax.ScreenSectionSyntax section, string id, BehaviorScope scope)
     {

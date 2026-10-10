@@ -22,21 +22,24 @@ public static class SemanticRunAdmission
     /// <param name="application">The application.</param>
     /// <returns>The precise capability refusals.</returns>
     public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(SemanticApplication application) =>
-        SemanticVersionFeatures.InApplication(application).Concat(SemanticVersionFeatures.Slices(application).SelectMany(SemanticVersionFeatures.InSlice)).Select(Feature);
+        SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
+            .Concat(SemanticVersionFeatures.Slices(application).SelectMany(SemanticVersionFeatures.InSlice)).Select(Feature);
 
     /// <summary>
     /// Finds later-version constructs in a command.
     /// </summary>
     /// <param name="command">The command.</param>
     /// <returns>The precise capability refusals.</returns>
-    public static IEnumerable<SemanticAdmissionFeature> CommandFeatures(SemanticCommand command) => SemanticVersionFeatures.InCommand(command).Select(Feature);
+    public static IEnumerable<SemanticAdmissionFeature> CommandFeatures(SemanticCommand command) =>
+        SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)).Select(Feature);
 
     /// <summary>
     /// Finds later-version assertions in a specification.
     /// </summary>
     /// <param name="specification">The specification.</param>
     /// <returns>The precise capability refusals.</returns>
-    public static IEnumerable<SemanticAdmissionFeature> SpecificationFeatures(SemanticSpecification specification) => SemanticVersionFeatures.InSpecification(specification).Select(Feature);
+    public static IEnumerable<SemanticAdmissionFeature> SpecificationFeatures(SemanticSpecification specification) =>
+        SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)).Select(Feature);
 
     /// <summary>
     /// Returns the first unsupported construct in deterministic precedence order.
@@ -182,7 +185,8 @@ public static class SemanticRunAdmission
             return Block(StageExecutionCapability.Command, command.Id, "The destination expression is not admitted.");
         }
 
-        if (specification.ThenErrors.IsEmpty && when.EventSource is null && command.Destination?.Value is null && command.Produces.Any(produced => produced.Destination is null))
+        // A routed command can reject its route before reaching identity allocation; defer that decision to execution.
+        if (specification.ThenErrors.IsEmpty && command.Route is null && when.EventSource is null && command.Destination?.Value is null && command.Produces.Any(produced => produced.Destination is null))
         {
             return Block(StageExecutionCapability.IdentityAllocation, command.Id, "An accepted command requires an explicit destination.");
         }
@@ -197,10 +201,10 @@ public static class SemanticRunAdmission
     static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
-        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application)
+        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
             .Concat(slices.SelectMany(SemanticVersionFeatures.InSlice))
-            .Concat(SemanticVersionFeatures.InSpecification(specification))
-            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command))
+            .Concat(SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)))
+            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))
             .FirstOrDefault();
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }

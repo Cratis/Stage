@@ -284,6 +284,7 @@ __pycache__/
 package-json.lock
 package-lock.json
 !Source/Frontend/package-lock.json
+!Verification/generated-react-browser/package-lock.json
 dist
 **/node_modules/
 *.tsbuildinfo

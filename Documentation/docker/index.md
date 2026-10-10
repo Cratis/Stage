@@ -127,8 +127,11 @@ Anything Chronicle-related can also be set with the kernel's own environment var
 By default the host runs the existing EventModel engine. That engine refuses named event sources, streams
 and event-source routes with `STAGE-ESM-030`, before registering anything with Chronicle. The host stays
 in refused mode: `/stage/status` reports `state: "unsupported"` and `/api/**` returns HTTP 501.
-Routes run only on the semantic engine. Set `Stage__Runtime__Engine=semantic` to use the
-Screenplay executable semantic model (ESM) for command decisions and keyed snapshot queries:
+The semantic engine executes command routes, registers named sources and streams with Chronicle on every
+connect, and checks stored routes during world reconstruction. Routed specification runs are still refused
+with `STAGE-ESM-030`, as are routes in the structural SpecRunner and EventModel engine.
+Set `Stage__Runtime__Engine=semantic` to use the Screenplay executable semantic model (ESM)
+for command decisions and keyed snapshot queries:
 
 ```bash
 docker run --rm -p 9090:9090 -p 35000:35000 \

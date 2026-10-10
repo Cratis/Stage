@@ -21,11 +21,12 @@ namespace Cratis.Stage.Specifications.Commands;
 /// <param name="options">The execution options.</param>
 /// <param name="runtimeTypes">The runtime event contracts.</param>
 /// <param name="eventLog">The fresh Chronicle in-memory event log.</param>
-/// <param name="version">The model's semantic version.</param>
-internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticVersion version)
+/// <param name="plan">The model's execution plan.</param>
+internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticExecutionPlan plan)
 {
     readonly List<SemanticSpecificationEvent> _facts = [];
     readonly List<SemanticValue> _destinations = [];
+    SemanticFixtureRoute? _commandRoute;
 
     internal Type CommandType => commandType;
     internal SemanticCommand Command => command;
@@ -66,7 +67,14 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
             SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
             _ => throw new UnsupportedSemanticMapping()
         };
-        var result = await eventLog.Append(new EventSourceId(source), instance, occurred: Occurred);
+        var route = SemanticRunRoutes.Format(plan, fact.Route);
+        var result = await eventLog.Append(
+            new EventSourceId(source),
+            instance,
+            eventStreamType: route is null ? EventStreamType.All : new EventStreamType(route.StreamKind),
+            eventStreamId: route?.StreamId is null ? EventStreamId.Default : new EventStreamId(route.StreamId),
+            eventSourceType: route is null ? EventSourceType.Default : new EventSourceType(route.SourceKind),
+            occurred: Occurred);
         if (!result.IsSuccess)
         {
             throw new SemanticAppendFailed($"The in-memory append for '{fact.EventContract}' failed: {string.Join(", ", result.Errors)}");
@@ -74,6 +82,18 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
 
         _facts.Add(fact);
         _destinations.Add(destination);
+    }
+
+    internal bool TryResolveRoute(out StreamIdFormatFailure failure)
+    {
+        var inputs = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
+        _commandRoute = command.Route is not { } route ? null : new(route.Source, route.Stream)
+        {
+            StreamId = route.StreamId is null ? null : Evaluate(route.StreamId, inputs),
+            StreamIdParts = [.. route.StreamIdParts.Select(part => new SemanticFixtureRoutePart(part.Part, Evaluate(part.Value, inputs)))]
+        };
+
+        return SemanticRunRoutes.TryFormat(plan.Model.Application, _commandRoute, out _, out failure);
     }
 
     internal (SemanticSpecificationEvent Fact, SemanticValue Destination) Produce(SemanticProducedEvent produced)
@@ -84,8 +104,8 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         var identityType = expression is SemanticResolvedExpression resolved
             ? command.Properties.Single(property => property.Id == resolved.Target).Type
             : command.Destination?.Type ?? specification.When.EventSource?.Type;
-        var identity = version != SemanticVersion.V1 && identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
+        var identity = plan.Model.SemanticVersion != SemanticVersion.V1 && identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
         var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, Evaluate(mapping.Source, inputs))).ToImmutableArray();
-        return (new(produced.EventContract, values) { EventSource = identity }, destination);
+        return (new(produced.EventContract, values) { EventSource = identity, Route = _commandRoute }, destination);
     }
 }

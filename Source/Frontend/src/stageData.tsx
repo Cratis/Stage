@@ -49,6 +49,7 @@ export interface StageDataState {
     setState: (key: string, value: unknown) => void;
     setComponentOutput: (componentId: string, path: string, value: unknown) => void;
     refreshQuery: (query?: string) => void;
+    refreshAfterCommand: () => void;
     resolveBinding: (binding: BindingExpression | string | undefined) => unknown;
     registerQueryResult: (scope: string, state: QueryState | undefined) => void;
     refreshVersion: number;
@@ -70,12 +71,16 @@ const emptyState: StageDataState = {
     setState: () => undefined,
     setComponentOutput: () => undefined,
     refreshQuery: () => undefined,
+    refreshAfterCommand: () => undefined,
     resolveBinding: () => undefined,
     registerQueryResult: () => undefined,
     refreshVersion: 0,
 };
 
 const StageDataContext = createContext<StageDataState>(emptyState);
+
+/** When, after a command's own refresh, its queries are read again so an asynchronous projection has caught up. */
+export const commandSettleDelays = [500, 1500, 3000];
 
 export interface StageDataProviderProps {
     routes: StageRoutes | undefined;
@@ -132,6 +137,17 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
     const refreshQuery = useCallback((query?: string) =>
         setRefreshRequests(current => ({ query, version: current.version + 1 })), []);
 
+    // A command answers once its events are appended; a projection applies them afterwards. Chronicle - what a
+    // generated application runs on - does that asynchronously, so a single refresh right after the answer can
+    // read the read model one event behind. Reading again once the projection has had time to run is what makes
+    // the screen show what the command did; a stale response is still discarded by the query's own sequencing.
+    const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+    const refreshAfterCommand = useCallback(() => {
+        refreshQuery();
+        for (const delay of commandSettleDelays) settleTimers.current.push(setTimeout(() => refreshQuery(), delay));
+    }, [refreshQuery]);
+    useEffect(() => () => settleTimers.current.forEach(clearTimeout), []);
+
     useEffect(() => {
         const dataChanged = () => refreshQuery();
         const refresh = (event: Event) => refreshQuery((event as CustomEvent<{ query?: string }>).detail?.query);
@@ -175,11 +191,12 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         setState: (key, value) => setLocalState(current => writePath(current, key.split('.').filter(Boolean), value)),
         setComponentOutput,
         refreshQuery,
+        refreshAfterCommand,
         resolveBinding,
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
+    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }

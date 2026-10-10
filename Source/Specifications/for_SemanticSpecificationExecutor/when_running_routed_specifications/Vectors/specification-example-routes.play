@@ -1,0 +1,53 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+numbers exact
+
+eventsource Account
+  identifier String
+  stream Events
+    streamId String
+module M
+  feature F
+    slice StateChange S
+      event Happened
+        amount Int
+      command Act
+        id String identifier
+        amount Int
+        produces Happened
+          for id
+          amount = amount
+      example Fixture : Happened
+        for "account"
+        stream Account.Events
+          streamId = "inherited"
+        amount = 1
+      example Unrouted : Happened
+        no stream
+        amount = 3
+      example Unused : Happened
+        for "unused"
+        stream Account.Events
+          streamId = "unused"
+        amount = 0
+      specification Routed
+        given Fixture
+        given Fixture amount = 2
+          for "account"
+          stream Account.Events
+            streamId = "partition"
+        when Act
+          id = "account"
+          amount = 3
+        then Fixture amount = 3
+          no stream
+      specification Replacing_no_stream
+        given Unrouted
+          for "account"
+          stream Account.Events
+            streamId = "replacement"
+        when Act
+          id = "account"
+          amount = 3
+        then Unrouted

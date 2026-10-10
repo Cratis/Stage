@@ -29,5 +29,6 @@
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
+        <None Update="for_SemanticSpecificationExecutor/when_running_routed_specifications/Vectors/*.play" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 </Project>

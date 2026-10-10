@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Text.Json;
 using Cratis.Scene.Model.Forms;
 using Cratis.Stage.Contracts.Scene;
 using SceneContribution = Cratis.Scene.Model.ContributionPoints.Contribution;
@@ -28,28 +27,7 @@ static class CommandFormRuntimeMetadata
 
     internal static CommandFormRuntimeCommand FromSchema(string command, string schema) => new(command, schema, FieldsFrom(schema));
 
-    internal static IReadOnlyList<FormField> FieldsFrom(string schema)
-    {
-        if (string.IsNullOrWhiteSpace(schema))
-        {
-            return [];
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(schema);
-            if (!document.RootElement.TryGetProperty("properties", out var properties) || properties.ValueKind != JsonValueKind.Object)
-            {
-                return [];
-            }
-
-            return [.. properties.EnumerateObject().Select(property => new FormField(property.Name, null, null, Humanize(property.Name), null))];
-        }
-        catch (JsonException)
-        {
-            return [];
-        }
-    }
+    internal static IReadOnlyList<FormField> FieldsFrom(string schema) => CommandFormSchemas.Fields(schema);
 
     static SceneScreens.Screen Apply(SceneScreens.Screen screen, IReadOnlyDictionary<string, CommandFormRuntimeCommand> commands)
     {
@@ -194,29 +172,6 @@ static class CommandFormRuntimeMetadata
         commandName = command;
 
         return true;
-    }
-
-    static string Humanize(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return value;
-        }
-
-        var text = new System.Text.StringBuilder(value.Length * 2);
-        text.Append(char.ToUpperInvariant(value[0]));
-        for (var index = 1; index < value.Length; index++)
-        {
-            var character = value[index];
-            if (char.IsUpper(character) && !char.IsUpper(value[index - 1]))
-            {
-                text.Append(' ');
-            }
-
-            text.Append(character);
-        }
-
-        return text.ToString();
     }
 }
 

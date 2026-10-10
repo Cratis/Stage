@@ -1,6 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json.Serialization;
+using Cratis.Screenplay.Semantics;
+
 namespace Cratis.Stage.Contracts.Specifications.Semantic;
 
 /// <summary>
@@ -120,7 +123,14 @@ public sealed record SemanticUnsupportedCapability(StageExecutionCapability Capa
 /// <param name="EventSourceType">The source identity type, when available.</param>
 /// <param name="EventSource">The canonical JSON identity value.</param>
 /// <param name="Values">The property values keyed by semantic identity.</param>
-public sealed record SemanticTraceFact(string EventContract, string? EventSourceType, string EventSource, IReadOnlyDictionary<string, string> Values);
+public sealed record SemanticTraceFact(string EventContract, string? EventSourceType, string EventSource, IReadOnlyDictionary<string, string> Values)
+{
+    /// <summary>
+    /// Gets the stored source name, stream name and canonical stream identity, or null for an unrouted fact.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SemanticEventRoute? Route { get; init; }
+}
 
 /// <summary>
 /// The observable result of a semantic execution, independent of the execution host.

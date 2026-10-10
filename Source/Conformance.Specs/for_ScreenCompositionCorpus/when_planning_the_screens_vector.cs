@@ -19,15 +19,32 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "2ee13d9738f309b25e7dab287260ad2e692ba97f63b44511f2c14ae311c16cc9";
+    const string Digest = "cf58df5362670a27312e56ad935b97a6d9881af7fed1e67da4f6e3876ff8c166";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
-        .frontend/main.tsx e22844dd5715b58b06cb63cfd4a3fd6a610aebeaf623f0e60e4c0e7f02943ef6 3308
-        .frontend/tsconfig.json 8188daef31c13c81639fd8e50c46f580322575bb5f34d033b486df2a14366e21 939
-        .frontend/tsconfig.node.json 3b2517722082109462da51cbd66142f937bfcbf3f7ce89aeab9991ff12140342 290
-        .frontend/vite.config.ts 54adb7473f5e230c9ded78b7549357a6e7abb4a547cf11d6094d2742df4002e5 1088
+        .frontend/main.tsx 61532310e2937a19d6b76d50faa5623e6af3942e35566111a7a89051820a4287 2055
+        .frontend/stage/App.tsx 40e54ee189a7584ba40124b91706c8c72290096bc81c0aa52591ce3ff812cfa4 16159
+        .frontend/stage/FlowArrangementView.tsx 828b0518dd9d98a23605452355cb9a8a4e070bf98f61b6c014b0f705585cec93 2792
+        .frontend/stage/StageChrome.tsx a23311d5824fc19e1dd8015f387fdc35e8a0606a23927451dfafd3ae268516af 4933
+        .frontend/stage/StageCommandForm.tsx 0733683713edacb617fbf4e89ddcca9d47de7c2f955cfaa336eb1d20884eb97a 20149
+        .frontend/stage/app.css 42eb2fa27e29780a4d0df89cbac8f4204754dc641f5719e0c656e12615a5381b 3410
+        .frontend/stage/blueprint.ts 5b63faeb807b97da4f534afc3c050292ca914931955f498ce55a76c600a37885 6594
+        .frontend/stage/stageComponents.tsx a884c6b2cd30bd7a79070d1e464eb0595a2c2a73a0fb139f49f35d2e6d4028cb 11905
+        .frontend/stage/stageData.tsx da86b67a8219152fdc4a89abe8c44970fadeebe5e2f373617287f82289eae265 16977
+        .frontend/stage/stageDataSources.ts e6a0658e2e916d19c62daf538d31f64f8e11c28837a30eeb748935fa64132bd0 3323
+        .frontend/stage/stageNavigation.ts dcb9ebe679ac6744a1aefb6fe6b0b76474cb6fdbf139f7daaa49f45f8f52e3fd 1875
+        .frontend/stage/stageRoutes.ts 7d85720c1d04fbf81da0bb6a287b67a58fa5ec6e275f04595250c16cc4b9a348 1792
+        .frontend/stage/stageSource.ts 0d8df29508315a5d17abe3bcf928bef4a1b05f1115395bfbe3356c3df7569817 4127
+        .frontend/stage/stageTheme.ts 41c903960761179212feba27f3e3352666c54a6364b3b0a2223589e028df4398 1097
+        .frontend/stage/useSizeClass.ts e7692466d18b3330ef13abe04ded391bdcaf3ab0781fa93290fc42ba5f3ea068 1095
+        .frontend/stage/useStrings.ts 7e9b26328e986b05f504ed40ae0656236d023b01ea4a1bf790220dd2f2309e17 2449
+        .frontend/stage/vite-env.d.ts e24655f2bbc165e2dcbd988edb4a9a28f50fb3d2d9d78c775c7d0ee144bcce10 498
+        .frontend/styledPrimeReact.ts 411262e641b07da4957bb52bf84deecdeef6319dbe64a1f1cba828065b402feb 3204
+        .frontend/tsconfig.json efa4d0a8fdc813c520c240d2df0cd9211132fcde952f3d21f244c1a74ab124bf 1013
+        .frontend/tsconfig.node.json 8d6d5e5ed11a91fdfa530d705f55c9676f62f12e72aa21b45502ecbadc27607b 313
+        .frontend/vite.config.ts f4c1f53dda10136c81243564eee59796c43cbf8485479de9d24fdcb8431b79bc 1354
         .gitignore 74a92d28e98b0f259cc5b02bf9eac97fe103b30a10746f0315fba7fa0bfb0df9 253
         Common/CommentId.cs 93d1d308af3ac96f3e273feb88a520dba769d3b34c659ea6c610b85029f48911 662
         Common/WorkItemId.cs 55bd6006380b8a2e1984ac65475350657ffbd01354dc14ae074895d64bfe496a 668
@@ -37,27 +54,29 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Directory.Packages.props af799a176bf7be0de5e660924f4bde3444170788e9633399a1f65f0b72c9602f 133
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
-        Workspaces.csproj 556324aad5c61f83eda63a97701cd8f1e2d57e4d2743cb51f4d0e9eefec074f1 2379
+        Workspaces.csproj 2328c0c2f682dbe16d3b4e40459a7439be7654daed2d43000881c6c12faff81b 2379
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
         Workspaces/Tracking/AddComment/when_adding_acomment.cs 317e90a82f631bd47dd13a15aaba8c2dae99c23e0459631c7274be2101570c95 1884
-        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 2c07081000d71273ec2f2d2a8d7ff8ec110856615c9488e68a54757dce094ec1 1089
-        Workspaces/Tracking/CloseWorkItem/when_closing_awork_item.cs fb3b6728b350355dfdd886378266f9180adedf415dd69cb0177ef8d8c0b3482e 2078
-        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs 2cecfc09b2723365e70269daba99b7197237a0a3bfa3dc719e9f7866ecd57247 1128
-        Workspaces/Tracking/CreateWorkItem/when_creating_awork_item.cs f1b2e036486d9619d76d532cb6fff695fc4b23c83a6e23105f88c4116481d354 1762
+        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 336c9b53311c6bddde7371b4e2e3018e70aa2b60acf87e614aa9867362d4afd8 1082
+        Workspaces/Tracking/CloseWorkItem/when_closing_awork_item.cs ec6f758f35f6e44f595b20f44aed5d1a9d39866acd56c272f1e8cfb1db1aa416 2064
+        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs 17c6b0173d5bb17eb3c5c084ec802f8df5206def555e1e584f629f8b473a58e1 1121
+        Workspaces/Tracking/CreateWorkItem/when_creating_awork_item.cs d2bcb0b9a25bd35a5f1c24ba3a9c991301c02d8f7de467cef0ec32ca6d5223f9 1755
         Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 2bbf45806cd32a070025b607f825f01fa2c60d3ffb70c66baf3313e5602f100b 1033
-        Workspaces/Tracking/RenameWorkItem/when_renaming_awork_item.cs 5e291f4118c6e24424e0e80de457cda915f33836eefab5933f3657dc43a7c069 2091
+        Workspaces/Tracking/RenameWorkItem/when_renaming_awork_item.cs 4173f200623020b72a3025e1b96f48e482e5087a7845fd659a73c20a4f70bceb 2084
         Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 7d9dbf0b84c521e7707b0c3ef4a948d32e75c0f48bbfb058100a3b566cd63905 2230
-        Workspaces/Tracking/WorkItemComments/when_showing_comments_for_awork_item_is_queried.cs fa37d0283db5ae00df920f249566b5a982f1b5f1bbd6dd6a250c8ff426281520 2547
+        Workspaces/Tracking/WorkItemComments/when_showing_comments_for_awork_item_is_queried.cs 40a5a1c31b391ea067305bd610ff41f96e23c030ab5566ff2d4929059ff2efe7 2465
         Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs b20d80c6e2c6ecd7f1ca5fe79745386c2608bddb1acb47ea5c7399bb4905268d 2920
-        Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs dc9e8bd1eb09f975d21909f6cb5e914afaf2f0aa36a70676070054cb70390efa 2907
+        Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs 7acd624c3623b2a1a5f9a35ca37842a60bb20ec3f43e8951b1b3e2d1bd5e1bc7 2755
         Workspaces/Tracking/WorkItemList/WorkItemList.cs 00f31c1ade25d846d6646b4e0e99a3f9cbdb26a023838fc9bac261ae73275c9b 3220
-        Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs 0c07a5229c200dfabbac816bbc2253fb7177443bdbdd33370a13f54c6d30b6e0 2573
+        Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs fdbc398936fe6c3a5fd324deaeda4d06ab7471822bedd879cbd2ed1faa3227b7 2424
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
-        docker-compose.yml d780b4894c6936918f81d04adeef5444c3a7b589883a5fefb06762a6308f2222 259
-        package.json cfcae45a47787c90a70f7e6dbd6d47b23c869915d670bd8826c355e3abc2130f 1431
+        docker-compose.yml 859dad3906953dad53c7c4d6a3e51a3ee037cdbe9a1a6bff104b92079787e2c0 259
+        package.json 538002df101a3086c889645afac4d7d23e038505031d477e969af861df0c0be5 1431
         scene.json f324f8408a350075c3bcd5543dcdf66c56bd98330cb19ba82902937a150f7800 3908
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
+        src/stage-scene.json f324f8408a350075c3bcd5543dcdf66c56bd98330cb19ba82902937a150f7800 3908
+        src/stage.ts 2e7593c3453949763a6aff1e189c57a4c1b90ec049bfabb1090674e89ba7a8b8 1745
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;
 

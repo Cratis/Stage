@@ -50,8 +50,23 @@ public class registered_endpoints : Specification
         Name = id,
         ComponentName = "core:data",
         Properties = typeName is null
-            ? new Dictionary<string, object?> { ["query"] = query }
-            : new Dictionary<string, object?> { ["query"] = query, [SceneElementProperties.TypeName] = typeName },
+            ? new Dictionary<string, object?> { [SceneElementProperties.Query] = query }
+            : new Dictionary<string, object?> { [SceneElementProperties.Query] = query, [SceneElementProperties.TypeName] = typeName },
+        Slots = new Dictionary<string, IReadOnlyList<SceneElement>>()
+    };
+
+    protected static ExternalComponent Binding(string id, string query, string typeName, bool isCollection, string? by) => new()
+    {
+        Id = id,
+        Name = id,
+        ComponentName = "core:data",
+        Properties = new Dictionary<string, object?>
+        {
+            [SceneElementProperties.Query] = query,
+            [SceneElementProperties.TypeName] = typeName,
+            ["isCollection"] = isCollection,
+            ["by"] = by
+        },
         Slots = new Dictionary<string, IReadOnlyList<SceneElement>>()
     };
 

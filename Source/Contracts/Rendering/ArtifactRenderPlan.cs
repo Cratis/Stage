@@ -281,6 +281,11 @@ public sealed class ArtifactRenderPlan
     public ImmutableArray<ArtifactRenderDiagnostic> Diagnostics { get; }
 
     /// <summary>
+    /// Gets the output-only SHA-256 digest, excluding the semantic revision.
+    /// </summary>
+    public string Digest => ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics);
+
+    /// <summary>
     /// Gets a value indicating whether the plan is complete and publishable.
     /// </summary>
     public bool Success => Diagnostics.All(_ => _.Severity != ArtifactRenderDiagnosticSeverity.Error);
@@ -338,30 +343,88 @@ public sealed class ArtifactRenderPlan
             ]);
     }
 
-    static bool ScopeMatches(ArtifactRenderRequest request)
+    /// <summary>
+    /// Computes a deterministic output digest for a plan, including sources and typed diagnostics but not its input revision.
+    /// </summary>
+    /// <param name="target">The target identity.</param>
+    /// <param name="targetVersion">The target version.</param>
+    /// <param name="renderer">The renderer identity.</param>
+    /// <param name="rendererVersion">The renderer version.</param>
+    /// <param name="applicationName">The application name.</param>
+    /// <param name="artifacts">The output artifacts.</param>
+    /// <param name="diagnostics">The output diagnostics.</param>
+    /// <returns>The lowercase SHA-256 digest.</returns>
+    public static string ComputeDigest(
+        string target,
+        string targetVersion,
+        string renderer,
+        string rendererVersion,
+        string applicationName,
+        ImmutableArray<PlannedArtifact> artifacts,
+        ImmutableArray<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (!Enum.IsDefined(request.Scope.Kind) || request.Scope.Kind == ArtifactRenderScopeKind.Unknown || !request.Scope.Artifact.IsSet)
+        // Length-prefixed fields keep arbitrary diagnostic text and artifact names unambiguous.
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, new UTF8Encoding(false), leaveOpen: true);
+        foreach (var field in new[] { CurrentSchemaVersion, target, targetVersion, renderer, rendererVersion, applicationName })
+        {
+            writer.Write(field);
+        }
+        writer.Write(artifacts.Length);
+        foreach (var artifact in artifacts.OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal))
+        {
+            writer.Write(artifact.RelativePath);
+            writer.Write((int)artifact.Kind);
+            writer.Write(artifact.Sha256);
+            var sources = PlannedArtifact.NormalizeSources(artifact.Sources);
+            writer.Write(sources.Length);
+            foreach (var source in sources) writer.Write(source.ToString());
+        }
+        writer.Write(diagnostics.Length);
+        foreach (var diagnostic in diagnostics.OrderBy(diagnostic => diagnostic.Severity)
+            .ThenBy(diagnostic => diagnostic.Code, StringComparer.Ordinal)
+            .ThenBy(diagnostic => diagnostic.Artifact.ToString(), StringComparer.Ordinal)
+            .ThenBy(diagnostic => diagnostic.Message, StringComparer.Ordinal))
+        {
+            writer.Write((int)diagnostic.Severity);
+            writer.Write(diagnostic.Code);
+            writer.Write(diagnostic.Artifact.ToString());
+            writer.Write(diagnostic.Message);
+        }
+        writer.Flush();
+
+        return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();
+    }
+
+    static bool ScopeMatches(ArtifactRenderRequest request) =>
+        !request.AdditionalScopes.IsDefault &&
+        (request.AdditionalScopes.IsEmpty ||
+            (request.Scope.Kind != ArtifactRenderScopeKind.Application && request.AdditionalScopes.All(scope => scope is not null && scope.Kind != ArtifactRenderScopeKind.Application))) &&
+        new[] { request.Scope }.Concat(request.AdditionalScopes).All(scope => ScopeMatches(request.Model.Application, scope));
+
+    static bool ScopeMatches(SemanticApplication application, ArtifactRenderScope scope)
+    {
+        if (!Enum.IsDefined(scope.Kind) || scope.Kind == ArtifactRenderScopeKind.Unknown || !scope.Artifact.IsSet)
         {
             return false;
         }
 
-        var application = request.Model.Application;
-        if (request.Scope.Kind == ArtifactRenderScopeKind.Application)
+        if (scope.Kind == ArtifactRenderScopeKind.Application)
         {
-            return request.Scope.Artifact == application.Id;
+            return scope.Artifact == application.Id;
         }
 
         var modules = application.Modules;
-        if (request.Scope.Kind == ArtifactRenderScopeKind.Module)
+        if (scope.Kind == ArtifactRenderScopeKind.Module)
         {
-            return modules.Any(_ => _.Id == request.Scope.Artifact);
+            return modules.Any(_ => _.Id == scope.Artifact);
         }
 
         var features = AllFeatures(modules.SelectMany(_ => _.Features)).ToArray();
-        return request.Scope.Kind switch
+        return scope.Kind switch
         {
-            ArtifactRenderScopeKind.Feature => features.Any(_ => _.Id == request.Scope.Artifact),
-            ArtifactRenderScopeKind.Slice => features.SelectMany(_ => _.Slices).Any(_ => _.Id == request.Scope.Artifact),
+            ArtifactRenderScopeKind.Feature => features.Any(_ => _.Id == scope.Artifact),
+            ArtifactRenderScopeKind.Slice => features.SelectMany(_ => _.Slices).Any(_ => _.Id == scope.Artifact),
             _ => false
         };
     }

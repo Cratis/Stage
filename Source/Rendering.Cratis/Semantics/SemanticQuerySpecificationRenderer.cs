@@ -52,7 +52,7 @@ internal static class SemanticQuerySpecificationRenderer
             .Using("Cratis.Specifications")
             .Using("NSubstitute")
             .Using("Xunit")
-            .Using($"{context.RootNamespace}.Common")
+            .Using(context.CommonNamespace)
             .Using(queryNamespace);
 
         var collectionPredicate = CollectionPredicate(expected, readModel, types);
@@ -187,7 +187,7 @@ internal static class SemanticQuerySpecificationRenderer
             given.Values.Any(value => SemanticTypeSystem.ValueNeedsCommon(value.Value, readModel.Properties.Single(_ => _.Id == value.TargetProperty).Type)) ||
             result.Values.Any(value => SemanticTypeSystem.ValueNeedsCommon(value.Value, readModel.Properties.Single(_ => _.Id == value.TargetProperty).Type)))
         {
-            builder.Using($"{context.RootNamespace}.Common");
+            builder.Using(context.CommonNamespace);
         }
 
         context.Docs(specification.Id).Render(builder)

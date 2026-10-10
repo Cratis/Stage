@@ -33,7 +33,7 @@ internal static class SemanticStateViewArtifactRenderer
         if (located.Slice.ReadModels.SelectMany(_ => _.Properties).Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)) ||
             located.Slice.Queries.Any(_ => _.Argument is not null && SemanticTypeSystem.DeclarationNeedsCommon(_.Argument.Type)))
         {
-            builder.Using($"{context.RootNamespace}.Common");
+            builder.Using(context.CommonNamespace);
         }
 
         foreach (var projection in located.Slice.Projections)

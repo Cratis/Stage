@@ -41,7 +41,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             .Using("Cratis.Specifications")
             .Using("Microsoft.Extensions.DependencyInjection")
             .Using("Xunit")
-            .Using($"{context.RootNamespace}.Common")
+            .Using(context.CommonNamespace)
             .Using(queryNamespace);
 
         var replay = specification.When is { } when

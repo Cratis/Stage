@@ -80,7 +80,7 @@ public class the_canonical_corpus : for_StageEndpointMapper.given.a_routed_model
     /// <returns>The components.</returns>
     protected IReadOnlyList<ExternalComponent> Reading(string screen, string query) =>
         [.. All(_scene.Screens.Single(candidate => candidate.Name == screen).SlotContent.Values.SelectMany(elements => elements))
-            .Where(component => component.Properties.TryGetValue("query", out var value) && (value as string) == query)];
+            .Where(component => component.Properties.TryGetValue(SceneElementProperties.Query, out var value) && (value as string) == query)];
 
     /// <summary>
     /// Gets the texts a query answered with.

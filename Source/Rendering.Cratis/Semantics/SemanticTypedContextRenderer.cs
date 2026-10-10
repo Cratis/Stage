@@ -129,9 +129,9 @@ internal static class SemanticTypedContextRenderer
             {
                 SemanticTypeReferenceKind.Primitive when reference.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime => SemanticTypeSystem.Primitive(reference.Primitive),
                 SemanticTypeReferenceKind.Concept when definitions.TryGetValue(reference.Target, out var definition) &&
-                    definition.Kind == reference.Kind => $"global::{context.RootNamespace}.Common.{Identifiers.ToPascalCase(definition.Name)}",
+                    definition.Kind == reference.Kind => $"global::{context.CommonNamespace}.{Identifiers.ToPascalCase(definition.Name)}",
                 SemanticTypeReferenceKind.CompositeType when definitions.TryGetValue(reference.Target, out var definition) &&
-                    definition.Kind == reference.Kind => $"global::{context.RootNamespace}.Common.{Identifiers.ToPascalCase(definition.Name)}",
+                    definition.Kind == reference.Kind => $"global::{context.CommonNamespace}.{Identifiers.ToPascalCase(definition.Name)}",
                 _ => throw Rejected($"Model type '{reference.Kind}' / '{reference.Target}' has no matching definition.")
             };
             var type = scalar;

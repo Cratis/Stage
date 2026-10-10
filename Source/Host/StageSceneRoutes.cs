@@ -184,6 +184,11 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
 
         var properties = new Dictionary<string, object?>(component.Properties, StringComparer.Ordinal);
         var resolution = StageRouteCandidates.Resolve(candidates, request.Method, request.Selects);
+        if (resolution is { Match: null, IsAmbiguous: false } && request.Equivalent is { } equivalent)
+        {
+            resolution = StageRouteCandidates.Resolve(candidates, request.Method, equivalent);
+        }
+
         if (resolution.Match is { } match)
         {
             properties[SceneSynthesizer.RouteProperty] = match.Route;
@@ -225,12 +230,15 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
         // An authored data binding names its query: that query, and only that query, is what it reads. The read
         // model it returns narrows the search when the element carries one, so a same-named query over another
         // read model is not taken for it.
-        if (Text(component, "query") is { } query)
+        if (Text(component, SceneElementProperties.Query) is { } query)
         {
             return new(
                 "GET",
                 identity => StageRouteCandidates.SimpleName(identity) == query && (typeName is null || StageRouteCandidates.IsOwnedBy(identity, typeName)),
-                $"Query '{query}'{(typeName is null ? string.Empty : $" over '{typeName}'")}");
+                $"Query '{query}'{(typeName is null ? string.Empty : $" over '{typeName}'")}")
+            {
+                Equivalent = UnkeyedCollection(component, typeName)
+            };
         }
 
         // A synthesized element names only the read model; what it shows is that read model's collection.
@@ -246,6 +254,26 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
         return null;
     }
 
+    // An unkeyed collection query over a read model answers every instance of it - exactly what the read model's
+    // conventional All<ReadModels> answers. When the host serves no endpoint under the query's own name, that
+    // conventional collection is the same rows by definition, not a guess: it is one exact identity, never a
+    // single-item lookup. A keyed binding (one with a by-parameter) or a single-result one has no such equivalent,
+    // so it stays unresolved rather than being widened to the unfiltered set.
+    static Func<string, bool>? UnkeyedCollection(SceneElements.ExternalComponent component, string? typeName)
+    {
+        if (typeName is null ||
+            Text(component, "by") is not null ||
+            !component.Properties.TryGetValue("isCollection", out var isCollection) ||
+            isCollection is not true)
+        {
+            return null;
+        }
+
+        var collection = StageRouteCandidates.ConventionalCollection(typeName);
+
+        return identity => StageRouteCandidates.SimpleName(identity) == collection && StageRouteCandidates.IsOwnedBy(identity, typeName);
+    }
+
     static string? Text(SceneElements.ExternalComponent component, string property) =>
         component.Properties.TryGetValue(property, out var value) && value is string { Length: > 0 } text ? text : null;
 
@@ -253,7 +281,10 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
         string.Equals(componentName, "core:action", StringComparison.Ordinal) ||
         string.Equals(componentName, "Stage:commandForm", StringComparison.Ordinal);
 
-    sealed record RouteRequest(string Method, Func<string, bool> Selects, string Description);
+    sealed record RouteRequest(string Method, Func<string, bool> Selects, string Description)
+    {
+        public Func<string, bool>? Equivalent { get; init; }
+    }
 
     sealed record NamedRoutes(IReadOnlyDictionary<string, string> Routes, IReadOnlyList<string> Diagnostics);
 }

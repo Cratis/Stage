@@ -70,7 +70,8 @@ internal static partial class SemanticCratisAdmission
             SelectedConstraints(context, slices).Select(selected =>
                 ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
             rendersStringsCatalog: context.Strings is not null,
-            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices)))
+            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices),
+            commonNamespace: string.Join('.', context.Domain.Append("Common"))))
         {
             var message = kind == "Namespace"
                 ? $"Generated type '{name}' collides with a generated C# namespace."

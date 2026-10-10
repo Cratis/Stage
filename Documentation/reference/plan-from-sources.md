@@ -142,8 +142,9 @@ public static CratisPublicationCheck CheckPublication(
 This is a signature excerpt; `ArtifactRenderPlan` is in
 `Cratis.Stage.Contracts.Rendering`. Pass the plan from `CratisRendering.Plan`,
 or `CratisPlanResult.Plan` after a successful `PlanFrom` call. The reader receives
-an application-root-relative path and returns existing text, or null for an absent
-or unreadable file.
+an application-root-relative path and returns existing text, or null only when the file
+is confirmed absent. A reader that cannot read a file must throw rather than return null,
+so the check never treats an unreadable aggregate policy file as absent.
 
 | Result | Publisher action |
 | --- | --- |

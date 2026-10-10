@@ -18,7 +18,10 @@ public static partial class CratisRendering
     /// Application scope is always compatible; scoped plans require application scope over an aggregate policy layout.
     /// </summary>
     /// <param name="plan">The destination-independent plan, including its requested scope and artifact placement.</param>
-    /// <param name="readExistingFile">Reads an application-root-relative path; returns null for absent or unreadable files.</param>
+    /// <param name="readExistingFile">
+    /// Reads an application-root-relative path. Return null only when the file is confirmed absent; let any read failure
+    /// throw, so the check fails closed instead of treating an unreadable aggregate policy file as absent.
+    /// </param>
     /// <returns>A compatible result or the incompatible paths and the reason application scope is required.</returns>
     /// <remarks>
     /// Identical content is compatible. Otherwise, declaration syntax distinguishes the split layout from aggregate

@@ -31,6 +31,7 @@ var result = await CratisRendering.PlanFrom(
 
 if (result.Success)
 {
+    // CheckPublication(result.Plan!, readExistingFile) must be Compatible before writing.
     // Publish result.Artifacts relative to the application root you own.
     // Stage does not choose or write that destination.
 }
@@ -96,7 +97,9 @@ are refused. The first segment cannot collide with scaffold paths or the reserve
 | Slice | `{Domain}/{Module}/{Feature}/{SubFeature…}/{Slice}/{File}.cs` | `{RootNamespace}.{Domain}.{Module}.{Feature}.{SubFeature…}.{Slice}` |
 | Concept or composite type | `{Domain}/Common/{Name}.cs` | `{RootNamespace}.{Domain}.Common` |
 | Scaffold | Application root | `RootNamespace` |
-| Generated policies and runtime helpers | Application-root generated folders | Application-root namespace prefixes |
+| Operation policies and opaque-policy bodies | `{Domain}/GeneratedPolicies/{File}.cs` | `{RootNamespace}.{Domain}.GeneratedPolicies` |
+| Policy and reducer use-site wrappers | `{Domain}/TypedContexts/{File}.cs` | `{RootNamespace}.{Domain}.TypedContexts` |
+| Shared registries and runtime helpers | Application-root generated folders | Application-root namespace prefixes |
 
 With root namespace `Acme.Shop`, domain `Sales`, and slice `PayOrder` in
 `Orders/Checkout/Payments`, a command lives at
@@ -107,13 +110,18 @@ With root namespace `Acme.Shop`, domain `Sales`, and slice `PayOrder` in
 Empty domain preserves existing artifact bytes and paths. Common artifact bytes stay
 identical across scopes using the same domain and source model.
 
-### Application-root identity limitation
+Operation policy, opaque-policy body, and typed-context wrapper files carry the domain
+in their paths and namespaces. Arc policy names also include the normalized domain,
+and each operation's authorization attribute uses that registered name. Separate
+per-domain plans can therefore reuse operation identities without overwriting each
+other's authorization. Shared `Policies.cs`, `PolicyBodies.cs`, `PolicyContext.cs`,
+stream-id, command-receipt-time, and tenant-translation helpers remain at the application
+root; their bytes do not depend on the selected domain.
 
-For v1, generated policy and typed-context files remain at the application root and
-are keyed by semantic identity, not domain. Distinct domains under one application
-must not reuse identical semantic operation identities. Changing only `Domain` does
-not create new semantic identities or Chronicle event-type identities; it is placement,
-not an isolation boundary.
+Chronicle event-type ids remain application-wide. Changing `Domain` does not create
+new event-type identities or an isolation boundary. Domains must still avoid duplicate
+event-type ids; identity evolution is tracked by
+[Screenplay #71](https://github.com/Cratis/Screenplay/issues/71).
 
 ## Scaffold-only mode
 
@@ -127,6 +135,45 @@ Plan the scaffold once per application. Every subsequent source or loaded-model 
 plan excludes it, regardless of selection size. Studio can scaffold in one session,
 then request feature plans in later sessions using the same application names and
 Screenplay root.
+
+## Publication check
+
+Before writing a scoped plan, publishers must call:
+
+```csharp
+public static CratisPublicationCheck CheckPublication(
+    ArtifactRenderPlan plan,
+    Func<string, string?> readExistingFile);
+```
+
+This is a signature excerpt; `ArtifactRenderPlan` is in
+`Cratis.Stage.Contracts.Rendering`. Pass the plan from `CratisRendering.Plan`,
+or `CratisPlanResult.Plan` after a successful `PlanFrom` call. The reader receives
+an application-root-relative path and returns existing text, or null only when the file
+is confirmed absent. A reader that cannot read a file must throw rather than return null,
+so the check never treats an unreadable aggregate policy file as absent.
+
+| Result | Publisher action |
+| --- | --- |
+| `CratisPublicationCheck.Compatible` | Continue with the publisher's normal safety checks. |
+| `CratisPublicationCheck.RequiresApplicationScope` | Refuse the scoped publication or render the entire application first. `Paths` lists incompatible paths in ordinal order; `Reason` explains the migration requirement. |
+
+The check reads only the legacy aggregate paths the plan would overwrite:
+`GeneratedPolicies/Policies.cs`, `GeneratedPolicies/PolicyBodies.cs`, and
+`TypedContexts/PolicyContext.cs`, at their planned placement. File presence alone
+is not a legacy signal, because the split layout uses the same paths. Identical
+planned content (after newline normalization) is compatible. Otherwise the check
+recognizes the split registry and shared C# declarations, rejecting aggregate
+`StagePolicy_*` classes, per-site bodies, `TypedContext_*` wrappers and unrecognized
+content. Application-scope plans are always compatible, without destination reads.
+
+A scaffold-only plan never contains policy files, so there is nothing to check.
+`PlanScaffold` has no underlying `ArtifactRenderPlan`. Publication checks do not
+alter planning or replace destination ownership, concurrency, recovery or write-failure
+checks.
+
+`ArtifactRenderPlan.Scope` and `AdditionalScopes` retain the requested selection.
+They are metadata, excluded from the output-only digest.
 
 ## Results and digest
 

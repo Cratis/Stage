@@ -96,7 +96,7 @@ internal static class SemanticStateChangeArtifactRenderer
             builder.Attribute($"global::Cratis.Arc.Commands.ModelBound.BlockOnValidationSeverityAttribute(global::Cratis.Arc.Validation.ValidationResultSeverity.{floor})");
         }
 
-        builder.Attribute(SemanticAuthorizationAttributes.For(command))
+        builder.Attribute(SemanticAuthorizationAttributes.For(command, context))
             .OpenBlock($"public record {name}({parameters}) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId")
             .Line("/// <inheritdoc/>")
             .ExpressionMember("public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId()", destinationExpression)

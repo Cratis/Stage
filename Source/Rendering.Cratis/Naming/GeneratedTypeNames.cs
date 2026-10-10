@@ -19,7 +19,8 @@ internal static class GeneratedTypeNames
         IEnumerable<(string Namespace, string Name)>? opaquePolicyTypes = null,
         string commonNamespace = "Common",
         IEnumerable<SemanticEventSource>? eventSources = null,
-        string eventSourcesNamespace = "EventSources")
+        string eventSourcesNamespace = "EventSources",
+        string policiesNamespace = "GeneratedPolicies")
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         var namespaces = new HashSet<(string Namespace, string Name)>();
@@ -102,7 +103,7 @@ internal static class GeneratedTypeNames
                 .Concat(located.Slice.Queries.Where(query => query.Authorization is not null).Select(query => query.Id))))
             {
                 var policyName = $"StagePolicy_{operation.ToString().Replace('-', '_').Replace(':', '_')}";
-                foreach (var name in Names("GeneratedPolicies", policyName, operation, "Generated", generated: true)) yield return name;
+                foreach (var name in Names(policiesNamespace, policyName, operation, "Generated", generated: true)) yield return name;
             }
         }
         foreach (var (ns, type) in opaquePolicyTypes ?? [])

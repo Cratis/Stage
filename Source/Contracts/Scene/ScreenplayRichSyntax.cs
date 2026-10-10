@@ -133,6 +133,13 @@ static class ScreenplayRichSyntax
     public static SceneForms.FormFieldPlacement? FieldPlacement(ScreenplaySyntax.FormFieldSyntax field) =>
         Property(field, "Placement") is { } placement ? Placement(placement) : null;
 
+    /// <summary>
+    /// Converts a Screenplay literal, list or object expression to its plain value.
+    /// </summary>
+    /// <param name="expression">The expression.</param>
+    /// <returns>The value: a primitive, a list or a dictionary.</returns>
+    public static object? Value(ScreenplaySyntax.ExpressionSyntax? expression) => ExpressionValue(expression);
+
     static SceneCommon.BindingSourceKind BindingKind(string? kind) =>
         kind switch
         {
@@ -194,6 +201,8 @@ static class ScreenplayRichSyntax
             null => null,
             string text => text,
             ScreenplaySyntax.LiteralExpressionSyntax literal => literal.Value,
+            ScreenplaySyntax.ListExpressionSyntax list => list.Items.Select(ExpressionValue).ToList(),
+            ScreenplaySyntax.ObjectExpressionSyntax @object => @object.Members.ToDictionary(member => member.Name, member => ExpressionValue(member.Value), StringComparer.Ordinal),
             ScreenplaySyntax.ExpressionSyntax expression => new Dictionary<string, object?> { ["kind"] = expression.GetType().Name },
             _ => value,
         };

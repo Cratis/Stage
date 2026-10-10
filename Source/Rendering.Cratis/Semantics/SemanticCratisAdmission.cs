@@ -49,7 +49,7 @@ internal static partial class SemanticCratisAdmission
         // TypedContexts is reserved for reducer and policy runtime tokens and wrappers. A modeled
         // namespace with the same root path can rebind TenantId or Identity in unrelated artifacts.
         if ((slices.Any(_ => !_.Slice.Reducers.IsEmpty) || UsesOpaquePolicies(context, slices)) &&
-            context.NamespacePaths.Any(path => path == $"{context.RootNamespace}.TypedContexts"))
+            context.NamespacePaths.Any(path => path == $"{context.RootNamespace}.TypedContexts" || path == context.TypedContextsNamespace))
         {
             diagnostics.Add(Error("STAGE-ESM-022", "Generated namespace 'TypedContexts' shadows the reserved reducer and policy runtime namespace.", model.Application.Id));
             return [.. diagnostics];
@@ -73,7 +73,8 @@ internal static partial class SemanticCratisAdmission
             opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices),
             commonNamespace: string.Join('.', context.Domain.Append("Common")),
             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
-            eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources"))))
+            eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
+            policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies"))))
         {
             var message = kind == "Namespace"
                 ? $"Generated type '{name}' collides with a generated C# namespace."

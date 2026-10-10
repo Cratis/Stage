@@ -32,6 +32,12 @@ public static class SceneElementProperties
     public const string Query = "query";
 
     /// <summary>
+    /// The property a navigating element carries its typed Scene destination in - the target screen, a route
+    /// override, the outlet it opens in and the route parameter bindings.
+    /// </summary>
+    public const string Destination = "destination";
+
+    /// <summary>
     /// The property the host writes the resolved API route into.
     /// </summary>
     public const string Route = "route";

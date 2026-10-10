@@ -51,12 +51,12 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         foreach (var module in syntax.Modules)
         {
             screenTemplates.AddRange((module.ScreenTemplates ?? []).Select(template =>
-                ScreenTemplateConverter.Convert(template) with
+                ScreenTemplateConverter.Convert(template, scope) with
                 {
                     Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
                 }));
             dialogTemplates.AddRange((module.DialogTemplates ?? []).Select(template =>
-                DialogTemplateConverter.Convert(template) with
+                DialogTemplateConverter.Convert(template, scope) with
                 {
                     Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
                 }));
@@ -68,6 +68,8 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, screens)
         {
+            Exposures = [.. (syntax.Exposures ?? []).Select(CompositionConverter.Exposure)],
+            InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],
             RuntimeIssues = runtime.Issues
         };
     }

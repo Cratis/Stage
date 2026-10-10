@@ -225,9 +225,9 @@ internal static class PureTransitionAdmission
             definitions.Add($"namespace {transitionNs} {{ public record {Identifiers.ToPascalCase(transitionEvent.Name)}({Parameters(transitionEvent.Properties, true)}); }}");
         }
         var wrapper = SemanticTypedContextRenderer.Render(descriptor, context).Content
-            .Replace($"namespace {context.RootNamespace}.TypedContexts;", $"namespace {context.RootNamespace}.TypedContexts {{", StringComparison.Ordinal) + "\n}";
+            .Replace($"namespace {context.TypedContextsNamespace};", $"namespace {context.TypedContextsNamespace} {{", StringComparison.Ordinal) + "\n}";
         var modelType = $"global::{modelNs}.{Identifiers.ToPascalCase(readModel.Name)}";
-        var wrapperType = $"global::{context.RootNamespace}.TypedContexts.TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
+        var wrapperType = $"global::{context.TypedContextsNamespace}.TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
         var tenant = $"namespace {context.RootNamespace}.TypedContexts {{ public record TenantId(string Value) {{ public static readonly TenantId Default = new(\"00000000-0000-0000-0000-000000000000\"); public static readonly TenantId NotSet = new(\"\"); }} }}";
 
         // Model stubs are compilation peers, not imports into the reducer file. The body has the
@@ -307,7 +307,7 @@ internal static class PureTransitionAdmission
         }
 
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(_ => _.Identifier.Text == $"Transition_{suffix}");
-        return Walk(semanticModel, method.Body!, descriptor);
+        return Walk(semanticModel, method.Body!, descriptor, context.RootNamespace);
 
         string Parameters(IEnumerable<SemanticProperty> properties, bool reducerInput = false) => string.Join(", ", properties.Select(property =>
             $"{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
@@ -418,8 +418,9 @@ internal static class PureTransitionAdmission
         return names;
     }
 
-    internal static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor)
+    internal static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor, string? rootNamespace = null)
     {
+        rootNamespace ??= model.GetDeclaredSymbol((MethodDeclarationSyntax)body.Parent!)!.Parameters[0].Type.ContainingNamespace.ContainingNamespace.ToDisplayString();
         var root = model.GetOperation(body);
         if (root is null) return Reject("STAGE-ESM-022", "Reducer body has no bound operation.");
         var reads = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
@@ -690,7 +691,7 @@ internal static class PureTransitionAdmission
                 reads.Add(propertyRead.Property.Name);
             }
 
-            if (!Allowed(symbol, model.Compilation, model.GetDeclaredSymbol((MethodDeclarationSyntax)body.Parent!)!.Parameters[0].Type.ContainingNamespace.ContainingNamespace.ToDisplayString(), out var entry) ||
+            if (!Allowed(symbol, model.Compilation, rootNamespace, out var entry) ||
                 (symbol.ContainingType?.Name == wrapper && operation is not IPropertyReferenceOperation))
             {
                 return Reject("STAGE-ESM-022", $"Symbol '{symbol.ToDisplayString()}' is outside the pure allowlist.");

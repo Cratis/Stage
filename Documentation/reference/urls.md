@@ -181,8 +181,12 @@ The scene served at `/stage/scene` attaches a `route` to every element that read
 `WorkItemById` returns the same read model. An element that names only a read model gets that read model's
 `All<ReadModels>` route. `/stage/routes` maps each query and command by its own name.
 
-When a name matches no endpoint, or several distinct ones (the same query name in two slices, for example), Stage
-attaches no route rather than guessing. The element then carries `routeStatus` (`unresolved` or `ambiguous`) and a
+One fallback is defined: an unkeyed collection binding (`data AllWorkItems` with no `by`) whose query has no endpoint
+of its own reads its read model's `All<ReadModels>`, which answers the same rows. A keyed binding such as
+`data CommentsForWorkItem by workItemId` is never widened to the unfiltered collection.
+
+When a name otherwise matches no endpoint, or several distinct ones (the same query name in two slices, for
+example), Stage attaches no route rather than guessing. The element then carries `routeStatus` (`unresolved` or `ambiguous`) and a
 `routeDiagnostic` naming the candidates. `/stage/routes` leaves an ambiguous name out and lists it under
 `diagnostics`.
 

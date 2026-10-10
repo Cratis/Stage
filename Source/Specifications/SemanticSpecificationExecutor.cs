@@ -90,7 +90,26 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             }
         }
 
-        return new("stage-spec-run/1", plan.Model.Application.Id.ToString(), plan.Revision.ToString(), results);
+        var enriched = results.Select(result => EnrichCaseFailure(result, options)).ToArray();
+
+        return new("stage-spec-run/1", plan.Model.Application.Id.ToString(), plan.Revision.ToString(), enriched);
+    }
+
+    static SemanticSpecificationRunRecord EnrichCaseFailure(SemanticSpecificationRunRecord result, SemanticSpecificationRunOptions options)
+    {
+        if (result.Outcome != SemanticSpecificationOutcome.Failed ||
+            !SemanticId.TryParse(result.SpecificationId, out var id) ||
+            !options.SpecificationOrigins.TryGetValue(id, out var origin) || origin.Case is not { } row)
+        {
+            return result;
+        }
+
+        var fixtures = origin.Steps.SelectMany(step => step.Values.Select(value =>
+            $"{step.Role}{(step.Example is null ? string.Empty : $" {step.Example.Name}")}: {value.Property} = {SpecificationFixtureText.Expression(value.Value)} ({value.Origin.ToString().ToLowerInvariant()}{(value.OverriddenValue is null ? string.Empty : $", replaces {SpecificationFixtureText.Expression(value.OverriddenValue)}")})"));
+        var provenance = $"Effective fixtures: {string.Join("; ", fixtures)}.";
+        var prefix = $"Case '{row.Name}' of '{origin.Authored.Name}': ";
+
+        return result with { Failures = [.. result.Failures.Select(failure => $"{prefix}{failure} {provenance}")] };
     }
 
     static async Task<SemanticSpecificationRunRecord> Execute(SemanticSpecification specification, SemanticSlice slice, SemanticExecutionPlan plan, SemanticSpecificationRunOptions options, CancellationToken cancellationToken)

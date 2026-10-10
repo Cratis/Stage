@@ -40,6 +40,22 @@ public static class SpecificationExpansion
         return expanded.Value!.Effective;
     }
 
+    /// <summary>
+    /// Expands every named case, or one ordinary specification, in its declaration scope.
+    /// </summary>
+    /// <param name="specification">The authored specification.</param>
+    /// <param name="application">The surrounding declarations and shared examples.</param>
+    /// <param name="scope">The module, nested features, and slice of the use site.</param>
+    /// <returns>Every effective specification in case order.</returns>
+    /// <exception cref="InvalidEventModel">The examples or cases cannot be resolved.</exception>
+    public static IEnumerable<SpecificationSyntax> ExpandAll(SpecificationSyntax specification, ApplicationSyntax application, IReadOnlyList<string> scope)
+    {
+        var expanded = SpecificationExamples.ExpandAll(specification, application, scope);
+        EnsureAccepted(expanded.Diagnostics, string.Join('.', scope));
+
+        return [.. expanded.Value!.Select(value => value.Effective)];
+    }
+
     static void EnsureAccepted(IEnumerable<Diagnostic> diagnostics, string path)
     {
         var errors = diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();

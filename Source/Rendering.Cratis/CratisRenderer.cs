@@ -362,10 +362,10 @@ public class CratisRenderer : IRenderer
     {
         foreach (var authored in slice.Slice.Specifications)
         {
-            SpecificationSyntax specification;
+            IEnumerable<SpecificationSyntax> specifications;
             try
             {
-                specification = applicationSet.ExpandSpecification(authored, slice);
+                specifications = applicationSet.ExpandSpecification(authored, slice);
             }
             catch (InvalidEventModel exception)
             {
@@ -373,19 +373,22 @@ public class CratisRenderer : IRenderer
                 continue;
             }
 
-            if (SpecificationRenderer.Unrenderable(specification, slice.Slice) is { } reason)
+            foreach (var specification in specifications)
             {
-                await error.WriteLineAsync($"Specification '{specification.Name}' is not rendered — {reason}.");
-                continue;
-            }
+                if (SpecificationRenderer.Unrenderable(specification, slice.Slice) is { } reason)
+                {
+                    await error.WriteLineAsync($"Specification '{specification.Name}' is not rendered — {reason}.");
+                    continue;
+                }
 
-            await RenderFile(
-                () => SpecificationRenderer.Render(specification, slice.Slice.Commands.First(), slice, applicationSet, rootNamespace),
-                $"specification '{specification.Name}'",
-                targetDirectory,
-                output,
-                error,
-                failures);
+                await RenderFile(
+                    () => SpecificationRenderer.Render(specification, slice.Slice.Commands.First(), slice, applicationSet, rootNamespace),
+                    $"specification '{specification.Name}'",
+                    targetDirectory,
+                    output,
+                    error,
+                    failures);
+            }
         }
     }
 

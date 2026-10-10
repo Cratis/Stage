@@ -26,12 +26,23 @@ public static class DialogTemplateConverter
     /// </summary>
     /// <param name="template">The <see cref="ScreenplaySyntax.DialogTemplateSyntax"/> to convert.</param>
     /// <returns>The converted <see cref="SceneScreens.DialogTemplate"/>.</returns>
-    public static SceneScreens.DialogTemplate Convert(ScreenplaySyntax.DialogTemplateSyntax template) =>
+    public static SceneScreens.DialogTemplate Convert(ScreenplaySyntax.DialogTemplateSyntax template) => Convert(template, null);
+
+    /// <summary>
+    /// Converts a <see cref="ScreenplaySyntax.DialogTemplateSyntax"/>, resolving behaviors used by its own slot content.
+    /// </summary>
+    /// <param name="template">The <see cref="ScreenplaySyntax.DialogTemplateSyntax"/> to convert.</param>
+    /// <param name="behaviors">What a <c language="csharp">uses</c> clause inside the template's content resolves against.</param>
+    /// <returns>The converted <see cref="SceneScreens.DialogTemplate"/>.</returns>
+    public static SceneScreens.DialogTemplate Convert(ScreenplaySyntax.DialogTemplateSyntax template, BehaviorScope? behaviors) =>
         new(
             template.Name,
             SlotConverter.Convert(template.Slots),
-            ArrangementConverter.Convert(template.Arrangement))
+            ArrangementConverter.Convert(template.Arrangement),
+            CompositionConverter.Content(template.Name, template.Content, behaviors),
+            template.DisplayName,
+            template.Description)
         {
-            Metadata = new(template.TemplateType, template.Category)
+            Metadata = CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes)
         };
 }

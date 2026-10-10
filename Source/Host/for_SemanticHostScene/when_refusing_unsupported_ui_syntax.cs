@@ -18,13 +18,15 @@ public class when_refusing_unsupported_ui_syntax : Specification
         Directory.CreateDirectory(_directory);
     }
 
-    [Theory]
-    [InlineData("route \"items/details\"")]
-    [InlineData("parameter status from data.status")]
-    public void should_refuse_before_returning_a_host_scene(string navigation)
+    // A Scene dialog template declares no outlets, so an outlet on one has nowhere to go and is refused.
+    [Fact]
+    public void should_refuse_before_returning_a_host_scene()
     {
-        var source = $$"""
+        const string source = """
             module Work
+              dialog template EditItem
+                body
+                outlet details
               feature Items
                 slice StateView Details
                   readmodel Item
@@ -32,8 +34,6 @@ public class when_refusing_unsupported_ui_syntax : Specification
                   query ItemDetails => Item[]
                   screen Details
                     data Item[] via query ItemDetails
-                    navigate to Details
-                      {{navigation}}
             """;
 
         // Host loads presentation from source separately; the admitted backend model has no screens.
@@ -50,8 +50,8 @@ public class when_refusing_unsupported_ui_syntax : Specification
         var error = Catch.Exception(() => SemanticHostScene.Load(path, plan.Model));
         error.ShouldBeOfExactType<UnsupportedUiSyntax>();
         error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
-        ((UnsupportedUiSyntax)error).Member.ShouldEqual("ScreenNavigateSyntax.Route/Parameters");
-        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(9);
+        ((UnsupportedUiSyntax)error).Member.ShouldEqual("DialogTemplateSyntax.Outlets");
+        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(2);
     }
 
     void Destroy() => Directory.Delete(_directory, recursive: true);

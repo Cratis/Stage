@@ -100,7 +100,11 @@ public static class ScreenConverter
         var (screenTemplate, slotContent) = ConvertContent(screen, scope, attached);
         var forms = ResolveForms(screen, availableForms, scope);
 
-        return new SceneScreens.Screen(screen.Name, layoutName, slotContent, forms, [.. contributions], screenTemplate)
+        // The screen's own `contribute to` blocks follow what its enclosing scope contributes, in declaration order.
+        var own = (screen.Contributions ?? [])
+            .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{screen.Name}.contribution[{index}]", scope));
+
+        return new SceneScreens.Screen(screen.Name, layoutName, slotContent, forms, [.. contributions, .. own], screenTemplate)
         {
             Behaviors = [.. inherited ?? [], .. attached]
         };

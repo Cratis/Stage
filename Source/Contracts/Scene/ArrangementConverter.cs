@@ -53,7 +53,7 @@ public static class ArrangementConverter
     static SceneLayouts.FlowNode ConvertNode(ScreenplaySyntax.ArrangementNodeSyntax node) =>
         node switch
         {
-            ScreenplaySyntax.ArrangementSlotSyntax slot => new SceneLayouts.FlowSlotLeaf(slot.Name) { Grow = slot.Grow ? 1 : null, Span = slot.Span },
+            ScreenplaySyntax.ArrangementSlotSyntax slot => new SceneLayouts.FlowSlotLeaf(slot.Name) { Grow = slot.GrowFactor ?? (slot.Grow ? 1 : null), Span = slot.Span },
             ScreenplaySyntax.ArrangementContainerSyntax container => ConvertContainer(container),
             _ => throw new UnknownArrangementNode(node.GetType().Name),
         };
@@ -65,12 +65,13 @@ public static class ArrangementConverter
 
         // Flat (no explicit row/column/grid nesting) has no Scene.Model counterpart - stacking vertically
         // (a column) is the closest match to how an unordered group of slots typically reads on a page.
+        // A container weighs and spans inside its parent exactly as a slot does - `grid ... grow` and `row grow 1.5`.
         return container.Kind switch
         {
-            ScreenplaySyntax.ArrangementContainerKind.Row => new SceneLayouts.FlowRow { Gap = gap, Children = children },
-            ScreenplaySyntax.ArrangementContainerKind.Column => new SceneLayouts.FlowColumn { Gap = gap, Children = children },
-            ScreenplaySyntax.ArrangementContainerKind.Grid => new SceneLayouts.FlowGrid { Gap = gap, Children = children },
-            ScreenplaySyntax.ArrangementContainerKind.Flat => new SceneLayouts.FlowColumn { Gap = gap, Children = children },
+            ScreenplaySyntax.ArrangementContainerKind.Row => new SceneLayouts.FlowRow { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span },
+            ScreenplaySyntax.ArrangementContainerKind.Column => new SceneLayouts.FlowColumn { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span },
+            ScreenplaySyntax.ArrangementContainerKind.Grid => new SceneLayouts.FlowGrid { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span, Columns = container.Columns, Rows = container.Rows },
+            ScreenplaySyntax.ArrangementContainerKind.Flat => new SceneLayouts.FlowColumn { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span },
             _ => throw new UnknownArrangementContainerKind(container.Kind),
         };
     }

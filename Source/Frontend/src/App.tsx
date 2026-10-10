@@ -22,7 +22,8 @@ import { useStrings } from './useStrings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents, stageTemplateComponent } from './StageChrome';
 import { applicationChrome, resolveNames, screenFromHash, screenHash, stageProfile, stageRegistry, templateFor } from './blueprint';
 import { bindDataSources } from './stageDataSources';
-import { screenParameters } from './stageNavigation';
+import { navigateToScreen, screenArguments, screenParameters } from './stageNavigation';
+import { executeStageCommand } from './stageCommands';
 import { useStageSource } from './stageSource';
 import './app.css';
 
@@ -212,7 +213,6 @@ export function App({ components }: AppProps = {}) {
                         routesReady={routeState.ready}
                         scene={scene}
                         setActivity={setActivity}
-                        select={select}
                         strings={strings} />
                 </StageDataProvider>
             </LayoutThemeProvider>
@@ -227,12 +227,11 @@ interface StageSceneViewProps {
     routes: StageRoutes | undefined;
     routesReady: boolean;
     scene: StageSceneApplication;
-    select: (screen: string) => void;
     setActivity: (activity: string) => void;
     strings: ReturnType<typeof useStrings>;
 }
 
-function StageSceneView({ activity, element, registry, routes, routesReady, scene, select, setActivity, strings }: StageSceneViewProps) {
+function StageSceneView({ activity, element, registry, routes, routesReady, scene, setActivity, strings }: StageSceneViewProps) {
     const data = useStageData();
     const [dialog, setDialog] = useState<DialogTemplate>();
 
@@ -251,30 +250,16 @@ function StageSceneView({ activity, element, registry, routes, routesReady, scen
                 return { isSuccess: false, validationErrors: [] };
             }
 
-            const response = await fetch(route, {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify(args),
-            });
-
-            if (!response.ok) {
-                setActivity(`“${command}” failed with ${response.status}.`);
-                return { isSuccess: false, validationErrors: [] };
-            }
-
-            const result = await response.json() as { isSuccess?: boolean; validationResults?: { message: string; members: string[] }[] };
-
-            // Arc answers a rejected command with 200 and the reasons, so the status alone does not say
-            // whether it worked. Reading the body is what makes 'on failure' mean what the document says.
-            const validationErrors = (result.validationResults ?? []).map(_ => ({ member: _.members[0] ?? '', message: _.message }));
-            if (validationErrors.length > 0) setActivity(validationErrors.map(_ => _.message).join(' '));
-            if (validationErrors.length === 0) data.refreshAfterCommand();
-
-            return { isSuccess: result.isSuccess !== false && validationErrors.length === 0, validationErrors };
+            const outcome = await executeStageCommand(command, route, args);
+            if (outcome.messages.length > 0) setActivity(outcome.messages.join(' '));
+            if (outcome.isSuccess) data.refreshAfterCommand();
+            return { isSuccess: outcome.isSuccess, validationErrors: outcome.validationErrors };
         },
-        navigate: screenName => {
+        // A navigation is a step the user can go back from, and its arguments are the screen's parameters - the
+        // same address a row click or a deep link gives the screen.
+        navigate: (screenName, args) => {
             if (scene.screens.some(candidate => candidate.name === screenName)) {
-                select(screenName);
+                navigateToScreen(screenName, screenArguments(args));
             } else {
                 setActivity(`The modeled screen “${screenName}” is not available.`);
             }

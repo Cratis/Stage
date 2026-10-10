@@ -42,3 +42,15 @@ export function navigateToScreen(screen: string, parameters: Record<string, stri
     if (globalThis.location.hash === hash) return;
     globalThis.location.hash = hash;
 }
+
+/**
+ * Turns an interaction's navigation arguments into screen parameters: every argument with a value, as text, the way
+ * it appears in the address. An argument without a value is left out rather than written as `undefined`.
+ * @param args The arguments the navigation was given.
+ * @returns The screen parameters.
+ */
+export function screenArguments(args: Record<string, unknown> | undefined): Record<string, string> {
+    return Object.fromEntries(Object.entries(args ?? {})
+        .filter(([, value]) => value !== undefined && value !== null && value !== '' && typeof value !== 'object')
+        .map(([name, value]) => [name, String(value)]));
+}

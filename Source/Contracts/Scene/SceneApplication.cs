@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json.Serialization;
+using SceneExposure = Cratis.Scene.Model.Exposure;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneProfiles = Cratis.Scene.Model.Profiles;
 using SceneScreens = Cratis.Scene.Model.Screens;
@@ -27,6 +28,16 @@ public record SceneApplication(
     IReadOnlyList<SceneScreens.DialogTemplate> DialogTemplates,
     IReadOnlyList<SceneScreens.Screen> Screens)
 {
+    /// <summary>
+    /// Gets what each layout, screen template and dialog template lets an instance configure.
+    /// </summary>
+    public IReadOnlyList<SceneExposure.ExposureDeclaration> Exposures { get; init; } = [];
+
+    /// <summary>
+    /// Gets the values instances store for what was exposed, in declaration order.
+    /// </summary>
+    public IReadOnlyList<SceneExposure.InstanceContribution> InstanceContributions { get; init; } = [];
+
     /// <summary>
     /// Gets source constructs that cannot run in the pinned Scene runtime. These are not Scene wire members.
     /// </summary>

@@ -11,10 +11,8 @@ namespace Cratis.Stage.Contracts.Scene.for_UiSyntaxAdmission;
 
 public class when_refusing_new_ui_members : Specification
 {
-    // Members the Scene converters still drop and the screen composition corpus does not admit.
+    // Members the Scene converters still drop: a Scene dialog template declares no outlets.
     [Theory]
-    [InlineData(typeof(ScreenNavigateSyntax), "Route")]
-    [InlineData(typeof(ScreenNavigateSyntax), "Parameters")]
     [InlineData(typeof(DialogTemplateSyntax), "Outlets")]
     public void should_refuse_instead_of_dropping_the_authored_member(Type type, string member)
     {
@@ -50,6 +48,21 @@ public class when_refusing_new_ui_members : Specification
     [InlineData(typeof(ScreenComponentSyntax), "Icon")]
     [InlineData(typeof(ScreenComponentSyntax), "Outlets")]
     [InlineData(typeof(ScreenToolbarSyntax), "Items")]
+    [InlineData(typeof(ScreenNavigateSyntax), "Route")]
+    [InlineData(typeof(ScreenNavigateSyntax), "Outlet")]
+    [InlineData(typeof(ScreenNavigateSyntax), "Parameters")]
+    [InlineData(typeof(ScreenSyntax), "Contributions")]
+    [InlineData(typeof(ApplicationSyntax), "Exposures")]
+    [InlineData(typeof(ApplicationSyntax), "InstanceContributions")]
+    [InlineData(typeof(LayoutSyntax), "Scopes")]
+    [InlineData(typeof(ScreenTemplateSyntax), "Content")]
+    [InlineData(typeof(ScreenTemplateSyntax), "Scopes")]
+    [InlineData(typeof(ScreenTemplateSyntax), "DisplayName")]
+    [InlineData(typeof(ScreenTemplateSyntax), "Description")]
+    [InlineData(typeof(DialogTemplateSyntax), "Content")]
+    [InlineData(typeof(DialogTemplateSyntax), "Scopes")]
+    [InlineData(typeof(DialogTemplateSyntax), "DisplayName")]
+    [InlineData(typeof(DialogTemplateSyntax), "Description")]
     public void should_admit_the_translated_or_corpus_member(Type type, string member) =>
         Catch.Exception(() => new UiSyntaxAdmission().VisitNode(Authored(type, member))).ShouldBeNull();
 

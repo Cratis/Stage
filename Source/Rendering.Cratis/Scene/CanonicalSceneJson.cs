@@ -50,6 +50,7 @@ public static class CanonicalSceneJson
 
         var node = JsonSerializer.SerializeToNode(application, _readOptions) ?? new JsonObject();
         PreserveLiteralNullValues(node);
+        OmitEmptyComposition(node);
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream, _writeOptions))
         {
@@ -57,6 +58,25 @@ public static class CanonicalSceneJson
         }
 
         return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    // An application that declares no exposures and no instance values serializes exactly as it did before the
+    // composition ABI existed. Otherwise every released plan digest would move for an application that uses none of
+    // it, and a digest that moves without a change to the application means nothing.
+    static void OmitEmptyComposition(JsonNode node)
+    {
+        if (node is not JsonObject application)
+        {
+            return;
+        }
+
+        foreach (var name in (string[])[CompositionNames.Exposures, CompositionNames.InstanceContributions])
+        {
+            if (application[name] is JsonArray { Count: 0 })
+            {
+                application.Remove(name);
+            }
+        }
     }
 
     static void PreserveLiteralNullValues(JsonNode? node)
@@ -117,5 +137,11 @@ public static class CanonicalSceneJson
                 node.WriteTo(writer);
                 break;
         }
+    }
+
+    static class CompositionNames
+    {
+        public const string Exposures = "exposures";
+        public const string InstanceContributions = "instanceContributions";
     }
 }

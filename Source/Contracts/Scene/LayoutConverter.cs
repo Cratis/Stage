@@ -28,7 +28,7 @@ public static class LayoutConverter
     public static SceneLayouts.Layout Convert(ScreenplaySyntax.LayoutSyntax layout) =>
         new(layout.Name, SlotConverter.Convert(layout.Slots), ArrangementConverter.Convert(layout.Arrangement))
         {
-            Metadata = new(layout.TemplateType, layout.Category),
+            Metadata = CompositionConverter.Metadata(layout.TemplateType, layout.Category, layout.RestrictsScopes, layout.Scopes),
             Outlets = [.. layout.Outlets.Select(outlet => new SceneScreens.Outlet(outlet.Name))]
         };
 }

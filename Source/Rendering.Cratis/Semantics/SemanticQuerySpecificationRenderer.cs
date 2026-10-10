@@ -79,8 +79,11 @@ internal static class SemanticQuerySpecificationRenderer
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
             .Line("readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
-            .Line($"{readModelName}? _result;")
-            .Line($"global::System.Collections.Generic.IEnumerable<{readModelName}> _results = [];")
+
+            // Only the field the query's cardinality assigns: an unused one is a CS0169 warning in the generated build.
+            .Line(query.Cardinality == SemanticQueryCardinality.Many
+                ? $"global::System.Collections.Generic.IEnumerable<{readModelName}> _results = [];"
+                : $"{readModelName}? _result;")
             .BlankLine()
             .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
         foreach (var given in specification.GivenEvents)

@@ -161,7 +161,9 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         if (type.Kind == SemanticTypeReferenceKind.Concept)
         {
             var concept = context.Concepts[type.Target];
-            return $"new {CommonType(concept.Name)}({PrimitiveValue(value, concept.Primitive)})";
+            return concept.Values.IsEmpty
+                ? $"new {CommonType(concept.Name)}({PrimitiveValue(value, concept.Primitive)})"
+                : EnumMember(CommonType(concept.Name), concept, value);
         }
 
         if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
@@ -215,6 +217,12 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// <returns>The C# type name.</returns>
     public string SliceType(SemanticId id, string name) =>
         $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path)}.{Identifiers.ToPascalCase(name)}";
+
+    // An enum concept renders as a C# enum, so its literal is a member rather than a wrapped primitive.
+    static string EnumMember(string type, SemanticConcept concept, SemanticValue value) =>
+        value is SemanticTextValue text && concept.Values.Contains(text.Value, StringComparer.Ordinal)
+            ? $"{type}.{Identifiers.ToPascalCase(text.Value)}"
+            : throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/enum {concept.Name}", value is SemanticTextValue unknown ? unknown.Value : value.Kind.ToString());
 
     static string PrimitiveValue(SemanticValue value, SemanticPrimitiveType primitive) => (value, primitive) switch
     {

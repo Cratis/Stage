@@ -15,8 +15,8 @@ public class when_routing_in_reversed_order : given.a_routed_model
     async Task Because()
     {
         MapModel(RouteModels.Reverse(EventModelLoader.LoadFromSource(RouteModels.SameNamedCommands)));
-        _statuses.Add((await Request("POST", "/api/orders/checkout/place-order/do-it")).Status);
-        _statuses.Add((await Request("POST", "/api/orders/checkout/cancel-order/do-it")).Status);
+        _statuses.Add((await Request("POST", "/api/orders/checkout/place-order/do-it", """{"orderId":"11111111-1111-1111-1111-111111111111"}""")).Status);
+        _statuses.Add((await Request("POST", "/api/orders/checkout/cancel-order/do-it", """{"orderId":"11111111-1111-1111-1111-111111111111"}""")).Status);
         _statuses.Add((await Request("POST", "/api/orders/checkout/do-it")).Status);
         _statuses.Add((await Request("POST", "/api/orders/checkout/do-it/validate")).Status);
     }

@@ -54,6 +54,26 @@ Moving an existing model from v7 to v8 widens stored event schemas from int32 to
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
 
+## Generated C# enumerations
+
+Chronicle stores enum members as integers, with an `integer` event schema and `x-enumNames` metadata.
+Stage currently generates implicit C# member numbers in declaration order: the first member is `0`,
+the next is `1`, and so on. The world rebuilder accepts those numbers and declared model member names,
+normalizing both to the model name. It refuses out-of-range or fractional numbers and undeclared names.
+
+Until [Screenplay #643](https://github.com/Cratis/Screenplay/issues/643) carries stable member numbers in
+the model, **only append members; never reorder or remove existing members**. Reordering changes which
+member a stored number identifies. Chronicle's schema compatibility check does not detect that remapping.
+
+The chosen direction is to carry explicit member numbers in the model and preserve them when rendering.
+Names on the wire do not solve this: Chronicle still registers an integer schema and converts names to
+numbers on append, and Arc uses numeric enums. Hashing names was rejected because renaming a member
+would change its number and existing applications would be renumbered.
+
+The Host currently registers enum properties with a string schema rather than the generated application's
+integer schema. Reading both value forms does not make those schemas compatible in a shared event store;
+[Stage #310](https://github.com/Cratis/Stage/issues/310) tracks that registration mismatch.
+
 ## Chrome
 
 The topbar, sidebar, menu, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them:

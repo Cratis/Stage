@@ -72,7 +72,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     {
         var artifacts = new List<PlannedArtifact>();
         var diagnostics = new List<ArtifactRenderDiagnostic>();
-        if (!EsmSchemaV8Support.Supports(request.Model.LanguageVersion, request.Model.SemanticVersion))
+        if (!SemanticVersionFeatures.Supports(request.Model))
         {
             return CreatePlan(request, [], [Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", request.Model.Application.Id)]);
         }

@@ -13,7 +13,12 @@ model consistency, not behavior, and will be removed in the next major version. 
 `structural` as the default for existing `results.json` consumers; each structural run prints one deprecation
 notice to standard error. Structural runs refuse named event sources, streams and event-source routes with
 `STAGE-ESM-030` on standard error, exit `1`, and write no results file. The semantic engine executes routed givens and when-appends, compares event routes and `no stream`
-expectations, and matches any-order expectations by assignment at ESM v8 and later. Migrate to `--engine semantic` and the semantic report format described below.
+expectations, and matches any-order expectations by assignment at ESM v8 and later. Both engines refuse public-event
+publication (`STAGE-ESM-031`), foreign events and `source events` captures (`STAGE-ESM-032`), and directed
+Translate slices (`STAGE-ESM-024`, naming the direction). Structural refusals exit `1` without writing results;
+semantic runs record `Unsupported`, never a passing specification. The semantic executor admits ESM v1–v9
+version pairs and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
+Migrate to `--engine semantic` and the semantic report format described below.
 
 ```bash
 docker run --rm \
@@ -62,7 +67,7 @@ requires both `--model` and `--output`; the defaults above are supplied by the c
 | Code | Meaning |
 |---|---|
 | `0` | The run completed and `results.json` was written. **A failing specification is still a completed run** — read the outcomes from the file. Semantic runs execute event-source routes; structural runs refuse them. |
-| `1` | The input path is missing, the file extension is unsupported, the folder is empty, model compilation fails, or a structural run refuses named event sources, streams or event-source routes (`STAGE-ESM-030`). An actionable error is written to standard error; no results file is written. |
+| `1` | The input path is missing, the file extension is unsupported, the folder is empty, model compilation fails, or a structural run refuses event-source routes (`STAGE-ESM-030`), public events (`STAGE-ESM-031`), foreign events or source-events captures (`STAGE-ESM-032`), or directed Translate slices (`STAGE-ESM-024`). An actionable error is written to standard error; no results file is written. |
 | `2` | A required argument (`--model` or `--output`) was missing. A usage line is written to standard error. |
 
 Input failures do not write results or delete or overwrite an existing output file. Compiler errors identify the

@@ -23,8 +23,8 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.122.0; ESM v1–v8 version pairs are admitted, but evolved events require migration rendering
-/// and each v5–v7 construct Stage does not render yet refuses the model with its own diagnostic.
+/// Inventories the executable semantic surface audited against Screenplay 4.122.0; ESM v1–v9 version pairs are admitted, but evolved events require migration rendering
+/// and each v5–v9 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
 internal static class SemanticSurfaceLedger
@@ -339,21 +339,21 @@ internal static class SemanticSurfaceLedger
 
         // Screenplay 4.117 added ESM v9: public events and their origin store, translation direction, projections and
         // reducers that target a slice's public event, and `source events` captures. Each is selected only by use, so a
-        // v1–v7 model carries the default - a private local event, a read-model target, no direction - which is exactly
-        // what Stage renders. A model that uses any of them is ESM v9, which the audited version gate refuses with
-        // STAGE-ESM-016 before anything is planned.
-        var v9 = rejected("STAGE-ESM-016");
-        var v9Default = ignored("ESM v9 selection: v1–v7 models carry only the default (private local event, read-model target, no direction), which Stage renders; a model using the v9 value fails STAGE-ESM-016.");
-        Add(entries, "SemanticEventContract", v9Default, "Visibility Origin");
+        // v1–v8 model carries the default - a private local event, a read-model target, no direction - which is exactly
+        // what Stage renders. Admit v9 by version, but refuse publication, foreign consumption and translation separately.
+        var publication = rejected(SemanticVersionFeatures.PublicEvents);
+        var foreign = rejected(SemanticVersionFeatures.ForeignEvents);
+        Add(entries, "SemanticEventContract", publication, "Visibility");
+        Add(entries, "SemanticEventContract", foreign, "Origin");
         Add(entries, "SemanticEventVisibility", rendered, "Private");
-        Add(entries, "SemanticEventVisibility", v9, "Public");
-        Add(entries, "SemanticProjection", v9Default, "Target");
-        Add(entries, "SemanticReducer", v9Default, "Target");
+        Add(entries, "SemanticEventVisibility", publication, "Public");
+        Add(entries, "SemanticProjection", publication, "Target");
+        Add(entries, "SemanticReducer", publication, "Target");
         Add(entries, "SemanticProjectionTargetKind", rendered, "ReadModel");
-        Add(entries, "SemanticProjectionTargetKind", v9, "Event");
-        Add(entries, "SemanticSlice", v9Default, "Direction");
-        Add(entries, "SemanticCapture", v6, "EventsSource");
-        Add(entries, "SemanticCaptureEventsSource", v6, "Events");
+        Add(entries, "SemanticProjectionTargetKind", publication, "Event");
+        Add(entries, "SemanticSlice", v6, "Direction");
+        Add(entries, "SemanticCapture", foreign, "EventsSource");
+        Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
 
         return entries;
     }

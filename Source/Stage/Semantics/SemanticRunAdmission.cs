@@ -16,6 +16,18 @@ namespace Cratis.Stage.Semantics;
 /// </summary>
 public static class SemanticRunAdmission
 {
+    const string UnsupportedVersion = "STAGE-ESM-016: The model's language/semantic version is not one Stage has audited.";
+
+    /// <summary>
+    /// Checks the audited version pair before finding constructs that block live model admission.
+    /// </summary>
+    /// <param name="model">The executable model.</param>
+    /// <returns>The precise capability refusals.</returns>
+    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSemanticModel model) =>
+        SemanticVersionFeatures.Supports(model)
+            ? ModelFeatures(model.Application)
+            : [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion)];
+
     /// <summary>
     /// Finds later-version constructs that block live model admission.
     /// </summary>
@@ -50,6 +62,7 @@ public static class SemanticRunAdmission
     public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification)
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
+        if (!SemanticVersionFeatures.Supports(plan.Model)) return Block(StageExecutionCapability.PlanIssue, plan.Model.Application.Id, UnsupportedVersion);
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
         if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
 
@@ -195,14 +208,14 @@ public static class SemanticRunAdmission
 
     static SemanticAdmissionFeature Feature(SemanticVersionFeature feature) => new(feature.Artifact.ToString(), feature.Kind, feature.Capability.ToString(), $"{feature.Code}: {feature.Message}");
 
-    // ESM v5-v7 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
+    // ESM v5-v9 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
     // an absence assertion, a generated value or a response would otherwise be dropped and the run could pass.
     // Any automation construct in the model blocks every run, since its consequences could follow any command.
     static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
         var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
-            .Concat(slices.SelectMany(SemanticVersionFeatures.InSlice))
+            .Concat(slices.SelectMany(slice => SemanticVersionFeatures.InSlice(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
             .Concat(SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))
             .FirstOrDefault();

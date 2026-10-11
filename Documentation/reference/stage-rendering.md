@@ -98,6 +98,15 @@ The topbar, sidebar, menu, breadcrumb, footer and settings panel are the bluepri
 the menu lists the model's screens, the breadcrumb shows the current one, and the topbar carries the blueprint's
 theme switcher and, when the model declares more than one locale, a locale picker.
 
+### Authored navigation hierarchy
+
+When a feature declares `contribute to Navigation` entries, the menu is the application hierarchy the model wrote
+instead of a flat list of screen names: a group for the module and for each feature, nested as deep as the model
+nests features, with each entry under the feature that contributed it and ordered by its `order`. An entry links to
+the screen it opens; the current screen is marked, and the breadcrumb shows the groups leading to it. A feature's
+entry reaches the runtime on every screen of that feature and is shown once. A model with no navigation entries keeps
+the flat list of screens.
+
 Themes are the blueprint's (`Scene Default Light` and `Scene Default Dark`). The active theme's colour scheme is
 mirrored onto the document root so PrimeReact overlays, which are portalled to `body`, follow it.
 

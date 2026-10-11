@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { SceneElement, Screen, ScreenTemplate, UiProfile } from '@cratis/scene.model';
+import { authoredNavigationEntries, navigationPathTo, navigationTree } from './navigationTree';
 import type { PackageCatalog } from '@cratis/scene.engine';
 import { coreComponents, type ComponentRegistry } from '@cratis/scene.react';
 import { primeReactComponents, primeReactPackageManifest } from '@cratis/scene.primereact';
@@ -22,6 +23,9 @@ const stagePackages = ['core', 'PrimeReact', defaultBlueprintName];
 
 /** The qualified name Stage registers its locale picker under. */
 export const stageLocaleComponent = 'Stage:locale';
+
+/** The qualified name Stage registers its navigation tree under. */
+export const stageNavigationTreeComponent = 'Stage:navigationTree';
 
 /**
  * The profile a scene renders against.
@@ -93,7 +97,13 @@ function logo(id: string): SceneElement {
  */
 export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string): Record<string, SceneElement[]> {
     const first = screens[0]?.name ?? '';
+    const authored = authoredNavigationEntries(screens);
+    const tree = navigationTree(authored);
     const entries = screens.map((screen, index) => navigationElement({ label: screen.name, targetScreen: screen.name, icon: 'pi pi-table', group: 'Screens', order: index }, activeScreen));
+    const trail = navigationPathTo(tree, activeScreen);
+    const menu = authored.length > 0
+        ? externalComponent('menu-hierarchy', stageNavigationTreeComponent, { nodes: tree, activeScreen })
+        : externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries });
     const end: SceneElement[] = [];
     if (locales.length > 1) end.push(externalComponent('topbar-locale', stageLocaleComponent, { locales, locale }));
     end.push(externalComponent('topbar-theme', ComponentName.ThemeSwitcher, { label: 'Theme' }));
@@ -101,10 +111,10 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
     return {
         [SlotName.Topbar]: [externalComponent('topbar', ComponentName.Topbar, {}, { logo: [logo('topbar-logo')], end })],
         [SlotName.Sidebar]: [externalComponent('sidebar', ComponentName.Sidebar, {}, { logo: [logo('sidebar-logo')] })],
-        [SlotName.Menu]: [externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries })],
+        [SlotName.Menu]: [menu],
         [SlotName.Breadcrumb]: [externalComponent('breadcrumb', ComponentName.Breadcrumb, {
             homeTargetScreen: first,
-            items: [{ label: activeScreen }],
+            items: (trail.length > 0 ? trail : [activeScreen]).map(label => ({ label })),
         })],
         [SlotName.Footer]: [externalComponent('footer', ComponentName.Footer, { text: `${stageApplicationName} · rendered from your model` })],
         [SlotName.ConfigPanel]: [externalComponent(ComponentName.ConfigPanel, ComponentName.ConfigPanel, {

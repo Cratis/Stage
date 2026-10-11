@@ -54,3 +54,9 @@ button { font: inherit; }
 .stage-form input { background: var(--layout-background, #fff); border: 1px solid var(--layout-border, #e2e5e9); border-radius: 0.3rem; color: inherit; padding: 0.45rem 0.6rem; }
 pre { background: var(--layout-background, #f4f5f7); border-radius: 0.4rem; overflow: auto; padding: 1rem; }
 [role='table'] header { display: flex; gap: 1rem; font-weight: 600; }
+
+.stage-navigation-tree ul { list-style: none; margin: 0; padding: 0 0 0 1rem; }
+.stage-navigation-tree > ul { padding-left: 0; }
+.stage-navigation-group { display: block; font-weight: 600; padding: 0.35rem 0.5rem; }
+.stage-navigation-tree a { border-radius: var(--layout-radius, 0.5rem); color: inherit; display: block; padding: 0.35rem 0.5rem; text-decoration: none; }
+.stage-navigation-tree a[aria-current='page'] { background: var(--layout-border, #e2e5e9); font-weight: 600; }

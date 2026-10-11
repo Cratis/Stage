@@ -9,7 +9,8 @@ import { useSceneTheme } from '@cratis/scene.react';
 import { useEffect } from 'react';
 import { FlowArrangementView } from './FlowArrangementView';
 import { useSizeClass } from './useSizeClass';
-import { stageLocaleComponent } from './blueprint';
+import { screenHash, stageLocaleComponent, stageNavigationTreeComponent } from './blueprint';
+import type { NavigationNode } from './navigationTree';
 
 /** What the Stage's own components need that the document itself does not carry. */
 export interface StageChromeState {
@@ -74,6 +75,38 @@ export function StageLocale() {
     );
 }
 
+/**
+ * The application's navigation as the hierarchy the model declared: a group per module and feature, nested as deep
+ * as the model nests them, each entry linking to the screen it opens.
+ */
+export function StageNavigationTree({ element }: RegisteredComponentProps) {
+    const properties = (element.properties ?? {}) as { nodes?: NavigationNode[]; activeScreen?: string };
+    return (
+        <nav className='stage-navigation-tree' aria-label='Navigation' data-scene-id={element.id}>
+            <NavigationLevel nodes={properties.nodes ?? []} activeScreen={properties.activeScreen} />
+        </nav>
+    );
+}
+
+function NavigationLevel({ nodes, activeScreen }: { nodes: NavigationNode[]; activeScreen?: string }) {
+    return (
+        <ul role='tree'>
+            {nodes.map(node => node.screen !== undefined
+                ? (
+                    <li key={`${node.screen}:${node.label}`} role='treeitem'>
+                        <a href={screenHash(node.screen)} aria-current={node.screen === activeScreen ? 'page' : undefined}>{node.label}</a>
+                    </li>
+                )
+                : (
+                    <li key={node.label} role='treeitem' aria-expanded='true'>
+                        <span className='stage-navigation-group'>{node.label}</span>
+                        <NavigationLevel nodes={node.children} activeScreen={activeScreen} />
+                    </li>
+                ))}
+        </ul>
+    );
+}
+
 /** What the last interaction did, or could not do. */
 export function StageActivity() {
     const { activity } = useContext(StageChromeContext);
@@ -106,5 +139,6 @@ export function ColorSchemeMirror() {
 export const stageChromeComponents: ComponentRegistry = {
     [stageTemplateComponent]: StageTemplate,
     [stageLocaleComponent]: StageLocale,
+    [stageNavigationTreeComponent]: StageNavigationTree,
     [stageActivityComponent]: StageActivity,
 };

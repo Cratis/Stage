@@ -131,10 +131,7 @@ internal static class SemanticVersionFeatures
             }
         }
 
-        foreach (var reducer in slice.Reducers.Where(reducer => reducer.From is not null))
-        {
-            yield return new(ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
-        }
+        foreach (var filter in ReducerFiltersInSlice(slice)) yield return filter;
 
         if (slice.Kind is SemanticSliceKind.Automation or SemanticSliceKind.Translate)
         {
@@ -314,6 +311,15 @@ internal static class SemanticVersionFeatures
             yield return new(Routes, StageExecutionCapability.IdentityAllocation, specification.Id, "specification", $"Specification '{specification.Name}' uses event-source routing assertions, which the Cratis ESM planner cannot render yet.");
         }
     }
+
+    /// <summary>
+    /// Finds reducer filters that rendering admits but the Host and specification executor still refuse.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The filtered reducers.</returns>
+    public static IEnumerable<SemanticVersionFeature> ReducerFiltersInSlice(SemanticSlice slice) =>
+        slice.Reducers.Where(reducer => reducer.From is not null).Select(reducer => new SemanticVersionFeature(
+            ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet."));
 
     static IEnumerable<SemanticId> ConstraintEvents(IEnumerable<SemanticConstraint> constraints) =>
         constraints.SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy));

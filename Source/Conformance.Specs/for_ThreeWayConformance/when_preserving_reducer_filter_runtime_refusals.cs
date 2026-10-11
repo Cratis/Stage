@@ -1,0 +1,41 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+using Cratis.Stage.Semantics;
+using Cratis.Stage.Specifications;
+using Xunit;
+
+namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
+
+public class when_preserving_reducer_filter_runtime_refusals
+{
+    [Theory]
+    [InlineData("OrdersSource")]
+    [InlineData("OrdersSource.Entries")]
+    public async Task should_render_the_filter_but_keep_host_and_executor_refusals(string filter)
+    {
+        var source = when_rendering_reducer_observer_filters.Source(filter) + """
+
+              specification RecordingAnOrder
+                when PlaceOrder
+                  id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  amount = 20
+                then OrderPlaced
+                  id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  amount = 20
+        """;
+        var loaded = await when_rendering_a_pure_reducer.Load(source);
+        var plan = SemanticExecutionPlan.Compile(loaded.Model).Plan!;
+        var rendered = when_rendering_a_pure_reducer.Plan(loaded);
+        Assert.True(rendered.Success, string.Join(Environment.NewLine, rendered.Diagnostics));
+        var hostFeature = Assert.Single(SemanticRunAdmission.ModelFeatures(loaded.Model));
+        Assert.StartsWith("STAGE-ESM-035:", hostFeature.Details, StringComparison.Ordinal);
+        var report = await new SemanticSpecificationExecutor().Run(plan, new([.. plan.Specifications.Keys]), new());
+        var result = Assert.Single(report.Results);
+        Assert.Equal(SemanticSpecificationOutcome.Unsupported, result.Outcome);
+        Assert.StartsWith("STAGE-ESM-035:", result.Unsupported!.Details, StringComparison.Ordinal);
+    }
+}

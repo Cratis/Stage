@@ -47,6 +47,8 @@ internal static partial class SemanticSpecificationAdmission
         var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == expected.ReadModel);
         if (reducer is not null)
         {
+            // ReadModelScenario replays event content and source ids, not observer routing filters.
+            if (reducer.From is not null) return false;
             var command = context.Commands[specification.When!.Command];
 
             // Without occurrence identities, unordered duplicates cannot be replayed against

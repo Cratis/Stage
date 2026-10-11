@@ -359,15 +359,17 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
 
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
-        // Admit the version pair, but refuse each construct until every execution path can preserve it.
+        // Admit each construct only on the paths that can preserve it.
         var identity = rejected(SemanticVersionFeatures.ReactionIdentity);
         Add(entries, "SemanticReaction", identity, "RunsAs");
         Add(entries, "SemanticReactionIdentity", identity, "Kind Roles");
         Add(entries, "SemanticReactionIdentityKind", identity, "System");
         var filters = rejected(SemanticVersionFeatures.ObserverFilters);
         Add(entries, "SemanticReaction", filters, "From");
-        Add(entries, "SemanticReducer", filters, "From");
-        Add(entries, "SemanticObserverFilter", filters, "Source Stream");
+        // Reducer filters render as Chronicle attributes. The Host and executor retain STAGE-ESM-035:
+        // neither executes reducer bodies. Reaction usage of the same filter members stays refused.
+        Add(entries, "SemanticReducer", rendered, "From");
+        Add(entries, "SemanticObserverFilter", rendered, "Source Stream");
         Add(entries, "SemanticProducedEvent", rejected(SemanticVersionFeatures.ProductionRoutes), "Route");
 
         return entries;

@@ -36,7 +36,7 @@ internal static class GeneratedTypeNames
         {
             foreach (var name in Names(eventSourcesNamespace, EventSourceName(source.Name), source.Id, "EventSource", generated: true)) yield return name;
         }
-        if (UsesStreamIds(selectedSlices.SelectMany(slice => slice.Slice.Commands)))
+        if (UsesStreamIds(selectedSlices.Select(slice => slice.Slice)))
         {
             foreach (var name in Names("GeneratedEventSources", "StreamIds", application.Id, "Generated")) yield return name;
         }
@@ -139,6 +139,11 @@ internal static class GeneratedTypeNames
 
     internal static bool UsesStreamIds(IEnumerable<SemanticCommand> commands) =>
         commands.Any(command => command.Route is { } route && (route.StreamId is SemanticResolvedExpression || !route.StreamIdParts.IsDefaultOrEmpty));
+
+    internal static bool UsesStreamIds(IEnumerable<SemanticSlice> slices) =>
+        slices.Any(slice => UsesStreamIds(slice.Commands) || slice.Specifications.Any(specification =>
+            specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is { } route &&
+                (route.StreamId is not null || !route.StreamIdParts.IsDefaultOrEmpty))));
 
     internal static bool UsesCommandReceiptTime(IEnumerable<SemanticCommand> commands) =>
         commands.Any(command => command.Produces.Any(produced => produced.Mappings.Any(mapping =>

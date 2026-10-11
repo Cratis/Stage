@@ -18,7 +18,9 @@ internal static class SemanticEventSourceArtifactRenderer
     internal static IReadOnlyList<SemanticEventSource> Selected(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
         if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application) return context.Application.EventSources;
-        var references = slices.SelectMany(slice => slice.Slice.Commands).Select(command => command.Route?.Source).ToHashSet();
+        var references = slices.SelectMany(slice => slice.Slice.Commands).Select(command => command.Route?.Source)
+            .Concat(slices.SelectMany(slice => slice.Slice.Specifications).SelectMany(specification =>
+                specification.GivenEvents.Concat(specification.ThenEvents).Select(occurrence => occurrence.Route?.Source))).ToHashSet();
         return [.. context.Application.EventSources.Where(source => references.Contains(source.Id))];
     }
 

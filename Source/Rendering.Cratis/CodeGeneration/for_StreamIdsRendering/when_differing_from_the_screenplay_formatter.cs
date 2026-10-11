@@ -19,7 +19,7 @@ public class when_differing_from_the_screenplay_formatter : given.a_compiled_cod
             var expected = SemanticStreamIdFormatter.TryFormatText(text, out var canonical, out _);
             if (actual != expected || (actual && formatted != canonical)) _differences.Add("Text");
         }
-        foreach (var integer in new[] { int.MinValue, -42, 0, 42, int.MaxValue })
+        foreach (var integer in new[] { -9007199254740991L, int.MinValue, -42, 0, 42, int.MaxValue, 9007199254740991L })
         {
             SemanticStreamIdFormatter.TryFormatInteger(integer, true, out var canonical, out _);
             if ((string)Invoke("Integer", integer) != canonical) _differences.Add("Integer");

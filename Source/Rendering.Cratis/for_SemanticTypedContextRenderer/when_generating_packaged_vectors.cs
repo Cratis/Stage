@@ -390,7 +390,7 @@ public class when_generating_packaged_vectors
                 {
                     "Primitive" => primitive switch
                     {
-                        "Uuid" => "Guid", "Text" => "string", "WholeNumber" => "int", "DecimalNumber" => "decimal",
+                        "Uuid" => "Guid", "Text" => "string", "WholeNumber" => context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8) ? "long" : "int", "DecimalNumber" => "decimal",
                         "Boolean" => "bool", "Date" => "DateOnly", "DateTime" => "DateTimeOffset", _ => throw new InvalidOperationException()
                     },
                     "Concept" or "CompositeType" => $"global::Projects.Common.{Identifiers.ToPascalCase(descriptor.Types.Single(def => def.Id.ToString() == modelType.GetProperty("target").GetString()).Name)}",

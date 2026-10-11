@@ -27,13 +27,13 @@ public class when_reading_shared_codec_vectors : given.a_compiled_codec
             {
                 if ((string)Invoke("Uuid", Guid.Parse(input)) != uuid.GetString()) _differences.Add(vector.ToString());
             }
-            else if (kind == "Int" && int.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer) && vector.TryGetProperty("canonical", out var number))
+            else if (kind == "Int" && long.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer) && vector.TryGetProperty("canonical", out var number))
             {
                 if ((string)Invoke("Integer", integer) != number.GetString()) _differences.Add(vector.ToString());
             }
 
-            // Malformed UUIDs and integers outside Int32 are binder/literal admission vectors;
-            // generated handlers receive a Guid or int, never authored scalar text.
+            // Malformed UUIDs and integers outside Int64 are binder/literal admission vectors;
+            // generated handlers receive a Guid or long, never authored scalar text.
         }
         foreach (var vector in _vectors.RootElement.GetProperty("composites").EnumerateArray())
         {

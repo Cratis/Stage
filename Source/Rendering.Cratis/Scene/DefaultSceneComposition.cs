@@ -101,7 +101,7 @@ internal static class DefaultSceneComposition
             (type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts[type.Target].Values.IsEmpty))
         {
             // All known scalars can reach the descriptor check; only the Scene-supported subset is selected there.
-            _ = SemanticTypeSystem.Primitive(primitive);
+            _ = new SemanticTypeSystem(context).Primitive(primitive);
         }
 
         return type.IsCollection ? SemanticPrimitiveType.Unknown : primitive;

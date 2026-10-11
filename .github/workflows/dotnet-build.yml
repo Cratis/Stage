@@ -159,7 +159,7 @@ jobs:
         run: |
           git init "$RUNNER_TEMP/chronicle-source"
           git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
-          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 30dc461bd08f9b397ad00ca213d36350553d3ed1
+          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 6b32f743afcbeaa0fdeab5b0fa72ab1f40f96e9e
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
       # The helper invokes dotnet test --no-build with the guarded filter for each project, then
@@ -310,7 +310,7 @@ jobs:
         run: |
           git init "$RUNNER_TEMP/chronicle-source"
           git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
-          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 30dc461bd08f9b397ad00ca213d36350553d3ed1
+          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 6b32f743afcbeaa0fdeab5b0fa72ab1f40f96e9e
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
       - name: Run generated-name matrix
@@ -375,7 +375,7 @@ jobs:
 
       - name: Run the browser scenarios against the generated application
         env:
-          STAGE_GENERATED_REACT_CHRONICLE_IMAGE: cratis/chronicle:19.32.0-development
+          STAGE_GENERATED_REACT_CHRONICLE_IMAGE: cratis/chronicle:19.45.0-development
         run: Verification/generated-react-browser/run.sh "${{ runner.temp }}/generated-react" "$PWD/TestResults/generated-react/browser-result.json"
 
       - name: Upload build and browser results

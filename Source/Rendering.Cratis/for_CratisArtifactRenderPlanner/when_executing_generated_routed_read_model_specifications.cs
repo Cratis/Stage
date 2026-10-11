@@ -14,7 +14,9 @@ public class when_executing_generated_routed_read_model_specifications : a_gener
         .Replace("id \"stored-entries\"", "id \"stored-entries\"\n    streamId Int", StringComparison.Ordinal)
         .Replace("        amount Decimal\n        produces", "        amount Decimal\n        period Int\n        stream OrdersSource.Entries\n          streamId = period\n        produces", StringComparison.Ordinal)
         .Replace("return new Total(context.Event.Id, context.Event.Amount);", "return new Total(context.Event.Id, (context.State?.Amount ?? 0m) + context.Event.Amount);", StringComparison.Ordinal)
-        .Replace("    slice StateView Totals", """
+        .Replace(
+            "    slice StateView Totals",
+            """
               specification SummingRoutedOrders
                 given OrderPlaced
                   for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
@@ -61,7 +63,8 @@ public class when_executing_generated_routed_read_model_specifications : a_gener
                   id = id
                   amount = amount
             slice StateView Totals
-        """, StringComparison.Ordinal);
+        """,
+            StringComparison.Ordinal);
 
     protected override ArtifactRenderPlan CreatePlan() => when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(Source).GetAwaiter().GetResult());
 

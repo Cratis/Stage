@@ -217,7 +217,7 @@ internal static class SemanticHost
         {
             app.MapGet(SemanticReadModelBrowser.Route, (HttpContext context) => RefusedResponse(context, issues));
             app.MapGet($"{SemanticReadModelBrowser.Route}/{{id}}", (HttpContext context, string id) => RefusedResponse(context, issues));
-            app.MapFallbackToFile("index.html");
+            app.MapFallbackToFile("/read-models", "index.html");
         }
         MapRefusedApi(app, issues);
     }

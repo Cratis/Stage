@@ -24,6 +24,7 @@ public class a_browser : a_routed_model
     protected bool _failAppend;
     protected virtual bool Refused => false;
     protected virtual string Engine => "semantic";
+    protected virtual string ModelSource => Source;
     protected SemanticId ModelId => _semanticRuntime!.Plan.ReadModels.Values.Single(model => model.Name == "ProjectSummary").Id;
     protected const string CommandRoute = "/api/projects/registration/register-project/register-project";
     protected const string Payload = """
@@ -33,7 +34,7 @@ public class a_browser : a_routed_model
     async Task Establish()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("browser-model"), "browser-model", "Projects.play", Source);
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("browser-model"), "browser-model", "Projects.play", ModelSource);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
         var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
@@ -50,7 +51,7 @@ public class a_browser : a_routed_model
             tail = tail == ulong.MaxValue ? (ulong)call.Arg<IReadOnlyList<SemanticFact>>().Count - 1 : tail + (ulong)call.Arg<IReadOnlyList<SemanticFact>>().Count;
             return Task.CompletedTask;
         });
-        MapSemanticModel(EventModelLoader.LoadFromSource(Source), plan.Plan!, _facts);
+        MapSemanticModel(EventModelLoader.LoadFromSource(ModelSource), plan.Plan!, _facts);
         if (Engine == "eventmodel")
         {
             SemanticReadModelBrowser.MapEventModel(_app);

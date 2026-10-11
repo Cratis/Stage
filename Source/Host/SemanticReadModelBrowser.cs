@@ -83,7 +83,7 @@ internal static class SemanticReadModelBrowser
                 id = model.Id.ToString(), model.Name, properties = Properties(model, application),
                 instances = instances.Select(instance => new
                 {
-                    key = SemanticJsonValues.ToObject(instance.Key),
+                    key = SemanticJsonValues.ToObject(instance.Key, model.Properties.SingleOrDefault(property => property.IsIdentifier)?.Type, application),
                     values = instance.Values.ToDictionary(
                         value => model.Properties.Single(property => property.Id == value.TargetProperty).Name,
                         value => SemanticJsonValues.ToObject(value.Value, model.Properties.Single(property => property.Id == value.TargetProperty).Type, application))

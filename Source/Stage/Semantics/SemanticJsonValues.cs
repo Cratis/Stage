@@ -9,9 +9,15 @@ using Cratis.Stage.Runtime;
 namespace Cratis.Stage.Semantics;
 
 /// <summary>
+/// The exception that is thrown when an incoming JSON value cannot be bound to its semantic contract.
+/// </summary>
+/// <param name="details">The reason the value cannot be bound.</param>
+public sealed class UnsupportedSemanticValue(string details = "The command payload contains an unsupported semantic value.") : Exception(details);
+
+/// <summary>
 /// Converts semantic values to JSON-compatible values for the live runtime's HTTP surfaces.
 /// </summary>
-public static class SemanticJsonValues
+internal static class SemanticJsonValues
 {
     /// <summary>
     /// Converts a scalar semantic value or an array of scalar values to JSON-compatible values.
@@ -19,7 +25,7 @@ public static class SemanticJsonValues
     /// <param name="value">The semantic value.</param>
     /// <returns>The corresponding JSON-compatible value.</returns>
     /// <exception cref="UnsupportedSemanticValue">The value requires a composite type contract.</exception>
-    public static object? ToObject(SemanticValue value) => ToObject(value, null, null);
+    internal static object? ToObject(SemanticValue value) => ToObject(value, null, null);
 
     /// <summary>
     /// Converts a semantic value, resolving composite property names from its type contract.
@@ -29,7 +35,7 @@ public static class SemanticJsonValues
     /// <param name="application">The application declaring the composite types.</param>
     /// <returns>The corresponding JSON-compatible value.</returns>
     /// <exception cref="UnsupportedSemanticValue">The value cannot be converted with the supplied contract.</exception>
-    public static object? ToObject(SemanticValue value, SemanticTypeReference? type, SemanticApplication? application) => value switch
+    internal static object? ToObject(SemanticValue value, SemanticTypeReference? type, SemanticApplication? application) => value switch
     {
         SemanticNullValue => null,
         SemanticTextValue text => text.Value,
@@ -106,9 +112,3 @@ public static class SemanticJsonValues
         _ => throw new UnsupportedSemanticValue()
     };
 }
-
-/// <summary>
-/// The exception that is thrown when an incoming JSON value cannot be bound to its semantic contract.
-/// </summary>
-/// <param name="details">The reason the value cannot be bound.</param>
-public sealed class UnsupportedSemanticValue(string details = "The command payload contains an unsupported semantic value.") : Exception(details);

@@ -65,13 +65,24 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             }
         }
 
+        var routedReplay = specification.GivenEvents.Any(given => given.Route is not null) ||
+            SemanticSpecificationRouteRendering.ForCommand(specification, context) is not null;
+        var seedScenario = routedReplay ? "_readModelScenario" : "_scenario";
+        if (routedReplay)
+        {
+            builder.Using("Cratis.Chronicle.Testing.ReadModels");
+        }
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {name} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{readModelName}> _scenario = new();")
             .Line("readonly global::Cratis.Arc.Authorization.CurrentPrincipalAccessor _principalAccessor = new(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
-            .Line("global::Cratis.Arc.Queries.QueryResult _result = null!;")
-            .BlankLine()
-            .OpenBlock("void Establish()")
+            .Line("global::Cratis.Arc.Queries.QueryResult _result = null!;");
+        if (routedReplay)
+        {
+            builder.Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _readModelScenario = new();");
+        }
+        builder.BlankLine()
+            .OpenBlock(routedReplay ? "async global::System.Threading.Tasks.Task Establish()" : "void Establish()")
             .Line($"global::{context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);")
             .Line("_scenario.Services.AddSingleton<global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor>(_principalAccessor);");
         foreach (var given in specification.GivenEvents)
@@ -80,7 +91,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             var arguments = @event.Properties.Select(property =>
                 types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
             var source = given.EventSource!;
-            builder.Line($"_scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+            builder.Line($"{(routedReplay ? "await " : string.Empty)}{seedScenario}.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
         if (specification.When is { } action)
@@ -92,8 +103,12 @@ internal static class SemanticProtectedQuerySpecificationRenderer
                 var source = SemanticDestinations.ForSpecification(specification, command, produced);
                 var arguments = @event.Properties.Select(property =>
                     types.Value(eventExpectation.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
-                builder.Line($"_scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+                builder.Line($"{(routedReplay ? "await " : string.Empty)}{seedScenario}.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
             }
+        }
+        if (routedReplay)
+        {
+            builder.Line($"_scenario.Given.ForEventSource((global::Cratis.Chronicle.Events.EventSourceId){key}).ReadModel(_readModelScenario.InstanceForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key})!);");
         }
 
         var caller = specification.GivenCaller!;

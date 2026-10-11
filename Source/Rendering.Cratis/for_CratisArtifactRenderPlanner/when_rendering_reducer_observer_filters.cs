@@ -79,7 +79,7 @@ public class when_rendering_reducer_observer_filters
     }
 
     [Fact]
-    public async Task should_refuse_read_model_replay_that_would_discard_the_filter()
+    public async Task should_admit_read_model_replay_that_preserves_the_filter()
     {
         const string specification = """
               specification CreatingATotal
@@ -95,9 +95,8 @@ public class when_rendering_reducer_observer_filters
         """;
         var source = Source("OrdersSource.Entries").Replace("    slice StateView Totals", specification + "\n    slice StateView Totals", StringComparison.Ordinal);
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source));
-        Assert.False(plan.Success);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011");
-        Assert.Empty(plan.Artifacts);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        Assert.NotEmpty(plan.Artifacts);
     }
 
     static RenderedFile[] Files(ArtifactRenderPlan plan) => [.. plan.Artifacts

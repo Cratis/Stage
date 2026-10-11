@@ -157,11 +157,6 @@ internal static partial class SemanticSpecificationAdmission
             return "Query expectations on reducer-built read models require the rendered target's query scenario, which is not admitted in Phase 1.";
         }
 
-        if (specification.ThenReadModels.Any(expected => context.Reducers.Any(reducer => reducer.ReadModel == expected.ReadModel && reducer.From is not null)))
-        {
-            return "A filtered reducer requires route-aware replay and observer filtering, which Chronicle's ReadModelScenario does not supply.";
-        }
-
         if (specification.ThenReadModels.Any(expected => ReducerUsesUnstableContext(context, expected.ReadModel)))
         {
             return "A reducer body reads context.Occurred, context.SequenceNumber or context.Tenant, which Chronicle's ReadModelScenario cannot supply deterministically.";

@@ -92,7 +92,7 @@ internal static class SemanticQuerySpecificationRenderer
             var givenArguments = givenEvent.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var givenSource = given.EventSource!;
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
         }
 
         foreach (var (produced, expectedEvent) in replay)
@@ -101,7 +101,7 @@ internal static class SemanticQuerySpecificationRenderer
             var source = SemanticDestinations.ForSpecification(specification, command!, produced);
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
         if (query.Cardinality == SemanticQueryCardinality.Many)

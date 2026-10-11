@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
@@ -12,6 +13,22 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static class SemanticSharedReferences
 {
+    /// <summary>
+    /// Collects source definitions referenced by commands, fixtures and reducer filters in declaration order.
+    /// </summary>
+    /// <param name="context">The indexed application.</param>
+    /// <param name="slices">The selected slices.</param>
+    /// <returns>The referenced event sources, or all sources for an application render.</returns>
+    internal static IReadOnlyList<SemanticEventSource> EventSources(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
+    {
+        if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application) return context.Application.EventSources;
+        var references = slices.SelectMany(slice => slice.Slice.Commands).Select(command => command.Route?.Source)
+            .Concat(slices.SelectMany(slice => slice.Slice.Reducers).Select(reducer => reducer.From?.Source))
+            .Concat(slices.SelectMany(slice => slice.Slice.Specifications).SelectMany(specification =>
+                specification.GivenEvents.Concat(specification.ThenEvents).Select(occurrence => occurrence.Route?.Source))).ToHashSet();
+        return [.. context.Application.EventSources.Where(source => references.Contains(source.Id))];
+    }
+
     /// <summary>
     /// Collects concepts and composite types in application declaration order, including transitive dependencies.
     /// </summary>

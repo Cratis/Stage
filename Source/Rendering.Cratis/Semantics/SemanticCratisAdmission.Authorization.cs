@@ -56,38 +56,35 @@ internal static partial class SemanticCratisAdmission
         }
 
         var subject = command.Properties.SingleOrDefault(property => property.IsIdentifier);
-        return ValidateAuthorization(context, command.Authorization, command.Id, command.Name, subject, diagnostics) &&
-            ValidateClaimTargets(context, command.Authorization, command.Properties, subject, command.Id, command.Name, diagnostics);
+        var site = new AuthorizationSite(command.Id, command.Name, subject, command.Properties);
+        return ValidateAuthorization(context, command.Authorization, site, diagnostics) &&
+            ValidateClaimTargets(context, command.Authorization, site, diagnostics);
     }
 
     static bool ValidateQueryAuthorization(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics)
     {
         var subject = query.Argument is null ? null : new SemanticProperty(query.Argument.Id, query.Argument.Name, query.Argument.Type, false);
-        if (!ValidateAuthorization(context, query.Authorization, query.Id, query.Name, subject, diagnostics))
+        var site = new AuthorizationSite(query.Id, query.Name, subject, subject is null ? [] : [subject]);
+        if (!ValidateAuthorization(context, query.Authorization, site, diagnostics))
         {
             return false;
         }
 
-        if (subject is null && query.Authorization is { } authorization &&
-            (Claims(authorization, context.Application.Policies).Any(claim => claim.TargetKind != SemanticClaimTargetKind.Literal) ||
-                OpaquePolicies(authorization, context.Application.Policies).Any(policy =>
-                    context.PolicyContextReads[(((SemanticOpaquePolicyCondition)policy.Condition).RequirementId, query.Id)].Contains("Subject"))))
+        if (subject is null && query.Authorization is { } authorization && ReferencesSubject(context, authorization, query.Id))
         {
             diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{query.Name}' references an argument or subject, but the query has no argument.", query.Id));
             return false;
         }
 
-        return ValidateClaimTargets(
-                context,
-                query.Authorization,
-                subject is null ? [] : [subject],
-                subject,
-                query.Id,
-                query.Name,
-                diagnostics);
+        return ValidateClaimTargets(context, query.Authorization, site, diagnostics);
     }
 
-    static bool ValidateAuthorization(SemanticApplicationContext context, SemanticAuthorization? authorization, SemanticId id, string name, SemanticProperty? subject, List<ArtifactRenderDiagnostic> diagnostics)
+    static bool ReferencesSubject(SemanticApplicationContext context, SemanticAuthorization authorization, SemanticId operation) =>
+        Claims(authorization, context.Application.Policies).Any(claim => claim.TargetKind != SemanticClaimTargetKind.Literal) ||
+        OpaquePolicies(authorization, context.Application.Policies).Any(policy =>
+            context.PolicyContextReads[(((SemanticOpaquePolicyCondition)policy.Condition).RequirementId, operation)].Contains("Subject"));
+
+    static bool ValidateAuthorization(SemanticApplicationContext context, SemanticAuthorization? authorization, AuthorizationSite site, List<ArtifactRenderDiagnostic> diagnostics)
     {
         if (authorization is null)
         {
@@ -100,123 +97,145 @@ internal static partial class SemanticCratisAdmission
             .FirstOrDefault(policy => policy.Condition is not SemanticOpaquePolicyCondition);
         if (nested is not null)
         {
-            diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' references policy '{nested.Name}', which nests an opaque predicate inside a condition; only a whole csharp/file policy can compose with portable policies.", id));
+            diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{site.Name}' references policy '{nested.Name}', which nests an opaque predicate inside a condition; only a whole csharp/file policy can compose with portable policies.", site.Id));
             return false;
         }
 
         if (!CanRender(authorization, context.Application.Policies) ||
             Claims(authorization, context.Application.Policies).Any(claim => IsRoleClaim(claim.Claim)))
         {
-            diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' contains a role claim URI, or has an unresolved or non-portable policy.", id));
+            diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{site.Name}' contains a role claim URI, or has an unresolved or non-portable policy.", site.Id));
             return false;
         }
 
         var admitted = true;
         foreach (var policy in OpaquePolicies(authorization, context.Application.Policies).DistinctBy(policy => policy.Name))
         {
-            admitted &= ValidateOpaquePolicy(context, (SemanticOpaquePolicyCondition)policy.Condition, policy.Name, id, name, subject, diagnostics);
+            admitted &= ValidateOpaquePolicy(context, policy, site, diagnostics);
         }
 
         return admitted;
     }
 
-    static bool ValidateOpaquePolicy(
-        SemanticApplicationContext context,
-        SemanticOpaquePolicyCondition opaque,
-        string policy,
-        SemanticId operation,
-        string name,
-        SemanticProperty? subject,
-        List<ArtifactRenderDiagnostic> diagnostics)
+    static bool ValidateOpaquePolicy(SemanticApplicationContext context, SemanticPolicy policy, AuthorizationSite site, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        var verified = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
-        if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, opaque.RequirementId, operation, verified, out var body))
+        var opaque = (SemanticOpaquePolicyCondition)policy.Condition;
+        if (BindPolicy(context, policy, site, diagnostics) is not { } binding)
         {
-            diagnostics.AddRange(verified);
-            return false;
-        }
-
-        var requirement = context.Request.ImplementationRequirements.FirstOrDefault(candidate => candidate?.RequirementId == opaque.RequirementId);
-        if (requirement is null || requirement.Role != SemanticImplementationRole.PolicyPredicate ||
-            requirement.ContextVersion != 1 || requirement.ResultVersion != 1 || requirement.RequiredCapability != "pure" ||
-            !((requirement.Language == "csharp" && requirement.File is null) ||
-                (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true)))
-        {
-            diagnostics.Add(Error("STAGE-ESM-019", $"Policy '{policy}' used by '{name}' has an unsupported implementation envelope or language.", operation));
-            return false;
-        }
-
-        var descriptors = context.Request.TypedContextDescriptors.IsDefault ? [] :
-            context.Request.TypedContextDescriptors.Where(descriptor => descriptor?.RequirementId == opaque.RequirementId && descriptor.OperationId == operation).ToArray();
-        if (descriptors.Length != 1 || !descriptors[0].IsWrapperReady || !IsPolicyContext(descriptors[0], operation, subject))
-        {
-            diagnostics.Add(Error("STAGE-ESM-021", $"Policy '{policy}' used by '{name}' has no unique wrapper-ready PolicyContext (Artifact, Subject, Identity, Tenant, Occurred) for this use site.", operation));
             return false;
         }
 
         PureTransitionAdmission.Verdict verdict;
         try
         {
-            verdict = PurePolicyAdmission.Analyze(body!, context, descriptors[0], requirement);
+            verdict = PurePolicyAdmission.Analyze(binding.Body, context, binding.Descriptor, binding.Requirement);
         }
         catch (Exception exception)
         {
-            diagnostics.Add(Error("STAGE-ESM-021", $"Policy '{policy}' used by '{name}' could not be analysed: {exception.Message}", operation));
+            diagnostics.Add(Error("STAGE-ESM-021", $"Policy '{policy.Name}' used by '{site.Name}' could not be analysed: {exception.Message}", site.Id));
             return false;
         }
 
         if (!verdict.Accepted)
         {
-            diagnostics.Add(Error(verdict.Code!, $"Policy '{policy}' used by '{name}': {verdict.Reason}", operation));
+            diagnostics.Add(Error(verdict.Code!, $"Policy '{policy.Name}' used by '{site.Name}': {verdict.Reason}", site.Id));
             return false;
         }
 
-        // Screenplay's Subject is text; Stage supplies only the canonical text of a text, Uuid, Date or DateTime key.
-        if (verdict.ContextReads.Contains("Subject") &&
-            descriptors[0].Members.Single(member => member.Name == "Subject").Source.Kind != SemanticContextSourceKinds.Unavailable &&
-            !(subject is { Type.IsCollection: false } && SemanticClaimTargets.Primitive(context, subject) is
-                SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime))
+        if (ReadsUnsupportedSubject(context, verdict, binding.Descriptor, site.Subject))
         {
-            diagnostics.Add(Error("STAGE-ESM-015", $"Policy '{policy}' used by '{name}' reads context.Subject, but the subject is neither text, Uuid, Date nor DateTime.", operation));
+            diagnostics.Add(Error("STAGE-ESM-015", $"Policy '{policy.Name}' used by '{site.Name}' reads context.Subject, but the subject is neither text, Uuid, Date nor DateTime.", site.Id));
             return false;
         }
 
-        context.PolicyContextReads[(opaque.RequirementId, operation)] = verdict.ContextReads;
+        context.PolicyContextReads[(opaque.RequirementId, site.Id)] = verdict.ContextReads;
         return true;
     }
+
+    static PolicyBinding? BindPolicy(SemanticApplicationContext context, SemanticPolicy policy, AuthorizationSite site, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var opaque = (SemanticOpaquePolicyCondition)policy.Condition;
+        var verified = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
+        if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, opaque.RequirementId, site.Id, verified, out var body))
+        {
+            diagnostics.AddRange(verified);
+            return null;
+        }
+
+        var requirement = context.Request.ImplementationRequirements.FirstOrDefault(candidate => candidate?.RequirementId == opaque.RequirementId);
+        if (requirement is null || !IsPurePolicyPredicate(requirement))
+        {
+            diagnostics.Add(Error("STAGE-ESM-019", $"Policy '{policy.Name}' used by '{site.Name}' has an unsupported implementation envelope or language.", site.Id));
+            return null;
+        }
+
+        var descriptors = ContextDescriptors(context, opaque.RequirementId, site.Id);
+        if (!IsWrapperReadyPolicyContext(descriptors, site))
+        {
+            diagnostics.Add(Error("STAGE-ESM-021", $"Policy '{policy.Name}' used by '{site.Name}' has no unique wrapper-ready PolicyContext (Artifact, Subject, Identity, Tenant, Occurred) for this use site.", site.Id));
+            return null;
+        }
+
+        return new PolicyBinding(body!, requirement, descriptors[0]);
+    }
+
+    static bool IsWrapperReadyPolicyContext(SemanticTypedContextDescriptor[] descriptors, AuthorizationSite site) =>
+        descriptors.Length == 1 && descriptors[0].IsWrapperReady && IsPolicyContext(descriptors[0], site.Id, site.Subject);
+
+    static SemanticTypedContextDescriptor[] ContextDescriptors(SemanticApplicationContext context, string requirementId, SemanticId operation) =>
+        context.Request.TypedContextDescriptors.IsDefault ? [] :
+            [.. context.Request.TypedContextDescriptors.Where(descriptor => descriptor?.RequirementId == requirementId && descriptor.OperationId == operation)];
+
+    static bool IsPurePolicyPredicate(SemanticImplementationRequirement requirement) =>
+        requirement.Role == SemanticImplementationRole.PolicyPredicate &&
+        requirement.ContextVersion == 1 && requirement.ResultVersion == 1 && requirement.RequiredCapability == "pure" &&
+        IsCSharpImplementation(requirement);
+
+    static bool IsCSharpImplementation(SemanticImplementationRequirement requirement) =>
+        (requirement.Language == "csharp" && requirement.File is null) ||
+        (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true);
+
+    // Screenplay's Subject is text; Stage supplies only the canonical text of a text, Uuid, Date or DateTime key.
+    static bool ReadsUnsupportedSubject(SemanticApplicationContext context, PureTransitionAdmission.Verdict verdict, SemanticTypedContextDescriptor descriptor, SemanticProperty? subject) =>
+        verdict.ContextReads.Contains("Subject") &&
+        descriptor.Members.Single(member => member.Name == "Subject").Source.Kind != SemanticContextSourceKinds.Unavailable &&
+        !IsTextualSubject(context, subject);
+
+    static bool IsTextualSubject(SemanticApplicationContext context, SemanticProperty? subject) =>
+        subject is { Type.IsCollection: false } &&
+        SemanticClaimTargets.Primitive(context, subject) is
+            SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime;
 
     static bool IsPolicyContext(SemanticTypedContextDescriptor descriptor, SemanticId operation, SemanticProperty? subject)
     {
         var members = descriptor.Members;
-        if (members.IsDefault || members.Length != 5 || members.Any(member => member?.Source is null || member.Type is null || member.IsDerived))
-        {
-            return false;
-        }
-
-        static bool Runtime(SemanticTypedContextMember member, string memberName, string token) =>
-            member.Name == memberName && member.Type.Kind == SemanticContextTypeKinds.Runtime && member.Type.RuntimeToken == token &&
-            member.Type.ModelType is null && member.Type.Shape is null && !member.IsNullable;
-
-        var subjectSource = members[1].Source;
-        return members[0].Name == "Artifact" && members[0].Source.Kind == SemanticContextSourceKinds.AuthorizedOperation &&
-            members[0].Source.SemanticId == operation && members[0].Type.Kind == SemanticContextTypeKinds.Shape && members[0].Type.Shape == operation &&
-            Runtime(members[1], "Subject", SemanticContextRuntimeTokens.Text) &&
-            (subjectSource.Kind == SemanticContextSourceKinds.Unavailable ||
-                ((subjectSource.Kind == SemanticContextSourceKinds.CommandIdentifier || subjectSource.Kind == SemanticContextSourceKinds.QueryKey) && subject is not null && subjectSource.SemanticId == subject.Id)) &&
-            Runtime(members[2], "Identity", SemanticContextRuntimeTokens.Identity) &&
-            Runtime(members[3], "Tenant", SemanticContextRuntimeTokens.TenantId) &&
-            Runtime(members[4], "Occurred", SemanticContextRuntimeTokens.DateTime) &&
+        return HasPolicyContextShape(members) &&
+            IsArtifactMember(members[0], operation) &&
+            IsRuntimeMember(members[1], "Subject", SemanticContextRuntimeTokens.Text) &&
+            IsSubjectSource(members[1], subject) &&
+            IsRuntimeMember(members[2], "Identity", SemanticContextRuntimeTokens.Identity) &&
+            IsRuntimeMember(members[3], "Tenant", SemanticContextRuntimeTokens.TenantId) &&
+            IsRuntimeMember(members[4], "Occurred", SemanticContextRuntimeTokens.DateTime) &&
             members.Skip(2).All(member => member.Source.Kind == SemanticContextSourceKinds.ContextContract && member.Source.Path == member.Name);
     }
 
-    static bool ValidateClaimTargets(
-        SemanticApplicationContext context,
-        SemanticAuthorization? authorization,
-        IReadOnlyList<SemanticProperty> properties,
-        SemanticProperty? subject,
-        SemanticId id,
-        string name,
-        List<ArtifactRenderDiagnostic> diagnostics)
+    static bool HasPolicyContextShape(ImmutableArray<SemanticTypedContextMember> members) =>
+        !members.IsDefault && members.Length == 5 && !members.Any(member => member?.Source is null || member.Type is null || member.IsDerived);
+
+    static bool IsArtifactMember(SemanticTypedContextMember member, SemanticId operation) =>
+        member.Name == "Artifact" && member.Source.Kind == SemanticContextSourceKinds.AuthorizedOperation &&
+        member.Source.SemanticId == operation && member.Type.Kind == SemanticContextTypeKinds.Shape && member.Type.Shape == operation;
+
+    static bool IsRuntimeMember(SemanticTypedContextMember member, string memberName, string token) =>
+        member.Name == memberName && member.Type.Kind == SemanticContextTypeKinds.Runtime && member.Type.RuntimeToken == token &&
+        member.Type.ModelType is null && member.Type.Shape is null && !member.IsNullable;
+
+    static bool IsSubjectSource(SemanticTypedContextMember member, SemanticProperty? subject) =>
+        member.Source.Kind == SemanticContextSourceKinds.Unavailable ||
+        ((member.Source.Kind == SemanticContextSourceKinds.CommandIdentifier || member.Source.Kind == SemanticContextSourceKinds.QueryKey) &&
+            subject is not null && member.Source.SemanticId == subject.Id);
+
+    static bool ValidateClaimTargets(SemanticApplicationContext context, SemanticAuthorization? authorization, AuthorizationSite site, List<ArtifactRenderDiagnostic> diagnostics)
     {
         if (authorization is null)
         {
@@ -224,13 +243,13 @@ internal static partial class SemanticCratisAdmission
         }
 
         var paths = Claims(authorization, context.Application.Policies).Where(claim => claim.TargetKind != SemanticClaimTargetKind.Literal)
-            .Select(claim => claim.TargetKind == SemanticClaimTargetKind.Subject ? subject?.Name : claim.Value);
-        if (paths.All(path => path is not null && IsSupportedClaimPath(context, properties, path)))
+            .Select(claim => claim.TargetKind == SemanticClaimTargetKind.Subject ? site.Subject?.Name : claim.Value);
+        if (paths.All(path => path is not null && IsSupportedClaimPath(context, site.Properties, path)))
         {
             return true;
         }
 
-        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{name}' compares a claim with an artifact value that is neither text, Uuid, Date, DateTime, nor a supported always-denied scalar.", id));
+        diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{site.Name}' compares a claim with an artifact value that is neither text, Uuid, Date, DateTime, nor a supported always-denied scalar.", site.Id));
         return false;
     }
 
@@ -272,14 +291,20 @@ internal static partial class SemanticCratisAdmission
 
     static bool CanRender(SemanticPolicyCondition condition) => condition switch
     {
-        SemanticAuthenticatedCondition => true,
-        SemanticOpaquePolicyCondition => true,
+        SemanticAuthenticatedCondition or SemanticOpaquePolicyCondition => true,
         SemanticRoleCondition { Role: not null } => true,
-        SemanticClaimCondition { Claim: not null, TargetKind: SemanticClaimTargetKind.Subject, Value: null } => true,
-        SemanticClaimCondition { Claim: not null, TargetKind: SemanticClaimTargetKind.Literal or SemanticClaimTargetKind.Artifact, Value: not null } => true,
+        SemanticClaimCondition claim => CanRender(claim),
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And or SemanticLogicalOperator.Or } logical =>
             CanRender(logical.Left) && CanRender(logical.Right),
         SemanticNotPolicyCondition not => CanRender(not.Operand),
         _ => false
     };
+
+    static bool CanRender(SemanticClaimCondition claim) => claim is
+        { Claim: not null, TargetKind: SemanticClaimTargetKind.Subject, Value: null } or
+        { Claim: not null, TargetKind: SemanticClaimTargetKind.Literal or SemanticClaimTargetKind.Artifact, Value: not null };
+
+    sealed record AuthorizationSite(SemanticId Id, string Name, SemanticProperty? Subject, IReadOnlyList<SemanticProperty> Properties);
+
+    sealed record PolicyBinding(string Body, SemanticImplementationRequirement Requirement, SemanticTypedContextDescriptor Descriptor);
 }

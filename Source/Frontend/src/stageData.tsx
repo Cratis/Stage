@@ -4,8 +4,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { BindingExpression } from '@cratis/scene.model';
-import { createBindingResolver, validateBindingExpression } from '@cratis/scene.engine';
+import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
+import { guardPath } from './stageGuards';
 
 const DATA_CHANGED = 'cratis.stage.data-changed';
 
@@ -24,6 +25,12 @@ export interface StageQueryRequest {
     route?: string;
     arguments?: Record<string, unknown>;
     ready?: boolean;
+
+    /**
+     * Whether the result is published to the screen's bindings. A query read only to decide something - the item a
+     * guard is evaluated against - is not, so it does not show up twice where the screen reads the same query.
+     */
+    publish?: boolean;
 }
 
 export interface StageQueryResult {
@@ -51,6 +58,12 @@ export interface StageDataState {
     refreshQuery: (query?: string) => void;
     refreshAfterCommand: () => void;
     resolveBinding: (binding: BindingExpression | string | undefined) => unknown;
+    /**
+     * Resolves a command argument source the way Scene does: `component.<id>.<output>` reads what another
+     * element publishes - such as the `value` an input holds or a table's `selectedItem` - and any other
+     * source is a data-context path.
+     */
+    resolveArgument: (source: string | undefined) => unknown;
     registerQueryResult: (scope: string, state: QueryState | undefined) => void;
     refreshVersion: number;
     refreshQueryName?: string;
@@ -73,6 +86,7 @@ const emptyState: StageDataState = {
     refreshQuery: () => undefined,
     refreshAfterCommand: () => undefined,
     resolveBinding: () => undefined,
+    resolveArgument: () => undefined,
     registerQueryResult: () => undefined,
     refreshVersion: 0,
 };
@@ -163,6 +177,10 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
 
     const resolveBinding = useCallback((binding: BindingExpression | string | undefined): unknown => {
         if (binding === undefined) return undefined;
+
+        // A guard is evaluated against the item its interaction is about - a table supplies the row it happened
+        // on. Resolved without one, it is nothing: the interaction engine reports it and runs neither branch.
+        if (typeof binding !== 'string' && binding.path === guardPath) return undefined;
         if (typeof binding === 'string') return resolvePath(binding, selected, selections, queries, localState, parameters, screen, locale, locales);
 
         if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, parameters, screen, locale, locales);
@@ -175,6 +193,10 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
 
         return createBindingResolver(scope)(binding);
     }, [componentOutputState, locale, locales, localState, parameters, queries, screen, selected, selections]);
+
+    const resolveArgument = useCallback(
+        (source: string | undefined): unknown => source ? resolveArgumentSource(source, bindingScope(selected, queries, localState, componentOutputState, selections)) : undefined,
+        [componentOutputState, localState, queries, selected, selections]);
 
     const state = useMemo<StageDataState>(() => ({
         locale,
@@ -193,10 +215,11 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         refreshQuery,
         refreshAfterCommand,
         resolveBinding,
+        resolveArgument,
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
+    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveArgument, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
@@ -205,6 +228,10 @@ export const useStageData = (): StageDataState => useContext(StageDataContext);
 
 export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const { refreshQueryName, refreshVersion, registerQueryResult } = useStageData();
+    const publish = request.publish !== false;
+    const publishResult = useCallback((scope: string, state: QueryState | undefined) => {
+        if (publish) registerQueryResult(scope, state);
+    }, [publish, registerQueryResult]);
     const [rows, setRows] = useState<Record<string, unknown>[]>([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -220,7 +247,7 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
             setRows([]);
             setError('');
             setLoading(false);
-            registerQueryResult(request.scope, undefined);
+            publishResult(request.scope, undefined);
             return;
         }
 
@@ -252,7 +279,7 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
             });
 
         return () => abort.abort();
-    }, [active, argumentsKey, localRefresh, registerQueryResult, request.name, request.route, request.scope]);
+    }, [active, argumentsKey, localRefresh, publishResult, request.name, request.route, request.scope]);
 
     useEffect(() => {
         if (refreshVersion === 0) return;
@@ -262,11 +289,11 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
 
     useEffect(() => {
         if (!active || !request.route) {
-            registerQueryResult(request.scope, undefined);
+            publishResult(request.scope, undefined);
             return;
         }
 
-        registerQueryResult(request.scope, {
+        publishResult(request.scope, {
             name: request.name,
             route: request.route,
             rows,
@@ -274,7 +301,7 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
             error,
             arguments: JSON.parse(argumentsKey) as Record<string, unknown>,
         });
-    }, [active, argumentsKey, error, loading, registerQueryResult, request.name, request.route, request.scope, rows]);
+    }, [active, argumentsKey, error, loading, publishResult, request.name, request.route, request.scope, rows]);
 
     return { rows, loading, error, refresh: () => setLocalRefresh(current => current + 1) };
 }

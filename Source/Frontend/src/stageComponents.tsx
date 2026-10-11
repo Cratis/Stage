@@ -11,6 +11,8 @@ import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm } from './StageCommandForm';
 import { navigateToScreen } from './stageNavigation';
+import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
+import { useRowInteractions } from './stageRowInteractions';
 
 export const stageCommandFormComponent = 'Stage:commandForm';
 
@@ -102,6 +104,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
     const dataKey = text(element, 'dataKey') || navigateBy || 'id';
     const selected = data.selections[element.id];
     const linkedIdentity = navigateBy ? data.parameters[navigateBy] : undefined;
+    const rowInteractions = useRowInteractions(element);
 
     useEffect(() => {
         if (!selected) return;
@@ -173,7 +176,8 @@ export function StageTable({ element, slots }: RegisteredProps) {
                                 key={String(rowIdentity(row, dataKey) ?? index)}
                                 aria-selected={isSelected}
                                 tabIndex={0}
-                                onClick={() => select(row)}
+                                onClick={() => rowInteractions.click(row, () => select(row))}
+                                onDoubleClick={rowInteractions.doubleClick ? () => rowInteractions.doubleClick?.(row) : undefined}
                                 onKeyDown={event => {
                                     if (event.key !== 'Enter' && event.key !== ' ') return;
                                     event.preventDefault();
@@ -204,7 +208,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export { StageCommandForm };
 
 /** Executes a modeled command against the route the Stage registered for it. */
-export function StageAction({ element, interactions }: RegisteredProps) {
+export function StageAction({ element, interactions, slots }: RegisteredProps) {
+    return isGuardedAction(element)
+        ? <StageGuardedAction element={element} interactions={interactions} />
+        : <StageCommandAction element={element} interactions={interactions} slots={slots} />;
+}
+
+function StageCommandAction({ element, interactions }: RegisteredProps) {
     const data = useStageData();
     const label = text(element, 'label', text(element, 'command'));
 

@@ -324,12 +324,13 @@ Stage builds against Screenplay 4.131.0 and admits ESM v1 through v10 by version
 | Events with an origin store and `source events` captures | v9 | `STAGE-ESM-033` |
 | Directed Translate slices (inbound or outbound) | v9 | `STAGE-ESM-024`, naming the direction |
 | Reaction execution identity (`runsAs`) | v10 | `STAGE-ESM-034` |
-| Reaction and reducer observer filters (`from`) | v10 | `STAGE-ESM-035` |
+| Reducer observer filters (`from`) | v10 | Rendered as Chronicle source/source-and-stream attributes; Host and executor retain `STAGE-ESM-035` because reducers are not executed |
+| Reaction observer filters (`from`) | v10 | `STAGE-ESM-035` |
 | Per-production route overrides | v10 | `STAGE-ESM-036` |
 
 Reaction admission reports execution identity (`034`), observer filters (`035`), mixed effects (`037`), and caused-by context (`013`) before trigger-kind and generic reaction refusals (`024`). The renderer, Host and specification executor still refuse every reaction model.
 
-Diagnostics apply to the selected scope: a slice-scoped render of a slice that uses none of these constructs can still render, and application triggers refuse only an application render. The in-memory specification executor reports the same constructs as unsupported rather than skipping them. Keep these constructs in the model and use a renderer that explicitly supports them rather than deleting them to pass admission. A specification that supplies a generated property as input never compiles (`PLAY0485`), so Stage plans nothing for it.
+Diagnostics apply to the selected scope: a slice-scoped render of a slice that uses none of these constructs can still render, and application triggers refuse only an application render. The in-memory specification executor reports unsupported constructs rather than skipping them. Reducer `from` is rendering-only: neither the executor nor Stage's Host executes reducer bodies. Generated read-model companion specifications for filtered reducers retain `STAGE-ESM-011`, because Chronicle's scenario replay cannot apply the filter; see [Event-source routing](../reference/event-source-routing.md#reducer-observer-filters). Keep these constructs in the model and use a renderer that explicitly supports them rather than deleting them to pass admission. A specification that supplies a generated property as input never compiles (`PLAY0485`), so Stage plans nothing for it.
 
 Build target-local indexes keyed by `SemanticId`. Use `ExecutableSemanticModel` and `SemanticExecutionPlan` mappings for command production, destinations, properties, projection transitions, affected-instance keys, queries, and typed specification values. Never join artifacts by a short or display name.
 

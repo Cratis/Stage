@@ -63,7 +63,26 @@ public static class BehaviorAttachments
         IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
         IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> declared,
         string subject,
-        ICollection<RenderFinding> findings)
+        ICollection<RenderFinding> findings) =>
+        Convert(inline, used, declared, subject, findings, null);
+
+    /// <summary>
+    /// Resolves what is attached at one point, typing the guards of what it converts.
+    /// </summary>
+    /// <param name="inline">The inline <c language="csharp">on</c> blocks written there.</param>
+    /// <param name="used">The <c language="csharp">uses</c> clauses written there.</param>
+    /// <param name="declared">The behaviors the document declares, by name.</param>
+    /// <param name="subject">What is being attached to, for reporting.</param>
+    /// <param name="findings">Where to report an unresolved <c language="csharp">uses</c>.</param>
+    /// <param name="enumerationOf">Gives the members of an enumeration-typed guard field.</param>
+    /// <returns>The attached behaviors, in authored order.</returns>
+    public static IReadOnlyList<SceneModel.Behavior> Convert(
+        IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
+        IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
+        IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> declared,
+        string subject,
+        ICollection<RenderFinding> findings,
+        Func<string, IReadOnlyList<string>?>? enumerationOf)
     {
         var attached = new List<(SourceLocation Location, ScreenplaySyntax.BehaviorSyntax Behavior)>();
 
@@ -91,7 +110,7 @@ public static class BehaviorAttachments
             .. attached
                 .OrderBy(entry => entry.Location.Line)
                 .ThenBy(entry => entry.Location.Column)
-                .Select(entry => BehaviorConverter.Convert(entry.Behavior))
+                .Select(entry => BehaviorConverter.Convert(entry.Behavior, enumerationOf))
         ];
     }
 }

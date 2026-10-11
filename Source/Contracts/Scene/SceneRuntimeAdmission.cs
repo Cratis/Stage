@@ -40,16 +40,31 @@ public sealed class SceneRuntimeAdmission : ScreenplaySyntaxWalker
     {
         switch (node)
         {
-            case ScreenGuardedActionSyntax action:
+            case ScreenGuardedActionSyntax action when !CanRun(action):
                 _issues.Add(new(UnsupportedGuardedScreenAction.DiagnosticCode, action.Label, action.Location, new UnsupportedGuardedScreenAction(action.Label, action.Location).Message));
                 break;
 
-            // Scene.Model does not retain interaction alternatives, so runtime admission must keep this
-            // source-side evidence. A Scene constructed without its source cannot recover those lost branches.
-            case InteractionBindingSyntax binding when binding.Alternatives.Any() || binding.Otherwise is not null:
+            // The Stage runtime evaluates guards that compare a field of the subject with a literal (SceneGuards).
+            // Anything else stays refused here, with the diagnostic, rather than reaching a runtime that would have
+            // to guess.
+            case InteractionBindingSyntax binding when (binding.Alternatives.Any() || binding.Otherwise is not null) && !binding.Alternatives.All(alternative => SceneGuards.CanEvaluate(alternative.Condition)):
                 var interaction = binding.Trigger.ToString();
                 _issues.Add(new(UnsupportedGuardedInteraction.DiagnosticCode, interaction, binding.Location, new UnsupportedGuardedInteraction(interaction, binding.Location).Message));
                 break;
         }
+    }
+
+    static bool CanRun(ScreenGuardedActionSyntax action)
+    {
+        var alternatives = action.Alternatives.ToArray();
+        var branches = alternatives.Length > 0 &&
+            alternatives.All(alternative => SceneGuards.CanEvaluate(alternative.Condition) && !string.IsNullOrEmpty(alternative.Command));
+        var otherwise = action.Otherwise?.Outcome switch
+        {
+            null or ScreenActionOtherwiseOutcome.Hidden => true,
+            ScreenActionOtherwiseOutcome.Execute => !string.IsNullOrEmpty(action.Otherwise.Command),
+            _ => false,
+        };
+        return branches && otherwise;
     }
 }

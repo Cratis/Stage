@@ -13,4 +13,7 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" PrivateAssets="All" />
     </ItemGroup>
+  <ItemGroup>
+    <None Include="for_SceneEnumerationNaming/scene-model-enumerations.json" CopyToOutputDirectory="PreserveNewest" Link="for_SceneEnumerationNaming/scene-model-enumerations.json" />
+  </ItemGroup>
 </Project>

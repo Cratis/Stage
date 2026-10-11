@@ -65,7 +65,9 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_render_the_composed_screen_through_the_stage_runtime() => Content(".frontend/main.tsx").ShouldContain("import { App } from './stage/App';");
     [Fact] void should_read_the_content_the_planner_emitted() => Content(".frontend/main.tsx").ShouldContain("from '../src/stage'");
     [Fact] void should_serve_the_runtime_from_the_built_in_content() => Content(".frontend/main.tsx").ShouldContain("const source = staticStageSource(stage);");
-    [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("<App components={cratisComponentsPackage.components} />");
+    [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("<App components={cratisComponentsRuntimePackage.components} />");
+    [Fact] void should_load_the_runtime_only_components_entry() => Content(".frontend/main.tsx").ShouldContain("import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';");
+    [Fact] void should_not_load_the_design_time_components_package() => Content(".frontend/main.tsx").ShouldNotContain("import { cratisComponentsPackage }");
     [Fact] void should_render_core_diagnostics_and_cratis_components_through_one_registry() =>
         Content(".frontend/stage/blueprint.ts").ShouldContain("{ ...coreComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...overrides }");
     [Fact] void should_apply_the_stage_theme() => Content(".frontend/main.tsx").ShouldContain("<PrimeReactProvider license={primeUiLicense} theme={stageTheme}>");
@@ -111,12 +113,12 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             "@cratis/arc.vite=22.58.2",
             "@cratis/components=4.26.2",
             "@cratis/fundamentals=7.22.8",
-            "@cratis/scene.blueprint.default=4.12.0",
-            "@cratis/scene.components=4.12.0",
-            "@cratis/scene.engine=4.12.0",
-            "@cratis/scene.model=4.12.0",
-            "@cratis/scene.primereact=4.12.0",
-            "@cratis/scene.react=4.12.0",
+            "@cratis/scene.blueprint.default=4.16.0",
+            "@cratis/scene.components=4.16.0",
+            "@cratis/scene.engine=4.16.0",
+            "@cratis/scene.model=4.16.0",
+            "@cratis/scene.primereact=4.16.0",
+            "@cratis/scene.react=4.16.0",
             "@primereact/core=11.2.0",
             "@primereact/headless=11.2.0",
             "@primereact/hooks=11.2.0",

@@ -107,6 +107,11 @@ the screen it opens; the current screen is marked, and the breadcrumb shows the 
 entry reaches the runtime on every screen of that feature and is shown once. A model with no navigation entries keeps
 the flat list of screens.
 
+Navigation contributions carrying `id`, `icon`, `presentation`, or `destination outlet|dialog|external` are
+refused with `STAGE-SCENE-UI-001`, naming the unsupported field: the pinned Scene runtime does not honor
+these fields. A contribution's `group` is preserved in Scene output; Stage's menu still uses the authored
+module and feature hierarchy described above.
+
 Themes are the blueprint's (`Scene Default Light` and `Scene Default Dark`). The active theme's colour scheme is
 mirrored onto the document root so PrimeReact overlays, which are portalled to `body`, follow it.
 

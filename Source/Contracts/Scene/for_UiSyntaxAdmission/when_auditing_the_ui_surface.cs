@@ -36,6 +36,8 @@ public class when_auditing_the_ui_surface : Specification
     [InlineData(typeof(ContributedItemSyntax), "Id Values")]
     [InlineData(typeof(ContributedItemValueSyntax), "Field Value")]
     [InlineData(typeof(ScreenContributionSyntax), "ContributionPoint Directives Order")]
+    [InlineData(typeof(ContributionSyntax), "ContributionPoint Destination Group Icon Id Label Navigate Order Presentation")]
+    [InlineData(typeof(ContributionDestinationSyntax), "Kind Target")]
     [InlineData(typeof(TemplateSlotContentSyntax), "Directives Slot")]
     [InlineData(typeof(ArrangementContainerSyntax), "Children Columns Gap Grow Kind Rows Span")]
     [InlineData(typeof(ArrangementSlotSyntax), "Grow GrowFactor Height Name Span Width")]
@@ -62,6 +64,7 @@ public class when_auditing_the_ui_surface : Specification
     [InlineData(typeof(ToolbarItemKind), "Unknown Action Navigate Dialog")]
     [InlineData(typeof(UiBindingKind), "Invalid DataContext QueryResult ComponentProperty Literal")]
     [InlineData(typeof(ArrangementContainerKind), "Flat Row Column Grid")]
+    [InlineData(typeof(ContributionDestinationKind), "Outlet Dialog External")]
     [InlineData(typeof(UiBindingMode), "OneWay TwoWay")]
     [InlineData(typeof(UiBindingNullBehavior), "Propagate Clear Preserve")]
     public void should_require_a_decision_for_every_added_variant(Type type, string audited) => string.Join(' ', Enum.GetNames(type)).ShouldEqual(audited);

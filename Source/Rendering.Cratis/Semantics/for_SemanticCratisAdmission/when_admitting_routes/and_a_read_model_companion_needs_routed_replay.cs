@@ -31,6 +31,6 @@ public class and_a_read_model_companion_needs_routed_replay : Specification
         _plan = routed_specifications.Plan(routed_specifications.Compile(source));
     }
 
-    [Fact] void should_refuse_routed_companion_replay() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-030"]);
-    [Fact] void should_not_emit_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_admit_routed_companion_replay() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_seed_the_command_route() => System.Text.Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("_is_projected.cs", StringComparison.Ordinal)).Bytes.AsSpan()).ShouldContain(".OnStream(eventSourceType: \"stored-account\", eventStreamType: \"stored-transactions\", eventStreamId: \"2026-10\")");
 }

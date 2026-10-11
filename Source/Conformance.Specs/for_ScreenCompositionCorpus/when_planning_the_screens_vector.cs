@@ -19,7 +19,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "5fb3c5b9896d70e653f25fede10108d3ee7d4d1297b6dee35e16009e830cb676";
+    const string Digest = "b3255093b5cd9ebeb21921c4cca690cbd5e9134be504f443db8465a7b613ea58";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
@@ -59,7 +59,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Directory.Packages.props af799a176bf7be0de5e660924f4bde3444170788e9633399a1f65f0b72c9602f 133
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
-        Workspaces.csproj dae69e0bcd187188095508d82bf4f6b356f670cedce49ddfdda6a67d4802311f 2379
+        Workspaces.csproj eb5183b938695bdf07a42a4c58e83b6855405d6b6f916aea6b24d32ccbae7011 2379
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
         Workspaces/Tracking/AddComment/when_adding_acomment.cs 317e90a82f631bd47dd13a15aaba8c2dae99c23e0459631c7274be2101570c95 1884
@@ -70,13 +70,13 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 2bbf45806cd32a070025b607f825f01fa2c60d3ffb70c66baf3313e5602f100b 1033
         Workspaces/Tracking/RenameWorkItem/when_renaming_awork_item.cs 4173f200623020b72a3025e1b96f48e482e5087a7845fd659a73c20a4f70bceb 2084
         Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 7d9dbf0b84c521e7707b0c3ef4a948d32e75c0f48bbfb058100a3b566cd63905 2230
-        Workspaces/Tracking/WorkItemComments/when_showing_comments_for_awork_item_is_queried.cs 40a5a1c31b391ea067305bd610ff41f96e23c030ab5566ff2d4929059ff2efe7 2465
+        Workspaces/Tracking/WorkItemComments/when_showing_comments_for_awork_item_is_queried.cs 0cfd7ff1f7ca16fd1786ca639d19525689d1a351e9e4bcb101364c93c64eb445 2543
         Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs b20d80c6e2c6ecd7f1ca5fe79745386c2608bddb1acb47ea5c7399bb4905268d 2920
-        Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs 7acd624c3623b2a1a5f9a35ca37842a60bb20ec3f43e8951b1b3e2d1bd5e1bc7 2755
+        Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs 7348d49d01490ecb86f5b8489b95721c792d565c24b46b3304b851c1d0e91107 2833
         Workspaces/Tracking/WorkItemList/WorkItemList.cs 00f31c1ade25d846d6646b4e0e99a3f9cbdb26a023838fc9bac261ae73275c9b 3220
-        Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs fdbc398936fe6c3a5fd324deaeda4d06ab7471822bedd879cbd2ed1faa3227b7 2424
+        Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs f646a742678761c49e10be6d010dfe8f52bb2d0f615348dd724e202e122ed70d 2502
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
-        docker-compose.yml bc5063d052c5b7f41013f9d21e86ad9e683fe2e5d7a75aa5330e875a249dad12 259
+        docker-compose.yml 87b60b599fe2b79b72212d6b1547331e502d84c9a57004ae920ae3c71c0571e6 259
         package.json 50cc84f178ad59101a8e0cc010b8de555b57327a9b93add941aa8bfe4d0c476d 1431
         scene.json 04521cf539e1a9c28e5a1056940064655b535b235c36d0dacda220de9d3f622f 3908
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467

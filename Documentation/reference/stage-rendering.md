@@ -54,6 +54,44 @@ these refusals as unsupported capabilities: `/stage/status` reports `unsupported
 HTTP 501 rather than executing an unconditional action. If such a guard reaches the frontend runtime anyway, the
 action is shown disabled with the diagnostic and never executes.
 
+## Generated C# whole numbers
+
+The semantic Cratis renderer maps whole-number primitives and concepts to `long` for ESM v8 and later,
+and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
+fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
+
+Moving an existing model from v7 to v8 widens stored event schemas from int32 to int64. Chronicle refuses
+that change within the same generation; plan a new event generation before upgrading
+([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
+
+## Generated C# enumerations
+
+Chronicle stores enum members as integers, with an `integer` event schema and `x-enumNames` metadata.
+Stage currently generates implicit C# member numbers in declaration order: the first member is `0`,
+the next is `1`, and so on. The world rebuilder accepts those numbers and declared model member names,
+normalizing both to the model name. It refuses out-of-range or fractional numbers and undeclared names.
+
+Until [Screenplay #643](https://github.com/Cratis/Screenplay/issues/643) carries stable member numbers in
+the model, **only append members; never reorder or remove existing members**. Reordering changes which
+member a stored number identifies. Chronicle's schema compatibility check does not detect that remapping.
+
+The chosen direction is to carry explicit member numbers in the model and preserve them when rendering.
+Names on the wire do not solve this: Chronicle still registers an integer schema and converts names to
+numbers on append, and Arc uses numeric enums. Hashing names was rejected because renaming a member
+would change its number and existing applications would be renumbered.
+
+The Host's event store is for the Host only. The Host registers its own event schemas, and they differ from the
+schemas a generated application registers: enums are strings rather than integers, and identifiers, dates,
+numbers and optional properties use different formats. Do not point the Host and a generated application at the
+same event store. Chronicle refuses the second registration of a changed schema with `EventTypeSchemaChanged`.
+
+## Match patterns
+
+`matches` uses ECMAScript regular-expression semantics with culture-invariant matching and a one-second timeout.
+An unescaped `$` outside a character class means end of input, not the position before a final newline:
+`^[A-Z]{3}$` accepts `ABC` but rejects `ABC\n`. Escaped dollars and dollars inside character classes remain literal.
+The semantic executor, Host and generated C# validators use the same rule.
+
 ## Chrome
 
 The topbar, sidebar, menu, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them:

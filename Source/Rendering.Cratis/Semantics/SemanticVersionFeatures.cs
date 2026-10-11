@@ -3,11 +3,12 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// One ESM v5–v8 construct a Stage execution or rendering path refuses.
+/// One ESM v5–v10 construct a Stage execution or rendering path refuses.
 /// </summary>
 /// <param name="Code">The typed STAGE-ESM diagnostic code.</param>
 /// <param name="Capability">The execution capability the construct needs.</param>
@@ -17,7 +18,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal sealed record SemanticVersionFeature(string Code, StageExecutionCapability Capability, SemanticId Artifact, string Kind, string Message);
 
 /// <summary>
-/// Finds the ESM v5–v8 constructs that renderer admission, the specification executor and the Host runtime refuse.
+/// Finds the ESM v5–v10 constructs that renderer admission, the specification executor and the Host runtime refuse.
 /// </summary>
 /// <remarks>
 /// One detection serves all three (the Host and the specification executor compile this file). Routes have separate
@@ -51,6 +52,43 @@ internal static class SemanticVersionFeatures
     internal const string Routes = "STAGE-ESM-030";
 
     /// <summary>
+    /// The code for ESM v9 public-event publication.
+    /// </summary>
+    internal const string PublicEvents = "STAGE-ESM-032";
+
+    /// <summary>
+    /// The code for ESM v9 foreign events and events-source captures.
+    /// </summary>
+    internal const string ForeignEvents = "STAGE-ESM-033";
+
+    /// <summary>
+    /// The code for ESM v10 reaction execution identity.
+    /// </summary>
+    internal const string ReactionIdentity = "STAGE-ESM-034";
+
+    /// <summary>
+    /// The code for ESM v10 reaction and reducer observer filters.
+    /// </summary>
+    internal const string ObserverFilters = "STAGE-ESM-035";
+
+    /// <summary>
+    /// The code for ESM v10 per-production route overrides.
+    /// </summary>
+    internal const string ProductionRoutes = "STAGE-ESM-036";
+
+    /// <summary>
+    /// The code for a reaction trigger that both produces events and invokes commands.
+    /// </summary>
+    internal const string MixedReactionEffects = "STAGE-ESM-037";
+
+    /// <summary>
+    /// Checks the language and semantic version pair Stage has audited.
+    /// </summary>
+    /// <param name="model">The executable model.</param>
+    /// <returns>Whether Stage supports the version pair.</returns>
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV10Support.Supports(model.LanguageVersion, model.SemanticVersion);
+
+    /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
     /// </summary>
     /// <param name="application">The semantic application.</param>
@@ -78,27 +116,161 @@ internal static class SemanticVersionFeatures
             Routes, StageExecutionCapability.IdentityAllocation, source.Id, "eventsource", "Named event sources and streams are not yet supported by the Cratis ESM planner."));
 
     /// <summary>
-    /// Finds the structural automation constructs of one slice: its kind, reactions and captures.
+    /// Finds the structural automation and public-event constructs of one slice.
     /// </summary>
     /// <param name="slice">The slice.</param>
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InSlice(SemanticSlice slice)
     {
-        if (slice.Kind is SemanticSliceKind.Automation or SemanticSliceKind.Translate)
+        // Precise reaction constructs precede the generic slice refusal for first-refusal consumers.
+        foreach (var feature in ReactionsInSlice(slice))
         {
-            yield return new(Automation, StageExecutionCapability.Reaction, slice.Id, "slice", $"Slice '{slice.Name}' is an ESM v6 {slice.Kind} slice; Stage renders only StateChange and StateView slices.");
+            yield return feature;
         }
 
-        foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
+        foreach (var reducer in slice.Reducers.Where(reducer => reducer.From is not null))
         {
-            yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct, which Stage does not support yet.");
+            yield return new(ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
+        }
+
+        if (slice.Kind is SemanticSliceKind.Automation or SemanticSliceKind.Translate)
+        {
+            var direction = slice.Kind == SemanticSliceKind.Translate ? $" ({slice.Direction?.ToString() ?? "Inbound"})" : string.Empty;
+            yield return new(Automation, StageExecutionCapability.Reaction, slice.Id, "slice", $"Slice '{slice.Name}' is an ESM v6 {slice.Kind}{direction} slice; Stage renders only StateChange and StateView slices.");
+        }
+
+        foreach (var @event in slice.Events)
+        {
+            if (InEvent(@event) is { } feature) yield return feature;
+        }
+
+        foreach (var projection in slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.Event))
+        {
+            yield return new(PublicEvents, StageExecutionCapability.Projection, projection.Id, "projection", $"Projection '{projection.Name}' publishes an ESM v9 public event, which Stage does not support yet.");
+        }
+
+        foreach (var reducer in slice.Reducers.Where(reducer => reducer.Target == SemanticProjectionTargetKind.Event))
+        {
+            yield return new(PublicEvents, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' publishes an ESM v9 public event, which Stage does not support yet.");
         }
 
         foreach (var capture in slice.Captures.IsDefault ? [] : slice.Captures)
         {
-            yield return new(Automation, StageExecutionCapability.ExternalEffect, capture.Id, "capture", $"Capture '{capture.Name}' is an ESM v6 translation construct, which Stage does not support yet.");
+            if (capture.EventsSource is not null)
+            {
+                yield return new(ForeignEvents, StageExecutionCapability.ExternalEffect, capture.Id, "capture", $"Capture '{capture.Name}' consumes ESM v9 source events, which Stage does not support yet.");
+            }
+            else
+            {
+                yield return new(Automation, StageExecutionCapability.ExternalEffect, capture.Id, "capture", $"Capture '{capture.Name}' is an ESM v6 translation construct, which Stage does not support yet.");
+            }
         }
     }
+
+    /// <summary>
+    /// Finds every refused reaction construct, with precise reasons before the generic reaction refusal.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The refused reaction constructs, including event reactions not yet admitted for rendering.</returns>
+    public static IEnumerable<SemanticVersionFeature> ReactionsInSlice(SemanticSlice slice)
+    {
+        var reactions = slice.Reactions.IsDefault ? [] : slice.Reactions;
+        foreach (var reaction in reactions.Where(reaction => reaction.RunsAs is not null))
+        {
+            yield return new(ReactionIdentity, StageExecutionCapability.Authorization, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 execution identity, which Stage does not support yet.");
+        }
+
+        foreach (var reaction in reactions.Where(reaction => reaction.From is not null))
+        {
+            yield return new(ObserverFilters, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
+        }
+
+        foreach (var reaction in reactions)
+        {
+            foreach (var trigger in reaction.Triggers.Where(trigger => !trigger.Produces.IsDefaultOrEmpty && !trigger.Invokes.IsDefaultOrEmpty))
+            {
+                yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' both produces events and invokes commands in one '{trigger.Kind}' trigger; Arc cannot return events and commands from one handler (Cratis/Arc#3156).");
+            }
+        }
+
+        foreach (var reaction in reactions)
+        {
+            var expressions = reaction.Triggers.SelectMany(trigger => trigger.Produces.SelectMany(produced =>
+                    produced.Mappings.Select(mapping => mapping.Source).Concat(produced.Destination is { } destination ? [destination] : []))
+                .Concat(trigger.Invokes.SelectMany(invocation => invocation.Mappings.Select(mapping => mapping.Source))));
+            foreach (var context in expressions.OfType<SemanticEventContextExpression>().Where(context => context.Value is
+                SemanticEventContextValueKind.CausedBySubject or SemanticEventContextValueKind.CausedByName or SemanticEventContextValueKind.CausedByUserName)
+                .Select(context => context.Value).Distinct())
+            {
+                var member = context switch
+                {
+                    SemanticEventContextValueKind.CausedBySubject => "subject",
+                    SemanticEventContextValueKind.CausedByName => "name",
+                    _ => "userName"
+                };
+                yield return new("STAGE-ESM-013", StageExecutionCapability.Occurrence, reaction.Id, "reaction", $"Reaction '{reaction.Name}' maps $context.causedBy.{member}, which Stage does not support yet.");
+            }
+        }
+
+        foreach (var reaction in reactions)
+        {
+            foreach (var trigger in reaction.Triggers)
+            {
+                if (trigger.RequirementId is not null)
+                {
+                    yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
+                }
+
+                if (trigger.Kind != SemanticReactionTriggerKind.Event)
+                {
+                    yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' uses trigger kind '{trigger.Kind}', which Stage does not support yet.");
+                }
+            }
+        }
+
+        foreach (var reaction in reactions)
+        {
+            yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct; reaction rendering is not yet admitted.");
+        }
+    }
+
+    /// <summary>
+    /// Finds public or foreign events declared elsewhere but referenced by a slice.
+    /// </summary>
+    /// <param name="slice">The referencing slice.</param>
+    /// <param name="events">The application's indexed event contracts.</param>
+    /// <returns>The refused event contracts.</returns>
+    public static IEnumerable<SemanticVersionFeature> EventReferences(SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticEventContract> events)
+    {
+        var references = slice.Projections.SelectMany(ProjectionReferencedEventNamesAreUnique.Contracts)
+            .Concat(slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.Event).Select(projection => projection.ReadModel))
+            .Concat(slice.Reducers.SelectMany(reducer => reducer.Transitions.Select(transition => transition.EventContract)))
+            .Concat(slice.Reducers.Where(reducer => reducer.Target == SemanticProjectionTargetKind.Event).Select(reducer => reducer.ReadModel))
+            .Concat(slice.Commands.SelectMany(command => command.Produces.Select(produced => produced.EventContract)))
+            .Concat(ConstraintEvents(slice.Constraints))
+            .Concat((slice.Reactions.IsDefault ? [] : slice.Reactions).SelectMany(reaction => reaction.Triggers)
+                .SelectMany(trigger => trigger.Produces.Select(produced => produced.EventContract)
+                    .Concat(trigger.Kind == SemanticReactionTriggerKind.Event ? [trigger.Source] : [])))
+            .Concat((slice.Captures.IsDefault ? [] : slice.Captures).SelectMany(capture =>
+                (capture.EventsSource?.Events ?? []).Concat(capture.Appends.Select(append => append.EventContract))
+                    .Concat(capture.Children.SelectMany(children => children.Appends.Select(append => append.EventContract)))
+                    .Concat(capture.Nested.SelectMany(nested => nested.Appends.Select(append => append.EventContract)))))
+            .Concat(slice.Specifications.SelectMany(specification => specification.GivenEvents.Concat(specification.ThenEvents)
+                .Select(occurrence => occurrence.EventContract)
+                .Concat(specification.WhenAppended is { } appended ? [appended.EventContract] : [])))
+            .Except(slice.Events.Select(@event => @event.Id));
+
+        return EventReferences(references, events);
+    }
+
+    /// <summary>
+    /// Finds public or foreign events named by the constraints a consumer selects.
+    /// </summary>
+    /// <param name="constraints">The selected constraints.</param>
+    /// <param name="events">The application's indexed event contracts.</param>
+    /// <returns>The refused event contracts.</returns>
+    public static IEnumerable<SemanticVersionFeature> EventReferences(IEnumerable<SemanticConstraint> constraints, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        EventReferences(ConstraintEvents(constraints), events);
 
     /// <summary>
     /// Finds the constructs one command uses: generated properties and a response.
@@ -108,6 +280,11 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> InCommand(SemanticCommand command)
     {
         foreach (var route in RoutesInCommand(command))
+        {
+            yield return route;
+        }
+
+        foreach (var route in ProductionRoutesInCommand(command))
         {
             yield return route;
         }
@@ -172,6 +349,19 @@ internal static class SemanticVersionFeatures
     }
 
     /// <summary>
+    /// Finds per-production route overrides that no Stage execution path supports yet.
+    /// </summary>
+    /// <param name="command">The command.</param>
+    /// <returns>The refused command, if any.</returns>
+    public static IEnumerable<SemanticVersionFeature> ProductionRoutesInCommand(SemanticCommand command)
+    {
+        if (command.Produces.Any(produced => produced.Route is not null))
+        {
+            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' declares an ESM v10 production route override, which Stage does not support yet.");
+        }
+    }
+
+    /// <summary>
     /// Finds routing fixtures and assertions the specification executor cannot execute yet.
     /// </summary>
     /// <param name="specification">The specification.</param>
@@ -182,6 +372,29 @@ internal static class SemanticVersionFeatures
         {
             yield return new(Routes, StageExecutionCapability.IdentityAllocation, specification.Id, "specification", $"Specification '{specification.Name}' uses event-source routing assertions, which the Cratis ESM planner cannot render yet.");
         }
+    }
+
+    static IEnumerable<SemanticId> ConstraintEvents(IEnumerable<SemanticConstraint> constraints) =>
+        constraints.SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy));
+
+    static IEnumerable<SemanticVersionFeature> EventReferences(IEnumerable<SemanticId> references, IReadOnlyDictionary<SemanticId, SemanticEventContract> events)
+    {
+        foreach (var id in references.Distinct())
+        {
+            if (events.TryGetValue(id, out var @event) && InEvent(@event) is { } feature) yield return feature;
+        }
+    }
+
+    static SemanticVersionFeature? InEvent(SemanticEventContract @event)
+    {
+        if (@event.Origin is not null)
+        {
+            return new(ForeignEvents, StageExecutionCapability.ExternalEffect, @event.Id, "event", $"Event '{@event.Name}' originates from '{@event.Origin}' (ESM v9), which Stage does not support yet.");
+        }
+
+        return @event.Visibility == SemanticEventVisibility.Public
+            ? new(PublicEvents, StageExecutionCapability.ExternalEffect, @event.Id, "event", $"Event '{@event.Name}' is an ESM v9 public contract, which Stage cannot publish yet.")
+            : null;
     }
 
     static IEnumerable<SemanticSlice> Slices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(Slices));

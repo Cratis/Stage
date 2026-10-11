@@ -10,5 +10,7 @@
   href: default-scene-composition.md
 - name: How the Stage renders a model
   href: stage-rendering.md
+- name: Event-source routing
+  href: event-source-routing.md
 - name: Plan artifacts from Screenplay sources
   href: plan-from-sources.md

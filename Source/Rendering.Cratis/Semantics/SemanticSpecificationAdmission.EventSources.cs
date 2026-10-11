@@ -25,6 +25,21 @@ internal static partial class SemanticSpecificationAdmission
             return true;
         }
 
+        if (context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8) && specification.ThenEventsInAnyOrder)
+        {
+            // An omitted source is a wildcard. Explicit sources must be losslessly representable, but their
+            // values are assertions, not admission conditions: an incorrect expectation must run and fail.
+            bool HasType(SemanticProducedEvent produced, SemanticTypeReference type) =>
+                SemanticDestinations.Of(command, produced) is SemanticResolvedExpression destination &&
+                command.Properties.Any(property => property.Id == destination.Target && property.Type == type);
+
+            return (specification.When!.EventSource is not { } actionSource ||
+                    (IsScalar(actionSource.Value) && IsLosslessEventSource(context, actionSource.Type) && command.Produces.All(produced => HasType(produced, actionSource.Type)))) &&
+                specification.ThenEvents.All(expected => expected.EventSource is not { } source ||
+                    (IsScalar(source.Value) && IsLosslessEventSource(context, source.Type) &&
+                    command.Produces.Where(produced => produced.EventContract == expected.EventContract).All(produced => HasType(produced, source.Type))));
+        }
+
         if (command.Produces.Length == 1)
         {
             var sources = SemanticDestinations.Explicit(specification).Distinct().ToArray();

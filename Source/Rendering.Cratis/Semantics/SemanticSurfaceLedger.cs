@@ -23,8 +23,8 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.122.0; ESM v1–v7 version pairs are admitted, but evolved events require migration rendering
-/// and each v5–v7 construct Stage does not render yet refuses the model with its own diagnostic.
+/// Inventories the executable semantic surface audited against Screenplay 4.131.0; ESM v1–v10 version pairs are admitted, but evolved events require migration rendering
+/// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
 internal static class SemanticSurfaceLedger
@@ -48,6 +48,18 @@ internal static class SemanticSurfaceLedger
             (shape.Cardinality == SemanticQueryCardinality.Many && shape.Delivery == SemanticQueryDelivery.Live)
                 ? new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered)
                 : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-010"));
+
+    /// <summary>
+    /// Gets reaction side-effect combinations. Events and commands from one trigger cannot share an Arc handler result
+    /// (Cratis/Arc#3156); every other combination still fails reaction admission with STAGE-ESM-024.
+    /// </summary>
+    public static IReadOnlyDictionary<(bool Produces, bool Invokes), SemanticSurfaceDisposition> ReactionSideEffectShapes { get; } =
+        (from produces in new[] { false, true }
+         from invokes in new[] { false, true }
+         select (Produces: produces, Invokes: invokes))
+        .ToDictionary(shape => shape, shape => new SemanticSurfaceDisposition(
+            SemanticSurfaceDispositionKind.Rejected,
+            shape.Produces && shape.Invokes ? SemanticVersionFeatures.MixedReactionEffects : SemanticVersionFeatures.Automation));
 
     /// <summary>
     /// Gets the default Scene disposition for list queries. Composition has no diagnostic channel;
@@ -77,7 +89,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay."), "IsValid");
         Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies");
-        Add(entries, "SemanticApplication", rejected("STAGE-ESM-030"), "EventSources");
+        Add(entries, "SemanticApplication", rendered, "EventSources");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
         Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications");
@@ -112,14 +124,14 @@ internal static class SemanticSurfaceLedger
         // contract-then-production order; duplicate tags fail admission because Chronicle deduplicates.
         // Requirements use the same catalog-backed message resolution as property and concept validation.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
-        Add(entries, "SemanticCommand", rejected("STAGE-ESM-030"), "Route");
+        Add(entries, "SemanticCommand", rendered, "Route");
         Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "CodeValidations");
         Add(entries, "SemanticCodeValidation", rejected("STAGE-ESM-005"), "RequirementId");
-        Add(entries, "SemanticCommandRoute", rejected("STAGE-ESM-030"), "Source Stream StreamId StreamIdParts");
-        Add(entries, "SemanticCommandRoutePart", rejected("STAGE-ESM-030"), "Part Value");
-        Add(entries, "SemanticEventSource", rejected("STAGE-ESM-030"), "Id IdentifierType Name SourceKind Streams");
-        Add(entries, "SemanticEventStream", rejected("STAGE-ESM-030"), "Id Name StreamIdParts StreamIdType StreamKind");
-        Add(entries, "SemanticStreamIdPart", rejected("STAGE-ESM-030"), "Name Type");
+        Add(entries, "SemanticCommandRoute", rendered, "Source Stream StreamId StreamIdParts");
+        Add(entries, "SemanticCommandRoutePart", rendered, "Part Value");
+        Add(entries, "SemanticEventSource", rendered, "Id IdentifierType Name SourceKind Streams");
+        Add(entries, "SemanticEventStream", rendered, "Id Name StreamIdParts StreamIdType StreamKind");
+        Add(entries, "SemanticStreamIdPart", rendered, "Name Type");
 
         // The render request now carries compiler requirements and resolved bodies by requirement id.
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
@@ -224,11 +236,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenAppended");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");
-        Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-030"), "Route");
+        Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "Route");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");
-        Add(entries, "SemanticSpecificationEvent", rejected("STAGE-ESM-030"), "Route Unrouted");
-        Add(entries, "SemanticFixtureRoute", rejected("STAGE-ESM-030"), "Source Stream StreamId StreamIdParts");
-        Add(entries, "SemanticFixtureRoutePart", rejected("STAGE-ESM-030"), "Part Value");
+        Add(entries, "SemanticSpecificationEvent", rendered, "Route Unrouted");
+        Add(entries, "SemanticFixtureRoute", rendered, "Source Stream StreamId StreamIdParts");
+        Add(entries, "SemanticFixtureRoutePart", rendered, "Part Value");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Key ReadModel Values");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Exactly");
         Add(entries, "SemanticSpecificationQueryResult", rendered, "Key Query Results Exactly");
@@ -238,6 +250,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticEventSourceIdentity", rendered, "Type Value");
         Add(entries, "SemanticValue", rendered, "Kind");
         Add(entries, "SemanticTextValue", rendered, "Value");
+
+        // Whole-number values retain int32 output below v8; out-of-range literals fail STAGE-ESM-031.
+        // At v8 and later their declarations, sentinels and literals render as long.
         Add(entries, "SemanticNumberValue", rendered, "Value");
         Add(entries, "SemanticBooleanValue", rendered, "Value");
         Add(entries, "SemanticArrayValue", rendered, "Values");
@@ -292,7 +307,9 @@ internal static class SemanticSurfaceLedger
 
         // Screenplay 4.61 added ESM v6 reactions, captures, application triggers and clock/capture
         // specifications. The version gate admits v6, but each of these refuses the model with STAGE-ESM-024 (Stage#79).
-        var v6 = rejected("STAGE-ESM-024");
+        // ReactionsInSlice names each non-event trigger kind and opaque body before its generic reaction refusal.
+        // Event triggers remain refused; ReactionSideEffectShapes records the more precise mixed-effect refusal (037).
+        var v6 = rejected(SemanticVersionFeatures.Automation);
         Add(entries, "SemanticApplication", v6, "Triggers");
         Add(entries, "SemanticApplicationTrigger", v6, "Id Name Properties");
         Add(entries, "SemanticSlice", v6, "Captures Reactions");
@@ -301,8 +318,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProducedEvent", v6, "DestinationType");
         Add(entries, "SemanticInvocation", v6, "Command Mappings");
         Add(entries, "SemanticReaction", v6, "Id Name Triggers");
-        Add(entries, "SemanticReactionTrigger", v6, "At Every Invokes Kind OnDayOfMonth OnDayOfWeek Produces RequirementId Source Where");
-        Add(entries, "SemanticReactionTriggerKind", v6, "Unknown ApplicationTrigger Event Interval Schedule Shutdown Startup");
+        Add(entries, "SemanticReactionTrigger", v6, "Invokes Kind Produces Source Where");
+        Add(entries, "SemanticReactionTrigger", v6, "At Every OnDayOfMonth OnDayOfWeek RequirementId");
+        Add(entries, "SemanticReactionTriggerKind", v6, "Unknown Event");
+        Add(entries, "SemanticReactionTriggerKind", v6, "ApplicationTrigger Interval Schedule Shutdown Startup");
         Add(entries, "SemanticCapture", v6, "Appends Children Id Key Map Name Nested");
         Add(entries, "SemanticCaptureAppend", v6, "EventContract EventSourceType Mappings Tags When");
         Add(entries, "SemanticCaptureChildren", v6, "Appends Field IdentifiedBy Map");
@@ -339,21 +358,33 @@ internal static class SemanticSurfaceLedger
 
         // Screenplay 4.117 added ESM v9: public events and their origin store, translation direction, projections and
         // reducers that target a slice's public event, and `source events` captures. Each is selected only by use, so a
-        // v1–v7 model carries the default - a private local event, a read-model target, no direction - which is exactly
-        // what Stage renders. A model that uses any of them is ESM v9, which the audited version gate refuses with
-        // STAGE-ESM-016 before anything is planned.
-        var v9 = rejected("STAGE-ESM-016");
-        var v9Default = ignored("ESM v9 selection: v1–v7 models carry only the default (private local event, read-model target, no direction), which Stage renders; a model using the v9 value fails STAGE-ESM-016.");
-        Add(entries, "SemanticEventContract", v9Default, "Visibility Origin");
+        // v1–v8 model carries the default - a private local event, a read-model target, no direction - which is exactly
+        // what Stage renders. Admit v9 by version, but refuse publication, foreign consumption and translation separately.
+        var publication = rejected(SemanticVersionFeatures.PublicEvents);
+        var foreign = rejected(SemanticVersionFeatures.ForeignEvents);
+        Add(entries, "SemanticEventContract", publication, "Visibility");
+        Add(entries, "SemanticEventContract", foreign, "Origin");
         Add(entries, "SemanticEventVisibility", rendered, "Private");
-        Add(entries, "SemanticEventVisibility", v9, "Public");
-        Add(entries, "SemanticProjection", v9Default, "Target");
-        Add(entries, "SemanticReducer", v9Default, "Target");
+        Add(entries, "SemanticEventVisibility", publication, "Public");
+        Add(entries, "SemanticProjection", publication, "Target");
+        Add(entries, "SemanticReducer", publication, "Target");
         Add(entries, "SemanticProjectionTargetKind", rendered, "ReadModel");
-        Add(entries, "SemanticProjectionTargetKind", v9, "Event");
-        Add(entries, "SemanticSlice", v9Default, "Direction");
-        Add(entries, "SemanticCapture", v6, "EventsSource");
-        Add(entries, "SemanticCaptureEventsSource", v6, "Events");
+        Add(entries, "SemanticProjectionTargetKind", publication, "Event");
+        Add(entries, "SemanticSlice", v6, "Direction");
+        Add(entries, "SemanticCapture", foreign, "EventsSource");
+        Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
+
+        // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
+        // Admit the version pair, but refuse each construct until every execution path can preserve it.
+        var identity = rejected(SemanticVersionFeatures.ReactionIdentity);
+        Add(entries, "SemanticReaction", identity, "RunsAs");
+        Add(entries, "SemanticReactionIdentity", identity, "Kind Roles");
+        Add(entries, "SemanticReactionIdentityKind", identity, "System");
+        var filters = rejected(SemanticVersionFeatures.ObserverFilters);
+        Add(entries, "SemanticReaction", filters, "From");
+        Add(entries, "SemanticReducer", filters, "From");
+        Add(entries, "SemanticObserverFilter", filters, "Source Stream");
+        Add(entries, "SemanticProducedEvent", rejected(SemanticVersionFeatures.ProductionRoutes), "Route");
 
         return entries;
     }

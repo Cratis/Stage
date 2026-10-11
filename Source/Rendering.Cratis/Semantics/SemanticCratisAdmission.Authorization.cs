@@ -42,6 +42,11 @@ internal static partial class SemanticCratisAdmission
 
     static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {
+        if (command.Authorization is null)
+        {
+            return true;
+        }
+
         // The reference evaluator selects the first supplied identifier, not necessarily the first declared
         // identifier. A generated command record cannot distinguish omitted values from defaulted values.
         if (command.Authorization is not null && command.Properties.Count(property => property.IsIdentifier) != 1)

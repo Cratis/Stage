@@ -10,6 +10,7 @@ using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
+using Cratis.Screenplay.Syntax.Specifications;
 
 namespace Cratis.Stage.Contracts.Semantics;
 
@@ -21,6 +22,11 @@ namespace Cratis.Stage.Contracts.Semantics;
 /// <remarks>Added attachment collections use the collection's reference equality in record comparisons.</remarks>
 public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, SemanticExecutionPlan Plan)
 {
+    /// <summary>
+    /// Gets the source-bound specification origins from the compilation.
+    /// </summary>
+    public ImmutableDictionary<SemanticId, EffectiveSpecification> SpecificationOrigins { get; init; } = [];
+
     /// <summary>Requirements emitted by the compilation.</summary>
     public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
 
@@ -305,6 +311,7 @@ public static class SemanticModelLoader
 
         var loaded = new LoadedSemanticModel(model, plan.Plan!)
         {
+            SpecificationOrigins = compiled.Value!.SpecificationOrigins,
             ImplementationRequirements = compiled.ImplementationRequirements,
             TypedContextDescriptors = compiled.TypedContextDescriptors,
             ImplementationContents = SemanticImplementationBodies.Resolve(documentSet, compiled.ImplementationRequirements),

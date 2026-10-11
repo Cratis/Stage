@@ -203,7 +203,7 @@ internal static class PureTransitionAdmission
                 continue;
             }
 
-            var scalar = SemanticTypeSystem.Primitive(concept.Primitive);
+            var scalar = types.Primitive(concept.Primitive);
 
             // Mirror the inherited concept getters, including the distinct TypedValue on identifiers.
             // Synthetic concepts intentionally have no implicit conversions: extra refusals are safe.

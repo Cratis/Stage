@@ -13,7 +13,16 @@ model consistency, not behavior, and will be removed in the next major version. 
 `structural` as the default for existing `results.json` consumers; each structural run prints one deprecation
 notice to standard error. Structural runs refuse named event sources, streams and event-source routes with
 `STAGE-ESM-030` on standard error, exit `1`, and write no results file. The semantic engine executes routed givens and when-appends, compares event routes and `no stream`
-expectations, and matches any-order expectations by assignment at ESM v8 and later. Migrate to `--engine semantic` and the semantic report format described below.
+expectations, and matches any-order expectations by assignment at ESM v8 and later. Both engines refuse public-event
+publication (`STAGE-ESM-032`), foreign events and `source events` captures (`STAGE-ESM-033`), and directed
+Translate slices (`STAGE-ESM-024`, naming the direction), reaction execution identity (`STAGE-ESM-034`),
+and reaction or reducer observer filters (`STAGE-ESM-035`). Per-production route overrides fail `STAGE-ESM-036`
+on the semantic engine; the structural engine refuses their stream syntax with `STAGE-ESM-030`.
+Reaction models are refused too: unrealisable trigger kinds and opaque bodies with `STAGE-ESM-024` naming the kind, a trigger that both produces and invokes with `STAGE-ESM-037`, `$context.causedBy.*` with `STAGE-ESM-013`, and event-triggered reactions with `STAGE-ESM-024` until reaction rendering is admitted.
+Structural refusals exit `1` without writing results;
+semantic runs record `Unsupported`, never a passing specification. The semantic executor admits ESM v1–v10
+version pairs and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
+Migrate to `--engine semantic` and the semantic report format described below.
 
 ```bash
 docker run --rm \
@@ -62,7 +71,7 @@ requires both `--model` and `--output`; the defaults above are supplied by the c
 | Code | Meaning |
 |---|---|
 | `0` | The run completed and `results.json` was written. **A failing specification is still a completed run** — read the outcomes from the file. Semantic runs execute event-source routes; structural runs refuse them. |
-| `1` | The input path is missing, the file extension is unsupported, the folder is empty, model compilation fails, or a structural run refuses named event sources, streams or event-source routes (`STAGE-ESM-030`). An actionable error is written to standard error; no results file is written. |
+| `1` | The input path is missing, the file extension is unsupported, the folder is empty, model compilation fails, or a structural run refuses event-source routes (`STAGE-ESM-030`), public events (`STAGE-ESM-032`), foreign events or source-events captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`), reaction execution identity (`STAGE-ESM-034`), or observer filters (`STAGE-ESM-035`). Semantic runs refuse production routes with `STAGE-ESM-036` in their report. An actionable error is written to standard error; no results file is written. |
 | `2` | A required argument (`--model` or `--output`) was missing. A usage line is written to standard error. |
 
 Input failures do not write results or delete or overwrite an existing output file. Compiler errors identify the
@@ -145,6 +154,11 @@ kind, the offending semantic construct ID and a reason. Do not feed this file to
 reader. The process returns `0` after writing the report even when a specification failed or was blocked;
 read its outcomes. Invalid semantic IDs, engine names, or structural-only flags with `--engine semantic` return `2`.
 Missing or invalid catalog/model inputs return `1` with a diagnostic.
+
+A specification case table produces one result per case, named `<Spec>_<Case>`. When a case fails,
+each failure starts with `Case '<Case>' of '<Spec>':` and includes `Effective fixtures:` with the
+substituted values and their origins, such as `when: name = "large" (case)`. Passing cases have no
+failure text. The Host's semantic specification run endpoint returns the same case details.
 
 The semantic engine runs admitted commands through Arc's in-memory command pipeline, with a fresh Chronicle
 in-memory event log per specification. It supports explicit-source Given events and direct `when appended`

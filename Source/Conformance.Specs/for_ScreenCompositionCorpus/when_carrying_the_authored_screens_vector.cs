@@ -35,12 +35,14 @@ public class when_carrying_the_authored_screens_vector : given.the_planned_scree
         _refusal = Catch.Exception(() => _plan = Plan(form.Documents, catalog.AsSpan(), carryScene: true).Plan);
     }
 
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("5e0e9869aca1e7400b9378ebaa899b4bf08934e45df8ab91bc8ffd4b8cec1b9c");
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("e524a689c963763badb0ce485df5a9660115c9cd57429509e204ec34ec05578b");
     [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(19304);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
     [Fact] void should_type_every_status_comparison() => Regex.Matches(Encoding.UTF8.GetString(_bytes), "\"subject\":\"item\\.status\"\\}[^}]*\"right\":\"open\"").Count.ShouldEqual(Regex.Matches(Encoding.UTF8.GetString(_bytes), "\"enumeration\":\\[\"open\",\"closed\"\\]").Count);
+    [Fact] void should_name_enumerations_as_the_scene_runtime_declares_them() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"trigger\":{\"kind\":\"DoubleClick\"}");
+    [Fact] void should_not_camel_case_an_enumeration_name() => Encoding.UTF8.GetString(_bytes).ShouldNotContain("\"kind\":\"doubleClick\"");
     [Fact] void should_plan_the_authored_scene_with_its_guards() => _refusal.ShouldBeNull();
     [Fact] void should_plan_without_diagnostics() => _plan!.Diagnostics.ShouldBeEmpty();
 

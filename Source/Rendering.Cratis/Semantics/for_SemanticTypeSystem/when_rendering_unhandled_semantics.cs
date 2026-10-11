@@ -18,8 +18,8 @@ public class when_rendering_unhandled_semantics : a_register_project_render_requ
     void Because()
     {
         var types = new SemanticTypeSystem(new SemanticApplicationContext(_request, _options));
-        _primitive = Catch.Exception(() => SemanticTypeSystem.Primitive((SemanticPrimitiveType)99));
-        _notSet = Catch.Exception(() => SemanticTypeSystem.NotSet((SemanticPrimitiveType)99));
+        _primitive = Catch.Exception(() => types.Primitive((SemanticPrimitiveType)99));
+        _notSet = Catch.Exception(() => types.NotSet((SemanticPrimitiveType)99));
         _type = Catch.Exception(() => types.Type(new((SemanticTypeReferenceKind)99, SemanticPrimitiveType.Unknown, default, false, false)));
         _value = Catch.Exception(() => types.Value(SemanticValue.Array([]), SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text)));
     }

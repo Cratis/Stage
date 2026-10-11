@@ -396,10 +396,22 @@ function StageDialog({ template, registry, strings, close }: StageDialogProps) {
         strings.dictionary,
     );
 
+    // A dialog is modal: it sits above the shell, it is reachable with the pointer wherever the page is scrolled to, and
+    // Escape closes it - which, through the navigation host, goes back to where it was opened from.
+    useEffect(() => {
+        const escape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') close();
+        };
+        globalThis.addEventListener('keydown', escape);
+        return () => globalThis.removeEventListener('keydown', escape);
+    }, [close]);
+
     return (
-        <section role='dialog' aria-label={template.displayName ?? template.name} className='stage-dialog'>
-            <button type='button' onClick={close}>Close</button>
-            <SceneElementView element={content} registry={registry} resolveBinding={data.resolveBinding} />
-        </section>
+        <div className='stage-dialog-backdrop'>
+            <section role='dialog' aria-modal='true' aria-label={template.displayName ?? template.name} className='stage-dialog'>
+                <button type='button' onClick={close}>Close</button>
+                <SceneElementView element={content} registry={registry} resolveBinding={data.resolveBinding} />
+            </section>
+        </div>
     );
 }

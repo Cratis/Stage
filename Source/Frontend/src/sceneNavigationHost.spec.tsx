@@ -134,6 +134,19 @@ describe('when the application is hosted by the Scene navigation host', () => {
         await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: 'Help dialog' })).toBeNull());
     });
 
+    it('should close a dialog with Escape and go back to where it was opened from', async () => {
+        stubScene();
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Help' }));
+        const dialog = await screen.findByRole('dialog', { name: 'Help dialog' });
+        expect(dialog.getAttribute('aria-modal')).toBe('true');
+
+        fireEvent.keyDown(globalThis as unknown as Element, { key: 'Escape' });
+        await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: 'Help dialog' })).toBeNull());
+        expect(screen.getByRole('heading', { name: 'Invoice list' })).toBeDefined();
+    });
+
     it('should open a dialog from a navigation entry authored with a dialog destination', async () => {
         stubScene();
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);

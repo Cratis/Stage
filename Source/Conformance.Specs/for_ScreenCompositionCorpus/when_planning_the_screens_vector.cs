@@ -19,18 +19,18 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "1e85a0f11b5799271e6a16a621ab602a6577691e88fb4be5559047b4091038c3";
+    const string Digest = "06a6dd01b7a95aa08954fa3a6daa345995ee7773deaaec8d7eb3c083d3c1fdd3";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx f1be33ab4c4b17540e101e671276f76ac33b0b9f79f1cd536f2f1cf5eb235d65 2253
-        .frontend/stage/App.tsx f92a6f90fe4bc3a7169d8e3f35fa7e0f6e980ce18651782664a3072cbe7b4438 20030
+        .frontend/stage/App.tsx 027b120bc72bc8e5dd74b6c3503e8cac5e86901bd600fde50f8e15ffef9f9aa3 20629
         .frontend/stage/FlowArrangementView.tsx 828b0518dd9d98a23605452355cb9a8a4e070bf98f61b6c014b0f705585cec93 2792
         .frontend/stage/StageChrome.tsx e13793cf12a2dbdbce7b59b0e3525d33fc6b8c102ca55ff38ef70c2f073c5993 9465
         .frontend/stage/StageCommandForm.tsx 2dea1ddde16ec3a946a52bb4a7044928bb25de32b7702089634e48f1157fed5d 22440
         .frontend/stage/StageGuardedAction.tsx 8c950711a7cd89ddd11191f846bf5230da93cf2a31a450976ff22d26e6210c5e 6921
-        .frontend/stage/app.css 78a49931be424e35a218c229c470100299fd2a54d7e067ab29d47aea6da15923 3892
+        .frontend/stage/app.css c92f082cdc927eb690b3a3c9e339a89e86f3f0f64c93a51fae96ea51c669ebf8 4463
         .frontend/stage/blueprint.ts 4a671d5d2f8be5f3eb80282a44214945f22075b41f0300196530a77a87ccd055 8846
         .frontend/stage/navigationTree.ts b07b69a65ad734b534cc865355e210c938aa0832057483e4ccdfbd04545fdfc3 7290
         .frontend/stage/stageCommands.ts 3b40fc0d0f4987c4ac3d253acf1b0c33104c0eb43ad9bfa504088d51b0d6d179 1944

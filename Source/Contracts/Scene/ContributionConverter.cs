@@ -76,26 +76,6 @@ public static class ContributionConverter
         return new SceneContributionPoints.Contribution(contribution.ContributionPoint, content, contribution.Order);
     }
 
-    static SceneCommon.DestinationReference? DestinationOf(ScreenplaySyntax.ContributionSyntax contribution)
-    {
-        var navigate = contribution.Navigate is null ? null : CompositionConverter.Destination(contribution.Navigate);
-        if (contribution.Destination is not { } destination)
-        {
-            return navigate;
-        }
-
-        // `destination outlet|dialog|external <target>` says where the entry opens; a `navigate to` beside it supplies the screen
-        // and parameters, so the two compose instead of one hiding the other.
-        var opens = navigate ?? new SceneCommon.DestinationReference(RouteParameterBindings: new Dictionary<string, SceneCommon.BindingExpression>());
-        return destination.Kind switch
-        {
-            ScreenplaySyntax.ContributionDestinationKind.Outlet => opens with { Outlet = destination.Target, Kind = SceneCommon.DestinationKind.Outlet },
-            ScreenplaySyntax.ContributionDestinationKind.Dialog => opens with { Dialog = destination.Target, Kind = SceneCommon.DestinationKind.Dialog },
-            ScreenplaySyntax.ContributionDestinationKind.External => opens with { Route = destination.Target, Kind = SceneCommon.DestinationKind.External },
-            _ => throw new UnknownCompositionValue("contribution destination", destination.Kind.ToString()),
-        };
-    }
-
     /// <summary>
     /// Converts a <c language="csharp">contribute to</c> block written inside a screen.
     /// </summary>
@@ -130,5 +110,25 @@ public static class ContributionConverter
                 [ContentSlot] = ScreenDirectiveConverter.Convert(contribution.Directives, id, behaviors)
             });
         return new SceneContributionPoints.Contribution(contribution.ContributionPoint, content, contribution.Order);
+    }
+
+    static SceneCommon.DestinationReference? DestinationOf(ScreenplaySyntax.ContributionSyntax contribution)
+    {
+        var navigate = contribution.Navigate is null ? null : CompositionConverter.Destination(contribution.Navigate);
+        if (contribution.Destination is not { } destination)
+        {
+            return navigate;
+        }
+
+        // `destination outlet|dialog|external <target>` says where the entry opens; a `navigate to` beside it supplies the screen
+        // and parameters, so the two compose instead of one hiding the other.
+        var opens = navigate ?? new SceneCommon.DestinationReference(RouteParameterBindings: new Dictionary<string, SceneCommon.BindingExpression>());
+        return destination.Kind switch
+        {
+            ScreenplaySyntax.ContributionDestinationKind.Outlet => opens with { Outlet = destination.Target, Kind = SceneCommon.DestinationKind.Outlet },
+            ScreenplaySyntax.ContributionDestinationKind.Dialog => opens with { Dialog = destination.Target, Kind = SceneCommon.DestinationKind.Dialog },
+            ScreenplaySyntax.ContributionDestinationKind.External => opens with { Route = destination.Target, Kind = SceneCommon.DestinationKind.External },
+            _ => throw new UnknownCompositionValue("contribution destination", destination.Kind.ToString()),
+        };
     }
 }

@@ -104,14 +104,12 @@ public class a_browser : a_routed_model
                 address Address
                 produces ProjectRegistered
                   for projectId
-                  projectId = projectId
                   name = name
                   tags = tags
                   active = active
                   count = count
                   address = address
               event ProjectRegistered
-                projectId ProjectId
                 name ProjectName
                 tags String[]
                 active Bool
@@ -125,8 +123,11 @@ public class a_browser : a_routed_model
                 active Bool
                 count Int
                 address Address
+              query ProjectById => ProjectSummary optional
+                by projectId ProjectId
               projection ProjectSummaryProjection => ProjectSummary
-                from ProjectRegistered key projectId
+                from ProjectRegistered key $eventSourceId
+                  projectId = $eventSourceId
                   name = name
                   tags = tags
                   active = active
@@ -135,6 +136,7 @@ public class a_browser : a_routed_model
             feature History
               slice StateView EmptyLookup
                 readmodel EmptySummary
-                  name ProjectName?
+                  name ProjectName optional
+                  emptySummaryId ProjectId key
         """;
 }

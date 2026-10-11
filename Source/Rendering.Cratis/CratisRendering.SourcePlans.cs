@@ -90,7 +90,15 @@ public static partial class CratisRendering
             AttachmentDiagnostics = loaded.AttachmentDiagnostics,
             TypedContextDescriptors = loaded.TypedContextDescriptors
         };
-        var context = new SemanticApplicationContext(request, new(options.ProjectName, options.RootNamespace));
+        if (!CratisArtifactRenderProfileAdmission.Matches(request, out var admittedOptions, out var mismatch))
+        {
+            return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError(mismatch)], loaded.Model.Revision);
+        }
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace))
+        {
+            return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError("The caller's profile project and root namespace must match the plan options.")], loaded.Model.Revision);
+        }
+        var context = new SemanticApplicationContext(request, admittedOptions);
         if (context.SelectedSlices().Count == 0)
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, CratisPlanResult.Error("STAGE-PLAN-014", "The selection matches no slices.")], loaded.Model.Revision);
@@ -113,6 +121,9 @@ public static partial class CratisRendering
         _ => ArtifactRenderDiagnosticSeverity.Information
     };
 
+    static CratisPlanDiagnostic ProfileError(string mismatch) =>
+        CratisPlanResult.Error("STAGE-CRATIS-001", $"The artifact render profile is not the exact package-owned Cratis profile. {mismatch}");
+
     static (ArtifactRenderProfile? Profile, CratisPlanDiagnostic? Diagnostic) Prepare(CratisPlanOptions options, bool scaffoldOnly)
     {
         if (scaffoldOnly && options.Domain.Length > 0)
@@ -129,6 +140,15 @@ public static partial class CratisRendering
             if (DomainPlacementInput.IsReserved(domain, profile))
             {
                 return (null, CratisPlanResult.Error("STAGE-PLAN-021", "Domain collides with an application-root scaffold or reserved folder."));
+            }
+
+            if (!scaffoldOnly && options.Profile is { } supplied)
+            {
+                if (supplied.Inputs.Any(input => input.Name == DomainPlacementInput.Name))
+                {
+                    return (null, ProfileError("The caller's profile must omit domain placement; use the Domain option."));
+                }
+                profile = supplied;
             }
 
             return (DomainPlacementInput.WithDomain(profile, domain), null);

@@ -40,6 +40,40 @@ if (result.Success)
 `PlanFrom(LoadedSemanticModel, PlanSelection, CratisPlanOptions)` performs the same
 selection and rendering without I/O, for callers that already compiled their sources.
 
+## Caller profile and byte parity
+
+Set `CratisPlanOptions.Profile` to the complete `ArtifactRenderProfile` you use for a
+full render. Build it with `CratisRendering.CreateProfile`, including any composed
+Scene and companion strings catalog, then add authored documentation with
+`CratisRendering.WithAuthoringMetadata` from the same compilation. Pass that profile
+to either `PlanFrom` overload; keep its project and root namespace equal to the plan
+options.
+
+For example, given an existing `compilation`, `loaded` model, `selection`, optional
+`scene`, and companion `stringsFiles` with a default locale of `en`:
+
+```csharp
+var options = new CratisPlanOptions("Shop", "Shop.Backend", "Acme.Shop");
+var profile = CratisRendering.WithAuthoringMetadata(
+    CratisRendering.CreateProfile(options.ApplicationName,
+        new(options.ProjectName, options.RootNamespace), scene, stringsFiles, "en"),
+    compilation);
+var scoped = CratisRendering.PlanFrom(loaded, selection, options with { Profile = profile });
+```
+
+For the same compiled model, attachments, names, profile inputs, and domain, every
+artifact in a successful scoped plan is byte-identical to the artifact at the same
+path in a full application plan. Scoped plans still exclude application scaffolding
+and application-only Scene and strings artifacts. A null `Profile` keeps the existing
+defaults and bytes; Stage does not automatically add authored documentation or strings.
+
+The caller profile uses the same admission as the public artifact planner. Invalid,
+stale, duplicate, or unrecognized inputs and mismatched project or namespace names
+produce `STAGE-CRATIS-001`, not a planning exception. The package-owned scaffold roster
+cannot be replaced. Omit domain placement from the supplied profile and use `Domain`
+instead: `PlanFrom` owns that input and refuses a caller-supplied domain input.
+`PlanScaffold` ignores `Profile` and continues to emit the plain package scaffold.
+
 ## Sources and identity
 
 | `PlaySources` member | Meaning |

@@ -26,6 +26,7 @@ internal static class SemanticRunProjections
         Defaults defaults)
     {
         var requested = specification.ThenReadModels.Select(state => state.ReadModel)
+            .Concat(specification.ThenAbsentReadModels.Select(state => state.ReadModel))
             .Concat(specification.ThenQueries.Select(query => plan.Queries[query.Query].ReadModel))
             .Concat(plan.Projections.Values.Where(projection => context.Facts.Any(fact =>
                 projection.Scope?.From.Any(from => from.EventContract == fact.EventContract) == true ||

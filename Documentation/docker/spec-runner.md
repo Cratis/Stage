@@ -180,8 +180,13 @@ does not run command authorization or validation. Conflict outcomes cannot be re
 specifications: the Screenplay v4.24.0 reference evaluator declares `SemanticConflict` but never produces it.
 
 Facts are compared against Stage's recorded occurrences; Chronicle's persisted log is checked for fact count.
-A separate Chronicle projection scenario evaluates admitted read-model assertions and unprotected, optional
-snapshot queries by the read-model identifier. Flat scalar projections and scoped projections using
+A separate Chronicle projection scenario evaluates admitted read-model assertions, including keyed absence
+assertions (`then no readmodel … for …`), and optional snapshot queries by the read-model identifier.
+An absence assertion passes only when that keyed instance is missing; an instance at another key does not
+make it fail. Specifications can inspect projected Given events without a command or append action.
+Protected queries evaluate the same portable policies as commands, with the fixture caller, query argument
+and query key as the subject. An allowed query compares its result; a denied query matches only `then denied`,
+not an empty result or `then error`. A reached opaque policy returns `Unsupported(Authorization)`. Flat scalar projections and scoped projections using
 event-source keys (text or UUID) with scalar `from`/`set` mappings run with per-specification artifacts. The
 semantic trace includes keyed read-model and query results; a mismatched result fails the specification.
 The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
@@ -195,8 +200,8 @@ An event-source identity
 mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
 otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also
 returns `Unsupported(Projection)`. They also apply the renderer's scoped-projection admission predicate, so
-`FromAll`, composite keys and Chronicle#4125 shapes remain rejected. Protected queries and
-queries other than optional snapshots by identifier return `Unsupported(Query)`. Other unimplemented
+`FromAll`, composite keys and Chronicle#4125 shapes remain rejected. Queries other than optional snapshots
+by identifier return `Unsupported(Query)`. Other unimplemented
 behavior (conditional production, implicit event-source identity allocation, external effects and
 unsupported expression or value shapes) is also blocked rather than reported as a pass. The semantic
 executor can run alongside a host without replacing its process-wide Arc service provider. This is not

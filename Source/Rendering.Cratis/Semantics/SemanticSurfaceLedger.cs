@@ -382,6 +382,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticReactionIdentityKind", identity, "System");
         var filters = rejected(SemanticVersionFeatures.ObserverFilters);
         Add(entries, "SemanticReaction", filters, "From");
+
         // Reducer filters render as Chronicle attributes. The Host and executor retain STAGE-ESM-035:
         // neither executes reducer bodies. Reaction usage of the same filter members stays refused.
         Add(entries, "SemanticReducer", rendered, "From");

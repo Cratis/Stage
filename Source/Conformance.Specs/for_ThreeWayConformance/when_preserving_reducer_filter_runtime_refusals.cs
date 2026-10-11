@@ -17,8 +17,7 @@ public class when_preserving_reducer_filter_runtime_refusals
     [InlineData("OrdersSource.Entries")]
     public async Task should_render_the_filter_but_keep_host_and_executor_refusals(string filter)
     {
-        var source = when_rendering_reducer_observer_filters.Source(filter) + """
-
+        const string specification = """
               specification RecordingAnOrder
                 when PlaceOrder
                   id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
@@ -27,6 +26,7 @@ public class when_preserving_reducer_filter_runtime_refusals
                   id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   amount = 20
         """;
+        var source = when_rendering_reducer_observer_filters.Source(filter).Replace("    slice StateView Totals", specification + "\n    slice StateView Totals", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
         var plan = SemanticExecutionPlan.Compile(loaded.Model).Plan!;
         var rendered = when_rendering_a_pure_reducer.Plan(loaded);

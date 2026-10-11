@@ -15,9 +15,11 @@ public class when_verifying_reducer_filters_against_mongo : a_generated_applicat
 {
     protected override ArtifactRenderPlan CreatePlan()
     {
-        var source = when_rendering_reducer_observer_filters.Source("OrdersSource.Entries")
-            .Replace("return new Total(context.Event.Id, context.Event.Amount);",
-                "return new Total(context.Event.Id, (context.State?.Amount ?? 0m) + context.Event.Amount);", StringComparison.Ordinal);
+        var source = when_rendering_a_pure_reducer.WithIdentifierConcept(when_rendering_reducer_observer_filters.Source("OrdersSource.Entries"))
+            .Replace(
+                "return new Total(context.Event.Id, context.Event.Amount);",
+                "return new Total(context.Event.Id, (context.State?.Amount ?? 0m) + context.Event.Amount);",
+                StringComparison.Ordinal);
         return when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source).GetAwaiter().GetResult());
     }
 
@@ -34,6 +36,7 @@ public class when_verifying_reducer_filters_against_mongo : a_generated_applicat
                 using Cratis.Chronicle.Reducers;
                 using Cratis.Chronicle.Registrations;
                 using Cratis.Serialization;
+                using Projects.Common;
                 using Projects.Orders.Ordering.PlaceOrder;
                 using Projects.Orders.Ordering.Totals;
                 using Xunit;
@@ -52,8 +55,8 @@ public class when_verifying_reducer_filters_against_mongo : a_generated_applicat
                         var store = await client.GetEventStore("Stage207ReducerFilters", Guid.NewGuid().ToString("N"));
                         var registration = await store.WaitForRegistration(TimeSpan.FromSeconds(90));
                         Assert.True(registration.IsSuccess, $"Registration failed: {registration.Failure}; {string.Join("; ", registration.Failures)}");
-                        var key = Guid.NewGuid();
-                        EventSourceId sourceId = key.ToString("D");
+                        var key = new OrderId(Guid.NewGuid());
+                        var sourceId = (EventSourceId)key;
                         await Matching(10m);
                         Assert.Equal(10m, (await store.ReadModels.GetInstanceById<Total>(sourceId))!.Amount);
 

@@ -28,7 +28,7 @@ internal static class SemanticCommonArtifactRenderer
         }
         else
         {
-            RenderConcept(builder, concept, name, context.IdentifierConcepts.Contains(concept.Id), context.RootNamespace, new SemanticTypeSystem(context));
+            RenderConcept(builder, concept, name, context);
         }
 
         return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
@@ -63,8 +63,10 @@ internal static class SemanticCommonArtifactRenderer
         builder.EndBlock();
     }
 
-    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, bool isIdentifier, string rootNamespace, SemanticTypeSystem types)
+    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context)
     {
+        var types = new SemanticTypeSystem(context);
+        var isIdentifier = context.IdentifierConcepts.Contains(concept.Id);
         var primitive = types.Primitive(concept.Primitive);
         builder.Using("Cratis.Concepts");
         if (isIdentifier)
@@ -73,23 +75,37 @@ internal static class SemanticCommonArtifactRenderer
         }
 
         var baseType = isIdentifier ? $"global::Cratis.Chronicle.Events.EventSourceId<{primitive}>" : $"global::Cratis.Concepts.ConceptAs<{primitive}>";
+        var generationInterface = GenerationInterface(concept, context);
         builder.Summary($"Represents {Identifiers.ToWords(concept.Name)}.")
-            .OpenBlock($"public record {name}({primitive} Value) : {baseType}(Value)")
+            .OpenBlock($"public record {name}({primitive} Value) : {baseType}(Value){generationInterface}")
             .Line($"public static readonly {name} NotSet = new({types.NotSet(concept.Primitive)});")
             .BlankLine();
 
-        if (isIdentifier)
-        {
-            var value = concept.Primitive == SemanticPrimitiveType.Uuid ? "global::System.Guid.NewGuid()" : types.NotSet(concept.Primitive);
-            builder.Line($"public static {name} New() => new({value});").BlankLine();
-        }
-        else
+        RenderFactory(builder, concept, context);
+        if (!isIdentifier)
         {
             builder.Line($"public static implicit operator {primitive}({name} value) => value.Value;");
         }
 
         builder.Line($"public static implicit operator {name}({primitive} value) => new(value);").EndBlock();
-        RenderValidator(builder, concept, name, rootNamespace);
+        RenderValidator(builder, concept, name, context.RootNamespace);
+    }
+
+    static bool NeedsFactory(SemanticConcept concept, SemanticApplicationContext context) =>
+        context.IdentifierConcepts.Contains(concept.Id) || context.Commands.Values.Any(command =>
+            command.Properties.Any(property => property.IsGenerated && property.Type.Target == concept.Id));
+
+    static bool IsGeneratable(SemanticConcept concept, SemanticApplicationContext context) =>
+        concept.Primitive == SemanticPrimitiveType.Uuid && NeedsFactory(concept, context);
+
+    static string GenerationInterface(SemanticConcept concept, SemanticApplicationContext context) =>
+        IsGeneratable(concept, context) ? $", global::Cratis.Concepts.IGeneratable<{Identifiers.ToPascalCase(concept.Name)}>" : string.Empty;
+
+    static void RenderFactory(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context)
+    {
+        if (!NeedsFactory(concept, context)) return;
+        var value = IsGeneratable(concept, context) ? "global::Cratis.Concepts.GenerateValue.Uuid()" : new SemanticTypeSystem(context).NotSet(concept.Primitive);
+        builder.Line($"public static {Identifiers.ToPascalCase(concept.Name)} New() => new({value});").BlankLine();
     }
 
     static void RenderValidator(CSharpCodeBuilder builder, SemanticConcept concept, string name, string rootNamespace)

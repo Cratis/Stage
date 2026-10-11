@@ -211,6 +211,9 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
         feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
 
+    static ImmutableArray<SemanticPropertyValue> GeneratedValues(SemanticCommand command) =>
+        [.. command.Properties.Where(property => property.IsGenerated).Select(property => new SemanticPropertyValue(property.Id, SemanticValue.Text(Guid.NewGuid().ToString())))];
+
     static bool OpaqueRule(SemanticValidationRuleKind kind) =>
         kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
 
@@ -248,14 +251,15 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
 
     SemanticExecutionResult Evaluate(SemanticCommand command, IReadOnlyDictionary<string, JsonElement> payload, ClaimsPrincipal principal, SemanticCommandOccurrence occurrence)
     {
-        var unknown = payload.Keys.FirstOrDefault(key => command.Properties.All(property => !string.Equals(property.Name, key, StringComparison.OrdinalIgnoreCase)));
+        var unknown = payload.Keys.FirstOrDefault(key => command.Properties.Where(property => !property.IsGenerated).All(property => !string.Equals(property.Name, key, StringComparison.OrdinalIgnoreCase)));
         try
         {
-            var values = SemanticJsonValues.Bind(command.Properties, payload, Plan.Model);
+            var values = SemanticJsonValues.Bind(command.Properties.Where(property => !property.IsGenerated), payload, Plan.Model);
             var request = SemanticExecutionRequest.Create(command.Id, values, []) with
             {
                 Caller = SemanticCallers.From(principal),
-                Occurrence = occurrence
+                Occurrence = occurrence,
+                GeneratedValues = GeneratedValues(command)
             };
             var result = _evaluator.Execute(Plan, _world, request);
             if (unknown is not null && result is not SemanticRejected { Category: SemanticRejectionCategory.Unauthorized })
@@ -268,11 +272,12 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         catch (UnsupportedSemanticValue exception)
         {
             // Authorization is the evaluator's first decision, even for payloads the JSON binder cannot represent.
-            var emptyValues = command.Properties.Select(property => new SemanticPropertyValue(property.Id, SemanticValue.Null)).ToImmutableArray();
+            var emptyValues = command.Properties.Where(property => !property.IsGenerated).Select(property => new SemanticPropertyValue(property.Id, SemanticValue.Null)).ToImmutableArray();
             var authorization = _evaluator.Execute(Plan, _world, SemanticExecutionRequest.Create(command.Id, emptyValues, []) with
             {
                 Caller = SemanticCallers.From(principal),
-                Occurrence = occurrence
+                Occurrence = occurrence,
+                GeneratedValues = GeneratedValues(command)
             });
             return authorization is SemanticRejected { Category: SemanticRejectionCategory.Unauthorized } or SemanticUnsupported
                 ? authorization

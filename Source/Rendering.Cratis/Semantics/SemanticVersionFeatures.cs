@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -45,6 +46,11 @@ internal static class SemanticVersionFeatures
     /// The code for ESM v7 command responses and return expectations.
     /// </summary>
     internal const string Responses = "STAGE-ESM-029";
+
+    /// <summary>
+    /// The code for generated-value or response combinations that cannot be preserved by the target.
+    /// </summary>
+    internal const string CommandResults = "STAGE-ESM-038";
 
     /// <summary>
     /// The code for ESM v8 event sources, streams and routes, shared with renderer admission and the semantic surface ledger.
@@ -104,7 +110,8 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> InApplication(SemanticApplication application) =>
         (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
-        .Concat(RoutesInApplication(application));
+        .Concat(RoutesInApplication(application))
+        .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
 
     /// <summary>
     /// Finds named event sources and streams the renderer cannot render yet.
@@ -286,14 +293,11 @@ internal static class SemanticVersionFeatures
             yield return route;
         }
 
-        foreach (var property in command.Properties.Where(property => property.IsGenerated))
-        {
-            yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}' (ESM v7), which Stage does not support yet.");
-        }
+        foreach (var feature in UnsupportedGenerated(command, null)) yield return feature;
 
-        if (command.Response is not null)
+        if (UnsupportedCommandResults(command))
         {
-            yield return new(Responses, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' declares a response (ESM v7), which Stage does not support yet.");
+            yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' combines generated values or a response with routing, legacy destination allocation, generated-property rules, or a non-scalar/non-command response source; Stage cannot preserve that combination yet.");
         }
     }
 
@@ -319,16 +323,6 @@ internal static class SemanticVersionFeatures
         if (!specification.ThenAbsentReadModels.IsDefaultOrEmpty)
         {
             yield return new(Absence, StageExecutionCapability.Projection, specification.Id, "specification", $"Specification '{specification.Name}' asserts a read model is absent (ESM v5); the generated ReadModelScenario exposes only a materialized record, so Stage does not support absence yet.");
-        }
-
-        if (specification.When is { GeneratedValues.IsDefaultOrEmpty: false })
-        {
-            yield return new(Generated, StageExecutionCapability.IdentityAllocation, specification.Id, "specification", $"Specification '{specification.Name}' supplies generated values (ESM v7), which Stage does not support yet.");
-        }
-
-        if (specification.ThenReturns is not null)
-        {
-            yield return new(Responses, StageExecutionCapability.Command, specification.Id, "specification", $"Specification '{specification.Name}' asserts a command response (ESM v7), which Stage does not support yet.");
         }
     }
 
@@ -379,6 +373,76 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> ReducerFiltersInSlice(SemanticSlice slice) =>
         slice.Reducers.Where(reducer => reducer.From is not null).Select(reducer => new SemanticVersionFeature(
             ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet."));
+
+    internal static IEnumerable<SemanticVersionFeature> UnsupportedGenerated(SemanticCommand command, IEnumerable<SemanticConcept>? concepts)
+    {
+        foreach (var property in command.Properties.Where(property => property.IsGenerated).Where(property => UnsupportedGeneratedType(property.Type, concepts)))
+        {
+            yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}'; phase 1 renders non-optional, non-collection UUID-backed concepts only.");
+        }
+        if (concepts is not null)
+        {
+            foreach (var concept in concepts.Where(concept => command.Properties.Any(property => property.IsGenerated && property.Type.Target == concept.Id)))
+            {
+                if (GeneratedPascalCase.From(concept.Name) == "New")
+                {
+                    yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' collides with its New factory.");
+                }
+                if (!concept.Validations.IsEmpty)
+                {
+                    yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' has validation rules; Arc reports a generation defect as an exception, not the evaluator's rejection.");
+                }
+            }
+        }
+    }
+
+    static bool UnsupportedGeneratedType(SemanticTypeReference type, IEnumerable<SemanticConcept>? concepts)
+    {
+        if (type is not { Kind: SemanticTypeReferenceKind.Concept, IsOptional: false, IsCollection: false }) return true;
+
+        return concepts?.Any(concept => concept.Id == type.Target && concept.Primitive == SemanticPrimitiveType.Uuid) == false;
+    }
+
+    static bool UnsupportedCommandResults(SemanticCommand command) =>
+        UnsupportedGeneratedCombination(command) || UnsupportedResponse(command);
+
+    static bool UnsupportedGeneratedCombination(SemanticCommand command)
+    {
+        var generated = command.Properties.Where(property => property.IsGenerated).ToArray();
+        if (HasRoutedResults(command, generated.Length)) return true;
+        if (generated.Length == 0) return false;
+        if (generated.Any(property => property.IsIdentifier) && command.Produces.Any(produced => produced.Destination is null)) return true;
+        if (OccurrenceParameterCollides(command, generated)) return true;
+
+        return !command.Requirements.IsEmpty || command.Validations.Any(rule => generated.Any(property => property.Id == rule.Property));
+    }
+
+    static bool HasRoutedResults(SemanticCommand command, int generatedCount) =>
+        command.Route is not null && (command.Response is not null || generatedCount > 0);
+
+    static bool OccurrenceParameterCollides(SemanticCommand command, IEnumerable<SemanticProperty> generated) =>
+        command.Produces.Any(produced => produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
+        generated.Any(property => IsOccurrenceParameter(property.Name));
+
+    static bool IsOccurrenceParameter(string name)
+    {
+        var generatedName = GeneratedPascalCase.From(name);
+
+        return string.Equals(generatedName, "Operation", StringComparison.Ordinal) || string.Equals(generatedName, "Occurred", StringComparison.Ordinal);
+    }
+
+    static bool UnsupportedResponse(SemanticCommand command) => command.Response switch
+    {
+        SemanticScalarCommandResponse scalar => UnsupportedResponseSource(command, scalar.Source, scalar.Type),
+        SemanticRecordCommandResponse record =>
+            record.Fields.Any(field => UnsupportedResponseSource(command, field.Source, field.Type)) ||
+            !GeneratedPascalCase.RecordMembersAreUnique(command.Name + "Response", record.Fields.Select(field => field.Name)),
+        _ => false
+    };
+
+    static bool UnsupportedResponseSource(SemanticCommand command, SemanticId source, SemanticTypeReference type) =>
+        type.IsCollection || type.Kind == SemanticTypeReferenceKind.CompositeType ||
+        !command.Properties.Any(property => property.Id == source && property.Type == type);
 
     static IEnumerable<SemanticId> ConstraintEvents(IEnumerable<SemanticConstraint> constraints) =>
         constraints.SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy));

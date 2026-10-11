@@ -7,6 +7,8 @@ Reference material for a model Stage is performing, and for the targets it resol
 
 ## Topics
 
+- [Generated values and command responses](generated-values-rendering.md) — UUID concepts, generation fixtures, response contracts and limits.
+
 - [Default generated Scene](default-scene-composition.md) — eligible editable keyed lookups, omitted cases, input formats and stable proxy identities.
 
 - [URLs of a running Stage](urls.md) — every URL the session exposes on both ports, how the model's module, feature and slice names turn into routes, and the response envelopes.

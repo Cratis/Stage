@@ -314,8 +314,9 @@ Stage builds against Screenplay 4.137.0 and admits ESM v1 through v11 by version
 | Reaction mappings of `$context.causedBy.subject`, `.name` or `.userName` | v6 | `STAGE-ESM-013`, naming the context member |
 | Captures, Automation and Translate slices, and specifications with a clock, trigger or capture | v6 | `STAGE-ESM-024` |
 | A reaction trigger that both produces events and invokes commands | v6 | `STAGE-ESM-037`: Arc cannot return events and commands from one handler ([Arc #3156](https://github.com/Cratis/Arc/issues/3156)) |
-| Generated command properties and specification generation fixtures | v7 | `STAGE-ESM-028` |
-| Command responses and `then returns` expectations | v7 | `STAGE-ESM-029` |
+| Generated command properties and specification generation fixtures | v7 | Required scalar UUID-backed concepts render; other generated shapes fail `STAGE-ESM-028` |
+| Command responses and `then returns` expectations | v7 | Scalar and named responses render; no blanket `STAGE-ESM-029` refusal |
+| Unsupported generated-value/response combinations | v7+ | `STAGE-ESM-038`: routing, legacy destination allocation, generated-property rules/constraints, unsupported response sources or name collisions; unpinned unordered/projected expectations |
 | Policy negation (`not`) | v7 | Rendered |
 | Named event sources, streams and command routes | v8 | Rendered; reserved stored names fail `STAGE-ESM-030` |
 | Routed command specifications | v8 | Rendered: route-aware givens and assertions, assignment matching for any-order expectations; routed read-model/query replay is rendered; unformattable fixtures fail `STAGE-ESM-030` |
@@ -335,6 +336,8 @@ The compiler selects v11 only when a retained non-route number needs the correct
 literals and route-feeding inputs retain their earlier version. Existing v1–v10 ESM values are not
 normalized or rounded again. This does not enable `numbers exact` or arbitrary precision; source whole
 numbers remain bounded by ±(2^53−1). See [Generated C# numbers](../reference/stage-rendering.md#generated-c-whole-numbers).
+
+[Generated values and command responses](../reference/generated-values-rendering.md) describes the UUID mapping, pins, relational assertions, runtime responses and the precise `038` limits.
 
 Reaction admission reports execution identity (`034`), observer filters (`035`), mixed effects (`037`), and caused-by context (`013`) before trigger-kind and generic reaction refusals (`024`). The renderer, Host and specification executor still refuse every reaction model.
 

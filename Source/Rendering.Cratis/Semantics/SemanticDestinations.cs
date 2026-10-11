@@ -49,6 +49,6 @@ internal static class SemanticDestinations
 
         var destination = (SemanticResolvedExpression)Of(command, produced)!;
         var property = command.Properties.Single(_ => _.Id == destination.Target);
-        return new(property.Type, specification.When!.Values.Single(_ => _.TargetProperty == destination.Target).Value);
+        return new(property.Type, specification.When!.Values.Concat(specification.When.GeneratedValues).Single(_ => _.TargetProperty == destination.Target).Value);
     }
 }

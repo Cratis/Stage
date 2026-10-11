@@ -14,6 +14,9 @@ WORKDIR /frontend
 COPY Source/Frontend/package.json Source/Frontend/package-lock.json ./
 RUN npm ci
 COPY Source/Frontend/ ./
+# The frontend specs are type-checked by `npm run build`, and sceneEnumerationNaming.spec.ts imports the checked-in
+# enumeration map from Source/Conformance.Specs (two directories above src/). Mirror that location in this stage.
+COPY Source/Conformance.Specs/for_SceneEnumerationNaming/scene-model-enumerations.json /Conformance.Specs/for_SceneEnumerationNaming/scene-model-enumerations.json
 
 # The PrimeUI license key - the same PRIMEUI_LICENSE GitHub secret Direct and Studio already build with,
 # passed in as a build arg (see dockerize.sh and publish.yml). It only ever exists in this discarded

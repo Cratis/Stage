@@ -221,6 +221,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         {
             return Rejected(slice, context.Specification, failure);
         }
+
         // The reference resolves the route after authorization and validation, before identity allocation.
         if (!context.TryResolveRoute(out var routeFailure))
         {

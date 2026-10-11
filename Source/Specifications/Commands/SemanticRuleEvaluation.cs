@@ -45,8 +45,6 @@ internal static class SemanticRuleEvaluation
         return null;
     }
 
-    static bool IsInputConcept(SemanticProperty property) => !property.IsGenerated && property.Type.Kind == SemanticTypeReferenceKind.Concept;
-
     internal static string? GeneratedFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
     {
         var values = specification.When!.GeneratedValues.ToDictionary(value => value.TargetProperty, value => value.Value);
@@ -68,6 +66,8 @@ internal static class SemanticRuleEvaluation
         SemanticComparison comparison => Compare(comparison, values),
         _ => throw new UnsupportedSemanticMapping()
     };
+
+    static bool IsInputConcept(SemanticProperty property) => !property.IsGenerated && property.Type.Kind == SemanticTypeReferenceKind.Concept;
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values)
     {

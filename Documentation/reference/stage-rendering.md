@@ -74,6 +74,13 @@ The Host currently registers enum properties with a string schema rather than th
 integer schema. Reading both value forms does not make those schemas compatible in a shared event store;
 [Stage #310](https://github.com/Cratis/Stage/issues/310) tracks that registration mismatch.
 
+## Match patterns
+
+`matches` uses ECMAScript regular-expression semantics with culture-invariant matching and a one-second timeout.
+An unescaped `$` outside a character class means end of input, not the position before a final newline:
+`^[A-Z]{3}$` accepts `ABC` but rejects `ABC\n`. Escaped dollars and dollars inside character classes remain literal.
+The semantic executor, Host and generated C# validators use the same rule.
+
 ## Chrome
 
 The topbar, sidebar, menu, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them:

@@ -7,7 +7,7 @@ using Cratis.Stage.Contracts.Rendering;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Refuses each ESM v5–v9 construct the Cratis planner does not render yet, before any artifact is planned.
+/// Refuses each ESM v5–v10 construct the Cratis planner does not render yet, before any artifact is planned.
 /// </summary>
 /// <remarks>
 /// Admitting a version by number never admits its constructs: a selected slice that uses one refuses the
@@ -17,7 +17,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticVersionFeatureAdmission
 {
     /// <summary>
-    /// Finds every unrendered v5–v9 construct in the selected scope.
+    /// Finds every unrendered v5–v10 construct in the selected scope.
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
     /// <param name="slices">The selected slices.</param>

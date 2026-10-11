@@ -23,8 +23,8 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.122.0; ESM v1–v9 version pairs are admitted, but evolved events require migration rendering
-/// and each v5–v9 construct Stage does not render yet refuses the model with its own diagnostic.
+/// Inventories the executable semantic surface audited against Screenplay 4.131.0; ESM v1–v10 version pairs are admitted, but evolved events require migration rendering
+/// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
 internal static class SemanticSurfaceLedger
@@ -357,6 +357,18 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSlice", v6, "Direction");
         Add(entries, "SemanticCapture", foreign, "EventsSource");
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
+
+        // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
+        // Admit the version pair, but refuse each construct until every execution path can preserve it.
+        var identity = rejected(SemanticVersionFeatures.ReactionIdentity);
+        Add(entries, "SemanticReaction", identity, "RunsAs");
+        Add(entries, "SemanticReactionIdentity", identity, "Kind Roles");
+        Add(entries, "SemanticReactionIdentityKind", identity, "System");
+        var filters = rejected(SemanticVersionFeatures.ObserverFilters);
+        Add(entries, "SemanticReaction", filters, "From");
+        Add(entries, "SemanticReducer", filters, "From");
+        Add(entries, "SemanticObserverFilter", filters, "Source Stream");
+        Add(entries, "SemanticProducedEvent", rejected(SemanticVersionFeatures.ProductionRoutes), "Route");
 
         return entries;
     }

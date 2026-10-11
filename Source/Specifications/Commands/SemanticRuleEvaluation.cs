@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Comparison;
 
 namespace Cratis.Stage.Specifications.Commands;
@@ -91,7 +92,7 @@ internal static class SemanticRuleEvaluation
         if (value is not SemanticTextValue text || operand is not SemanticTextValue pattern) throw new UnsupportedSemanticMapping();
         try
         {
-            return Regex.IsMatch(text.Value, pattern.Value, RegexOptions.ECMAScript | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+            return Regex.IsMatch(text.Value, SemanticMatchAnchors.Portable(pattern.Value), RegexOptions.ECMAScript | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
         }
         catch (RegexMatchTimeoutException)
         {

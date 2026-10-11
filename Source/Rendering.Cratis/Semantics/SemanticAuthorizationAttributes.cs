@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -18,7 +19,7 @@ internal static class SemanticAuthorizationAttributes
     /// <returns>The attribute name.</returns>
     public static string For(SemanticCommand command, SemanticApplicationContext context) => command.Authorization is null
         ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
-        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = \"{Policies.SemanticPolicyArtifactRenderer.PolicyName(context, command.Id)}\")";
+        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(Policies.SemanticPolicyArtifactRenderer.PolicyName(context, command.Id))})";
 
     /// <summary>
     /// Gets the authorization attribute for an admitted query.
@@ -28,5 +29,5 @@ internal static class SemanticAuthorizationAttributes
     /// <returns>The attribute name.</returns>
     public static string For(SemanticKeyedQuery query, SemanticApplicationContext context) => query.Authorization is null
         ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
-        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = \"{Policies.SemanticPolicyArtifactRenderer.PolicyName(context, query.Id)}\")";
+        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(Policies.SemanticPolicyArtifactRenderer.PolicyName(context, query.Id))})";
 }

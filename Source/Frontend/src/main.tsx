@@ -10,6 +10,8 @@ import { CratisComponentsProvider } from '@cratis/components';
 import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
 import { App } from './App';
 import { stageTheme } from './stageTheme';
+import { Browser } from './read-models/Browser';
+import { isBrowserPath } from './read-models/path';
 
 // PrimeReact 11 verifies a license key at runtime and otherwise renders a permanent "Invalid PrimeUI
 // License" banner over the application. The key itself is the PRIMEUI_LICENSE GitHub secret, the same one
@@ -22,14 +24,18 @@ const primeUiLicense = import.meta.env.STAGE_PRIMEUI_LICENSE || '';
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <PrimeReactProvider license={primeUiLicense} theme={stageTheme}>
-            <CratisComponentsProvider>
-                {/*
-                  The runtime entry of the Cratis components package - its components, descriptors and manifest,
-                  without designers, property editors or design-time actions - is what a scene naming
-                  Cratis.Components renders with, live exactly as in a generated application.
-                */}
-                <App components={cratisComponentsRuntimePackage.components} />
-            </CratisComponentsProvider>
+            {isBrowserPath(window.location.pathname) ? (
+                <Browser />
+            ) : (
+                <CratisComponentsProvider>
+                    {/*
+                      The runtime entry of the Cratis components package - its components, descriptors and manifest,
+                      without designers, property editors or design-time actions - is what a scene naming
+                      Cratis.Components renders with, live exactly as in a generated application.
+                    */}
+                    <App components={cratisComponentsRuntimePackage.components} />
+                </CratisComponentsProvider>
+            )}
         </PrimeReactProvider>
     </StrictMode>,
 );

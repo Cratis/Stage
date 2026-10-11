@@ -97,13 +97,15 @@ internal sealed class SemanticCommandResultRendering(SemanticCommand command, Se
 
     ResultExpression Events(Func<SemanticProducedEvent, string> wrappedEvent) => command.Produces.Length == 1
         ? new("global::Cratis.Chronicle.EventSequences.EventForEventSourceId", wrappedEvent(command.Produces[0]))
-        : new("global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>",
+        : new(
+            "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>",
             $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(wrappedEvent))} }}");
 
     ResultExpression? Response() => command.Response switch
     {
         SemanticScalarCommandResponse scalar => new(_types.Type(scalar.Type), SourceValue(scalar.Source)),
-        SemanticRecordCommandResponse record => new($"{Identifiers.ToPascalCase(command.Name)}Response",
+        SemanticRecordCommandResponse record => new(
+            $"{Identifiers.ToPascalCase(command.Name)}Response",
             $"new {Identifiers.ToPascalCase(command.Name)}Response({string.Join(", ", record.Fields.Select(field => SourceValue(field.Source)))})"),
         _ => null
     };

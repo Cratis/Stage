@@ -36,8 +36,8 @@ internal static partial class SemanticSpecificationAdmission
         if (!context.Commands.TryGetValue(action.Command, out var command)) return false;
         if (!HasProjectedOrUnorderedExpectations(specification)) return false;
 
-        return command.Properties.Where(property => property.IsGenerated)
-            .Any(property => !action.GeneratedValues.Any(value => value.TargetProperty == property.Id));
+        return command.Properties.Any(property =>
+            property.IsGenerated && !action.GeneratedValues.Any(value => value.TargetProperty == property.Id));
     }
 
     static bool HasProjectedOrUnorderedExpectations(SemanticSpecification specification) =>

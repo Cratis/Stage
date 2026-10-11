@@ -35,9 +35,12 @@ internal static partial class SemanticCratisAdmission
         var targets = context.Constraints.SelectMany(selected => selected.Constraint.Targets);
 
         return targets.Any(target => command.Produces.Where(produced => produced.EventContract == target.EventContract)
-            .SelectMany(produced => produced.Mappings).Where(mapping => target.Properties.Contains(mapping.TargetProperty))
-            .Any(mapping => mapping.Source is SemanticResolvedExpression source && generated.Contains(source.Target)));
+            .SelectMany(produced => produced.Mappings)
+            .Any(mapping => target.Properties.Contains(mapping.TargetProperty) && UsesGeneratedValue(mapping.Source, generated)));
     }
+
+    static bool UsesGeneratedValue(SemanticExpression expression, HashSet<SemanticId> generated) =>
+        expression is SemanticResolvedExpression source && generated.Contains(source.Target);
 
     static bool ResponseNameCollides(SemanticApplicationContext context, SemanticSlice slice, SemanticCommand command)
     {

@@ -14,15 +14,15 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_planning_slices_with_unrenderable_siblings : a_register_project_render_request
 {
     const string ResponseSibling = """
-        slice StateChange Unsupported
-          command RenameOtherProject
-            projectId ProjectId identifier
-            name String
-            produces event OtherProjectRenamed
-              for projectId
-              name String = name
-            returns
-              equals = name
+            slice StateChange Unsupported
+              command RenameOtherProject
+                projectId ProjectId identifier
+                name String
+                produces event OtherProjectRenamed
+                  for projectId
+                  name String = name
+                returns
+                  equals = name
         """;
 
     readonly List<(ExecutableSemanticModel Model, SemanticExecutionPlan ExecutionPlan, SemanticSlice Sibling, SemanticId Artifact, string Code)> _cases = [];

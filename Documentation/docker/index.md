@@ -128,8 +128,10 @@ By default the host runs the existing EventModel engine. That engine refuses nam
 and event-source routes with `STAGE-ESM-030`, before registering anything with Chronicle. The host stays
 in refused mode: `/stage/status` reports `state: "unsupported"` and `/api/**` returns HTTP 501.
 Both engines also refuse public-event publication (`STAGE-ESM-032`), foreign events and `source events`
-captures (`STAGE-ESM-033`), and directed Translate slices (`STAGE-ESM-024`, naming the direction).
-The semantic engine admits ESM v1–v9 version pairs; unaudited language/semantic versions refuse the
+captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`, naming the direction),
+reaction execution identity (`STAGE-ESM-034`) and reaction or reducer observer filters (`STAGE-ESM-035`).
+Per-production route overrides fail `STAGE-ESM-036` on the semantic engine; the legacy engine refuses their stream syntax with `STAGE-ESM-030`.
+The semantic engine admits ESM v1–v10 version pairs; unaudited language/semantic versions refuse the
 whole model with `STAGE-ESM-016` before registration or execution.
 The semantic engine executes command routes, registers named sources and streams with Chronicle on every
 connect, and checks stored routes during world reconstruction. Routed specification runs are still refused

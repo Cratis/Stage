@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Captures;
@@ -39,6 +40,16 @@ public class when_refusing_event_routes : Specification
         error.ShouldBeOfExactType<UnsupportedEventSourceRoutes>();
         error.Message.StartsWith("STAGE-ESM-030:", StringComparison.Ordinal).ShouldBeTrue();
         ((UnsupportedEventSourceRoutes)error).Location.ShouldEqual(location);
+    }
+
+    [Fact]
+    public void should_refuse_a_production_stream_before_legacy_translation()
+    {
+        const string source = "module Billing\n  feature Invoices\n    slice StateChange Register\n      command Register\n        id String identifier\n        produces event Registered\n          for id\n          stream Account.All\n      event Registered";
+        var parsed = new ScreenplayCompiler().Parse(source);
+        Assert.True(parsed.Success, string.Join(Environment.NewLine, parsed.Diagnostics));
+        var error = Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(parsed.Value!));
+        error.ShouldBeOfExactType<UnsupportedEventSourceRoutes>();
     }
 
     [Fact]

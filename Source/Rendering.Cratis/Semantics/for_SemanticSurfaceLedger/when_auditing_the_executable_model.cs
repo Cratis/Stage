@@ -55,6 +55,18 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticCaptureEventsSource.Events", "STAGE-ESM-033")]
     public void should_classify_v9_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
 
+    [Theory]
+    [InlineData("SemanticReaction.RunsAs", "STAGE-ESM-034")]
+    [InlineData("SemanticReactionIdentity.Kind", "STAGE-ESM-034")]
+    [InlineData("SemanticReactionIdentity.Roles", "STAGE-ESM-034")]
+    [InlineData("SemanticReactionIdentityKind.System", "STAGE-ESM-034")]
+    [InlineData("SemanticReaction.From", "STAGE-ESM-035")]
+    [InlineData("SemanticReducer.From", "STAGE-ESM-035")]
+    [InlineData("SemanticObserverFilter.Source", "STAGE-ESM-035")]
+    [InlineData("SemanticObserverFilter.Stream", "STAGE-ESM-035")]
+    [InlineData("SemanticProducedEvent.Route", "STAGE-ESM-036")]
+    public void should_classify_v10_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+
     static bool IsDiagnosticCode(string code) => code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) &&
         code.Length == 13 && code.AsSpan(10).ToString().All(char.IsAsciiDigit);
 

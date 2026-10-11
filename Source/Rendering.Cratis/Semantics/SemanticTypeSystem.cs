@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -226,8 +227,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             ? $"{type}.{Identifiers.ToPascalCase(text.Value)}"
             : throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/enum {concept.Name}", value is SemanticTextValue unknown ? unknown.Value : value.Kind.ToString());
 
-    static string Literal(string value) =>
-        $"\"{value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+    static string Literal(string value) => CSharpCodeBuilder.StringLiteral(value);
 
     string PrimitiveValue(SemanticValue value, SemanticPrimitiveType primitive) => (value, primitive) switch
     {

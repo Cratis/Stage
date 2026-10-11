@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Types;
@@ -124,7 +125,7 @@ public static class ProjectionMapping
             // built — so the reason is recorded here instead of surfacing later as a projection that never matches.
             diagnostics.Add(
                 $"The join on '{on}' matches '{onName}', which no block maps onto the read model — it is referenced by name and only checked when the projection is built.");
-            onReference = $"\"{onName}\"";
+            onReference = CSharpCodeBuilder.StringLiteral(onName);
         }
 
         var eventProperty = EventPropertyReference(eventName, property.SourcePath, events);
@@ -180,7 +181,7 @@ public static class ProjectionMapping
         var propertyName = Identifiers.ToPascalCase(sourcePath);
         return events.Declares(eventName, sourcePath)
             ? $"nameof({Identifiers.ToPascalCase(eventName)}.{propertyName})"
-            : $"\"{propertyName}\"";
+            : CSharpCodeBuilder.StringLiteral(propertyName);
     }
 
     static MappedProperty FromSource(
@@ -212,7 +213,7 @@ public static class ProjectionMapping
     static MappedProperty GlobalContext(string name, GlobalMappingScope scope, string contextProperty)
     {
         var type = _contextPropertyTypes.GetValueOrDefault(contextProperty, _unresolved with { SourceName = $"$eventContext.{contextProperty}" });
-        return new MappedProperty(name, type, GlobalAttribute(scope, $"contextProperty: \"{contextProperty}\""), null);
+        return new MappedProperty(name, type, GlobalAttribute(scope, $"contextProperty: {CSharpCodeBuilder.StringLiteral(contextProperty)}"), null);
     }
 
     static MappedProperty GlobalEventProperty(string name, GlobalMappingScope scope, string keyword, string sourcePath, ICollection<string> diagnostics)
@@ -223,7 +224,7 @@ public static class ProjectionMapping
         return new MappedProperty(
             name,
             _unresolved with { SourceName = sourcePath },
-            GlobalAttribute(scope, $"property: \"{Identifiers.ToPascalCase(sourcePath)}\""),
+            GlobalAttribute(scope, $"property: {CSharpCodeBuilder.StringLiteral(Identifiers.ToPascalCase(sourcePath))}"),
             null);
     }
 
@@ -275,7 +276,7 @@ public static class ProjectionMapping
     static MappedProperty FromContext(string name, string eventTypeName, string contextProperty)
     {
         var type = _contextPropertyTypes.GetValueOrDefault(contextProperty, _unresolved with { SourceName = $"$eventContext.{contextProperty}" });
-        return new MappedProperty(name, type, $"[SetFromContext<{eventTypeName}>(\"{contextProperty}\")]", null);
+        return new MappedProperty(name, type, $"[SetFromContext<{eventTypeName}>({CSharpCodeBuilder.StringLiteral(contextProperty)})]", null);
     }
 
     static MappedProperty Unsupported(string name, MappingSyntax mapping, ICollection<string> diagnostics)

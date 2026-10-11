@@ -66,7 +66,7 @@ public static partial class Program
             await error.WriteLineAsync(exception.Message);
             return 1;
         }
-        catch (Exception exception) when (exception is UnsupportedEventSourceRoutes or UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection)
+        catch (Exception exception) when (exception is UnsupportedEventSourceRoutes or UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters)
         {
             await error.WriteLineAsync(exception.Message);
             return 1;

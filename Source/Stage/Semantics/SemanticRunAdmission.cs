@@ -214,7 +214,7 @@ public static class SemanticRunAdmission
 
     static SemanticAdmissionFeature Feature(SemanticVersionFeature feature) => new(feature.Artifact.ToString(), feature.Kind, feature.Capability.ToString(), $"{feature.Code}: {feature.Message}");
 
-    // ESM v5-v9 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
+    // ESM v5-v10 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
     // an absence assertion, a generated value or a response would otherwise be dropped and the run could pass.
     // Any automation construct in the model blocks every run, since its consequences could follow any command.
     static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)

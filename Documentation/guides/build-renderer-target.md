@@ -302,7 +302,7 @@ ESM v4 (`4.0` language and semantic versions) is admitted by the version gates, 
 
 Evolution waits for migration modeling and rendering (Screenplay #71 and a Stage migration-rendering follow-up). In both Chronicle 19.8.1 and 19.32.0, registration validation requires migrators for every generation above 1 even on an empty store. Production kernels always validate; the development image can skip validation, permitting unsafe historical replay. Neither path is an admitted realization without migrations, so Stage refuses before emission rather than relying on the kernel configuration. Stage's Host also retains its `EventContract` refusal, "Only the initial event revision can be registered in Chronicle." Its registrar and fact appender remain generation-1-only; an evolved model is not registered or appended.
 
-Stage builds against Screenplay 4.114.0 and admits ESM v5 through v8 by version. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
+Stage builds against Screenplay 4.122.0 and admits ESM v1 through v9 by version. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
 
 | Construct | Version | Diagnostic |
 |---|---|---|
@@ -314,6 +314,9 @@ Stage builds against Screenplay 4.114.0 and admits ESM v5 through v8 by version.
 | Named event sources, streams and command routes | v8 | Rendered; reserved stored names fail `STAGE-ESM-030` |
 | Routed command specifications | v8 | Rendered: route-aware givens and assertions, assignment matching for any-order expectations; unformattable fixtures or routed read-model/query replay fail `STAGE-ESM-030` |
 | Authored whole-number literals outside the C# `int` range | v1–v7 | `STAGE-ESM-031`; v8+ renders whole numbers as `long` |
+| Local public events declared or referenced by the selected slice, and event-target projections or reducers | v9 | `STAGE-ESM-032` |
+| Events with an origin store and `source events` captures | v9 | `STAGE-ESM-033` |
+| Directed Translate slices (inbound or outbound) | v9 | `STAGE-ESM-024`, naming the direction |
 
 Diagnostics apply to the selected scope: a slice-scoped render of a slice that uses none of these constructs can still render, and application triggers refuse only an application render. The in-memory specification executor reports the same constructs as unsupported rather than skipping them. Keep these constructs in the model and use a renderer that explicitly supports them rather than deleting them to pass admission. A specification that supplies a generated property as input never compiles (`PLAY0485`), so Stage plans nothing for it.
 

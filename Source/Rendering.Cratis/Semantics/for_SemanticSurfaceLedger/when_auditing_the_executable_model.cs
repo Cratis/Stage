@@ -43,6 +43,18 @@ public class when_auditing_the_executable_model : Specification
             $"Audited {_count} semantic members. Missing ({_missing.Length}): {string.Join(", ", _missing)}; " +
             $"Stale ({_stale.Length}): {string.Join(", ", _stale)}; Invalid ({_invalid.Length}): {string.Join(", ", _invalid)}");
 
+    [Theory]
+    [InlineData("SemanticEventContract.Visibility", "STAGE-ESM-032")]
+    [InlineData("SemanticEventContract.Origin", "STAGE-ESM-033")]
+    [InlineData("SemanticEventVisibility.Public", "STAGE-ESM-032")]
+    [InlineData("SemanticProjection.Target", "STAGE-ESM-032")]
+    [InlineData("SemanticReducer.Target", "STAGE-ESM-032")]
+    [InlineData("SemanticProjectionTargetKind.Event", "STAGE-ESM-032")]
+    [InlineData("SemanticSlice.Direction", "STAGE-ESM-024")]
+    [InlineData("SemanticCapture.EventsSource", "STAGE-ESM-033")]
+    [InlineData("SemanticCaptureEventsSource.Events", "STAGE-ESM-033")]
+    public void should_classify_v9_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+
     static bool IsDiagnosticCode(string code) => code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) &&
         code.Length == 13 && code.AsSpan(10).ToString().All(char.IsAsciiDigit);
 

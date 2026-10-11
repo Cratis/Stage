@@ -202,11 +202,13 @@ public class CratisRenderer : IRenderer
             foreach (var application in context.Applications)
             {
                 new SyntaxRouteAdmission().VisitApplication(application);
+                new PublicEventSyntaxAdmission().VisitApplication(application);
             }
 
             EventSourceIdentityComplianceAdmission.EnsureAccepted(slices, context);
         }
-        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes)
+        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes or
+            UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection)
         {
             await error.WriteLineAsync(exception.Message);
             throw new RenderingFailed([exception]);

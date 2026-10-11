@@ -280,10 +280,22 @@ internal static class SemanticWorldRebuilder
             return SemanticValue.Composite(Values(json, composite.Properties, application));
         }
 
-        var primitive = type.Kind == SemanticTypeReferenceKind.Concept
-            ? application.Concepts.Single(candidate => candidate.Id == type.Target).Primitive
-            : type.Primitive;
-        var result = (primitive, json.ValueKind) switch
+        var concept = type.Kind == SemanticTypeReferenceKind.Concept
+            ? application.Concepts.Single(candidate => candidate.Id == type.Target)
+            : null;
+        if (concept?.Values is { IsEmpty: false } allowed)
+        {
+            return json.ValueKind switch
+            {
+                JsonValueKind.Number when json.TryGetInt32(out var number) && number >= 0 && number < allowed.Length => SemanticValue.Text(allowed[number]),
+                JsonValueKind.String when allowed.Contains(json.GetString()!, StringComparer.Ordinal) => SemanticValue.Text(json.GetString()!),
+                JsonValueKind.String => throw new SemanticWorldRebuildRefused("Chronicle content contains a value outside its concept enumeration."),
+                _ => throw new SemanticWorldRebuildRefused("Chronicle content contains a value incompatible with its semantic type.")
+            };
+        }
+
+        var primitive = concept?.Primitive ?? type.Primitive;
+        return (primitive, json.ValueKind) switch
         {
             (SemanticPrimitiveType.Text, JsonValueKind.String) => SemanticValue.Text(json.GetString()!),
             (SemanticPrimitiveType.Uuid, JsonValueKind.String) when Guid.TryParseExact(json.GetString(), "D", out var guid) && guid.ToString("D") == json.GetString() => SemanticValue.Text(json.GetString()!),
@@ -295,12 +307,5 @@ internal static class SemanticWorldRebuilder
             (SemanticPrimitiveType.WholeNumber, JsonValueKind.Number) when json.TryGetDecimal(out var wholeNumber) && decimal.Truncate(wholeNumber) == wholeNumber => SemanticValue.Number(wholeNumber),
             _ => throw new SemanticWorldRebuildRefused("Chronicle content contains a value incompatible with its semantic type.")
         };
-        if (type.Kind == SemanticTypeReferenceKind.Concept && application.Concepts.Single(candidate => candidate.Id == type.Target).Values is { IsEmpty: false } allowed &&
-            result is SemanticTextValue text && !allowed.Contains(text.Value, StringComparer.Ordinal))
-        {
-            throw new SemanticWorldRebuildRefused("Chronicle content contains a value outside its concept enumeration.");
-        }
-
-        return result;
     }
 }

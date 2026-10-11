@@ -81,6 +81,12 @@ internal static class SemanticStateChangeArtifactRenderer
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
         context.Docs(command.Id).Render(builder).Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
+        if (command.Route is { } route)
+        {
+            var source = context.Application.EventSources.Single(source => source.Id == route.Source);
+            var stream = source.Streams.Single(stream => stream.Id == route.Stream);
+            builder.Attribute($"global::Cratis.Arc.Chronicle.Commands.EventSourceAttribute<global::{SemanticEventSourceArtifactRenderer.Namespace(context)}.{SemanticEventSourceArtifactRenderer.ClassName(source)}>({CSharpCodeBuilder.StringLiteral(stream.StreamKind)})");
+        }
         if (severities.Length > 0)
         {
             // Screenplay rejects every validation failure; a caller must not loosen the modeled floor.
@@ -98,6 +104,8 @@ internal static class SemanticStateChangeArtifactRenderer
         var hasOccurrence = command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
         var hasTags = command.Produces.Any(produced => !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty);
+        var routing = new SemanticCommandRouteRendering(command, context);
+        var streamId = routing.StreamId();
         string EventValue(SemanticProducedEvent produced)
         {
             var @event = context.Events[produced.EventContract];
@@ -120,6 +128,10 @@ internal static class SemanticStateChangeArtifactRenderer
             var @event = context.Events[produced.EventContract];
             var tags = @event.Tags.Concat(produced.Tags).ToArray();
             var metadata = new List<string>();
+            if (streamId is not null)
+            {
+                metadata.Add($"EventStreamId = {streamId}");
+            }
             if (hasOccurrence)
             {
                 metadata.Add("Occurred = occurred");
@@ -134,7 +146,20 @@ internal static class SemanticStateChangeArtifactRenderer
             return metadata.Count == 0 ? wrapper : $"{wrapper} {{ {string.Join(", ", metadata)} }}";
         }
 
-        if (command.Produces.Length == 1 && !hasOccurrence && !hasTags)
+        if (routing.HasText)
+        {
+            var eventResult = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
+            var result = $"global::OneOf.OneOf<{eventResult}, global::Cratis.Arc.Validation.ValidationResult>";
+            builder.OpenBlock($"public {result} Handle({(hasOccurrence ? "global::Cratis.Arc.IOperationContextAccessor operation" : string.Empty)})");
+            routing.RenderChecks(builder, result);
+            if (hasOccurrence)
+            {
+                builder.Line($"var occurred = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);");
+            }
+            var events = command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(WrappedEvent))} }}";
+            builder.Line($"return {result}.FromT0({events});").EndBlock();
+        }
+        else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null)
         {
             var @event = context.Events[command.Produces[0].EventContract];
             var arguments = @event.Properties.Select(property =>

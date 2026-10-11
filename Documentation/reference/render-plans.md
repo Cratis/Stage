@@ -110,6 +110,14 @@ Each `RenderPlan` carries:
 | `Findings` | Everything this target could not fully resolve. |
 | `IsComplete` | Whether `Findings` is empty. |
 
+## Specification case tables
+
+The Cratis artifact render plan emits one specification class per named case in a Screenplay
+specification table. Each effective specification is named `<Spec>_<Case>` and renders as
+`when_<spec>_<case>.cs`. Case parameter values replace `case.<parameter>` references before rendering.
+If two derived names normalize to the same C# identifier, the plan refuses them with
+`STAGE-CRATIS-004` rather than overwriting a specification file.
+
 ## Findings
 
 A finding is reported, never thrown. Resolution keeps going and the plan comes back complete with everything

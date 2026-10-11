@@ -43,6 +43,49 @@ public class when_auditing_the_executable_model : Specification
             $"Audited {_count} semantic members. Missing ({_missing.Length}): {string.Join(", ", _missing)}; " +
             $"Stale ({_stale.Length}): {string.Join(", ", _stale)}; Invalid ({_invalid.Length}): {string.Join(", ", _invalid)}");
 
+    [Theory]
+    [InlineData("SemanticEventContract.Visibility", "STAGE-ESM-032")]
+    [InlineData("SemanticEventContract.Origin", "STAGE-ESM-033")]
+    [InlineData("SemanticEventVisibility.Public", "STAGE-ESM-032")]
+    [InlineData("SemanticProjection.Target", "STAGE-ESM-032")]
+    [InlineData("SemanticReducer.Target", "STAGE-ESM-032")]
+    [InlineData("SemanticProjectionTargetKind.Event", "STAGE-ESM-032")]
+    [InlineData("SemanticSlice.Direction", "STAGE-ESM-024")]
+    [InlineData("SemanticCapture.EventsSource", "STAGE-ESM-033")]
+    [InlineData("SemanticCaptureEventsSource.Events", "STAGE-ESM-033")]
+    public void should_classify_v9_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+
+    [Theory]
+    [InlineData("SemanticReaction.RunsAs", "STAGE-ESM-034")]
+    [InlineData("SemanticReactionIdentity.Kind", "STAGE-ESM-034")]
+    [InlineData("SemanticReactionIdentity.Roles", "STAGE-ESM-034")]
+    [InlineData("SemanticReactionIdentityKind.System", "STAGE-ESM-034")]
+    [InlineData("SemanticReaction.From", "STAGE-ESM-035")]
+    [InlineData("SemanticReducer.From", "STAGE-ESM-035")]
+    [InlineData("SemanticObserverFilter.Source", "STAGE-ESM-035")]
+    [InlineData("SemanticObserverFilter.Stream", "STAGE-ESM-035")]
+    [InlineData("SemanticProducedEvent.Route", "STAGE-ESM-036")]
+    public void should_classify_v10_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+
+    [Theory]
+    [InlineData("SemanticApplication.Triggers")]
+    [InlineData("SemanticReactionTrigger.RequirementId")]
+    [InlineData("SemanticReactionTriggerKind.Unknown")]
+    [InlineData("SemanticReactionTriggerKind.Event")]
+    [InlineData("SemanticReactionTriggerKind.ApplicationTrigger")]
+    [InlineData("SemanticReactionTriggerKind.Interval")]
+    [InlineData("SemanticReactionTriggerKind.Schedule")]
+    [InlineData("SemanticReactionTriggerKind.Startup")]
+    [InlineData("SemanticReactionTriggerKind.Shutdown")]
+    public void should_keep_every_trigger_kind_and_opaque_body_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+
+    [Theory]
+    [InlineData(false, false, "STAGE-ESM-024")]
+    [InlineData(true, false, "STAGE-ESM-024")]
+    [InlineData(false, true, "STAGE-ESM-024")]
+    [InlineData(true, true, "STAGE-ESM-037")]
+    public void should_classify_reaction_side_effect_combinations(bool produces, bool invokes, string code) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+
     static bool IsDiagnosticCode(string code) => code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) &&
         code.Length == 13 && code.AsSpan(10).ToString().All(char.IsAsciiDigit);
 

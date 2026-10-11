@@ -60,6 +60,8 @@
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
         <EmbeddedResource Include="for_SemanticTypedContextRenderer/Vectors/*.json" />
+        <!-- Screenplay v4.114.0 portable stream-id codec vectors. -->
+        <EmbeddedResource Include="CodeGeneration/for_StreamIdsRendering/Vectors/*.json" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">

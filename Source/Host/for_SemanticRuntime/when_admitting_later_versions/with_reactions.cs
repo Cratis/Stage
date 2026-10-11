@@ -42,5 +42,5 @@ public class with_reactions : Specification
     [Fact] void should_refuse_the_automation_slice_and_its_reaction() => _admission.Blocking.Select(entry => entry.Kind).ShouldContainOnly(["slice", "reaction"]);
     [Fact] void should_report_the_reaction_capability() => _admission.Blocking.All(entry => entry.Capability == "Reaction").ShouldBeTrue();
     [Fact] void should_name_the_typed_diagnostic() => _admission.Blocking.Single(entry => entry.Kind == "reaction").Details
-        .ShouldEqual("STAGE-ESM-024: Reaction 'ReminderScheduler' is an ESM v6 automation construct, which Stage does not support yet.");
+        .ShouldEqual("STAGE-ESM-024: Reaction 'ReminderScheduler' is an ESM v6 automation construct; reaction rendering is not yet admitted.");
 }

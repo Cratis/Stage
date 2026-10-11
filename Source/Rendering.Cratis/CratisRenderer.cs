@@ -198,15 +198,18 @@ public class CratisRenderer : IRenderer
             // module- and feature-level examples reach a selected slice through ApplicationSet.ExpandSpecification,
             // and a selected slice may append to any event-source stream. This fails closed, so a scoped render is
             // refused when an unrelated sibling uses routes; routes are Screenplay 4.94+ syntax, so no previously
-            // renderable model is affected (#177 tracks rendering them).
+            // renderable model is affected. Routed models use the semantic planner instead.
             foreach (var application in context.Applications)
             {
+                new ReactionIdentitySyntaxAdmission().VisitApplication(application);
                 new SyntaxRouteAdmission().VisitApplication(application);
+                new PublicEventSyntaxAdmission().VisitApplication(application);
             }
 
             EventSourceIdentityComplianceAdmission.EnsureAccepted(slices, context);
         }
-        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes)
+        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes or
+            UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters)
         {
             await error.WriteLineAsync(exception.Message);
             throw new RenderingFailed([exception]);
@@ -362,10 +365,10 @@ public class CratisRenderer : IRenderer
     {
         foreach (var authored in slice.Slice.Specifications)
         {
-            SpecificationSyntax specification;
+            IEnumerable<SpecificationSyntax> specifications;
             try
             {
-                specification = applicationSet.ExpandSpecification(authored, slice);
+                specifications = applicationSet.ExpandSpecification(authored, slice);
             }
             catch (InvalidEventModel exception)
             {
@@ -373,19 +376,22 @@ public class CratisRenderer : IRenderer
                 continue;
             }
 
-            if (SpecificationRenderer.Unrenderable(specification, slice.Slice) is { } reason)
+            foreach (var specification in specifications)
             {
-                await error.WriteLineAsync($"Specification '{specification.Name}' is not rendered — {reason}.");
-                continue;
-            }
+                if (SpecificationRenderer.Unrenderable(specification, slice.Slice) is { } reason)
+                {
+                    await error.WriteLineAsync($"Specification '{specification.Name}' is not rendered — {reason}.");
+                    continue;
+                }
 
-            await RenderFile(
-                () => SpecificationRenderer.Render(specification, slice.Slice.Commands.First(), slice, applicationSet, rootNamespace),
-                $"specification '{specification.Name}'",
-                targetDirectory,
-                output,
-                error,
-                failures);
+                await RenderFile(
+                    () => SpecificationRenderer.Render(specification, slice.Slice.Commands.First(), slice, applicationSet, rootNamespace),
+                    $"specification '{specification.Name}'",
+                    targetDirectory,
+                    output,
+                    error,
+                    failures);
+            }
         }
     }
 

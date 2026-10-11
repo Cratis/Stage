@@ -25,8 +25,9 @@ public class when_auditing_the_route_surface : Specification
 
         // Application collections are traversed by the walker. Screen navigation belongs to UiSyntaxAdmission,
         // not event routing. Concurrency dimensions describe append scope, not a named route selection.
+        // Production streams are traversed as CommandStreamSyntax; observer filters are refused by ReactionIdentitySyntaxAdmission.
         // Every other owner below has explicit route detection in EventRouteSyntaxAdmission.
-        string.Join(' ', actual).ShouldEqual("ApplicationSyntax.EventSources CommandStreamSyntax.Stream CommandStreamSyntax.StreamId CommandStreamSyntax.StreamIdParts CommandSyntax.Stream CommandSyntax.StreamCandidates ConcurrencySyntax.EventStreamId ConcurrencySyntax.EventStreamType EventSourceSyntax.Streams EventStreamSyntax.StreamId EventStreamSyntax.StreamIdParts ScreenNavigateSyntax.Route SpecificationEventSyntax.NoStream SpecificationEventSyntax.Stream SpecificationExampleSyntax.NoStream SpecificationExampleSyntax.Stream SpecificationRedeliverySyntax.NoStream SpecificationRedeliverySyntax.Stream SpecificationStreamSyntax.Stream SpecificationStreamSyntax.StreamId SpecificationStreamSyntax.StreamIdParts");
+        string.Join(' ', actual).ShouldEqual("ApplicationSyntax.EventSources CommandStreamSyntax.Stream CommandStreamSyntax.StreamId CommandStreamSyntax.StreamIdParts CommandSyntax.Stream CommandSyntax.StreamCandidates ConcurrencySyntax.EventStreamId ConcurrencySyntax.EventStreamType EventSourceSyntax.Streams EventStreamSyntax.StreamId EventStreamSyntax.StreamIdParts ObserverFilterSyntax.Stream ProducesSyntax.Stream ScreenNavigateSyntax.Route SpecificationEventSyntax.NoStream SpecificationEventSyntax.Stream SpecificationExampleSyntax.NoStream SpecificationExampleSyntax.Stream SpecificationRedeliverySyntax.NoStream SpecificationRedeliverySyntax.Stream SpecificationStreamSyntax.Stream SpecificationStreamSyntax.StreamId SpecificationStreamSyntax.StreamIdParts");
     }
 
     [Fact]

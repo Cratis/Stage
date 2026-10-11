@@ -87,8 +87,15 @@ internal static class SemanticSharedReferences
             }
         }
 
-        // Named sources, stream-id parts and command routes are refused by STAGE-ESM-030 today.
-        // Add their type references here when event-source route rendering lands in #177.
+        foreach (var source in SemanticEventSourceArtifactRenderer.Selected(context, slices))
+        {
+            Reference(source.IdentifierType);
+            foreach (var stream in source.Streams)
+            {
+                Reference(stream.StreamIdType);
+                foreach (var part in stream.StreamIdParts) Reference(part.Type);
+            }
+        }
         return ([.. context.Application.Concepts.Where(concept => concepts.Contains(concept.Id))],
             [.. context.Application.Types.Where(type => types.Contains(type.Id))]);
 

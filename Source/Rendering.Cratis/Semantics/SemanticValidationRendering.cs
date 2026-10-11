@@ -107,7 +107,7 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.Equal => $"{absentPasses}global::System.Object.Equals({scalar}, {equality})",
             SemanticValidationRuleKind.NotEqual => $"{absentPasses}!global::System.Object.Equals({scalar}, {equality})",
             SemanticValidationRuleKind.Length => $"{absentPasses}{scalar}.Length == {number}",
-            SemanticValidationRuleKind.Matches => $"{absentPasses}MatchesPattern({scalar}, {equality})",
+            SemanticValidationRuleKind.Matches => $"{absentPasses}MatchesPattern({scalar}, {CSharpCodeBuilder.StringLiteral(SemanticMatchAnchors.Portable(((SemanticTextValue)operand!).Value))})",
             SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual => $"{absentPasses}value.All(element => {element} {comparison} {number})",
             _ => $"{absentPasses}{measured} {comparison} {number}"
         };

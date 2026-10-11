@@ -31,6 +31,10 @@ internal static class SemanticCommandOutcome
         _ => new CommandResult { ExceptionMessages = ["Semantic execution returned an unrecognized outcome."] }
     };
 
+    internal static object? CommittedResponse(SemanticAccepted accepted, object fallback) => accepted.Response is { } response
+        ? Response(response)
+        : fallback;
+
     static CommandResult Accepted(SemanticAccepted accepted, CorrelationId correlationId) => accepted.Response is { } response
         ? new CommandResult<object?>(correlationId, Response(response))
         : CommandResult.Success(correlationId);

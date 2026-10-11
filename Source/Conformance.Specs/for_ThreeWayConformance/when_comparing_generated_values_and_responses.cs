@@ -11,7 +11,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_comparing_generated_values_and_responses(when_comparing_generated_values_and_responses.context fixture, ITestOutputHelper output) : IClassFixture<when_comparing_generated_values_and_responses.context>
 {
-    [Fact] void should_preserve_pinned_scalar_and_record_responses() => Assert.Equal(2, fixture.Outcomes.Count(outcome => outcome.Contains("Reference=Passed, Stage=Passed, Rendered=Passed", StringComparison.Ordinal)));
+    [Fact] void should_preserve_required_and_optional_scalar_and_record_responses() => Assert.Equal(6, fixture.Outcomes.Count(outcome => outcome.Contains("Reference=Passed, Stage=Passed, Rendered=Passed", StringComparison.Ordinal)));
+    [Fact] void should_fail_every_wrong_optional_response() => Assert.Equal(4, fixture.Outcomes.Count(outcome => outcome.Contains("/WrongOptional", StringComparison.Ordinal) && outcome.Contains("Reference=Failed, Stage=Failed, Rendered=Failed", StringComparison.Ordinal)));
     [Fact] void should_fail_an_incorrect_response_on_every_path() => Assert.Contains(fixture.Outcomes, outcome => outcome.Contains("WrongResponse: Reference=Failed, Stage=Failed, Rendered=Failed", StringComparison.Ordinal));
     [Fact] void should_match_all_three_executions() => ThreeWayOutcomes.Report(fixture, output);
 
@@ -21,7 +22,7 @@ public class when_comparing_generated_values_and_responses(when_comparing_genera
         protected override string ProjectFile => "InvoiceApp.csproj";
         protected override bool RequireStageExecution => true;
         protected override bool ExpectFailedGeneratedTest => true;
-        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("generated", invoice_model.Compile(Source))];
+        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("generated", optional_scalar_response_cases.Compile(Source))];
         Task Because() => Verify();
 
         const string Source = """

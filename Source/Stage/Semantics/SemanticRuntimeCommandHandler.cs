@@ -63,9 +63,9 @@ internal sealed class SemanticRuntimeCommandHandler : ICommandHandler
             principal,
             SemanticCommandAccess.Occurrence(commandContext, principal),
             false);
-        if (outcome is SemanticAccepted && commandContext.Command is DynamicCommand dynamic)
+        if (outcome is SemanticAccepted accepted && commandContext.Command is DynamicCommand dynamic)
         {
-            return dynamic.Data;
+            return SemanticCommandOutcome.CommittedResponse(accepted, dynamic.Data);
         }
 
         if (outcome is SemanticRejected rejected)

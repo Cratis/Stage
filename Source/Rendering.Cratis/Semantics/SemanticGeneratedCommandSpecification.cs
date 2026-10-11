@@ -15,10 +15,10 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="types">The generated type and value expressions.</param>
 internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecification specification, SemanticCommand command, SemanticTypeSystem types)
 {
+    internal bool RequiresEstablish => !specification.GivenEvents.IsEmpty || specification.GivenCaller is not null || GeneratedProperties.Any();
+
     IEnumerable<SemanticProperty> GeneratedProperties => command.Properties.Where(property => property.IsGenerated);
     IEnumerable<SemanticProperty> UnpinnedProperties => GeneratedProperties.Where(property => !IsPinned(property.Id));
-
-    internal bool RequiresEstablish => !specification.GivenEvents.IsEmpty || specification.GivenCaller is not null || GeneratedProperties.Any();
 
     internal bool NeedsCommon(SemanticProperty property) => property.IsGenerated || SemanticTypeSystem.ValueNeedsCommon(
         specification.When!.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type);
@@ -78,7 +78,7 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
         switch (specification.ThenReturns, command.Response)
         {
             case (SemanticScalarSpecificationResponse scalar, SemanticScalarCommandResponse response):
-                builder.Line($"[global::Xunit.FactAttribute] void should_return_the_expected_response() => ((global::Cratis.Arc.Commands.CommandResult<{types.Type(response.Type)}>)_result).Response.ShouldEqual({ExpectedResponse(response.Source, response.Type, scalar.Value)});");
+                builder.Line($"[global::Xunit.FactAttribute] void should_return_the_expected_response() => {ScalarResponseValue(response.Type)}.ShouldEqual({ExpectedResponse(response.Source, response.Type, scalar.Value)});");
                 break;
             case (SemanticRecordSpecificationResponse record, SemanticRecordCommandResponse contract):
                 RenderResponseFields(builder, record, contract);
@@ -89,6 +89,13 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
             builder.Line($"[global::Xunit.FactAttribute] void should_generate_{Identifiers.ToSnakeCase(property.Name)}() => {Captured(property)}.Value.ShouldNotEqual(global::System.Guid.Empty);");
         }
     }
+
+    // Arc 22.68 wraps a present optional scalar by its boxed runtime type, and a null response is a plain
+    // CommandResult. ResponseValue is protected internal; read the public Response property without assuming
+    // the result's generic type, then cast the boxed value (or null) to the model's declared optional type.
+    string ScalarResponseValue(SemanticTypeReference type) => type.IsOptional
+        ? $"(({types.Type(type)})_result.GetType().GetProperty(nameof(global::Cratis.Arc.Commands.CommandResult<object>.Response))?.GetValue(_result))"
+        : $"((global::Cratis.Arc.Commands.CommandResult<{types.Type(type)}>)_result).Response";
 
     void RenderResponseFields(CSharpCodeBuilder builder, SemanticRecordSpecificationResponse record, SemanticRecordCommandResponse contract)
     {

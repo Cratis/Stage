@@ -110,7 +110,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     {
         var path = $"{featurePath}.{feature.Name}";
         var contributions = (feature.Contributions ?? [])
-            .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{path}.contribution[{index}]"))
+            .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{path}.contribution[{index}]", path.Split('.')))
             .ToList();
 
         // Outermost first: a module's behaviors precede a feature's, which precede the screen's own. That is the

@@ -46,4 +46,11 @@ public static class SceneElementProperties
     /// The property a command element carries its JSON schema in, so a frontend can build its form.
     /// </summary>
     public const string Schema = "schema";
+
+    /// <summary>
+    /// The property a navigation contribution carries the application hierarchy it was declared in - the module,
+    /// then each feature down to the one that contributes it - so a runtime can lay the navigation out as the
+    /// tree the model describes instead of a flat list of screen names.
+    /// </summary>
+    public const string Hierarchy = "hierarchy";
 }

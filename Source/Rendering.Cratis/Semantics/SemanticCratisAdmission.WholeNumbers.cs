@@ -34,6 +34,16 @@ internal static partial class SemanticCratisAdmission
                 {
                     Check(value.Value, destination.Type, command.Id);
                 }
+
+                foreach (var produced in command.Produces.Where(produced => context.Events.ContainsKey(produced.EventContract)))
+                {
+                    var properties = context.Events[produced.EventContract].Properties;
+                    foreach (var mapping in produced.Mappings.Where(mapping => mapping.Source is SemanticValueExpression))
+                    {
+                        var property = properties.SingleOrDefault(property => property.Id == mapping.TargetProperty);
+                        if (property is not null) Check(((SemanticValueExpression)mapping.Source).Value, property.Type, command.Id);
+                    }
+                }
             }
 
             foreach (var projection in slice.Projections.Where(projection => projection.Scope is not null))

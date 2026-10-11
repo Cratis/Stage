@@ -27,201 +27,8 @@ internal static class SemanticScopedProjectionSupport
     /// <param name="identity">The child identity established by the child key.</param>
     /// <param name="isNested">Whether this scope targets a nested object.</param>
     /// <returns>The reason, or null when supported.</returns>
-    public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false)
-    {
-        if (!ChronicleReadModelPropertyNamesAreSafe.Check(properties, rootLevel: !child && !isNested))
-        {
-            return "A read-model property name collides with Chronicle's property paths or another generated property.";
-        }
-
-        if (scope.Nested.Any(_ => _.Scope.Joins.Length > 0 || _.Scope.Children.Length > 0 || _.Scope.JoinRemovals.Length > 0))
-        {
-            return "Joins and children inside nested are blocked by Chronicle#4125: the engine drops their subscriptions.";
-        }
-
-        if (scope.Every is { SubscribesToAllEvents: true })
-        {
-            return "FromAll cannot render: Chronicle#4266 remains open; MongoDB does not materialize a read model for an unrelated event source even when its in-memory scenario does.";
-        }
-
-        if (scope.Every is { IncludeChildren: true } && (scope.Children.Length > 0 || scope.Nested.Length > 0))
-        {
-            return "Every with IncludeChildren is blocked by Chronicle#4125: the engine double-applies the mappings.";
-        }
-
-        if (scope.JoinRemovals.Length > 0 && !child && !isNested)
-        {
-            return "Root remove via join is blocked by https://github.com/Cratis/Chronicle/issues/4263 and https://github.com/Cratis/Screenplay/issues/563: deleting matching root instances has no verified runtime or reference semantics.";
-        }
-
-        if (isNested && scope.JoinRemovals.Length > 0)
-        {
-            return "Join removals inside nested are blocked by Chronicle#4125.";
-        }
-
-        SemanticId? protectedIdentity = null;
-        if (child)
-        {
-            protectedIdentity = identity;
-        }
-        else if (!isNested)
-        {
-            protectedIdentity = properties.Single(_ => _.IsIdentifier).Id;
-        }
-
-        if (scope.From.Select(from => from.EventContract).Concat(scope.Joins.Select(join => join.EventContract))
-            .Concat(scope.Removals.Select(removal => removal.EventContract))
-            .Concat(scope.JoinRemovals.Select(removal => removal.EventContract))
-            .Any(id => context.Events.TryGetValue(id, out var @event) &&
-                @event.Properties.Any(property => !ChronicleEventPropertyNameIsSafe.Check(property.Name))))
-        {
-            return "An event property name collides with Chronicle expression syntax.";
-        }
-
-        if (scope.Every is { Mappings.Length: > 0 } every &&
-            (every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
-                mapping.Source is not SemanticProjectionEventSourceIdentity and not SemanticProjectionLiteral) ||
-             !EveryMappingsSupported(every.Mappings, properties, context, protectedIdentity)))
-        {
-            return "Every mappings need a Chronicle fluent equivalent for each bound value and operation.";
-        }
-
-        var everyLiterals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
-        if (everyLiterals.Length > 0 && scope.Joins.Length > 0)
-        {
-            return "Every literals at a level with joins need https://github.com/Cratis/Chronicle/issues/4663: lowering them onto from blocks can change join backfill eligibility and values.";
-        }
-
-        if (everyLiterals.Any(literal => scope.From.SelectMany(from => from.Mappings).Any(mapping =>
-            mapping.Target.Take(Math.Min(mapping.Target.Length, literal.Target.Length)).SequenceEqual(literal.Target.Take(Math.Min(mapping.Target.Length, literal.Target.Length))) &&
-            (mapping.Target.Length != literal.Target.Length || mapping.Operation != SemanticProjectionOperation.Set))))
-        {
-            // Only an exact Set can be replaced. Prefix overlaps and intermediate operations
-            // need an exact lowering before the every literal can render.
-            return "An every literal collides with an overlapping or non-Set from mapping; only an exact Set target can be replaced.";
-        }
-
-        if (scope.From.Any(from => from.Key is SemanticProjectionCompositeKey || from.ParentKey is SemanticProjectionCompositeKey) ||
-            scope.Removals.Any(removal => removal.Key is SemanticProjectionCompositeKey || removal.ParentKey is SemanticProjectionCompositeKey) ||
-            scope.JoinRemovals.Any(removal => removal.Key is SemanticProjectionCompositeKey))
-        {
-            return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Chronicle#4265 remains open, so Stage cannot look up those instances by their composite key.";
-        }
-
-        if (child && identity is null)
-        {
-            return "A child collection needs an identified element.";
-        }
-
-        if (protectedIdentity is { } protectedId &&
-            (scope.Every?.Mappings.Any(mapping => mapping.Target.Contains(protectedId)) == true ||
-             scope.Joins.SelectMany(join => join.Mappings).Any(mapping => mapping.Target.Contains(protectedId)) ||
-             scope.From.Any(from => from.Mappings.Any(mapping => mapping.Target.Contains(protectedId) &&
-                !MatchesKey(mapping, from.Key, protectedId)))))
-        {
-            return "Mappings cannot overwrite the key or child identity established by the projection.";
-        }
-
-        if (scope.From.Length == 0 || scope.From.Select(_ => _.EventContract).Distinct().Count() != scope.From.Length ||
-            scope.Joins.Select(_ => _.EventContract).Distinct().Count() != scope.Joins.Length ||
-            scope.Removals.Select(_ => _.EventContract).Distinct().Count() != scope.Removals.Length)
-        {
-            return "A scope must have distinct from, join, and removal event contracts.";
-        }
-
-        if (!child && !isNested && RootRoleConflict(scope, context) is { } conflict)
-        {
-            return conflict;
-        }
-
-        if (child && (scope.Children.Length > 0 || scope.Joins.Length > 0))
-        {
-            return "Recursive children and child joins need an exact Chronicle lowering before they can render.";
-        }
-
-        foreach (var from in scope.From)
-        {
-            if (!context.Events.TryGetValue(from.EventContract, out var @event) ||
-                !KeySupported(from.Key, @event, context) ||
-                (child ? from.ParentKey is not null && !KeySupported(from.ParentKey, @event, context) : from.ParentKey is not null) ||
-                !MappingsSupported(
-                    from.Mappings,
-                    properties,
-                    @event,
-                    context,
-                    protectedIdentity,
-                    from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }))
-            {
-                return "A from block has an unsupported key, parent key, event, or mapping.";
-            }
-        }
-
-        if (!scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals), properties, context, protectedIdentity)))
-        {
-            return "At least one from block must establish the required read-model properties.";
-        }
-
-        foreach (var join in scope.Joins)
-        {
-            if (!context.Events.TryGetValue(join.EventContract, out var @event) || join.Key is not null ||
-                !properties.Any(_ => _.Id == join.On) || !MappingsSupported(join.Mappings, properties, @event, context, protectedIdentity, false))
-            {
-                return "A join has an unsupported correlation key or mapping.";
-            }
-        }
-
-        foreach (var removal in scope.Removals)
-        {
-            if (!context.Events.TryGetValue(removal.EventContract, out var @event) ||
-                !KeySupported(removal.Key, @event, context) ||
-                (child ? removal.ParentKey is not null && !KeySupported(removal.ParentKey, @event, context) : removal.ParentKey is not null))
-            {
-                return "A removal has an unsupported key, parent key, or event.";
-            }
-        }
-
-        foreach (var joinRemoval in scope.JoinRemovals)
-        {
-            if (!context.Events.TryGetValue(joinRemoval.EventContract, out var @event) ||
-                !KeySupported(joinRemoval.Key, @event, context))
-            {
-                return "A join removal has an unsupported event or key.";
-            }
-        }
-
-        foreach (var nested in scope.Nested)
-        {
-            var property = properties.SingleOrDefault(_ => _.Id == nested.Property);
-            if (property?.Type is not { IsCollection: false, IsOptional: true, Kind: SemanticTypeReferenceKind.CompositeType } ||
-                !context.Types.TryGetValue(property.Type.Target, out var composite))
-            {
-                return "A nested block needs an optional composite property.";
-            }
-
-            if (Rejection(nested.Scope, context, composite.Properties, isNested: true) is { } reason)
-            {
-                return $"A nested block cannot render: {reason}";
-            }
-        }
-
-        foreach (var children in scope.Children)
-        {
-            var property = properties.SingleOrDefault(_ => _.Id == children.Property);
-            if (property?.Type.IsCollection != true || property.Type.Kind != SemanticTypeReferenceKind.CompositeType ||
-                !context.Types.TryGetValue(property.Type.Target, out var element) ||
-                !element.Properties.Any(_ => _.Id == children.IdentifiedBy))
-            {
-                return "A children block has an unsupported collection or identity.";
-            }
-
-            if (Rejection(children.Scope, context, element.Properties, true, children.IdentifiedBy) is { } reason)
-            {
-                return $"A children block cannot render: {reason}";
-            }
-        }
-
-        return null;
-    }
+    public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false) =>
+        new ScopeRejection(scope, context, properties, child, identity, isNested).Find();
 
     static string? RootRoleConflict(SemanticProjectionScope scope, SemanticApplicationContext context)
     {
@@ -230,26 +37,28 @@ internal static class SemanticScopedProjectionSupport
             .Concat(scope.Joins.Select(join => (join.EventContract, Role: "join", Key: SemanticProjectionKey.EventSourceIdentity)))
             .Concat(scope.Removals.Select(removal => (removal.EventContract, Role: "removal", removal.Key)))
             .Concat(NestedRoles(scope));
-        foreach (var group in roles.GroupBy(role => role.EventContract))
+        foreach (var occurrences in roles.GroupBy(role => role.EventContract).Select(group => group.ToArray()).Where(NeedsRoleCheck))
         {
-            var occurrences = group.ToArray();
-            if (occurrences.Length == 1 && occurrences[0].Role != "nested")
-            {
-                continue;
-            }
-
-            var name = context.Events[group.Key].Name;
-            if (!roots.TryGetValue(group.Key, out var root) ||
-                occurrences.Count(role => role.Role == "root") != 1 ||
-                occurrences.Count(role => role.Role == "nested") != occurrences.Length - 1 ||
-                occurrences.Count(role => role.Role == "nested") > 1 ||
-                !occurrences.All(role => SameKey(role.Key, root.Key)))
+            var name = context.Events[occurrences[0].EventContract].Name;
+            if (!roots.TryGetValue(occurrences[0].EventContract, out var root) || !RolesCompatible(occurrences, root))
             {
                 return $"Event '{name}' is used in incompatible projection roles ({string.Join(", ", occurrences.Select(role => role.Role))}); a nested from or clear requires a root from for the same contract and identical key.";
             }
         }
 
         return null;
+    }
+
+    static bool NeedsRoleCheck((SemanticId EventContract, string Role, SemanticProjectionKey Key)[] occurrences) =>
+        !(occurrences.Length == 1 && occurrences[0].Role != "nested");
+
+    static bool RolesCompatible((SemanticId EventContract, string Role, SemanticProjectionKey Key)[] occurrences, SemanticProjectionFrom root)
+    {
+        var nested = occurrences.Count(role => role.Role == "nested");
+        return occurrences.Count(role => role.Role == "root") == 1 &&
+            nested == occurrences.Length - 1 &&
+            nested <= 1 &&
+            occurrences.All(role => SameKey(role.Key, root.Key));
     }
 
     static IEnumerable<(SemanticId EventContract, string Role, SemanticProjectionKey Key)> NestedRoles(SemanticProjectionScope scope) =>
@@ -423,8 +232,7 @@ internal static class SemanticScopedProjectionSupport
                 return null;
             }
 
-            properties = target.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(target.Type.Target, out var type)
-                ? type.Properties : [];
+            properties = ChildProperties(target, context);
         }
 
         return target;
@@ -445,10 +253,304 @@ internal static class SemanticScopedProjectionSupport
                 return false;
             }
 
-            properties = property.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(property.Type.Target, out var type)
-                ? type.Properties : [];
+            properties = ChildProperties(property, context);
         }
 
         return true;
+    }
+
+    static System.Collections.Immutable.ImmutableArray<SemanticProperty> ChildProperties(SemanticProperty property, SemanticApplicationContext context) =>
+        property.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(property.Type.Target, out var type)
+            ? type.Properties : [];
+
+    sealed class ScopeRejection(
+        SemanticProjectionScope scope,
+        SemanticApplicationContext context,
+        IReadOnlyList<SemanticProperty> properties,
+        bool child,
+        SemanticId? identity,
+        bool isNested)
+    {
+        SemanticId? _protectedIdentity;
+
+        bool IsRoot => !child && !isNested;
+
+        static bool SharesTargetPrefix(SemanticProjectionMapping mapping, SemanticProjectionMapping literal)
+        {
+            var length = Math.Min(mapping.Target.Length, literal.Target.Length);
+            return mapping.Target.Take(length).SequenceEqual(literal.Target.Take(length));
+        }
+
+        static bool IsComposite(SemanticProjectionKey? key) => key is SemanticProjectionCompositeKey;
+
+        static bool IsBlockedInNested(SemanticProjectionNested nested) =>
+            nested.Scope.Joins.Length > 0 || nested.Scope.Children.Length > 0 || nested.Scope.JoinRemovals.Length > 0;
+
+        static bool IsCollectionOfComposites(SemanticProperty? property) =>
+            property?.Type.IsCollection == true && property.Type.Kind == SemanticTypeReferenceKind.CompositeType;
+
+        public string? Find()
+        {
+            var limit = LimitRejection();
+            if (limit is not null)
+            {
+                return limit;
+            }
+
+            _protectedIdentity = ProtectedIdentity();
+            return MappingRejection() ?? BlockRejection();
+        }
+
+        string? LimitRejection() => ChronicleLimitRejection() ?? EveryLimitRejection() ?? JoinRemovalRejection();
+
+        string? MappingRejection() =>
+            EventNameRejection() ?? EveryRejection() ?? CompositeKeyRejection() ?? ProtectedIdentityRejection() ?? RoleRejection();
+
+        string? BlockRejection() =>
+            FromRejection() ?? JoinRejection() ?? RemovalRejection() ?? NestedRejection() ?? ChildrenRejection();
+
+        SemanticId? ProtectedIdentity()
+        {
+            if (child)
+            {
+                return identity;
+            }
+
+            return isNested ? null : properties.Single(_ => _.IsIdentifier).Id;
+        }
+
+        string? ChronicleLimitRejection()
+        {
+            if (!ChronicleReadModelPropertyNamesAreSafe.Check(properties, rootLevel: IsRoot))
+            {
+                return "A read-model property name collides with Chronicle's property paths or another generated property.";
+            }
+
+            if (scope.Nested.Any(IsBlockedInNested))
+            {
+                return "Joins and children inside nested are blocked by Chronicle#4125: the engine drops their subscriptions.";
+            }
+
+            return null;
+        }
+
+        string? EveryLimitRejection()
+        {
+            if (scope.Every is { SubscribesToAllEvents: true })
+            {
+                return "FromAll cannot render: Chronicle#4266 remains open; MongoDB does not materialize a read model for an unrelated event source even when its in-memory scenario does.";
+            }
+
+            if (scope.Every is { IncludeChildren: true } && HasChildScopes())
+            {
+                return "Every with IncludeChildren is blocked by Chronicle#4125: the engine double-applies the mappings.";
+            }
+
+            return null;
+        }
+
+        bool HasChildScopes() => scope.Children.Length > 0 || scope.Nested.Length > 0;
+
+        bool HasCompositeKey() =>
+            scope.From.Any(from => IsComposite(from.Key) || IsComposite(from.ParentKey)) ||
+            scope.Removals.Any(removal => IsComposite(removal.Key) || IsComposite(removal.ParentKey)) ||
+            scope.JoinRemovals.Any(removal => IsComposite(removal.Key));
+
+        string? JoinRemovalRejection()
+        {
+            if (scope.JoinRemovals.Length > 0 && IsRoot)
+            {
+                return "Root remove via join is blocked by https://github.com/Cratis/Chronicle/issues/4263 and https://github.com/Cratis/Screenplay/issues/563: deleting matching root instances has no verified runtime or reference semantics.";
+            }
+
+            if (isNested && scope.JoinRemovals.Length > 0)
+            {
+                return "Join removals inside nested are blocked by Chronicle#4125.";
+            }
+
+            return null;
+        }
+
+        string? EventNameRejection() =>
+            scope.From.Select(from => from.EventContract).Concat(scope.Joins.Select(join => join.EventContract))
+                .Concat(scope.Removals.Select(removal => removal.EventContract))
+                .Concat(scope.JoinRemovals.Select(removal => removal.EventContract))
+                .Any(HasUnsafeEventPropertyName)
+                ? "An event property name collides with Chronicle expression syntax."
+                : null;
+
+        bool HasUnsafeEventPropertyName(SemanticId id) =>
+            context.Events.TryGetValue(id, out var @event) &&
+            @event.Properties.Any(property => !ChronicleEventPropertyNameIsSafe.Check(property.Name));
+
+        SemanticProjectionMapping[] EveryLiterals() =>
+            scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
+
+        string? EveryRejection()
+        {
+            if (scope.Every is { Mappings.Length: > 0 } every && EveryMappingsUnsupported(every))
+            {
+                return "Every mappings need a Chronicle fluent equivalent for each bound value and operation.";
+            }
+
+            var everyLiterals = EveryLiterals();
+            if (everyLiterals.Length > 0 && scope.Joins.Length > 0)
+            {
+                return "Every literals at a level with joins need https://github.com/Cratis/Chronicle/issues/4663: lowering them onto from blocks can change join backfill eligibility and values.";
+            }
+
+            if (everyLiterals.Any(CollidesWithFromMapping))
+            {
+                // Only an exact Set can be replaced. Prefix overlaps and intermediate operations
+                // need an exact lowering before the every literal can render.
+                return "An every literal collides with an overlapping or non-Set from mapping; only an exact Set target can be replaced.";
+            }
+
+            return null;
+        }
+
+        bool EveryMappingsUnsupported(SemanticProjectionEvery every) =>
+            every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
+                mapping.Source is not SemanticProjectionEventSourceIdentity and not SemanticProjectionLiteral) ||
+            !EveryMappingsSupported(every.Mappings, properties, context, _protectedIdentity);
+
+        bool CollidesWithFromMapping(SemanticProjectionMapping literal) =>
+            scope.From.SelectMany(from => from.Mappings).Any(mapping =>
+                SharesTargetPrefix(mapping, literal) &&
+                (mapping.Target.Length != literal.Target.Length || mapping.Operation != SemanticProjectionOperation.Set));
+
+        string? CompositeKeyRejection()
+        {
+            if (HasCompositeKey())
+            {
+                return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Chronicle#4265 remains open, so Stage cannot look up those instances by their composite key.";
+            }
+
+            return child && identity is null ? "A child collection needs an identified element." : null;
+        }
+
+        string? ProtectedIdentityRejection()
+        {
+            if (_protectedIdentity is { } protectedId && OverwritesIdentity(protectedId))
+            {
+                return "Mappings cannot overwrite the key or child identity established by the projection.";
+            }
+
+            return HasDistinctContracts() ? null : "A scope must have distinct from, join, and removal event contracts.";
+        }
+
+        bool OverwritesIdentity(SemanticId protectedId) =>
+            scope.Every?.Mappings.Any(mapping => mapping.Target.Contains(protectedId)) == true ||
+            scope.Joins.SelectMany(join => join.Mappings).Any(mapping => mapping.Target.Contains(protectedId)) ||
+            scope.From.Any(from => from.Mappings.Any(mapping => mapping.Target.Contains(protectedId) &&
+                !MatchesKey(mapping, from.Key, protectedId)));
+
+        bool HasDistinctContracts() =>
+            scope.From.Length != 0 &&
+            scope.From.Select(_ => _.EventContract).Distinct().Count() == scope.From.Length &&
+            scope.Joins.Select(_ => _.EventContract).Distinct().Count() == scope.Joins.Length &&
+            scope.Removals.Select(_ => _.EventContract).Distinct().Count() == scope.Removals.Length;
+
+        string? RoleRejection()
+        {
+            if (IsRoot && RootRoleConflict(scope, context) is { } conflict)
+            {
+                return conflict;
+            }
+
+            return child && (scope.Children.Length > 0 || scope.Joins.Length > 0)
+                ? "Recursive children and child joins need an exact Chronicle lowering before they can render."
+                : null;
+        }
+
+        string? FromRejection()
+        {
+            if (scope.From.Any(from => !FromSupported(from)))
+            {
+                return "A from block has an unsupported key, parent key, event, or mapping.";
+            }
+
+            var everyLiterals = EveryLiterals();
+            return scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals), properties, context, _protectedIdentity))
+                ? null
+                : "At least one from block must establish the required read-model properties.";
+        }
+
+        bool FromSupported(SemanticProjectionFrom from) =>
+            context.Events.TryGetValue(from.EventContract, out var @event) &&
+            KeySupported(from.Key, @event, context) &&
+            !ParentKeyUnsupported(from.ParentKey, @event) &&
+            MappingsSupported(
+                from.Mappings,
+                properties,
+                @event,
+                context,
+                _protectedIdentity,
+                from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity });
+
+        bool ParentKeyUnsupported(SemanticProjectionKey? parentKey, SemanticEventContract @event) =>
+            child ? parentKey is not null && !KeySupported(parentKey, @event, context) : parentKey is not null;
+
+        string? JoinRejection() =>
+            scope.Joins.Any(join => !JoinSupported(join)) ? "A join has an unsupported correlation key or mapping." : null;
+
+        bool JoinSupported(SemanticProjectionJoin join) =>
+            context.Events.TryGetValue(join.EventContract, out var @event) && join.Key is null &&
+            properties.Any(_ => _.Id == join.On) && MappingsSupported(join.Mappings, properties, @event, context, _protectedIdentity, false);
+
+        string? RemovalRejection()
+        {
+            if (scope.Removals.Any(removal => !RemovalSupported(removal)))
+            {
+                return "A removal has an unsupported key, parent key, or event.";
+            }
+
+            return scope.JoinRemovals.Any(joinRemoval => !JoinRemovalSupported(joinRemoval))
+                ? "A join removal has an unsupported event or key."
+                : null;
+        }
+
+        bool RemovalSupported(SemanticProjectionRemoval removal) =>
+            context.Events.TryGetValue(removal.EventContract, out var @event) &&
+            KeySupported(removal.Key, @event, context) &&
+            !ParentKeyUnsupported(removal.ParentKey, @event);
+
+        bool JoinRemovalSupported(SemanticProjectionJoinRemoval joinRemoval) =>
+            context.Events.TryGetValue(joinRemoval.EventContract, out var @event) &&
+            KeySupported(joinRemoval.Key, @event, context);
+
+        string? NestedRejection() =>
+            scope.Nested.Select(NestedBlockRejection).FirstOrDefault(reason => reason is not null);
+
+        string? NestedBlockRejection(SemanticProjectionNested nested)
+        {
+            var property = properties.SingleOrDefault(_ => _.Id == nested.Property);
+            if (property?.Type is not { IsCollection: false, IsOptional: true, Kind: SemanticTypeReferenceKind.CompositeType } ||
+                !context.Types.TryGetValue(property.Type.Target, out var composite))
+            {
+                return "A nested block needs an optional composite property.";
+            }
+
+            return Rejection(nested.Scope, context, composite.Properties, isNested: true) is { } reason
+                ? $"A nested block cannot render: {reason}"
+                : null;
+        }
+
+        string? ChildrenRejection() =>
+            scope.Children.Select(ChildrenBlockRejection).FirstOrDefault(reason => reason is not null);
+
+        string? ChildrenBlockRejection(SemanticProjectionChildren children)
+        {
+            var property = properties.SingleOrDefault(_ => _.Id == children.Property);
+            var element = IsCollectionOfComposites(property) && context.Types.TryGetValue(property!.Type.Target, out var found) ? found : null;
+            if (element?.Properties.Any(_ => _.Id == children.IdentifiedBy) != true)
+            {
+                return "A children block has an unsupported collection or identity.";
+            }
+
+            return Rejection(children.Scope, context, element.Properties, true, children.IdentifiedBy) is { } reason
+                ? $"A children block cannot render: {reason}"
+                : null;
+        }
     }
 }

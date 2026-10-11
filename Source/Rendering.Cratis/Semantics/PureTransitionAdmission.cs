@@ -14,7 +14,7 @@ using Microsoft.CodeAnalysis.Operations;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>Closed-compilation, fail-closed symbol admission for attached pure transitions (not a sandbox).</summary>
-internal static class PureTransitionAdmission
+internal static partial class PureTransitionAdmission
 {
     // Exact net10.0 reference pack audited for reducer binding. Never silently substitute a newer pack.
     internal const string ReferencePackVersion = "10.0.12";
@@ -327,38 +327,15 @@ internal static class PureTransitionAdmission
             return (null, Reject("STAGE-ESM-022", "directive"));
         }
 
-        if (statement is not BlockSyntax block || block.ContainsDiagnostics || block.ContainsSkippedText ||
-            block.CloseBraceToken.IsMissing || block.CloseBraceToken.SpanStart != text.Length - 1)
+        if (statement is not BlockSyntax block || !IsCompleteBlock(block, text))
         {
             return (null, Reject("STAGE-ESM-019", $"The {role} body is not a complete C# statement block."));
         }
 
-        var forbidden = block.DescendantNodesAndSelf().FirstOrDefault(node =>
-            node is AwaitExpressionSyntax or YieldStatementSyntax or LockStatementSyntax or UnsafeStatementSyntax or
-                FixedStatementSyntax or StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax or
-                PointerTypeSyntax or FunctionPointerTypeSyntax or InterpolatedStringExpressionSyntax or
-                LocalFunctionStatementSyntax or WhileStatementSyntax or DoStatementSyntax or ForStatementSyntax or
-                GotoStatementSyntax or TryStatementSyntax or UsingStatementSyntax or
-                TypeOfExpressionSyntax or SizeOfExpressionSyntax or AnonymousObjectCreationExpressionSyntax or
-                CollectionExpressionSyntax or RecursivePatternSyntax or ListPatternSyntax or RelationalPatternSyntax or
-                ParenthesizedLambdaExpressionSyntax { AttributeLists.Count: > 0 } or
-                SimpleLambdaExpressionSyntax { AttributeLists.Count: > 0 } or
-                ParameterSyntax { AttributeLists.Count: > 0 } or
-                AnonymousFunctionExpressionSyntax { AsyncKeyword.RawKind: not 0 } or
-                RefExpressionSyntax or RefTypeSyntax or RangeExpressionSyntax or
-                LocalDeclarationStatementSyntax { UsingKeyword.RawKind: not 0 } ||
-                node.IsKind(SyntaxKind.CoalesceAssignmentExpression));
+        var forbidden = block.DescendantNodesAndSelf().FirstOrDefault(IsForbiddenNode);
         if (forbidden is not null)
         {
-            var symbol = forbidden switch
-            {
-                LocalFunctionStatementSyntax local => local.Identifier.Text,
-                ParameterSyntax parameter => parameter.Identifier.Text,
-                AnonymousFunctionExpressionSyntax => "lambda",
-                RecursivePatternSyntax when body.Contains("context", StringComparison.Ordinal) => "TypedContext_",
-                _ => forbidden.Kind().ToString()
-            };
-            return (null, Reject("STAGE-ESM-022", $"Forbidden pure construct '{forbidden.Kind()}' on '{symbol}'."));
+            return (null, Reject("STAGE-ESM-022", $"Forbidden pure construct '{forbidden.Kind()}' on '{ForbiddenSymbol(forbidden, body)}'."));
         }
 
         var disallowedTest = block.DescendantNodes().OfType<PatternSyntax>().FirstOrDefault(pattern => pattern switch
@@ -407,311 +384,13 @@ internal static class PureTransitionAdmission
             {
                 names.Add((name.Identifier.ValueText, ns.ToDisplayString()));
             }
-            else if (info.Symbol is INamedTypeSymbol ||
-                (info.Symbol is null && info.CandidateSymbols.IsEmpty &&
-                 name.Parent is MemberAccessExpressionSyntax { Expression: var expression } && expression == name))
+            else if (info.Symbol is INamedTypeSymbol || IsUnboundQualifier(info, name))
             {
                 names.Add((name.Identifier.ValueText, null));
             }
         }
 
         return names;
-    }
-
-    internal static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor, string? rootNamespace = null)
-    {
-        rootNamespace ??= model.GetDeclaredSymbol((MethodDeclarationSyntax)body.Parent!)!.Parameters[0].Type.ContainingNamespace.ContainingNamespace.ToDisplayString();
-        var root = model.GetOperation(body);
-        if (root is null) return Reject("STAGE-ESM-022", "Reducer body has no bound operation.");
-        var reads = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-        var used = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-        foreach (var operation in Descendants(root))
-        {
-            if (operation is IDynamicInvocationOperation or IDynamicMemberReferenceOperation or IDynamicObjectCreationOperation or IDynamicIndexerAccessOperation ||
-                operation.Type?.TypeKind is TypeKind.Dynamic or TypeKind.Pointer)
-            {
-                return Reject("STAGE-ESM-022", $"Forbidden pure operation '{operation.Kind}'.");
-            }
-
-            if (operation is IObjectCreationOperation constructedException &&
-                NameIs(
-                    constructedException.Constructor?.ContainingType.ToDisplayString() ?? string.Empty,
-                    "System.InvalidOperationException",
-                    "System.ArgumentException") &&
-                !IsThrownCreation(constructedException))
-            {
-                return Reject("STAGE-ESM-022", "Exception construction is admitted only inside a throw expression.");
-            }
-
-            if (operation is IThrowOperation thrownOperation && !ValidThrow(thrownOperation.Exception))
-                return Reject("STAGE-ESM-022", "Throw must construct InvalidOperationException(string) or ArgumentException(string).");
-
-            if (operation is IAnonymousFunctionOperation lambda && InvalidLambda(lambda))
-            {
-                return Reject("STAGE-ESM-022", "LINQ lambda must be a pure expression over its parameters and typed context (no writes, deferred captures, nested LINQ or evaluation-dependent throws).");
-            }
-
-            if (operation is IInvocationOperation linq && linq.TargetMethod.ContainingType.ToDisplayString() == "System.Linq.Enumerable" &&
-                ((NameIs(linq.TargetMethod.Name, "Any", "Count") && linq.TargetMethod.Parameters.Length == 1) ||
-                 linq.Arguments.Any(argument => HasDeferredLinqSource(argument.Value, root))))
-            {
-                return Reject("STAGE-ESM-022", "LINQ count shortcuts and deferred LINQ composition are outside the pure subset.");
-            }
-
-            if (operation is IInvocationOperation immutable && immutable.TargetMethod.ContainingType.ToDisplayString() == "System.Collections.Immutable.ImmutableArray" &&
-                immutable.Arguments.Any(argument => HasDeferredLinqSource(argument.Value, root)))
-            {
-                return Reject("STAGE-ESM-022", "Materializing a deferred LINQ source is outside the pure subset.");
-            }
-
-            if (operation is ISimpleAssignmentOperation { Target: ILocalReferenceOperation assigned } && EnumerableType(assigned.Local.Type))
-            {
-                return Reject("STAGE-ESM-022", $"Enumerable local '{assigned.Local.Name}' must be single-assignment.");
-            }
-
-            if (operation is ILiteralOperation { Type: { } literalType } && !SafeDataType(literalType, model.Compilation))
-                return Reject("STAGE-ESM-022", $"Literal of '{literalType}' is outside the pure allowlist.");
-            if (operation is IVariableDeclaratorOperation declarator &&
-                !SafeDataType(declarator.Symbol.Type, model.Compilation) &&
-                !(declarator.Symbol.Type is INamedTypeSymbol variableType &&
-                  variableType.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>" &&
-                  SafeDataType(variableType.TypeArguments[0], model.Compilation)))
-            {
-                return Reject("STAGE-ESM-022", $"Local '{declarator.Symbol.Name}' has a type outside the pure allowlist.");
-            }
-
-            if (operation is IBinaryOperation binaryOperation && !SafeBinary(binaryOperation, model.Compilation))
-                return Reject("STAGE-ESM-022", $"Binary operation '{binaryOperation.OperatorKind}' on '{binaryOperation.LeftOperand.Type}' is outside the pure allowlist.");
-            if (operation is IUnaryOperation unaryOperation && !SafeValue(unaryOperation.Operand.Type, model.Compilation))
-                return Reject("STAGE-ESM-022", $"Unary operation on '{unaryOperation.Operand.Type}' is outside the pure allowlist.");
-            if (operation is ICompoundAssignmentOperation compoundOperation &&
-                !(compoundOperation.Type?.SpecialType == SpecialType.System_String && StringOrChar(compoundOperation.Value)) &&
-                !SafeValue(compoundOperation.Value.Type, model.Compilation))
-            {
-                return Reject("STAGE-ESM-022", $"Compound assignment on '{compoundOperation.Value.Type}' is outside the pure allowlist.");
-            }
-
-            if (operation is IIncrementOrDecrementOperation incrementValue && !Number(incrementValue.Target.Type))
-                return Reject("STAGE-ESM-022", $"Increment on '{incrementValue.Target.Type}' is outside the pure allowlist.");
-            if (operation is IFieldReferenceOperation enumField &&
-                NameIs(enumField.Field.ContainingType.ToDisplayString(), "System.StringComparison", "System.MidpointRounding") &&
-                !AuditedEnumArgument(enumField))
-            {
-                return Reject("STAGE-ESM-022", $"Enum field '{enumField.Field.ToDisplayString()}' is admitted only as an audited method argument.");
-            }
-
-            if (operation is IPropertyReferenceOperation provider && provider.Property.Name == "InvariantCulture" &&
-                IsInvariantProvider(provider) &&
-                ArgumentFor(provider) is not IArgumentOperation { Parent: IInvocationOperation { TargetMethod.Name: "ToString" } })
-            {
-                return Reject("STAGE-ESM-022", "CultureInfo.InvariantCulture is admitted only for numeric ToString.");
-            }
-
-            if (operation is IPropertyReferenceOperation propertyValue &&
-                !SafeDataType(propertyValue.Type, model.Compilation) &&
-                !(propertyValue.Property.Name == "InvariantCulture" && IsInvariantProvider(propertyValue)))
-            {
-                return Reject("STAGE-ESM-022", $"Property '{propertyValue.Property.ToDisplayString()}' returns a type outside the pure allowlist.");
-            }
-
-            if (operation is IConversionOperation conversionOperation &&
-                ((conversionOperation.Syntax is CastExpressionSyntax &&
-                  !(Number(conversionOperation.Operand.Type) && Number(conversionOperation.Type) &&
-                    (WideningInteger(conversionOperation.Operand.Type, conversionOperation.Type) ||
-                     conversionOperation.Operand.Type?.SpecialType == SpecialType.System_Decimal ||
-                     conversionOperation.Type?.SpecialType == SpecialType.System_Decimal))) ||
-                 !SafeConversion(conversionOperation)))
-            {
-                return Reject("STAGE-ESM-022", $"Conversion to '{conversionOperation.Type?.ToDisplayString()}' is outside the pure allowlist.");
-            }
-            if (operation is IIsPatternOperation pattern && !SafePattern(pattern.Pattern, model.Compilation))
-                return Reject("STAGE-ESM-022", $"Pattern '{pattern.Pattern.Syntax}' is outside the pure allowlist.");
-            if (operation is IDefaultValueOperation defaultValue && !Generated(defaultValue.Type, model.Compilation))
-            {
-                return Reject("STAGE-ESM-022", $"Default of '{defaultValue.Type?.ToDisplayString()}' is outside the pure allowlist.");
-            }
-
-            if (operation is IArrayCreationOperation arrayCreation && arrayCreation.Type is IArrayTypeSymbol arrayType &&
-                !SafeValue(arrayType.ElementType, model.Compilation))
-            {
-                return Reject("STAGE-ESM-022", $"Array element type '{arrayType.ElementType}' is outside the pure allowlist.");
-            }
-
-            if (operation is IWithOperation withOperation && !Generated(withOperation.Type, model.Compilation))
-                return Reject("STAGE-ESM-022", $"With on '{withOperation.Type?.ToDisplayString()}' is outside the pure allowlist.");
-            if (operation is IArrayElementReferenceOperation element && element.Parent is ISimpleAssignmentOperation or ICompoundAssignmentOperation or IIncrementOrDecrementOperation)
-                return Reject("STAGE-ESM-022", "Array element mutation is outside the pure allowlist.");
-            if (operation is ICompoundAssignmentOperation compoundString && compoundString.Type?.SpecialType == SpecialType.System_String &&
-                (!StringOrChar(compoundString.Value) || compoundString.Target.Type?.SpecialType != SpecialType.System_String))
-            {
-                return Reject("STAGE-ESM-022", "Culture-sensitive string.Concat operands are not pure.");
-            }
-
-            if (operation is IInvocationOperation concatCall && concatCall.TargetMethod.Name == "Concat" &&
-                concatCall.TargetMethod.ContainingType.SpecialType == SpecialType.System_String &&
-                concatCall.Arguments.Any(argument => !StringOrChar(argument.Value)))
-            {
-                return Reject("STAGE-ESM-022", "Symbol 'string.Concat' requires string or char operands.");
-            }
-
-            if ((operation is ISimpleAssignmentOperation assignment && assignment.Target is IFieldReferenceOperation { Field.IsStatic: true } or
-                IPropertyReferenceOperation { Property.IsStatic: true }) ||
-                (operation is ICompoundAssignmentOperation compound && compound.Target is IFieldReferenceOperation { Field.IsStatic: true } or
-                    IPropertyReferenceOperation { Property.IsStatic: true }) ||
-                (operation is IIncrementOrDecrementOperation increment && increment.Target is IFieldReferenceOperation { Field.IsStatic: true } or
-                    IPropertyReferenceOperation { Property.IsStatic: true }))
-            {
-                var target = operation switch
-                {
-                    ISimpleAssignmentOperation simple => simple.Target,
-                    ICompoundAssignmentOperation compoundAssignment => compoundAssignment.Target,
-                    IIncrementOrDecrementOperation incrementOperation => incrementOperation.Target,
-                    _ => operation
-                };
-                var member = target switch
-                {
-                    IFieldReferenceOperation field => field.Field.ToDisplayString(),
-                    IPropertyReferenceOperation property => property.Property.ToDisplayString(),
-                    _ => target.Kind.ToString()
-                };
-                return Reject("STAGE-ESM-022", $"Write to static member '{member}' is not pure.");
-            }
-
-            // Only the named, audited operation shapes are admitted. Unknown Roslyn kinds fail closed.
-            if (!_admittedOperations.Contains(operation.Kind))
-                return Reject("STAGE-ESM-022", $"Operation '{operation.Kind}' on '{operation.Type?.ToDisplayString()}' is outside the pure allowlist.");
-
-            var wrapper = $"TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
-            if ((operation is IParameterReferenceOperation or ILocalReferenceOperation &&
-                operation.Type?.Name == wrapper &&
-                operation.Parent is not IPropertyReferenceOperation { Instance: { } instance }) ||
-                (operation is IParameterReferenceOperation or ILocalReferenceOperation &&
-                operation.Type?.Name == wrapper && operation.Parent is IPropertyReferenceOperation propertyInstance &&
-                propertyInstance.Instance != operation))
-            {
-                return Reject("STAGE-ESM-022", $"Wrapper '{wrapper}' may only be used through a property getter.");
-            }
-
-            if ((operation is IIsPatternOperation { Value.Type.Name: var patternType } && patternType == wrapper) ||
-                (operation is IWithOperation { Operand.Type.Name: var withType } && withType == wrapper) ||
-                (operation is IDeconstructionAssignmentOperation { Value.Type.Name: var deconstructedType } && deconstructedType == wrapper) ||
-                (operation is IArgumentOperation { Value.Type.Name: var argumentType } && argumentType == wrapper))
-            {
-                return Reject("STAGE-ESM-022", $"Wrapper '{wrapper}' may only be used through a property getter.");
-            }
-
-            if (operation is IBinaryOperation { OperatorKind: BinaryOperatorKind.Add, Type.SpecialType: SpecialType.System_String } concatenation &&
-                (!StringOrChar(concatenation.LeftOperand) || !StringOrChar(concatenation.RightOperand)))
-            {
-                return Reject("STAGE-ESM-022", "Culture-sensitive string.Concat operands are not pure.");
-            }
-
-            if (operation is IInvocationOperation concat && concat.TargetMethod.Name == "Concat" &&
-                concat.TargetMethod.ContainingType.SpecialType == SpecialType.System_String &&
-                concat.Arguments.Any(argument => !StringOrChar(argument.Value)))
-            {
-                return Reject("STAGE-ESM-022", $"Symbol '{concat.TargetMethod.ToDisplayString()}' uses culture-sensitive object conversion.");
-            }
-
-            if (operation is IInvocationOperation invocation && invocation.TargetMethod.Parameters.Any(_ => _.Type.Name == "IFormatProvider") &&
-                invocation.Arguments.Where(_ => _.Parameter?.Type.Name == "IFormatProvider").Any(argument =>
-                    !IsInvariantProvider(argument.Value)))
-            {
-                return Reject("STAGE-ESM-022", $"Symbol '{invocation.TargetMethod.ToDisplayString()}' requires CultureInfo.InvariantCulture.");
-            }
-
-            var symbol = operation switch
-            {
-                IInvocationOperation call => call.TargetMethod,
-                IObjectCreationOperation creation => creation.Constructor,
-                IPropertyReferenceOperation property => property.Property,
-                IFieldReferenceOperation field => field.Field,
-                IMethodReferenceOperation methodReference => methodReference.Method,
-                IConversionOperation { OperatorMethod: { } conversion } => conversion,
-                IBinaryOperation { OperatorMethod: { } binary } => binary,
-                IUnaryOperation { OperatorMethod: { } unary } => unary,
-                ICompoundAssignmentOperation { OperatorMethod: { } compoundOperator } => compoundOperator,
-                IForEachLoopOperation loop when loop.Syntax is CommonForEachStatementSyntax syntax =>
-                    model.GetForEachStatementInfo(syntax).GetEnumeratorMethod,
-                IDeconstructionAssignmentOperation { Syntax: AssignmentExpressionSyntax deconstruction } =>
-                    model.GetDeconstructionInfo(deconstruction).Method,
-                IRecursivePatternOperation recursive => recursive.DeconstructSymbol,
-                _ => null
-            };
-            if ((operation is IDeconstructionAssignmentOperation && symbol is null) ||
-                (operation is IForEachLoopOperation && symbol is null && !IsArrayForeach(operation, model)) ||
-                (operation is IRecursivePatternOperation { DeconstructionSubpatterns.Length: > 0 } && symbol is null))
-            {
-                return Reject("STAGE-ESM-022", $"Unresolved operation '{operation.Kind}' is outside the pure allowlist.");
-            }
-
-            if (symbol is null) continue;
-            if (IsArrayForeach(operation, model))
-            {
-                used.Add("collections");
-                continue;
-            }
-
-            if (operation is IForEachLoopOperation { Syntax: CommonForEachStatementSyntax forEach })
-            {
-                var info = model.GetForEachStatementInfo(forEach);
-                if (info.GetEnumeratorMethod?.ContainingType.ToDisplayString().StartsWith("System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal) != true ||
-                    info.MoveNextMethod is null || info.CurrentProperty is null ||
-                    !AuditedMemberSignatures.Contains(AuditedSignature(info.MoveNextMethod)) ||
-                    !AuditedMemberSignatures.Contains(AuditedSignature(info.CurrentProperty)))
-                {
-                    return Reject("STAGE-ESM-022", "Foreach requires audited immutable-array GetEnumerator, MoveNext and Current bindings.");
-                }
-            }
-
-            if ((operation is ICompoundAssignmentOperation { Type.SpecialType: SpecialType.System_String } compoundText &&
-                 StringOrChar(compoundText.Value)) ||
-                (operation is IBinaryOperation { Type.SpecialType: SpecialType.System_String, OperatorKind: BinaryOperatorKind.Add } binaryText &&
-                 StringOrChar(binaryText.LeftOperand) && StringOrChar(binaryText.RightOperand)))
-            {
-                used.Add("string");
-                continue;
-            }
-
-            if (operation is IInvocationOperation invoked &&
-                (!ValidInvocation(invoked) || (invoked.TargetMethod.Name == "Concat" && invoked.TargetMethod.ContainingType.SpecialType == SpecialType.System_String &&
-                 invoked.Arguments.Any(argument => !StringOrChar(argument.Value)))))
-            {
-                return Reject("STAGE-ESM-022", $"Symbol '{symbol.ToDisplayString()}' has unaudited arguments.");
-            }
-
-            if (operation is IPropertyReferenceOperation propertyRead && propertyRead.Property.ContainingType.Name == wrapper)
-            {
-                if ((propertyRead.Parent is ISimpleAssignmentOperation { Target: var target } && target == propertyRead) ||
-                    propertyRead.Parent is ICompoundAssignmentOperation or IIncrementOrDecrementOperation or ICoalesceAssignmentOperation)
-                {
-                    return Reject("STAGE-ESM-022", $"Writing wrapper property '{propertyRead.Property.ToDisplayString()}' is not pure.");
-                }
-
-                reads.Add(propertyRead.Property.Name);
-            }
-
-            if (!Allowed(symbol, model.Compilation, rootNamespace, out var entry) ||
-                (symbol.ContainingType?.Name == wrapper && operation is not IPropertyReferenceOperation))
-            {
-                return Reject("STAGE-ESM-022", $"Symbol '{symbol.ToDisplayString()}' is outside the pure allowlist.");
-            }
-
-            if (IsAuditedMember(symbol) && !AuditedMemberSignatures.Contains(AuditedSignature(symbol)))
-            {
-                return Reject("STAGE-ESM-022", $"Symbol '{symbol.ToDisplayString()}' has no audited signature fixture.");
-            }
-
-            used.Add(entry);
-        }
-
-        return new(
-            null,
-            null,
-            reads.ToImmutable(),
-            used.ToImmutable(),
-            [.. Descendants(root).SelectMany(operation => BoundMembers(operation, model)).Select(SymbolIdentity)],
-            [.. Descendants(root).SelectMany(operation => BoundMembers(operation, model)).Where(IsAuditedMember).Select(AuditedSignature).Distinct(StringComparer.Ordinal)]);
     }
 
     internal static string SourceLocation(SemanticImplementationRequirement requirement, string body, int offset)
@@ -728,6 +407,43 @@ internal static class PureTransitionAdmission
     // The audited pack, or the isolated failure-path override, for every pure body analysis.
     internal static MetadataReference[] AnalysisReferences() =>
         ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value;
+
+    static string ForbiddenSymbol(SyntaxNode forbidden, string body) => forbidden switch
+    {
+        LocalFunctionStatementSyntax local => local.Identifier.Text,
+        ParameterSyntax parameter => parameter.Identifier.Text,
+        AnonymousFunctionExpressionSyntax => "lambda",
+        RecursivePatternSyntax when body.Contains("context", StringComparison.Ordinal) => "TypedContext_",
+        _ => forbidden.Kind().ToString()
+    };
+
+    static bool IsCompleteBlock(BlockSyntax block, string text) =>
+        !block.ContainsDiagnostics && !block.ContainsSkippedText &&
+        !block.CloseBraceToken.IsMissing && block.CloseBraceToken.SpanStart == text.Length - 1;
+
+    static bool IsForbiddenNode(SyntaxNode node) =>
+        IsForbiddenSyntax(node) || IsForbiddenDecoration(node) || node.IsKind(SyntaxKind.CoalesceAssignmentExpression);
+
+    static bool IsForbiddenSyntax(SyntaxNode node) =>
+        node is AwaitExpressionSyntax or YieldStatementSyntax or LockStatementSyntax or UnsafeStatementSyntax or
+            FixedStatementSyntax or StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax or
+            PointerTypeSyntax or FunctionPointerTypeSyntax or InterpolatedStringExpressionSyntax or
+            LocalFunctionStatementSyntax or WhileStatementSyntax or DoStatementSyntax or ForStatementSyntax or
+            GotoStatementSyntax or TryStatementSyntax or UsingStatementSyntax or
+            TypeOfExpressionSyntax or SizeOfExpressionSyntax or AnonymousObjectCreationExpressionSyntax or
+            CollectionExpressionSyntax or RecursivePatternSyntax or ListPatternSyntax or RelationalPatternSyntax or
+            RefExpressionSyntax or RefTypeSyntax or RangeExpressionSyntax;
+
+    static bool IsForbiddenDecoration(SyntaxNode node) =>
+        node is ParenthesizedLambdaExpressionSyntax { AttributeLists.Count: > 0 } or
+            SimpleLambdaExpressionSyntax { AttributeLists.Count: > 0 } or
+            ParameterSyntax { AttributeLists.Count: > 0 } or
+            AnonymousFunctionExpressionSyntax { AsyncKeyword.RawKind: not 0 } or
+            LocalDeclarationStatementSyntax { UsingKeyword.RawKind: not 0 };
+
+    static bool IsUnboundQualifier(SymbolInfo info, SimpleNameSyntax name) =>
+        info.Symbol is null && info.CandidateSymbols.IsEmpty &&
+        name.Parent is MemberAccessExpressionSyntax { Expression: var expression } && expression == name;
 
     static MetadataReference[] LoadEmbeddedReferences()
     {
@@ -757,25 +473,29 @@ internal static class PureTransitionAdmission
     {
         if (operation is IForEachLoopOperation { Syntax: CommonForEachStatementSyntax syntax } && !IsArrayForeach(operation, model))
         {
-            var info = model.GetForEachStatementInfo(syntax);
-            if (info.GetEnumeratorMethod is not null) yield return info.GetEnumeratorMethod;
-            if (info.MoveNextMethod is not null) yield return info.MoveNextMethod;
-            if (info.CurrentProperty is not null) yield return info.CurrentProperty;
+            foreach (var member in ForEachMembers(model.GetForEachStatementInfo(syntax)))
+            {
+                yield return member;
+            }
         }
 
-        ISymbol? symbol = operation switch
-        {
-            IInvocationOperation call => call.TargetMethod,
-            IObjectCreationOperation creation => creation.Constructor,
-            IPropertyReferenceOperation property => property.Property,
-            IFieldReferenceOperation field => field.Field,
-            IBinaryOperation { OperatorMethod: { } binary } => binary,
-            IUnaryOperation { OperatorMethod: { } unary } => unary,
-            ICompoundAssignmentOperation { OperatorMethod: { } compound } => compound,
-            IConversionOperation { OperatorMethod: { } conversion } => conversion,
-            _ => null
-        };
-        if (symbol is not null) yield return symbol;
+        if (DirectSymbol(operation) is { } symbol) yield return symbol;
+    }
+
+    static ISymbol? DirectSymbol(IOperation operation) => operation switch
+    {
+        IInvocationOperation call => call.TargetMethod,
+        IObjectCreationOperation creation => creation.Constructor,
+        IPropertyReferenceOperation property => property.Property,
+        IFieldReferenceOperation field => field.Field,
+        _ => OperatorMethod(operation)
+    };
+
+    static IEnumerable<ISymbol> ForEachMembers(ForEachStatementInfo info)
+    {
+        if (info.GetEnumeratorMethod is not null) yield return info.GetEnumeratorMethod;
+        if (info.MoveNextMethod is not null) yield return info.MoveNextMethod;
+        if (info.CurrentProperty is not null) yield return info.CurrentProperty;
     }
 
     static bool InvalidLambda(IAnonymousFunctionOperation lambda)
@@ -795,10 +515,7 @@ internal static class PureTransitionAdmission
     {
         ISimpleAssignmentOperation or ICompoundAssignmentOperation or IIncrementOrDecrementOperation or
             ICoalesceAssignmentOperation or IThrowOperation or IAnonymousFunctionOperation or IArrayElementReferenceOperation => true,
-        IBinaryOperation binary => binary.IsChecked ||
-            (binary.OperatorKind is BinaryOperatorKind.Divide or BinaryOperatorKind.Remainder) ||
-            (binary.Type?.SpecialType == SpecialType.System_Decimal &&
-             binary.OperatorKind is BinaryOperatorKind.Add or BinaryOperatorKind.Subtract or BinaryOperatorKind.Multiply),
+        IBinaryOperation binary => InvalidLambdaBinary(binary),
         IUnaryOperation unary => unary.IsChecked ||
             (unary.Operand.Type?.SpecialType == SpecialType.System_Decimal && unary.OperatorKind == UnaryOperatorKind.Minus),
         IConversionOperation conversion => conversion.IsChecked ||
@@ -807,6 +524,12 @@ internal static class PureTransitionAdmission
         ILocalReferenceOperation or IParameterReferenceOperation => CapturesDisallowedValue(child, lambda),
         _ => false
     };
+
+    static bool InvalidLambdaBinary(IBinaryOperation binary) =>
+        binary.IsChecked ||
+        (binary.OperatorKind is BinaryOperatorKind.Divide or BinaryOperatorKind.Remainder) ||
+        (binary.Type?.SpecialType == SpecialType.System_Decimal &&
+         binary.OperatorKind is BinaryOperatorKind.Add or BinaryOperatorKind.Subtract or BinaryOperatorKind.Multiply);
 
     static bool EnumerableType(ITypeSymbol? type) => type is not null &&
         (type is IArrayTypeSymbol || type.ToDisplayString().StartsWith("System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal) ||
@@ -890,184 +613,6 @@ internal static class PureTransitionAdmission
         return operation.Type?.SpecialType is SpecialType.System_String or SpecialType.System_Char;
     }
 
-    static bool Allowed(ISymbol symbol, Compilation compilation, string rootNamespace, out string entry)
-    {
-        entry = string.Empty;
-        if (symbol is IMethodSymbol { MethodKind: MethodKind.BuiltinOperator } builtin)
-        {
-            entry = "primitive";
-            return builtin.Parameters.All(parameter => SafeValueType(parameter.Type)) && SafeValueType(builtin.ReturnType);
-        }
-
-        var type = symbol.ContainingType;
-        if (type is null)
-        {
-            return false;
-        }
-
-        var full = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var name = symbol.Name;
-        if (name == "GetHashCode") return false;
-        if (type.IsAnonymousType) return false; // Anonymous records can carry randomized string hashes; no synthesized method is trusted.
-
-        // The pinned ConceptAs<T> and EventSourceId<T> expose auto-property getters only.
-        // Mirror their declaring types in the synthetic compilation, rather than admitting a
-        // synthetic owned Value that binds differently from the real inherited property.
-        var genericOwner = type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        if (((genericOwner == "global::Cratis.Concepts.ConceptAs<T>" && name == "Value") ||
-             (genericOwner == "global::Cratis.Chronicle.Events.EventSourceId<T>" && name == "TypedValue")) &&
-            symbol is IPropertySymbol { IsStatic: false, IsIndexer: false, GetMethod: not null } conceptProperty &&
-            SymbolEqualityComparer.Default.Equals(conceptProperty.Type, type.TypeArguments[0]) &&
-            SafeValue(conceptProperty.Type, compilation))
-        {
-            entry = "generated";
-            return true;
-        }
-
-        // Both the declaring type and the member must belong to this exact synthetic source tree.
-        // This excludes Microsoft.Win32, all referenced application assemblies and unrelated source files.
-        if (type.ContainingAssembly.Name == compilation.AssemblyName &&
-            type.Locations.Length > 0 && type.Locations.All(_ => _.IsInSource && compilation.SyntaxTrees.Contains(_.SourceTree)) &&
-            (type.ContainingNamespace.ToDisplayString() == rootNamespace ||
-             type.ContainingNamespace.ToDisplayString().StartsWith(rootNamespace + ".", StringComparison.Ordinal)) &&
-            symbol.Locations.All(_ => _.IsInSource && compilation.SyntaxTrees.Contains(_.SourceTree)))
-        {
-            entry = "generated";
-            if (full == $"global::{rootNamespace}.TypedContexts.TenantId" &&
-                ((symbol is IFieldSymbol { IsStatic: true, IsReadOnly: true } && NameIs(name, "Default", "NotSet")) ||
-                 (symbol is IMethodSymbol { IsImplicitlyDeclared: true, MethodKind: MethodKind.UserDefinedOperator } && NameIs(name, "op_Equality", "op_Inequality"))))
-            {
-                return true;
-            }
-
-            // Stage's policy Identity mirrors Screenplay's audited lookups: ordinal roles, ordinal-ignore-case claim names.
-            if (full == $"global::{rootNamespace}.TypedContexts.{SemanticPolicyContextRuntime.IdentityType}" &&
-                symbol is IMethodSymbol { MethodKind: MethodKind.Ordinary, IsStatic: false, Parameters.Length: 1 } lookup &&
-                lookup.Parameters[0].Type.SpecialType == SpecialType.System_String &&
-                NameIs(name, "HasRole", "HasClaim", "ClaimValue", "ClaimValues"))
-            {
-                return true;
-            }
-
-            return name != "ToString" &&
-                (type.Name.StartsWith("TypedContext_", StringComparison.Ordinal)
-                    ? symbol is IPropertySymbol
-                    : symbol is IMethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.PropertyGet } or
-                        IPropertySymbol or IFieldSymbol { IsConst: true });
-        }
-
-        if (SafeValueType(type))
-        {
-            if (type.SpecialType == SpecialType.System_String)
-            {
-                entry = "string";
-                if (symbol is IPropertySymbol textProperty) return name == "Length" || textProperty.IsIndexer;
-                if (symbol is IFieldSymbol) return name == "Empty";
-                return symbol is IMethodSymbol stringMethod &&
-                    ((name == "Substring" && stringMethod.Parameters.Length is 1 or 2 &&
-                      stringMethod.Parameters.All(parameter => parameter.Type.SpecialType == SpecialType.System_Int32)) ||
-                     NameIs(name, "IsNullOrEmpty", "op_Equality", "op_Inequality") ||
-                     (name == "Concat" && stringMethod.Parameters.All(parameter => parameter.Type.SpecialType == SpecialType.System_String)) ||
-                     (NameIs(name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf") &&
-                     stringMethod.Parameters.Any(parameter => parameter.Type.ToDisplayString() == "System.StringComparison")));
-            }
-
-            entry = "primitive";
-            return SafeValueType(type) && symbol is IMethodSymbol { Parameters.Length: 1 } method &&
-                method.Name == "ToString" &&
-                method.Parameters[0].Type.Name == "IFormatProvider" &&
-                method.Parameters[0].Type.ContainingNamespace.ToDisplayString() == "System";
-        }
-
-        if (full.StartsWith("global::System.Nullable<", StringComparison.Ordinal))
-        {
-            entry = "primitive";
-            return SafeValueType(type.TypeArguments[0]) && NameIs(name, "HasValue", "Value", "GetValueOrDefault", ".ctor");
-        }
-
-        if (full == "global::System.Math")
-        {
-            entry = "math";
-            return (symbol is IMethodSymbol math && math.Parameters.Length > 0 &&
-                math.Parameters.All(parameter => Number(parameter.Type)) && Number(math.ReturnType) &&
-                NameIs(name, "Abs", "Min", "Max", "Clamp", "Sign")) ||
-                (symbol is IMethodSymbol { Parameters.Length: 2 } rounded && name == "Round" &&
-                rounded.Parameters[0].Type.SpecialType == SpecialType.System_Decimal &&
-                rounded.Parameters[1].Type.ToDisplayString() == "System.MidpointRounding" &&
-                rounded.ReturnType.SpecialType == SpecialType.System_Decimal) ||
-                (symbol is IMethodSymbol { Parameters.Length: 1 } decimalMath &&
-                NameIs(name, "Truncate", "Floor", "Ceiling") &&
-                decimalMath.Parameters[0].Type.SpecialType == SpecialType.System_Decimal &&
-                decimalMath.ReturnType.SpecialType == SpecialType.System_Decimal);
-        }
-
-        if (NameIs(full, "global::System.DateTimeOffset", "global::System.TimeSpan"))
-        {
-            entry = "time";
-            if (symbol is IPropertySymbol) return NameIs(name, "Year", "Month", "Day", "Hour", "Minute", "Second", "Ticks");
-            return symbol is IMethodSymbol method &&
-                ((NameIs(name, "op_Equality", "op_Inequality", "op_LessThan", "op_LessThanOrEqual", "op_GreaterThan", "op_GreaterThanOrEqual", "op_Addition", "op_Subtraction") &&
-                    method.Parameters.All(parameter => NameIs(parameter.Type.ToDisplayString(), "System.DateTimeOffset", "System.TimeSpan"))) ||
-                 (NameIs(name, "Add", "AddDays", "AddHours", "AddMinutes", "AddSeconds", "AddMilliseconds", "AddTicks", "AddMonths", "AddYears") &&
-                    method.Parameters.Length == 1 &&
-                    (Number(method.Parameters[0].Type) || method.Parameters[0].Type.ToDisplayString() == "System.TimeSpan")));
-        }
-
-        if (full == "global::System.StringComparison")
-        {
-            entry = "string";
-            return symbol is IFieldSymbol && name == "Ordinal";
-        }
-
-        if (full == "global::System.Globalization.CultureInfo")
-        {
-            entry = "string";
-            return symbol is IPropertySymbol && name == "InvariantCulture";
-        }
-
-        if (full == "global::System.Collections.Immutable.ImmutableArray")
-        {
-            entry = "collections";
-            return name == "ToImmutableArray" && symbol is IMethodSymbol { Parameters.Length: 1 } method &&
-                method.Parameters[0].Type.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>";
-        }
-
-        if (full.StartsWith("global::System.Collections.", StringComparison.Ordinal))
-        {
-            entry = "collections";
-
-            return (full.StartsWith("global::System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal) &&
-                    (NameIs(name, "Length", "IsDefault", "Empty", "GetEnumerator") ||
-                     symbol is IPropertySymbol { IsIndexer: true })) ||
-                    (full.StartsWith("global::System.Collections.Generic.IEnumerable<", StringComparison.Ordinal) &&
-                    name == "GetEnumerator") ||
-                    (full.StartsWith("global::System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal) &&
-                    NameIs(name, "Current", "MoveNext"));
-        }
-
-        if (full == "global::System.Linq.Enumerable")
-        {
-            entry = "linq";
-            return NameIs(name, "Where", "Select", "Any", "All", "Count", "First", "FirstOrDefault", "Last", "LastOrDefault", "Take", "Skip", "Sum", "Aggregate", "ToArray", "Concat") &&
-                (name != "Aggregate" || symbol is IMethodSymbol { Parameters.Length: 3 }) &&
-                (name != "Sum" || (symbol is IMethodSymbol sum && DecimalSumReturn(sum.ReturnType)));
-        }
-
-        if (NameIs(full, "global::System.InvalidOperationException", "global::System.ArgumentException"))
-        {
-            entry = "exceptions";
-            return symbol is IMethodSymbol { MethodKind: MethodKind.Constructor, Parameters.Length: 1 } ctor &&
-                ctor.Parameters[0].Type.SpecialType == SpecialType.System_String;
-        }
-        if (full == "global::System.MidpointRounding")
-        {
-            entry = "math";
-            return symbol is IFieldSymbol { IsConst: true } && NameIs(name, "ToEven", "AwayFromZero", "ToZero", "ToNegativeInfinity", "ToPositiveInfinity");
-        }
-
-        return false;
-    }
-
     // FullyQualifiedFormat alone omits member signatures; include owner, kind, generic arity and parameters.
     static string SymbolIdentity(ISymbol symbol)
     {
@@ -1111,40 +656,6 @@ internal static class PureTransitionAdmission
         SafeValueType(type) || Generated(type, compilation) ||
         NameIs(type?.ToDisplayString() ?? string.Empty, "System.DateTimeOffset", "System.TimeSpan", "System.Guid");
 
-    static bool SafeBinary(IBinaryOperation operation, Compilation compilation)
-    {
-        var left = operation.LeftOperand.Type;
-        var right = operation.RightOperand.Type;
-        if (operation.Type?.SpecialType == SpecialType.System_String && operation.OperatorKind == BinaryOperatorKind.Add &&
-            StringOrChar(operation.LeftOperand) && StringOrChar(operation.RightOperand))
-        {
-            return true;
-        }
-
-        if ((!SafeValue(left, compilation) && operation.LeftOperand.ConstantValue is not { HasValue: true, Value: null }) ||
-            (!SafeValue(right, compilation) && operation.RightOperand.ConstantValue is not { HasValue: true, Value: null }))
-        {
-            return false;
-        }
-
-        if (Number(left) && Number(right)) return true;
-        if (left?.SpecialType == SpecialType.System_Boolean && right?.SpecialType == SpecialType.System_Boolean) return true;
-        if (operation.Type?.SpecialType == SpecialType.System_String &&
-            StringOrChar(operation.LeftOperand) && StringOrChar(operation.RightOperand))
-        {
-            return true;
-        }
-
-        if (NameIs(left?.ToDisplayString() ?? string.Empty, "System.DateTimeOffset", "System.TimeSpan") &&
-            NameIs(right?.ToDisplayString() ?? string.Empty, "System.DateTimeOffset", "System.TimeSpan"))
-        {
-            return true;
-        }
-
-        return operation.OperatorKind is BinaryOperatorKind.Equals or BinaryOperatorKind.NotEquals &&
-            (SymbolEqualityComparer.Default.Equals(left, right) || left is null || right is null);
-    }
-
     static bool WideningInteger(ITypeSymbol? from, ITypeSymbol? to) => (from?.SpecialType, to?.SpecialType) switch
     {
         (SpecialType.System_SByte, SpecialType.System_Int16 or SpecialType.System_Int32 or SpecialType.System_Int64) => true,
@@ -1169,53 +680,6 @@ internal static class PureTransitionAdmission
         named.Locations.Length > 0 && named.Locations.All(location => location.IsInSource &&
             compilation.SyntaxTrees.Contains(location.SourceTree)) && !named.Name.StartsWith("TypedContext_", StringComparison.Ordinal);
 
-    static bool SafeConversion(IConversionOperation operation)
-    {
-        if (operation.OperatorMethod is not null) return false;
-        if (operation.Operand.ConstantValue.HasValue && operation.Operand.ConstantValue.Value is null) return true;
-        var from = operation.Operand.Type;
-        var to = operation.Type;
-        if (from is null || to is null) return false;
-        if (operation.Parent is IThrowOperation && operation.Conversion.IsImplicit && ValidThrow(operation.Operand)) return true;
-        if (operation.Parent is IForEachLoopOperation && from is IArrayTypeSymbol &&
-            to.ToDisplayString() == "System.Collections.IEnumerable")
-        {
-            return true;
-        }
-
-        if (to.Name == "IFormatProvider" && IsInvariantProvider(operation.Operand) && operation.Conversion.IsImplicit) return true;
-        if (SymbolEqualityComparer.Default.Equals(from, to)) return true;
-        if (from.SpecialType == SpecialType.System_Char && Number(to) && operation.Conversion.IsImplicit) return true;
-        if (from.SpecialType == SpecialType.System_Char && to.SpecialType == SpecialType.System_Object &&
-            operation.Parent is ICompoundAssignmentOperation { Type.SpecialType: SpecialType.System_String } or
-                IBinaryOperation { Type.SpecialType: SpecialType.System_String, OperatorKind: BinaryOperatorKind.Add })
-        {
-            return true;
-        }
-
-        if (Number(from) && Number(to))
-        {
-            return operation.Conversion.IsImplicit || from.SpecialType == SpecialType.System_Decimal ||
-                to.SpecialType == SpecialType.System_Decimal;
-        }
-
-        if (from is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable &&
-            SymbolEqualityComparer.Default.Equals(nullable.TypeArguments[0], to))
-        {
-            return operation.Conversion.IsImplicit;
-        }
-
-        if (to is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullableTarget &&
-            SymbolEqualityComparer.Default.Equals(from, nullableTarget.TypeArguments[0]))
-        {
-            return operation.Conversion.IsImplicit;
-        }
-
-        return operation.Conversion.IsImplicit && to is INamedTypeSymbol target &&
-            target.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>" &&
-            (from is IArrayTypeSymbol || from.ToDisplayString().StartsWith("System.Collections.Immutable.ImmutableArray<", StringComparison.Ordinal));
-    }
-
     static bool SafePattern(IPatternOperation pattern, Compilation compilation) => pattern switch
     {
         IConstantPatternOperation constant => constant.Value.ConstantValue.HasValue &&
@@ -1230,19 +694,19 @@ internal static class PureTransitionAdmission
     {
         var method = call.TargetMethod;
         var owner = method.ContainingType.ToDisplayString();
-        if (owner == "System.String" && NameIs(method.Name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf"))
+        if (owner == "System.String" && NameIs(method.Name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf") && !HasOrdinalComparison(call))
         {
-            var comparison = call.Arguments.SingleOrDefault(argument => argument.Parameter?.Type.ToDisplayString() == "System.StringComparison");
-            if (comparison is null || comparison.Value is not IFieldReferenceOperation field ||
-                field.Field.Name != "Ordinal")
-            {
-                return false;
-            }
+            return false;
         }
+
         if (method.Name == "ToString" && Number(method.ContainingType))
             return call.Arguments.Length == 1 && IsInvariantProvider(call.Arguments[0].Value);
         return owner != "System.Linq.Enumerable" || method.Name != "Sum" || DecimalSumReturn(method.ReturnType);
     }
+
+    static bool HasOrdinalComparison(IInvocationOperation call) =>
+        call.Arguments.SingleOrDefault(argument => argument.Parameter?.Type.ToDisplayString() == "System.StringComparison") is
+            { Value: IFieldReferenceOperation field } && field.Field.Name == "Ordinal";
 
     static bool NameIs(string name, params string[] names) => names.Contains(name, StringComparer.Ordinal);
 

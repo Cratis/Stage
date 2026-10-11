@@ -35,6 +35,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal IReadOnlyList<SemanticValue> Destinations => _destinations;
     internal DateTimeOffset Occurred => options.Clock.GetUtcNow();
     internal string Tenant => options.Tenant;
+    internal SemanticExecutionResponse? Response { get; private set; }
 
     internal static string Canonical(SemanticValue value) => value switch
     {
@@ -53,6 +54,17 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } reference => inputs[reference.Target],
         _ => throw new UnsupportedSemanticMapping()
     };
+
+    internal void CompleteResponse()
+    {
+        var inputs = Inputs();
+        Response = command.Response switch
+        {
+            SemanticScalarCommandResponse scalar => new SemanticScalarExecutionResponse(inputs[scalar.Source]),
+            SemanticRecordCommandResponse record => new SemanticRecordExecutionResponse([.. record.Fields.Select(field => new SemanticExecutionResponseField(field.Name, inputs[field.Source]))]),
+            _ => null
+        };
+    }
 
     internal Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken) => Append(fact, fact.EventSource?.Value ?? throw new UnsupportedSemanticMapping(), cancellationToken);
 
@@ -98,14 +110,16 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
 
     internal (SemanticSpecificationEvent Fact, SemanticValue Destination) Produce(SemanticProducedEvent produced)
     {
-        var inputs = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
+        var inputs = Inputs();
         var expression = produced.Destination ?? command.Destination?.Value;
-        var destination = expression is null ? specification.When.EventSource!.Value : Evaluate(expression, inputs);
+        var destination = expression is null ? specification.When!.EventSource!.Value : Evaluate(expression, inputs);
         var identityType = expression is SemanticResolvedExpression resolved
             ? command.Properties.Single(property => property.Id == resolved.Target).Type
-            : command.Destination?.Type ?? specification.When.EventSource?.Type;
+            : command.Destination?.Type ?? specification.When!.EventSource?.Type;
         var identity = plan.Model.SemanticVersion != SemanticVersion.V1 && identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
         var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, Evaluate(mapping.Source, inputs))).ToImmutableArray();
         return (new(produced.EventContract, values) { EventSource = identity, Route = _commandRoute }, destination);
     }
+
+    Dictionary<SemanticId, SemanticValue> Inputs() => specification.When!.Values.Concat(specification.When.GeneratedValues).ToDictionary(value => value.TargetProperty, value => value.Value);
 }

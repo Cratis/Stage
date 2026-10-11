@@ -11,7 +11,7 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 
 /// <summary>
-/// Reactions, generated values and responses cannot be executed by Stage; a run that would
+/// Reactions cannot be executed by Stage; a run that would
 /// silently skip them is reported as unsupported, never as passing.
 /// </summary>
 public class when_refusing_later_version_constructs : Specification
@@ -20,7 +20,7 @@ public class when_refusing_later_version_constructs : Specification
 
     async Task Because()
     {
-        foreach (var corpus in new[] { ReactionsCorpus.V6, RegisterProjectCorpus.V7 })
+        foreach (var corpus in new[] { ReactionsCorpus.V6 })
         {
             var model = SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan());
             var plan = SemanticExecutionPlan.Compile(model).Plan!;
@@ -36,7 +36,7 @@ public class when_refusing_later_version_constructs : Specification
         _results.TrueForAll(_ => _.Result.Outcome == SemanticSpecificationOutcome.Unsupported),
         string.Join(Environment.NewLine, _results.Select(_ => $"{_.Corpus} {_.Result.Name}: {_.Result.Outcome} {string.Join(',', _.Result.Failures)}")));
 
-    [Fact] void should_cover_each_version() => _results.Select(_ => _.Corpus).Distinct().Count().ShouldEqual(2);
+    [Fact] void should_cover_each_version() => _results.Select(_ => _.Corpus).Distinct().Count().ShouldEqual(1);
 
     static Func<SemanticSpecification, bool> Uses(SemanticExecutionPlan plan) => specification =>
         specification.ThenReturns is not null ||

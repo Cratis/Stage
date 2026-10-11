@@ -62,16 +62,15 @@ internal static partial class SemanticCratisAdmission
                 (_.Type.Kind == SemanticTypeReferenceKind.Concept && _.Type.IsOptional &&
                  !context.Concepts[_.Type.Target].Validations.IsEmpty) ||
                 (_.Type.Kind == SemanticTypeReferenceKind.CompositeType && HasOptionalRequiredConcept(context, _.Type, []))) ||
-            command.Produces.IsEmpty)
+            !HasCommandOutcome(command))
         {
             diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' exceeds the first Cratis command capability.", command.Id));
             return;
         }
 
-        if (command.Produces.Any(produced => produced.Mappings.Any(mapping =>
-            mapping.Source is SemanticEventContextExpression { Value: not SemanticEventContextValueKind.Occurred })))
+        if (CommandResultError(context, slice, command) is { } resultError)
         {
-            diagnostics.Add(Error("STAGE-ESM-013", $"Produced event of command '{command.Name}' maps an unsupported command occurrence value ($context); only $context.occurred can be captured at the command boundary.", command.Id));
+            diagnostics.Add(resultError);
             return;
         }
 

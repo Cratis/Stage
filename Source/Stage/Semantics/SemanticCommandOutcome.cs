@@ -1,10 +1,12 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json;
 using Cratis.Arc.Commands;
 using Cratis.Arc.Validation;
 using Cratis.Execution;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Microsoft.AspNetCore.Http;
 
 namespace Cratis.Stage.Semantics;
@@ -13,7 +15,7 @@ internal static class SemanticCommandOutcome
 {
     internal static CommandResult Map(SemanticExecutionResult result, CorrelationId correlationId, HttpContext? httpContext, string artifact) => result switch
     {
-        SemanticAccepted => CommandResult.Success(correlationId),
+        SemanticAccepted accepted => Accepted(accepted, correlationId),
         SemanticRejected { Category: SemanticRejectionCategory.Unauthorized } rejected => CommandResult.Unauthorized(correlationId, rejected.Details),
         SemanticRejected { Category: SemanticRejectionCategory.Constraint } rejected => new CommandResult
         {
@@ -27,6 +29,17 @@ internal static class SemanticCommandOutcome
         },
         SemanticUnsupported unsupported => Unsupported(unsupported, httpContext, artifact),
         _ => new CommandResult { ExceptionMessages = ["Semantic execution returned an unrecognized outcome."] }
+    };
+
+    static CommandResult Accepted(SemanticAccepted accepted, CorrelationId correlationId) => accepted.Response is { } response
+        ? new CommandResult<object?>(correlationId, Response(response))
+        : CommandResult.Success(correlationId);
+
+    static object? Response(SemanticExecutionResponse response) => response switch
+    {
+        SemanticScalarExecutionResponse scalar => SemanticJsonValues.ToObject(scalar.Value),
+        SemanticRecordExecutionResponse record => record.Fields.ToDictionary(field => JsonNamingPolicy.CamelCase.ConvertName(GeneratedPascalCase.From(field.Name)), field => SemanticJsonValues.ToObject(field.Value)),
+        _ => throw new UnsupportedSemanticValue("The command response cannot be represented as JSON.")
     };
 
     static CommandResult Unsupported(SemanticUnsupported unsupported, HttpContext? context, string artifact)

@@ -25,6 +25,7 @@ internal static class SemanticCommandSpecificationRenderer
         var command = context.Commands[when.Command];
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
+        var generated = new SemanticGeneratedCommandSpecification(specification, command, types);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
         var ownNamespace = $"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}";
         var builder = new CSharpCodeBuilder()
@@ -33,8 +34,7 @@ internal static class SemanticCommandSpecificationRenderer
             .Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications")
             .Using("Xunit");
-        if (command.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
-            when.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
+        if (command.Properties.Any(generated.NeedsCommon))
         {
             builder.Using(context.CommonNamespace);
         }
@@ -62,8 +62,7 @@ internal static class SemanticCommandSpecificationRenderer
         }
 
         var commandName = types.SliceType(command.Id, command.Name);
-        var arguments = command.Properties.Select(property =>
-            types.Value(when.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+        var arguments = generated.Arguments();
 
         var constrainedEvents = context.Constraints.Select(_ => _.Constraint)
             .SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy)).ToHashSet();
@@ -86,7 +85,7 @@ internal static class SemanticCommandSpecificationRenderer
 
         builder.BlankLine();
 
-        if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
+        if (generated.RequiresEstablish)
         {
             builder.OpenBlock(seedInLog ? "async global::System.Threading.Tasks.Task Establish()" : "void Establish()");
             if (command.Authorization is not null)
@@ -94,6 +93,8 @@ internal static class SemanticCommandSpecificationRenderer
                 builder.Line($"global::{context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
             }
         }
+
+        generated.RenderFixtures(builder);
 
         foreach (var given in specification.GivenEvents)
         {
@@ -122,7 +123,7 @@ internal static class SemanticCommandSpecificationRenderer
             }
         }
 
-        if (!specification.GivenEvents.IsEmpty || specification.GivenCaller is not null)
+        if (generated.RequiresEstablish)
         {
             if (seedInLog || specification.ThenDenied || !specification.ThenErrors.IsEmpty)
             {
@@ -184,7 +185,7 @@ internal static class SemanticCommandSpecificationRenderer
         }
         else
         {
-            RenderAccepted(builder, specification, command, context, types, seedInLog);
+            generated.RenderAccepted(builder, () => RenderAccepted(builder, specification, command, context, types, seedInLog));
         }
 
         builder.BlankLine()
@@ -220,6 +221,7 @@ internal static class SemanticCommandSpecificationRenderer
         SemanticTypeSystem types,
         bool seedInLog)
     {
+        var generated = new SemanticGeneratedCommandSpecification(specification, command, types);
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
             .Using("Cratis.Chronicle.Events");
         foreach (var (expected, index) in specification.ThenEvents.Select((value, index) => (value, index)))
@@ -264,8 +266,7 @@ internal static class SemanticCommandSpecificationRenderer
         {
             var @event = context.Events[expected.EventContract];
             var produced = command.Produces[index];
-            var source = SemanticDestinations.ForSpecification(specification, command, produced);
-            if (SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
+            if (generated.DestinationNeedsCommon(produced) ||
                 @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     expected.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
             {
@@ -275,9 +276,9 @@ internal static class SemanticCommandSpecificationRenderer
             var predicate = @event.Properties.IsEmpty ? "true" : string.Join(" && ", @event.Properties.Select(property =>
             {
                 var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
-                return EventPropertyPredicate(property, value, types, index);
+                return generated.EventPredicate(produced, property, EventPropertyPredicate(property, value, types, index));
             }));
-            var sourceValue = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
+            var sourceValue = generated.DestinationExpression(produced);
             var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
             if (specification.ThenEvents.Length == 1 && !seedInLog && expected.Route is null && !expected.Unrouted)
             {

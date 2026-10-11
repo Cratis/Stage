@@ -23,7 +23,7 @@ internal static class SemanticRuleEvaluation
         }
 
         var byId = concepts.ToDictionary(concept => concept.Id);
-        foreach (var property in command.Properties.Where(property => property.Type.Kind == SemanticTypeReferenceKind.Concept))
+        foreach (var property in command.Properties.Where(IsInputConcept))
         {
             foreach (var rule in byId[property.Type.Target].Validations)
             {
@@ -42,6 +42,22 @@ internal static class SemanticRuleEvaluation
             }
         }
 
+        return null;
+    }
+
+    static bool IsInputConcept(SemanticProperty property) => !property.IsGenerated && property.Type.Kind == SemanticTypeReferenceKind.Concept;
+
+    internal static string? GeneratedFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
+    {
+        var values = specification.When!.GeneratedValues.ToDictionary(value => value.TargetProperty, value => value.Value);
+        var byId = concepts.ToDictionary(concept => concept.Id);
+        foreach (var property in command.Properties.Where(property => property.IsGenerated && values.ContainsKey(property.Id)))
+        {
+            foreach (var rule in byId[property.Type.Target].Validations)
+            {
+                if (!Satisfies(rule, values[property.Id])) return rule.Message ?? Message(rule, values[property.Id], "A required concept value is empty.");
+            }
+        }
         return null;
     }
 

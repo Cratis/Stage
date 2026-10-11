@@ -253,7 +253,7 @@ function StageSceneView({ activity, element, registry, routes, routesReady, scen
             const outcome = await executeStageCommand(command, route, args);
             if (outcome.messages.length > 0) setActivity(outcome.messages.join(' '));
             if (outcome.isSuccess) data.refreshAfterCommand();
-            return { isSuccess: outcome.isSuccess, validationErrors: outcome.validationErrors };
+            return { isSuccess: outcome.isSuccess, validationErrors: outcome.validationErrors, response: outcome.response };
         },
         // A navigation is a step the user can go back from, and its arguments are the screen's parameters - the
         // same address a row click or a deep link gives the screen.

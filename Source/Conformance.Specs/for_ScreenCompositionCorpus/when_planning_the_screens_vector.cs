@@ -19,13 +19,13 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "b3255093b5cd9ebeb21921c4cca690cbd5e9134be504f443db8465a7b613ea58";
+    const string Digest = "2b48ecd60efcc743c226a7156abfc6f9921f29f8234b6708c057ec8c753bf169";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx f1be33ab4c4b17540e101e671276f76ac33b0b9f79f1cd536f2f1cf5eb235d65 2253
-        .frontend/stage/App.tsx 8b04e690b307eb808f6f4231468691d050b03d60d1e44ba9fa37b90ad836284b 15525
+        .frontend/stage/App.tsx 912b1696eb6bec624c544d3c6278b2af4ba40d64650d307016fbdf87485ee2b1 15553
         .frontend/stage/FlowArrangementView.tsx 828b0518dd9d98a23605452355cb9a8a4e070bf98f61b6c014b0f705585cec93 2792
         .frontend/stage/StageChrome.tsx 3395c0a3fc4267e06bcbaf7ef3f3b6220969ae759749650ec9aed14bbdc70f3e 6534
         .frontend/stage/StageCommandForm.tsx 2dea1ddde16ec3a946a52bb4a7044928bb25de32b7702089634e48f1157fed5d 22440
@@ -33,7 +33,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/stage/app.css 78a49931be424e35a218c229c470100299fd2a54d7e067ab29d47aea6da15923 3892
         .frontend/stage/blueprint.ts cb0ab46746d9cae105afa36298bba6cc1343559f13a8ab30089fb4a87cc21417 7707
         .frontend/stage/navigationTree.ts 5048500dbe428df13385f66bc11f6cc945169e10ab87d025445baa8c1d93ba4a 4503
-        .frontend/stage/stageCommands.ts 3b40fc0d0f4987c4ac3d253acf1b0c33104c0eb43ad9bfa504088d51b0d6d179 1944
+        .frontend/stage/stageCommands.ts 48d56bfa7efb1ac14806a71ede7eba498e8ee29212ca159f81317b58621d9f41 2039
         .frontend/stage/stageComponents.tsx 095fc186c147e425d80cafcc8fc89393d731899a76156da59f6e2e1c63f46cf9 12557
         .frontend/stage/stageData.tsx d47040fee417d01d666e0bafb10a52e8c3bdc44ea06b05af2a7e8dfd9f06578d 18535
         .frontend/stage/stageDataSources.ts ade1a9a757ec28de294254bcb59ee95df1e03d047036e9281915665c0d19d888 4645
@@ -51,8 +51,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/tsconfig.node.json 8d6d5e5ed11a91fdfa530d705f55c9676f62f12e72aa21b45502ecbadc27607b 313
         .frontend/vite.config.ts f4c1f53dda10136c81243564eee59796c43cbf8485479de9d24fdcb8431b79bc 1354
         .gitignore 74a92d28e98b0f259cc5b02bf9eac97fe103b30a10746f0315fba7fa0bfb0df9 253
-        Common/CommentId.cs 93d1d308af3ac96f3e273feb88a520dba769d3b34c659ea6c610b85029f48911 662
-        Common/WorkItemId.cs 55bd6006380b8a2e1984ac65475350657ffbd01354dc14ae074895d64bfe496a 668
+        Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726
+        Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733
         Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307
         Directory.Build.props 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
@@ -93,8 +93,11 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_plan_exactly_the_pinned_ordered_artifacts(string form) =>
-        PlanOf(form).Artifacts.Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ShouldEqual(Pinned());
+    public void should_plan_exactly_the_pinned_ordered_artifacts(string form)
+    {
+        var actual = PlanOf(form).Artifacts.Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
+        Assert.True(actual.SequenceEqual(Pinned()), string.Join(Environment.NewLine, actual.Except(Pinned())));
+    }
 
     [Theory]
     [MemberData(nameof(Forms))]

@@ -65,12 +65,12 @@ internal static partial class SemanticSpecificationAdmission
         {
             var destination = SemanticDestinations.Of(command, item.produced) as SemanticResolvedExpression;
             var property = command.Properties.SingleOrDefault(_ => _.Id == destination?.Target);
-            var value = property is null ? null : specification.When!.Values.SingleOrDefault(_ => _.TargetProperty == property.Id)?.Value;
+            var value = property is null ? null : specification.When!.Values.Concat(specification.When.GeneratedValues).SingleOrDefault(_ => _.TargetProperty == property.Id)?.Value;
             var source = specification.When!.EventSource;
             var expected = specification.ThenEventsInAnyOrder
                 ? specification.ThenEvents.Where(_ => _.EventContract == item.produced.EventContract)
                 : [specification.ThenEvents[item.index]];
-            return property is not null && value is not null && IsLosslessEventSource(context, property.Type) &&
+            return property is not null && HasDestinationValue(property, value, source, expected) && IsLosslessEventSource(context, property.Type) &&
                 (source is null || (source.Type == property.Type && Equals(source.Value, value))) &&
                 expected.All(_ => _.EventSource is null || (_.EventSource.Type == property.Type && Equals(_.EventSource.Value, value)));
         });

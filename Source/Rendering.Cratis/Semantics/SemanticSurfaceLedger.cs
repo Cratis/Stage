@@ -106,7 +106,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values");
         Add(entries, "SemanticCompositeType", rendered, "Id Name Properties");
         Add(entries, "SemanticProperty", rendered, "Id IsIdentifier Name Type");
-        Add(entries, "SemanticProperty", rejected("STAGE-ESM-028"), "IsGenerated");
+        Add(entries, "SemanticProperty", rendered, "IsGenerated");
         Add(entries, "SemanticTypeReference", rendered, "IsCollection IsOptional Kind Primitive Target");
         Add(entries, "SemanticTypeReferenceKind", rendered, "Primitive Concept CompositeType");
         Add(entries, "SemanticTypeReferenceKind", rejected("STAGE-ESM-003"), "Unknown");
@@ -340,11 +340,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecificationCapture", v6, "Capture Record");
         Add(entries, "SemanticSpecificationTrigger", v6, "Kind Trigger Values");
 
-        // Screenplay 4.68 added ESM v7 generated command values and command responses (Stage#175). Each refuses
-        // the model before any artifact is planned; nothing is dropped from the request, proxy or specification.
-        var generated = rejected("STAGE-ESM-028");
+        // ESM v7 generated UUID concepts and responses render through Arc's generated-value and response contracts.
+        // Admission still refuses non-UUID generation and combinations the target cannot preserve.
+        var generated = rendered;
         Add(entries, "SemanticSpecificationCommand", generated, "GeneratedValues");
-        var responses = rejected("STAGE-ESM-029");
+        var responses = rendered;
         Add(entries, "SemanticCommand", responses, "Response");
         Add(entries, "SemanticCommandResponse", responses, "$type");
         Add(entries, "SemanticScalarCommandResponse", responses, "Source Type");

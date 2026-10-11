@@ -38,7 +38,5 @@ public class with_generated_values_and_responses : Specification
     void Because() => _admission = new(_plan);
 
     [Fact] void should_compile_an_esm_v7_model() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V7);
-    [Fact] void should_refuse_both_commands() => _admission.Blocking.Select(entry => entry.Kind).ShouldContainOnly(["command", "command"]);
-    [Fact] void should_refuse_the_generated_value_as_identity_allocation() => _admission.Blocking.Any(entry => entry.Capability == "IdentityAllocation" && entry.Details.StartsWith("STAGE-ESM-028: Command 'RegisterProject' generates 'projectId'", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_refuse_the_response() => _admission.Blocking.Any(entry => entry.Details == "STAGE-ESM-029: Command 'RenameProject' declares a response (ESM v7), which Stage does not support yet.").ShouldBeTrue();
+    [Fact] void should_admit_generated_values_and_responses() => _admission.Blocking.ShouldBeEmpty();
 }

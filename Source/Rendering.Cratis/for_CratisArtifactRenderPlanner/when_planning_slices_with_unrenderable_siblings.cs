@@ -13,6 +13,18 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_planning_slices_with_unrenderable_siblings : a_register_project_render_request
 {
+    const string ResponseSibling = """
+        slice StateChange Unsupported
+          command RenameOtherProject
+            projectId ProjectId identifier
+            name String
+            produces event OtherProjectRenamed
+              for projectId
+              name String = name
+            returns
+              equals = name
+        """;
+
     readonly List<(ExecutableSemanticModel Model, SemanticExecutionPlan ExecutionPlan, SemanticSlice Sibling, SemanticId Artifact, string Code)> _cases = [];
     readonly List<(ArtifactRenderPlan Clean, ArtifactRenderPlan Refused, SemanticId Artifact, string Code)> _plans = [];
 
@@ -52,19 +64,12 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
                   command RegisterOtherProject
                     projectId ProjectId generated identifier
                     name String
-                    produces event OtherProjectRegistered
-                      name String = name
-            """, SemanticVersion.V7, "STAGE-ESM-028"),
-            ("""
-                slice StateChange Unsupported
-                  command RenameOtherProject
-                    projectId ProjectId identifier
+                    produces OtherProjectRegistered
+                      name = name
+                  event OtherProjectRegistered
                     name String
-                    produces event OtherProjectRenamed
-                      for projectId
-                      name String = name
-                    returns name
-            """, SemanticVersion.V7, "STAGE-ESM-029")
+            """, SemanticVersion.V7, "STAGE-ESM-038"),
+            (ResponseSibling, SemanticVersion.V7, "STAGE-ESM-038")
         ];
         var form = Corpus.SourceForms.Single(candidate => candidate.Name == "single");
         var document = form.Documents.Single();
@@ -98,7 +103,7 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
         }
     }
 
-    [Fact] void should_cover_every_later_version_refusal() => _plans.Select(plan => plan.Code).ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-027", "STAGE-ESM-028", "STAGE-ESM-029"]);
+    [Fact] void should_cover_every_later_version_refusal() => _plans.Select(plan => plan.Code).ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-027", "STAGE-ESM-038", "STAGE-ESM-038"]);
     [Fact] void should_render_the_clean_slice_in_every_model() => _plans.TrueForAll(plan => plan.Clean.Success).ShouldBeTrue();
     [Fact] void should_report_no_diagnostics_for_the_clean_slice() => _plans.SelectMany(plan => plan.Clean.Diagnostics).ShouldBeEmpty();
     [Fact] void should_emit_the_clean_command() => _plans.TrueForAll(plan => plan.Clean.Artifacts.Any(artifact => artifact.RelativePath == "Projects/Registration/RegisterProject/RegisterProject.cs")).ShouldBeTrue();

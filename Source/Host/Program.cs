@@ -127,6 +127,7 @@ if (warmMode)
 }
 
 SemanticReadModelBrowser.MapEventModel(app);
+SemanticHost.MapReadModelBrowserPage(app);
 
 if (issues.Count > 0)
 {

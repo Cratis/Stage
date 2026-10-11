@@ -68,6 +68,7 @@ internal static class SemanticHost
         app.UseCratisChronicle();
         app.MapPost("/stage/load", () => Results.Conflict());
         app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
+        MapReadModelBrowserPage(app);
 
         if (surface is null)
         {
@@ -142,6 +143,11 @@ internal static class SemanticHost
             return (null, null);
         }
     }
+
+    // Endpoint routing ignores trailing slashes. Match the exact path so the canonical URL never redirects to itself.
+    internal static void MapReadModelBrowserPage(IApplicationBuilder app) => app.MapWhen(
+        context => HttpMethods.IsGet(context.Request.Method) && context.Request.Path == "/read-models/",
+        branch => branch.Run(context => Results.Redirect($"../read-models{context.Request.QueryString}").ExecuteAsync(context)));
 
     internal static void MapSceneEndpoints(WebApplication app, SceneApplication scene, string modelPath)
     {

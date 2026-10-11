@@ -48,12 +48,12 @@ This support is rendering-only. Stage's Host and in-memory specification executo
 |---|---|
 | Text | Nonempty, well-formed UTF-16, Unicode NFC; returned unchanged |
 | UUID | Lowercase, hyphenated `D` form using the invariant culture |
-| Whole number | Invariant decimal text from the generated `long` value |
+| Whole number | Invariant decimal text from the generated `long` value, within ±9007199254740991 inclusive (Screenplay's bound); values outside it fail |
 | Composite | Replace `%` with `%25`, then `|` with `%7C` in each formatted part; join with `|` |
 
 For example, parts `a|b%` and `%7C` produce `a%7Cb%25|%257C`. Scalar identities are not composite-escaped. Text is **not normalized**: decomposed text, empty text and lone surrogates fail rather than silently changing identity.
 
-A handler reading a text part returns an explicit `OneOf<event result, ValidationResult>`. On invalid text it returns a value-free validation error naming the command property; no event is returned. UUID and whole-number properties retain the plain wrapper return type.
+A handler reading a text or whole-number part returns an explicit `OneOf<event result, ValidationResult>`. On invalid text, or a whole number outside ±9007199254740991, it returns a value-free validation error naming the command property, and no event is returned. Composite parts are checked in declaration order before any event is created. UUID properties retain the plain wrapper return type.
 
 ## Precedence and admission
 
@@ -65,7 +65,7 @@ The stored source name `Default` and stored stream name `All` are reserved by Ch
 
 Generated command specifications run through Arc's `CommandScenario`, which discovers source definitions without a generated registration workaround. Routed givens are appended through the scenario's event log with their stored source type, stream type and formatted identity. Seeded events are excluded from the command's appended-event assertions.
 
-An explicit `then` route compares `Context.EventSourceType`, `Context.EventStreamType` and `Context.EventStreamId` on the appended event. `unrouted` compares Chronicle's `EventSourceType.Default`, `EventStreamType.All` and `EventStreamId.Default`. An omitted route remains a wildcard. UUID, integer and composite fixture identities use the same `StreamIds` helper as commands; literal text is validated during planning without normalization.
+An explicit `then` route compares `Context.EventSourceType`, `Context.EventStreamType` and `Context.EventStreamId` on the appended event. `unrouted` compares Chronicle's `EventSourceType.Default`, `EventStreamType.All` and `EventStreamId.Default`. An omitted route remains a wildcard. UUID and composite fixture identities use the same `StreamIds` helper as commands; whole-number and literal text fixture identities are validated during planning and emitted as canonical strings, so an out-of-range whole number fails planning.
 
 At ESM v8, any-order expectations use assignment matching: a wildcard match can be reassigned so a more specific expectation gets its fact. Each fact is assigned at most once. Earlier semantic versions retain greedy matching; ordered expectations remain positional.
 

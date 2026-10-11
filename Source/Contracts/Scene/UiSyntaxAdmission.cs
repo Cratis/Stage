@@ -23,6 +23,7 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
         var member = node switch
         {
             DialogTemplateSyntax dialog when dialog.Outlets.Any() => "DialogTemplateSyntax.Outlets",
+            ContributionSyntax contribution => UnhonoredNavigationField(contribution),
             _ => null
         };
         if (member is not null)
@@ -30,4 +31,13 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
             throw new UnsupportedUiSyntax(member, node.Location);
         }
     }
+
+    static string? UnhonoredNavigationField(ContributionSyntax contribution) => contribution switch
+    {
+        { Id: not null } => "ContributionSyntax.Id",
+        { Icon: not null } => "ContributionSyntax.Icon",
+        { Presentation: not null } => "ContributionSyntax.Presentation",
+        { Destination: not null } => "ContributionSyntax.Destination",
+        _ => null
+    };
 }

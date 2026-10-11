@@ -37,6 +37,23 @@ internal static class SemanticSpecificationRouteRendering
         return $"eventSourceType: {CSharpCodeBuilder.StringLiteral(source.SourceKind)}, eventStreamType: {CSharpCodeBuilder.StringLiteral(stream.StreamKind)}, eventStreamId: {StreamId(route, context)}";
     }
 
+    internal static string Seed(SemanticFixtureRoute? route, SemanticApplicationContext context) =>
+        route is null ? string.Empty : $".OnStream({Arguments(route, context)})";
+
+    internal static SemanticFixtureRoute? ForCommand(SemanticSpecification specification, SemanticApplicationContext context)
+    {
+        if (specification.When is not { } action || context.Commands[action.Command].Route is not { } route) return null;
+        SemanticValue value(SemanticExpression expression) => expression is SemanticValueExpression literal
+            ? literal.Value
+            : action.Values.Single(property => property.TargetProperty == ((SemanticResolvedExpression)expression).Target).Value;
+
+        return new(route.Source, route.Stream)
+        {
+            StreamId = route.StreamId is null ? null : value(route.StreamId),
+            StreamIdParts = [.. route.StreamIdParts.Select(part => new SemanticFixtureRoutePart(part.Part, value(part.Value)))]
+        };
+    }
+
     internal static bool CanFormat(SemanticFixtureRoute route, SemanticApplicationContext context)
     {
         var source = context.Application.EventSources.Single(source => source.Id == route.Source);

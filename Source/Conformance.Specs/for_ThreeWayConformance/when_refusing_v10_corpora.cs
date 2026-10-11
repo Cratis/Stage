@@ -37,7 +37,7 @@ public class when_refusing_v10_corpora : Specification
         }
         var stage = await new SemanticSpecificationExecutor().Run(plan, new([.. plan.Specifications.Keys]), new());
         stage.Results.Select(result => result.Outcome).Distinct().ShouldContainOnly([SemanticSpecificationOutcome.Unsupported]);
-        if (form == "production") stage.Results.All(result => result.Unsupported!.Details.StartsWith(code + ":", StringComparison.Ordinal)).ShouldBeTrue();
+        stage.Results.All(result => result.Unsupported!.Details.StartsWith(code + ":", StringComparison.Ordinal)).ShouldBeTrue();
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("V10", "V10"));
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");

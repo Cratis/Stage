@@ -117,6 +117,25 @@ internal static class SemanticVersionFeatures
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InSlice(SemanticSlice slice)
     {
+        // Name v10 constructs before the older generic slice/reaction refusal.
+        foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
+        {
+            if (reaction.RunsAs is not null)
+            {
+                yield return new(ReactionIdentity, StageExecutionCapability.Authorization, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 execution identity, which Stage does not support yet.");
+            }
+
+            if (reaction.From is not null)
+            {
+                yield return new(ObserverFilters, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
+            }
+        }
+
+        foreach (var reducer in slice.Reducers.Where(reducer => reducer.From is not null))
+        {
+            yield return new(ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
+        }
+
         if (slice.Kind is SemanticSliceKind.Automation or SemanticSliceKind.Translate)
         {
             var direction = slice.Kind == SemanticSliceKind.Translate ? $" ({slice.Direction?.ToString() ?? "Inbound"})" : string.Empty;
@@ -138,23 +157,8 @@ internal static class SemanticVersionFeatures
             yield return new(PublicEvents, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' publishes an ESM v9 public event, which Stage does not support yet.");
         }
 
-        foreach (var reducer in slice.Reducers.Where(reducer => reducer.From is not null))
-        {
-            yield return new(ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
-        }
-
         foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
         {
-            if (reaction.RunsAs is not null)
-            {
-                yield return new(ReactionIdentity, StageExecutionCapability.Authorization, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 execution identity, which Stage does not support yet.");
-            }
-
-            if (reaction.From is not null)
-            {
-                yield return new(ObserverFilters, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
-            }
-
             yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct, which Stage does not support yet.");
         }
 

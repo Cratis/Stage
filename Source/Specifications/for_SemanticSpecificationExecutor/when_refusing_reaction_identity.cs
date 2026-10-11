@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.CanonicalCorpus;
-using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Stage.Contracts.Specifications.Semantic;
@@ -14,23 +13,7 @@ public class when_refusing_reaction_identity : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticSpecificationRunReport _report = null!;
 
-    void Establish()
-    {
-        var model = SemanticModelSerializer.Deserialize(ReactionIdentityCorpus.V10.EsmBytes.AsSpan());
-
-        // Isolate the identity refusal from the older Automation slice refusal.
-        var application = model.Application with
-        {
-            Modules = [.. model.Application.Modules.Select(module => module with
-            {
-                Features = [.. module.Features.Select(feature => feature with
-                {
-                    Slices = [.. feature.Slices.Select(slice => slice with { Kind = SemanticSliceKind.StateChange })]
-                })]
-            })]
-        };
-        _plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
-    }
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ReactionIdentityCorpus.V10.EsmBytes.AsSpan())).Plan!;
 
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([.. _plan.Specifications.Keys]), new());
 

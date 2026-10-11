@@ -5,6 +5,7 @@ using System.Text;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.Semantics;
@@ -21,13 +22,14 @@ public class a_profile_source_plan : Specification
     protected CratisPlanResult _result = null!;
 
     protected virtual string ModelSource => when_rendering_authoring_documentation.Source;
+    protected virtual SceneApplication? ComposedScene => null;
 
     void Establish()
     {
         var compilation = when_rendering_authoring_documentation.Compile(ModelSource);
         _loaded = new(compilation.Model, SemanticExecutionPlan.Compile(compilation.Model).Plan!);
         var stringsFiles = new Dictionary<string, string> { ["projects.en.strings"] = "project.name = \"Project name\"\n" };
-        var profile = CratisRendering.CreateProfile("Projects", new("Projects", "Projects"), null, stringsFiles, "en");
+        var profile = CratisRendering.CreateProfile("Projects", new("Projects", "Projects"), ComposedScene, stringsFiles, "en");
         _profile = CratisRendering.WithAuthoringMetadata(profile, compilation);
         _options = _options with { Profile = _profile };
     }

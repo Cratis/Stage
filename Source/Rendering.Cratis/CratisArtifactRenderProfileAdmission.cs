@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Semantics;
@@ -16,9 +17,14 @@ static class CratisArtifactRenderProfileAdmission
     const string ProjectInputPrefix = "cratis-scaffold:text:";
 
     public static bool Matches(ArtifactRenderRequest request, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+        => Matches(request.Profile, request.Model.Application.Name, request.Model, out admittedOptions, out mismatch);
+
+    internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+        => Matches(profile, applicationName, null, out admittedOptions, out mismatch);
+
+    static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
         admittedOptions = null;
-        var profile = request.Profile;
         if (!string.Equals(profile.Target, CratisRendering.TargetId, StringComparison.Ordinal) ||
             !string.Equals(profile.TargetVersion, CratisRendering.TargetVersion, StringComparison.Ordinal) ||
             !string.Equals(profile.Renderer, CratisRendering.RendererId, StringComparison.Ordinal) ||
@@ -37,7 +43,7 @@ static class CratisArtifactRenderProfileAdmission
         ArtifactRenderProfile expected;
         try
         {
-            expected = CratisRendering.CreateProfile(request.Model.Application.Name, options!);
+            expected = CratisRendering.CreateProfile(applicationName, options!);
         }
         catch (InvalidCratisBackendApplicationScaffold)
         {
@@ -77,7 +83,10 @@ static class CratisArtifactRenderProfileAdmission
         }
 
         var metadata = profile.Inputs.Where(input => input.Name == AuthoringMetadataInput.Name).ToArray();
-        if (metadata.Length > 1 || (metadata.Length == 1 && !AuthoringMetadataInput.TryRead(metadata[0], request.Model, out _)))
+
+        // Scaffold planning does not consume documentation and has no model against which to check its identities.
+        // Source planning still validates it against the actual model before any semantic artifact is rendered.
+        if (metadata.Length > 1 || (metadata.Length == 1 && model is not null && !AuthoringMetadataInput.TryRead(metadata[0], model, out _)))
         {
             mismatch = "The Cratis profile carries invalid, stale, or duplicate authoring metadata.";
             return false;

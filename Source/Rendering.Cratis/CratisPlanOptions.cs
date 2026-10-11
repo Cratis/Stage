@@ -19,9 +19,9 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     public string Domain { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gets the caller's complete Cratis profile for source planning, or null to use the default profile.
+    /// Gets the caller's complete Cratis profile for source and scaffold planning, or null to use the default profile.
     /// The profile must match the application names and omit domain placement, which is owned by <see cref="Domain"/>.
-    /// Scaffold-only planning does not use this profile.
+    /// Scaffold-only planning includes its strings catalog but reports Scene output as application-scope only.
     /// </summary>
     public ArtifactRenderProfile? Profile { get; init; }
 }

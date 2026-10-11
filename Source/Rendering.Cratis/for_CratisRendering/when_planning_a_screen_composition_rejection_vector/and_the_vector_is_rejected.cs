@@ -27,7 +27,15 @@ public class and_the_vector_is_rejected : Specification
         // compiler reports them in, while the semantic compiler Stage plans through reports a re-exposure cycle
         // from its other end. Stage passes the compiler's order through rather than re-sorting it.
         var (vector, result) = await Plan(name);
-        Errors(result).Order(StringComparer.Ordinal).ShouldEqual([.. vector.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}").Order(StringComparer.Ordinal)]);
+        string.Join('\n', CompilerDiagnostics(result).Order(StringComparer.Ordinal)).ShouldEqual(string.Join('\n', vector.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}").Order(StringComparer.Ordinal)));
+    }
+
+    [Theory]
+    [MemberData(nameof(Vectors))]
+    public async Task should_report_a_blocking_error(string name)
+    {
+        var (_, result) = await Plan(name);
+        result.Diagnostics.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeTrue();
     }
 
     [Theory]
@@ -39,11 +47,11 @@ public class and_the_vector_is_rejected : Specification
         result.Artifacts.ShouldBeEmpty();
     }
 
-    [Fact] void should_cover_every_corpus_rejection_vector() => Vectors.Count.ShouldEqual(6);
+    [Fact] void should_cover_every_corpus_rejection_vector() => Vectors.Count.ShouldEqual(9);
 
-    static string[] Errors(CratisPlanResult result) =>
+    static string[] CompilerDiagnostics(CratisPlanResult result) =>
         [.. result.Diagnostics
-            .Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && diagnostic.Code.StartsWith("PLAY", StringComparison.Ordinal))
+            .Where(diagnostic => diagnostic.Code.StartsWith("PLAY", StringComparison.Ordinal))
             .Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")];
 
     static async Task<(CanonicalCorpusRejectionVector Vector, CratisPlanResult Result)> Plan(string name)

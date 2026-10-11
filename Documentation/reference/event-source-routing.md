@@ -3,7 +3,7 @@ title: Event-source routing
 description: Look up how the Cratis semantic planner renders named sources, streams and portable stream identities.
 ---
 
-The Cratis semantic planner admits Screenplay ESM v8 event-source routes. A generated command appends to the declared source type, stream type and stream identity, rather than Chronicle's defaults. The generated application profile pins Chronicle 19.39.1 and Arc 22.65.3; Chronicle registers the event-source definitions used by Arc's hosted command pipeline.
+The Cratis semantic planner admits Screenplay ESM v8 event-source routes. A generated command appends to the declared source type, stream type and stream identity, rather than Chronicle's defaults. The generated application profile pins Chronicle 19.45.0 and Arc 22.68.0; Chronicle registers the event-source definitions used by Arc's hosted command pipeline.
 
 ## Generated definitions
 
@@ -69,4 +69,4 @@ An explicit `then` route compares `Context.EventSourceType`, `Context.EventStrea
 
 At ESM v8, any-order expectations use assignment matching: a wildcard match can be reassigned so a more specific expectation gets its fact. Each fact is assigned at most once. Earlier semantic versions retain greedy matching; ordered expectations remain positional.
 
-A fixture whose identity cannot be formatted portably fails planning with `STAGE-ESM-030`. Read-model and query companion specifications whose replay requires routed fixtures also retain that refusal: their scenario cannot seed route metadata. Direct-append specifications remain outside the rendered subset (`STAGE-ESM-011`); the semantic reference executor supports them and, from ESM v6, compares `then` events only with facts following the append action. See [Build a renderer target](../guides/build-renderer-target.md) for the remaining construct admissions.
+A fixture whose identity cannot be formatted portably fails planning with `STAGE-ESM-030`. Read-model and query companion specifications whose replay requires routed fixtures seed each given on its source, stream type and stream identity through `ReadModelScenario`, so routed reducers and filtered projections replay the same facts the command produced. Direct-append specifications remain outside the rendered subset (`STAGE-ESM-011`); the semantic reference executor supports them and, from ESM v6, compares `then` events only with facts following the append action. See [Build a renderer target](../guides/build-renderer-target.md) for the remaining construct admissions.

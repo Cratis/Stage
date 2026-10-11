@@ -70,9 +70,10 @@ Names on the wire do not solve this: Chronicle still registers an integer schema
 numbers on append, and Arc uses numeric enums. Hashing names was rejected because renaming a member
 would change its number and existing applications would be renumbered.
 
-The Host currently registers enum properties with a string schema rather than the generated application's
-integer schema. Reading both value forms does not make those schemas compatible in a shared event store;
-[Stage #310](https://github.com/Cratis/Stage/issues/310) tracks that registration mismatch.
+The Host's event store is for the Host only. The Host registers its own event schemas, and they differ from the
+schemas a generated application registers: enums are strings rather than integers, and identifiers, dates,
+numbers and optional properties use different formats. Do not point the Host and a generated application at the
+same event store. Chronicle refuses the second registration of a changed schema with `EventTypeSchemaChanged`.
 
 ## Match patterns
 

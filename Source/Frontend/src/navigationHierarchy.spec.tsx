@@ -63,6 +63,15 @@ describe('composing a screen with authored navigation', () => {
         expect((breadcrumb.properties.items as { label: string }[]).map(_ => _.label)).toEqual(['Invoicing', 'Browsing', 'Details', 'Invoice details']);
     });
 
+    it('keeps a screen with no navigation entry reachable under its own name', () => {
+        const withUnlisted = [...screens, screen('AuditLog', [])];
+        const composed = composeStageScreen({ layouts: [], screenTemplates: [], screens: withUnlisted } as never, withUnlisted[3], [], '') as unknown as ExternalComponent;
+        const nodes = slot(composed, 'menu')[0].properties.nodes as { label: string; children: { label: string; screen?: string }[] }[];
+        expect(nodes.at(-1)?.label).toBe('Other screens');
+        expect(nodes.at(-1)?.children.map(_ => _.screen)).toEqual(['AuditLog']);
+        expect((slot(composed, 'breadcrumb')[0].properties.items as { label: string }[]).map(_ => _.label)).toEqual(['AuditLog']);
+    });
+
     it('keeps the flat list of screens when the model authored no navigation', () => {
         const plain = [screen('Orders', []), screen('Payments', [])];
         const composed = composeStageScreen({ layouts: [], screenTemplates: [], screens: plain } as never, plain[0], [], '') as unknown as ExternalComponent;

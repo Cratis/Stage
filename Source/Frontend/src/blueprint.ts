@@ -98,9 +98,16 @@ function logo(id: string): SceneElement {
 export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string): Record<string, SceneElement[]> {
     const first = screens[0]?.name ?? '';
     const authored = authoredNavigationEntries(screens);
-    const tree = navigationTree(authored);
+    // A screen the model gave no navigation entry stays reachable - under its own name, after the authored hierarchy -
+    // so adding one entry never hides the rest of the application.
+    const listed = new Set(authored.map(entry => entry.targetScreen));
+    const unlisted = screens.filter(screen => !listed.has(screen.name));
+    const tree = navigationTree([
+        ...authored,
+        ...(authored.length > 0 ? unlisted.map(screen => ({ label: screen.name, targetScreen: screen.name, hierarchy: ['Other screens'] })) : []),
+    ]);
     const entries = screens.map((screen, index) => navigationElement({ label: screen.name, targetScreen: screen.name, icon: 'pi pi-table', group: 'Screens', order: index }, activeScreen));
-    const trail = navigationPathTo(tree, activeScreen);
+    const trail = navigationPathTo(navigationTree(authored), activeScreen);
     const menu = authored.length > 0
         ? externalComponent('menu-hierarchy', stageNavigationTreeComponent, { nodes: tree, activeScreen })
         : externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries });

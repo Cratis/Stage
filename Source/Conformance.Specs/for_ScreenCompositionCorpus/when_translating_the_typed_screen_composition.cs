@@ -35,8 +35,8 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
         _bytes = Encoding.UTF8.GetBytes(CanonicalSceneJson.Serialize(_scene));
     }
 
-    [Fact] void should_pin_the_canonical_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("953eba4275d6d0b2357e3cb17f062e2960f5e4e956f214d076388361481c5dfb");
-    [Fact] void should_pin_the_canonical_scene_length() => _bytes.Length.ShouldEqual(18453);
+    [Fact] void should_pin_the_canonical_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("59cdc07eba76b61f57eca23486aa5d5dc26b5d7cd2fb1b74ce4c770f072981ef");
+    [Fact] void should_pin_the_canonical_scene_length() => _bytes.Length.ShouldEqual(18567);
 
     [Fact] void should_declare_what_each_template_exposes() => _scene.Exposures.Select(exposure => exposure.Owner).ShouldContainOnly(["WorkspaceFeatureShell", "EditWorkItemDialog"]);
     [Fact] void should_expose_a_collection_with_its_operations() => Exposed("WorkspaceFeatureShell", "actions").Operations!.ShouldContainOnly([CollectionOperation.Add, CollectionOperation.Remove, CollectionOperation.Reorder, CollectionOperation.EditFields]);

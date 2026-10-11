@@ -405,7 +405,10 @@ async function assertGuardedActions(page, result, network) {
 async function assertTwoItemSelectionLifecycle(page, result, network) {
     await page.goto(`${baseUrl}/#/WorkItemList`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
     await page.waitForTimeout(3_000);
-    await expectText(page, result, 'browser.navigation.WorkItemList', 'WorkItemList');
+    // The authored navigation entry names the screen "Work items" inside the Workspaces > Tracking hierarchy.
+    await expectText(page, result, 'browser.navigation.WorkItemList', 'Work items');
+    await expectText(page, result, 'browser.navigation.hierarchy.module', 'Workspaces');
+    await expectText(page, result, 'browser.navigation.hierarchy.feature', 'Tracking');
     await expectText(page, result, 'browser.query.AllWorkItems.titleA', workItemA.title);
     await expectText(page, result, 'browser.query.AllWorkItems.titleB', workItemB.title);
 

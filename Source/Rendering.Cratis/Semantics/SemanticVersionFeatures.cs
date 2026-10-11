@@ -8,7 +8,7 @@ using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// One ESM v5–v9 construct a Stage execution or rendering path refuses.
+/// One ESM v5–v10 construct a Stage execution or rendering path refuses.
 /// </summary>
 /// <param name="Code">The typed STAGE-ESM diagnostic code.</param>
 /// <param name="Capability">The execution capability the construct needs.</param>
@@ -18,7 +18,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal sealed record SemanticVersionFeature(string Code, StageExecutionCapability Capability, SemanticId Artifact, string Kind, string Message);
 
 /// <summary>
-/// Finds the ESM v5–v9 constructs that renderer admission, the specification executor and the Host runtime refuse.
+/// Finds the ESM v5–v10 constructs that renderer admission, the specification executor and the Host runtime refuse.
 /// </summary>
 /// <remarks>
 /// One detection serves all three (the Host and the specification executor compile this file). Routes have separate
@@ -62,11 +62,26 @@ internal static class SemanticVersionFeatures
     internal const string ForeignEvents = "STAGE-ESM-033";
 
     /// <summary>
+    /// The code for ESM v10 reaction execution identity.
+    /// </summary>
+    internal const string ReactionIdentity = "STAGE-ESM-034";
+
+    /// <summary>
+    /// The code for ESM v10 reaction and reducer observer filters.
+    /// </summary>
+    internal const string ObserverFilters = "STAGE-ESM-035";
+
+    /// <summary>
+    /// The code for ESM v10 per-production route overrides.
+    /// </summary>
+    internal const string ProductionRoutes = "STAGE-ESM-036";
+
+    /// <summary>
     /// Checks the language and semantic version pair Stage has audited.
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV9Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV10Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -123,8 +138,23 @@ internal static class SemanticVersionFeatures
             yield return new(PublicEvents, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' publishes an ESM v9 public event, which Stage does not support yet.");
         }
 
+        foreach (var reducer in slice.Reducers.Where(reducer => reducer.From is not null))
+        {
+            yield return new(ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
+        }
+
         foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
         {
+            if (reaction.RunsAs is not null)
+            {
+                yield return new(ReactionIdentity, StageExecutionCapability.Authorization, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 execution identity, which Stage does not support yet.");
+            }
+
+            if (reaction.From is not null)
+            {
+                yield return new(ObserverFilters, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
+            }
+
             yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct, which Stage does not support yet.");
         }
 
@@ -191,6 +221,11 @@ internal static class SemanticVersionFeatures
             yield return route;
         }
 
+        foreach (var route in ProductionRoutesInCommand(command))
+        {
+            yield return route;
+        }
+
         foreach (var property in command.Properties.Where(property => property.IsGenerated))
         {
             yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}' (ESM v7), which Stage does not support yet.");
@@ -247,6 +282,19 @@ internal static class SemanticVersionFeatures
         if (command.Route is not null)
         {
             yield return new(Routes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' has an event-source route, which the Cratis ESM planner cannot render yet.");
+        }
+    }
+
+    /// <summary>
+    /// Finds per-production route overrides that no Stage execution path supports yet.
+    /// </summary>
+    /// <param name="command">The command.</param>
+    /// <returns>The refused command, if any.</returns>
+    public static IEnumerable<SemanticVersionFeature> ProductionRoutesInCommand(SemanticCommand command)
+    {
+        if (command.Produces.Any(produced => produced.Route is not null))
+        {
+            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' declares an ESM v10 production route override, which Stage does not support yet.");
         }
     }
 

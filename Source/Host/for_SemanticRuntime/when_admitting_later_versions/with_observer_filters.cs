@@ -1,0 +1,22 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using Cratis.Screenplay.CanonicalCorpus;
+using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Screenplay.Semantics.Serialization;
+using Cratis.Specifications;
+using Xunit;
+
+namespace Cratis.Stage.Host.for_SemanticRuntime.when_admitting_later_versions;
+
+public class with_observer_filters : Specification
+{
+    SemanticExecutionPlan _plan = null!;
+    SemanticRuntimeAdmission _admission = null!;
+
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EventRoutesCorpus.ObserverFiltersV10.EsmBytes.AsSpan())).Plan!;
+    void Because() => _admission = new(_plan);
+
+    [Fact] void should_refuse_both_observers() => _admission.Blocking.Where(entry => entry.Details!.StartsWith("STAGE-ESM-035:", StringComparison.Ordinal)).Select(entry => entry.Kind).ShouldContainOnly(["reaction", "reducer"]);
+    [Fact] void should_admit_the_version_pair() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
+}

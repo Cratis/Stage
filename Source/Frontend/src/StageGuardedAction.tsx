@@ -7,14 +7,14 @@ import type { InteractionHandlers } from '@cratis/scene.react';
 import { Button } from 'primereact/button';
 import { useStageData, useStageQuery } from './stageData';
 import { executeStageCommand } from './stageCommands';
-import { canEvaluate, firstMatch, subjectValue, unevaluableGuardCode } from './stageGuards';
+import { canEvaluate, firstMatch, subjectPath, subjectValue, unevaluableGuardCode, type SubjectReference } from './stageGuards';
 import { navigateToScreen } from './stageNavigation';
 
 /** The properties a guarded action carries in the Scene. */
 interface GuardedBranch {
     command?: string;
     condition?: unknown;
-    arguments?: Record<string, { path?: string }>;
+    arguments?: Record<string, SubjectReference>;
 }
 
 interface GuardedOtherwise extends GuardedBranch {
@@ -62,7 +62,7 @@ function useGuardSubject(element: ExternalComponent) {
 }
 
 function argumentsFor(branch: GuardedBranch, item: Record<string, unknown>): Record<string, unknown> {
-    return Object.fromEntries(Object.entries(branch.arguments ?? {}).map(([name, binding]) => [name, subjectValue(binding?.path ?? '', item)]));
+    return Object.fromEntries(Object.entries(branch.arguments ?? {}).map(([name, binding]) => [name, subjectValue(subjectPath(binding) ?? '', item)]));
 }
 
 /**

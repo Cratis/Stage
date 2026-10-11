@@ -39,6 +39,17 @@ public static class SceneGuards
     /// </summary>
     public const string SubjectPrefix = "item.";
 
+    /// <summary>
+    /// The key a guard's subject field is carried under, such as <c language="shell">{ "subject": "item.status" }</c>.
+    /// </summary>
+    /// <remarks>
+    /// Not a binding: Scene resolves every <c language="shell">{ "path": ... }</c> object in a component's properties
+    /// against the data context before the component renders, which would replace a guarded action's field reference
+    /// with its value and leave nothing to evaluate. A guard carried as Scene JSON with a <c language="shell">path</c>
+    /// instead is still read.
+    /// </remarks>
+    public const string SubjectKey = "subject";
+
     static readonly HashSet<string> _comparisonOperators = new(Enum.GetNames<ScreenplaySyntax.ComparisonOperator>(), StringComparer.Ordinal);
     static readonly HashSet<string> _logicalOperators = new(Enum.GetNames<ScreenplaySyntax.LogicalOperator>(), StringComparer.Ordinal);
     static readonly HashSet<string> _selectionKinds = new(["firstMatch", "otherwise"], StringComparer.Ordinal);
@@ -59,7 +70,7 @@ public static class SceneGuards
         ScreenplaySyntax.ComparisonConditionSyntax comparison => new Dictionary<string, object?>
         {
             ["kind"] = "comparison",
-            ["left"] = new Cratis.Scene.Model.Common.BindingExpression(comparison.Left),
+            ["left"] = Subject(comparison.Left),
             ["operator"] = comparison.Operator.ToString(),
             ["right"] = comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : new Dictionary<string, object?> { ["kind"] = comparison.Right.GetType().Name },
         },
@@ -72,6 +83,13 @@ public static class SceneGuards
         },
         _ => new Dictionary<string, object?> { ["kind"] = condition.GetType().Name },
     };
+
+    /// <summary>
+    /// Refers to a field of the guard's subject without the reference being a binding Scene resolves.
+    /// </summary>
+    /// <param name="path">The subject path, such as <c language="shell">item.status</c>.</param>
+    /// <returns>The reference.</returns>
+    public static IDictionary<string, object?> Subject(string path) => new Dictionary<string, object?> { [SubjectKey] = path };
 
     /// <summary>
     /// Whether the Stage runtime can evaluate an authored condition.
@@ -184,7 +202,7 @@ public static class SceneGuards
         return Text(node["kind"]) switch
         {
             "comparison" =>
-                node["left"] is JsonObject left && Text(left["path"]) is { } path && path.StartsWith(SubjectPrefix, StringComparison.Ordinal) && path.Length > SubjectPrefix.Length &&
+                node["left"] is JsonObject left && (Text(left[SubjectKey]) ?? Text(left["path"])) is { } path && path.StartsWith(SubjectPrefix, StringComparison.Ordinal) && path.Length > SubjectPrefix.Length &&
                 Text(node["operator"]) is { } comparison && _comparisonOperators.Contains(comparison) &&
                 (node["right"] is null || node["right"] is JsonValue),
             "logical" =>

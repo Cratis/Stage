@@ -195,8 +195,8 @@ public static class ScreenDirectiveConverter
         return SceneElementFactory.Component(id, "core:action", properties);
     }
 
-    static Dictionary<string, SceneCommon.BindingExpression> ConvertArguments(IEnumerable<ScreenplaySyntax.InteractionArgumentSyntax> arguments) =>
-        arguments.ToDictionary(argument => argument.Name, argument => new SceneCommon.BindingExpression(argument.Binding), StringComparer.Ordinal);
+    static Dictionary<string, IDictionary<string, object?>> ConvertArguments(IEnumerable<ScreenplaySyntax.InteractionArgumentSyntax> arguments) =>
+        arguments.ToDictionary(argument => argument.Name, argument => SceneGuards.Subject(argument.Binding), StringComparer.Ordinal);
 
     static SceneElements.ExternalComponent ConvertSection(ScreenplaySyntax.ScreenSectionSyntax section, string id, BehaviorScope scope)
     {

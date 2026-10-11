@@ -17,10 +17,33 @@ export const guardPath = '$guard';
 /** One condition of a guard. */
 export type GuardCondition = ComparisonCondition | LogicalCondition;
 
+/**
+ * A field of the guard's subject, such as `{ subject: 'item.status' }`.
+ *
+ * It is deliberately not a binding: Scene resolves every `{ path }` object in a component's properties against the
+ * data context before the component renders, which would replace the reference with a value. A `path` is still read,
+ * for guards written directly as Scene JSON or carried where Scene does not resolve them.
+ */
+export interface SubjectReference {
+    subject?: string;
+    path?: string;
+}
+
+/**
+ * Reads the subject path a reference names.
+ * @param reference The reference.
+ * @returns The path, or `undefined` when it names none.
+ */
+export function subjectPath(reference: unknown): string | undefined {
+    if (!isRecord(reference)) return undefined;
+    if (typeof reference.subject === 'string') return reference.subject;
+    return typeof reference.path === 'string' ? reference.path : undefined;
+}
+
 /** Compares a field of the subject with a literal. */
 export interface ComparisonCondition {
     kind: 'comparison';
-    left: { path: string };
+    left: SubjectReference;
     operator: string;
     right: unknown;
 }
@@ -96,7 +119,7 @@ function compare(field: unknown, operator: string, literal: unknown): boolean | 
 export function evaluateCondition(condition: unknown, subject: Record<string, unknown>): boolean | undefined {
     if (!isRecord(condition)) return undefined;
     if (condition.kind === 'comparison') {
-        const left = isRecord(condition.left) ? condition.left.path : undefined;
+        const left = subjectPath(condition.left);
         if (typeof left !== 'string' || !left.startsWith(subjectPrefix) || typeof condition.operator !== 'string' || !isLiteral(condition.right)) return undefined;
         return compare(valueAt(subject, left.slice(subjectPrefix.length)), condition.operator, condition.right);
     }

@@ -22,11 +22,15 @@ on:
       - "*.slnx"
       - "global.json"
       - ".github/workflows/dotnet-build.yml"
+      - ".github/spec-shards.py"
+      - ".github/test_spec_shards.py"
 
 jobs:
-  build:
+  dotnet-build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      spec-matrix: ${{ steps.spec-coverage.outputs.matrix }}
 
     steps:
       - name: Checkout code
@@ -36,6 +40,14 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -60,24 +72,32 @@ jobs:
           npm test --prefix Source/Frontend
           npm run build --prefix Source/Frontend
 
-      # Compare Stage's projection conversion with the exact kernel visitor source, not a Stage-owned copy.
-      # This is the immutable Chronicle source used for the in-memory Roslyn conformance oracle.
-      - name: Fetch Chronicle projection authority
-        run: |
-          git init "$RUNNER_TEMP/chronicle-source"
-          git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
-          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 30dc461bd08f9b397ad00ca213d36350553d3ed1
-          git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
+      - name: Verify spec shard routing and guards
+        run: python3 -B -m unittest discover -s .github -p test_spec_shards.py
 
-      # The specs live inline beside the code and are stripped from Release builds, where the test SDK is not
-      # referenced either - so a Release test run discovers nothing at all. Debug runs the specs; Release is the
-      # zero-warning compile gate.
-      - name: Build & run tests
-        env:
-          CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
-        # The compile-backed generated-name matrix and the generated React application build run in their own
-        # jobs below, in parallel, so this job stays inside its timeout. Every other spec runs here.
-        run: dotnet test --configuration Debug --filter "FullyQualifiedName!~when_compiling_generated_name_matrix&FullyQualifiedName!~when_building_the_generated_screen_composition_application"
+      # Inline specs and their test SDK exist only in Debug. Build once, then hand off the binaries
+      # (including Host's isolated specrunner) to parallel --no-build spec jobs. Release still compiles
+      # without specs and remains the zero-warning/package-validation gate below.
+      - name: Build Debug
+        run: dotnet build --configuration Debug
+
+      - name: Require every solution test project to be sharded
+        id: spec-coverage
+        run: python3 .github/spec-shards.py guard
+
+      # Artifacts are an intra-run handoff, unlike immutable commit-keyed caches, whose failed saves
+      # can poison a rerun. Tar preserves executable permissions and the original project layout.
+      - name: Archive Debug build output
+        run: |
+          find Source -type d -path '*/bin/Debug' -prune -print0 | tar --null -czf build-output.tar.gz -T -
+
+      - name: Upload Debug build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-build-output
+          path: build-output.tar.gz
+          retention-days: 1
+          if-no-files-found: error
 
       # The version is a sentinel, not a release. Package validation compares assembly versions, and one
       # below the baseline is rejected on that alone before the API surface is ever looked at - so it has to
@@ -93,6 +113,85 @@ jobs:
 
       - name: Verify standalone packed reducer consumer
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
+
+  specs:
+    name: specs (${{ matrix.name }})
+    needs: [dotnet-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.dotnet-build.outputs.spec-matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download Debug build output
+        uses: actions/download-artifact@v4
+        with:
+          name: debug-build-output
+
+      - name: Extract Debug build output
+        run: tar -xzf build-output.tar.gz
+
+      # Compare projection conversion against the same immutable Chronicle visitor as before.
+      - name: Fetch Chronicle projection authority
+        if: startsWith(matrix.name, 'rendering-')
+        run: |
+          git init "$RUNNER_TEMP/chronicle-source"
+          git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
+          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 30dc461bd08f9b397ad00ca213d36350553d3ed1
+          git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
+
+      # The helper invokes dotnet test --no-build with the guarded filter for each project, then
+      # requires a non-empty TRX with executed tests. A zero dotnet exit cannot hide an empty shard.
+      - name: Run specs (${{ matrix.name }})
+        env:
+          CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
+          SPEC_SHARD: ${{ toJson(matrix) }}
+        run: python3 .github/spec-shards.py run "$SPEC_SHARD"
+
+      - name: Upload spec results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: specs-${{ matrix.name }}
+          path: TestResults/${{ matrix.name }}
+          if-no-files-found: error
+          retention-days: 7
+
+  # Preserve the original build check as an aggregate: it must fail if compilation/packaging or
+  # any spec shard fails or is skipped. The independent live/generated probe checks stay separate.
+  build:
+    needs: [dotnet-build, specs]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Require build and every spec shard to succeed
+        env:
+          BUILD_RESULT: ${{ needs.dotnet-build.result }}
+          SPECS_RESULT: ${{ needs.specs.result }}
+        run: test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success
 
   # Live persistence is a separate gate: the ordinary Debug suite skips live execution of these probes
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.

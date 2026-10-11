@@ -19,22 +19,22 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "b3255093b5cd9ebeb21921c4cca690cbd5e9134be504f443db8465a7b613ea58";
+    const string Digest = "f92604a0380958f537ae5a697f5e3b4f06c21b9cb0b74f27d4ac6a16a844096c";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx f1be33ab4c4b17540e101e671276f76ac33b0b9f79f1cd536f2f1cf5eb235d65 2253
-        .frontend/stage/App.tsx 8b04e690b307eb808f6f4231468691d050b03d60d1e44ba9fa37b90ad836284b 15525
+        .frontend/stage/App.tsx 0bcc4402b834c491cd65d4bc7ec709086cd448c5880549f885d208801d830041 19409
         .frontend/stage/FlowArrangementView.tsx 828b0518dd9d98a23605452355cb9a8a4e070bf98f61b6c014b0f705585cec93 2792
-        .frontend/stage/StageChrome.tsx 3395c0a3fc4267e06bcbaf7ef3f3b6220969ae759749650ec9aed14bbdc70f3e 6534
+        .frontend/stage/StageChrome.tsx e13793cf12a2dbdbce7b59b0e3525d33fc6b8c102ca55ff38ef70c2f073c5993 9465
         .frontend/stage/StageCommandForm.tsx 2dea1ddde16ec3a946a52bb4a7044928bb25de32b7702089634e48f1157fed5d 22440
         .frontend/stage/StageGuardedAction.tsx 8c950711a7cd89ddd11191f846bf5230da93cf2a31a450976ff22d26e6210c5e 6921
         .frontend/stage/app.css 78a49931be424e35a218c229c470100299fd2a54d7e067ab29d47aea6da15923 3892
-        .frontend/stage/blueprint.ts cb0ab46746d9cae105afa36298bba6cc1343559f13a8ab30089fb4a87cc21417 7707
-        .frontend/stage/navigationTree.ts 5048500dbe428df13385f66bc11f6cc945169e10ab87d025445baa8c1d93ba4a 4503
+        .frontend/stage/blueprint.ts edec1ef21425e5f0e64704e6defd20bea6dd0e5446016617600eec62ba918abb 7989
+        .frontend/stage/navigationTree.ts b07b69a65ad734b534cc865355e210c938aa0832057483e4ccdfbd04545fdfc3 7290
         .frontend/stage/stageCommands.ts 3b40fc0d0f4987c4ac3d253acf1b0c33104c0eb43ad9bfa504088d51b0d6d179 1944
-        .frontend/stage/stageComponents.tsx 095fc186c147e425d80cafcc8fc89393d731899a76156da59f6e2e1c63f46cf9 12557
+        .frontend/stage/stageComponents.tsx 7f9ec92b0f9e25c49d3a37911413c9f4f0f61156fca3d061931e125e728f5145 13558
         .frontend/stage/stageData.tsx d47040fee417d01d666e0bafb10a52e8c3bdc44ea06b05af2a7e8dfd9f06578d 18535
         .frontend/stage/stageDataSources.ts ade1a9a757ec28de294254bcb59ee95df1e03d047036e9281915665c0d19d888 4645
         .frontend/stage/stageGuards.ts d3caad28af719787f1007a8824898c86e6a4ac2eba863c36c4afaaae45b4cdf1 9330
@@ -77,10 +77,10 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs f646a742678761c49e10be6d010dfe8f52bb2d0f615348dd724e202e122ed70d 2502
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 87b60b599fe2b79b72212d6b1547331e502d84c9a57004ae920ae3c71c0571e6 259
-        package.json 50cc84f178ad59101a8e0cc010b8de555b57327a9b93add941aa8bfe4d0c476d 1431
-        scene.json 04521cf539e1a9c28e5a1056940064655b535b235c36d0dacda220de9d3f622f 3908
+        package.json a8593c8f788e285c0e9d4e563640141e11d7759f8cdd545008e9719d9b871f9e 1431
+        scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
-        src/stage-scene.json 04521cf539e1a9c28e5a1056940064655b535b235c36d0dacda220de9d3f622f 3908
+        src/stage-scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
         src/stage.ts 2e7593c3453949763a6aff1e189c57a4c1b90ec049bfabb1090674e89ba7a8b8 1745
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;

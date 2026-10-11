@@ -175,7 +175,9 @@ public sealed class CratisFrontendApplicationScaffold
         import { Arc } from '@cratis/arc.react';
         import { CratisComponentsProvider } from '@cratis/components';
         import { PrimeReactProvider } from '@primereact/core/config';
-        import { cratisComponentsPackage } from '@cratis/scene.components';
+        // The runtime entry: the components, their descriptors and the manifest, without the designers, property
+        // editors and design-time actions a running application never loads.
+        import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
         import { App } from './stage/App';
         import { StageSourceProvider, staticStageSource } from './stage/stageSource';
         import { stageTheme } from './stage/stageTheme';
@@ -201,7 +203,7 @@ public sealed class CratisFrontendApplicationScaffold
                     <CratisComponentsProvider>
                         <Arc>
                             <StageSourceProvider source={source}>
-                                <App components={cratisComponentsPackage.components} />
+                                <App components={cratisComponentsRuntimePackage.components} />
                             </StageSourceProvider>
                         </Arc>
                     </CratisComponentsProvider>

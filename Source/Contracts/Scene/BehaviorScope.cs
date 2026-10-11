@@ -11,14 +11,20 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </summary>
 /// <param name="Declared">The behaviors the document declares, by name.</param>
 /// <param name="Findings">Where to report an unresolved <c language="csharp">uses</c>.</param>
-/// <param name="Enumerations">The members of every enumeration-typed read model field, by read model and then field.</param>
-/// <param name="Subject">The read model the nearest <c language="csharp">data</c> declaration reads, which a guard's <c language="csharp">item</c> is.</param>
 public sealed record BehaviorScope(
     IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> Declared,
-    ICollection<RenderFinding> Findings,
-    IReadOnlyDictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>>? Enumerations = null,
-    string? Subject = null)
+    ICollection<RenderFinding> Findings)
 {
+    /// <summary>
+    /// Gets the members of every enumeration-typed read model field, by read model and then field.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>>? Enumerations { get; init; }
+
+    /// <summary>
+    /// Gets the read model the nearest <c language="csharp">data</c> declaration reads, which a guard's <c language="csharp">item</c> is.
+    /// </summary>
+    public string? Subject { get; init; }
+
     /// <summary>
     /// A scope for a document that declares nothing, used where behaviors are not being translated.
     /// </summary>
@@ -31,7 +37,7 @@ public sealed record BehaviorScope(
     /// <param name="findings">Where to report an unresolved <c language="csharp">uses</c>.</param>
     /// <returns>The <see cref="BehaviorScope"/>.</returns>
     public static BehaviorScope For(ScreenplaySyntax.ApplicationSyntax syntax, ICollection<RenderFinding> findings) =>
-        new(BehaviorAttachments.Declared(syntax.Behaviors), findings, EnumerationsIn(syntax));
+        new(BehaviorAttachments.Declared(syntax.Behaviors), findings) { Enumerations = EnumerationsIn(syntax) };
 
     /// <summary>
     /// Gets the members of the enumeration a guard's subject field has, in declared order, which is the order the

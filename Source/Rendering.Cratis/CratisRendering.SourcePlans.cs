@@ -6,6 +6,7 @@ using Cratis.Screenplay.Diagnostics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
+using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis;
@@ -57,7 +58,7 @@ public static partial class CratisRendering
     }
 
     /// <summary>
-    /// Plans the application-root scaffold alone without any source model, Scene composition, or strings wiring.
+    /// Plans the application-root scaffold and profile strings without a source model or Scene artifacts.
     /// </summary>
     /// <param name="options">The application, project, and root namespace; Domain must be empty.</param>
     /// <returns>The scaffold artifacts and digest, with no semantic revision or underlying model plan.</returns>
@@ -66,11 +67,21 @@ public static partial class CratisRendering
     {
         var prepared = Prepare(options, scaffoldOnly: true);
         if (prepared.Diagnostic is not null) return CratisPlanResult.Create(options.ApplicationName, [], [prepared.Diagnostic]);
-        var artifacts = prepared.Profile!.Inputs.Select(input =>
-            CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact) ? artifact! :
-                throw new InvalidArtifactRenderContract($"Package-owned scaffold input '{input.Name}' cannot be rendered."));
+        var profile = prepared.Profile!;
+        if (!CratisArtifactRenderProfileAdmission.MatchesScaffold(profile, options.ApplicationName, out var admittedOptions, out var mismatch))
+        {
+            return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError(mismatch)]);
+        }
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace))
+        {
+            return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError("The caller's profile project and root namespace must match the plan options.")]);
+        }
+        var artifacts = CratisScaffoldArtifacts.Render(profile, options.RootNamespace, []);
+        ImmutableArray<CratisPlanDiagnostic> diagnostics = SceneCompositionInput.IsCarriedBy(profile)
+            ? [new("STAGE-PLAN-031", ArtifactRenderDiagnosticSeverity.Information, "Scene artifacts are produced only by application-scope plans.", default, null)]
+            : [];
 
-        return CratisPlanResult.Create(options.ApplicationName, [.. artifacts], []);
+        return CratisPlanResult.Create(options.ApplicationName, [.. artifacts], diagnostics);
     }
 
     static CratisPlanResult PlanLoaded(LoadedSemanticModel loaded, PlanSelection selection, CratisPlanOptions options, ArtifactRenderProfile profile, ImmutableArray<SemanticModelLoadDiagnostic> compilationDiagnostics = default)
@@ -90,7 +101,15 @@ public static partial class CratisRendering
             AttachmentDiagnostics = loaded.AttachmentDiagnostics,
             TypedContextDescriptors = loaded.TypedContextDescriptors
         };
-        var context = new SemanticApplicationContext(request, new(options.ProjectName, options.RootNamespace));
+        if (!CratisArtifactRenderProfileAdmission.Matches(request, out var admittedOptions, out var mismatch))
+        {
+            return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError(mismatch)], loaded.Model.Revision);
+        }
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace))
+        {
+            return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError("The caller's profile project and root namespace must match the plan options.")], loaded.Model.Revision);
+        }
+        var context = new SemanticApplicationContext(request, admittedOptions);
         if (context.SelectedSlices().Count == 0)
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, CratisPlanResult.Error("STAGE-PLAN-014", "The selection matches no slices.")], loaded.Model.Revision);
@@ -113,6 +132,9 @@ public static partial class CratisRendering
         _ => ArtifactRenderDiagnosticSeverity.Information
     };
 
+    static CratisPlanDiagnostic ProfileError(string mismatch) =>
+        CratisPlanResult.Error("STAGE-CRATIS-001", $"The artifact render profile is not the exact package-owned Cratis profile. {mismatch}");
+
     static (ArtifactRenderProfile? Profile, CratisPlanDiagnostic? Diagnostic) Prepare(CratisPlanOptions options, bool scaffoldOnly)
     {
         if (scaffoldOnly && options.Domain.Length > 0)
@@ -129,6 +151,15 @@ public static partial class CratisRendering
             if (DomainPlacementInput.IsReserved(domain, profile))
             {
                 return (null, CratisPlanResult.Error("STAGE-PLAN-021", "Domain collides with an application-root scaffold or reserved folder."));
+            }
+
+            if (options.Profile is { } supplied)
+            {
+                if (supplied.Inputs.Any(input => input.Name == DomainPlacementInput.Name))
+                {
+                    return (null, ProfileError("The caller's profile must omit domain placement; use the Domain option."));
+                }
+                profile = supplied;
             }
 
             return (DomainPlacementInput.WithDomain(profile, domain), null);

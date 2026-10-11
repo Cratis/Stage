@@ -31,6 +31,14 @@ public class a_compiled_codec : Specification
         return valid;
     }
 
+    protected bool FormatWholeNumber(long value, out string formatted)
+    {
+        object[] arguments = [value, string.Empty];
+        var valid = (bool)Invoke("TryInteger", arguments);
+        formatted = (string)arguments[1];
+        return valid;
+    }
+
     protected static string Input(JsonElement vector) => vector.TryGetProperty("utf16", out var utf16)
         ? new string([.. utf16.EnumerateArray().Select(item => (char)Convert.ToInt32(item.GetString(), 16))])
         : vector.GetProperty("input").GetString()!;

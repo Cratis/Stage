@@ -32,7 +32,17 @@ public static class ContributionConverter
     /// <param name="contribution">The <see cref="ScreenplaySyntax.ContributionSyntax"/> to convert.</param>
     /// <param name="id">The id for the contributed <c language="csharp">SceneElement</c>, unique within its screen.</param>
     /// <returns>The converted <see cref="SceneContributionPoints.Contribution"/>.</returns>
-    public static SceneContributionPoints.Contribution Convert(ScreenplaySyntax.ContributionSyntax contribution, string id)
+    public static SceneContributionPoints.Contribution Convert(ScreenplaySyntax.ContributionSyntax contribution, string id) =>
+        Convert(contribution, id, []);
+
+    /// <summary>
+    /// Converts a <see cref="ScreenplaySyntax.ContributionSyntax"/> declared inside a module and its features.
+    /// </summary>
+    /// <param name="contribution">The <see cref="ScreenplaySyntax.ContributionSyntax"/> to convert.</param>
+    /// <param name="id">The id for the contributed <c language="csharp">SceneElement</c>, unique within its screen.</param>
+    /// <param name="hierarchy">The module and features, outermost first, the contribution was declared in.</param>
+    /// <returns>The converted <see cref="SceneContributionPoints.Contribution"/>, carrying the hierarchy it was declared in.</returns>
+    public static SceneContributionPoints.Contribution Convert(ScreenplaySyntax.ContributionSyntax contribution, string id, IReadOnlyList<string> hierarchy)
     {
         var properties = new Dictionary<string, object?>();
         if (contribution.Label is not null)
@@ -47,6 +57,11 @@ public static class ContributionConverter
                 ? []
                 : new Dictionary<string, SceneCommon.BindingExpression> { [contribution.Navigate.By] = new(contribution.Navigate.By) };
             properties[SceneElementProperties.Destination] = CompositionConverter.Destination(contribution.Navigate);
+        }
+
+        if (hierarchy.Count > 0)
+        {
+            properties[SceneElementProperties.Hierarchy] = hierarchy.ToArray();
         }
 
         var content = SceneElementFactory.Component(id, "core:contribution", properties);

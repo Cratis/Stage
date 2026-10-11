@@ -16,6 +16,7 @@
     "@cratis/components": "4.26.2",
     "@cratis/fundamentals": "7.22.8",
     "@cratis/scene.blueprint.default": "4.16.0",
+    "@cratis/scene.components": "4.16.0",
     "@cratis/scene.engine": "4.16.0",
     "@cratis/scene.model": "4.16.0",
     "@cratis/scene.primereact": "4.16.0",

@@ -42,7 +42,8 @@ internal sealed class SemanticCommandHandlerProvider(IEnumerable<SemanticRunCont
                 await context.Append(fact, destination, commandContext.CancellationToken);
             }
 
-            return null;
+            context.CompleteResponse();
+            return context.Response;
         }
     }
 }

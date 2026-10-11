@@ -23,7 +23,7 @@ internal static class SemanticRuleEvaluation
         }
 
         var byId = concepts.ToDictionary(concept => concept.Id);
-        foreach (var property in command.Properties.Where(property => property.Type.Kind == SemanticTypeReferenceKind.Concept))
+        foreach (var property in command.Properties.Where(IsInputConcept))
         {
             foreach (var rule in byId[property.Type.Target].Validations)
             {
@@ -45,6 +45,20 @@ internal static class SemanticRuleEvaluation
         return null;
     }
 
+    internal static string? GeneratedFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
+    {
+        var values = specification.When!.GeneratedValues.ToDictionary(value => value.TargetProperty, value => value.Value);
+        var byId = concepts.ToDictionary(concept => concept.Id);
+        foreach (var property in command.Properties.Where(property => property.IsGenerated && values.ContainsKey(property.Id)))
+        {
+            foreach (var rule in byId[property.Type.Target].Validations)
+            {
+                if (!Satisfies(rule, values[property.Id])) return rule.Message ?? Message(rule, values[property.Id], "A required concept value is empty.");
+            }
+        }
+        return null;
+    }
+
     internal static bool Condition(SemanticCondition condition, IReadOnlyDictionary<SemanticId, SemanticValue> values) => condition switch
     {
         SemanticLogicalCondition { Operator: SemanticLogicalOperator.And } logical => Condition(logical.Left, values) && Condition(logical.Right, values),
@@ -52,6 +66,8 @@ internal static class SemanticRuleEvaluation
         SemanticComparison comparison => Compare(comparison, values),
         _ => throw new UnsupportedSemanticMapping()
     };
+
+    static bool IsInputConcept(SemanticProperty property) => !property.IsGenerated && property.Type.Kind == SemanticTypeReferenceKind.Concept;
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values)
     {

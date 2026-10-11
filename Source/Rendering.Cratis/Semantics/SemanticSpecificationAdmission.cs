@@ -22,7 +22,7 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSlice slice,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in slice.Specifications)
+        foreach (var specification in WithRenderableGeneratedValues(context, slice, diagnostics))
         {
             var valid = specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) && (CanDenyQueryOnly(specification, context) ||
                 (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
@@ -31,7 +31,7 @@ internal static partial class SemanticSpecificationAdmission
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
                     !AssertsUncontrolledOccurrence(specification, command!) &&
                     !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
-                    ValuesMatch(specification.When!.Values, command?.Properties ?? []) &&
+                    ValuesMatch(specification.When!.Values, [.. command!.Properties.Where(property => !property.IsGenerated)]) &&
                     HasOneOutcome(specification) && HasSupportedCounts(specification) &&
                     (specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == command!.Produces.Length) &&
                     specification.ThenEvents.All(expected => EventMatches(context, expected)) &&

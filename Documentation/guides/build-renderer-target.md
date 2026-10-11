@@ -306,7 +306,7 @@ Stage builds against Screenplay 4.133.3 and admits ESM v1 through v10 by version
 
 | Construct | Version | Diagnostic |
 |---|---|---|
-| A specification asserting a read model is absent (`thenAbsentReadModels`) | v5 | `STAGE-ESM-027` |
+| A specification asserting a read model is absent (`thenAbsentReadModels`) | v5 | Renderer: `STAGE-ESM-027`; the [semantic specification engine](../docker/spec-runner.md) executes keyed absence for admitted per-run projections |
 | Application `Triggers` declarations | v6 | `STAGE-ESM-024`, naming the application trigger |
 | Reaction triggers of kind Interval, Schedule, ApplicationTrigger, Startup or Shutdown | v6 | `STAGE-ESM-024`, naming the trigger kind |
 | Opaque reaction bodies | v6 | `STAGE-ESM-024`, naming the body and its trigger kind |

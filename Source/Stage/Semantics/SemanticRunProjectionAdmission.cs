@@ -17,6 +17,7 @@ internal static class SemanticRunProjectionAdmission
         var reachable = reachableEvents.ToHashSet();
         var requested = plan.Projections.Values.Where(value =>
             specification.ThenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
+            specification.ThenAbsentReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenQueries.Any(query => plan.Queries.TryGetValue(query.Query, out var target) && target.ReadModel == value.ReadModel) ||
             (value.Scope is not null ? reachable.Count > 0 : value.Transitions.Any(transition => reachable.Contains(transition.EventContract)))).ToArray();
         var duplicate = requested.Select(projection => projection.ReadModel).FirstOrDefault(id => plan.Projections.Values.Count(projection => projection.ReadModel == id) > 1);
@@ -33,22 +34,24 @@ internal static class SemanticRunProjectionAdmission
             }
         }
 
-        foreach (var assertion in specification.ThenReadModels)
+        var assertedModels = specification.ThenReadModels.Select(assertion => assertion.ReadModel)
+            .Concat(specification.ThenAbsentReadModels.Select(assertion => assertion.ReadModel));
+        foreach (var readModel in assertedModels)
         {
-            if (!plan.ReadModels.ContainsKey(assertion.ReadModel) || plan.Projections.Values.All(projection => projection.ReadModel != assertion.ReadModel))
+            if (!plan.ReadModels.ContainsKey(readModel) || plan.Projections.Values.All(projection => projection.ReadModel != readModel))
             {
-                return new(StageExecutionCapability.Projection, assertion.ReadModel.ToString(), "The asserted read model has no projection in this run.");
+                return new(StageExecutionCapability.Projection, readModel.ToString(), "The asserted read model has no projection in this run.");
             }
         }
         foreach (var assertion in specification.ThenQueries)
         {
-            if (!plan.Queries.TryGetValue(assertion.Query, out var query) || query.Authorization is not null ||
+            if (!plan.Queries.TryGetValue(assertion.Query, out var query) ||
                 query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
                 !plan.ReadModels.TryGetValue(query.ReadModel, out var model) ||
                 model.Properties.SingleOrDefault(property => property.IsIdentifier)?.Id != query.KeyProperty ||
                 plan.Projections.Values.All(projection => projection.ReadModel != query.ReadModel))
             {
-                return new(StageExecutionCapability.Query, assertion.Query.ToString(), "Only unprotected, optional snapshot queries by read-model identifier are admitted.");
+                return new(StageExecutionCapability.Query, assertion.Query.ToString(), "Only optional snapshot queries by read-model identifier are admitted.");
             }
         }
         return null;

@@ -11,7 +11,7 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 
 /// <summary>
-/// Reactions, absence assertions, generated values and responses cannot be executed by Stage; a run that would
+/// Reactions, generated values and responses cannot be executed by Stage; a run that would
 /// silently skip them is reported as unsupported, never as passing.
 /// </summary>
 public class when_refusing_later_version_constructs : Specification
@@ -20,7 +20,7 @@ public class when_refusing_later_version_constructs : Specification
 
     async Task Because()
     {
-        foreach (var corpus in new[] { ReadModelAbsenceCorpus.V5, ReactionsCorpus.V6, RegisterProjectCorpus.V7 })
+        foreach (var corpus in new[] { ReactionsCorpus.V6, RegisterProjectCorpus.V7 })
         {
             var model = SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan());
             var plan = SemanticExecutionPlan.Compile(model).Plan!;
@@ -36,10 +36,10 @@ public class when_refusing_later_version_constructs : Specification
         _results.TrueForAll(_ => _.Result.Outcome == SemanticSpecificationOutcome.Unsupported),
         string.Join(Environment.NewLine, _results.Select(_ => $"{_.Corpus} {_.Result.Name}: {_.Result.Outcome} {string.Join(',', _.Result.Failures)}")));
 
-    [Fact] void should_cover_each_version() => _results.Select(_ => _.Corpus).Distinct().Count().ShouldEqual(3);
+    [Fact] void should_cover_each_version() => _results.Select(_ => _.Corpus).Distinct().Count().ShouldEqual(2);
 
     static Func<SemanticSpecification, bool> Uses(SemanticExecutionPlan plan) => specification =>
-        !specification.ThenAbsentReadModels.IsDefaultOrEmpty || specification.ThenReturns is not null ||
+        specification.ThenReturns is not null ||
         specification.When is { GeneratedValues.IsDefaultOrEmpty: false } ||
         (specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var command) && (command.Response is not null || command.Properties.Any(property => property.IsGenerated))) ||
         plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).Any(slice => !slice.Reactions.IsDefaultOrEmpty);

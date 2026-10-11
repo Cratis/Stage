@@ -372,6 +372,11 @@ async function assertGuardedActions(page, result, network) {
         block(result, 'browser.guarded.close.offeredWhileOpen', 'no Close control for open A');
         return;
     }
+    if (!(await close.first().isEnabled())) {
+        block(result, 'browser.guarded.close.enabledWhileOpen', `Close is disabled for open A: ${await close.first().getAttribute('title')}`);
+        return;
+    }
+    record(result, 'browser.guarded.close.enabledWhileOpen', 'passed');
 
     const before = commandRequests(network, 'close-work-item').length;
     await close.first().click();

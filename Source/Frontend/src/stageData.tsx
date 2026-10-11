@@ -4,7 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { BindingExpression } from '@cratis/scene.model';
-import { createBindingResolver, validateBindingExpression } from '@cratis/scene.engine';
+import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
 
 const DATA_CHANGED = 'cratis.stage.data-changed';
@@ -51,6 +51,12 @@ export interface StageDataState {
     refreshQuery: (query?: string) => void;
     refreshAfterCommand: () => void;
     resolveBinding: (binding: BindingExpression | string | undefined) => unknown;
+    /**
+     * Resolves a command argument source the way Scene does: `component.<id>.<output>` reads what another
+     * element publishes - such as the `value` an input holds or a table's `selectedItem` - and any other
+     * source is a data-context path.
+     */
+    resolveArgument: (source: string | undefined) => unknown;
     registerQueryResult: (scope: string, state: QueryState | undefined) => void;
     refreshVersion: number;
     refreshQueryName?: string;
@@ -73,6 +79,7 @@ const emptyState: StageDataState = {
     refreshQuery: () => undefined,
     refreshAfterCommand: () => undefined,
     resolveBinding: () => undefined,
+    resolveArgument: () => undefined,
     registerQueryResult: () => undefined,
     refreshVersion: 0,
 };
@@ -176,6 +183,10 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         return createBindingResolver(scope)(binding);
     }, [componentOutputState, locale, locales, localState, parameters, queries, screen, selected, selections]);
 
+    const resolveArgument = useCallback(
+        (source: string | undefined): unknown => source ? resolveArgumentSource(source, bindingScope(selected, queries, localState, componentOutputState, selections)) : undefined,
+        [componentOutputState, localState, queries, selected, selections]);
+
     const state = useMemo<StageDataState>(() => ({
         locale,
         locales,
@@ -193,10 +204,11 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         refreshQuery,
         refreshAfterCommand,
         resolveBinding,
+        resolveArgument,
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
+    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveArgument, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }

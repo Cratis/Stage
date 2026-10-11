@@ -50,6 +50,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const route = form?.route ?? (form ? data.routes?.commands[form.command] : undefined);
+    const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
     const initialValues = useMemo(() => initialCommandValues(fields, data.parameters), [fields, data.parameters]);
     const commandSignature = useMemo(() => route ? commandSignatureFor(route, fields, schema, initialValues) : '', [route, fields, schema, initialValues]);
     const commandType = useMemo(() => route ? commandTypeFor(route, fields, schema, initialValues) : undefined, [route, commandSignature]);
@@ -72,6 +73,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
             <NativeCommandForm
                 command={commandType}
                 initialValues={initialValues}
+                currentValues={argumentValues}
                 validateOn='both'
                 validateAllFieldsOnChange
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
@@ -193,6 +195,45 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
     }
 
     return values;
+}
+
+interface ArgumentMapping {
+    name: string;
+    source: string;
+}
+
+/**
+ * The values an element's argument mapping supplies, resolved through Scene's argument sources. An authored
+ * mapping names where each argument comes from - an input's published `value`, a table's selected item or a
+ * data-context path. They are the form's current values rather than its initial ones: when a source changes -
+ * another row is selected, the input is edited - the field follows it, and edits in other fields stay. A source
+ * that resolves to nothing supplies nothing, so the route parameter, or an empty field, stays.
+ */
+function useArgumentValues(element: ExternalComponent, fields: FormField[], resolveArgument: (source: string | undefined) => unknown): StageCommandContent | undefined {
+    const mapping = useMemo(() => argumentMapping(element, fields), [element, fields]);
+    const resolved = mapping.map(argument => resolveArgument(argument.source));
+
+    // `resolved` is a new array on every render; its serialized form says whether a value actually changed.
+    const key = JSON.stringify(resolved);
+    return useMemo(() => {
+        const values = Object.fromEntries(mapping
+            .map((argument, index) => [argument.name, resolved[index]] as const)
+            .filter(([, value]) => value !== undefined && value !== null && value !== ''));
+        return Object.keys(values).length > 0 ? values : undefined;
+    }, [mapping, key]);
+}
+
+function argumentMapping(element: ExternalComponent, fields: FormField[]): ArgumentMapping[] {
+    const mapping = element.properties.arguments;
+    if (!Array.isArray(mapping)) return [];
+
+    // Only the command's own members can be seeded; an argument for anything else would never be submitted.
+    const members = new Set(fields.map(field => field.sourceProperty ?? field.name));
+    return mapping.filter((argument): argument is ArgumentMapping =>
+        typeof argument === 'object' && argument !== null &&
+        typeof (argument as ArgumentMapping).name === 'string' &&
+        typeof (argument as ArgumentMapping).source === 'string' &&
+        members.has((argument as ArgumentMapping).name));
 }
 
 function commandSignatureFor(route: string, fields: FormField[], schema: SchemaProperty[], initialValues: StageCommandContent): string {

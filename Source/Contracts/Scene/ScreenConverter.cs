@@ -93,7 +93,29 @@ public static class ScreenConverter
         IReadOnlyList<ScreenplaySyntax.FormSyntax> availableForms,
         IReadOnlyList<SceneContributionPoints.Contribution> contributions,
         BehaviorScope? behaviors,
-        IReadOnlyList<SceneInteractions.Behavior>? inherited = null)
+        IReadOnlyList<SceneInteractions.Behavior>? inherited = null) =>
+        Convert(screen, layoutName, availableForms, contributions, behaviors, inherited ?? [], []);
+
+    /// <summary>
+    /// Converts a <see cref="ScreenplaySyntax.ScreenSyntax"/> into a <see cref="SceneScreens.Screen"/> that records where it sits.
+    /// </summary>
+    /// <param name="screen">The <see cref="ScreenplaySyntax.ScreenSyntax"/> to convert.</param>
+    /// <param name="layoutName">The resolved name of the application layout the screen renders inside.</param>
+    /// <param name="availableForms">Every form declared in the screen's enclosing module.</param>
+    /// <param name="contributions">The already-converted contributions for the screen's enclosing scope.</param>
+    /// <param name="behaviors">What a <c language="csharp">uses</c> clause resolves against.</param>
+    /// <param name="inherited">The behaviors attached above the screen, which run before its own.</param>
+    /// <param name="path">The modules and features, outermost first, the screen was declared in - its place in the application hierarchy.</param>
+    /// <returns>The converted <see cref="SceneScreens.Screen"/>.</returns>
+    /// <exception cref="UnsupportedScreenContent">Thrown when the screen mixes a top-level <c language="csharp">template</c> directive with other top-level directives.</exception>
+    public static SceneScreens.Screen Convert(
+        ScreenplaySyntax.ScreenSyntax screen,
+        string layoutName,
+        IReadOnlyList<ScreenplaySyntax.FormSyntax> availableForms,
+        IReadOnlyList<SceneContributionPoints.Contribution> contributions,
+        BehaviorScope? behaviors,
+        IReadOnlyList<SceneInteractions.Behavior> inherited,
+        IReadOnlyList<string> path)
     {
         var scope = behaviors ?? BehaviorScope.None;
         var attached = new List<SceneInteractions.Behavior>();
@@ -102,11 +124,12 @@ public static class ScreenConverter
 
         // The screen's own `contribute to` blocks follow what its enclosing scope contributes, in declaration order.
         var own = (screen.Contributions ?? [])
-            .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{screen.Name}.contribution[{index}]", scope));
+            .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{screen.Name}.contribution[{index}]", scope, path));
 
         return new SceneScreens.Screen(screen.Name, layoutName, slotContent, forms, [.. contributions, .. own], screenTemplate)
         {
-            Behaviors = [.. inherited ?? [], .. attached]
+            Behaviors = [.. inherited, .. attached],
+            Path = [.. path]
         };
     }
 

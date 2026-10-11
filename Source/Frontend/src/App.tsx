@@ -2,10 +2,22 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { useEffect, useMemo, useState } from 'react';
-import type { DialogTemplate, Form, Layout, SceneElement, Screen, ScreenTemplate, Theme, UiProfile } from '@cratis/scene.model';
+import { DestinationKind, type DestinationReference, type DialogTemplate, type Form, type Layout, type SceneElement, type Screen, type ScreenTemplate, type Theme, type UiProfile } from '@cratis/scene.model';
 import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
-import { InteractionScope, SceneElementView, createBrowserDispatcher, type ComponentRegistry } from '@cratis/scene.react';
+import {
+    InteractionScope,
+    SceneElementView,
+    SceneNavigationProvider,
+    SceneOutletContext,
+    collectOutletOwners,
+    createBrowserDispatcher,
+    createHashSceneHistory,
+    sceneRoutesFrom,
+    useSceneHistoryNavigation,
+    useSceneNavigation,
+    type ComponentRegistry,
+} from '@cratis/scene.react';
 import {
     ComponentName,
     LayoutConfigProvider,
@@ -20,9 +32,9 @@ import { StageDataProvider, useStageData } from './stageData';
 import { stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents, stageTemplateComponent } from './StageChrome';
-import { applicationChrome, resolveNames, screenFromHash, screenHash, stageProfile, stageRegistry, templateFor } from './blueprint';
+import { applicationChrome, resolveNames, stageProfile, stageRegistry, templateFor } from './blueprint';
 import { bindDataSources } from './stageDataSources';
-import { navigateToScreen, screenArguments, screenParameters } from './stageNavigation';
+import { navigateToScreen, screenArguments } from './stageNavigation';
 import { executeStageCommand } from './stageCommands';
 import { useStageSource } from './stageSource';
 import './app.css';
@@ -42,7 +54,12 @@ interface SceneCommandDetail {
 
 interface SceneNavigateDetail {
     targetScreen: string;
+    dialog?: string;
+    destination?: DestinationReference;
 }
+
+/** What the Scene navigation host resolves a destination's route parameters against; the Stage's items resolve their own. */
+const hostBindingScope = {};
 
 /**
  * The registry a Stage renders with: Scene's core vocabulary, PrimeReact and the default blueprint, then any
@@ -66,13 +83,7 @@ export function stageApplicationRegistry(components: ComponentRegistry = {}): Co
  */
 export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string): SceneElement {
     const profile = stageProfile(scene.uiProfiles);
-    const template = templateFor(scene.screenTemplates, screen);
-    const slotEntries = Object.entries(screen.slotContent);
-    const screenForms = screen.forms.map(form => commandFormElement(screen.name, form));
-    const templateSlots = template ? mergeSlots(template.content, screen.slotContent, { forms: screenForms }) : undefined;
-    const content: SceneElement[] = template
-        ? [externalComponent(`template-${screen.name}`, stageTemplateComponent, { arrangement: template.arrangement }, templateSlots)]
-        : [...slotEntries.flatMap(([, elements]) => elements), ...screenForms];
+    const content = screenContent(scene, screen);
 
     const shell = shellComponentForLayout(screen.layout) ?? screen.layout;
     const chrome = shell === ComponentName.FullPageShell
@@ -84,6 +95,55 @@ export function composeStageScreen(scene: StageSceneApplication, screen: Screen,
     });
 
     return resolveNames(bindDataSources(composed), profile);
+}
+
+/**
+ * What a screen puts in the shell's content slot: the screen - inside the screen template it names, when it names
+ * one - and the forms it hosts. The same content fills the shell on the primary region and a nested outlet.
+ */
+function screenContent(scene: StageSceneApplication, screen: Screen): SceneElement[] {
+    const template = templateFor(scene.screenTemplates, screen);
+    const slotEntries = Object.entries(screen.slotContent);
+    const screenForms = screen.forms.map(form => commandFormElement(screen.name, form));
+    const templateSlots = template ? mergeSlots(template.content, screen.slotContent, { forms: screenForms }) : undefined;
+    return template
+        ? [externalComponent(`template-${screen.name}`, stageTemplateComponent, { arrangement: template.arrangement }, templateSlots)]
+        : [...slotEntries.flatMap(([, elements]) => elements), ...screenForms];
+}
+
+/**
+ * A screen as it appears inside an outlet of another screen: its content alone, without the application shell the
+ * primary region wraps every screen in, with the same name resolution and data sources.
+ */
+function composeOutletScreen(scene: StageSceneApplication, screen: Screen): SceneElement {
+    const content = screenContent(scene, screen);
+    const element = content.length === 1 ? content[0] : { id: `outlet-${screen.name}`, children: content } as unknown as SceneElement;
+    return resolveNames(bindDataSources(element), stageProfile(scene.uiProfiles));
+}
+
+/** Every destination the model authors - on actions, navigations, contributions and toolbar items - wherever it sits. */
+function collectDestinations(scene: StageSceneApplication): DestinationReference[] {
+    const found: DestinationReference[] = [];
+    const visit = (value: unknown) => {
+        if (value === null || typeof value !== 'object') return;
+        if (Array.isArray(value)) {
+            value.forEach(visit);
+            return;
+        }
+
+        for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+            if (key === 'destination' && entry !== null && typeof entry === 'object' && !Array.isArray(entry)) found.push(entry as DestinationReference);
+            visit(entry);
+        }
+    };
+
+    for (const screen of scene.screens) {
+        visit(screen.slotContent);
+        visit(screen.contributions);
+    }
+
+    for (const template of [...scene.screenTemplates, ...(scene.dialogTemplates ?? [])]) visit(template.content);
+    return found;
 }
 
 function commandFormElement(screenName: string, form: Form): SceneElement {
@@ -116,81 +176,92 @@ export function App({ components }: AppProps = {}) {
     const source = useStageSource();
     const registry = useMemo(() => stageApplicationRegistry(components), [components]);
     const [scene, setScene] = useState<StageSceneApplication>();
-    const routeState = useStageRouteState();
-    const routes = routeState.routes;
-    const strings = useStrings();
-    const [selectedScreen, setSelectedScreen] = useState(() => screenFromHash(globalThis.location?.hash ?? '') ?? '');
-    const [parameters, setParameters] = useState(() => screenParameters(globalThis.location?.hash ?? ''));
     const [error, setError] = useState('');
-    const [activity, setActivity] = useState('');
-
-    const select = (name: string) => {
-        setSelectedScreen(name);
-        setParameters({});
-        setActivity('');
-        if (globalThis.location && (screenFromHash(globalThis.location.hash) !== name || globalThis.location.hash.includes('?'))) globalThis.history?.replaceState(null, '', screenHash(name));
-    };
+    // Routes and strings are read alongside the scene, not after it, so a command is registered by the time it is first used.
+    const routeState = useStageRouteState();
+    const strings = useStrings();
 
     useEffect(() => {
         const abort = new AbortController();
         source.scene(abort.signal)
-            .then(application => {
-                setScene(application);
-                setParameters(screenParameters(globalThis.location?.hash ?? ''));
-                setSelectedScreen(current => {
-                    const hashScreen = screenFromHash(globalThis.location?.hash ?? '');
-                    if (hashScreen && application.screens.some(screen => screen.name === hashScreen)) return hashScreen;
-                    return application.screens.some(screen => screen.name === current) ? current : application.screens[0]?.name ?? '';
-                });
-            })
+            .then(setScene)
             .catch(reason => {
                 if (!abort.signal.aborted) setError(reason instanceof Error ? reason.message : String(reason));
             });
         return () => abort.abort();
     }, [source]);
 
+    if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
+    if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
+    return <StageApplication scene={scene} registry={registry} routeState={routeState} strings={strings} />;
+}
+
+interface StageApplicationProps {
+    scene: StageSceneApplication;
+    registry: ComponentRegistry;
+    routeState: ReturnType<typeof useStageRouteState>;
+    strings: ReturnType<typeof useStrings>;
+}
+
+/**
+ * The application once its scene is known. Where the user is - the screen in the primary region, the screens in
+ * nested outlets, the dialog on top, and the address that reaches it - is the Scene navigation host's: destinations
+ * are resolved, placed in outlets and recorded in the URL fragment by Scene, the same way a generated or embedded
+ * host does it. The Stage supplies what is its own: the shell, the data and the commands.
+ */
+function StageApplication({ scene, registry, routeState, strings }: StageApplicationProps) {
+    const routes = routeState.routes;
+    const [activity, setActivity] = useState('');
+
+    const history = useMemo(() => createHashSceneHistory(), []);
+    const destinations = useMemo(() => collectDestinations(scene), [scene]);
+    const outletScreens = useMemo(
+        () => Object.fromEntries(scene.screens.map(candidate => [candidate.name, composeOutletScreen(scene, candidate)])),
+        [scene]);
+    const owners = useMemo(() => collectOutletOwners(outletScreens), [outletScreens]);
+    const routeTable = useMemo(() => sceneRoutesFrom(scene.screens.map(candidate => candidate.name), destinations), [destinations, scene]);
+    const navigation = useSceneHistoryNavigation(history, routeTable, scene.screens[0]?.name ?? '', hostBindingScope, owners, destinations);
+
+    useEffect(() => setActivity(''), [navigation.currentScreen, navigation.currentDialog]);
+
     useEffect(() => {
-        const hashChanged = () => {
-            const name = screenFromHash(globalThis.location.hash);
-            if (name && scene?.screens.some(screen => screen.name === name)) {
-                setSelectedScreen(current => {
-                    if (current !== name) setActivity('');
-                    return name;
-                });
-                setParameters(screenParameters(globalThis.location.hash));
-            }
-        };
         const command = (event: Event) => {
             const detail = (event as CustomEvent<SceneCommandDetail>).detail;
             setActivity(`The modeled command “${detail.command}” is ready for input.`);
         };
-        const navigate = (event: Event) => {
+        globalThis.addEventListener('cratis.scene.command', command);
+        return () => globalThis.removeEventListener('cratis.scene.command', command);
+    }, []);
+
+    const { navigate } = navigation;
+    useEffect(() => {
+        // What a component announces when it is outside a navigation host, or names only a screen: the same
+        // destinations, executed by the host, once the model has them.
+        const announced = (event: Event) => {
             const detail = (event as CustomEvent<SceneNavigateDetail>).detail;
-            if (scene?.screens.some(screen => screen.name === detail.targetScreen)) {
-                select(detail.targetScreen);
+            const destination: DestinationReference | undefined = detail.destination
+                ?? (detail.dialog ? { kind: DestinationKind.Dialog, dialog: detail.dialog } : detail.targetScreen ? { screen: detail.targetScreen } : undefined);
+            if (!destination) return;
+            if (destination.dialog !== undefined) {
+                if (scene.dialogTemplates?.some(candidate => candidate.name === destination.dialog)) navigate(destination);
+                else setActivity(`The modeled dialog “${destination.dialog}” is not available in this Stage runtime.`);
+            } else if (destination.screen !== undefined && !scene.screens.some(candidate => candidate.name === destination.screen)) {
+                setActivity(`The modeled screen “${destination.screen}” is not available.`);
             } else {
-                setActivity(`The modeled screen “${detail.targetScreen}” is not available.`);
+                navigate(destination);
             }
         };
 
-        globalThis.addEventListener('hashchange', hashChanged);
-        globalThis.addEventListener('cratis.scene.command', command);
-        globalThis.addEventListener('cratis.scene.navigate', navigate);
-        return () => {
-            globalThis.removeEventListener('hashchange', hashChanged);
-            globalThis.removeEventListener('cratis.scene.command', command);
-            globalThis.removeEventListener('cratis.scene.navigate', navigate);
-        };
-    }, [scene]);
+        globalThis.addEventListener('cratis.scene.navigate', announced);
+        return () => globalThis.removeEventListener('cratis.scene.navigate', announced);
+    }, [navigate, scene]);
 
-    const screen = scene?.screens.find(candidate => candidate.name === selectedScreen) ?? scene?.screens[0];
+    const screen = scene.screens.find(candidate => candidate.name === navigation.primaryScreen) ?? scene.screens[0];
     const element = useMemo(
-        () => scene && screen ? resolveStringsInElement(composeStageScreen(scene, screen, strings.locales, strings.locale), strings.dictionary) : undefined,
+        () => screen ? resolveStringsInElement(composeStageScreen(scene, screen, strings.locales, strings.locale), strings.dictionary) : undefined,
         [scene, screen, strings.locales, strings.locale, strings.dictionary],
     );
 
-    if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
-    if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
     if (!screen || !element) {
         return (
             <main className='stage-message'>
@@ -201,22 +272,26 @@ export function App({ components }: AppProps = {}) {
     }
 
     return (
-        <LayoutConfigProvider>
-            <LayoutThemeProvider>
-                <ColorSchemeMirror />
-                <StageDataProvider routes={routes} routesReady={routeState.ready} parameters={parameters} locale={strings.locale} locales={strings.locales} screen={screen.name}>
-                    <StageSceneView
-                        activity={activity}
-                        element={element}
-                        registry={registry}
-                        routes={routes}
-                        routesReady={routeState.ready}
-                        scene={scene}
-                        setActivity={setActivity}
-                        strings={strings} />
-                </StageDataProvider>
-            </LayoutThemeProvider>
-        </LayoutConfigProvider>
+        <SceneNavigationProvider value={navigation}>
+            <SceneOutletContext.Provider value={{ screens: outletScreens, registry }}>
+                <LayoutConfigProvider>
+                    <LayoutThemeProvider>
+                        <ColorSchemeMirror />
+                        <StageDataProvider routes={routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={screen.name}>
+                            <StageSceneView
+                                activity={activity}
+                                element={element}
+                                registry={registry}
+                                routes={routes}
+                                routesReady={routeState.ready}
+                                scene={scene}
+                                setActivity={setActivity}
+                                strings={strings} />
+                        </StageDataProvider>
+                    </LayoutThemeProvider>
+                </LayoutConfigProvider>
+            </SceneOutletContext.Provider>
+        </SceneNavigationProvider>
     );
 }
 
@@ -233,7 +308,8 @@ interface StageSceneViewProps {
 
 function StageSceneView({ activity, element, registry, routes, routesReady, scene, setActivity, strings }: StageSceneViewProps) {
     const data = useStageData();
-    const [dialog, setDialog] = useState<DialogTemplate>();
+    const navigation = useSceneNavigation();
+    const dialog = navigation.currentDialog ? scene.dialogTemplates?.find(candidate => candidate.name === navigation.currentDialog) : undefined;
 
     // Everything a document's interactions can do, pointed at the running application. The engine decides
     // what runs; this only says where a command goes and what a notification looks like.
@@ -272,10 +348,10 @@ function StageSceneView({ activity, element, registry, routes, routesReady, scen
                 return { isConfirmed: false };
             }
 
-            setDialog(template);
+            navigation.navigate({ kind: DestinationKind.Dialog, dialog: template.name });
             return { isConfirmed: true };
         },
-        closeDialog: () => setDialog(undefined),
+        closeDialog: () => navigation.closeDialog(),
         confirm: async message => globalThis.confirm(message),
         setState: (target, value) => data.setState(target, value),
         notify: (level, message) => setActivity(`${level}: ${message}`),
@@ -292,7 +368,7 @@ function StageSceneView({ activity, element, registry, routes, routesReady, scen
         <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity }}>
             <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key }} attachments={[]} onFindings={reportFindings}>
                 <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} />
-                {dialog && <StageDialog template={dialog} registry={registry} strings={strings} close={() => setDialog(undefined)} />}
+                {dialog && <StageDialog template={dialog} registry={registry} strings={strings} close={() => navigation.closeDialog()} />}
             </InteractionScope>
         </StageChromeProvider>
     );

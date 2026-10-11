@@ -5,12 +5,13 @@ import { createContext, useContext, type ReactNode } from 'react';
 import type { FlowArrangement } from '@cratis/scene.model';
 import { evaluateFlowArrangement } from '@cratis/scene.engine';
 import type { ComponentRegistry, RegisteredComponentProps } from '@cratis/scene.react';
-import { useSceneTheme } from '@cratis/scene.react';
+import { SceneElementView, SceneNavigationContextInternal, useSceneOutlets, useSceneTheme } from '@cratis/scene.react';
 import { useEffect } from 'react';
 import { FlowArrangementView } from './FlowArrangementView';
 import { useSizeClass } from './useSizeClass';
 import { screenHash, stageLocaleComponent, stageNavigationTreeComponent } from './blueprint';
-import type { NavigationNode } from './navigationTree';
+import { opensElsewhere, type NavigationNode } from './navigationTree';
+import { useStageData } from './stageData';
 
 /** What the Stage's own components need that the document itself does not carry. */
 export interface StageChromeState {
@@ -94,7 +95,7 @@ function NavigationLevel({ nodes, activeScreen }: { nodes: NavigationNode[]; act
             {nodes.map(node => node.screen !== undefined
                 ? (
                     <li key={`${node.screen}:${node.label}`} role='treeitem'>
-                        <a href={screenHash(node.screen)} aria-current={node.screen === activeScreen ? 'page' : undefined}>{node.label}</a>
+                        <NavigationEntryLink node={node} screen={node.screen} activeScreen={activeScreen} />
                     </li>
                 )
                 : (
@@ -104,6 +105,62 @@ function NavigationLevel({ nodes, activeScreen }: { nodes: NavigationNode[]; act
                     </li>
                 ))}
         </ul>
+    );
+}
+
+/**
+ * One navigation entry as the model authored it.
+ *
+ * The presentation hint decides what is shown - `icon`, `text` or `both` (the default); an icon-only entry keeps its
+ * label as its accessible name. An entry that opens somewhere a plain link does not reach - an outlet, a dialog - is
+ * executed through the Scene navigation host, the same as a toolbar item; an external route is an ordinary link.
+ */
+function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationNode; screen: string; activeScreen?: string }) {
+    const navigation = useContext(SceneNavigationContextInternal);
+    const mode = node.presentation === 'icon' || node.presentation === 'text' ? node.presentation : 'both';
+    const destination = node.destination;
+    const external = destination?.kind === 'external' && destination.route !== undefined;
+    const execute = destination && navigation && !external && opensElsewhere(destination)
+        ? (event: { preventDefault: () => void }) => {
+            event.preventDefault();
+            navigation.navigate(destination);
+        }
+        : undefined;
+
+    return (
+        <a
+            href={external ? destination.route : screenHash(screen)}
+            rel={external ? 'noreferrer' : undefined}
+            aria-current={screen === activeScreen ? 'page' : undefined}
+            aria-label={mode === 'icon' ? node.label : undefined}
+            data-presentation={node.presentation}
+            data-icon={node.icon}
+            onClick={execute}>
+            {mode !== 'text' && node.icon && <span className='stage-navigation-icon' aria-hidden='true' data-icon-name={node.icon} />}
+            {mode !== 'icon' && node.label}
+        </a>
+    );
+}
+
+/**
+ * The `core:outlet` the Stage renders: the screen the Scene navigation host placed in the named outlet, drawn
+ * inside the Stage's own data scope so its queries, selections and commands work as they do on a primary screen.
+ *
+ * Scene's own outlet renders the placed screen in a scope of its own, which cannot see what the Stage resolves
+ * queries and selections with, so the Stage draws the same region itself.
+ */
+export function StageOutlet({ element }: RegisteredComponentProps) {
+    const name = typeof element.properties.name === 'string' ? element.properties.name : '';
+    const navigation = useContext(SceneNavigationContextInternal);
+    const outlets = useSceneOutlets();
+    const data = useStageData();
+    const placed = navigation?.outlets[name];
+    const screen = placed && outlets ? outlets.screens[placed] : undefined;
+
+    return (
+        <div data-scene-outlet={name} data-scene-outlet-screen={placed}>
+            {screen && outlets && <SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} />}
+        </div>
     );
 }
 
@@ -141,4 +198,5 @@ export const stageChromeComponents: ComponentRegistry = {
     [stageLocaleComponent]: StageLocale,
     [stageNavigationTreeComponent]: StageNavigationTree,
     [stageActivityComponent]: StageActivity,
+    'core:outlet': StageOutlet,
 };

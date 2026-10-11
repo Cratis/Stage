@@ -76,7 +76,7 @@ internal static class SemanticQuerySpecificationRenderer
         }
 
         context.Docs(specification.Id).Render(builder)
-            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line("readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
 
@@ -114,6 +114,7 @@ internal static class SemanticQuerySpecificationRenderer
                     : $"async global::System.Threading.Tasks.Task Because() => _results = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")
                 .BlankLine()
                 .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({collectionPredicate}).ShouldBeTrue();")
+                .Line("public void Dispose() => _scenario.Dispose();")
                 .EndBlock();
         }
         else
@@ -131,6 +132,7 @@ internal static class SemanticQuerySpecificationRenderer
                 .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")
                 .BlankLine()
                 .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({predicate}).ShouldBeTrue();")
+                .Line("public void Dispose() => _scenario.Dispose();")
                 .EndBlock();
         }
 
@@ -194,7 +196,7 @@ internal static class SemanticQuerySpecificationRenderer
         }
 
         context.Docs(specification.Id).Render(builder)
-            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line($"{readModelName}? _result;")
             .BlankLine()
@@ -203,6 +205,7 @@ internal static class SemanticQuerySpecificationRenderer
             .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_scenario.ReadModels, {key});")
             .BlankLine()
             .Line($"[global::Xunit.FactAttribute] void should_return_the_seeded_read_model() => ({predicate}).ShouldBeTrue();")
+            .Line("public void Dispose() => _scenario.Dispose();")
             .EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
         var content = builder.ToString();

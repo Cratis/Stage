@@ -56,7 +56,7 @@ public class when_executing_generated_routed_read_model_specifications : a_gener
               readmodel Summary
                 id OrderId
                 amount Decimal
-              query SummaryById => Summary?
+              query SummaryById => Summary optional
                 by id OrderId
               projection Summaries => Summary
                 from OrderPlaced key id

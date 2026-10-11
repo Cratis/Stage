@@ -139,7 +139,16 @@ internal static class SemanticProtectedQuerySpecificationRenderer
                 .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => (_result.Data is {readModelName} model{string.Concat(comparisons.Select(value => $" && {value}"))}).ShouldBeTrue();");
         }
 
-        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
+        if (routedReplay)
+        {
+            builder.OpenBlock("public void Dispose()").Line("_readModelScenario.Dispose();").Line("_scenario.Dispose();").EndBlock();
+        }
+        else
+        {
+            builder.Line("public void Dispose() => _scenario.Dispose();");
+        }
+
+        builder.EndBlock();
         var content = builder.ToString();
         if (SpecificationValues.NeedsGlobalization(content))
         {

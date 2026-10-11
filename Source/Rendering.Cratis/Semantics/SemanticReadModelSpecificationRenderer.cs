@@ -45,7 +45,7 @@ internal static class SemanticReadModelSpecificationRenderer
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
 
         context.Docs(specification.Id).Render(builder)
-            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .BlankLine()
             .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
@@ -120,7 +120,7 @@ internal static class SemanticReadModelSpecificationRenderer
             }
         }
 
-        builder.EndBlock();
+        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         if (needsCommon)
         {
             builder.Using(context.CommonNamespace);

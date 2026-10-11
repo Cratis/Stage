@@ -19,19 +19,19 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "f92604a0380958f537ae5a697f5e3b4f06c21b9cb0b74f27d4ac6a16a844096c";
+    const string Digest = "1e85a0f11b5799271e6a16a621ab602a6577691e88fb4be5559047b4091038c3";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx f1be33ab4c4b17540e101e671276f76ac33b0b9f79f1cd536f2f1cf5eb235d65 2253
-        .frontend/stage/App.tsx 0bcc4402b834c491cd65d4bc7ec709086cd448c5880549f885d208801d830041 19409
+        .frontend/stage/App.tsx f92a6f90fe4bc3a7169d8e3f35fa7e0f6e980ce18651782664a3072cbe7b4438 20030
         .frontend/stage/FlowArrangementView.tsx 828b0518dd9d98a23605452355cb9a8a4e070bf98f61b6c014b0f705585cec93 2792
         .frontend/stage/StageChrome.tsx e13793cf12a2dbdbce7b59b0e3525d33fc6b8c102ca55ff38ef70c2f073c5993 9465
         .frontend/stage/StageCommandForm.tsx 2dea1ddde16ec3a946a52bb4a7044928bb25de32b7702089634e48f1157fed5d 22440
         .frontend/stage/StageGuardedAction.tsx 8c950711a7cd89ddd11191f846bf5230da93cf2a31a450976ff22d26e6210c5e 6921
         .frontend/stage/app.css 78a49931be424e35a218c229c470100299fd2a54d7e067ab29d47aea6da15923 3892
-        .frontend/stage/blueprint.ts edec1ef21425e5f0e64704e6defd20bea6dd0e5446016617600eec62ba918abb 7989
+        .frontend/stage/blueprint.ts 4a671d5d2f8be5f3eb80282a44214945f22075b41f0300196530a77a87ccd055 8846
         .frontend/stage/navigationTree.ts b07b69a65ad734b534cc865355e210c938aa0832057483e4ccdfbd04545fdfc3 7290
         .frontend/stage/stageCommands.ts 3b40fc0d0f4987c4ac3d253acf1b0c33104c0eb43ad9bfa504088d51b0d6d179 1944
         .frontend/stage/stageComponents.tsx 7f9ec92b0f9e25c49d3a37911413c9f4f0f61156fca3d061931e125e728f5145 13558

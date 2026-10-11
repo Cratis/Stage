@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { DestinationKind, type DestinationReference, type DialogTemplate, type Form, type Layout, type SceneElement, type Screen, type ScreenTemplate, type Theme, type UiProfile } from '@cratis/scene.model';
-import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
+import type { CommandOutcome, InteractionFinding, PackageCatalog } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
 import {
     InteractionScope,
@@ -32,7 +32,7 @@ import { StageDataProvider, useStageData } from './stageData';
 import { stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents, stageTemplateComponent } from './StageChrome';
-import { applicationChrome, resolveNames, stageProfile, stageRegistry, templateFor } from './blueprint';
+import { applicationChrome, resolveNames, stageCatalogWith, stageProfile, stageRegistry, templateFor } from './blueprint';
 import { bindDataSources } from './stageDataSources';
 import { navigateToScreen, screenArguments } from './stageNavigation';
 import { executeStageCommand } from './stageCommands';
@@ -81,7 +81,7 @@ export function stageApplicationRegistry(components: ComponentRegistry = {}): Co
  * missing component is deliberate: silently substituting a default shell would hide a package/profile problem
  * and produce a screen the model did not ask for.
  */
-export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string): SceneElement {
+export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string, packageCatalog?: PackageCatalog): SceneElement {
     const profile = stageProfile(scene.uiProfiles);
     const content = screenContent(scene, screen);
 
@@ -94,7 +94,7 @@ export function composeStageScreen(scene: StageSceneApplication, screen: Screen,
         [SlotName.Content]: [...content, externalComponent('activity', stageActivityComponent)],
     });
 
-    return resolveNames(bindDataSources(composed), profile);
+    return resolveNames(bindDataSources(composed), profile, stageCatalogWith(packageCatalog));
 }
 
 /**
@@ -115,10 +115,10 @@ function screenContent(scene: StageSceneApplication, screen: Screen): SceneEleme
  * A screen as it appears inside an outlet of another screen: its content alone, without the application shell the
  * primary region wraps every screen in, with the same name resolution and data sources.
  */
-function composeOutletScreen(scene: StageSceneApplication, screen: Screen): SceneElement {
+function composeOutletScreen(scene: StageSceneApplication, screen: Screen, packageCatalog?: PackageCatalog): SceneElement {
     const content = screenContent(scene, screen);
     const element = content.length === 1 ? content[0] : { id: `outlet-${screen.name}`, children: content } as unknown as SceneElement;
-    return resolveNames(bindDataSources(element), stageProfile(scene.uiProfiles));
+    return resolveNames(bindDataSources(element), stageProfile(scene.uiProfiles), stageCatalogWith(packageCatalog));
 }
 
 /** Every destination the model authors - on actions, navigations, contributions and toolbar items - wherever it sits. */
@@ -170,9 +170,15 @@ function mergeSlots(...sources: (Record<string, SceneElement[]> | undefined)[]):
 export interface AppProps {
     /** Components the host adds to the registry, beneath the Stage's own. */
     components?: ComponentRegistry;
+
+    /**
+     * What each package the host adds components for declares, by package name. A name an authored screen gives as
+     * `Package.component`, or a bare name only such a package declares, resolves to the host's component through it.
+     */
+    packageCatalog?: PackageCatalog;
 }
 
-export function App({ components }: AppProps = {}) {
+export function App({ components, packageCatalog }: AppProps = {}) {
     const source = useStageSource();
     const registry = useMemo(() => stageApplicationRegistry(components), [components]);
     const [scene, setScene] = useState<StageSceneApplication>();
@@ -193,7 +199,7 @@ export function App({ components }: AppProps = {}) {
 
     if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
     if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
-    return <StageApplication scene={scene} registry={registry} routeState={routeState} strings={strings} />;
+    return <StageApplication scene={scene} registry={registry} routeState={routeState} strings={strings} packageCatalog={packageCatalog} />;
 }
 
 interface StageApplicationProps {
@@ -201,6 +207,7 @@ interface StageApplicationProps {
     registry: ComponentRegistry;
     routeState: ReturnType<typeof useStageRouteState>;
     strings: ReturnType<typeof useStrings>;
+    packageCatalog?: PackageCatalog;
 }
 
 /**
@@ -209,15 +216,15 @@ interface StageApplicationProps {
  * are resolved, placed in outlets and recorded in the URL fragment by Scene, the same way a generated or embedded
  * host does it. The Stage supplies what is its own: the shell, the data and the commands.
  */
-function StageApplication({ scene, registry, routeState, strings }: StageApplicationProps) {
+function StageApplication({ scene, registry, routeState, strings, packageCatalog }: StageApplicationProps) {
     const routes = routeState.routes;
     const [activity, setActivity] = useState('');
 
     const history = useMemo(() => createHashSceneHistory(), []);
     const destinations = useMemo(() => collectDestinations(scene), [scene]);
     const outletScreens = useMemo(
-        () => Object.fromEntries(scene.screens.map(candidate => [candidate.name, composeOutletScreen(scene, candidate)])),
-        [scene]);
+        () => Object.fromEntries(scene.screens.map(candidate => [candidate.name, composeOutletScreen(scene, candidate, packageCatalog)])),
+        [scene, packageCatalog]);
     const owners = useMemo(() => collectOutletOwners(outletScreens), [outletScreens]);
     const routeTable = useMemo(() => sceneRoutesFrom(scene.screens.map(candidate => candidate.name), destinations), [destinations, scene]);
     const navigation = useSceneHistoryNavigation(history, routeTable, scene.screens[0]?.name ?? '', hostBindingScope, owners, destinations);
@@ -258,8 +265,8 @@ function StageApplication({ scene, registry, routeState, strings }: StageApplica
 
     const screen = scene.screens.find(candidate => candidate.name === navigation.primaryScreen) ?? scene.screens[0];
     const element = useMemo(
-        () => screen ? resolveStringsInElement(composeStageScreen(scene, screen, strings.locales, strings.locale), strings.dictionary) : undefined,
-        [scene, screen, strings.locales, strings.locale, strings.dictionary],
+        () => screen ? resolveStringsInElement(composeStageScreen(scene, screen, strings.locales, strings.locale, packageCatalog), strings.dictionary) : undefined,
+        [scene, screen, strings.locales, strings.locale, strings.dictionary, packageCatalog],
     );
 
     if (!screen || !element) {

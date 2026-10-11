@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Cratis.Scene.Engine.Packages;
 using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
@@ -18,6 +19,16 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 public sealed class CratisFrontendApplicationScaffold
 {
     /// <summary>
+    /// The generated module that loads the application's approved custom packages, present only when it has some.
+    /// </summary>
+    internal const string ApprovedPackagesModule = ".frontend/approvedPackages.ts";
+
+    /// <summary>
+    /// The planned path of the approved package set document the generated frontend loads.
+    /// </summary>
+    internal const string ApprovedPackagesDocument = "approved-packages.json";
+
+    /// <summary>
     /// Creates the complete frontend application scaffold without writing to a file system.
     /// </summary>
     /// <param name="request">The validated scaffold request.</param>
@@ -31,11 +42,12 @@ public sealed class CratisFrontendApplicationScaffold
         }
 
         var profile = request.Profile;
-        var artifacts = new (string RelativePath, string Content)[]
+        var approved = request.ApprovedPackages;
+        var artifacts = new List<(string RelativePath, string Content)>
         {
             (".frontend/index.css", IndexCss()),
             (".frontend/index.html", IndexHtml(request)),
-            (".frontend/main.tsx", MainModule()),
+            (".frontend/main.tsx", MainModule(!approved.IsEmpty)),
             (".frontend/tsconfig.json", FrontendTsConfig()),
             (".frontend/tsconfig.node.json", NodeTsConfig()),
             (".frontend/vite.config.ts", ViteConfig()),
@@ -43,6 +55,12 @@ public sealed class CratisFrontendApplicationScaffold
             ("package.json", PackageJson(request)),
             ("tsconfig.json", RootTsConfig())
         };
+
+        if (!approved.IsEmpty)
+        {
+            artifacts.Add((ApprovedPackagesDocument, ApprovedPackageSetJson.Write(approved)));
+            artifacts.Add((ApprovedPackagesModule, ApprovedPackagesSource(approved)));
+        }
 
         return
         [
@@ -53,15 +71,61 @@ public sealed class CratisFrontendApplicationScaffold
         ];
     }
 
+    internal static IReadOnlyList<string> ShippedNpmPackages(CratisFrontendPackageSet frontend) =>
+        [.. Dependencies(frontend).Select(_ => _.Name), .. DevDependencies(frontend).Select(_ => _.Name)];
+
     static ArtifactRenderInput Input(string relativePath, string version, string content)
     {
         var withSingleTrailingLineFeed = $"{content.TrimEnd('\r', '\n')}\n";
         return CratisArtifactRenderInput.CreateText(relativePath, version, withSingleTrailingLineFeed);
     }
 
+    static (string Name, string Version)[] Dependencies(CratisFrontendPackageSet frontend) =>
+    [
+        ("@cratis/arc", frontend.ArcPackageVersion),
+        ("@cratis/arc.react", frontend.ArcReactPackageVersion),
+        ("@cratis/components", frontend.ComponentsPackageVersion),
+        ("@cratis/fundamentals", frontend.FundamentalsPackageVersion),
+        ("@cratis/scene.blueprint.default", frontend.ScenePackageVersion),
+        ("@cratis/scene.components", frontend.ScenePackageVersion),
+        ("@cratis/scene.engine", frontend.ScenePackageVersion),
+        ("@cratis/scene.model", frontend.ScenePackageVersion),
+        ("@cratis/scene.primereact", frontend.ScenePackageVersion),
+        ("@cratis/scene.react", frontend.ScenePackageVersion),
+        ("@primereact/core", frontend.PrimeReactPackageVersion),
+        ("@primereact/headless", frontend.PrimeReactPackageVersion),
+        ("@primereact/hooks", frontend.PrimeReactPackageVersion),
+        ("@primereact/styles", frontend.PrimeReactPackageVersion),
+        ("@primereact/types", frontend.PrimeReactPackageVersion),
+        ("@primereact/ui", frontend.PrimeReactPackageVersion),
+        ("@primeuix/themes", frontend.PrimeUixThemesPackageVersion),
+        ("primeicons", frontend.PrimeIconsPackageVersion),
+        ("primereact", frontend.PrimeReactPackageVersion),
+        ("react", frontend.ReactPackageVersion),
+        ("react-dom", frontend.ReactDomPackageVersion),
+        ("react-router-dom", frontend.ReactRouterDomPackageVersion),
+        ("reflect-metadata", frontend.ReflectMetadataPackageVersion),
+        ("rxjs", frontend.RxjsPackageVersion),
+        ("tsyringe", frontend.TsyringePackageVersion)
+    ];
+
+    static (string Name, string Version)[] DevDependencies(CratisFrontendPackageSet frontend) =>
+    [
+        ("@cratis/arc.vite", frontend.ArcVitePackageVersion),
+        ("@types/node", frontend.TypesNodePackageVersion),
+        ("@types/react", frontend.TypesReactPackageVersion),
+        ("@types/react-dom", frontend.TypesReactDomPackageVersion),
+        ("@vitejs/plugin-react", frontend.VitePluginReactPackageVersion),
+        ("typescript", frontend.TypeScriptPackageVersion),
+        ("vite", frontend.VitePackageVersion)
+    ];
+
     static string PackageJson(CratisBackendApplicationScaffoldRequest request)
     {
         var frontend = request.Profile.FrontendPackageSet;
+        var dependencies = Dependencies(frontend)
+            .Concat(request.ApprovedPackages.Packages.Select(package => (Name: package.Module.Npm, package.Module.Version)))
+            .OrderBy(_ => _.Name, StringComparer.Ordinal);
         return $$"""
         {
           "name": "{{request.ApplicationName.ToLowerInvariant()}}",
@@ -74,40 +138,10 @@ public sealed class CratisFrontendApplicationScaffold
             "preview": "vite preview --config .frontend/vite.config.ts"
           },
           "dependencies": {
-            "@cratis/arc": "{{frontend.ArcPackageVersion}}",
-            "@cratis/arc.react": "{{frontend.ArcReactPackageVersion}}",
-            "@cratis/components": "{{frontend.ComponentsPackageVersion}}",
-            "@cratis/fundamentals": "{{frontend.FundamentalsPackageVersion}}",
-            "@cratis/scene.blueprint.default": "{{frontend.ScenePackageVersion}}",
-            "@cratis/scene.components": "{{frontend.ScenePackageVersion}}",
-            "@cratis/scene.engine": "{{frontend.ScenePackageVersion}}",
-            "@cratis/scene.model": "{{frontend.ScenePackageVersion}}",
-            "@cratis/scene.primereact": "{{frontend.ScenePackageVersion}}",
-            "@cratis/scene.react": "{{frontend.ScenePackageVersion}}",
-            "@primereact/core": "{{frontend.PrimeReactPackageVersion}}",
-            "@primereact/headless": "{{frontend.PrimeReactPackageVersion}}",
-            "@primereact/hooks": "{{frontend.PrimeReactPackageVersion}}",
-            "@primereact/styles": "{{frontend.PrimeReactPackageVersion}}",
-            "@primereact/types": "{{frontend.PrimeReactPackageVersion}}",
-            "@primereact/ui": "{{frontend.PrimeReactPackageVersion}}",
-            "@primeuix/themes": "{{frontend.PrimeUixThemesPackageVersion}}",
-            "primeicons": "{{frontend.PrimeIconsPackageVersion}}",
-            "primereact": "{{frontend.PrimeReactPackageVersion}}",
-            "react": "{{frontend.ReactPackageVersion}}",
-            "react-dom": "{{frontend.ReactDomPackageVersion}}",
-            "react-router-dom": "{{frontend.ReactRouterDomPackageVersion}}",
-            "reflect-metadata": "{{frontend.ReflectMetadataPackageVersion}}",
-            "rxjs": "{{frontend.RxjsPackageVersion}}",
-            "tsyringe": "{{frontend.TsyringePackageVersion}}"
+        {{string.Join(",\n", dependencies.Select(_ => $"    \"{_.Name}\": \"{_.Version}\""))}}
           },
           "devDependencies": {
-            "@cratis/arc.vite": "{{frontend.ArcVitePackageVersion}}",
-            "@types/node": "{{frontend.TypesNodePackageVersion}}",
-            "@types/react": "{{frontend.TypesReactPackageVersion}}",
-            "@types/react-dom": "{{frontend.TypesReactDomPackageVersion}}",
-            "@vitejs/plugin-react": "{{frontend.VitePluginReactPackageVersion}}",
-            "typescript": "{{frontend.TypeScriptPackageVersion}}",
-            "vite": "{{frontend.VitePackageVersion}}"
+        {{string.Join(",\n", DevDependencies(frontend).Select(_ => $"    \"{_.Name}\": \"{_.Version}\""))}}
           }
         }
         """;
@@ -164,7 +198,30 @@ public sealed class CratisFrontendApplicationScaffold
         </html>
         """;
 
-    static string MainModule() =>
+    static string MainModule(bool withApprovedPackages)
+    {
+        var main = MainModuleSource();
+        return withApprovedPackages ? ApprovedMainModule(main) : main;
+    }
+
+    // The packages the application approved are loaded before the first render, through the same loader and
+    // diagnostics a React host uses. A package that does not load stops the application with its reason on the
+    // page; a profile is never rendered with a silently missing package.
+    static string ApprovedMainModule(string main) => main
+        .Replace(
+            "import { stageTheme } from './stage/stageTheme';",
+            "import { stageTheme } from './stage/stageTheme';\nimport { loadApprovedComponents } from './approvedPackages';",
+            StringComparison.Ordinal)
+        .Replace(
+            "// A lazy CSS import orders",
+            "const approved = await loadApprovedComponents();\n\n// A lazy CSS import orders",
+            StringComparison.Ordinal)
+        .Replace(
+            "<App components={cratisComponentsRuntimePackage.components} />",
+            "<App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} />",
+            StringComparison.Ordinal);
+
+    static string MainModuleSource() =>
         """
         import 'reflect-metadata';
         import './index.css';
@@ -211,6 +268,52 @@ public sealed class CratisFrontendApplicationScaffold
             </React.StrictMode>
         );
         """;
+
+    static string ApprovedPackagesSource(ApprovedPackageSet approved)
+    {
+        var styles = approved.Packages.SelectMany(package => package.Module.Styles).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+        var importers = approved.Packages.Select(package => package.Module.Npm).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+        return $$"""
+        // Generated from the approved package set (approved-packages.json): the custom runtime packages this application was approved to render
+        // with. Each is installed by package.json and imported here by name - a bundler resolves literal imports at build
+        // time, so this is exactly the approved set and nothing a scene can name at runtime.
+        import { loadApprovedPackages, mergePackageRegistries, type ApprovedPackageSet } from '@cratis/scene.react';
+        {{string.Join('\n', styles.Select(style => $"import '{style}';"))}}
+
+        // The canonical content of approved-packages.json, embedded so the build needs no JSON module resolution.
+        const approvedPackageSet = {{ApprovedPackageSetJson.Write(approved).TrimEnd()}} as unknown as ApprovedPackageSet;
+
+        const importers = {
+        {{string.Join(",\n", importers.Select(npm => $"    // @ts-ignore - an approved package may ship without type declarations\n    '{npm}': () => import('{npm}')"))}}
+        };
+
+        /**
+         * Loads the approved packages' component registries and what each declares. The application built them in, so executable imports are
+         * allowed; anything that does not load or does not match its declaration stops the application with the reason
+         * on the page rather than rendering a profile with a package missing.
+         */
+        export async function loadApprovedComponents() {
+            const loaded = await loadApprovedPackages(approvedPackageSet, importers, { allowExecutableImports: true });
+            if (loaded.diagnostics.length > 0) {
+                const message = `Approved packages could not be loaded:\n${loaded.diagnostics.join('\n')}`;
+                const root = document.getElementById('root');
+                if (root) {
+                    root.setAttribute('role', 'alert');
+                    root.style.whiteSpace = 'pre-wrap';
+                    root.textContent = message;
+                }
+
+                throw new Error(message);
+            }
+
+            return {
+                components: mergePackageRegistries(loaded.bundles),
+                // What each approved package declares, so an authored `Package.component` resolves to the key it registers under.
+                catalog: Object.fromEntries(loaded.bundles.map(bundle => [bundle.manifest.name, bundle.manifest.components])),
+            };
+        }
+        """;
+    }
 
     static string IndexCss() =>
         """

@@ -98,3 +98,48 @@ describe('a guarded action rendered through Scene', () => {
         expect(close.getAttribute('title')).toContain('STAGE-SCENE-ACTION-001');
     });
 });
+
+describe('a guarded action over an enumeration rendered through Scene', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    const enumerated = {
+        ...emittedClose,
+        alternatives: [{ ...emittedClose.alternatives[0], condition: { ...emittedClose.alternatives[0].condition, enumeration: ['open', 'closed'] } }],
+    };
+
+    function respondWithOrdinal(status: number) {
+        const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+            if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => ({ isSuccess: true, validationResults: [] }) });
+            if (String(input).includes('get-work-item')) return Promise.resolve({ ok: true, json: async () => ({ data: { workItemId, status } }) });
+            return Promise.resolve({ ok: false, json: async () => ({}) });
+        });
+        vi.stubGlobal('fetch', fetched);
+        return fetched;
+    }
+
+    it('offers Close for the ordinal of the member the guard names', async () => {
+        respondWithOrdinal(0);
+        renderThroughScene(details(enumerated));
+
+        const close = await screen.findByRole('button', { name: 'Close' });
+        expect((close as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('offers nothing for the ordinal of another member', async () => {
+        const fetched = respondWithOrdinal(1);
+        renderThroughScene(details(enumerated));
+
+        await waitFor(() => expect(fetched.mock.calls.some(([input]) => String(input).includes('get-work-item'))).toBe(true));
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    });
+
+    it('does not hold for an ordinal without the enumeration', async () => {
+        const fetched = respondWithOrdinal(0);
+        renderThroughScene(details(emittedClose));
+
+        await waitFor(() => expect(fetched.mock.calls.some(([input]) => String(input).includes('get-work-item'))).toBe(true));
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    });
+});

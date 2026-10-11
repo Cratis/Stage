@@ -65,24 +65,45 @@ public static class SceneGuards
     /// </summary>
     /// <param name="condition">The authored condition.</param>
     /// <returns>The Scene form; an unevaluable condition keeps only its kind, which no runtime evaluates.</returns>
-    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition) => condition switch
+    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition) => Convert(condition, null);
+
+    /// <summary>
+    /// Converts an authored condition to the form the Scene carries, typing its fields.
+    /// </summary>
+    /// <param name="condition">The authored condition.</param>
+    /// <param name="enumerationOf">Gives the members of an enumeration-typed field, in declared order.</param>
+    /// <returns>The Scene form. A comparison against an enumeration carries its members as <c language="shell">enumeration</c>, because
+    /// the backend sends an enumeration as its ordinal while Screenplay names the member.</returns>
+    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf)
     {
-        ScreenplaySyntax.ComparisonConditionSyntax comparison => new Dictionary<string, object?>
+        switch (condition)
         {
-            ["kind"] = "comparison",
-            ["left"] = Subject(comparison.Left),
-            ["operator"] = comparison.Operator.ToString(),
-            ["right"] = comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : new Dictionary<string, object?> { ["kind"] = comparison.Right.GetType().Name },
-        },
-        ScreenplaySyntax.LogicalConditionSyntax logical => new Dictionary<string, object?>
-        {
-            ["kind"] = "logical",
-            ["left"] = Convert(logical.Left),
-            ["operator"] = logical.Operator.ToString(),
-            ["right"] = Convert(logical.Right),
-        },
-        _ => new Dictionary<string, object?> { ["kind"] = condition.GetType().Name },
-    };
+            case ScreenplaySyntax.ComparisonConditionSyntax comparison:
+                var converted = new Dictionary<string, object?>
+                {
+                    ["kind"] = "comparison",
+                    ["left"] = Subject(comparison.Left),
+                    ["operator"] = comparison.Operator.ToString(),
+                    ["right"] = comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : new Dictionary<string, object?> { ["kind"] = comparison.Right.GetType().Name },
+                };
+                if (enumerationOf?.Invoke(comparison.Left) is { } members)
+                {
+                    converted["enumeration"] = members;
+                }
+
+                return converted;
+            case ScreenplaySyntax.LogicalConditionSyntax logical:
+                return new Dictionary<string, object?>
+                {
+                    ["kind"] = "logical",
+                    ["left"] = Convert(logical.Left, enumerationOf),
+                    ["operator"] = logical.Operator.ToString(),
+                    ["right"] = Convert(logical.Right, enumerationOf),
+                };
+            default:
+                return new Dictionary<string, object?> { ["kind"] = condition.GetType().Name };
+        }
+    }
 
     /// <summary>
     /// Refers to a field of the guard's subject without the reference being a binding Scene resolves.
@@ -204,12 +225,19 @@ public static class SceneGuards
             "comparison" =>
                 node["left"] is JsonObject left && (Text(left[SubjectKey]) ?? Text(left["path"])) is { } path && path.StartsWith(SubjectPrefix, StringComparison.Ordinal) && path.Length > SubjectPrefix.Length &&
                 Text(node["operator"]) is { } comparison && _comparisonOperators.Contains(comparison) &&
-                (node["right"] is null || node["right"] is JsonValue),
+                (node["right"] is null || node["right"] is JsonValue) &&
+                IsMemberOfItsEnumeration(node),
             "logical" =>
                 Text(node["operator"]) is { } logical && _logicalOperators.Contains(logical) && CanEvaluate(node["left"]) && CanEvaluate(node["right"]),
             _ => false,
         };
     }
+
+    // A comparison against an enumeration can only name one of its members; anything else could never hold.
+    static bool IsMemberOfItsEnumeration(JsonObject comparison) =>
+        comparison["enumeration"] is not JsonArray members ||
+        Text(comparison["right"]) is not { } literal ||
+        members.Any(member => string.Equals(Text(member), literal, StringComparison.OrdinalIgnoreCase));
 
     static JsonNode? ToNode(object? value) => value switch
     {

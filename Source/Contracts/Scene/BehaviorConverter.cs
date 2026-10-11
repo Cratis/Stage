@@ -28,8 +28,16 @@ public static class BehaviorConverter
     /// </summary>
     /// <param name="behavior">The <see cref="ScreenplaySyntax.BehaviorSyntax"/> to convert.</param>
     /// <returns>The converted <see cref="SceneModel.Behavior"/>.</returns>
-    public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior) =>
-        new(behavior.Name, [.. behavior.Bindings.SelectMany(ConvertBinding)], behavior.Order);
+    public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior) => Convert(behavior, null);
+
+    /// <summary>
+    /// Converts a <see cref="ScreenplaySyntax.BehaviorSyntax"/> into a <see cref="SceneModel.Behavior"/>, typing its guards.
+    /// </summary>
+    /// <param name="behavior">The <see cref="ScreenplaySyntax.BehaviorSyntax"/> to convert.</param>
+    /// <param name="enumerationOf">Gives the members of an enumeration-typed guard field.</param>
+    /// <returns>The converted <see cref="SceneModel.Behavior"/>.</returns>
+    public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf) =>
+        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf))], behavior.Order);
 
     /// <summary>
     /// Converts a sequence of <see cref="ScreenplaySyntax.BehaviorSyntax"/> into Scene behaviors.
@@ -57,7 +65,7 @@ public static class BehaviorConverter
     // An unguarded binding is one Scene binding. A guarded one - `when ... otherwise` - becomes one binding per branch
     // with the same trigger, in authored order, each conditioned on being the branch that holds for the subject (see
     // SceneGuards), so the Scene interaction engine runs exactly one of them.
-    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding)
+    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf)
     {
         var trigger = ConvertTrigger(binding.Trigger);
         var alternatives = binding.Alternatives.ToArray();
@@ -70,7 +78,7 @@ public static class BehaviorConverter
             yield break;
         }
 
-        var conditions = alternatives.Select(alternative => (object?)SceneGuards.Convert(alternative.Condition)).ToList();
+        var conditions = alternatives.Select(alternative => (object?)SceneGuards.Convert(alternative.Condition, enumerationOf)).ToList();
         for (var index = 0; index < alternatives.Length; index++)
         {
             yield return new(

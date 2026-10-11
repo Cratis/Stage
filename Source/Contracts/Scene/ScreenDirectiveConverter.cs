@@ -59,6 +59,12 @@ public static class ScreenDirectiveConverter
         var all = directives.ToList();
         var scope = behaviors ?? BehaviorScope.None;
 
+        // The nearest data declaration is what a guard's `item` is, here and in everything nested below.
+        if (all.OfType<ScreenplaySyntax.ScreenDataSyntax>().FirstOrDefault() is { } subject)
+        {
+            scope = scope with { Subject = subject.Type.Name };
+        }
+
         // What was written at this level attaches to whatever encloses it - the section, or the screen when
         // nothing else does. Collecting it here rather than dropping it is the point: an interaction that
         // silently does not exist is worse than one that is reported.
@@ -99,7 +105,7 @@ public static class ScreenDirectiveConverter
                 ["navigateByParameter"] = action.Navigate?.By,
                 [SceneElementProperties.Destination] = action.Navigate is null ? null : CompositionConverter.Destination(action.Navigate),
             }),
-            ScreenplaySyntax.ScreenGuardedActionSyntax action => ConvertGuardedAction(action, id),
+            ScreenplaySyntax.ScreenGuardedActionSyntax action => ConvertGuardedAction(action, id, scope),
             ScreenplaySyntax.ScreenSectionSyntax section => ConvertSection(section, id, scope),
             ScreenplaySyntax.ScreenNavigateSyntax navigate => SceneElementFactory.Component(id, "core:navigate", new Dictionary<string, object?>
             {
@@ -167,7 +173,7 @@ public static class ScreenDirectiveConverter
         };
     }
 
-    static SceneElements.ExternalComponent ConvertGuardedAction(ScreenplaySyntax.ScreenGuardedActionSyntax action, string id)
+    static SceneElements.ExternalComponent ConvertGuardedAction(ScreenplaySyntax.ScreenGuardedActionSyntax action, string id, BehaviorScope scope)
     {
         var properties = new Dictionary<string, object?>
         {
@@ -177,7 +183,7 @@ public static class ScreenDirectiveConverter
             ["alternatives"] = action.Alternatives.Select(alternative => new Dictionary<string, object?>
             {
                 ["command"] = alternative.Command,
-                ["condition"] = SceneGuards.Convert(alternative.Condition),
+                ["condition"] = SceneGuards.Convert(alternative.Condition, scope.EnumerationOf),
                 ["arguments"] = ConvertArguments(alternative.Arguments),
             }).ToList(),
         };

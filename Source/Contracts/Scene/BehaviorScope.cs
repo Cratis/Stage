@@ -11,9 +11,13 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </summary>
 /// <param name="Declared">The behaviors the document declares, by name.</param>
 /// <param name="Findings">Where to report an unresolved <c language="csharp">uses</c>.</param>
+/// <param name="Enumerations">The members of every enumeration-typed read model field, by read model and then field.</param>
+/// <param name="Subject">The read model the nearest <c language="csharp">data</c> declaration reads, which a guard's <c language="csharp">item</c> is.</param>
 public sealed record BehaviorScope(
     IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> Declared,
-    ICollection<RenderFinding> Findings)
+    ICollection<RenderFinding> Findings,
+    IReadOnlyDictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>>? Enumerations = null,
+    string? Subject = null)
 {
     /// <summary>
     /// A scope for a document that declares nothing, used where behaviors are not being translated.
@@ -27,7 +31,29 @@ public sealed record BehaviorScope(
     /// <param name="findings">Where to report an unresolved <c language="csharp">uses</c>.</param>
     /// <returns>The <see cref="BehaviorScope"/>.</returns>
     public static BehaviorScope For(ScreenplaySyntax.ApplicationSyntax syntax, ICollection<RenderFinding> findings) =>
-        new(BehaviorAttachments.Declared(syntax.Behaviors), findings);
+        new(BehaviorAttachments.Declared(syntax.Behaviors), findings, EnumerationsIn(syntax));
+
+    /// <summary>
+    /// Gets the members of the enumeration a guard's subject field has, in declared order, which is the order the
+    /// generated backend numbers them in.
+    /// </summary>
+    /// <param name="path">The guard field, such as <c language="csharp">item.status</c>.</param>
+    /// <returns>The members, or null when the field is not an enumeration or the subject is not known.</returns>
+    public IReadOnlyList<string>? EnumerationOf(string path)
+    {
+        if (Subject is null || Enumerations is null || !path.StartsWith(SceneGuards.SubjectPrefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var field = path[SceneGuards.SubjectPrefix.Length..];
+        if (Enumerations.TryGetValue(Subject, out var fields) && fields.TryGetValue(field, out var members))
+        {
+            return members;
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Resolves what is attached at one point.
@@ -40,5 +66,26 @@ public sealed record BehaviorScope(
         IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
         IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
         string subject) =>
-        BehaviorAttachments.Convert(inline, used, Declared, subject, Findings);
+        BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf);
+
+    static Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>> EnumerationsIn(ScreenplaySyntax.ApplicationSyntax syntax)
+    {
+        var enumerations = syntax.Concepts
+            .Where(concept => concept.IsEnum)
+            .GroupBy(concept => concept.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)[.. group.First().Values], StringComparer.Ordinal);
+        var result = new Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>>(StringComparer.Ordinal);
+
+        foreach (var readModel in syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.ReadModels ?? []))
+        {
+            result[readModel.Name] = readModel.Properties
+                .Where(property => enumerations.ContainsKey(property.Type.Name))
+                .ToDictionary(property => property.Name, property => enumerations[property.Type.Name], StringComparer.OrdinalIgnoreCase);
+        }
+
+        return result;
+    }
+
+    static IEnumerable<ScreenplaySyntax.SliceSyntax> Slices(IEnumerable<ScreenplaySyntax.FeatureSyntax> features) =>
+        features.SelectMany(feature => feature.Slices.Concat(Slices(feature.Features)));
 }

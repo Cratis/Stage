@@ -46,6 +46,8 @@ export interface ComparisonCondition {
     left: SubjectReference;
     operator: string;
     right: unknown;
+    /** The members of the enumeration the field is, in declared order, when it is one. */
+    enumeration?: string[];
 }
 
 /** Combines two conditions. */
@@ -88,7 +90,26 @@ function isLiteral(value: unknown): boolean {
     return value === null || ['string', 'number', 'boolean'].includes(typeof value);
 }
 
-function compare(field: unknown, operator: string, literal: unknown): boolean | undefined {
+/**
+ * Names the enumeration member a field holds.
+ *
+ * The backend sends an enumeration as its ordinal, while Screenplay names the member (`item.status == "open"`), so a
+ * number is read as the position in the declared members. A string is the member's name in any casing.
+ */
+function enumerationMember(field: unknown, enumeration: string[]): unknown {
+    if (typeof field === 'number') return enumeration[field];
+    if (typeof field === 'string') return enumeration.find(member => member.toLowerCase() === field.toLowerCase());
+    return undefined;
+}
+
+function compare(field: unknown, operator: string, literal: unknown, enumeration?: string[]): boolean | undefined {
+    if (enumeration !== undefined && (operator === 'Equal' || operator === 'NotEqual')) {
+        const member = enumerationMember(field, enumeration);
+        const named = typeof literal === 'string' ? enumeration.find(candidate => candidate.toLowerCase() === literal.toLowerCase()) : undefined;
+        if (member === undefined || named === undefined) return false;
+        return operator === 'Equal' ? member === named : member !== named;
+    }
+
     switch (operator) {
         case 'Equal': return field !== undefined && field !== null && field === literal;
         case 'NotEqual': return field !== undefined && field !== null && field !== literal;
@@ -121,7 +142,8 @@ export function evaluateCondition(condition: unknown, subject: Record<string, un
     if (condition.kind === 'comparison') {
         const left = subjectPath(condition.left);
         if (typeof left !== 'string' || !left.startsWith(subjectPrefix) || typeof condition.operator !== 'string' || !isLiteral(condition.right)) return undefined;
-        return compare(valueAt(subject, left.slice(subjectPrefix.length)), condition.operator, condition.right);
+        const enumeration = Array.isArray(condition.enumeration) && condition.enumeration.every(member => typeof member === 'string') ? condition.enumeration as string[] : undefined;
+        return compare(valueAt(subject, left.slice(subjectPrefix.length)), condition.operator, condition.right, enumeration);
     }
 
     if (condition.kind === 'logical') {

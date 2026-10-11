@@ -19,7 +19,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "30be21c4ad91c3a8af4764a8dc9f909615d9c1e202fad5836fa6db60e34230f4";
+    const string Digest = "88432ecb5e5f76337cd0134bff731a8a9b5575d9050b72719cc6c7aed6c9d335";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
@@ -36,7 +36,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/stage/stageComponents.tsx 095fc186c147e425d80cafcc8fc89393d731899a76156da59f6e2e1c63f46cf9 12557
         .frontend/stage/stageData.tsx d47040fee417d01d666e0bafb10a52e8c3bdc44ea06b05af2a7e8dfd9f06578d 18535
         .frontend/stage/stageDataSources.ts ade1a9a757ec28de294254bcb59ee95df1e03d047036e9281915665c0d19d888 4645
-        .frontend/stage/stageGuards.ts ff2b7d70acafa358c0d8b9d6f3912c04822d55ebae24b59daca7150e2dc36337 7980
+        .frontend/stage/stageGuards.ts d3caad28af719787f1007a8824898c86e6a4ac2eba863c36c4afaaae45b4cdf1 9330
         .frontend/stage/stageNavigation.ts 46fc13d64e68d906f47a2c4fb92ade4ed61535b3ec63ca40624d4fe2c9437633 2529
         .frontend/stage/stageRoutes.ts 7d85720c1d04fbf81da0bb6a287b67a58fa5ec6e275f04595250c16cc4b9a348 1792
         .frontend/stage/stageRowInteractions.ts 11d46c9b7e3dc182feb9629eb21d3d5b181b4119d3a03c4e565b814bfc2caf6f 3600

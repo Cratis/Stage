@@ -63,7 +63,8 @@ public static class BehaviorAttachments
         IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
         IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> declared,
         string subject,
-        ICollection<RenderFinding> findings)
+        ICollection<RenderFinding> findings,
+        Func<string, IReadOnlyList<string>?>? enumerationOf = null)
     {
         var attached = new List<(SourceLocation Location, ScreenplaySyntax.BehaviorSyntax Behavior)>();
 
@@ -91,7 +92,7 @@ public static class BehaviorAttachments
             .. attached
                 .OrderBy(entry => entry.Location.Line)
                 .ThenBy(entry => entry.Location.Column)
-                .Select(entry => BehaviorConverter.Convert(entry.Behavior))
+                .Select(entry => BehaviorConverter.Convert(entry.Behavior, enumerationOf))
         ];
     }
 }

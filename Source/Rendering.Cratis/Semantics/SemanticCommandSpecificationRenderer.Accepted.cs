@@ -16,7 +16,6 @@ internal static partial class SemanticCommandSpecificationRenderer
     {
         var builder = scope.Builder;
         var specification = scope.Specification;
-        var context = scope.Context;
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
             .Using("Cratis.Chronicle.Events");
         foreach (var (expected, index) in Indexed(specification.ThenEvents))

@@ -60,6 +60,19 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
+Stage uses Screenplay 4.137.0 and explicitly admits ESM v11's corrected Double-mode literal lowering.
+For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
+`9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction
+`0.10000000000000002` renders as `0.10000000000000002m`. Command inputs, event payloads,
+validation operands, projection constants and generated specification expectations preserve those
+retained ESM values.
+
+A retained non-route number whose legacy lowering would lose digits selects language/semantic v11
+and schema 11. Already-lossless route literals and route-feeding inputs alone keep their earlier
+version. Reading a v1–v10 model does not change its numbers. Source still uses Double mode with whole
+numbers limited to ±9007199254740991; v11 neither admits `numbers exact` nor promises arbitrary-precision
+arithmetic. Generated fractions use C# `decimal`, not the full binary expansion of a Double value.
+
 Moving an existing model from v7 to v8 widens stored event schemas from int32 to int64. Chronicle refuses
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.

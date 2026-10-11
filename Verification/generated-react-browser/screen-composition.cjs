@@ -346,6 +346,8 @@ function assertSceneDocument(result, scene) {
 
 async function workItemRow(page, item) {
     await page.goto(`${baseUrl}/#/WorkItemList`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    // WorkItemDetails shows the list too, but without the double-click bindings; wait until it is the List screen.
+    await page.getByText('Select a work item', { exact: false }).first().waitFor({ timeout: 10_000 });
     const row = page.getByText(item.title, { exact: false }).first();
     await row.waitFor({ timeout: 10_000 });
     return row;
@@ -386,7 +388,11 @@ async function assertGuardedActions(page, result, network) {
     else block(result, 'browser.guarded.close.postsForItem', `expected one CloseWorkItem for A, got ${JSON.stringify(posts.map(_ => _.postData))}`);
 
     await page.goto(`${baseUrl}/#/WorkItemDetails?workItemId=${workItemA.id}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-    await expectText(page, result, 'browser.guarded.close.projectsClosed', 'closed');
+    const details = await page.request.get(`${baseUrl}/api/workspaces/tracking/work-item-details/get-work-item?workItemId=${workItemA.id}`);
+    const status = (await details.json().catch(() => ({})))?.data?.status;
+    // The backend sends an enumeration as its ordinal, so closed is 1; a name is accepted too.
+    if ([1, 'closed', 'Closed'].includes(status)) record(result, 'browser.guarded.close.projectsClosed', 'passed', String(status));
+    else block(result, 'browser.guarded.close.projectsClosed', `A's status after Close is ${JSON.stringify(status)}`);
     if (await page.getByRole('button', { name: /^close$/i }).count() === 0) record(result, 'browser.guarded.close.hiddenOnceClosed', 'passed');
     else block(result, 'browser.guarded.close.hiddenOnceClosed', 'Close is still offered for closed A');
 

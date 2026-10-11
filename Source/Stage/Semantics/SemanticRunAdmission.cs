@@ -33,9 +33,15 @@ public static class SemanticRunAdmission
     /// </summary>
     /// <param name="application">The application.</param>
     /// <returns>The precise capability refusals.</returns>
-    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(SemanticApplication application) =>
-        SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
-            .Concat(SemanticVersionFeatures.Slices(application).SelectMany(SemanticVersionFeatures.InSlice)).Select(Feature);
+    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(SemanticApplication application)
+    {
+        var slices = SemanticVersionFeatures.Slices(application).ToArray();
+        var events = slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Id);
+
+        return SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
+            .Concat(slices.SelectMany(slice => SemanticVersionFeatures.InSlice(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
+            .Distinct().Select(Feature);
+    }
 
     /// <summary>
     /// Finds later-version constructs in a command.

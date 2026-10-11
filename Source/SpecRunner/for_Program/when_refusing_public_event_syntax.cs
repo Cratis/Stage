@@ -14,11 +14,12 @@ public class when_refusing_public_event_syntax : Specification
 
     void Establish() => Directory.CreateDirectory(_folder);
 
+    // Source-events captures require both a direction and an origin to compile; their isolated refusal is
+    // covered by for_PublicEventSyntaxAdmission rather than a compound file-boundary case here.
     [Theory]
     [InlineData("public", "STAGE-ESM-031")]
     [InlineData("foreign", "STAGE-ESM-032")]
     [InlineData("direction", "STAGE-ESM-024")]
-    [InlineData("capture", "STAGE-ESM-024")]
     public async Task should_exit_without_writing_results(string form, string code)
     {
         var file = Path.Combine(_folder, "PublicEvents.play");
@@ -27,8 +28,7 @@ public class when_refusing_public_event_syntax : Specification
         {
             "public" => "    slice StateView Publication\n      public event Published",
             "foreign" => "    slice StateView Publication\n      event Published from \"producer\"",
-            "direction" => "    slice Translate Publication\n      direction inbound\n      event Received",
-            _ => "    slice Translate Publication\n      direction inbound\n      event Published from \"producer\"\n        id String\n      event Received\n        id String\n      capture Import\n        source events\n          from Published\n        key id\n        append Received\n          id = $.id"
+            _ => "    slice Translate Publication\n      direction inbound\n      event Received"
         };
         await File.WriteAllTextAsync(file, "module Integration\n  feature Exchange\n" + slice);
         await using var error = new StringWriter();

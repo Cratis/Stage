@@ -150,17 +150,34 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> EventReferences(SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticEventContract> events)
     {
         var references = slice.Projections.SelectMany(ProjectionReferencedEventNamesAreUnique.Contracts)
+            .Concat(slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.Event).Select(projection => projection.ReadModel))
             .Concat(slice.Reducers.SelectMany(reducer => reducer.Transitions.Select(transition => transition.EventContract)))
+            .Concat(slice.Reducers.Where(reducer => reducer.Target == SemanticProjectionTargetKind.Event).Select(reducer => reducer.ReadModel))
             .Concat(slice.Commands.SelectMany(command => command.Produces.Select(produced => produced.EventContract)))
+            .Concat(ConstraintEvents(slice.Constraints))
+            .Concat((slice.Reactions.IsDefault ? [] : slice.Reactions).SelectMany(reaction => reaction.Triggers)
+                .SelectMany(trigger => trigger.Produces.Select(produced => produced.EventContract)
+                    .Concat(trigger.Kind == SemanticReactionTriggerKind.Event ? [trigger.Source] : [])))
+            .Concat((slice.Captures.IsDefault ? [] : slice.Captures).SelectMany(capture =>
+                (capture.EventsSource?.Events ?? []).Concat(capture.Appends.Select(append => append.EventContract))
+                    .Concat(capture.Children.SelectMany(children => children.Appends.Select(append => append.EventContract)))
+                    .Concat(capture.Nested.SelectMany(nested => nested.Appends.Select(append => append.EventContract)))))
             .Concat(slice.Specifications.SelectMany(specification => specification.GivenEvents.Concat(specification.ThenEvents)
                 .Select(occurrence => occurrence.EventContract)
                 .Concat(specification.WhenAppended is { } appended ? [appended.EventContract] : [])))
-            .Except(slice.Events.Select(@event => @event.Id)).Distinct();
-        foreach (var id in references)
-        {
-            if (events.TryGetValue(id, out var @event) && InEvent(@event) is { } feature) yield return feature;
-        }
+            .Except(slice.Events.Select(@event => @event.Id));
+
+        return EventReferences(references, events);
     }
+
+    /// <summary>
+    /// Finds public or foreign events named by the constraints a consumer selects.
+    /// </summary>
+    /// <param name="constraints">The selected constraints.</param>
+    /// <param name="events">The application's indexed event contracts.</param>
+    /// <returns>The refused event contracts.</returns>
+    public static IEnumerable<SemanticVersionFeature> EventReferences(IEnumerable<SemanticConstraint> constraints, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        EventReferences(ConstraintEvents(constraints), events);
 
     /// <summary>
     /// Finds the constructs one command uses: generated properties and a response.
@@ -243,6 +260,17 @@ internal static class SemanticVersionFeatures
         if (specification.WhenAppended?.Route is not null || specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is not null || occurrence.Unrouted))
         {
             yield return new(Routes, StageExecutionCapability.IdentityAllocation, specification.Id, "specification", $"Specification '{specification.Name}' uses event-source routing assertions, which the Cratis ESM planner cannot render yet.");
+        }
+    }
+
+    static IEnumerable<SemanticId> ConstraintEvents(IEnumerable<SemanticConstraint> constraints) =>
+        constraints.SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy));
+
+    static IEnumerable<SemanticVersionFeature> EventReferences(IEnumerable<SemanticId> references, IReadOnlyDictionary<SemanticId, SemanticEventContract> events)
+    {
+        foreach (var id in references.Distinct())
+        {
+            if (events.TryGetValue(id, out var @event) && InEvent(@event) is { } feature) yield return feature;
         }
     }
 

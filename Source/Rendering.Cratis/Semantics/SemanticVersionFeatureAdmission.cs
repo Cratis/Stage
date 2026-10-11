@@ -30,6 +30,10 @@ internal static class SemanticVersionFeatureAdmission
                 .Concat(slice.Commands.SelectMany(command => SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command))))
                 .Concat(slice.Specifications.SelectMany(specification => SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)))));
 
+        // A scoped render also emits sibling constraints that govern its produced events.
+        features = features.Concat(SemanticVersionFeatures.EventReferences(
+            SemanticCratisAdmission.SelectedConstraints(context, slices).Select(selected => selected.Constraint), context.Events)).Distinct();
+
         // Application triggers belong to no slice; only an application render would otherwise drop them.
         if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {

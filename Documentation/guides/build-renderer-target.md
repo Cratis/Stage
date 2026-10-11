@@ -313,7 +313,6 @@ Stage builds against Screenplay 4.122.0 and admits ESM v1 through v9 by version.
 | Policy negation (`not`) | v7 | Rendered |
 | Named event sources, streams and command routes | v8 | Rendered; reserved stored names fail `STAGE-ESM-030` |
 | Routed command specifications | v8 | Rendered: route-aware givens and assertions, assignment matching for any-order expectations; unformattable fixtures or routed read-model/query replay fail `STAGE-ESM-030` |
-
 | Local public events declared or referenced by the selected slice, and event-target projections or reducers | v9 | `STAGE-ESM-031` |
 | Events with an origin store and `source events` captures | v9 | `STAGE-ESM-032` |
 | Directed Translate slices (inbound or outbound) | v9 | `STAGE-ESM-024`, naming the direction |

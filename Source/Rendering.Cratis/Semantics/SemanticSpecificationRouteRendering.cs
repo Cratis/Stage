@@ -71,11 +71,8 @@ internal static class SemanticSpecificationRouteRendering
                 return $"{helper}.Uuid(global::System.Guid.Parse({CSharpCodeBuilder.StringLiteral(formatted!)}))";
             case (SemanticPrimitiveType.WholeNumber, SemanticNumberValue number) when decimal.Truncate(number.Value) == number.Value &&
                 SemanticStreamIdFormatter.TryFormatInteger(new BigInteger(number.Value), true, out var formatted, out _):
-                // Portable literals can exceed the generated Int property's CLR range. Like literal command
-                // routes, format those during planning rather than narrowing them to an int.
-                return number.Value is >= int.MinValue and <= int.MaxValue
-                    ? $"{helper}.Integer({new SemanticTypeSystem(context).Value(value, SemanticTypeReference.ForPrimitive(primitive))})"
-                    : CSharpCodeBuilder.StringLiteral(formatted!);
+                // Like literal command routes, preserve the canonical identity validated during planning.
+                return CSharpCodeBuilder.StringLiteral(formatted!);
             default:
                 return null;
         }

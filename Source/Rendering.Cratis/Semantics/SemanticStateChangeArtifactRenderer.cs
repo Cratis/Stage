@@ -146,7 +146,7 @@ internal static class SemanticStateChangeArtifactRenderer
             return metadata.Count == 0 ? wrapper : $"{wrapper} {{ {string.Join(", ", metadata)} }}";
         }
 
-        if (routing.HasText)
+        if (routing.HasChecks)
         {
             var eventResult = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
             var result = $"global::OneOf.OneOf<{eventResult}, global::Cratis.Arc.Validation.ValidationResult>";

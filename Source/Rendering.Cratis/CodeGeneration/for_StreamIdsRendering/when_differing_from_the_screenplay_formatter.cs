@@ -19,10 +19,11 @@ public class when_differing_from_the_screenplay_formatter : given.a_compiled_cod
             var expected = SemanticStreamIdFormatter.TryFormatText(text, out var canonical, out _);
             if (actual != expected || (actual && formatted != canonical)) _differences.Add("Text");
         }
-        foreach (var integer in new[] { -9007199254740991L, int.MinValue, -42, 0, 42, int.MaxValue, 9007199254740991L })
+        foreach (var integer in new[] { long.MinValue, -9007199254740993L, -9007199254740992L, -9007199254740991L, -9007199254740990L, int.MinValue, -42, 0, 42, int.MaxValue, 9007199254740990L, 9007199254740991L, 9007199254740992L, 9007199254740993L, long.MaxValue })
         {
-            SemanticStreamIdFormatter.TryFormatInteger(integer, true, out var canonical, out _);
-            if ((string)Invoke("Integer", integer) != canonical) _differences.Add("Integer");
+            var actual = FormatWholeNumber(integer, out var formatted);
+            var expected = SemanticStreamIdFormatter.TryFormatInteger(integer, true, out var canonical, out _);
+            if (actual != expected || (actual && formatted != canonical)) _differences.Add("Integer");
         }
         var uuid = Guid.Parse("3FA85F64-5717-4562-B3FC-2C963F66AFA6");
         if ((string)Invoke("Uuid", uuid) != SemanticStreamIdFormatter.FormatUuid(uuid)) _differences.Add("Uuid");

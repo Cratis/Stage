@@ -68,7 +68,13 @@ internal static class routed_specifications
         });
     }
 
-    internal static ExecutableSemanticModel Composite(bool wrongPart = false)
+    internal static ExecutableSemanticModel Integer(long value = 10) => Compile("concept Count : Int\n" + Source
+        .Replace("streamId String", "streamId Count", StringComparison.Ordinal)
+        .Replace("period String", "period Count", StringComparison.Ordinal)
+        .Replace("\"previous\"", value.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal)
+        .Replace("\"2026-10\"", value.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal));
+
+    internal static ExecutableSemanticModel Composite(bool wrongPart = false, long month = 10)
     {
         var model = Compile("concept Month : Int\n" + Source);
         var source = model.Application.EventSources[0];
@@ -82,7 +88,7 @@ internal static class routed_specifications
         var slice = feature.Slices.Single();
         var command = slice.Commands.Single();
         var specification = slice.Specifications.Single();
-        SemanticFixtureRoutePart[] parts = [new("account", SemanticValue.Text("3FA85F64-5717-4562-B3FC-2C963F66AFA6")), new("month", SemanticValue.Number(10)), new("label", SemanticValue.Text("a|b%"))];
+        SemanticFixtureRoutePart[] parts = [new("account", SemanticValue.Text("3FA85F64-5717-4562-B3FC-2C963F66AFA6")), new("month", SemanticValue.Number(month)), new("label", SemanticValue.Text("a|b%"))];
         var expected = specification.ThenEvents[0];
         var fixtureRoute = expected.Route! with { StreamId = null, StreamIdParts = [.. parts] };
         var commandRoute = command.Route! with { StreamId = null, StreamIdParts = [.. parts.Select(part => new SemanticCommandRoutePart(part.Part, SemanticExpression.FromValue(part.Value)))] };

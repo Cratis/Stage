@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
@@ -67,7 +68,7 @@ public static class ConstraintRenderer
 
     // The constraint's own name is carried through so a violation reports the name the document gave it rather
     // than one Chronicle derives, which is what a caller matches on to tell two violations apart.
-    static string Attribute(string name) => $"Unique(\"{name}\")";
+    static string Attribute(string name) => $"Unique({CSharpCodeBuilder.StringLiteral(name)})";
 
     static bool Names(string left, string right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 }

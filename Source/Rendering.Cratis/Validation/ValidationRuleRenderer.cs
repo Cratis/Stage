@@ -52,7 +52,7 @@ public static class ValidationRuleRenderer
     /// <param name="rule">The rule.</param>
     /// <returns>The <c language="csharp">.WithMessage(...)</c> fragment, or an empty string when the rule has no message.</returns>
     public static string RenderMessage(ValidationRuleSyntax rule) =>
-        rule.Message is null ? string.Empty : $".WithMessage(\"{rule.Message.Replace("\"", "\\\"", StringComparison.Ordinal)}\")";
+        rule.Message is null ? string.Empty : $".WithMessage({CSharpCodeBuilder.StringLiteral(rule.Message)})";
 
     static string RenderMatch(string value)
     {

@@ -18,6 +18,7 @@ const toolbar = element('toolbar', 'core:toolbar', { name: 'main' }, {
             destination: { screen: 'InvoiceDetails', outlet: 'detail', kind: 'outlet', routeParameterBindings: {} },
             presentation: { mode: 'icon' },
         }),
+        element('toolbar.2-item', 'core:toolbarItem', { name: 'register', kind: 'Action', target: 'RegisterInvoice', label: 'Register invoice', parameters: {}, presentation: {} }),
         element('toolbar.1-item', 'core:toolbarItem', {
             name: 'help', kind: 'Dialog', target: 'HelpDialog', label: 'Help', parameters: {},
             destination: { kind: 'dialog', dialog: 'HelpDialog', routeParameterBindings: {} },
@@ -71,7 +72,7 @@ function stubScene() {
     vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
         const url = String(input);
         if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(scene) } as Response);
-        if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+        if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: { RegisterInvoice: '/api/invoices/register' }, queries: {} }) } as Response);
         return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
     }));
 }
@@ -88,7 +89,7 @@ describe('when the application is hosted by the Scene navigation host', () => {
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
 
         const bar = await screen.findByRole('toolbar', { name: 'main' });
-        expect(within(bar).getAllByRole('button').map(button => button.getAttribute('data-scene-toolbar-item'))).toEqual(['details', 'help']);
+        expect(Array.from(bar.querySelectorAll('[data-scene-toolbar-item]')).map(item => item.getAttribute('data-scene-toolbar-item'))).toEqual(['details', 'register', 'help']);
     });
 
     it('should honour a toolbar item\'s presentation', async () => {
@@ -99,6 +100,14 @@ describe('when the application is hosted by the Scene navigation host', () => {
         expect(details.textContent).toBe('');
         expect(details.getAttribute('data-scene-mode')).toBe('icon');
         expect(screen.getByRole('button', { name: 'Help' }).getAttribute('data-scene-presentation-placement')).toBe('primary');
+    });
+
+    it('should render a command item as the Stage\'s command action rather than a dead control', async () => {
+        stubScene();
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+
+        const item = await screen.findByText('Register invoice');
+        expect(item.closest('[data-scene-toolbar-item="register"]')?.querySelector('.stage-action')).not.toBeNull();
     });
 
     it('should place a screen in the outlet a toolbar item targets, keeping the screen that declares it', async () => {

@@ -11,13 +11,9 @@ namespace Cratis.Stage.Contracts.Scene.for_UiSyntaxAdmission;
 
 public class when_refusing_new_ui_members : Specification
 {
-    // A Scene dialog template declares no outlets; the pinned runtime ignores the new navigation metadata.
+    // A Scene dialog template declares no outlets.
     [Theory]
     [InlineData(typeof(DialogTemplateSyntax), "Outlets")]
-    [InlineData(typeof(ContributionSyntax), "Id")]
-    [InlineData(typeof(ContributionSyntax), "Icon")]
-    [InlineData(typeof(ContributionSyntax), "Presentation")]
-    [InlineData(typeof(ContributionSyntax), "Destination")]
     public void should_refuse_instead_of_dropping_the_authored_member(Type type, string member)
     {
         var error = Catch.Exception(() => new UiSyntaxAdmission().VisitNode(Authored(type, member)));
@@ -27,7 +23,11 @@ public class when_refusing_new_ui_members : Specification
 
     // Members the Scene converters translate, or the canonical screen composition corpus admits.
     [Theory]
+    [InlineData(typeof(ContributionSyntax), "Id")]
+    [InlineData(typeof(ContributionSyntax), "Icon")]
+    [InlineData(typeof(ContributionSyntax), "Presentation")]
     [InlineData(typeof(ContributionSyntax), "Group")]
+    [InlineData(typeof(ContributionSyntax), "Destination")]
     [InlineData(typeof(ApplicationSyntax), "Templates")]
     [InlineData(typeof(ModuleSyntax), "Templates")]
     [InlineData(typeof(FeatureSyntax), "Templates")]

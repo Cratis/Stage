@@ -46,11 +46,6 @@ public static class ContributionConverter
     {
         new UiSyntaxAdmission().VisitNode(contribution);
         var properties = new Dictionary<string, object?>();
-        if (contribution.Group is not null)
-        {
-            properties["group"] = contribution.Group;
-        }
-
         if (contribution.Label is not null)
         {
             properties["label"] = contribution.Label;

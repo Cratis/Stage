@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { DialogTemplate, Form, Layout, SceneElement, Screen, ScreenTemplate, Theme, UiProfile } from '@cratis/scene.model';
-import type { CommandOutcome, InteractionFinding } from '@cratis/scene.engine';
+import type { CommandOutcome, InteractionFinding, PackageCatalog } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
 import { InteractionScope, SceneElementView, createBrowserDispatcher, type ComponentRegistry } from '@cratis/scene.react';
 import {
@@ -20,7 +20,7 @@ import { StageDataProvider, useStageData } from './stageData';
 import { stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents, stageTemplateComponent } from './StageChrome';
-import { applicationChrome, resolveNames, screenFromHash, screenHash, stageProfile, stageRegistry, templateFor } from './blueprint';
+import { applicationChrome, resolveNames, screenFromHash, screenHash, stageCatalogWith, stageProfile, stageRegistry, templateFor } from './blueprint';
 import { bindDataSources } from './stageDataSources';
 import { navigateToScreen, screenArguments, screenParameters } from './stageNavigation';
 import { executeStageCommand } from './stageCommands';
@@ -64,7 +64,7 @@ export function stageApplicationRegistry(components: ComponentRegistry = {}): Co
  * missing component is deliberate: silently substituting a default shell would hide a package/profile problem
  * and produce a screen the model did not ask for.
  */
-export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string): SceneElement {
+export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string, packageCatalog?: PackageCatalog): SceneElement {
     const profile = stageProfile(scene.uiProfiles);
     const template = templateFor(scene.screenTemplates, screen);
     const slotEntries = Object.entries(screen.slotContent);
@@ -83,7 +83,7 @@ export function composeStageScreen(scene: StageSceneApplication, screen: Screen,
         [SlotName.Content]: [...content, externalComponent('activity', stageActivityComponent)],
     });
 
-    return resolveNames(bindDataSources(composed), profile);
+    return resolveNames(bindDataSources(composed), profile, stageCatalogWith(packageCatalog));
 }
 
 function commandFormElement(screenName: string, form: Form): SceneElement {
@@ -110,9 +110,15 @@ function mergeSlots(...sources: (Record<string, SceneElement[]> | undefined)[]):
 export interface AppProps {
     /** Components the host adds to the registry, beneath the Stage's own. */
     components?: ComponentRegistry;
+
+    /**
+     * What each package the host adds components for declares, by package name. A name an authored screen gives as
+     * `Package.component`, or a bare name only such a package declares, resolves to the host's component through it.
+     */
+    packageCatalog?: PackageCatalog;
 }
 
-export function App({ components }: AppProps = {}) {
+export function App({ components, packageCatalog }: AppProps = {}) {
     const source = useStageSource();
     const registry = useMemo(() => stageApplicationRegistry(components), [components]);
     const [scene, setScene] = useState<StageSceneApplication>();
@@ -185,8 +191,8 @@ export function App({ components }: AppProps = {}) {
 
     const screen = scene?.screens.find(candidate => candidate.name === selectedScreen) ?? scene?.screens[0];
     const element = useMemo(
-        () => scene && screen ? resolveStringsInElement(composeStageScreen(scene, screen, strings.locales, strings.locale), strings.dictionary) : undefined,
-        [scene, screen, strings.locales, strings.locale, strings.dictionary],
+        () => scene && screen ? resolveStringsInElement(composeStageScreen(scene, screen, strings.locales, strings.locale, packageCatalog), strings.dictionary) : undefined,
+        [scene, screen, strings.locales, strings.locale, strings.dictionary, packageCatalog],
     );
 
     if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;

@@ -73,13 +73,31 @@ export function templateFor(templates: ScreenTemplate[], screen: Screen): Screen
 }
 
 /**
+ * What every package the application renders with declares: the Stage's own packages, and the components of the
+ * custom packages the application approved.
+ *
+ * A custom package never replaces what a Stage package declares; it only adds its own entry.
+ *
+ * @param approved What each approved custom package declares, by package name.
+ * @returns The catalog component names are resolved against.
+ */
+export function stageCatalogWith(approved: PackageCatalog | undefined): PackageCatalog {
+    return approved ? { ...approved, ...stageCatalog } : stageCatalog;
+}
+
+/**
  * Rewrites an element tree's bare component names into the keys the registry is keyed by.
  *
  * A name that is already qualified, or that no package declares, is left exactly as written; the renderer then
  * shows a placeholder naming what is missing rather than failing.
+ *
+ * @param element The tree to rewrite.
+ * @param profile The profile whose package priority decides which package wins a bare name.
+ * @param catalog What each package declares; defaults to the Stage's own packages.
+ * @returns The rewritten tree.
  */
-export function resolveNames(element: SceneElement, profile: UiProfile): SceneElement {
-    return resolveElementComponentNames(element, profile, stageCatalog);
+export function resolveNames(element: SceneElement, profile: UiProfile, catalog: PackageCatalog = stageCatalog): SceneElement {
+    return resolveElementComponentNames(element, profile, catalog);
 }
 
 /** The name the application shows in its topbar and sidebar. */

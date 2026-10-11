@@ -139,10 +139,24 @@ public static class ScreenDirectiveConverter
                 ["label"] = item.Label,
                 ["icon"] = item.Icon,
                 ["parameters"] = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ScreenplayRichSyntax.Binding(parameter.Binding), StringComparer.Ordinal),
+                [SceneElementProperties.Destination] = ToolbarDestination(item),
                 ["presentation"] = item.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
             })).ToList();
 
         return SceneElementFactory.Component(id, "core:toolbar", new Dictionary<string, object?> { ["name"] = toolbar.Name }, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["items"] = items });
+    }
+
+    // Where a navigate or dialog item opens, so a renderer executes it through the same destination model every other
+    // navigation uses. An action item opens nothing.
+    static SceneCommon.DestinationReference? ToolbarDestination(ScreenplaySyntax.ToolbarItemSyntax item)
+    {
+        var parameters = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ScreenplayRichSyntax.Binding(parameter.Binding), StringComparer.Ordinal);
+        return item.Kind switch
+        {
+            ScreenplaySyntax.ToolbarItemKind.Navigate => new SceneCommon.DestinationReference(Screen: item.Target, RouteParameterBindings: parameters),
+            ScreenplaySyntax.ToolbarItemKind.Dialog => new SceneCommon.DestinationReference(Kind: SceneCommon.DestinationKind.Dialog, Dialog: item.Target, RouteParameterBindings: parameters),
+            _ => null,
+        };
     }
 
     static SceneElements.ExternalComponent ConvertComponent(ScreenplaySyntax.ScreenComponentSyntax component, string id, BehaviorScope scope)

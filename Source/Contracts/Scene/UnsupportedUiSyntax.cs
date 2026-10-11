@@ -12,7 +12,6 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <param name="location">The authored source location.</param>
 public sealed class UnsupportedUiSyntax(string member, SourceLocation location) : Exception(
     $"{DiagnosticCode}: '{member}' at {location} has no faithful Stage Scene translation. " +
-    (member.StartsWith("ContributionSyntax.", StringComparison.Ordinal) ? "The pinned Scene runtime does not honor this field. " : string.Empty) +
     "No scene was emitted.")
 {
     /// <summary>

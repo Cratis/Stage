@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { SceneElement, Screen, ScreenTemplate, UiProfile } from '@cratis/scene.model';
-import { authoredNavigationEntries, navigationPathTo, navigationTree } from './navigationTree';
+import { authoredNavigationEntries, navigationPathTo, navigationTree, unlistedNavigationEntries } from './navigationTree';
 import type { PackageCatalog } from '@cratis/scene.engine';
 import { coreComponents, type ComponentRegistry } from '@cratis/scene.react';
 import { primeReactComponents, primeReactPackageManifest } from '@cratis/scene.primereact';
@@ -116,16 +116,16 @@ function logo(id: string): SceneElement {
 export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string): Record<string, SceneElement[]> {
     const first = screens[0]?.name ?? '';
     const authored = authoredNavigationEntries(screens);
-    // A screen the model gave no navigation entry stays reachable - under its own name, after the authored hierarchy -
-    // so adding one entry never hides the rest of the application.
+    // A screen the model gave no navigation entry stays reachable - under its own name, in the module and feature it was
+    // declared in, after the authored entries - so adding one entry never hides the rest of the application.
     const listed = new Set(authored.map(entry => entry.targetScreen));
-    const unlisted = screens.filter(screen => !listed.has(screen.name));
-    const tree = navigationTree([
-        ...authored,
-        ...(authored.length > 0 ? unlisted.map(screen => ({ label: screen.name, targetScreen: screen.name, hierarchy: ['Other screens'] })) : []),
-    ]);
+    const unlisted = unlistedNavigationEntries(screens, listed, 'Other screens');
+    const tree = navigationTree([...authored, ...(authored.length > 0 ? unlisted : [])]);
     const entries = screens.map((screen, index) => navigationElement({ label: screen.name, targetScreen: screen.name, icon: 'pi pi-table', group: 'Screens', order: index }, activeScreen));
-    const trail = navigationPathTo(navigationTree(authored), activeScreen);
+    const authoredTrail = navigationPathTo(navigationTree(authored), activeScreen);
+    // A screen no entry lists is still somewhere in the hierarchy when the model recorded where it was declared.
+    const placed = screens.find(screen => screen.name === activeScreen)?.path?.length ? navigationPathTo(tree, activeScreen) : [];
+    const trail = authoredTrail.length > 0 ? authoredTrail : placed;
     const menu = authored.length > 0
         ? externalComponent('menu-hierarchy', stageNavigationTreeComponent, { nodes: tree, activeScreen })
         : externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries });

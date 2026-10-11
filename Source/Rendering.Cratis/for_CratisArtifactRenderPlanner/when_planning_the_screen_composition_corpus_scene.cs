@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Scene.Model.Common;
+using Cratis.Scene.Model.Elements;
 using Cratis.Scene.Model.Packages;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Files;
@@ -14,7 +16,8 @@ public class when_planning_the_screen_composition_corpus_scene : Specification
 {
     SceneApplication _folderScene = null!;
     ApplicationRenderPlan _folderPlan = null!;
-    Exception _typedError = null!;
+    SceneApplication _typedScene = null!;
+    ApplicationRenderPlan _typedPlan = null!;
 
     void Because()
     {
@@ -22,14 +25,27 @@ public class when_planning_the_screen_composition_corpus_scene : Specification
         _folderPlan = RenderPlanner.Plan(_folderScene, Catalog);
 
         var typedCase = ScreenCompositionCorpus.V1.TypedSourceCases.Single(_ => _.Name == "screen-release-ui-positive");
-        _typedError = Catch.Exception(() => SceneFor(typedCase.Document));
+        _typedScene = SceneFor(typedCase.Document);
+        _typedPlan = RenderPlanner.Plan(_typedScene, Catalog);
     }
 
     [Fact] void should_plan_the_folder_scene_without_findings() => _folderPlan.Findings.ShouldBeEmpty();
-    [Fact] void should_refuse_the_typed_scene_before_planning() => _typedError.ShouldBeOfExactType<UnsupportedUiSyntax>();
-    [Fact] void should_name_the_unsupported_navigation_field() => ((UnsupportedUiSyntax)_typedError).Member.ShouldEqual("ContributionSyntax.Id");
-    [Fact] void should_report_the_typed_refusal_code() => _typedError.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
+    [Fact] void should_plan_the_typed_scene_without_findings() => _typedPlan.Findings.ShouldBeEmpty();
     [Fact] void should_preserve_the_folder_navigation_contribution() => _folderScene.Screens.SelectMany(_ => _.Contributions).Any(_ => _.ContributionPointName == "Navigation").ShouldBeTrue();
+    [Fact] void should_preserve_dialog_template_metadata() => _typedScene.DialogTemplates.Single(_ => _.Name == "EditWorkItemDialog").Metadata!.Type.ShouldEqual("commandForm");
+    [Fact] void should_preserve_layout_outlet_metadata() => _typedScene.Layouts.Single().Outlets!.Single().Name.ShouldEqual("details");
+    [Fact] void should_preserve_package_profile_choices() => string.Join(',', _typedScene.UiProfiles.Single().Packages).ShouldEqual("core,scene.web,Cratis.Components");
+    [Fact] void should_emit_the_typed_grid_component() => TypedGrid.ComponentName.ShouldEqual("scene.web.DataGrid");
+    [Fact] void should_preserve_component_property_bindings() => SelectedItemBinding.Kind.ShouldEqual(BindingSourceKind.ComponentProperty);
+    [Fact] void should_preserve_component_property_null_behavior() => SelectedItemBinding.NullBehavior.ShouldEqual(BindingNullBehavior.Clear);
+    [Fact] void should_preserve_component_exposures() => ((Dictionary<string, BindingExpression>)TypedGrid.Properties["exposes"]!).ContainsKey("selectedWorkItem").ShouldBeTrue();
+    [Fact] void should_preserve_component_outlets() => TypedGrid.Slots.ContainsKey("detail").ShouldBeTrue();
+    [Fact] void should_emit_toolbar_items_with_icons() => Toolbar.Slots["items"].Cast<ExternalComponent>().Any(_ => (string?)_.Properties["icon"] == "add").ShouldBeTrue();
+
+    ExternalComponent TypedGrid => _typedScene.Screens.Single(_ => _.Name == "WorkItemList").SlotContent[DefaultLayout.ContentSlotName].OfType<ExternalComponent>().Single(_ => _.ComponentName == "scene.web.DataGrid");
+    BindingExpression SelectedItemBinding => (BindingExpression)TypedGrid.Properties["selectedItem"]!;
+    ExternalComponent Toolbar => _typedScene.Screens.Single(_ => _.Name == "WorkItemList").SlotContent[DefaultLayout.ContentSlotName].OfType<ExternalComponent>().Single(_ => _.ComponentName == "core:toolbar");
+
     static SceneApplication SceneFor(CanonicalCorpusSourceForm form) => SceneFor(form.Documents);
     static SceneApplication SceneFor(CanonicalCorpusDocument document) => SceneFor([document]);
 

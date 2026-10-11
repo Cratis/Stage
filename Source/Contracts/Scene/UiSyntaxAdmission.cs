@@ -12,7 +12,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// Package components, toolbars, UI bindings, template metadata and outlets on layouts and screen templates are
 /// translated by the converters, and so is the typed composition ABI of Screenplay 4.120: exposures, instance values,
 /// screen contributions, template slot content and picker metadata, grid/grow/span arrangements, and a
-/// <c>navigate</c> directive's route, outlet and parameters (as a Scene <c>DestinationReference</c>). Dialog template
+/// <c>navigate</c> directive's route, outlet and parameters (as a Scene <c>DestinationReference</c>), and a navigation
+/// contribution's id, icon, presentation, group and destination. Dialog template
 /// outlets have no Scene counterpart - a Scene dialog template declares none - so they are refused rather than dropped.
 /// </remarks>
 public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
@@ -23,7 +24,6 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
         var member = node switch
         {
             DialogTemplateSyntax dialog when dialog.Outlets.Any() => "DialogTemplateSyntax.Outlets",
-            ContributionSyntax contribution => UnhonoredNavigationField(contribution),
             _ => null
         };
         if (member is not null)
@@ -31,13 +31,4 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
             throw new UnsupportedUiSyntax(member, node.Location);
         }
     }
-
-    static string? UnhonoredNavigationField(ContributionSyntax contribution) => contribution switch
-    {
-        { Id: not null } => "ContributionSyntax.Id",
-        { Icon: not null } => "ContributionSyntax.Icon",
-        { Presentation: not null } => "ContributionSyntax.Presentation",
-        { Destination: not null } => "ContributionSyntax.Destination",
-        _ => null
-    };
 }

@@ -23,6 +23,10 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
         var member = node switch
         {
             DialogTemplateSyntax dialog when dialog.Outlets.Any() => "DialogTemplateSyntax.Outlets",
+            ContributionSyntax { Id: not null } => "ContributionSyntax.Id",
+            ContributionSyntax { Icon: not null } => "ContributionSyntax.Icon",
+            ContributionSyntax { Presentation: not null } => "ContributionSyntax.Presentation",
+            ContributionSyntax { Destination: not null } => "ContributionSyntax.Destination",
             _ => null
         };
         if (member is not null)

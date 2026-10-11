@@ -25,6 +25,6 @@ public class when_refusing_an_event_origin : Specification
 
     void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Foreign", "Foreign"));
 
-    [Fact] void should_refuse_the_foreign_event_without_a_translate_slice() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-032"]);
+    [Fact] void should_refuse_the_foreign_event_without_a_translate_slice() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-033"]);
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

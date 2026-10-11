@@ -45,7 +45,7 @@ public class when_refusing_the_canonical_v6_corpus : Specification
     {
         var entries = SemanticSurfaceLedger.Entries.Values.Where(entry => entry.Detail == "STAGE-ESM-024").ToArray();
 
-        // 101: the v6 automation surface plus translation direction; v9 events-source captures use STAGE-ESM-032.
+        // 101: the v6 automation surface plus translation direction; v9 events-source captures use STAGE-ESM-033.
         entries.Length.ShouldEqual(101);
         entries.All(entry => entry.Kind == SemanticSurfaceDispositionKind.Rejected).ShouldBeTrue();
     }

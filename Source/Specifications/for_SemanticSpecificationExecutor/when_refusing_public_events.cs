@@ -45,6 +45,6 @@ public class when_refusing_public_events : Specification
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([.. _plan.Specifications.Keys]), new());
 
     [Fact] void should_refuse_instead_of_running_the_public_event_given() => _report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_report_publication_not_version() => _report.Results.Single().Unsupported!.Details.StartsWith("STAGE-ESM-031:", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_report_publication_not_version() => _report.Results.Single().Unsupported!.Details.StartsWith("STAGE-ESM-032:", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_execute_nothing() => _report.Results.Single().Trace.ShouldBeNull();
 }

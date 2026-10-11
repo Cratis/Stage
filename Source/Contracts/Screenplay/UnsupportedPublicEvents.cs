@@ -15,7 +15,7 @@ public sealed class UnsupportedPublicEvents(SourceLocation location) : Exception
     /// <summary>
     /// The stable diagnostic code for unsupported public-event publication.
     /// </summary>
-    public const string DiagnosticCode = "STAGE-ESM-031";
+    public const string DiagnosticCode = "STAGE-ESM-032";
 
     /// <summary>
     /// Gets the authored source location.

@@ -15,7 +15,7 @@ public sealed class UnsupportedForeignEvents(SourceLocation location) : Exceptio
     /// <summary>
     /// The stable diagnostic code for unsupported foreign-event consumption.
     /// </summary>
-    public const string DiagnosticCode = "STAGE-ESM-032";
+    public const string DiagnosticCode = "STAGE-ESM-033";
 
     /// <summary>
     /// Gets the authored source location.

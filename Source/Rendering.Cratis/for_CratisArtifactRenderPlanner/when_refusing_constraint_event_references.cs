@@ -14,10 +14,10 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_refusing_constraint_event_references : Specification
 {
     [Theory]
-    [InlineData("target", "selected", "STAGE-ESM-031")]
-    [InlineData("release", "selected", "STAGE-ESM-032")]
-    [InlineData("target", "sibling", "STAGE-ESM-031")]
-    [InlineData("release", "sibling", "STAGE-ESM-032")]
+    [InlineData("target", "selected", "STAGE-ESM-032")]
+    [InlineData("release", "selected", "STAGE-ESM-033")]
+    [InlineData("target", "sibling", "STAGE-ESM-032")]
+    [InlineData("release", "sibling", "STAGE-ESM-033")]
     public void should_refuse_every_rendered_constraint_dependency(string reference, string owner, string code)
     {
         var original = SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan());

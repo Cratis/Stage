@@ -31,17 +31,17 @@ public class when_inspecting_event_references : Specification
     }
 
     [Theory]
-    [InlineData("constraint-target", "STAGE-ESM-031")]
-    [InlineData("constraint-release", "STAGE-ESM-032")]
-    [InlineData("reaction-trigger", "STAGE-ESM-031")]
-    [InlineData("reaction-production", "STAGE-ESM-031")]
-    [InlineData("capture-source", "STAGE-ESM-031")]
-    [InlineData("capture-append", "STAGE-ESM-031")]
-    [InlineData("capture-child", "STAGE-ESM-031")]
-    [InlineData("capture-nested", "STAGE-ESM-031")]
-    [InlineData("projection-target", "STAGE-ESM-031")]
-    [InlineData("reducer-target", "STAGE-ESM-031")]
-    [InlineData("reducer-transition", "STAGE-ESM-031")]
+    [InlineData("constraint-target", "STAGE-ESM-032")]
+    [InlineData("constraint-release", "STAGE-ESM-033")]
+    [InlineData("reaction-trigger", "STAGE-ESM-032")]
+    [InlineData("reaction-production", "STAGE-ESM-032")]
+    [InlineData("capture-source", "STAGE-ESM-032")]
+    [InlineData("capture-append", "STAGE-ESM-032")]
+    [InlineData("capture-child", "STAGE-ESM-032")]
+    [InlineData("capture-nested", "STAGE-ESM-032")]
+    [InlineData("projection-target", "STAGE-ESM-032")]
+    [InlineData("reducer-target", "STAGE-ESM-032")]
+    [InlineData("reducer-transition", "STAGE-ESM-032")]
     public void should_check_every_place_that_names_an_event_contract(string path, string code)
     {
         var append = _capture.Appends.Single() with { EventContract = _public.Id };

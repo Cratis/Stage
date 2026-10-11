@@ -12,8 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 public class when_refusing_syntax_public_events : a_multi_slice_application
 {
     [Theory]
-    [InlineData("public", "STAGE-ESM-031")]
-    [InlineData("foreign", "STAGE-ESM-032")]
+    [InlineData("public", "STAGE-ESM-032")]
+    [InlineData("foreign", "STAGE-ESM-033")]
     [InlineData("direction", "STAGE-ESM-024")]
     public async Task should_refuse_every_entrypoint_before_any_output(string form, string code)
     {

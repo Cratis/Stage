@@ -238,6 +238,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticEventSourceIdentity", rendered, "Type Value");
         Add(entries, "SemanticValue", rendered, "Kind");
         Add(entries, "SemanticTextValue", rendered, "Value");
+
+        // Whole-number values retain int32 output below v8; out-of-range literals fail STAGE-ESM-031.
+        // At v8 and later their declarations, sentinels and literals render as long.
         Add(entries, "SemanticNumberValue", rendered, "Value");
         Add(entries, "SemanticBooleanValue", rendered, "Value");
         Add(entries, "SemanticArrayValue", rendered, "Values");

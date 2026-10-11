@@ -33,7 +33,7 @@ public class when_refusing_the_canonical_public_events_corpus : Specification
 
     [Fact] void should_load_an_esm_v9_model() => _model.SemanticVersion.Major.ShouldEqual(9u);
     [Fact] void should_carry_a_public_event() => _model.Application.Modules.SelectMany(Slices).SelectMany(slice => slice.Events).Any(@event => @event.Visibility == SemanticEventVisibility.Public).ShouldBeTrue();
-    [Fact] void should_refuse_each_kind_of_construct() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-031", "STAGE-ESM-032"]);
+    [Fact] void should_refuse_each_kind_of_construct() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-032", "STAGE-ESM-033"]);
     [Fact] void should_admit_the_version_pair() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
     [Fact] void should_not_publish_a_partial_plan() => _plan.Success.ShouldBeFalse();
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();

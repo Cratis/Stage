@@ -54,12 +54,12 @@ internal static class SemanticVersionFeatures
     /// <summary>
     /// The code for ESM v9 public-event publication.
     /// </summary>
-    internal const string PublicEvents = "STAGE-ESM-031";
+    internal const string PublicEvents = "STAGE-ESM-032";
 
     /// <summary>
     /// The code for ESM v9 foreign events and events-source captures.
     /// </summary>
-    internal const string ForeignEvents = "STAGE-ESM-032";
+    internal const string ForeignEvents = "STAGE-ESM-033";
 
     /// <summary>
     /// Checks the language and semantic version pair Stage has audited.

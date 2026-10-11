@@ -17,8 +17,8 @@ public class when_refusing_public_event_syntax : Specification
     // Source-events captures require both a direction and an origin to compile; their isolated refusal is
     // covered by for_PublicEventSyntaxAdmission rather than a compound file-boundary case here.
     [Theory]
-    [InlineData("public", "STAGE-ESM-031")]
-    [InlineData("foreign", "STAGE-ESM-032")]
+    [InlineData("public", "STAGE-ESM-032")]
+    [InlineData("foreign", "STAGE-ESM-033")]
     [InlineData("direction", "STAGE-ESM-024")]
     public async Task should_exit_without_writing_results(string form, string code)
     {

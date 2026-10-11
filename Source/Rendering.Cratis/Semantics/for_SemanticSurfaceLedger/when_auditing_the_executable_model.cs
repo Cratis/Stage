@@ -44,15 +44,15 @@ public class when_auditing_the_executable_model : Specification
             $"Stale ({_stale.Length}): {string.Join(", ", _stale)}; Invalid ({_invalid.Length}): {string.Join(", ", _invalid)}");
 
     [Theory]
-    [InlineData("SemanticEventContract.Visibility", "STAGE-ESM-031")]
-    [InlineData("SemanticEventContract.Origin", "STAGE-ESM-032")]
-    [InlineData("SemanticEventVisibility.Public", "STAGE-ESM-031")]
-    [InlineData("SemanticProjection.Target", "STAGE-ESM-031")]
-    [InlineData("SemanticReducer.Target", "STAGE-ESM-031")]
-    [InlineData("SemanticProjectionTargetKind.Event", "STAGE-ESM-031")]
+    [InlineData("SemanticEventContract.Visibility", "STAGE-ESM-032")]
+    [InlineData("SemanticEventContract.Origin", "STAGE-ESM-033")]
+    [InlineData("SemanticEventVisibility.Public", "STAGE-ESM-032")]
+    [InlineData("SemanticProjection.Target", "STAGE-ESM-032")]
+    [InlineData("SemanticReducer.Target", "STAGE-ESM-032")]
+    [InlineData("SemanticProjectionTargetKind.Event", "STAGE-ESM-032")]
     [InlineData("SemanticSlice.Direction", "STAGE-ESM-024")]
-    [InlineData("SemanticCapture.EventsSource", "STAGE-ESM-032")]
-    [InlineData("SemanticCaptureEventsSource.Events", "STAGE-ESM-032")]
+    [InlineData("SemanticCapture.EventsSource", "STAGE-ESM-033")]
+    [InlineData("SemanticCaptureEventsSource.Events", "STAGE-ESM-033")]
     public void should_classify_v9_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
 
     static bool IsDiagnosticCode(string code) => code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) &&

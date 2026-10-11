@@ -28,7 +28,7 @@ internal static class SemanticCommonArtifactRenderer
         }
         else
         {
-            RenderConcept(builder, concept, name, context.IdentifierConcepts.Contains(concept.Id), context.RootNamespace);
+            RenderConcept(builder, concept, name, context.IdentifierConcepts.Contains(concept.Id), context.RootNamespace, new SemanticTypeSystem(context));
         }
 
         return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
@@ -63,9 +63,9 @@ internal static class SemanticCommonArtifactRenderer
         builder.EndBlock();
     }
 
-    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, bool isIdentifier, string rootNamespace)
+    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, bool isIdentifier, string rootNamespace, SemanticTypeSystem types)
     {
-        var primitive = SemanticTypeSystem.Primitive(concept.Primitive);
+        var primitive = types.Primitive(concept.Primitive);
         builder.Using("Cratis.Concepts");
         if (isIdentifier)
         {
@@ -75,12 +75,12 @@ internal static class SemanticCommonArtifactRenderer
         var baseType = isIdentifier ? $"global::Cratis.Chronicle.Events.EventSourceId<{primitive}>" : $"global::Cratis.Concepts.ConceptAs<{primitive}>";
         builder.Summary($"Represents {Identifiers.ToWords(concept.Name)}.")
             .OpenBlock($"public record {name}({primitive} Value) : {baseType}(Value)")
-            .Line($"public static readonly {name} NotSet = new({SemanticTypeSystem.NotSet(concept.Primitive)});")
+            .Line($"public static readonly {name} NotSet = new({types.NotSet(concept.Primitive)});")
             .BlankLine();
 
         if (isIdentifier)
         {
-            var value = concept.Primitive == SemanticPrimitiveType.Uuid ? "global::System.Guid.NewGuid()" : SemanticTypeSystem.NotSet(concept.Primitive);
+            var value = concept.Primitive == SemanticPrimitiveType.Uuid ? "global::System.Guid.NewGuid()" : types.NotSet(concept.Primitive);
             builder.Line($"public static {name} New() => new({value});").BlankLine();
         }
         else

@@ -33,6 +33,6 @@ public class when_refusing_public_events : Specification
     [Fact] void should_keep_the_frozen_reference_outcome() => _reference.Execution.Kind.ShouldEqual(PublicEventsCorpus.V9.SpecificationExpectations.Single().Outcome);
     [Fact] void should_refuse_stage_execution() => _stage.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
     [Fact] void should_name_the_translation_refusal() => _stage.Results.Single().Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_refuse_rendering_by_construct() => _rendered.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-031", "STAGE-ESM-032"]);
+    [Fact] void should_refuse_rendering_by_construct() => _rendered.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-032", "STAGE-ESM-033"]);
     [Fact] void should_emit_no_generated_specifications_or_other_artifacts() => _rendered.Artifacts.ShouldBeEmpty();
 }

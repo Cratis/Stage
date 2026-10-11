@@ -43,7 +43,7 @@ public class when_refusing_a_slice_referencing_a_public_event : Specification
         };
         var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application);
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Slice, selected.Id), new("Contracts", "Contracts"));
-        plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-031"]);
+        plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-032"]);
         plan.Artifacts.ShouldBeEmpty();
     }
 
@@ -60,7 +60,7 @@ public class when_refusing_a_slice_referencing_a_public_event : Specification
         var model = compilation.Value!.Model;
         var slice = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Shipments");
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Slice, slice.Id), new("Contracts", "Contracts"));
-        plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-031"]);
+        plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-032"]);
         plan.Artifacts.ShouldBeEmpty();
     }
 }

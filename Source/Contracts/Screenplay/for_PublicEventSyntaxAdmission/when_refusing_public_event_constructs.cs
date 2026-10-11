@@ -12,11 +12,11 @@ namespace Cratis.Stage.Contracts.Screenplay.for_PublicEventSyntaxAdmission;
 public class when_refusing_public_event_constructs : Specification
 {
     [Theory]
-    [InlineData("public event Published", "STAGE-ESM-031")]
-    [InlineData("event Published from \"producer\"", "STAGE-ESM-032")]
+    [InlineData("public event Published", "STAGE-ESM-032")]
+    [InlineData("event Published from \"producer\"", "STAGE-ESM-033")]
     [InlineData("direction outbound", "STAGE-ESM-024")]
     [InlineData("direction inbound", "STAGE-ESM-024")]
-    [InlineData("capture Import\n        source events\n          from Published", "STAGE-ESM-032")]
+    [InlineData("capture Import\n        source events\n          from Published", "STAGE-ESM-033")]
     public void should_refuse_before_legacy_translation(string construct, string code)
     {
         var source = "module Integration\n  feature Exchange\n    slice Translate Publish\n      " + construct;
@@ -44,8 +44,8 @@ public class when_refusing_public_event_constructs : Specification
     {
         switch (code)
         {
-            case "STAGE-ESM-031": error.ShouldBeOfExactType<UnsupportedPublicEvents>(); break;
-            case "STAGE-ESM-032": error.ShouldBeOfExactType<UnsupportedForeignEvents>(); break;
+            case "STAGE-ESM-032": error.ShouldBeOfExactType<UnsupportedPublicEvents>(); break;
+            case "STAGE-ESM-033": error.ShouldBeOfExactType<UnsupportedForeignEvents>(); break;
             default: error.ShouldBeOfExactType<UnsupportedTranslationDirection>(); break;
         }
         error.Message.StartsWith(code + ":", StringComparison.Ordinal).ShouldBeTrue();

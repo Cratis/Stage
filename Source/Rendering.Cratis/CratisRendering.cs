@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Cratis.Scene.Engine.Packages;
+using Cratis.Scene.Model.Packages;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -45,9 +47,38 @@ public static partial class CratisRendering
     public static string TargetVersion => Dependencies.CratisPackageVersion;
 
     /// <summary>
+    /// Gets the packages this target renders without any approval: the Scene core vocabulary, the Scene web
+    /// components and the Cratis component library the Stage frontend ships.
+    /// </summary>
+    /// <remarks>
+    /// This is the catalog a <c language="csharp">ui profile</c> is resolved against. A package outside it is only
+    /// renderable when the application approves it with an <see cref="ApprovedPackageSet"/>; use
+    /// <see cref="CatalogWith"/> to resolve against both.
+    /// </remarks>
+    public static IReadOnlyList<ScenePackage> ShippedPackages { get; } =
+    [
+        new("core", "1.0.0", PackageKind.ComponentLibrary, [], [], [], [], [], []),
+        new("scene.web", "1.0.0", PackageKind.ComponentLibrary, [], [], [], [], [], []),
+        new("Cratis.Components", Dependencies.FrontendPackageSet.ComponentsPackageVersion, PackageKind.ComponentLibrary, [], [], [], [], [], [])
+    ];
+
+    /// <summary>
+    /// Gets the names of <see cref="ShippedPackages"/>, which an approved package may not reuse.
+    /// </summary>
+    public static IReadOnlyList<string> ShippedPackageNames { get; } = [.. ShippedPackages.Select(package => package.Name)];
+
+    /// <summary>
     /// Gets the exact dependency and runtime pins carried by the current profile.
     /// </summary>
     public static CratisBackendApplicationScaffoldProfile Dependencies => CratisBackendApplicationScaffoldProfile.Current;
+
+    /// <summary>
+    /// Gets the catalog a <c language="csharp">ui profile</c> resolves against: the shipped packages and the approved ones.
+    /// </summary>
+    /// <param name="approvedPackages">The application's approved packages, or null for none.</param>
+    /// <returns>The shipped packages followed by the approved packages' manifests.</returns>
+    public static IReadOnlyList<ScenePackage> CatalogWith(ApprovedPackageSet? approvedPackages) =>
+        [.. ShippedPackages, .. approvedPackages?.Catalog ?? []];
 
     /// <summary>
     /// Creates the complete immutable target profile, including all exact backend and frontend scaffold bytes and hashes.
@@ -99,7 +130,31 @@ public static partial class CratisRendering
         CratisRenderingOptions options,
         Contracts.Scene.SceneApplication? scene,
         IReadOnlyDictionary<string, string>? stringsFiles,
-        string? defaultLocale)
+        string? defaultLocale) => CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, null);
+
+    /// <summary>
+    /// Creates the profile for an application whose frontend is also composed with custom runtime packages.
+    /// </summary>
+    /// <param name="applicationName">The semantic application name.</param>
+    /// <param name="options">The explicit project and namespace choices.</param>
+    /// <param name="scene">The optional composed Scene.</param>
+    /// <param name="stringsFiles">Relative file names and original contents of companion .strings files, or null for no catalog.</param>
+    /// <param name="defaultLocale">The locale required to contain every referenced message key.</param>
+    /// <param name="approvedPackages">The custom runtime packages the application approved, or null for none.</param>
+    /// <returns>The immutable Cratis render profile.</returns>
+    /// <remarks>
+    /// The set travels as the scaffold input <c language="shell">approved-packages.json</c>, and the frontend that installs and loads
+    /// those packages is generated from it, so admission can regenerate both from the document and refuse a profile that
+    /// differs. An application with no approved packages plans exactly what it planned before.
+    /// </remarks>
+    /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the options, strings input or approved packages are invalid.</exception>
+    public static ArtifactRenderProfile CreateProfile(
+        string applicationName,
+        CratisRenderingOptions options,
+        Contracts.Scene.SceneApplication? scene,
+        IReadOnlyDictionary<string, string>? stringsFiles,
+        string? defaultLocale,
+        ApprovedPackageSet? approvedPackages)
     {
         if (options is null)
         {
@@ -116,6 +171,11 @@ public static partial class CratisRendering
             options.ProjectName,
             options.RootNamespace,
             Dependencies);
+        if (approvedPackages is { IsEmpty: false })
+        {
+            request = request.WithApprovedPackages(approvedPackages);
+        }
+
         var backend = new CratisBackendApplicationScaffold().Create(request);
         var frontend = new CratisFrontendApplicationScaffold().Create(request);
         var composed = scene is null

@@ -80,6 +80,26 @@ class SpecShardsTests(unittest.TestCase):
                 run.return_value.stdout = "true\n"
                 SHARDS["guard_solution"](shards)
 
+    def test_shard_runs_every_project_and_reports_all_failures(self):
+        shard = {"name": "multi", "filter": "F", "projects": ["A/A.csproj", "B/B.csproj", "C/C.csproj"]}
+        exits = {"A": 1, "B": 0, "C": 3}
+
+        def fake_run(command, **kwargs):
+            return type("Completed", (), {"returncode": exits[Path(command[2]).stem]})()
+
+        work = SHARDS["ROOT"] / ".ai-work"
+        work.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="spec-shard-tests-", dir=work) as directory, \
+                patch.dict(SHARDS["run_shard"].__globals__, {"ROOT": Path(directory)}), \
+                patch("subprocess.run", side_effect=fake_run) as run, \
+                patch.dict(SHARDS["run_shard"].__globals__, {"require_executed": lambda path: None}):
+            with self.assertRaises(SystemExit) as raised:
+                SHARDS["run_shard"](shard)
+        self.assertEqual(3, run.call_count)
+        self.assertIn("A: dotnet test exited 1", str(raised.exception))
+        self.assertIn("C: dotnet test exited 3", str(raised.exception))
+        self.assertNotIn("B:", str(raised.exception))
+
     def test_trx_guard_rejects_empty_or_skipped_runs_and_accepts_execution(self):
         # All fixture files are task-owned, tiny, and cleaned by TemporaryDirectory.
         work = SHARDS["ROOT"] / ".ai-work"

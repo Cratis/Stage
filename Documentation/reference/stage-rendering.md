@@ -54,6 +54,13 @@ Moving an existing model from v7 to v8 widens stored event schemas from int32 to
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
 
+## Match patterns
+
+`matches` uses ECMAScript regular-expression semantics with culture-invariant matching and a one-second timeout.
+An unescaped `$` outside a character class means end of input, not the position before a final newline:
+`^[A-Z]{3}$` accepts `ABC` but rejects `ABC\n`. Escaped dollars and dollars inside character classes remain literal.
+The semantic executor, Host and generated C# validators use the same rule.
+
 ## Chrome
 
 The topbar, sidebar, menu, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them:

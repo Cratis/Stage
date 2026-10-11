@@ -2,6 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Semantics;
+using Microsoft.CodeAnalysis.CSharp;
+
+using CSharpLiteral = Microsoft.CodeAnalysis.CSharp.Syntax.LiteralExpressionSyntax;
 
 namespace Cratis.Stage.Rendering.Cratis.Validation;
 
@@ -37,7 +42,7 @@ public static class ValidationRuleRenderer
         ValidationRuleKind.LessThanOrEqual => $".LessThanOrEqualTo({value})",
         ValidationRuleKind.Equal => $".Equal({value})",
         ValidationRuleKind.Length => $".Length({value})",
-        ValidationRuleKind.Matches => $".Matches({value})",
+        ValidationRuleKind.Matches => RenderMatch(value),
         _ => null,
     };
 
@@ -48,4 +53,16 @@ public static class ValidationRuleRenderer
     /// <returns>The <c language="csharp">.WithMessage(...)</c> fragment, or an empty string when the rule has no message.</returns>
     public static string RenderMessage(ValidationRuleSyntax rule) =>
         rule.Message is null ? string.Empty : $".WithMessage(\"{rule.Message.Replace("\"", "\\\"", StringComparison.Ordinal)}\")";
+
+    static string RenderMatch(string value)
+    {
+        if (SyntaxFactory.ParseExpression(value) is not CSharpLiteral literal || literal.RawKind != (int)SyntaxKind.StringLiteralExpression)
+        {
+            return $".Matches({value})";
+        }
+
+        var pattern = CSharpCodeBuilder.StringLiteral(SemanticMatchAnchors.Portable(literal.Token.ValueText));
+
+        return $".Matches(new global::System.Text.RegularExpressions.Regex({pattern}, global::System.Text.RegularExpressions.RegexOptions.ECMAScript | global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.TimeSpan.FromSeconds(1)))";
+    }
 }

@@ -16,7 +16,7 @@ public class a_refused_browser_page : Specification
 
     async Task Establish()
     {
-        _webRoot = Path.GetFullPath(Path.Combine(".ai-work", "228", $"refused-browser-{Guid.NewGuid():N}"));
+        _webRoot = Path.Combine(Path.GetTempPath(), $"stage-refused-browser-{Guid.NewGuid():N}");
         Directory.CreateDirectory(Path.Combine(_webRoot, "assets"));
         await File.WriteAllTextAsync(Path.Combine(_webRoot, "index.html"), "<html>Read models</html>");
         await File.WriteAllTextAsync(Path.Combine(_webRoot, "assets", "browser.js"), "console.log('browser');");

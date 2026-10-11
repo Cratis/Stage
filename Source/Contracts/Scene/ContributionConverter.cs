@@ -46,11 +46,6 @@ public static class ContributionConverter
     {
         new UiSyntaxAdmission().VisitNode(contribution);
         var properties = new Dictionary<string, object?>();
-        if (contribution.Group is not null)
-        {
-            properties["group"] = contribution.Group;
-        }
-
         if (contribution.Label is not null)
         {
             properties["label"] = contribution.Label;
@@ -62,8 +57,15 @@ public static class ContributionConverter
             properties["routeParameterBindings"] = contribution.Navigate.By is null
                 ? []
                 : new Dictionary<string, SceneCommon.BindingExpression> { [contribution.Navigate.By] = new(contribution.Navigate.By) };
-            properties[SceneElementProperties.Destination] = CompositionConverter.Destination(contribution.Navigate);
         }
+
+        // The rest of Scene's NavigationItem: the stable id, the icon, the presentation hint, the group and where it opens.
+        // An item that names none of them carries none, so a plain entry is exactly what it was.
+        if (contribution.Id is not null) properties["id"] = contribution.Id;
+        if (contribution.Icon is not null) properties["icon"] = contribution.Icon;
+        if (contribution.Presentation is not null) properties["presentation"] = contribution.Presentation;
+        if (contribution.Group is not null) properties["group"] = contribution.Group;
+        if (DestinationOf(contribution) is { } destination) properties[SceneElementProperties.Destination] = destination;
 
         if (hierarchy.Count > 0)
         {
@@ -86,15 +88,47 @@ public static class ContributionConverter
     /// a feature-level contribution's element carries its navigation entry, so a contribution point receives one
     /// element per contribution whatever was written inside it.
     /// </remarks>
-    public static SceneContributionPoints.Contribution Convert(ScreenplaySyntax.ScreenContributionSyntax contribution, string id, BehaviorScope? behaviors)
+    public static SceneContributionPoints.Contribution Convert(ScreenplaySyntax.ScreenContributionSyntax contribution, string id, BehaviorScope? behaviors) =>
+        Convert(contribution, id, behaviors, []);
+
+    /// <summary>
+    /// Converts a <c language="csharp">contribute to</c> block written inside a screen, recording where the screen sits.
+    /// </summary>
+    /// <param name="contribution">The screen contribution syntax.</param>
+    /// <param name="id">The id the contributed content element is given.</param>
+    /// <param name="behaviors">What a <c language="csharp">uses</c> clause inside the contribution resolves against.</param>
+    /// <param name="hierarchy">The modules and features, outermost first, the screen was declared in.</param>
+    /// <returns>The Scene contribution, carrying the hierarchy of the screen that contributed it.</returns>
+    public static SceneContributionPoints.Contribution Convert(ScreenplaySyntax.ScreenContributionSyntax contribution, string id, BehaviorScope? behaviors, IReadOnlyList<string> hierarchy)
     {
         var content = SceneElementFactory.Component(
             id,
             "core:contribution",
+            hierarchy.Count > 0 ? new Dictionary<string, object?> { [SceneElementProperties.Hierarchy] = hierarchy.ToArray() } : null,
             slots: new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal)
             {
                 [ContentSlot] = ScreenDirectiveConverter.Convert(contribution.Directives, id, behaviors)
             });
         return new SceneContributionPoints.Contribution(contribution.ContributionPoint, content, contribution.Order);
+    }
+
+    static SceneCommon.DestinationReference? DestinationOf(ScreenplaySyntax.ContributionSyntax contribution)
+    {
+        var navigate = contribution.Navigate is null ? null : CompositionConverter.Destination(contribution.Navigate);
+        if (contribution.Destination is not { } destination)
+        {
+            return navigate;
+        }
+
+        // `destination outlet|dialog|external <target>` says where the entry opens; a `navigate to` beside it supplies the screen
+        // and parameters, so the two compose instead of one hiding the other.
+        var opens = navigate ?? new SceneCommon.DestinationReference(RouteParameterBindings: new Dictionary<string, SceneCommon.BindingExpression>());
+        return destination.Kind switch
+        {
+            ScreenplaySyntax.ContributionDestinationKind.Outlet => opens with { Outlet = destination.Target, Kind = SceneCommon.DestinationKind.Outlet },
+            ScreenplaySyntax.ContributionDestinationKind.Dialog => opens with { Dialog = destination.Target, Kind = SceneCommon.DestinationKind.Dialog },
+            ScreenplaySyntax.ContributionDestinationKind.External => opens with { Route = destination.Target, Kind = SceneCommon.DestinationKind.External },
+            _ => throw new UnknownCompositionValue("contribution destination", destination.Kind.ToString()),
+        };
     }
 }

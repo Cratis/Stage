@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ExternalComponent, Screen } from '@cratis/scene.model';
 import { composeStageScreen } from './App';
-import { authoredNavigationEntries, navigationPathTo, navigationTree } from './navigationTree';
+import { authoredNavigationEntries, navigationPathTo, navigationTree, unlistedNavigationEntries } from './navigationTree';
 
 const contribution = (label: string, targetScreen: string, hierarchy: string[], order?: number) => ({
     contributionPointName: 'Navigation',
@@ -42,6 +42,20 @@ describe('the authored navigation hierarchy', () => {
         expect(navigationPathTo(tree, 'Unlisted')).toEqual([]);
     });
 
+    it('carries what the entry was authored with: icon, presentation and where it opens', () => {
+        const dialog = { ...contribution('Help', 'HelpScreen', ['Crm']), content: { ...contribution('Help', 'HelpScreen', ['Crm']).content, properties: { label: 'Help', targetScreen: 'HelpScreen', hierarchy: ['Crm'], icon: 'help', presentation: 'icon', destination: { dialog: 'HelpDialog', kind: 'dialog', routeParameterBindings: {} } } } };
+        const help = authoredNavigationEntries([screen('HelpScreen', [dialog])])[0];
+        expect([help.icon, help.presentation, help.destination?.dialog]).toEqual(['help', 'icon', 'HelpDialog']);
+        const [crm] = navigationTree([help]);
+        expect([crm.children[0].icon, crm.children[0].presentation, crm.children[0].destination?.dialog]).toEqual(['help', 'icon', 'HelpDialog']);
+    });
+
+    it('does not mistake an entry that simply opens its screen for one that opens elsewhere', () => {
+        const plain = contribution('Plain', 'Plain', []);
+        const withDestination = { ...plain, content: { ...plain.content, properties: { ...plain.content.properties, destination: { screen: 'Plain', routeParameterBindings: {} } } } };
+        expect(authoredNavigationEntries([screen('Plain', [withDestination])])[0].destination).toBeUndefined();
+    });
+
     it('orders by the authored order, not by the screen order', () => {
         const entries = authoredNavigationEntries([screen('B', [contribution('B', 'B', [], 1)]), screen('A', [contribution('A', 'A', [], 0)])]);
         expect(entries.map(_ => _.targetScreen)).toEqual(['A', 'B']);
@@ -70,6 +84,22 @@ describe('composing a screen with authored navigation', () => {
         expect(nodes.at(-1)?.label).toBe('Other screens');
         expect(nodes.at(-1)?.children.map(_ => _.screen)).toEqual(['AuditLog']);
         expect((slot(composed, 'breadcrumb')[0].properties.items as { label: string }[]).map(_ => _.label)).toEqual(['AuditLog']);
+    });
+
+    it('places a screen no entry lists under the module and feature it was declared in', () => {
+        const placed = { ...screen('InvoiceAudit', []), path: ['Invoicing', 'Browsing'] } as Screen;
+        const withUnlisted = [...screens, placed];
+        const composed = composeStageScreen({ layouts: [], screenTemplates: [], screens: withUnlisted } as never, placed, [], '') as unknown as ExternalComponent;
+        const nodes = slot(composed, 'menu')[0].properties.nodes as { label: string; children: { label: string; screen?: string; children: { label: string; screen?: string }[] }[] }[];
+        const browsing = nodes[0].children[0];
+        expect(nodes.map(_ => _.label)).toEqual(['Invoicing', 'Crm']);
+        expect(browsing.children.map(_ => _.screen ?? _.label)).toEqual(['InvoiceList', 'Details', 'InvoiceAudit']);
+        expect((slot(composed, 'breadcrumb')[0].properties.items as { label: string }[]).map(_ => _.label)).toEqual(['Invoicing', 'Browsing', 'InvoiceAudit']);
+    });
+
+    it('lists the unlisted screens with no recorded place under the fallback group', () => {
+        const entries = unlistedNavigationEntries([...screens, screen('AuditLog', [])], new Set(['InvoiceList', 'InvoiceDetails', 'CustomerList']), 'Other screens');
+        expect(entries.map(_ => [_.targetScreen, _.hierarchy])).toEqual([['AuditLog', ['Other screens']]]);
     });
 
     it('keeps the flat list of screens when the model authored no navigation', () => {

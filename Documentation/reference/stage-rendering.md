@@ -107,10 +107,33 @@ the screen it opens; the current screen is marked, and the breadcrumb shows the 
 entry reaches the runtime on every screen of that feature and is shown once. A model with no navigation entries keeps
 the flat list of screens.
 
-Navigation contributions carrying `id`, `icon`, `presentation`, or `destination outlet|dialog|external` are
-refused with `STAGE-SCENE-UI-001`, naming the unsupported field: the pinned Scene runtime does not honor
-these fields. A contribution's `group` is preserved in Scene output; Stage's menu still uses the authored
-module and feature hierarchy described above.
+A navigation entry carries everything it was authored with. Its `id`, `icon`, `presentation` and `group` reach the
+runtime, and a `destination outlet|dialog|external` composes with its `navigate to` into one Scene destination: the
+entry opens in the named outlet, opens the named dialog, or leaves the application. The `presentation` hint decides
+what the menu shows - `icon`, `text` or `both` (the default) - and an icon-only entry keeps its label as its accessible
+name. An entry that opens somewhere a plain link does not reach is executed by the Scene navigation host, the same as a
+toolbar item.
+
+A module's own `contribute to` reaches every screen beneath the module, recorded against the module alone, and a
+`contribute to` written inside a screen records the module and features the screen sits in. Every screen carries
+that place as `path`: the modules and features, outermost first, it was declared in. A screen no entry lists is
+shown under its own module and feature - beside the entries that do list screens there - instead of a single
+"Other screens" group, and the breadcrumb leads to it through that place. Only a screen declared outside any module
+has no place to be under and goes under "Other screens".
+
+### Navigation host, outlets, dialogs and toolbars
+
+The Stage does not keep a navigation state of its own. Where the user is - the screen in the primary region, the screens
+in nested outlets, the dialog on top - and the address (`#/Screen?parameter=value`) that reaches it belong to the Scene
+navigation host (`useSceneHistoryNavigation` over `createHashSceneHistory`), the same way a generated or embedded host
+runs them. Destinations resolve through Scene: a `core:outlet` renders the screen placed in it inside the Stage's data
+scope, a dialog destination opens the authored dialog template and closing it goes back, and an address that stands for an
+outlet destination restores the whole composition (the list with its details beside it), not just the details.
+
+A `toolbar` renders as `core:toolbar` with a `core:toolbarItem` for each item. An `action` item announces its command with
+its parameters read from the screen; a `navigate` or `dialog` item carries the destination it opens (`navigate` to the screen,
+or the dialog template) and executes it through the host. An item's `presentation` is honoured: `mode` is `icon`, `text` or
+`both`, and every other hint (`placement`, `density`, ...) is exposed to themes as a `data-scene-presentation-<name>` attribute.
 
 Themes are the blueprint's (`Scene Default Light` and `Scene Default Dark`). The active theme's colour scheme is
 mirrored onto the document root so PrimeReact overlays, which are portalled to `body`, follow it.

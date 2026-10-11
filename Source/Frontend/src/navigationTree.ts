@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { Screen } from '@cratis/scene.model';
+import type { DestinationReference, Screen } from '@cratis/scene.model';
 
 /** The contribution point the application's navigation is contributed to. */
 export const navigationContributionPoint = 'Navigation';
@@ -13,6 +13,12 @@ export interface NavigationEntry {
     /** The module and features, outermost first, the entry was declared in. */
     hierarchy: string[];
     order?: number;
+    /** The icon the entry was authored with. */
+    icon?: string;
+    /** How chrome shows the entry - `icon`, `text` or `both`; any other value is a hint the theme may read. */
+    presentation?: string;
+    /** Where the entry opens when that is not simply the screen: an outlet, a dialog or an external route. */
+    destination?: DestinationReference;
 }
 
 /** A node of the navigation tree: a group (module or feature) with children, or an entry that opens a screen. */
@@ -20,6 +26,9 @@ export interface NavigationNode {
     label: string;
     /** The screen the node opens; absent on a group. */
     screen?: string;
+    icon?: string;
+    presentation?: string;
+    destination?: DestinationReference;
     children: NavigationNode[];
 }
 
@@ -48,7 +57,16 @@ export function authoredNavigationEntries(screens: Screen[]): NavigationEntry[] 
             if (seen.has(key)) continue;
             seen.add(key);
             const order = contribution.order ?? (typeof properties.order === 'number' ? properties.order : undefined);
-            entries.push({ label, targetScreen, hierarchy, order });
+            const destination = isDestination(properties.destination) ? properties.destination : undefined;
+            entries.push({
+                label,
+                targetScreen,
+                hierarchy,
+                order,
+                ...(typeof properties.icon === 'string' ? { icon: properties.icon } : {}),
+                ...(typeof properties.presentation === 'string' ? { presentation: properties.presentation } : {}),
+                ...(destination && opensElsewhere(destination) ? { destination } : {}),
+            });
         }
     }
 
@@ -80,7 +98,14 @@ export function navigationTree(entries: NavigationEntry[]): NavigationNode[] {
             parent = group;
         }
 
-        parent.children.push({ label: entry.label, screen: entry.targetScreen, children: [] });
+        parent.children.push({
+            label: entry.label,
+            screen: entry.targetScreen,
+            ...(entry.icon ? { icon: entry.icon } : {}),
+            ...(entry.presentation ? { presentation: entry.presentation } : {}),
+            ...(entry.destination ? { destination: entry.destination } : {}),
+            children: [],
+        });
     }
 
     return root.children;
@@ -101,4 +126,35 @@ export function navigationPathTo(nodes: NavigationNode[], screen: string): strin
     }
 
     return [];
+}
+
+function isDestination(value: unknown): value is DestinationReference {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** Whether an entry opens somewhere a plain link to its screen does not reach: an outlet, a dialog or an external route. */
+export function opensElsewhere(destination: DestinationReference): boolean {
+    return destination.outlet !== undefined || destination.dialog !== undefined || destination.kind === 'external' || destination.kind === 'dialog';
+}
+
+/**
+ * The hierarchy the screens declare, for the screens no navigation entry lists.
+ *
+ * A screen records the modules and features it was declared in, so one the model gave no entry still has a place:
+ * under its own module and feature, beside the entries that do list screens there. A screen declared outside any
+ * module has no place to be under, and goes with the other screens that have none.
+ *
+ * @param screens The scene's screens.
+ * @param listed The names of the screens an authored entry opens.
+ * @param fallback The group a screen with no recorded place goes under.
+ * @returns One entry for every unlisted screen, labelled with its own name.
+ */
+export function unlistedNavigationEntries(screens: Screen[], listed: ReadonlySet<string>, fallback: string): NavigationEntry[] {
+    return screens
+        .filter(screen => !listed.has(screen.name))
+        .map(screen => ({
+            label: screen.name,
+            targetScreen: screen.name,
+            hierarchy: screen.path && screen.path.length > 0 ? [...screen.path] : [fallback],
+        }));
 }

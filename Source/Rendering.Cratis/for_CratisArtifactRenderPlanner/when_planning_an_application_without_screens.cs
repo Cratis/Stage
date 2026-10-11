@@ -74,7 +74,11 @@ public class when_planning_an_application_without_screens : a_register_project_r
     /// and <c language="shell">visible</c>, which the Scene engine's strict comparisons never matched. The assertions
     /// below name that difference.
     /// </remarks>
-    [Fact] void should_freeze_the_complete_default_scene_bytes() => Artifact(SceneCompositionInput.RelativePath)!.Sha256.ShouldEqual("ef3d8a392ed42a9fae94f718c3e5a78fbded6248dba2fbdd4b271263124f6dd8");
+    /// <remarks>
+    /// The hash moved once more because every screen now records where it sits in the application hierarchy as <c language="shell">path</c>
+    /// - empty for the screens synthesized here, which sit in no module.
+    /// </remarks>
+    [Fact] void should_freeze_the_complete_default_scene_bytes() => Artifact(SceneCompositionInput.RelativePath)!.Sha256.ShouldEqual("ee82daa8444621ebc017c1811db37d4a71460c4f2cd9120485e71f67c3fdd996");
 
     [Fact] void should_spell_alignment_as_the_scene_model_does() =>
         _elements.All(element => element.GetProperty("horizontalAlignment").GetString() == "Stretch" && element.GetProperty("verticalAlignment").GetString() == "Stretch").ShouldBeTrue();

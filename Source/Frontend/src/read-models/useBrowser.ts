@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { useEffect, useState } from 'react';
-import { stageEndpoints } from '../stageSource';
+import { endpoints } from './endpoints';
 import type { BrowserState } from './BrowserState';
 import type { Detail } from './Detail';
 import type { Summary } from './Summary';
@@ -45,8 +45,8 @@ export function useBrowser() {
         const controller = new AbortController();
         const load = async () => {
             try {
-                const list = await read<{ readModels: Summary[] }>(stageEndpoints.readModels, controller.signal, false);
-                const detail = selectedId ? await read<Detail>(stageEndpoints.readModel(selectedId), controller.signal, true) : undefined;
+                const list = await read<{ readModels: Summary[] }>(endpoints.readModels, controller.signal, false);
+                const detail = selectedId ? await read<Detail>(endpoints.readModel(selectedId), controller.signal, true) : undefined;
                 if (!controller.signal.aborted) setState({ loading: false, readModels: list.readModels, detail });
             } catch (error) {
                 if (!controller.signal.aborted) setState({ loading: false, message: error instanceof Error ? error.message : 'Could not read the session\'s read models.' });

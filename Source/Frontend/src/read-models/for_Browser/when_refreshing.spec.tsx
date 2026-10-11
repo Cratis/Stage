@@ -4,6 +4,7 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { detail, renderBrowser, response, serve } from './given/a_browser';
+import { endpoints } from '../endpoints';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -13,7 +14,7 @@ describe('when refreshing a selected read model', () => {
         renderBrowser();
         fireEvent.click(await screen.findByRole('button', { name: 'ProjectSummary' }));
         await screen.findByText('Screenplay');
-        fetch.mockImplementation(input => Promise.resolve(String(input) === 'stage/read-models'
+        fetch.mockImplementation(input => Promise.resolve(String(input) === endpoints.readModels
             ? response({ readModels: [{ ...detail, module: 'Projects', feature: 'Registration', slice: 'ProjectLookup', instances: 2 }] })
             : response({ ...detail, instances: [{ key: 'new-key', values: { name: 'Updated' } }] })));
         fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));

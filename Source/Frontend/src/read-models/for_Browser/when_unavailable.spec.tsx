@@ -4,6 +4,7 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { detail, renderBrowser, response, serve } from './given/a_browser';
+import { endpoints } from '../endpoints';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -40,7 +41,7 @@ describe('when the read-model request is unavailable', () => {
         const fetch = serve();
         renderBrowser();
         await screen.findByRole('button', { name: 'ProjectSummary' });
-        fetch.mockImplementation(input => Promise.resolve(String(input) === 'stage/read-models' ? response({ readModels: [] }) : response({}, 404)));
+        fetch.mockImplementation(input => Promise.resolve(String(input) === endpoints.readModels ? response({ readModels: [] }) : response({}, 404)));
         fireEvent.click(screen.getByRole('button', { name: 'ProjectSummary' }));
         expect((await screen.findByRole('alert')).textContent).toBe('The selected read model was not found.');
     });

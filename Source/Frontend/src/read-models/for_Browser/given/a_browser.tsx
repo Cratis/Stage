@@ -5,6 +5,7 @@ import { render } from '@testing-library/react';
 import { PrimeReactProvider } from '@primereact/core/config';
 import { vi } from 'vitest';
 import { Browser } from '../../Browser';
+import { endpoints } from '../../endpoints';
 import type { Summary } from '../../Summary';
 import type { Detail } from '../../Detail';
 import { stageTheme } from '../../../stageTheme';
@@ -24,7 +25,7 @@ export function response(body: unknown, status = 200): Response {
 
 export function serve(models: Summary[] = [model], selected = detail) {
     const fetch = vi.fn((input: RequestInfo | URL) => Promise.resolve(
-        String(input).endsWith('/stage/read-models') || String(input) === 'stage/read-models'
+        String(input).endsWith(`/${endpoints.readModels}`) || String(input) === endpoints.readModels
             ? response({ readModels: models }) : response(selected)));
     vi.stubGlobal('fetch', fetch);
     return fetch;

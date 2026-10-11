@@ -8,6 +8,8 @@ import 'primeicons/primeicons.css';
 import '@cratis/scene.primereact/primeReactTheme.css';
 import { App } from './App';
 import { stageTheme } from './stageTheme';
+import { Browser } from './read-models/Browser';
+import { isBrowserPath } from './read-models/path';
 
 // PrimeReact 11 verifies a license key at runtime and otherwise renders a permanent "Invalid PrimeUI
 // License" banner over the application. The key itself is the PRIMEUI_LICENSE GitHub secret, the same one
@@ -20,7 +22,7 @@ const primeUiLicense = import.meta.env.STAGE_PRIMEUI_LICENSE || '';
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <PrimeReactProvider license={primeUiLicense} theme={stageTheme}>
-            <App />
+            {isBrowserPath(window.location.pathname) ? <Browser /> : <App />}
         </PrimeReactProvider>
     </StrictMode>,
 );

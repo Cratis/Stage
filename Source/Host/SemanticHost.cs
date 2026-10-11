@@ -79,6 +79,7 @@ internal static class SemanticHost
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
         SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
+        SemanticReadModelBrowser.Map(app, app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null);
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();
@@ -206,6 +207,12 @@ internal static class SemanticHost
             Engine = engine, Issues = issues
         });
         app.MapPost(SemanticSpecificationRuns.Route, (HttpContext context) => RefusedResponse(context, issues));
+        if (engine == "semantic")
+        {
+            app.MapGet(SemanticReadModelBrowser.Route, (HttpContext context) => RefusedResponse(context, issues));
+            app.MapGet($"{SemanticReadModelBrowser.Route}/{{id}}", (HttpContext context, string id) => RefusedResponse(context, issues));
+            app.MapFallbackToFile("index.html");
+        }
         MapRefusedApi(app, issues);
     }
 

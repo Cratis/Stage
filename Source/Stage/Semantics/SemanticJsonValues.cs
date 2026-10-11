@@ -9,13 +9,44 @@ using Cratis.Stage.Runtime;
 namespace Cratis.Stage.Semantics;
 
 /// <summary>
-/// The exception that is thrown when an incoming JSON value cannot be bound to its semantic contract.
+/// Converts semantic values to JSON-compatible values for the live runtime's HTTP surfaces.
 /// </summary>
-/// <param name="details">The reason the value cannot be bound.</param>
-public sealed class UnsupportedSemanticValue(string details = "The command payload contains an unsupported semantic value.") : Exception(details);
-
-internal static class SemanticJsonValues
+public static class SemanticJsonValues
 {
+    /// <summary>
+    /// Converts a scalar semantic value or an array of scalar values to JSON-compatible values.
+    /// </summary>
+    /// <param name="value">The semantic value.</param>
+    /// <returns>The corresponding JSON-compatible value.</returns>
+    /// <exception cref="UnsupportedSemanticValue">The value requires a composite type contract.</exception>
+    public static object? ToObject(SemanticValue value) => ToObject(value, null, null);
+
+    /// <summary>
+    /// Converts a semantic value, resolving composite property names from its type contract.
+    /// </summary>
+    /// <param name="value">The semantic value.</param>
+    /// <param name="type">The declared type, when the value can contain composites.</param>
+    /// <param name="application">The application declaring the composite types.</param>
+    /// <returns>The corresponding JSON-compatible value.</returns>
+    /// <exception cref="UnsupportedSemanticValue">The value cannot be converted with the supplied contract.</exception>
+    public static object? ToObject(SemanticValue value, SemanticTypeReference? type, SemanticApplication? application) => value switch
+    {
+        SemanticNullValue => null,
+        SemanticTextValue text => text.Value,
+        SemanticNumberValue number => number.Value,
+        SemanticBooleanValue boolean => boolean.Value,
+        SemanticArrayValue array => array.Values.Select(item => ToObject(item, type is null ? null : type with { IsCollection = false }, application)).ToArray(),
+        SemanticCompositeValue composite when type?.Kind == SemanticTypeReferenceKind.CompositeType && application is not null =>
+            composite.Properties.ToDictionary(
+                entry => application.Types.Single(candidate => candidate.Id == type.Target).Properties.Single(property => property.Id == entry.TargetProperty).Name,
+                entry =>
+                {
+                    var property = application.Types.Single(candidate => candidate.Id == type.Target).Properties.Single(candidate => candidate.Id == entry.TargetProperty);
+                    return ToObject(entry.Value, property.Type, application);
+                }),
+        _ => throw new UnsupportedSemanticValue()
+    };
+
     internal static ImmutableArray<SemanticPropertyValue> Bind(
         IEnumerable<SemanticProperty> properties,
         IReadOnlyDictionary<string, JsonElement> payload,
@@ -62,26 +93,6 @@ internal static class SemanticJsonValues
         return BindUntyped(value);
     }
 
-    internal static object? ToObject(SemanticValue value) => ToObject(value, null, null);
-
-    internal static object? ToObject(SemanticValue value, SemanticTypeReference? type, SemanticApplication? application) => value switch
-    {
-        SemanticNullValue => null,
-        SemanticTextValue text => text.Value,
-        SemanticNumberValue number => number.Value,
-        SemanticBooleanValue boolean => boolean.Value,
-        SemanticArrayValue array => array.Values.Select(item => ToObject(item, type is null ? null : type with { IsCollection = false }, application)).ToArray(),
-        SemanticCompositeValue composite when type?.Kind == SemanticTypeReferenceKind.CompositeType && application is not null =>
-            composite.Properties.ToDictionary(
-                entry => application.Types.Single(candidate => candidate.Id == type.Target).Properties.Single(property => property.Id == entry.TargetProperty).Name,
-                entry =>
-                {
-                    var property = application.Types.Single(candidate => candidate.Id == type.Target).Properties.Single(candidate => candidate.Id == entry.TargetProperty);
-                    return ToObject(entry.Value, property.Type, application);
-                }),
-        _ => throw new UnsupportedSemanticValue()
-    };
-
     static SemanticValue BindUntyped(JsonElement value) => value.ValueKind switch
     {
         JsonValueKind.String => SemanticValue.Text(value.GetString()!),
@@ -95,3 +106,9 @@ internal static class SemanticJsonValues
         _ => throw new UnsupportedSemanticValue()
     };
 }
+
+/// <summary>
+/// The exception that is thrown when an incoming JSON value cannot be bound to its semantic contract.
+/// </summary>
+/// <param name="details">The reason the value cannot be bound.</param>
+public sealed class UnsupportedSemanticValue(string details = "The command payload contains an unsupported semantic value.") : Exception(details);

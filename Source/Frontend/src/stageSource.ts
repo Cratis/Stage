@@ -34,6 +34,8 @@ export const stageEndpoints = {
     routes: 'stage/routes',
     locales: 'stage/locales',
     strings: (locale: string) => `stage/strings/${encodeURIComponent(locale)}`,
+    readModels: 'stage/read-models',
+    readModel: (id: string) => `stage/read-models/${encodeURIComponent(id)}`,
 };
 
 /** Reads everything from the endpoints a running Stage host serves. */

@@ -126,6 +126,8 @@ if (warmMode)
     return;
 }
 
+SemanticReadModelBrowser.MapEventModel(app);
+
 if (issues.Count > 0)
 {
     SemanticHost.MapRefused(app, issues, StageRuntimeEngineSelection.Name(engine));

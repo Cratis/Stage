@@ -29,6 +29,19 @@ internal static class SemanticPolicyEvaluator
         return Authorization(authorization, plan, caller, principal, artifact, subject, command.Properties);
     }
 
+    internal static bool Allows(SemanticKeyedQuery query, SemanticValue key, SemanticExecutionPlan plan, SemanticCaller? caller)
+    {
+        if (query.Authorization is null) return true;
+        if (caller is not { Roles.IsDefault: false, Claims.IsDefault: false }) return false;
+        var artifact = query.Argument is null
+            ? new Dictionary<string, SemanticValue>(StringComparer.Ordinal)
+            : new Dictionary<string, SemanticValue>(StringComparer.Ordinal) { [query.Argument.Name] = key };
+        var properties = query.Argument is null ? Array.Empty<SemanticProperty>()
+            : [new SemanticProperty(query.Argument.Id, query.Argument.Name, query.Argument.Type, false)];
+
+        return Authorization(query.Authorization, plan, caller, Principal(caller), artifact, key, properties);
+    }
+
     static bool Authorization(SemanticAuthorization authorization, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties) => authorization switch
     {
         // As in Screenplay's reference evaluator, only a definite true allows: an unknown policy result denies.

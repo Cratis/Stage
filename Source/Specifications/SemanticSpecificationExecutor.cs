@@ -150,6 +150,11 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
         }
 
+        if (command is null)
+        {
+            return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
+        }
+
         var caller = specification.GivenCaller;
         var principal = caller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.Principal(caller);
         var allowed = SemanticPolicyEvaluator.Allows(command!.Authorization, plan, caller, principal, command, specification);
@@ -215,9 +220,9 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
     }
 
-    static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, string message, string? code = null)
+    static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, string message, string? code = null, bool denied = false)
     {
-        var failures = SemanticExpectationComparer.Compare(specification, [], [], message, code);
+        var failures = SemanticExpectationComparer.Compare(specification, [], [], message, code, denied);
         return Record(slice, specification, failures.Count == 0 ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed, "Rejected", failures: failures, trace: new SemanticExecutionTrace([], new Dictionary<string, string>(), new Dictionary<string, string>(), message) { RejectionCode = code });
     }
 
@@ -231,8 +236,15 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
 
         var facts = context.Facts.Skip(specification.GivenEvents.Length).ToArray();
         var destinations = context.Destinations.Skip(specification.GivenEvents.Length).ToArray();
-        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, null, plan: plan).ToList();
         var projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
+        foreach (var assertion in specification.ThenQueries)
+        {
+            if (!SemanticPolicyEvaluator.Allows(plan.Queries[assertion.Query], assertion.Key, plan, specification.GivenCaller))
+            {
+                return Rejected(slice, specification, "Caller is not authorized.", denied: true);
+            }
+        }
+        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, null, plan: plan).ToList();
         failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
         var trace = new SemanticExecutionTrace(
             [.. facts.Select((fact, index) => new SemanticTraceFact(

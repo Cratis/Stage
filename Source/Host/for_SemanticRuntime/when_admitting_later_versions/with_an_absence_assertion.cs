@@ -17,20 +17,26 @@ public class with_an_absence_assertion : Specification
     void Establish() => _plan = compiled_plan.From("""
         module Billing
           feature Invoices
+            slice StateChange Registration
+              command RegisterInvoice
+                invoiceId String identifier
+                description String
+                produces InvoiceRegistered
+                  for invoiceId
+                  description = description
+              event InvoiceRegistered
+                description String
             slice StateView InvoiceLookup
-              event InvoiceRemoved
-                invoiceId String
               readmodel InvoiceView
                 invoiceId String
-              query InvoiceById => InvoiceView?
+                description String
+              query InvoiceById => InvoiceView optional
                 by invoiceId String
               projection Invoices => InvoiceView
-                remove with InvoiceRemoved key invoiceId
-              specification RemovingAnInvoice
-                given readmodel InvoiceView
-                  invoiceId = "first"
-                when append InvoiceRemoved
-                  invoiceId = "first"
+                from InvoiceRegistered
+                  invoiceId = $eventSourceId
+                  description = description
+              specification AnUnregisteredInvoiceIsAbsent
                 then no readmodel InvoiceView for "first"
         """);
 
@@ -38,7 +44,6 @@ public class with_an_absence_assertion : Specification
 
     [Fact] void should_compile_an_esm_v5_model() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V5);
     [Fact] void should_not_block_the_model_for_a_live_specification() => _admission.Blocking.ShouldBeEmpty();
-    [Fact] void should_report_the_absence_assertion_precisely() => _admission.Entries.Single(entry => entry.Kind == "specification").Details
-        .ShouldEqual("STAGE-ESM-027: Specification 'RemovingAnInvoice' asserts a read model is absent (ESM v5); the generated ReadModelScenario exposes only a materialized record, so Stage does not support absence yet.");
-    [Fact] void should_report_the_projection_capability() => _admission.Entries.Single(entry => entry.Kind == "specification").Capability.ShouldEqual("Projection");
+    [Fact] void should_admit_the_absence_assertion() => _admission.Entries.Single(entry => entry.Kind == "specification").Status.ShouldEqual("supported");
+    [Fact] void should_not_report_a_refusal() => _admission.Entries.Single(entry => entry.Kind == "specification").Capability.ShouldBeNull();
 }

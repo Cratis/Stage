@@ -74,6 +74,13 @@ internal static class SemanticExpectationComparer
                 failures.Add($"Expected read model '{state.ReadModel}' with key '{state.Key}' was not found with matching values.");
             }
         }
+        foreach (var absent in expected.ThenAbsentReadModels)
+        {
+            if (projected.Any(row => row.ReadModel == absent.ReadModel && AreEqual(row.Key, absent.Key)))
+            {
+                failures.Add($"Expected read model '{absent.ReadModel}' with key '{absent.Key}' to be absent.");
+            }
+        }
         for (var index = 0; index < expected.ThenQueries.Length; index++)
         {
             var query = expected.ThenQueries[index];

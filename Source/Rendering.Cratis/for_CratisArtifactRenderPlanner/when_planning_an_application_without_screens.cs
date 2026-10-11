@@ -68,7 +68,18 @@ public class when_planning_an_application_without_screens : a_register_project_r
     /// object. The assertion below names that difference, so the new hash is explained by something readable
     /// rather than by a number somebody updated until the build went green.
     /// </summary>
-    [Fact] void should_freeze_the_complete_default_scene_bytes() => Artifact(SceneCompositionInput.RelativePath)!.Sha256.ShouldEqual("4823dc11c628f99a3ead73006dc330bc9f54409b0cf05d60c58379cdc16a5396");
+    /// <remarks>
+    /// The hash moved again because enumerations are now spelled as the TypeScript Scene model spells them:
+    /// alignments and visibility are <c language="shell">Stretch</c> and <c language="shell">Visible</c>, not <c language="shell">stretch</c>
+    /// and <c language="shell">visible</c>, which the Scene engine's strict comparisons never matched. The assertions
+    /// below name that difference.
+    /// </remarks>
+    [Fact] void should_freeze_the_complete_default_scene_bytes() => Artifact(SceneCompositionInput.RelativePath)!.Sha256.ShouldEqual("ef3d8a392ed42a9fae94f718c3e5a78fbded6248dba2fbdd4b271263124f6dd8");
+
+    [Fact] void should_spell_alignment_as_the_scene_model_does() =>
+        _elements.All(element => element.GetProperty("horizontalAlignment").GetString() == "Stretch" && element.GetProperty("verticalAlignment").GetString() == "Stretch").ShouldBeTrue();
+    [Fact] void should_spell_visibility_as_the_scene_model_does() =>
+        _elements.All(element => element.GetProperty("visibility").GetString() == "Visible").ShouldBeTrue();
 
     [Fact] void should_declare_no_interactions_on_a_composed_element() =>
         _elements.All(element => element.GetProperty("behaviors").GetArrayLength() == 0).ShouldBeTrue();

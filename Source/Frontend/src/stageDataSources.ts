@@ -22,10 +22,10 @@ const boundComponents = new Set(['core:table']);
  * @returns The screen with every fed table bound to its declaration.
  */
 export function bindDataSources(element: SceneElement): SceneElement {
-    return bind(element, new Map());
+    return bind(element, new Map(), undefined);
 }
 
-function bind(element: SceneElement, sources: Map<string, ExternalComponent>): SceneElement {
+function bind(element: SceneElement, sources: Map<string, ExternalComponent>, nearest: ExternalComponent | undefined): SceneElement {
     const component = element as ExternalComponent;
     if (!component.slots) return element;
 
@@ -33,13 +33,17 @@ function bind(element: SceneElement, sources: Map<string, ExternalComponent>): S
     const slots: Record<string, SceneElement[]> = {};
     for (const [name, children] of Object.entries(component.slots)) {
         const scope = new Map(sources);
+        let subject = nearest;
         slots[name] = children.map(child => {
             const childComponent = child as ExternalComponent;
             const typeName = stringProperty(childComponent, 'typeName');
-            if (childComponent.componentName === dataComponent && typeName) scope.set(typeName, childComponent);
+            if (childComponent.componentName === dataComponent && typeName) {
+                scope.set(typeName, childComponent);
+                subject = childComponent;
+            }
 
-            const fed = feed(childComponent, scope);
-            const bound = bind(fed, scope);
+            const fed = feedSubject(feed(childComponent, scope), subject);
+            const bound = bind(fed, scope, subject);
             if (bound !== child) changed = true;
             return bound;
         });
@@ -64,6 +68,24 @@ function feed(component: ExternalComponent, sources: Map<string, ExternalCompone
         properties.queryArguments = { [by]: { path: `parameters.${by}` } };
     }
 
+    return { ...component, properties };
+}
+
+/**
+ * Carries the nearest `data` declaration onto a guarded action as the item its guard is evaluated against: `item` in
+ * `when item.status == "open"` is the single record that declaration reads, bound to the screen parameter it is read
+ * by - the same declaration Screenplay requires a guarded action to have exactly one of.
+ */
+function feedSubject(component: ExternalComponent, subject: ExternalComponent | undefined): ExternalComponent {
+    if (component.componentName !== 'core:action' || !Array.isArray(component.properties?.alternatives)) return component;
+    if (!subject || subject.properties?.isCollection === true || component.properties.itemQuery !== undefined) return component;
+
+    const properties: Record<string, unknown> = { ...component.properties };
+    const query = stringProperty(subject, 'query');
+    const by = stringProperty(subject, 'by');
+    if (query) properties.itemQuery = query;
+    if (stringProperty(subject, 'route')) properties.itemRoute = subject.properties.route;
+    properties.itemArguments = by ? { [by]: { path: `parameters.${by}` } } : {};
     return { ...component, properties };
 }
 

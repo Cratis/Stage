@@ -29,7 +29,9 @@ public static class CanonicalSceneJson
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DictionaryKeyPolicy = null,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+
+        // Each enumeration is spelled as the TypeScript Scene model spells it; see SceneEnumerationNaming.
+        Converters = { new SceneEnumerationNaming() }
     };
 
     static readonly JsonWriterOptions _writeOptions = new()

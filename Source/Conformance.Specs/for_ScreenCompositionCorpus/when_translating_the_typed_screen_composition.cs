@@ -35,7 +35,7 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
         _bytes = Encoding.UTF8.GetBytes(CanonicalSceneJson.Serialize(_scene));
     }
 
-    [Fact] void should_pin_the_canonical_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("3eadfebf65c31808b16b1f802ad230bd48517ff2f7fe4a58f76ce2c110fad717");
+    [Fact] void should_pin_the_canonical_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("953eba4275d6d0b2357e3cb17f062e2960f5e4e956f214d076388361481c5dfb");
     [Fact] void should_pin_the_canonical_scene_length() => _bytes.Length.ShouldEqual(18453);
 
     [Fact] void should_declare_what_each_template_exposes() => _scene.Exposures.Select(exposure => exposure.Owner).ShouldContainOnly(["WorkspaceFeatureShell", "EditWorkItemDialog"]);

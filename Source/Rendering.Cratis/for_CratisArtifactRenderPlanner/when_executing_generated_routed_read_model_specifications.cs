@@ -10,35 +10,52 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_executing_generated_routed_read_model_specifications : a_generated_application
 {
-    internal static string Source => when_rendering_a_pure_reducer.WithIdentifierConcept(when_rendering_reducer_observer_filters.Source("OrdersSource.Entries"))
-        .Replace("id \"stored-entries\"", "id \"stored-entries\"\n    streamId Int", StringComparison.Ordinal)
-        .Replace("        amount Decimal\n        produces", "        amount Decimal\n        period Int\n        stream OrdersSource.Entries\n          streamId = period\n        produces", StringComparison.Ordinal)
-        .Replace("return new Total(context.Event.Id, context.Event.Amount);", "return new Total(context.Event.Id, (context.State?.Amount ?? 0m) + context.Event.Amount);", StringComparison.Ordinal)
-        .Replace(
-            "    slice StateView Totals",
-            """
+    internal const string Source = """
+        concept OrderId : String
+        concept Period : Int
+        eventsource OrdersSource
+          id "stored-orders"
+          identifier OrderId
+          stream Entries
+            id "stored-entries"
+            streamId Period
+          stream Ignored
+            id "stored-ignored"
+        module Orders
+          feature Ordering
+            slice StateChange PlaceOrder
+              command PlaceOrder
+                id OrderId identifier
+                amount Decimal
+                period Period
+                stream OrdersSource.Entries
+                  streamId = period
+                produces OrderPlaced
+                  for id
+                  amount = amount
+              event OrderPlaced
+                amount Decimal
               specification SummingRoutedOrders
                 given OrderPlaced
                   for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   stream OrdersSource.Entries
                     streamId = 9007199254740991
-                  id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   amount = 4
                 given OrderPlaced
                   for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   stream OrdersSource.Ignored
-                  id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   amount = 100
                 given OrderPlaced
                   for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                  id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   amount = 200
                 when PlaceOrder
                   id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   amount = 5
                   period = -9007199254740991
                 then OrderPlaced
-                  id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  stream OrdersSource.Entries
+                    streamId = -9007199254740991
                   amount = 5
                 then readmodel Total
                   id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
@@ -59,12 +76,21 @@ public class when_executing_generated_routed_read_model_specifications : a_gener
               query SummaryById => Summary optional
                 by id OrderId
               projection Summaries => Summary
-                from OrderPlaced key id
-                  id = id
+                from OrderPlaced key $eventSourceId
                   amount = amount
             slice StateView Totals
-        """,
-            StringComparison.Ordinal);
+              readmodel Total
+                id OrderId
+                amount Decimal
+              query ById => Total optional
+                by id OrderId
+              reducer Fold => Total
+                from OrdersSource.Entries
+                on OrderPlaced
+                  ```csharp
+                  return new Total(new(context.Key), (context.State?.Amount ?? 0m) + context.Event.Amount);
+                  ```
+        """;
 
     protected override ArtifactRenderPlan CreatePlan() => when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(Source).GetAwaiter().GetResult());
 
@@ -82,18 +108,20 @@ public class when_executing_generated_routed_read_model_specifications : a_gener
 
                 namespace Projects.WrongStream;
 
-                public class WrongStream : Specification
+                public class WrongStream : Specification, IDisposable
                 {
                     readonly Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<Total> _scenario = new();
-                    readonly OrderId _key = new(Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
+                    readonly OrderId _key = new("3fa85f64-5717-4562-b3fc-2c963f66afa6");
 
                     async Task Establish()
                     {
-                        await _scenario.Given.ForEventSource(_key).OnStream("stored-orders", "stored-entries").Events(new OrderPlaced(_key, 4m));
-                        await _scenario.Given.ForEventSource(_key).OnStream("stored-orders", "stored-ignored").Events(new OrderPlaced(_key, 5m));
+                        await _scenario.Given.ForEventSource(_key).OnStream("stored-orders", "stored-entries", "9007199254740991").Events(new OrderPlaced(4m));
+                        await _scenario.Given.ForEventSource(_key).OnStream("stored-orders", "stored-ignored").Events(new OrderPlaced(5m));
                     }
 
                     [Fact] void should_not_accept_an_expectation_that_counts_the_wrong_stream() => _scenario.InstanceForEventSourceId(_key)!.Amount.ShouldEqual(9m);
+
+                    public void Dispose() => _scenario.Dispose();
                 }
                 """);
             var build = await Run("routed-read-model-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");

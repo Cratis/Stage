@@ -317,37 +317,78 @@ function collectComponents(value, components = []) {
     return components;
 }
 
-// The guarded Close action and the guarded double-click alternative are refused by Stage (STAGE-SCENE-ACTION-001,
-// STAGE-SCENE-INTERACTION-001); the generated application must not carry or offer either.
+// The authored Close action is guarded: `when item.status == "open" execute CloseWorkItem ... otherwise hidden`.
+// The generated application carries it with its guard and fallback, and never as an unconditional command.
+function isGuardedClose(component) {
+    const properties = component.properties ?? {};
+    const alternatives = Array.isArray(properties.alternatives) ? properties.alternatives : [];
+    const fallback = JSON.stringify(properties.otherwise ?? '').toLowerCase();
+    return component.componentName === 'core:action' &&
+        alternatives.some(alternative => alternative.command === 'CloseWorkItem' &&
+            JSON.stringify(alternative.condition ?? {}).includes('item.status') && JSON.stringify(alternative.condition ?? {}).includes('open')) &&
+        fallback.includes('hidden');
+}
+
 function assertSceneDocument(result, scene) {
     const ids = [...new Set(collectSceneIds(scene))];
     const punctuationIds = ids.filter(id => id.includes('.') || id.includes(':'));
     if (punctuationIds.length > 0) record(result, 'browser.scene.identifierFidelity.punctuation', 'passed', punctuationIds.join(','));
     else block(result, 'browser.scene.identifierFidelity.punctuation', 'no punctuation-bearing stable ids found in src/stage-scene.json');
 
-    const guarded = collectComponents(scene).filter(component => component.componentName === 'core:action' &&
-        component.properties && ('alternatives' in component.properties || 'otherwise' in component.properties));
-    if (guarded.length === 0) record(result, 'browser.guarded.scene.noGuardedActions', 'passed');
-    else block(result, 'browser.guarded.scene.noGuardedActions', `guarded actions present: ${guarded.map(_ => _.id).join(',')}`);
+    const guardedClose = collectComponents(scene).filter(isGuardedClose);
+    if (guardedClose.length > 0) record(result, 'browser.guarded.scene.closeCarriesGuard', 'passed', guardedClose.map(_ => _.id).join(','));
+    else block(result, 'browser.guarded.scene.closeCarriesGuard', 'no Close action guarded by item.status == "open" with a hidden fallback');
 
     const closeCommand = collectComponents(scene).filter(component => component.properties?.command === 'CloseWorkItem');
     if (closeCommand.length === 0) record(result, 'browser.guarded.scene.noCloseCommand', 'passed');
-    else block(result, 'browser.guarded.scene.noCloseCommand', `CloseWorkItem is reachable from: ${closeCommand.map(_ => _.id).join(',')}`);
+    else block(result, 'browser.guarded.scene.noCloseCommand', `CloseWorkItem is reachable without its guard from: ${closeCommand.map(_ => _.id).join(',')}`);
 }
 
-async function assertGuardedActionsFailClosed(page, result) {
-    await page.goto(`${baseUrl}/#/WorkItemDetails?workItemId=${workItemA.id}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-    await page.waitForTimeout(2_000);
-    const close = page.getByRole('button', { name: /^close$/i });
-    if (await close.count() === 0) record(result, 'browser.guarded.close.absent', 'passed');
-    else block(result, 'browser.guarded.close.absent', 'a Close control is offered on the details screen');
+async function workItemRow(page, item) {
+    await page.goto(`${baseUrl}/#/WorkItemList`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    const row = page.getByText(item.title, { exact: false }).first();
+    await row.waitFor({ timeout: 10_000 });
+    return row;
+}
 
-    const beforeDoubleClick = page.url();
-    await page.getByText(workItemA.title, { exact: false }).first().dblclick();
+// Exercises both guards in the browser: double-click on an open row navigates, Close is offered only while the item
+// is open and posts CloseWorkItem for it, after which Close disappears and double-click runs the otherwise branch.
+async function assertGuardedActions(page, result, network) {
+    const notice = 'This work item is closed';
+
+    await (await workItemRow(page, workItemA)).dblclick();
     await page.waitForTimeout(1_000);
-    const closedNotice = await page.getByText('This work item is closed', { exact: false }).count();
-    if (closedNotice === 0) record(result, 'browser.guarded.doubleClick.noAlternative', 'passed', `${beforeDoubleClick} -> ${page.url()}`);
-    else block(result, 'browser.guarded.doubleClick.noAlternative', 'the guarded double-click otherwise branch ran');
+    if (page.url().includes('WorkItemDetails') && page.url().includes(workItemA.id)) record(result, 'browser.guarded.doubleClick.open.navigates', 'passed', page.url());
+    else block(result, 'browser.guarded.doubleClick.open.navigates', `double-click on open A stayed at ${page.url()}`);
+    if (await page.getByText(notice, { exact: false }).count() === 0) record(result, 'browser.guarded.doubleClick.open.noNotice', 'passed');
+    else block(result, 'browser.guarded.doubleClick.open.noNotice', 'the otherwise branch ran for an open item');
+
+    await page.goto(`${baseUrl}/#/WorkItemDetails?workItemId=${workItemA.id}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    const close = page.getByRole('button', { name: /^close$/i });
+    try {
+        await close.first().waitFor({ timeout: 10_000 });
+        record(result, 'browser.guarded.close.offeredWhileOpen', 'passed');
+    } catch {
+        block(result, 'browser.guarded.close.offeredWhileOpen', 'no Close control for open A');
+        return;
+    }
+
+    const before = commandRequests(network, 'close-work-item').length;
+    await close.first().click();
+    await page.waitForTimeout(2_000);
+    const posts = commandRequests(network, 'close-work-item').slice(before);
+    if (posts.length === 1 && requestContainsWorkItem(posts[0], { id: workItemA.id })) record(result, 'browser.guarded.close.postsForItem', 'passed', posts[0].postData);
+    else block(result, 'browser.guarded.close.postsForItem', `expected one CloseWorkItem for A, got ${JSON.stringify(posts.map(_ => _.postData))}`);
+
+    await page.goto(`${baseUrl}/#/WorkItemDetails?workItemId=${workItemA.id}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    await expectText(page, result, 'browser.guarded.close.projectsClosed', 'closed');
+    if (await page.getByRole('button', { name: /^close$/i }).count() === 0) record(result, 'browser.guarded.close.hiddenOnceClosed', 'passed');
+    else block(result, 'browser.guarded.close.hiddenOnceClosed', 'Close is still offered for closed A');
+
+    await (await workItemRow(page, workItemA)).dblclick();
+    await expectText(page, result, 'browser.guarded.doubleClick.closed.notifies', notice);
+    if (!page.url().includes(workItemA.id)) record(result, 'browser.guarded.doubleClick.closed.staysOnList', 'passed', page.url());
+    else block(result, 'browser.guarded.doubleClick.closed.staysOnList', `double-click on closed A navigated to ${page.url()}`);
 }
 
 async function assertTwoItemSelectionLifecycle(page, result, network) {
@@ -563,7 +604,7 @@ async function runBrowserFlow(result) {
         await assertRenameDialog(page, result, network);
         await assertAddComment(page, result, network);
         await assertNavigationAndTheme(page, result);
-        await assertGuardedActionsFailClosed(page, result);
+        await assertGuardedActions(page, result, network);
 
         const stageRequests = network.requests.filter(request => new URL(request.url).pathname.startsWith('/stage/'));
         if (stageRequests.length === 0) record(result, 'browser.runtime.noStageEndpoints', 'passed');
@@ -589,7 +630,10 @@ function selfTest() {
         { method: 'POST', url: `${baseUrl}/api/workspaces/tracking/create-work-item`, postData: '{}' },
         { method: 'POST', url: `${baseUrl}/api/workspaces/tracking/add-comment`, postData: '{}' }
     ];
-    const guardedScene = { screens: [{ slotContent: { content: [{ id: 'a', componentName: 'core:action', properties: { command: 'CloseWorkItem', otherwise: 'hidden' } }] } }] };
+    const unguardedScene = { screens: [{ slotContent: { content: [{ id: 'a', componentName: 'core:action', properties: { command: 'CloseWorkItem', otherwise: 'hidden' } }] } }] };
+    const unguardedResult = { assertions: [], remainingBlockers: [] };
+    assertSceneDocument(unguardedResult, unguardedScene);
+    const guardedScene = { screens: [{ slotContent: { content: [{ id: 'Details.close', componentName: 'core:action', properties: { label: 'Close', alternatives: [{ command: 'CloseWorkItem', condition: { kind: 'comparison', left: { path: 'item.status' }, operator: 'Equal', right: 'open' } }], otherwise: { outcome: 'Hidden' } } }] } }] };
     const guardedResult = { assertions: [], remainingBlockers: [] };
     assertSceneDocument(guardedResult, guardedScene);
     const checks = [
@@ -602,7 +646,8 @@ function selfTest() {
         ['a renamed row is found by its new title first', titleCandidates({ title: workItemB.title, currentTitle: renamed }), [renamed, workItemB.title]],
         ['a route with parameters is still the details screen', hashRoute(`${baseUrl}/#/WorkItemDetails?workItemId=${workItemB.id}`), '#/WorkItemDetails'],
         ['commentId does not match the Work Item Id label', fieldLabelPattern('commentId').test('Work Item Id'), false],
-        ['a guarded action in the scene is a blocker', guardedResult.remainingBlockers.length, 3]
+        ['an unguarded Close in the scene is a blocker', unguardedResult.remainingBlockers.length, 3],
+        ['a Close guarded by status with a hidden fallback passes', guardedResult.remainingBlockers, []]
     ];
 
     const failures = checks.filter(([, actual, expected]) => JSON.stringify(actual) !== JSON.stringify(expected));

@@ -50,6 +50,18 @@ internal static class SemanticSurfaceLedger
                 : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-010"));
 
     /// <summary>
+    /// Gets reaction side-effect combinations. Events and commands from one trigger cannot share an Arc handler result
+    /// (Cratis/Arc#3156); every other combination still fails reaction admission with STAGE-ESM-024.
+    /// </summary>
+    public static IReadOnlyDictionary<(bool Produces, bool Invokes), SemanticSurfaceDisposition> ReactionSideEffectShapes { get; } =
+        (from produces in new[] { false, true }
+         from invokes in new[] { false, true }
+         select (Produces: produces, Invokes: invokes))
+        .ToDictionary(shape => shape, shape => new SemanticSurfaceDisposition(
+            SemanticSurfaceDispositionKind.Rejected,
+            shape.Produces && shape.Invokes ? SemanticVersionFeatures.MixedReactionEffects : SemanticVersionFeatures.Automation));
+
+    /// <summary>
     /// Gets the default Scene disposition for list queries. Composition has no diagnostic channel;
     /// only optional snapshot lookups have a default query input form, not collection results.
     /// </summary>
@@ -295,7 +307,9 @@ internal static class SemanticSurfaceLedger
 
         // Screenplay 4.61 added ESM v6 reactions, captures, application triggers and clock/capture
         // specifications. The version gate admits v6, but each of these refuses the model with STAGE-ESM-024 (Stage#79).
-        var v6 = rejected("STAGE-ESM-024");
+        // ReactionsInSlice names each non-event trigger kind and opaque body before its generic reaction refusal.
+        // Event triggers remain refused; ReactionSideEffectShapes records the more precise mixed-effect refusal (037).
+        var v6 = rejected(SemanticVersionFeatures.Automation);
         Add(entries, "SemanticApplication", v6, "Triggers");
         Add(entries, "SemanticApplicationTrigger", v6, "Id Name Properties");
         Add(entries, "SemanticSlice", v6, "Captures Reactions");
@@ -304,8 +318,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProducedEvent", v6, "DestinationType");
         Add(entries, "SemanticInvocation", v6, "Command Mappings");
         Add(entries, "SemanticReaction", v6, "Id Name Triggers");
-        Add(entries, "SemanticReactionTrigger", v6, "At Every Invokes Kind OnDayOfMonth OnDayOfWeek Produces RequirementId Source Where");
-        Add(entries, "SemanticReactionTriggerKind", v6, "Unknown ApplicationTrigger Event Interval Schedule Shutdown Startup");
+        Add(entries, "SemanticReactionTrigger", v6, "Invokes Kind Produces Source Where");
+        Add(entries, "SemanticReactionTrigger", v6, "At Every OnDayOfMonth OnDayOfWeek RequirementId");
+        Add(entries, "SemanticReactionTriggerKind", v6, "Unknown Event");
+        Add(entries, "SemanticReactionTriggerKind", v6, "ApplicationTrigger Interval Schedule Shutdown Startup");
         Add(entries, "SemanticCapture", v6, "Appends Children Id Key Map Name Nested");
         Add(entries, "SemanticCaptureAppend", v6, "EventContract EventSourceType Mappings Tags When");
         Add(entries, "SemanticCaptureChildren", v6, "Appends Field IdentifiedBy Map");

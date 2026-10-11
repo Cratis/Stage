@@ -307,7 +307,13 @@ Stage builds against Screenplay 4.131.0 and admits ESM v1 through v10 by version
 | Construct | Version | Diagnostic |
 |---|---|---|
 | A specification asserting a read model is absent (`thenAbsentReadModels`) | v5 | `STAGE-ESM-027` |
-| Application triggers, reactions, captures, Automation and Translate slices, and specifications with a clock, trigger or capture | v6 | `STAGE-ESM-024` |
+| Application `Triggers` declarations | v6 | `STAGE-ESM-024`, naming the application trigger |
+| Reaction triggers of kind Interval, Schedule, ApplicationTrigger, Startup or Shutdown | v6 | `STAGE-ESM-024`, naming the trigger kind |
+| Opaque reaction bodies | v6 | `STAGE-ESM-024`, naming the body and its trigger kind |
+| Event-triggered reactions | v6 | `STAGE-ESM-024`: reaction rendering is not yet admitted |
+| Reaction mappings of `$context.causedBy.subject`, `.name` or `.userName` | v6 | `STAGE-ESM-013`, naming the context member |
+| Captures, Automation and Translate slices, and specifications with a clock, trigger or capture | v6 | `STAGE-ESM-024` |
+| A reaction trigger that both produces events and invokes commands | v6 | `STAGE-ESM-037`: Arc cannot return events and commands from one handler ([Arc #3156](https://github.com/Cratis/Arc/issues/3156)) |
 | Generated command properties and specification generation fixtures | v7 | `STAGE-ESM-028` |
 | Command responses and `then returns` expectations | v7 | `STAGE-ESM-029` |
 | Policy negation (`not`) | v7 | Rendered |
@@ -321,6 +327,8 @@ Stage builds against Screenplay 4.131.0 and admits ESM v1 through v10 by version
 | Reducer observer filters (`from`) | v10 | Rendered as Chronicle source/source-and-stream attributes; Host and executor retain `STAGE-ESM-035` because reducers are not executed |
 | Reaction observer filters (`from`) | v10 | `STAGE-ESM-035` |
 | Per-production route overrides | v10 | `STAGE-ESM-036` |
+
+Reaction admission reports execution identity (`034`), observer filters (`035`), mixed effects (`037`), and caused-by context (`013`) before trigger-kind and generic reaction refusals (`024`). The renderer, Host and specification executor still refuse every reaction model.
 
 Diagnostics apply to the selected scope: a slice-scoped render of a slice that uses none of these constructs can still render, and application triggers refuse only an application render. The in-memory specification executor reports unsupported constructs rather than skipping them. Reducer `from` is rendering-only: neither the executor nor Stage's Host executes reducer bodies. Generated read-model companion specifications for filtered reducers retain `STAGE-ESM-011`, because Chronicle's scenario replay cannot apply the filter; see [Event-source routing](../reference/event-source-routing.md#reducer-observer-filters). Keep these constructs in the model and use a renderer that explicitly supports them rather than deleting them to pass admission. A specification that supplies a generated property as input never compiles (`PLAY0485`), so Stage plans nothing for it.
 

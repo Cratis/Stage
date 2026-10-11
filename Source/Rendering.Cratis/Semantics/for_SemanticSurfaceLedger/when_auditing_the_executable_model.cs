@@ -70,6 +70,25 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticObserverFilter.Stream")]
     public void should_classify_reducer_filters_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
+    [Theory]
+    [InlineData("SemanticApplication.Triggers")]
+    [InlineData("SemanticReactionTrigger.RequirementId")]
+    [InlineData("SemanticReactionTriggerKind.Unknown")]
+    [InlineData("SemanticReactionTriggerKind.Event")]
+    [InlineData("SemanticReactionTriggerKind.ApplicationTrigger")]
+    [InlineData("SemanticReactionTriggerKind.Interval")]
+    [InlineData("SemanticReactionTriggerKind.Schedule")]
+    [InlineData("SemanticReactionTriggerKind.Startup")]
+    [InlineData("SemanticReactionTriggerKind.Shutdown")]
+    public void should_keep_every_trigger_kind_and_opaque_body_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+
+    [Theory]
+    [InlineData(false, false, "STAGE-ESM-024")]
+    [InlineData(true, false, "STAGE-ESM-024")]
+    [InlineData(false, true, "STAGE-ESM-024")]
+    [InlineData(true, true, "STAGE-ESM-037")]
+    public void should_classify_reaction_side_effect_combinations(bool produces, bool invokes, string code) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+
     static bool IsDiagnosticCode(string code) => code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) &&
         code.Length == 13 && code.AsSpan(10).ToString().All(char.IsAsciiDigit);
 

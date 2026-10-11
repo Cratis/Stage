@@ -77,6 +77,11 @@ internal static class SemanticVersionFeatures
     internal const string ProductionRoutes = "STAGE-ESM-036";
 
     /// <summary>
+    /// The code for a reaction trigger that both produces events and invokes commands.
+    /// </summary>
+    internal const string MixedReactionEffects = "STAGE-ESM-037";
+
+    /// <summary>
     /// Checks the language and semantic version pair Stage has audited.
     /// </summary>
     /// <param name="model">The executable model.</param>
@@ -117,18 +122,10 @@ internal static class SemanticVersionFeatures
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InSlice(SemanticSlice slice)
     {
-        // Name v10 constructs before the older generic slice/reaction refusal.
-        foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
+        // Precise reaction constructs precede the generic slice refusal for first-refusal consumers.
+        foreach (var feature in ReactionsInSlice(slice))
         {
-            if (reaction.RunsAs is not null)
-            {
-                yield return new(ReactionIdentity, StageExecutionCapability.Authorization, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 execution identity, which Stage does not support yet.");
-            }
-
-            if (reaction.From is not null)
-            {
-                yield return new(ObserverFilters, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
-            }
+            yield return feature;
         }
 
         foreach (var reducer in slice.Reducers.Where(reducer => reducer.From is not null))
@@ -157,11 +154,6 @@ internal static class SemanticVersionFeatures
             yield return new(PublicEvents, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' publishes an ESM v9 public event, which Stage does not support yet.");
         }
 
-        foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
-        {
-            yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct, which Stage does not support yet.");
-        }
-
         foreach (var capture in slice.Captures.IsDefault ? [] : slice.Captures)
         {
             if (capture.EventsSource is not null)
@@ -172,6 +164,73 @@ internal static class SemanticVersionFeatures
             {
                 yield return new(Automation, StageExecutionCapability.ExternalEffect, capture.Id, "capture", $"Capture '{capture.Name}' is an ESM v6 translation construct, which Stage does not support yet.");
             }
+        }
+    }
+
+    /// <summary>
+    /// Finds every refused reaction construct, with precise reasons before the generic reaction refusal.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The refused reaction constructs, including event reactions not yet admitted for rendering.</returns>
+    public static IEnumerable<SemanticVersionFeature> ReactionsInSlice(SemanticSlice slice)
+    {
+        var reactions = slice.Reactions.IsDefault ? [] : slice.Reactions;
+        foreach (var reaction in reactions.Where(reaction => reaction.RunsAs is not null))
+        {
+            yield return new(ReactionIdentity, StageExecutionCapability.Authorization, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 execution identity, which Stage does not support yet.");
+        }
+
+        foreach (var reaction in reactions.Where(reaction => reaction.From is not null))
+        {
+            yield return new(ObserverFilters, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
+        }
+
+        foreach (var reaction in reactions)
+        {
+            foreach (var trigger in reaction.Triggers.Where(trigger => !trigger.Produces.IsDefaultOrEmpty && !trigger.Invokes.IsDefaultOrEmpty))
+            {
+                yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' both produces events and invokes commands in one '{trigger.Kind}' trigger; Arc cannot return events and commands from one handler (Cratis/Arc#3156).");
+            }
+        }
+
+        foreach (var reaction in reactions)
+        {
+            var expressions = reaction.Triggers.SelectMany(trigger => trigger.Produces.SelectMany(produced =>
+                    produced.Mappings.Select(mapping => mapping.Source).Concat(produced.Destination is { } destination ? [destination] : []))
+                .Concat(trigger.Invokes.SelectMany(invocation => invocation.Mappings.Select(mapping => mapping.Source))));
+            foreach (var context in expressions.OfType<SemanticEventContextExpression>().Where(context => context.Value is
+                SemanticEventContextValueKind.CausedBySubject or SemanticEventContextValueKind.CausedByName or SemanticEventContextValueKind.CausedByUserName)
+                .Select(context => context.Value).Distinct())
+            {
+                var member = context switch
+                {
+                    SemanticEventContextValueKind.CausedBySubject => "subject",
+                    SemanticEventContextValueKind.CausedByName => "name",
+                    _ => "userName"
+                };
+                yield return new("STAGE-ESM-013", StageExecutionCapability.Occurrence, reaction.Id, "reaction", $"Reaction '{reaction.Name}' maps $context.causedBy.{member}, which Stage does not support yet.");
+            }
+        }
+
+        foreach (var reaction in reactions)
+        {
+            foreach (var trigger in reaction.Triggers)
+            {
+                if (trigger.RequirementId is not null)
+                {
+                    yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
+                }
+
+                if (trigger.Kind != SemanticReactionTriggerKind.Event)
+                {
+                    yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' uses trigger kind '{trigger.Kind}', which Stage does not support yet.");
+                }
+            }
+        }
+
+        foreach (var reaction in reactions)
+        {
+            yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct; reaction rendering is not yet admitted.");
         }
     }
 

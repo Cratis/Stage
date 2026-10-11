@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using Cratis.Scene.Engine.Packages;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
@@ -40,10 +41,15 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
+        if (!TryGetApprovedPackages(profile, out var approvedPackages, out mismatch))
+        {
+            return false;
+        }
+
         ArtifactRenderProfile expected;
         try
         {
-            expected = CratisRendering.CreateProfile(applicationName, options!);
+            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages);
         }
         catch (InvalidCratisBackendApplicationScaffold)
         {
@@ -101,6 +107,37 @@ static class CratisArtifactRenderProfileAdmission
         admittedOptions = options!;
         mismatch = string.Empty;
         return true;
+    }
+
+    // The approved package set is read first because the frontend that installs and loads those packages is generated
+    // from it: the expected scaffold can only be regenerated once the document is known to be well formed.
+    static bool TryGetApprovedPackages(ArtifactRenderProfile profile, out ApprovedPackageSet? approvedPackages, out string mismatch)
+    {
+        approvedPackages = null;
+        mismatch = string.Empty;
+        var inputs = profile.Inputs.Where(input => string.Equals(input.Name, $"{ProjectInputPrefix}{CratisFrontendApplicationScaffold.ApprovedPackagesDocument}", StringComparison.Ordinal)).ToArray();
+        if (inputs.Length == 0)
+        {
+            return true;
+        }
+
+        try
+        {
+            var read = ApprovedPackageSetJson.Read(new UTF8Encoding(false, true).GetString(inputs[0].Bytes.AsSpan()), CratisRendering.ShippedPackageNames);
+            if (!read.Succeeded || read.Set!.IsEmpty)
+            {
+                mismatch = $"The Cratis profile carries an invalid approved package set: {string.Join(' ', read.Diagnostics.DefaultIfEmpty("it approves no package."))}";
+                return false;
+            }
+
+            approvedPackages = read.Set;
+            return true;
+        }
+        catch (DecoderFallbackException)
+        {
+            mismatch = "The Cratis profile carries an approved package set that is not valid UTF-8.";
+            return false;
+        }
     }
 
     static bool IsComposedScene(ArtifactRenderInput input) =>

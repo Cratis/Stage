@@ -8,6 +8,7 @@ using Cratis.Arc.Tenancy;
 using Cratis.Arc.Validation;
 using Cratis.Stage.Contracts.Commands;
 using Cratis.Stage.Runtime;
+using Cratis.Stage.Validation;
 
 namespace Cratis.Stage.Api;
 
@@ -75,6 +76,26 @@ public sealed class StageCommandHandler(
         return command.Data;
     }
 
+    static IEnumerable<string> RequiredProperties(string schema)
+    {
+        if (string.IsNullOrWhiteSpace(schema))
+        {
+            return [];
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(schema);
+            return document.RootElement.TryGetProperty("required", out var required) && required.ValueKind == JsonValueKind.Array
+                ? [.. required.EnumerateArray().Select(item => item.GetString()).OfType<string>()]
+                : [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
     async Task AppendProducedEvents(IDictionary<string, JsonElement> payload)
     {
         if (definition.Produces.Count == 0)
@@ -82,8 +103,10 @@ public sealed class StageCommandHandler(
             return;
         }
 
-        var caller = identity.Current();
         var values = payload.AsReadOnly();
+        RequireValidInput(values);
+
+        var caller = identity.Current();
         var tenant = tenants.Current;
         var events = ProducedEventPayloads.Build(
             definition.Produces,
@@ -93,6 +116,36 @@ public sealed class StageCommandHandler(
             tenant.IsDefault ? PortableTenantValues.Default : PortableTenantValues.Translate(tenant.Value, TenantId.Default.Value, TenantId.NotSet.Value));
 
         await appender.Append(EventSourceId(values), events, caller);
+    }
+
+    // The model's own rules and the properties its schema requires are checked before anything is appended. Left to the
+    // event store, a missing property surfaces as a schema failure from the kernel - a server error naming nothing the
+    // caller can act on - and the modeled rules would never run at all.
+    void RequireValidInput(IReadOnlyDictionary<string, JsonElement> values)
+    {
+        var problems = new List<(string Property, string Message)>();
+        foreach (var property in RequiredProperties(definition.Schema))
+        {
+            if (CommandPayloadValues.Lookup(values, property) is not { ValueKind: not (JsonValueKind.Null or JsonValueKind.Undefined) })
+            {
+                problems.Add((property, $"'{property}' is required."));
+            }
+        }
+
+        var missing = problems.Select(problem => problem.Property).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var valuesJson = JsonSerializer.Serialize(values);
+        problems.AddRange(StageRuleEvaluator.Evaluate(definition.Rules, valuesJson)
+            .Where(violation => !missing.Contains(violation.PropertyName))
+            .Select(violation => (violation.PropertyName, violation.Message)));
+
+        if (problems.Count == 0)
+        {
+            return;
+        }
+
+        throw new CommandInputRejected(ValidationResult.Error(
+            string.Join(' ', problems.Select(problem => problem.Message)),
+            problems.Select(problem => problem.Property).Distinct()));
     }
 
     // The model names the property carrying the event source id, so successive commands for the same entity land on

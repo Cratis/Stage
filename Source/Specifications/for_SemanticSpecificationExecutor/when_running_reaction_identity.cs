@@ -8,7 +8,7 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 
-public class when_refusing_reaction_identity : Specification
+public class when_running_reaction_identity : Specification
 {
     SemanticExecutionPlan _plan = null!;
     SemanticSpecificationRunReport _report = null!;
@@ -17,7 +17,6 @@ public class when_refusing_reaction_identity : Specification
 
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([.. _plan.Specifications.Keys]), new());
 
-    [Fact] void should_refuse_every_run() => _report.Results.Select(result => result.Outcome).Distinct().ShouldContainOnly([SemanticSpecificationOutcome.Unsupported]);
-    [Fact] void should_name_identity_before_generic_reaction_admission() => _report.Results.All(result => result.Unsupported!.Details.StartsWith("STAGE-ESM-034:", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_execute_nothing() => _report.Results.All(result => result.Trace is null).ShouldBeTrue();
+    [Fact] void should_pass_every_run() => Assert.True(_report.Results.All(result => result.Outcome == SemanticSpecificationOutcome.Passed), string.Join(';', _report.Results.Select(result => $"{result.Name}: {result.Unsupported?.Details} {string.Join(',', result.Failures)}")));
+    [Fact] void should_execute_every_scenario() => _report.Results.All(result => result.Trace is not null).ShouldBeTrue();
 }

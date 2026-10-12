@@ -78,9 +78,11 @@
     <ItemGroup>
         <!-- One frontend runtime serves the live Stage and every generated React application: the Stage frontend's
              runtime modules are emitted into a generated application verbatim, so both render a Scene the same way.
-             Specifications, test helpers and the live entry point stay behind; the generated application has its own. -->
+             Specifications, test helpers and the live entry point stay behind; the generated application has its own. The live-only
+             approved package loader and shared React registration (stagePackages.ts, sharedModules.ts) stay behind with it: a
+             generated application builds its approved packages in. -->
         <EmbeddedResource Include="../Frontend/src/*.ts;../Frontend/src/*.tsx;../Frontend/src/*.css"
-                          Exclude="../Frontend/src/*.spec.ts;../Frontend/src/*.spec.tsx;../Frontend/src/testSetup.ts;../Frontend/src/testElements.ts;../Frontend/src/main.tsx"
+                          Exclude="../Frontend/src/*.spec.ts;../Frontend/src/*.spec.tsx;../Frontend/src/testSetup.ts;../Frontend/src/testElements.ts;../Frontend/src/main.tsx;../Frontend/src/stagePackages.ts;../Frontend/src/sharedModules.ts"
                           LogicalName="StageFrontend/stage/%(Filename)%(Extension)" />
         <EmbeddedResource Include="../Frontend/styledPrimeReact.ts" LogicalName="StageFrontend/styledPrimeReact.ts" />
     </ItemGroup>

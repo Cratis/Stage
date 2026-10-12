@@ -9,6 +9,8 @@ import '@cratis/scene.primereact/primeReactTheme.css';
 import { CratisComponentsProvider } from '@cratis/components';
 import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
 import { App } from './App';
+import { StagePackagesFailed, loadStagePackages } from './stagePackages';
+import { registerSharedModules } from './sharedModules';
 import { stageTheme } from './stageTheme';
 import { Browser } from './read-models/Browser';
 import { isBrowserPath } from './read-models/path';
@@ -21,21 +23,42 @@ import { isBrowserPath } from './read-models/path';
 // unlicensed presentation rather than failing to render.
 const primeUiLicense = import.meta.env.STAGE_PRIMEUI_LICENSE || '';
 
-createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-        <PrimeReactProvider license={primeUiLicense} theme={stageTheme}>
-            {isBrowserPath(window.location.pathname) ? (
-                <Browser />
-            ) : (
-                <CratisComponentsProvider>
-                    {/*
-                      The runtime entry of the Cratis components package - its components, descriptors and manifest,
-                      without designers, property editors or design-time actions - is what a scene naming
-                      Cratis.Components renders with, live exactly as in a generated application.
-                    */}
-                    <App components={cratisComponentsRuntimePackage.components} />
-                </CratisComponentsProvider>
-            )}
-        </PrimeReactProvider>
-    </StrictMode>,
-);
+const root = document.getElementById('root')!;
+
+async function start() {
+    // The Stage's own React is what an approved custom package loaded below renders with: register it for the
+    // import map's shim modules before any package is imported.
+    registerSharedModules();
+
+    // Custom packages the Stage was handed (a package set and the browser build of each package) load before the first
+    // render. One that does not load stops the Stage with the reason, rather than rendering a profile without it.
+    const approved = await loadStagePackages().catch(reason => reason as Error);
+    if (approved instanceof Error) {
+        root.setAttribute('role', 'alert');
+        root.style.whiteSpace = 'pre-wrap';
+        root.textContent = approved instanceof StagePackagesFailed ? approved.message : `Approved packages could not be loaded: ${approved.message}`;
+        return;
+    }
+
+    createRoot(root).render(
+        <StrictMode>
+            <PrimeReactProvider license={primeUiLicense} theme={stageTheme}>
+                {isBrowserPath(window.location.pathname) ? (
+                    <Browser />
+                ) : (
+                    <CratisComponentsProvider>
+                        {/*
+                          The runtime entry of the Cratis components package - its components, descriptors and manifest,
+                          without designers, property editors or design-time actions - is what a scene naming
+                          Cratis.Components renders with, live exactly as in a generated application. Approved custom
+                          packages add theirs beside it; the Stage's own never lose a name to them.
+                        */}
+                        <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} />
+                    </CratisComponentsProvider>
+                )}
+            </PrimeReactProvider>
+        </StrictMode>,
+    );
+}
+
+void start();

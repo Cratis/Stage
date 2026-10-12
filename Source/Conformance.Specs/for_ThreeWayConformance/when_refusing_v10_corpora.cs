@@ -19,7 +19,7 @@ public class when_refusing_v10_corpora : Specification
     [InlineData("identity", "STAGE-ESM-034")]
     [InlineData("filters", "STAGE-ESM-035")]
     [InlineData("production", "STAGE-ESM-036")]
-    public async Task should_preserve_reference_outcomes_and_refuse_both_stage_paths(string form, string code)
+    public async Task should_preserve_reference_outcomes_and_renderer_refusals(string form, string code)
     {
         var vector = form switch
         {
@@ -36,8 +36,15 @@ public class when_refusing_v10_corpora : Specification
             if (expectation.Outcome != SemanticExecutionOutcomeKind.Unsupported) reference.Passed.ShouldBeTrue();
         }
         var stage = await new SemanticSpecificationExecutor().Run(plan, new([.. plan.Specifications.Keys]), new());
-        stage.Results.Select(result => result.Outcome).Distinct().ShouldContainOnly([SemanticSpecificationOutcome.Unsupported]);
-        stage.Results.All(result => result.Unsupported!.Details.StartsWith(code + ":", StringComparison.Ordinal)).ShouldBeTrue();
+        if (form == "identity")
+        {
+            Assert.True(stage.Results.All(result => result.Outcome == SemanticSpecificationOutcome.Passed), string.Join(';', stage.Results.Select(result => $"{result.Name}: {result.Unsupported?.Details} {string.Join(',', result.Failures)}")));
+        }
+        else
+        {
+            stage.Results.Select(result => result.Outcome).Distinct().ShouldContainOnly([SemanticSpecificationOutcome.Unsupported]);
+            stage.Results.All(result => result.Unsupported!.Details.StartsWith(code + ":", StringComparison.Ordinal)).ShouldBeTrue();
+        }
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("V10", "V10"));
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");

@@ -27,7 +27,7 @@ public class when_emitting_the_stage_frontend_runtime : a_screen_composition_ren
         "react", "react-dom", "reflect-metadata", "tsyringe", "@types/node", "@types/react", "@types/react-dom", "@vitejs/plugin-react"
     ];
 
-    static readonly string[] _liveOnly = ["main.tsx", "testSetup.ts", "testElements.ts"];
+    static readonly string[] _liveOnly = ["main.tsx", "sharedModules.ts", "stagePackages.ts", "testSetup.ts", "testElements.ts"];
 
     ArtifactRenderPlan _plan = null!;
     string _frontend = null!;

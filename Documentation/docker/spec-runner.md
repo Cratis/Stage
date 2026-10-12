@@ -15,14 +15,22 @@ notice to standard error. Structural runs refuse named event sources, streams an
 `STAGE-ESM-030` on standard error, exit `1`, and write no results file. The semantic engine executes routed givens and when-appends, compares event routes and `no stream`
 expectations, and matches any-order expectations by assignment at ESM v8 and later. Both engines refuse public-event
 publication (`STAGE-ESM-032`), foreign events and `source events` captures (`STAGE-ESM-033`), and directed
-Translate slices (`STAGE-ESM-024`, naming the direction), reaction execution identity (`STAGE-ESM-034`),
-and reaction or reducer observer filters (`STAGE-ESM-035`). Per-production route overrides fail `STAGE-ESM-036`
+Translate slices (`STAGE-ESM-024`, naming the direction), and reducer observer filters (`STAGE-ESM-035`).
+The structural engine also refuses reaction execution identity (`STAGE-ESM-034`) and reaction observer filters (`STAGE-ESM-035`). Per-production route overrides fail `STAGE-ESM-036`
 on the semantic engine; the structural engine refuses their stream syntax with `STAGE-ESM-030`.
-Reaction models are refused too: unrealisable trigger kinds and opaque bodies with `STAGE-ESM-024` naming the kind, a trigger that both produces and invokes with `STAGE-ESM-037`, `$context.causedBy.*` with `STAGE-ESM-013`, and event-triggered reactions with `STAGE-ESM-024` because the independent specification executor does not run reactions yet.
-This differs from the [semantic Stage Host](index.md#opt-in-to-semantic-execution), which settles event
-reactions atomically with each live command, and from rendered Chronicle reactors, which run eventually
-and retry failed partitions. A live Host command that cannot settle refuses the whole batch; live support
-does not imply that the spec runner can verify reaction specifications.
+The semantic executor settles event-triggered reactions after each command or direct append, including
+`where`, productions, invocations, cascades, `runs as`, `from`, mixed effects and append constraints.
+It processes new facts in append order, reactions in semantic-identity order and triggers in authored order,
+producing events before invoking commands. Given events establish history without firing reactions.
+An invocation uses the declared system roles, or no caller; it never inherits `given caller`, and system
+claims remain unknown. Invoked generated commands require unavailable deterministic fixtures and return
+`Unsupported` for `IdentityAllocation`. More than 1000 new facts returns `Unsupported` for `Reaction`.
+Clock, application, startup and shutdown triggers, opaque bodies and clock/trigger/capture specifications
+remain refused with `STAGE-ESM-024`; unsupported `$context.causedBy.*` mappings retain `STAGE-ESM-013`.
+A production mapping `$context.occurred` without `given clock` rejects the scenario instead of inventing time.
+The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.md#opt-in-to-semantic-execution),
+which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
+unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
 semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.141.0, admits exact ESM v1–v13
 version pairs and refuses unaudited language/semantic versions with `STAGE-ESM-016`.

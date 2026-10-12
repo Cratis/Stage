@@ -10,8 +10,12 @@ namespace Cratis.Stage.Specifications.Comparison;
 internal static class SemanticExpectationComparer
 {
     // Mirrors SemanticSpecificationRunner.Compare/CompareFacts for the admitted fact/error subset.
-    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, IReadOnlyList<SemanticValue> destinations, string? rejection, string? rejectionCode = null, bool denied = false, SemanticExecutionPlan? plan = null)
+    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, SemanticActualRun run, SemanticRejection? rejected = null)
     {
+        var plan = run.Plan;
+        var rejection = rejected?.Message;
+        var rejectionCode = rejected?.Code;
+        var denied = rejected?.Denied ?? false;
         var failures = new List<string>();
         if (expected.ThenDenied)
         {
@@ -47,16 +51,11 @@ internal static class SemanticExpectationComparer
 
         if (expected.WhenAppended is null || expected.ThenEvents.Length > 0)
         {
-            // Screenplay v4.114.0 SemanticScenario.Perform counts the direct append as one action fact.
-            // Stage admits no reactions, so no facts follow that action in the current executable subset.
-            var actionFacts = -1;
-            if (plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6)) actionFacts = expected.WhenAppended is null ? actual.Count : 1;
-            var following = actual;
-            if (actionFacts >= 0 && expected.WhenAppended is not null) following = [.. actual.Skip(actionFacts)];
-            CompareFacts(expected, following, failures, plan);
+            // A direct append's then-events describe only its reaction effects; commands include action facts.
+            CompareFacts(expected, Following(expected, run), failures, plan!);
         }
 
-        CompareCommandDestination(expected, destinations, plan, failures);
+        CompareCommandDestination(expected, ActionDestinations(run), plan, failures);
 
         return failures;
     }
@@ -118,6 +117,12 @@ internal static class SemanticExpectationComparer
     static IReadOnlyList<string> CompareResponseFields(SemanticRecordSpecificationResponse expected, SemanticRecordExecutionResponse actual) =>
         [.. expected.Fields.Where(field => !actual.Fields.Any(value => value.Name == field.Name && AreEqual(value.Value, field.Value)))
             .Select(field => $"Response field '{field.Name}' does not match the expected value.")];
+
+    static IReadOnlyList<SemanticSpecificationEvent> Following(SemanticSpecification expected, SemanticActualRun run) =>
+        expected.WhenAppended is not null && run.Plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6) ? [.. run.Facts.Skip(run.ActionFacts ?? 1)] : run.Facts;
+
+    static IReadOnlyList<SemanticValue> ActionDestinations(SemanticActualRun run) =>
+        run.ActionFacts is { } count ? [.. run.Destinations.Take(count)] : run.Destinations;
 
     static void CompareCommandDestination(SemanticSpecification expected, IReadOnlyList<SemanticValue> destinations, SemanticExecutionPlan? plan, List<string> failures)
     {

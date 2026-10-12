@@ -9,7 +9,7 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 
-public class when_refusing_event_reactions : Specification
+public class when_running_beside_an_event_reaction : Specification
 {
     SemanticExecutionPlan _plan = null!;
     SemanticSpecificationRunReport _report = null!;
@@ -31,8 +31,7 @@ public class when_refusing_event_reactions : Specification
 
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([.. _plan.Specifications.Keys]), new());
 
-    [Fact] void should_run_no_reaction_scenarios() => _report.Results.All(result => result.Trace is null).ShouldBeTrue();
-    [Fact] void should_refuse_every_specification() => _report.Results.Select(result => result.Outcome).Distinct().ShouldContainOnly([SemanticSpecificationOutcome.Unsupported]);
-    [Fact] void should_name_reaction_admission_before_the_automation_slice() => _report.Results.Select(result => result.Unsupported!.Details).Distinct().ShouldContainOnly(["STAGE-ESM-024: Reaction 'ReminderScheduler' is an ESM v6 automation construct; the specification executor does not run reactions yet."]);
-    [Fact] void should_report_the_reaction_capability() => _report.Results.Select(result => result.Unsupported!.Capability).Distinct().ShouldContainOnly([StageExecutionCapability.Reaction]);
+    [Fact] void should_run_the_validation_specification() => _report.Results.Single(result => result.Name == "RejectingAnEmptyReason").Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_keep_the_clock_specification_refused() => _report.Results.Single(result => result.Name == "SendingAnInvoice").Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
+    [Fact] void should_name_the_clock_refusal() => Assert.StartsWith("STAGE-ESM-024:", _report.Results.Single(result => result.Name == "SendingAnInvoice").Unsupported!.Details, StringComparison.Ordinal);
 }

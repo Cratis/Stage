@@ -16,6 +16,8 @@
   "include": [
     "vite.config.ts",
     "styledPrimeReact.ts",
-    "styledPrimeReact.spec.ts"
+    "styledPrimeReact.spec.ts",
+    "stageSharedModules.ts",
+    "stageSharedModules.spec.ts"
   ]
 }

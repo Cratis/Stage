@@ -49,9 +49,33 @@ or themes - and a package that fails to import or lacks its export. The applicat
 rendering a profile with a package silently missing. Component names keep their package: a registered `Acme.Charts:chart` is
 what the authored `component Acme.Charts.chart` resolves to.
 
-## What a live Stage does not do
+## A live Stage loads the packages at runtime
 
-The `cratis/stage` image is a built frontend. A runtime cannot install an npm package into it, and Stage does not load
-arbitrary modules from a mounted folder, so a **live** Stage (and therefore `cratis run`) renders only the shipped packages. Custom
-packages are rendered by the application you generate and build: `cratis render --package-set ...`, then `npm install` and
-`npm run build`. Use the live Stage to review a model that stays within the shipped packages.
+A generated application builds its approved packages in. The `cratis/stage` image is a built frontend that cannot install npm
+packages, so a **live** Stage (and `cratis run`) loads them at runtime instead: it is handed the same approved package set and the
+browser build of each package, and serves them to its own page.
+
+The Stage reads a folder (`Stage:Packages:Path`, `/packages` in the image) laid out like `node_modules`:
+
+```text
+/packages/approved-packages.json
+/packages/@acme/scene.charts/package.json     exports / module / main (or index.js) names the browser module
+/packages/@acme/scene.charts/index.js         an ES module exporting the bundle named by module.export
+/packages/@acme/scene.charts/styles.css       every style sheet the set lists, relative to the package
+```
+
+`cratis run --package-set <file> [--packages <folder>]` mounts the set and each approved package's folder read-only at those
+paths ([run reference](https://github.com/Cratis/cli/blob/main/Documentation/reference/run.md)). The Stage:
+
+- reads the set with `ApprovedPackageSetJson` (so a malformed set, or one that reuses a shipped package name, is refused) and serves it, with
+  where each module is served from, at `GET /stage/packages`;
+- serves only the files inside the folders of the packages the set names, and only types a package ships (`.js`, `.mjs`, `.css`, images,
+  fonts, source maps) from `/stage/packages/files/**` - never the set document or any other folder;
+- before the first render loads each module with `import()` from the URL it reported - never an address a scene supplied - through the
+  same `loadApprovedPackages` a generated application uses. A package that is missing, does not load, lacks its export or differs from its
+  declaration stops the Stage with the reasons on the page; a profile is never rendered with a package missing.
+
+A package is a browser ES module that leaves React external. Its `import ... from 'react'` (and `react/jsx-runtime`, `react-dom`,
+`react-dom/client`) resolves through an import map in the Stage page to shim modules that re-export **the Stage's own React**, so the
+package's hooks and contexts are the Stage's. A package that bundles its own copy of React fails on its first hook. Anything else a
+package imports must be bundled into its module. A Stage handed no set renders the three shipped packages, as before.

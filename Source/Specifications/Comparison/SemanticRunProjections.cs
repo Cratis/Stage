@@ -78,19 +78,7 @@ internal static class SemanticRunProjections
                 }
             }
         });
-        for (var index = 0; index < context.Facts.Count; index++)
-        {
-            var fact = context.Facts[index];
-            var destination = context.Destinations[index];
-            var key = destination switch
-            {
-                SemanticTextValue text => text.Value,
-                SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
-                SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
-                _ => throw new UnsupportedSemanticMapping()
-            };
-            scenario.CollectEventsFor(new EventSourceId(key), [types.Materialize(fact)]);
-        }
+        CollectEvents(scenario, projection, context, types);
         var output = new List<Projected>();
         foreach (var (source, instance) in scenario.Instances)
         {
@@ -105,6 +93,29 @@ internal static class SemanticRunProjections
         }
         return output;
     }
+
+    static void CollectEvents<TReadModel>(ReadModelScenario<TReadModel> scenario, SemanticProjection projection, SemanticRunContext context, SemanticRuntimeTypes types)
+        where TReadModel : class
+    {
+        for (var index = 0; index < context.Facts.Count; index++)
+        {
+            var fact = context.Facts[index];
+            if (!Observes(projection, fact.EventContract)) continue;
+            var destination = context.Destinations[index];
+            var key = destination switch
+            {
+                SemanticTextValue text => text.Value,
+                SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
+                SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
+                _ => throw new UnsupportedSemanticMapping()
+            };
+            scenario.CollectEventsFor(new EventSourceId(key), [types.Materialize(fact)]);
+        }
+    }
+
+    static bool Observes(SemanticProjection projection, SemanticId eventContract) =>
+        projection.Scope?.From.Any(from => from.EventContract == eventContract) == true ||
+        projection.Transitions.Any(transition => transition.EventContract == eventContract);
 
     static void DefineFrom<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, (string Target, string? Source)[] mappings)
     {

@@ -138,7 +138,8 @@ tail-guarded batch. A rejected, denied or unsupported settlement refuses the who
 nothing. This differs from rendered Chronicle reactors, which run eventually and retry failed partitions.
 Clock, application, startup and shutdown triggers and opaque reaction bodies still fail `STAGE-ESM-024`
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
-The independent specification executor still refuses event reactions; see [The spec runner](spec-runner.md).
+The independent specification executor also settles event reactions, including identity, filters and mixed effects;
+see [The spec runner](spec-runner.md) for its scenario limits.
 The semantic engine uses Screenplay 4.141.0 and admits exact ESM v1–v13 version pairs; unaudited
 language/semantic versions refuse the whole model with `STAGE-ESM-016` before registration or execution.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and

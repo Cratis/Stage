@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Security.Claims;
 using System.Text.Json;
 using Cratis.Arc.Authorization;
+using Cratis.Arc.Commands;
 using Cratis.Arc.Http;
 using Cratis.Arc.Testing.Commands;
 using Cratis.Arc.Validation;
@@ -23,9 +24,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Cratis.Stage.Specifications;
 
 /// <summary>
-/// Executes the admitted command subset against an isolated in-memory event log.
+/// Executes admitted specifications and event reactions against an isolated in-memory event log.
 /// </summary>
-public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecutor
+public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificationExecutor
 {
     static readonly SemaphoreSlim _processGate = new(1, 1);
     static readonly ConcurrentDictionary<SemanticRevision, SemanticRuntimeTypes> _types = [];
@@ -48,14 +49,14 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             var (slice, specification) = selected[index];
             if (cancellationToken.IsCancellationRequested)
             {
-                results.AddRange(selected.Skip(index).Select(item => Record(item.Slice, item.Specification, SemanticSpecificationOutcome.Cancelled)));
+                results.AddRange(selected.Skip(index).Select(item => Cancelled(item.Slice, item.Specification)));
                 break;
             }
 
             var blocker = options.DefaultCaller is null ? SemanticSpecificationAdmission.Check(plan, specification) : new SemanticUnsupportedCapability(StageExecutionCapability.Authorization, specification.Id.ToString(), "Explicit caller context is not admitted.");
             if (blocker is not null)
             {
-                results.Add(Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: blocker));
+                results.Add(Unsupported(slice, specification, blocker));
                 continue;
             }
 
@@ -73,20 +74,20 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                results.AddRange(selected.Skip(index).Select(item => Record(item.Slice, item.Specification, SemanticSpecificationOutcome.Cancelled)));
+                results.AddRange(selected.Skip(index).Select(item => Cancelled(item.Slice, item.Specification)));
                 break;
             }
             catch (OpaquePolicyReached exception)
             {
-                results.Add(Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.Authorization, specification.Id.ToString(), exception.Message)));
+                results.Add(Unsupported(slice, specification, new(StageExecutionCapability.Authorization, specification.Id.ToString(), exception.Message)));
             }
             catch (UnsupportedSemanticMapping exception)
             {
-                results.Add(Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.Command, specification.Id.ToString(), exception.Message)));
+                results.Add(Unsupported(slice, specification, new(StageExecutionCapability.Command, specification.Id.ToString(), exception.Message)));
             }
             catch (Exception exception)
             {
-                results.Add(Record(slice, specification, SemanticSpecificationOutcome.Failed, failures: [exception.Message]));
+                results.Add(Failed(slice, specification, [exception.Message]));
             }
         }
 
@@ -118,15 +119,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         var command = when is null ? null : plan.Commands[when.Command];
         var runtimeTypes = _types.GetOrAdd(plan.Revision, static (_, source) => new SemanticRuntimeTypes(source), plan);
         var runtimeType = command is null ? typeof(DynamicCommand) : runtimeTypes.ForCommand(command);
-        var instance = command is null ? null : (DynamicCommand)Activator.CreateInstance(runtimeType)!;
-        if (when is not null)
-        {
-            foreach (var value in when.Values)
-            {
-                var property = command!.Properties.Single(property => property.Id == value.TargetProperty);
-                instance!.Data[property.Name] = JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value));
-            }
-        }
+        var instance = command is null ? null : Materialize(runtimeType, command, when!);
 
         var eventTypes = plan.Events.Keys.Select(runtimeTypes.For).ToArray();
         var defaults = new Defaults(new SemanticClientArtifactsProvider(eventTypes));
@@ -141,78 +134,148 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         var history = context.Facts.Select((fact, index) => new SemanticConstraintEvaluator.Fact(fact.EventContract, context.Destinations[index], fact.Values)).ToArray();
         if (specification.WhenAppended is { } appended)
         {
-            var candidate = new SemanticConstraintEvaluator.Fact(appended.EventContract, appended.EventSource!.Value, appended.Values);
+            var candidate = new SemanticConstraintEvaluator.Fact(appended.EventContract, appended.EventSource?.Value ?? SemanticValue.Null, appended.Values);
             if (SemanticConstraintEvaluator.FindViolation(plan, history, [candidate]) is { } violation)
             {
-                return Rejected(slice, specification, SemanticConstraintEvaluator.Message(violation), violation.Name);
+                return Rejected(slice, specification, new SemanticRejection(SemanticConstraintEvaluator.Message(violation), violation.Name));
             }
-            await context.Append(new SemanticSpecificationEvent(appended.EventContract, appended.Values) { EventSource = appended.EventSource, Route = appended.Route }, appended.EventSource.Value, cancellationToken);
-            return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
+            await context.Append(new SemanticSpecificationEvent(appended.EventContract, appended.Values) { EventSource = appended.EventSource, Route = appended.Route }, candidate.Destination, cancellationToken);
         }
-
-        if (command is null)
+        else if (command is not null)
         {
-            return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
+            if (await ExecuteCommand(new(context, instance!, slice, specification, plan), cancellationToken) is { } outcome) return outcome;
         }
 
+        var actionFacts = context.Facts.Count - specification.GivenEvents.Length;
+        var reactions = new SemanticRunReactions(plan, context, specification.GivenEvents.Length, async fixture =>
+        {
+            var invoked = plan.Commands[fixture.When!.Command];
+            var invokedType = runtimeTypes.ForCommand(invoked);
+            var invokedContext = new SemanticRunContext(invokedType, invoked, fixture, options, runtimeTypes, eventScenario.EventLog, plan, context);
+            var invokedInstance = Materialize(invokedType, invoked, fixture.When);
+            var principal = fixture.GivenCaller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.SystemPrincipal(fixture.GivenCaller);
+
+            return await ExecuteCommand(new(invokedContext, invokedInstance, slice, specification, plan, principal), cancellationToken);
+        });
+        if (await reactions.Settle(cancellationToken) is { } failure) return failure.ToRecord(slice, specification);
+
+        return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts);
+    }
+
+    static DynamicCommand Materialize(Type runtimeType, SemanticCommand command, SemanticSpecificationCommand when)
+    {
+        var instance = (DynamicCommand)Activator.CreateInstance(runtimeType)!;
+        foreach (var value in when.Values)
+        {
+            var property = command.Properties.Single(property => property.Id == value.TargetProperty);
+            instance.Data[property.Name] = JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value));
+        }
+
+        return instance;
+    }
+
+    static async Task<SemanticSpecificationRunRecord?> ExecuteCommand(SemanticCommandRun run, CancellationToken cancellationToken)
+    {
+        var context = run.Context;
+        var specification = context.Specification;
+        var command = context.Command;
+        var priorFacts = context.Facts.Count;
         var caller = specification.GivenCaller;
-        var principal = caller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.Principal(caller);
-        var allowed = SemanticPolicyEvaluator.Allows(command!.Authorization, plan, caller, principal, command, specification);
-        if (CommandInputOutcome(context, slice, plan.Model.Application.Concepts, allowed) is { } inputOutcome)
-        {
-            return inputOutcome;
-        }
-
-        // An accepted command whose events have no destination and no stated source needs an allocated
-        // identity, which this engine does not provide.
-        if (allowed && when!.EventSource is null && command.Destination?.Value is null && command.Produces.Any(produced => produced.Destination is null))
-        {
-            return Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.IdentityAllocation, command.Id.ToString(), "An accepted command requires an explicit destination."));
-        }
-
-        if (allowed)
-        {
-            var candidates = command.Produces.Select(context.Produce)
-                .Select(item => new SemanticConstraintEvaluator.Fact(item.Fact.EventContract, item.Destination, item.Fact.Values)).ToArray();
-            if (SemanticConstraintEvaluator.FindViolation(plan, history, candidates) is { } constraint)
-            {
-                return Rejected(slice, specification, SemanticConstraintEvaluator.Message(constraint), constraint.Name);
-            }
-        }
+        var principal = run.ReactionPrincipal ?? (caller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.Principal(caller));
+        var allowed = SemanticPolicyEvaluator.Allows(command.Authorization, run.Plan, caller, principal, command, specification);
+        if (allowed && PrepareCommand(run) is { } preparation) return preparation;
 
         await using var scenario = new CommandScenario<object>();
+        var principalOverride = ConfigureScenario(scenario, run, principal);
+        using var scope = principalOverride.BeginScope(principal);
+        var result = await scenario.Execute(run.Instance, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return CommandOutcome(run, result, allowed, priorFacts);
+    }
+
+    static CurrentPrincipalAccessor ConfigureScenario(CommandScenario<object> scenario, SemanticCommandRun run, ClaimsPrincipal principal)
+    {
+        var context = run.Context;
         scenario.Services.AddSingleton(context);
         scenario.Services.AddSingleton<IDiscoverableValidators>(new SemanticCommandValidators(context));
-        scenario.Services.AddSingleton<IAuthorizationEvaluator>(new SemanticArcAuthorization(plan, command, specification, principal, runtimeType));
+        scenario.Services.AddSingleton<IAuthorizationEvaluator>(new SemanticArcAuthorization(run.Plan, context.Command, context.Specification, principal, context.CommandType));
         var principalOverride = new CurrentPrincipalAccessor(new HttpRequestContextAccessor());
         scenario.Services.AddSingleton<ICurrentPrincipalOverride>(principalOverride);
         scenario.Services.AddSingleton<ICurrentPrincipalAccessor>(principalOverride);
-        using var scope = principalOverride.BeginScope(principal);
-        var result = await scenario.Execute(instance!, cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (result.HasExceptions)
-        {
-            return Record(slice, specification, SemanticSpecificationOutcome.Failed, failures: [.. result.ExceptionMessages]);
-        }
+
+        return principalOverride;
+    }
+
+    static SemanticSpecificationRunRecord? CommandOutcome(SemanticCommandRun run, CommandResult result, bool allowed, int priorFacts)
+    {
+        var (slice, expected) = (run.Slice, run.Expected);
+        if (result.HasExceptions) return Failed(slice, expected, [.. result.ExceptionMessages]);
         if (!result.IsAuthorized)
         {
-            if (allowed || context.Facts.Count != specification.GivenEvents.Length)
-                return Record(slice, specification, SemanticSpecificationOutcome.Failed, failures: ["Arc denied an allowed command or appended facts before denial."]);
-            var failures = SemanticExpectationComparer.Compare(specification, [], [], "Caller is not authorized.", denied: true);
-            return Record(slice, specification, failures.Count == 0 ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed, "Rejected", failures: failures, trace: new([], new Dictionary<string, string>(), new Dictionary<string, string>(), "Caller is not authorized."));
+            if (allowed || run.Context.Facts.Count != priorFacts) return Failed(slice, expected, ["Arc denied an allowed command or appended facts before denial."]);
+
+            return Rejected(slice, expected, SemanticRejection.Unauthorized);
         }
-        if (!allowed)
+        if (!allowed) return Failed(slice, expected, ["Arc accepted a command rejected by the ESM authorization policy."]);
+
+        return result.ValidationResults.FirstOrDefault()?.Message is { } rejection ? Rejected(slice, expected, rejection) : null;
+    }
+
+    static SemanticSpecificationRunRecord? PrepareCommand(SemanticCommandRun run)
+    {
+        var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
+        if (run.IsInvocation && InvocationContractFailure(context, run.Plan) is { } contractFailure) return Rejected(slice, expected, contractFailure);
+        if (CommandInputOutcome(context, slice, run.Plan.Model.Application.Concepts, true) is { } inputOutcome) return Reframe(inputOutcome, slice, expected);
+        if (run.IsInvocation && SemanticSpecificationAdmission.Check(run.Plan, context.Specification) is { } blocker) return Unsupported(slice, expected, blocker);
+        if (NeedsExplicitDestination(context))
         {
-            return Record(slice, specification, SemanticSpecificationOutcome.Failed, failures: ["Arc accepted a command rejected by the ESM authorization policy."]);
+            return Unsupported(slice, expected, new(StageExecutionCapability.IdentityAllocation, context.Command.Id.ToString(), "An accepted command requires an explicit destination."));
         }
 
-        var rejection = result.ValidationResults.FirstOrDefault()?.Message;
-        if (rejection is not null)
-        {
-            return Rejected(slice, specification, rejection);
-        }
-        return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
+        return CommandAppendOutcome(run);
     }
+
+    static bool NeedsExplicitDestination(SemanticRunContext context) =>
+        context.Specification.When!.EventSource is null && context.Command.Destination?.Value is null && context.Command.Produces.Any(produced => produced.Destination is null);
+
+    static SemanticSpecificationRunRecord? CommandAppendOutcome(SemanticCommandRun run)
+    {
+        var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
+        var history = context.Facts.Select((fact, index) => new SemanticConstraintEvaluator.Fact(fact.EventContract, context.Destinations[index], fact.Values)).ToArray();
+        var candidates = context.Command.Produces.Select(context.Produce)
+            .Select(item => new SemanticConstraintEvaluator.Fact(item.Fact.EventContract, item.Destination, item.Fact.Values)).ToArray();
+        if (SemanticConstraintEvaluator.FindViolation(run.Plan, history, candidates) is { } constraint)
+        {
+            return Rejected(slice, expected, new SemanticRejection(SemanticConstraintEvaluator.Message(constraint), constraint.Name));
+        }
+
+        return context.Facts.Count - expected.GivenEvents.Length + candidates.Length > SemanticRunReactions.MaximumFacts
+            ? SemanticRunReactions.FactLimit().ToRecord(slice, expected) : null;
+    }
+
+    static string? InvocationContractFailure(SemanticRunContext context, SemanticExecutionPlan plan)
+    {
+        try
+        {
+            foreach (var value in context.Specification.When!.Values)
+            {
+                var property = context.Command.Properties.Single(property => property.Id == value.TargetProperty);
+                SemanticRunReactionExpressions.Validate(plan, value.Value, property.Type, $"command property '{property.Name}'");
+            }
+        }
+        catch (InvalidSemanticContract exception)
+        {
+            return exception.Message;
+        }
+
+        return null;
+    }
+
+    static SemanticSpecificationRunRecord Reframe(SemanticSpecificationRunRecord result, SemanticSlice slice, SemanticSpecification expected) =>
+        result.Trace?.Rejection is { } rejection
+            ? Rejected(slice, expected, new SemanticRejection(rejection, result.Trace.RejectionCode))
+            : result with { SpecificationId = expected.Id.ToString(), Name = expected.Name, SliceId = slice.Id.ToString(), SliceKind = slice.Kind.ToString() };
 
     static SemanticSpecificationRunRecord? CommandInputOutcome(SemanticRunContext context, SemanticSlice slice, IEnumerable<SemanticConcept> concepts, bool allowed)
     {
@@ -245,7 +308,7 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         }
         if (properties.Any(property => !generated.Any(value => value.TargetProperty == property.Id)))
         {
-            return Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.IdentityAllocation, command.Id.ToString(), "Generated command values require deterministic fixtures."));
+            return Unsupported(slice, specification, new(StageExecutionCapability.IdentityAllocation, command.Id.ToString(), "Generated command values require deterministic fixtures."));
         }
         var failure = SemanticRuleEvaluation.GeneratedFailure(command, specification, concepts);
 
@@ -258,14 +321,9 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
 
     static bool IsUuidFixture(SemanticValue value) => value is SemanticTextValue text && Guid.TryParse(text.Value, out _);
 
-    static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, string message, string? code = null, bool denied = false)
+    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventScenario eventScenario, SemanticRuntimeTypes runtimeTypes, Defaults defaults, int actionFacts)
     {
-        var failures = SemanticExpectationComparer.Compare(specification, [], [], message, code, denied);
-        return Record(slice, specification, failures.Count == 0 ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed, "Rejected", failures: failures, trace: new SemanticExecutionTrace([], new Dictionary<string, string>(), new Dictionary<string, string>(), message) { RejectionCode = code });
-    }
-
-    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventScenario eventScenario, SemanticRuntimeTypes runtimeTypes, Defaults defaults, SemanticExecutionPlan plan)
-    {
+        var plan = context.Plan;
         var persisted = await eventScenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
         if (persisted.Count != context.Facts.Count)
         {
@@ -279,10 +337,10 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         {
             if (!SemanticPolicyEvaluator.Allows(plan.Queries[assertion.Query], assertion.Key, plan, specification.GivenCaller))
             {
-                return Rejected(slice, specification, "Caller is not authorized.", denied: true);
+                return Rejected(slice, specification, SemanticRejection.Unauthorized);
             }
         }
-        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, null, plan: plan).ToList();
+        var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts)).ToList();
         failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
         failures.AddRange(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
         var trace = new SemanticExecutionTrace(
@@ -299,11 +357,8 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
                 entry => $"{entry.index}:{entry.query.Query}:{SemanticRunContext.Canonical(entry.query.Key)}",
                 entry => JsonSerializer.Serialize(projected.Where(row => row.ReadModel == plan.Queries[entry.query.Query].ReadModel && SemanticExpectationComparer.AreEqual(row.Key, entry.query.Key)).Select(row => row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))),
             null);
-        return Record(slice, specification, failures.Count == 0 ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed, "Accepted", failures: failures, trace: trace);
+        return Settled(slice, specification, failures, trace);
     }
-
-    static SemanticSpecificationRunRecord Record(SemanticSlice slice, SemanticSpecification specification, SemanticSpecificationOutcome outcome, string? kind = null, SemanticUnsupportedCapability? unsupported = null, IReadOnlyList<string>? failures = null, SemanticExecutionTrace? trace = null) =>
-        new(specification.Id.ToString(), specification.Name, slice.Id.ToString(), slice.Kind.ToString(), outcome, kind, unsupported, failures ?? [], trace);
 
     static bool ContainsScope(SemanticApplication application, SemanticId scope) =>
         scope == application.Id || application.Modules.Any(module => module.Id == scope || ContainsFeature(module.Features, scope));

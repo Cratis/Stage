@@ -37,7 +37,7 @@ public class with_precise_constructs_on_a_later_reaction : given.an_event_reacti
     [Fact]
     void should_put_the_kind_before_both_generic_reaction_refusals() => _features.Skip(4).Select(feature => feature.Message).ShouldContainOnly([
         "Reaction 'PaymentImporter' uses trigger kind 'ApplicationTrigger', which Stage does not support yet.",
-        "Reaction 'ReminderScheduler' is an ESM v6 automation construct; the specification executor does not run reactions yet.",
-        "Reaction 'PaymentImporter' is an ESM v6 automation construct; the specification executor does not run reactions yet.",
-        "Slice 'Reminders' is an ESM v6 Automation slice; the specification executor does not run reactions yet."]);
+        "Reaction 'ReminderScheduler' is an ESM v6 automation construct; targets must explicitly admit its event-triggered behavior.",
+        "Reaction 'PaymentImporter' is an ESM v6 automation construct; targets must explicitly admit its event-triggered behavior.",
+        "Slice 'Reminders' is an ESM v6 Automation slice; targets must explicitly admit its reaction behavior."]);
 }

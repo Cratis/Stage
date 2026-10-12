@@ -143,7 +143,6 @@ public static class SemanticRunAdmission
         }
         if (specification.WhenAppended is { } appended)
         {
-            if (appended.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, appended.EventContract, "Direct append requires an explicit event source.");
             if (!plan.Events.TryGetValue(appended.EventContract, out var appendedContract)) return Block(StageExecutionCapability.PlanIssue, appended.EventContract, "The appended event is not in the plan.");
             if (!GeneratedPascalCase.EventMembersAreUnique(appendedContract.Name, appendedContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, appendedContract.Id, "Event property names collide in generated C#.");
             if (appendedContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Occurrence, appended.EventContract, "Only scalar appended event values are admitted.");
@@ -155,10 +154,10 @@ public static class SemanticRunAdmission
             if (!GeneratedPascalCase.EventMembersAreUnique(givenContract.Name, givenContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, givenContract.Id, "Event property names collide in generated C#.");
             if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");
         }
-        if (specification.WhenAppended is not null) return SemanticRunProjectionAdmission.Check(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
+        if (specification.WhenAppended is not null) return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
         if (specification.When is not { } when)
         {
-            return SemanticRunProjectionAdmission.Check(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
+            return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
         }
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
         if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, command.Id, "Command property names collide in generated C#.");
@@ -184,7 +183,7 @@ public static class SemanticRunAdmission
         // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
         var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? command.Produces.Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
-        if (SemanticRunProjectionAdmission.Check(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
+        if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
         if (command.Properties.Any(property => !Scalar(property.Type)) ||
             command.Produces.Any(produced => !plan.Events.TryGetValue(produced.EventContract, out var eventContract) || eventContract.Properties.Any(property => !Scalar(property.Type))))
@@ -215,9 +214,17 @@ public static class SemanticRunAdmission
         return null;
     }
 
+    /// <summary>
+    /// Checks a concrete reaction fact before it can reach per-run projection replay.
+    /// </summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="fact">The fact about to be appended.</param>
+    /// <returns>The projection refusal, or null when the fact is safe to project.</returns>
+    public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact) =>
+        SemanticRunProjectionAdmission.CheckFact(plan, fact);
+
     // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
-    // Keep non-event triggers, opaque bodies and unsupported context mappings refused. Specification runs
-    // deliberately retain the unfiltered renderer feature set until their independent reaction executor exists.
+    // Keep non-event triggers, opaque bodies and unsupported context mappings refused in both engines.
     static IEnumerable<SemanticVersionFeature> LiveSliceFeatures(SemanticSlice slice) =>
         SemanticVersionFeatures.InSlice(slice)
             .Except(SemanticVersionFeatures.AutomationSlices(slice))
@@ -228,12 +235,12 @@ public static class SemanticRunAdmission
 
     // ESM v5-v10 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
     // a generated value or a response would otherwise be dropped and the run could pass.
-    // Any automation construct in the model blocks every run, since its consequences could follow any command.
+    // Unsupported automation constructs block every run, since their consequences could follow any command.
     static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
         var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
-            .Concat(slices.SelectMany(slice => SemanticVersionFeatures.InSlice(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
+            .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
             .Concat(RunSpecificationFeatures(specification))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))
             .FirstOrDefault();

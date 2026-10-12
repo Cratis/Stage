@@ -1,0 +1,11 @@
+{
+  "name": "@acme/scene.charts",
+  "version": "1.2.0",
+  "description": "A tiny custom Scene runtime package used to prove that a rendered application loads an approved package.",
+  "type": "module",
+  "main": "index.js",
+  "exports": { ".": "./index.js", "./styles.css": "./styles.css" },
+  "files": ["index.js", "styles.css"],
+  "peerDependencies": { "react": ">=19" },
+  "license": "MIT"
+}

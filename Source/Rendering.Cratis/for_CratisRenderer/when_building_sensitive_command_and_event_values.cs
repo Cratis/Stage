@@ -23,7 +23,7 @@ public class when_building_sensitive_command_and_event_values : a_generated_appl
     protected override ArtifactRenderPlan CreatePlan()
     {
         // Reuse the package-owned application scaffold, but render every domain artifact through the legacy
-        // path: the semantic concept model does not carry these source attributes.
+        // path to keep proving the legacy syntax mapping independently of ESM v13 compliance.
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Secrets"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scaffold"), "scaffold", "Scaffold.play", "module Accounts");
         var compilation = new SemanticModelCompiler().Compile("Secrets", SemanticDocumentSet.Create([document], catalog));

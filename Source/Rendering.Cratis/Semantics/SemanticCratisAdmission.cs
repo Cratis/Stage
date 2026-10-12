@@ -34,6 +34,7 @@ internal static partial class SemanticCratisAdmission
 
         ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
+        ValidateCompliance(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
         ValidateGeneratedTypeNames(context, slices, diagnostics);
 

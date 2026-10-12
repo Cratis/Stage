@@ -72,7 +72,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
             }
 
             var expectedTail = _knownTail;
-            var result = Evaluate(command, payload, principal, occurrence);
+            var result = Settle(Evaluate(command, payload, principal, occurrence), validateOnly, occurrence);
             if (!validateOnly && result is SemanticAccepted accepted)
             {
                 if (_appender is not ISemanticFactTail tail)
@@ -249,6 +249,21 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         _worldProvider = null;
     }
 
+    SemanticExecutionResult Settle(SemanticExecutionResult evaluated, bool validateOnly, SemanticCommandOccurrence occurrence)
+    {
+        if (validateOnly || evaluated is not SemanticAccepted accepted)
+        {
+            return evaluated;
+        }
+
+        var settlement = new SemanticReactionSettlement(new ReactionEvaluator(this, _evaluator));
+        var result = settlement.Settle(Plan, accepted.World, accepted.Facts, occurrence.Occurred);
+
+        return result is SemanticAccepted settled
+            ? accepted with { World = settled.World, Facts = accepted.Facts.AddRange(settled.Facts) }
+            : result with { World = _world };
+    }
+
     SemanticExecutionResult Evaluate(SemanticCommand command, IReadOnlyDictionary<string, JsonElement> payload, ClaimsPrincipal principal, SemanticCommandOccurrence occurrence)
     {
         var unknown = payload.Keys.FirstOrDefault(key => command.Properties.Where(property => !property.IsGenerated).All(property => !string.Equals(property.Name, key, StringComparison.OrdinalIgnoreCase)));
@@ -282,6 +297,25 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
             return authorization is SemanticRejected { Category: SemanticRejectionCategory.Unauthorized } or SemanticUnsupported
                 ? authorization
                 : new SemanticRejected(_world, SemanticRejectionCategory.Contract, null, exception.Message);
+        }
+    }
+
+    sealed class ReactionEvaluator(SemanticRuntime runtime, ISemanticEvaluator evaluator) : ISemanticEvaluator
+    {
+        public SemanticExecutionResult Execute(SemanticExecutionPlan plan, SemanticWorld world, SemanticExecutionRequest request)
+        {
+            var command = plan.Commands.GetValueOrDefault(request.Command);
+            if (runtime.UnsupportedImplementation(command) is { } unsupported)
+            {
+                return unsupported with { World = world };
+            }
+
+            if (command is not null && request.GeneratedValues.IsDefaultOrEmpty)
+            {
+                request = request with { GeneratedValues = GeneratedValues(command) };
+            }
+
+            return evaluator.Execute(plan, world, request);
         }
     }
 }

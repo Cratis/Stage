@@ -1,0 +1,94 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+
+public static class a_validated_query_key_model
+{
+    public const string Source = """
+        concept InvoiceId : String
+          validate
+            min 2
+        module Billing
+          feature Invoicing
+            slice StateChange Issue
+              command IssueInvoice
+                invoiceId InvoiceId identifier
+                description String
+                produces InvoiceIssued
+                  for invoiceId
+                  invoiceId = invoiceId
+                  description = description
+              event InvoiceIssued
+                invoiceId InvoiceId
+                description String
+            slice StateView Lookup
+              readmodel InvoiceSummary
+                invoiceId InvoiceId
+                description String
+              query InvoiceById => InvoiceSummary?
+                by invoiceId InvoiceId
+              query InvoicesById => observable InvoiceSummary[]
+                by invoiceId InvoiceId
+              projection InvoiceSummaryProjection => InvoiceSummary
+                from InvoiceIssued key invoiceId
+                  invoiceId = invoiceId
+                  description = description
+        """;
+
+    public const string Probe = """
+        using Cratis.Arc.Queries;
+        using Cratis.Arc.Testing.Queries;
+        using Cratis.Chronicle.Events;
+        using Cratis.Chronicle.ReadModels;
+        using Invoices.Billing.Invoicing.Lookup;
+        using Invoices.Common;
+        using Microsoft.Extensions.DependencyInjection;
+        using NSubstitute;
+        using Xunit;
+
+        namespace Invoices.Probes;
+
+        public static class QueryKeys
+        {
+            public static async Task<QueryResult[]> Execute()
+            {
+                var id = new InvoiceId("invoice-one");
+                var invalidId = new InvoiceId("x");
+                var instance = new InvoiceSummary(InvoiceId: id, Description: "North");
+                var readModels = Substitute.For<IReadModels>();
+                readModels.GetInstanceById<InvoiceSummary>((EventSourceId)id).Returns(instance);
+                readModels.GetInstanceById<InvoiceSummary>((EventSourceId)invalidId).Returns(Task.FromResult<InvoiceSummary>(null!));
+                readModels.GetInstances<InvoiceSummary>().Returns((IEnumerable<InvoiceSummary>)[instance]);
+                // Arc's Chronicle interceptor releases each returned instance before assigning Data.
+                // This model has no protected properties, so release must preserve the instance.
+                readModels.Release<InvoiceSummary>(Arg.Any<InvoiceSummary>()).Returns(call => Task.FromResult(call.Arg<InvoiceSummary>()));
+                using var lookupScenario = new QueryScenario<InvoiceSummary>();
+                // Snapshot reads normally require a silo. Keep the real Arc argument conversion
+                // and validation pipeline, but substitute the store as companion specs do.
+                lookupScenario.Services.AddSingleton(readModels);
+                var valid = new QueryArguments { ["invoiceId"] = "invoice-one" };
+                var invalid = new QueryArguments { ["invoiceId"] = "x" };
+                var lookup = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), valid);
+                var missing = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), invalid);
+                await readModels.Received(1).GetInstanceById<InvoiceSummary>((EventSourceId)id);
+                await readModels.Received(1).GetInstanceById<InvoiceSummary>((EventSourceId)invalidId);
+                var filtered = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), valid);
+                var empty = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), invalid);
+                Assert.All(new[] { lookup, missing, filtered, empty }, result =>
+                {
+                    Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
+                    Assert.Empty(result.ValidationResults);
+                    Assert.True(result.IsValid);
+                    Assert.True(result.IsAuthorized);
+                });
+                Assert.Same(instance, Assert.IsType<InvoiceSummary>(lookup.Data));
+                Assert.Null(missing.Data);
+                // The query pipeline's interception stage materializes collections as object[].
+                Assert.Same(instance, Assert.IsType<InvoiceSummary>(Assert.Single(Assert.IsType<IEnumerable<object>>(filtered.Data, exactMatch: false))));
+                Assert.Empty(Assert.IsType<IEnumerable<object>>(empty.Data, exactMatch: false));
+                return [lookup, missing, filtered, empty];
+            }
+        }
+        """;
+}

@@ -169,6 +169,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValueExpression", rejected("STAGE-ESM-006"), "Value");
 
         // State view: an optional snapshot lookup by identifier or a live collection (keyed by one `by` or unkeyed).
+        // Validated scalar concept keys render as primitive arguments and convert inside the query;
+        // nested/collection validated concepts fail STAGE-ESM-010 rather than adding Arc query validation.
         // QueryShapes records the cross-product rather than treating an enum value as universally supported.
         Add(entries, "SemanticReadModel", rendered, "Id Name Properties");
         Add(entries, "SemanticProjection", rendered, "Id Name ReadModel Transitions");

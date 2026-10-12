@@ -56,7 +56,7 @@ internal static class SemanticQuerySpecificationRenderer
             .Using(queryNamespace);
 
         var collectionPredicate = CollectionPredicate(expected, readModel, types);
-        var key = query.Argument is null ? string.Empty : types.Value(expected.Key, query.Argument.Type);
+        var key = query.Argument is null ? string.Empty : types.QueryArgumentValue(expected.Key, query.Argument.Type);
         foreach (var (produced, _) in replay)
         {
             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(produced.EventContract).Path);
@@ -179,7 +179,7 @@ internal static class SemanticQuerySpecificationRenderer
             .Using("Cratis.Specifications")
             .Using("Xunit")
             .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path));
-        var key = types.Value(given.Key, argument.Type);
+        var key = types.QueryArgumentValue(given.Key, argument.Type);
         var values = readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal)
             .Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
         var predicates = result.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal).Select(value =>

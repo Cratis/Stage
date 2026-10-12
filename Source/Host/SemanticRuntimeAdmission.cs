@@ -17,8 +17,7 @@ internal sealed class SemanticRuntimeAdmission
         var blocking = new List<SemanticAdmissionEntry>();
 
         // ESM v5-v10 constructs the runtime cannot execute refuse the whole model rather than running without them:
-        // a reaction, capture or trigger would never fire, and a generated value or response would be mis-executed.
-        var application = plan.Model.Application;
+        // a non-event trigger or capture would never fire, and an unsupported generated value would be mis-executed.
         foreach (var feature in SemanticRunAdmission.ModelFeatures(plan.Model))
         {
             var entry = Refused(feature);

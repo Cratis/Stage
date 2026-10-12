@@ -3,7 +3,17 @@ title: Event reaction rendering
 description: How Stage renders event-triggered Automation slices, their side effects and their remaining limits.
 ---
 
-Stage renders event-triggered reactions in Automation slices as Chronicle reactors. This is an experimental, rendering-only capability: the Stage Host and in-memory specification executor still refuse reactions.
+Stage renders event-triggered reactions in Automation slices as Chronicle reactors. The semantic Stage Host also runs event reactions, but the independent in-memory specification executor still refuses them.
+
+| Execution path | Event reaction behavior |
+| --- | --- |
+| Semantic Stage Host | Settles productions, invocations and cascades with the command; appends all facts in one tail-guarded batch or refuses the entire command |
+| Rendered Chronicle reactors | Independent, eventually consistent observers; a failed partition can retry after the initiating command has committed |
+| In-memory specification executor | Refuses event reactions with `STAGE-ESM-024` |
+
+The Host applies `where`, `runs as` and `from` through Screenplay's reference settlement. Clock,
+application, startup and shutdown triggers and opaque bodies remain unsupported. Host execution does not
+relax renderer admission: the diagnostics below describe generated reactors, not the live semantic Host.
 
 ## Model to C# mapping
 

@@ -129,9 +129,16 @@ and event-source routes with `STAGE-ESM-030`, before registering anything with C
 in refused mode: `/stage/status` reports `state: "unsupported"` and `/api/**` returns HTTP 501.
 Both engines also refuse public-event publication (`STAGE-ESM-032`), foreign events and `source events`
 captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`, naming the direction),
-reaction execution identity (`STAGE-ESM-034`) and reaction or reducer observer filters (`STAGE-ESM-035`).
+and reducer observer filters (`STAGE-ESM-035`). The legacy engine also refuses reaction execution identity
+(`STAGE-ESM-034`) and reaction observer filters (`STAGE-ESM-035`).
 Per-production route overrides fail `STAGE-ESM-036` on the semantic engine; the legacy engine refuses their stream syntax with `STAGE-ESM-030`.
-The semantic engine also refuses reactions: clock, application, startup and shutdown triggers and opaque reaction bodies fail `STAGE-ESM-024` naming the trigger kind, a trigger that both produces and invokes fails `STAGE-ESM-037`, `$context.causedBy.*` fails `STAGE-ESM-013`, and event-triggered reactions fail `STAGE-ESM-024` because the Stage Host does not run reactions yet, even though the renderer admits event-triggered reactions.
+The semantic engine runs event-triggered reactions, including `where`, `runs as`, `from`, productions,
+invocations and cascades. It settles them with the initiating command and appends all facts in one
+tail-guarded batch. A rejected, denied or unsupported settlement refuses the whole command and appends
+nothing. This differs from rendered Chronicle reactors, which run eventually and retry failed partitions.
+Clock, application, startup and shutdown triggers and opaque reaction bodies still fail `STAGE-ESM-024`
+naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
+The independent specification executor still refuses event reactions; see [The spec runner](spec-runner.md).
 The semantic engine uses Screenplay 4.141.0 and admits exact ESM v1–v13 version pairs; unaudited
 language/semantic versions refuse the whole model with `STAGE-ESM-016` before registration or execution.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and

@@ -32,6 +32,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal Type CommandType => commandType;
     internal SemanticCommand Command => command;
     internal SemanticSpecification Specification => specification;
+    internal SemanticExecutionPlan Plan => plan;
     internal IReadOnlyList<SemanticSpecificationEvent> Facts => _facts;
     internal IReadOnlyList<SemanticValue> Destinations => _destinations;
     internal DateTimeOffset Occurred => options.Clock.GetUtcNow();

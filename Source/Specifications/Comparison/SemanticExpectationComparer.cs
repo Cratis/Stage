@@ -12,7 +12,7 @@ internal static class SemanticExpectationComparer
     // Mirrors SemanticSpecificationRunner.Compare/CompareFacts for the admitted fact/error subset.
     internal static IReadOnlyList<string> Compare(SemanticSpecification expected, SemanticActualRun run, SemanticRejection? rejected = null)
     {
-        var (actual, destinations, plan, actionFacts) = run;
+        var (actual, _, plan, _) = run;
         var rejection = rejected?.Message;
         var rejectionCode = rejected?.Code;
         var denied = rejected?.Denied ?? false;
@@ -52,15 +52,19 @@ internal static class SemanticExpectationComparer
         if (expected.WhenAppended is null || expected.ThenEvents.Length > 0)
         {
             // A direct append's then-events describe only its reaction effects; commands include action facts.
-            var following = actual;
-            if (expected.WhenAppended is not null && plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6)) following = [.. actual.Skip(actionFacts ?? 1)];
-            CompareFacts(expected, following, failures, plan!);
+            CompareFacts(expected, Following(expected, run), failures, plan!);
         }
 
-        CompareCommandDestination(expected, actionFacts is { } count ? [.. destinations.Take(count)] : destinations, plan, failures);
+        CompareCommandDestination(expected, ActionDestinations(run), plan, failures);
 
         return failures;
     }
+
+    static IReadOnlyList<SemanticSpecificationEvent> Following(SemanticSpecification expected, SemanticActualRun run) =>
+        expected.WhenAppended is not null && run.Plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6) ? [.. run.Facts.Skip(run.ActionFacts ?? 1)] : run.Facts;
+
+    static IReadOnlyList<SemanticValue> ActionDestinations(SemanticActualRun run) =>
+        run.ActionFacts is { } count ? [.. run.Destinations.Take(count)] : run.Destinations;
 
     internal static IReadOnlyList<string> CompareResponse(SemanticSpecificationResponse? expected, SemanticExecutionResponse? actual) => expected switch
     {

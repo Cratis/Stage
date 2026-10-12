@@ -11,6 +11,14 @@ namespace Cratis.Stage.Specifications;
 
 internal static class SemanticRunReactionExpressions
 {
+    static readonly Dictionary<SemanticComparisonOperator, Func<decimal, decimal, bool>> _orderings = new()
+    {
+        [SemanticComparisonOperator.GreaterThan] = (left, right) => left > right,
+        [SemanticComparisonOperator.GreaterThanOrEqual] = (left, right) => left >= right,
+        [SemanticComparisonOperator.LessThan] = (left, right) => left < right,
+        [SemanticComparisonOperator.LessThanOrEqual] = (left, right) => left <= right
+    };
+
     internal static SemanticValue Evaluate(SemanticExpression expression, IReadOnlyDictionary<SemanticId, SemanticValue> values) => expression switch
     {
         SemanticValueExpression literal => literal.Value,
@@ -34,10 +42,13 @@ internal static class SemanticRunReactionExpressions
             return;
         }
         if (type.IsCollection || type.Kind == SemanticTypeReferenceKind.CompositeType) throw new UnsupportedSemanticMapping();
-        var concept = type.Kind == SemanticTypeReferenceKind.Concept ? plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target) : null;
+        var concept = ConceptOf(plan, type);
         if (!IsCompatible(value, concept?.Primitive ?? type.Primitive)) throw new InvalidSemanticContract($"A {description} is incompatible with its target type.");
         if (!IsDeclaredValue(concept, value)) throw new InvalidSemanticContract($"A {description} targets an enumeration concept but is not a declared value.");
     }
+
+    static SemanticConcept? ConceptOf(SemanticExecutionPlan plan, SemanticTypeReference type) =>
+        type.Kind == SemanticTypeReferenceKind.Concept ? plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target) : null;
 
     static bool IsCompatible(SemanticValue value, SemanticPrimitiveType primitive) => value switch
     {
@@ -76,14 +87,7 @@ internal static class SemanticRunReactionExpressions
     {
         if (left is not SemanticNumberValue a || right is not SemanticNumberValue b) throw new InvalidSemanticContract("Ordering condition requires numeric operands.");
 
-        return comparison switch
-        {
-            SemanticComparisonOperator.GreaterThan => a.Value > b.Value,
-            SemanticComparisonOperator.GreaterThanOrEqual => a.Value >= b.Value,
-            SemanticComparisonOperator.LessThan => a.Value < b.Value,
-            SemanticComparisonOperator.LessThanOrEqual => a.Value <= b.Value,
-            _ => throw new InvalidSemanticContract("Unknown comparison operator.")
-        };
+        return _orderings.TryGetValue(comparison, out var ordered) ? ordered(a.Value, b.Value) : throw new InvalidSemanticContract("Unknown comparison operator.");
     }
 
     static SemanticValue Operand(SemanticConditionOperand operand, IReadOnlyDictionary<SemanticId, SemanticValue> values) => operand.Property.IsSet ? values[operand.Property] : operand.Value!;

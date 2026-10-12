@@ -163,7 +163,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         });
         if (await reactions.Settle(cancellationToken) is { } failure) return failure.ToRecord(slice, specification);
 
-        return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan, actionFacts);
+        return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts);
     }
 
     static DynamicCommand Materialize(Type runtimeType, SemanticCommand command, SemanticSpecificationCommand when)
@@ -324,8 +324,9 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
     static bool IsUuidFixture(SemanticValue value) => value is SemanticTextValue text && Guid.TryParse(text.Value, out _);
 
-    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventScenario eventScenario, SemanticRuntimeTypes runtimeTypes, Defaults defaults, SemanticExecutionPlan plan, int actionFacts)
+    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventScenario eventScenario, SemanticRuntimeTypes runtimeTypes, Defaults defaults, int actionFacts)
     {
+        var plan = context.Plan;
         var persisted = await eventScenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
         if (persisted.Count != context.Facts.Count)
         {

@@ -20,11 +20,12 @@ and reaction or reducer observer filters (`STAGE-ESM-035`). Per-production route
 on the semantic engine; the structural engine refuses their stream syntax with `STAGE-ESM-030`.
 Reaction models are refused too: unrealisable trigger kinds and opaque bodies with `STAGE-ESM-024` naming the kind, a trigger that both produces and invokes with `STAGE-ESM-037`, `$context.causedBy.*` with `STAGE-ESM-013`, and event-triggered reactions with `STAGE-ESM-024` until reaction rendering is admitted.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.137.0, admits ESM v1–v11
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.139.0, admits exact ESM v1–v12
 version pairs and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
 At v11 it executes retained exact Double-mode integer and fractional values without a second rounding
 step, including the safe whole-number bounds ±9007199254740991 and `0.10000000000000002`.
 This does not enable `numbers exact` or extend the source integer range.
+At v12 it executes specifications for numbered enums with unchanged name-based comparisons.
 Migrate to `--engine semantic` and the semantic report format described below.
 
 ```bash

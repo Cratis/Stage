@@ -5,6 +5,7 @@ using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
@@ -71,9 +72,9 @@ public static class ConceptRenderer
     static void RenderEnum(CSharpCodeBuilder builder, ConceptSyntax concept, string typeName)
     {
         builder.Summary($"Represents the possible values of {typeName}.").OpenBlock($"public enum {typeName}");
-        foreach (var value in concept.Values)
+        foreach (var member in SemanticEnumMembers.Declarations(concept.Values, concept.ValueNumbers))
         {
-            builder.Line($"{Identifiers.ToPascalCase(value)},");
+            builder.Line($"{member},");
         }
 
         builder.EndBlock();

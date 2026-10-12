@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.137.0; ESM v1–v11 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.139.0; ESM v1–v12 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -103,7 +103,7 @@ internal static class SemanticSurfaceLedger
 
         // Types, declarations and validation. Properties carry type and identifier semantics into
         // generated records, event destinations, projection keys and specification values.
-        Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values");
+        Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values Numbers");
         Add(entries, "SemanticCompositeType", rendered, "Id Name Properties");
         Add(entries, "SemanticProperty", rendered, "Id IsIdentifier Name Type");
         Add(entries, "SemanticProperty", rendered, "IsGenerated");

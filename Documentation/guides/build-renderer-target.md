@@ -302,7 +302,7 @@ ESM v4 (`4.0` language and semantic versions) is admitted by the version gates, 
 
 Evolution waits for migration modeling and rendering (Screenplay #71 and a Stage migration-rendering follow-up). In both Chronicle 19.8.1 and 19.32.0, registration validation requires migrators for every generation above 1 even on an empty store. Production kernels always validate; the development image can skip validation, permitting unsafe historical replay. Neither path is an admitted realization without migrations, so Stage refuses before emission rather than relying on the kernel configuration. Stage's Host also retains its `EventContract` refusal, "Only the initial event revision can be registered in Chronicle." Its registrar and fact appender remain generation-1-only; an evolved model is not registered or appended.
 
-Stage builds against Screenplay 4.137.0 and admits ESM v1 through v11 by version. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
+Stage builds against Screenplay 4.139.0 and admits exact ESM v1 through v12 language/semantic pairs. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
 
 | Construct | Version | Diagnostic |
 |---|---|---|
@@ -329,6 +329,7 @@ Stage builds against Screenplay 4.137.0 and admits ESM v1 through v11 by version
 | Reaction observer filters (`from`) | v10 | `STAGE-ESM-035` |
 | Per-production route overrides | v10 | `STAGE-ESM-036` |
 | Exact Double-mode number literal lowering | v11 | Rendered as `long` whole numbers and `decimal` fractions, preserving the retained ESM values |
+| Explicit enum member numbers | v12 | Rendered as `Member = N`, preserving sparse and negative int32 identities; stored numbers rebuild to the matching member |
 
 ESM v11 preserves retained non-route numbers such as `9007199254740991`, `-9007199254740991`,
 `1234567890123456` and `0.10000000000000002` through command, event and read-model rendering.

@@ -88,11 +88,16 @@ internal static class SemanticVersionFeatures
     internal const string MixedReactionEffects = "STAGE-ESM-037";
 
     /// <summary>
+    /// The code for compliance on identity uses or enumeration concepts.
+    /// </summary>
+    internal const string ProtectedIdentity = "STAGE-ESM-040";
+
+    /// <summary>
     /// Checks the language and semantic version pair Stage has audited.
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV12Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV13Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.

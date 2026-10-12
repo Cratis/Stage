@@ -61,6 +61,10 @@
         <PackageReference Include="Microsoft.NETCore.App.Ref" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <!-- Vendored byte-for-byte from Screenplay v4.141.0:
+             Source/DotNET/Screenplay/Semantics/Serialization/Golden/full-esm-v13.json.
+             Packaging follow-up: https://github.com/Cratis/Screenplay/issues/677. -->
+        <EmbeddedResource Include="for_CratisArtifactRenderPlanner/Vectors/full-esm-v13.json" LogicalName="full-esm-v13.json" />
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
         <EmbeddedResource Include="for_SemanticTypedContextRenderer/Vectors/*.json" />
         <!-- Screenplay v4.114.0 portable stream-id codec vectors. -->

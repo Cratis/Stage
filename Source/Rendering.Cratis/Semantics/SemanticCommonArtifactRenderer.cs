@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Renderers;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -76,8 +77,9 @@ internal static class SemanticCommonArtifactRenderer
 
         var baseType = isIdentifier ? $"global::Cratis.Chronicle.Events.EventSourceId<{primitive}>" : $"global::Cratis.Concepts.ConceptAs<{primitive}>";
         var generationInterface = GenerationInterface(concept, context);
-        builder.Summary($"Represents {Identifiers.ToWords(concept.Name)}.")
-            .OpenBlock($"public record {name}({primitive} Value) : {baseType}(Value){generationInterface}")
+        builder.Summary($"Represents {Identifiers.ToWords(concept.Name)}.");
+        ConceptComplianceRendering.Render(builder, concept.Compliance);
+        builder.OpenBlock($"public record {name}({primitive} Value) : {baseType}(Value){generationInterface}")
             .Line($"public static readonly {name} NotSet = new({types.NotSet(concept.Primitive)});")
             .BlankLine();
 

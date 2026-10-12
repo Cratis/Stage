@@ -500,9 +500,7 @@ internal static partial class PureTransitionAdmission
 
     static bool InvalidLambda(IAnonymousFunctionOperation lambda)
     {
-        if (lambda.Parent is not IDelegateCreationOperation { Parent: IArgumentOperation { Parent: IInvocationOperation call } } ||
-            call.TargetMethod.ContainingType.ToDisplayString() != "System.Linq.Enumerable" ||
-            lambda.Syntax is not LambdaExpressionSyntax { Body: ExpressionSyntax })
+        if (!IsLinqExpressionLambda(lambda))
         {
             return true;
         }
@@ -511,19 +509,35 @@ internal static partial class PureTransitionAdmission
             Descendants(lambda.Body).Any(child => child != lambda.Body && InvalidLambdaChild(child, lambda));
     }
 
+    static bool IsLinqExpressionLambda(IAnonymousFunctionOperation lambda) =>
+        lambda.Parent is IDelegateCreationOperation { Parent: IArgumentOperation { Parent: IInvocationOperation call } } &&
+        call.TargetMethod.ContainingType.ToDisplayString() == "System.Linq.Enumerable" &&
+        lambda.Syntax is LambdaExpressionSyntax { Body: ExpressionSyntax };
+
     static bool InvalidLambdaChild(IOperation child, IAnonymousFunctionOperation lambda) => child switch
     {
         ISimpleAssignmentOperation or ICompoundAssignmentOperation or IIncrementOrDecrementOperation or
             ICoalesceAssignmentOperation or IThrowOperation or IAnonymousFunctionOperation or IArrayElementReferenceOperation => true,
         IBinaryOperation binary => InvalidLambdaBinary(binary),
-        IUnaryOperation unary => unary.IsChecked ||
-            (unary.Operand.Type?.SpecialType == SpecialType.System_Decimal && unary.OperatorKind == UnaryOperatorKind.Minus),
-        IConversionOperation conversion => conversion.IsChecked ||
-            (conversion.Operand.Type?.SpecialType == SpecialType.System_Decimal && conversion.Type?.SpecialType != SpecialType.System_Decimal),
+        IUnaryOperation unary => InvalidLambdaUnary(unary),
+        IConversionOperation conversion => InvalidLambdaConversion(conversion),
+        _ => InvalidLambdaReference(child, lambda)
+    };
+
+    static bool InvalidLambdaReference(IOperation child, IAnonymousFunctionOperation lambda) => child switch
+    {
         IInvocationOperation call => !SafeLambdaCall(call),
         ILocalReferenceOperation or IParameterReferenceOperation => CapturesDisallowedValue(child, lambda),
         _ => false
     };
+
+    static bool InvalidLambdaUnary(IUnaryOperation unary) =>
+        unary.IsChecked ||
+        (unary.Operand.Type?.SpecialType == SpecialType.System_Decimal && unary.OperatorKind == UnaryOperatorKind.Minus);
+
+    static bool InvalidLambdaConversion(IConversionOperation conversion) =>
+        conversion.IsChecked ||
+        (conversion.Operand.Type?.SpecialType == SpecialType.System_Decimal && conversion.Type?.SpecialType != SpecialType.System_Decimal);
 
     static bool InvalidLambdaBinary(IBinaryOperation binary) =>
         binary.IsChecked ||
@@ -694,7 +708,7 @@ internal static partial class PureTransitionAdmission
     {
         var method = call.TargetMethod;
         var owner = method.ContainingType.ToDisplayString();
-        if (owner == "System.String" && NameIs(method.Name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf") && !HasOrdinalComparison(call))
+        if (IsNonOrdinalStringMatch(call, owner))
         {
             return false;
         }
@@ -703,6 +717,9 @@ internal static partial class PureTransitionAdmission
             return call.Arguments.Length == 1 && IsInvariantProvider(call.Arguments[0].Value);
         return owner != "System.Linq.Enumerable" || method.Name != "Sum" || DecimalSumReturn(method.ReturnType);
     }
+
+    static bool IsNonOrdinalStringMatch(IInvocationOperation call, string owner) =>
+        owner == "System.String" && NameIs(call.TargetMethod.Name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf") && !HasOrdinalComparison(call);
 
     static bool HasOrdinalComparison(IInvocationOperation call) =>
         call.Arguments.SingleOrDefault(argument => argument.Parameter?.Type.ToDisplayString() == "System.StringComparison") is

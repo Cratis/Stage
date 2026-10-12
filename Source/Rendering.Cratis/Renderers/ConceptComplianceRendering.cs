@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -16,30 +17,46 @@ internal static class ConceptComplianceRendering
     {
         var pii = concept.Attributes.FirstOrDefault(attribute => attribute.Name == ConceptAttributeSyntax.Pii);
         var secret = concept.Attributes.FirstOrDefault(attribute => attribute.Name == ConceptAttributeSyntax.Sensitive);
-        if (pii is not null)
+        RenderProtection(builder, new(pii is not null, pii is not null && complianceDetails ? Details(pii) : string.Empty, secret is not null ? Encrypted(secret.Scope, secret.Reason, complianceDetails, false) : null), false);
+    }
+
+    internal static void Render(CSharpCodeBuilder builder, SemanticConceptCompliance? compliance) =>
+        RenderProtection(builder, new(compliance?.Personal is not null, string.Empty, compliance?.Secret is { } secret ? Encrypted(secret.Scope, null, false, true) : null), true);
+
+    static void RenderProtection(CSharpCodeBuilder builder, Protection protection, bool qualified)
+    {
+        if (protection.Personal)
         {
-            builder.Using("Cratis.Chronicle.Compliance.GDPR").Attribute("PII");
-            if (complianceDetails && Details(pii) is { Length: > 0 } details)
+            Attribute(builder, "Cratis.Chronicle.Compliance.GDPR", qualified ? "PIIAttribute" : "PII", qualified);
+            if (protection.Details.Length > 0)
             {
-                builder.Using("Cratis.Chronicle.Compliance").Attribute($"ComplianceDetails({CSharpCodeBuilder.StringLiteral(details)})");
+                Attribute(builder, "Cratis.Chronicle.Compliance", $"ComplianceDetails({CSharpCodeBuilder.StringLiteral(protection.Details)})", qualified);
             }
         }
-        else if (secret is not null)
+        else if (protection.Encrypted is { } encrypted)
         {
-            builder.Using("Cratis.Chronicle.ProtectedValues").Attribute(Encrypted(secret, complianceDetails))
-                .Using("Cratis.Arc.Chronicle.Commands").Attribute("NotAudited");
+            Attribute(builder, "Cratis.Chronicle.ProtectedValues", encrypted, qualified);
+            Attribute(builder, "Cratis.Arc.Chronicle.Commands", qualified ? "NotAuditedAttribute" : "NotAudited", qualified);
         }
     }
 
-    static string Encrypted(ConceptAttributeSyntax secret, bool complianceDetails)
+    static void Attribute(CSharpCodeBuilder builder, string @namespace, string attribute, bool qualified)
     {
-        var scope = Identifiers.ToPascalCase(secret.Scope ?? "subject");
-        if (complianceDetails && (secret.Scope is not null || secret.Reason is not null))
+        if (!qualified) builder.Using(@namespace);
+        builder.Attribute(qualified ? $"global::{@namespace}.{attribute}" : attribute);
+    }
+
+    static string Encrypted(string? declaredScope, string? reason, bool complianceDetails, bool qualified)
+    {
+        var scope = Identifiers.ToPascalCase(declaredScope ?? "subject");
+        var attribute = qualified ? "EncryptedAttribute" : "Encrypted";
+        var scopeType = qualified ? "global::Cratis.Chronicle.ProtectedValues.EncryptionScope" : "EncryptionScope";
+        if (complianceDetails && (declaredScope is not null || reason is not null))
         {
-            return $"Encrypted(EncryptionScope.{scope}, {CSharpCodeBuilder.StringLiteral(secret.Reason ?? string.Empty)})";
+            return $"{attribute}({scopeType}.{scope}, {CSharpCodeBuilder.StringLiteral(reason ?? string.Empty)})";
         }
 
-        return scope == "Subject" ? "Encrypted" : $"Encrypted(EncryptionScope.{scope})";
+        return scope == "Subject" ? attribute : $"{attribute}({scopeType}.{scope})";
     }
 
     static string Details(ConceptAttributeSyntax pii)
@@ -62,4 +79,6 @@ internal static class ConceptComplianceRendering
 
         return string.Join(' ', parts);
     }
+
+    sealed record Protection(bool Personal, string Details, string? Encrypted);
 }

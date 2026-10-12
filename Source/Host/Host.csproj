@@ -41,6 +41,9 @@
             PrivateAssets="All", as in Rendering.Cratis and Specifications - specs are stripped from Release.
         -->
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
+        <!-- Screenplay v4.141.0 Golden/full-esm-v13.json; provenance recorded at the owning resource.
+             Packaging follow-up: https://github.com/Cratis/Screenplay/issues/677. -->
+        <EmbeddedResource Include="../Rendering.Cratis/for_CratisArtifactRenderPlanner/Vectors/full-esm-v13.json" LogicalName="full-esm-v13.json" />
     </ItemGroup>
 
     <ItemGroup>

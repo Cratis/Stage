@@ -15,6 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal sealed class SemanticCommandResultRendering(SemanticCommand command, SemanticApplicationContext context)
 {
     readonly SemanticTypeSystem _types = new(context);
+    readonly SemanticCommandCompliance _compliance = new(context);
 
     IEnumerable<SemanticProperty> Inputs => command.Properties.Where(property => !property.IsGenerated);
 
@@ -39,7 +40,7 @@ internal sealed class SemanticCommandResultRendering(SemanticCommand command, Se
     {
         var destination = DestinationProperty;
         var providesSource = destination is { IsGenerated: false };
-        var parameters = string.Join(", ", Inputs.Select(property => $"{_types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
+        var parameters = string.Join(", ", Inputs.Select(property => $"{_compliance.InputAttribute(property.Type)}{_types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
         var name = Identifiers.ToPascalCase(command.Name);
         builder.Attribute(SemanticAuthorizationAttributes.For(command, context))
             .OpenBlock($"public record {name}({parameters}){(providesSource ? " : global::Cratis.Chronicle.Events.ICanProvideEventSourceId" : string.Empty)}");

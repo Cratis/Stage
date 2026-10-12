@@ -14,8 +14,8 @@ public class when_generating_command_response_proxies(when_generating_command_re
     : IClassFixture<when_generating_command_response_proxies.context>
 {
     [Fact] void should_build_the_rendered_backend_without_warnings() => built.Build.Output.ShouldContain("0 Warning(s)");
-    [Fact] void should_type_the_scalar_response_with_the_uuid_value() => Assert.True(built.Proxies.Contains("export class RegisterProject extends Command<IRegisterProject, string>", StringComparison.Ordinal), built.Proxies);
-    [Fact] void should_type_the_named_response_with_the_response_record() => Assert.True(built.Proxies.Contains("export class RegisterReceipt extends Command<IRegisterReceipt, RegisterReceiptResponse>", StringComparison.Ordinal), built.Proxies);
+    [Fact] void should_type_the_scalar_response_with_the_uuid_value() => Assert.True(built.Proxies.Contains("export class RegisterProject extends Command<IRegisterProject, Guid> implements IRegisterProject {", StringComparison.Ordinal), built.Proxies);
+    [Fact] void should_type_the_named_response_with_the_response_record() => Assert.True(built.Proxies.Contains("export class RegisterReceipt extends Command<IRegisterReceipt, RegisterReceiptResponse> implements IRegisterReceipt {", StringComparison.Ordinal), built.Proxies);
 
     public class context : Specification
     {
@@ -43,7 +43,7 @@ public class when_generating_command_response_proxies(when_generating_command_re
         {
             Build = await ApplicationProcess.Run(_application, TimeSpan.FromMinutes(2), "dotnet", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.True(Build.ExitCode == 0, Build.Output);
-            Proxies = string.Join(Environment.NewLine, Directory.EnumerateFiles(Path.Combine(_application, "Projects"), "*.ts", SearchOption.AllDirectories).SelectMany(path => File.ReadAllLines(path)).Where(line => line.Contains("export class", StringComparison.Ordinal)));
+            Proxies = string.Join(Environment.NewLine, Directory.EnumerateFiles(Path.Combine(_application, "Projects"), "*.ts", SearchOption.AllDirectories).SelectMany(File.ReadAllLines).Where(line => line.Contains("export class", StringComparison.Ordinal)));
         }
 
         void Destroy() => SpecTemporaryRoot.Delete(_application);

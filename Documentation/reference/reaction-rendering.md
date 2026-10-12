@@ -75,7 +75,7 @@ Render admission, generated Debug compilation, generated specifications and live
 
 Conditions cannot use optional, composite, collection or enum-valued operands; ordering requires numbers. Property mappings must retain the exact source and target type. Commands, projections, reducers and queries declared in an Automation slice retain their existing admission limits. Query-only and projection-only surfaces are checked like StateView slices, not silently omitted. For a flat projection, every reaction production of its observed event must explicitly target the same value mapped into the payload key. An omitted `for` uses the triggering event source and does not prove that equality. This check includes producers outside the selected render scope. Personal and secret concepts cannot supply append identities; use a surrogate destination and keep the protected value in the payload.
 
-Stage pins Arc **22.68.0**, which cannot execute mixed event/command results. The `037` refusal remains even though newer Arc releases support that shape. Per-production route overrides retain `STAGE-ESM-036`; Screenplay already refuses reaction production routes during binding.
+Stage pins Arc **22.78.0**, which supports mixed event/command results. Stage still refuses that shape with `STAGE-ESM-037`. Per-production route overrides retain `STAGE-ESM-036`; Screenplay already refuses reaction production routes during binding.
 
 Scoped rendering may reference an invoked command or triggering event in an unselected slice, as it does for cross-slice event references. Include those dependencies when compiling the application.
 

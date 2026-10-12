@@ -72,12 +72,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
             }
 
             var expectedTail = _knownTail;
-            var result = Evaluate(command, payload, principal, occurrence);
-            if (!validateOnly && result is SemanticAccepted evaluated)
-            {
-                result = Settle(evaluated, occurrence);
-            }
-
+            var result = Settle(Evaluate(command, payload, principal, occurrence), validateOnly, occurrence);
             if (!validateOnly && result is SemanticAccepted accepted)
             {
                 if (_appender is not ISemanticFactTail tail)
@@ -254,8 +249,13 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         _worldProvider = null;
     }
 
-    SemanticExecutionResult Settle(SemanticAccepted accepted, SemanticCommandOccurrence occurrence)
+    SemanticExecutionResult Settle(SemanticExecutionResult evaluated, bool validateOnly, SemanticCommandOccurrence occurrence)
     {
+        if (validateOnly || evaluated is not SemanticAccepted accepted)
+        {
+            return evaluated;
+        }
+
         var settlement = new SemanticReactionSettlement(new ReactionEvaluator(this, _evaluator));
         var result = settlement.Settle(Plan, accepted.World, accepted.Facts, occurrence.Occurred);
 

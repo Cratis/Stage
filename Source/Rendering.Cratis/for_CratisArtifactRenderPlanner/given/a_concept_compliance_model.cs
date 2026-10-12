@@ -31,6 +31,34 @@ public static class a_concept_compliance_model
         .Replace("  pii criminal\n", string.Empty, StringComparison.Ordinal)
         .Replace("  secret scope namespace\n", string.Empty, StringComparison.Ordinal);
 
+    public const string ContainerTypes = """
+        type Credentials
+          key ApiKey
+          health HealthInformation
+        type CredentialEnvelope
+          entries Credentials[]
+          optionalKey ApiKey?
+        """;
+
+    public const string ContainerSlice = """
+            slice StateChange RecordCredentials
+              command RecordCredentials
+                id InvoiceId identifier
+                keys ApiKey[]
+                credentials CredentialEnvelope
+                optionalCredentials CredentialEnvelope?
+                visible String
+                produces CredentialsRecorded
+                  for id
+                  keys = keys
+                  credentials = credentials
+                  visible = visible
+              event CredentialsRecorded
+                keys ApiKey[]
+                credentials CredentialEnvelope
+                visible String
+        """;
+
     public const string Lookup = """
             slice StateView Lookup
               readmodel Information

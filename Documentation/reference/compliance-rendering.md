@@ -6,9 +6,10 @@ description: Concept protection in ESM v13 generated applications, protected ide
 <!-- Copyright (c) Cratis. All rights reserved. -->
 <!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
 
-Stage renders compliance markers on a concept's generated `ConceptAs` record, so the protection follows
-every use of that type. Personal data uses Chronicle's encryption and erasure; operational secrets use
-encryption without erasure and are withheld from Arc command causation.
+Stage renders compliance markers on a concept's generated `ConceptAs` record. In generated event
+payloads, Chronicle applies these markers to scalar concepts, collection elements, and concept-valued
+members inside composite records. Personal data uses encryption and erasure; operational secrets use
+encryption without erasure.
 
 ## Executable semantic models
 
@@ -26,6 +27,18 @@ The semantic path never emits `[ComplianceDetails]`. GDPR special-category and c
 are carried by ESM v13 but do not change the generated attribute. Reasons are authoring metadata,
 not ESM members. Opt-in details remain a syntax-renderer feature ([Stage #259](https://github.com/Cratis/Stage/issues/259)).
 Unmarked models retain their earlier ESM version and byte-identical artifacts.
+
+On the semantic path, each command input that transitively contains a `secret` concept also gets
+`[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]`. This includes optional inputs,
+collections, and nested composites. Arc omits the entire input from causation, including its non-secret
+members; unrelated inputs remain auditable. The concept-level attribute remains in place.
+
+Pinned Arc 22.68.0 checks only the command property, its direct type, and its constructor parameter.
+It does not recursively inspect members or collection elements. Scalar `pii` inputs are withheld by
+Arc's PII check, but **PII-only collections and composites are not withheld from causation** unless
+that same input also contains a `secret`. Event-payload encryption does not protect those causation
+values. The syntax renderer retains its existing concept-level attributes; it does not add the
+semantic path's transitive input exclusions.
 
 ## Protected identities and Play
 

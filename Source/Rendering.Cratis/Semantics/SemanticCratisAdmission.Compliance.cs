@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 
@@ -71,7 +72,41 @@ internal static partial class SemanticCratisAdmission
         slices.SelectMany(slice => slice.Projections).SelectMany(projection =>
             projection.Transitions.Select(transition => FlatProjectionKeyType(context, transition)).OfType<SemanticTypeReference>()
                 .Select(type => (type, $"projection key '{projection.Name}'"))
-                .Concat(ScopedProjectionKeyTypes(context, projection.Scope).Select(type => (type, $"projection or removal key '{projection.Name}'"))));
+                .Concat(ScopedProjectionKeyTypes(context, projection.Scope).Select(type => (type, $"projection or removal key '{projection.Name}'")))
+                .Concat(ProjectionMemberIdentities(context, projection.Scope, context.ReadModels.TryGetValue(projection.ReadModel, out var model) ? model.Properties : [])));
+
+    static IEnumerable<(SemanticTypeReference Type, string Use)> ProjectionMemberIdentities(
+        SemanticApplicationContext context,
+        SemanticProjectionScope? scope,
+        IEnumerable<SemanticProperty> properties)
+    {
+        if (scope is null) return [];
+
+        return scope.Joins.SelectMany(join => PropertyIdentity(properties, join.On, "projection join identity"))
+            .Concat(scope.Children.SelectMany(child => ChildMemberIdentities(context, child, properties)))
+            .Concat(scope.Nested.SelectMany(nested => ProjectionMemberIdentities(context, nested.Scope, ProjectionMemberProperties(context, properties, nested.Property))));
+    }
+
+    static IEnumerable<(SemanticTypeReference Type, string Use)> ChildMemberIdentities(
+        SemanticApplicationContext context,
+        SemanticProjectionChildren child,
+        IEnumerable<SemanticProperty> properties)
+    {
+        var members = ProjectionMemberProperties(context, properties, child.Property);
+
+        return PropertyIdentity(members, child.IdentifiedBy, "projection child identity")
+            .Concat(ProjectionMemberIdentities(context, child.Scope, members));
+    }
+
+    static IEnumerable<(SemanticTypeReference Type, string Use)> PropertyIdentity(IEnumerable<SemanticProperty> properties, SemanticId id, string use) =>
+        TypedIdentity(properties.SingleOrDefault(property => property.Id == id)?.Type, use);
+
+    static ImmutableArray<SemanticProperty> ProjectionMemberProperties(SemanticApplicationContext context, IEnumerable<SemanticProperty> properties, SemanticId id)
+    {
+        var property = properties.SingleOrDefault(property => property.Id == id);
+
+        return property is not null && context.Types.TryGetValue(property.Type.Target, out var type) ? type.Properties : [];
+    }
 
     static SemanticTypeReference? FlatProjectionKeyType(SemanticApplicationContext context, SemanticProjectionTransition transition)
     {

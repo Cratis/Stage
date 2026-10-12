@@ -27,42 +27,7 @@ internal static partial class SemanticCratisAdmission
         // Keep the audited surface available in Release as well as in the Debug-only specifications.
         _ = SemanticSurfaceLedger.Entries;
         var diagnostics = new List<ArtifactRenderDiagnostic>();
-        var model = context.Request.Model;
-        if (!SemanticVersionFeatures.Supports(model))
-        {
-            diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", model.Application.Id));
-            return [.. diagnostics];
-        }
-
-        diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
-        if (diagnostics.Count > 0)
-        {
-            return [.. diagnostics];
-        }
-
-        ValidateEventRevisions(context, slices, diagnostics);
-        if (diagnostics.Count > 0)
-        {
-            return [.. diagnostics];
-        }
-
-        // TypedContexts is reserved for reducer and policy runtime tokens and wrappers. A modeled
-        // namespace with the same root path can rebind TenantId or Identity in unrelated artifacts.
-        if ((slices.Any(_ => !_.Slice.Reducers.IsEmpty) || UsesOpaquePolicies(context, slices)) &&
-            context.NamespacePaths.Any(path => path == $"{context.RootNamespace}.TypedContexts" || path == context.TypedContextsNamespace))
-        {
-            diagnostics.Add(Error("STAGE-ESM-022", "Generated namespace 'TypedContexts' shadows the reserved reducer and policy runtime namespace.", model.Application.Id));
-            return [.. diagnostics];
-        }
-
-        ValidateEventSourceRoutes(context, slices, diagnostics);
-        if (diagnostics.Count > 0)
-        {
-            return [.. diagnostics];
-        }
-
-        ValidateWholeNumberLiterals(context, slices, diagnostics);
-        if (diagnostics.Count > 0)
+        if (!PassesPreconditions(context, slices, diagnostics))
         {
             return [.. diagnostics];
         }
@@ -70,50 +35,12 @@ internal static partial class SemanticCratisAdmission
         ValidateStrings(context, slices, diagnostics);
         ValidateTypes(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
-        foreach (var (artifact, kind, name) in GeneratedTypeNames.Collisions(
-            context.Application,
-            slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice)),
-            SelectedConstraints(context, slices).Select(selected =>
-                ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
-            rendersStringsCatalog: context.Strings is not null,
-            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices),
-            commonNamespace: string.Join('.', context.Domain.Append("Common")),
-            eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
-            eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
-            policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies"))))
-        {
-            var message = kind == "Namespace"
-                ? $"Generated type '{name}' collides with a generated C# namespace."
-                : $"{kind} '{name}' collides with another generated C# type in the same namespace.";
-            diagnostics.Add(Error("STAGE-ESM-012", message, artifact));
-        }
+        ValidateGeneratedTypeNames(context, slices, diagnostics);
 
         var analysedBodies = 0;
         foreach (var located in slices)
         {
-            foreach (var @event in located.Slice.Events.Where(@event =>
-                !GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name))))
-            {
-                diagnostics.Add(Error("STAGE-ESM-012", $"Event '{@event.Name}' has property names that collide in generated C#.", @event.Id));
-            }
-
-            analysedBodies += ValidateReducers(context, located.Slice, diagnostics);
-
-            switch (located.Slice.Kind)
-            {
-                case SemanticSliceKind.StateChange:
-                    ValidateStateChange(context, located.Slice, diagnostics);
-                    break;
-                case SemanticSliceKind.StateView:
-                    ValidateStateView(context, located.Slice, diagnostics);
-                    break;
-                default:
-                    diagnostics.Add(Error("STAGE-ESM-001", "The slice kind is not supported by the Cratis ESM planner.", located.Slice.Id));
-                    break;
-            }
-
-            ValidateCallerFixtures(located.Slice, diagnostics);
-            SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics);
+            analysedBodies += ValidateSlice(context, located, diagnostics);
         }
 
         if (slices.Any(_ => !_.Slice.Reducers.IsEmpty))
@@ -122,7 +49,7 @@ internal static partial class SemanticCratisAdmission
                 "STAGE-ESM-023",
                 ArtifactRenderDiagnosticSeverity.Information,
                 $"{analysedBodies} transition bodies analysed.",
-                model.Application.Id));
+                context.Request.Model.Application.Id));
         }
 
         return [.. diagnostics];
@@ -147,18 +74,7 @@ internal static partial class SemanticCratisAdmission
                     .Concat(command.Requirements.Select(requirement => (requirement.Message, command.Id))))));
         foreach (var (message, artifact) in messages.Where(_ => _.Message?.StartsWith("$strings.", StringComparison.Ordinal) == true))
         {
-            var key = message!["$strings.".Length..];
-            if (!context.Strings.Locales[context.Strings.DefaultLocale].ContainsKey(key))
-            {
-                diagnostics.Add(Error("STAGE-ESM-018", $"String key '{message}' is missing from the default locale '{context.Strings.DefaultLocale}'.", artifact));
-                continue;
-            }
-
-            if (context.Strings.Locales.Values.Any(locale => locale.TryGetValue(key, out var value) &&
-                value.Any(character => character is '{' or '}' || char.IsControl(character) || char.IsSurrogate(character))))
-            {
-                diagnostics.Add(Error("STAGE-ESM-018", $"String key '{message}' contains formatting or control characters the Cratis validator cannot preserve.", artifact));
-            }
+            ValidateStringKey(context.Strings, message!, artifact, diagnostics);
         }
     }
 
@@ -184,35 +100,152 @@ internal static partial class SemanticCratisAdmission
             .OfType<SemanticAuthorization>()
             .Any(authorization => OpaquePolicies(authorization, context.Application.Policies).Any());
 
+    static bool PassesPreconditions(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var model = context.Request.Model;
+        if (!SemanticVersionFeatures.Supports(model))
+        {
+            diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", model.Application.Id));
+            return false;
+        }
+
+        diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
+        return diagnostics.Count == 0 &&
+            Passes(diagnostics, () => ValidateEventRevisions(context, slices, diagnostics)) &&
+            Passes(diagnostics, () => ValidateReservedNamespace(context, slices, diagnostics)) &&
+            Passes(diagnostics, () => ValidateEventSourceRoutes(context, slices, diagnostics)) &&
+            Passes(diagnostics, () => ValidateWholeNumberLiterals(context, slices, diagnostics));
+    }
+
+    static bool Passes(List<ArtifactRenderDiagnostic> diagnostics, Action validate)
+    {
+        validate();
+        return diagnostics.Count == 0;
+    }
+
+    static void ValidateReservedNamespace(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        // TypedContexts is reserved for reducer and policy runtime tokens and wrappers. A modeled
+        // namespace with the same root path can rebind TenantId or Identity in unrelated artifacts.
+        if ((slices.Any(_ => !_.Slice.Reducers.IsEmpty) || UsesOpaquePolicies(context, slices)) && DeclaresTypedContexts(context))
+        {
+            diagnostics.Add(Error("STAGE-ESM-022", "Generated namespace 'TypedContexts' shadows the reserved reducer and policy runtime namespace.", context.Request.Model.Application.Id));
+        }
+    }
+
+    static bool DeclaresTypedContexts(SemanticApplicationContext context) =>
+        context.NamespacePaths.Any(path => path == $"{context.RootNamespace}.TypedContexts" || path == context.TypedContextsNamespace);
+
+    static void ValidateGeneratedTypeNames(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var (artifact, kind, name) in GeneratedTypeNames.Collisions(
+            context.Application,
+            slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice)),
+            SelectedConstraints(context, slices).Select(selected =>
+                ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
+            rendersStringsCatalog: context.Strings is not null,
+            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices),
+            commonNamespace: string.Join('.', context.Domain.Append("Common")),
+            eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
+            eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
+            policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies"))))
+        {
+            var message = kind == "Namespace"
+                ? $"Generated type '{name}' collides with a generated C# namespace."
+                : $"{kind} '{name}' collides with another generated C# type in the same namespace.";
+            diagnostics.Add(Error("STAGE-ESM-012", message, artifact));
+        }
+    }
+
+    static int ValidateSlice(SemanticApplicationContext context, LocatedSemanticSlice located, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var @event in located.Slice.Events.Where(@event =>
+            !GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name))))
+        {
+            diagnostics.Add(Error("STAGE-ESM-012", $"Event '{@event.Name}' has property names that collide in generated C#.", @event.Id));
+        }
+
+        var analysedBodies = ValidateReducers(context, located.Slice, diagnostics);
+        ValidateSliceKind(context, located.Slice, diagnostics);
+        ValidateCallerFixtures(located.Slice, diagnostics);
+        SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics);
+        return analysedBodies;
+    }
+
+    static void ValidateSliceKind(SemanticApplicationContext context, SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        switch (slice.Kind)
+        {
+            case SemanticSliceKind.StateChange:
+                ValidateStateChange(context, slice, diagnostics);
+                break;
+            case SemanticSliceKind.StateView:
+                ValidateStateView(context, slice, diagnostics);
+                break;
+            default:
+                diagnostics.Add(Error("STAGE-ESM-001", "The slice kind is not supported by the Cratis ESM planner.", slice.Id));
+                break;
+        }
+    }
+
+    static void ValidateStringKey(StringsCatalogInput.Catalog strings, string message, SemanticId artifact, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var key = message["$strings.".Length..];
+        if (!strings.Locales[strings.DefaultLocale].ContainsKey(key))
+        {
+            diagnostics.Add(Error("STAGE-ESM-018", $"String key '{message}' is missing from the default locale '{strings.DefaultLocale}'.", artifact));
+            return;
+        }
+
+        if (strings.Locales.Values.Any(locale => locale.TryGetValue(key, out var value) &&
+            value.Any(IsUnpreservable)))
+        {
+            diagnostics.Add(Error("STAGE-ESM-018", $"String key '{message}' contains formatting or control characters the Cratis validator cannot preserve.", artifact));
+        }
+    }
+
+    static bool IsUnpreservable(char character) => character is '{' or '}' || char.IsControl(character) || char.IsSurrogate(character);
+
     static void ValidateEventSourceRoutes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {
         foreach (var source in SemanticEventSourceArtifactRenderer.Selected(context, slices))
         {
-            if (source.SourceKind == "Default")
-            {
-                diagnostics.Add(Error("STAGE-ESM-030", "The stored event source name 'Default' is reserved by Chronicle.", source.Id));
-            }
-            foreach (var stream in source.Streams.Where(stream => stream.StreamKind == "All"))
-            {
-                diagnostics.Add(Error("STAGE-ESM-030", "The stored event stream name 'All' is reserved by Chronicle.", stream.Id));
-            }
+            ValidateReservedNames(source, diagnostics);
         }
 
         foreach (var specification in slices.SelectMany(_ => _.Slice.Specifications))
         {
-            var fixtures = specification.GivenEvents.Concat(specification.ThenEvents).Where(occurrence => occurrence.Route is not null).ToArray();
-            if (fixtures.Any(occurrence => !SemanticSpecificationRouteRendering.CanFormat(occurrence.Route!, context)))
-            {
-                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' has a fixture route whose stream identity cannot be formatted portably.", specification.Id));
-            }
+            ValidateFixtureRoutes(context, specification, diagnostics);
+        }
+    }
 
-            // Companion scenarios replay actual command routes, even if a then-event leaves its route unspecified.
-            if ((!specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
-                SemanticSpecificationRouteRendering.ForCommand(specification, context) is { } commandRoute &&
-                !SemanticSpecificationRouteRendering.CanFormat(commandRoute, context))
-            {
-                diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' has a command replay route whose stream identity cannot be formatted portably.", specification.Id));
-            }
+    static void ValidateReservedNames(SemanticEventSource source, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (source.SourceKind == "Default")
+        {
+            diagnostics.Add(Error("STAGE-ESM-030", "The stored event source name 'Default' is reserved by Chronicle.", source.Id));
+        }
+
+        foreach (var stream in source.Streams.Where(stream => stream.StreamKind == "All"))
+        {
+            diagnostics.Add(Error("STAGE-ESM-030", "The stored event stream name 'All' is reserved by Chronicle.", stream.Id));
+        }
+    }
+
+    static void ValidateFixtureRoutes(SemanticApplicationContext context, SemanticSpecification specification, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var fixtures = specification.GivenEvents.Concat(specification.ThenEvents).Where(occurrence => occurrence.Route is not null).ToArray();
+        if (fixtures.Any(occurrence => !SemanticSpecificationRouteRendering.CanFormat(occurrence.Route!, context)))
+        {
+            diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' has a fixture route whose stream identity cannot be formatted portably.", specification.Id));
+        }
+
+        // Companion scenarios replay actual command routes, even if a then-event leaves its route unspecified.
+        if ((!specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
+            SemanticSpecificationRouteRendering.ForCommand(specification, context) is { } commandRoute &&
+            !SemanticSpecificationRouteRendering.CanFormat(commandRoute, context))
+        {
+            diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' has a command replay route whose stream identity cannot be formatted portably.", specification.Id));
         }
     }
 

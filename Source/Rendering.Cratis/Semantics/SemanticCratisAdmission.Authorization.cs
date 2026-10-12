@@ -33,12 +33,14 @@ internal static partial class SemanticCratisAdmission
 
     static void ValidateCallerFixtures(SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in slice.Specifications.Where(specification =>
-            specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty)))
+        foreach (var specification in slice.Specifications.Where(CarriesCredentialsWithoutAuthentication))
         {
             diagnostics.Add(Error("STAGE-ESM-011", $"Specification '{specification.Name}' cannot render: An unauthenticated caller cannot carry roles or claims; Arc supplies an empty guest principal.", specification.Id));
         }
     }
+
+    static bool CarriesCredentialsWithoutAuthentication(SemanticSpecification specification) =>
+        specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty);
 
     static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -70,7 +72,7 @@ internal static partial class SemanticCratisAdmission
             return false;
         }
 
-        if (subject is null && query.Authorization is { } authorization && ReferencesSubject(context, authorization, query.Id))
+        if (subject is null && ReferencesSubject(context, query))
         {
             diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{query.Name}' references an argument or subject, but the query has no argument.", query.Id));
             return false;
@@ -78,6 +80,9 @@ internal static partial class SemanticCratisAdmission
 
         return ValidateClaimTargets(context, query.Authorization, site, diagnostics);
     }
+
+    static bool ReferencesSubject(SemanticApplicationContext context, SemanticKeyedQuery query) =>
+        query.Authorization is { } authorization && ReferencesSubject(context, authorization, query.Id);
 
     static bool ReferencesSubject(SemanticApplicationContext context, SemanticAuthorization authorization, SemanticId operation) =>
         Claims(authorization, context.Application.Policies).Any(claim => claim.TargetKind != SemanticClaimTargetKind.Literal) ||
@@ -213,11 +218,14 @@ internal static partial class SemanticCratisAdmission
             IsArtifactMember(members[0], operation) &&
             IsRuntimeMember(members[1], "Subject", SemanticContextRuntimeTokens.Text) &&
             IsSubjectSource(members[1], subject) &&
-            IsRuntimeMember(members[2], "Identity", SemanticContextRuntimeTokens.Identity) &&
-            IsRuntimeMember(members[3], "Tenant", SemanticContextRuntimeTokens.TenantId) &&
-            IsRuntimeMember(members[4], "Occurred", SemanticContextRuntimeTokens.DateTime) &&
+            HasRuntimeContextMembers(members) &&
             members.Skip(2).All(member => member.Source.Kind == SemanticContextSourceKinds.ContextContract && member.Source.Path == member.Name);
     }
+
+    static bool HasRuntimeContextMembers(ImmutableArray<SemanticTypedContextMember> members) =>
+        IsRuntimeMember(members[2], "Identity", SemanticContextRuntimeTokens.Identity) &&
+        IsRuntimeMember(members[3], "Tenant", SemanticContextRuntimeTokens.TenantId) &&
+        IsRuntimeMember(members[4], "Occurred", SemanticContextRuntimeTokens.DateTime);
 
     static bool HasPolicyContextShape(ImmutableArray<SemanticTypedContextMember> members) =>
         !members.IsDefault && members.Length == 5 && !members.Any(member => member?.Source is null || member.Type is null || member.IsDerived);

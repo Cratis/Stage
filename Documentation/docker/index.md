@@ -146,11 +146,12 @@ read-model state, including ±9007199254740991 and `0.10000000000000002`. Source
 the Double safe range; `numbers exact` and arbitrary-precision arithmetic are not admitted.
 ESM v12 preserves explicit enum member numbers when rebuilding stored integer values; decisions still compare member names.
 ESM v13 admits concept compliance without changing command decisions or world reconstruction.
-**Play/the Stage Host does not encrypt or redact values of personal-data concepts**, and its own event store
-keeps those values in plain text. Operational secrets are not protected there either. Use synthetic data
-for Play; protection in the Host is tracked in [Stage #346](https://github.com/Cratis/Stage/issues/346).
-This differs from generated applications, which carry Chronicle/Arc protection attributes. The renderer
-refuses compliance on identity uses or enums with `STAGE-ESM-040`; see [Concept compliance rendering](../reference/compliance-rendering.md).
+The semantic Stage Host encrypts personal-data and secret concept values at rest through Chronicle,
+like rendered applications, and releases them on read. Personal-data erasure uses Chronicle's
+key deletion keyed by the event source; explicit subject lineage remains
+[Stage #28](https://github.com/Cratis/Stage/issues/28). Existing Play stores retain earlier plaintext events.
+The renderer refuses compliance on identity uses or enums with `STAGE-ESM-040`;
+see [Concept compliance rendering](../reference/compliance-rendering.md).
 The semantic engine executes command routes, registers named sources and streams with Chronicle on every
 connect, and checks stored routes during world reconstruction. Routed specification runs are still refused
 with `STAGE-ESM-030`, as are routes in the structural SpecRunner and EventModel engine.

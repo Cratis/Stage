@@ -35,12 +35,38 @@ public static class SemanticSchemas
 
     static JsonObject TypeSchema(SemanticTypeReference reference, SemanticApplication application)
     {
+        var schema = TypeShape(reference, application);
+        if (!reference.IsCollection && reference.Kind == SemanticTypeReferenceKind.Concept)
+        {
+            var compliance = application.Concepts.Single(concept => concept.Id == reference.Target).Compliance;
+            if (compliance?.Personal is not null)
+            {
+                schema["compliance"] = Metadata("PII");
+            }
+            else if (compliance?.Secret is { } secret)
+            {
+                schema["security"] = Metadata(secret.Scope switch
+                {
+                    "namespace" => "EncryptedNamespace",
+                    "global" => "EncryptedGlobal",
+                    _ => "EncryptedSubject"
+                });
+            }
+        }
+
+        return schema;
+    }
+
+    static JsonArray Metadata(string type) => new(new JsonObject { ["metadataType"] = type, ["details"] = string.Empty });
+
+    static JsonObject TypeShape(SemanticTypeReference reference, SemanticApplication application)
+    {
         if (reference.IsOptional)
         {
             return new JsonObject
             {
                 ["anyOf"] = new JsonArray(
-                    TypeSchema(reference with { IsOptional = false }, application),
+                    TypeShape(reference with { IsOptional = false }, application),
                     new JsonObject { ["type"] = "null" })
             };
         }

@@ -55,11 +55,13 @@ In v13 the data subject is the event's event source. Explicit subject lineage is
 ([Stage #28](https://github.com/Cratis/Stage/issues/28)); Screenplay refuses personal or subject-scoped
 secret values together with an explicit event `subject` mark.
 
-**Play/the Stage Host does not encrypt or redact values of personal-data concepts.** Its own event
-store keeps values in plain text; it does not apply the generated application's compliance attributes.
-Operational secrets are not protected there either. Use synthetic data for Play. Host protection is
-tracked in [Stage #346](https://github.com/Cratis/Stage/issues/346). Passing reference or Stage
-specifications proves modeled outcomes, not storage protection.
+The semantic Stage Host registers personal-data and secret concept metadata with Chronicle, which
+encrypts event values at rest and releases them on read, like rendered applications. Protection follows
+concept values through collection elements and composite members. Causation contains only the caller's
+identity, never command input values. Personal-data erasure uses Chronicle's encryption-key deletion
+keyed by the event source; explicit subject lineage remains [Stage #28](https://github.com/Cratis/Stage/issues/28).
+Existing Play stores retain their earlier plaintext events; the new metadata does not retroactively
+encrypt them. Passing reference or Stage specifications proves modeled outcomes, not storage protection.
 
 ## Syntax renderer details
 

@@ -31,8 +31,10 @@ step, including the safe whole-number bounds ±9007199254740991 and `0.100000000
 This does not enable `numbers exact` or extend the source integer range.
 At v12 it executes specifications for numbered enums with unchanged name-based comparisons.
 At v13 it executes concept-compliance specifications with unchanged outcomes; a passing specification
-is not evidence of encryption or redaction. **Play/the Stage Host does not encrypt or redact values of
-personal-data concepts** ([Stage #346](https://github.com/Cratis/Stage/issues/346)); use synthetic data.
+is not evidence of encryption or redaction. The semantic Stage Host encrypts personal-data and secret
+concept values at rest through Chronicle, like rendered applications, and releases them on read.
+Personal-data erasure uses Chronicle's key deletion keyed by the event source; explicit subject lineage
+remains [Stage #28](https://github.com/Cratis/Stage/issues/28). Existing Play stores retain earlier plaintext events.
 Generated applications carry protection attributes, and renderer admission refuses protected identity
 uses or enums with `STAGE-ESM-040` ([Concept compliance rendering](../reference/compliance-rendering.md)).
 Migrate to `--engine semantic` and the semantic report format described below.

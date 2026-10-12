@@ -147,19 +147,45 @@ internal static class SemanticStateViewArtifactRenderer
             return;
         }
 
-        var argumentName = Identifiers.EscapeKeyword(Identifiers.ToCamelCase(query.Argument.Name));
-        var argumentType = types.Type(query.Argument.Type);
+        var argument = QueryArgumentExpression.For(query.Argument, types);
         if (query.Cardinality == SemanticQueryCardinality.Many)
         {
             var property = readModel.Properties.Single(_ => _.Id == query.KeyProperty);
             documentation.ExpressionMember(
-                $"public static async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argumentType} {argumentName})",
-                $"global::System.Linq.Enumerable.Where(await readModels.GetInstances<{readModelName}>(), instance => global::System.Collections.Generic.EqualityComparer<{argumentType}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {argumentName}))");
+                $"public static async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argument.Parameter})",
+                $"global::System.Linq.Enumerable.Where(await readModels.GetInstances<{readModelName}>(), instance => global::System.Collections.Generic.EqualityComparer<{types.Type(query.Argument.Type)}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {argument.Comparison}))");
             return;
         }
 
         documentation.ExpressionMember(
-            $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argumentType} {argumentName})",
-            $"await readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){argumentName})");
+            $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argument.Parameter})",
+            argument.Guarded($"await readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){argument.Value})"));
+    }
+
+    /// <summary>
+    /// The C# expressions for a query argument. A validated concept argument is accepted as its primitive and converted
+    /// inside the method, so Arc runs no concept validator on it and an out-of-rule key answers like the reference.
+    /// </summary>
+    /// <param name="Name">The C# parameter name.</param>
+    /// <param name="Type">The C# parameter type.</param>
+    /// <param name="Value">The expression that yields the argument as its declared type.</param>
+    /// <param name="NullGuarded">Whether an absent optional argument must short-circuit before conversion.</param>
+    sealed record QueryArgumentExpression(string Name, string Type, string Value, bool NullGuarded)
+    {
+        public string Parameter => $"{Type} {Name}";
+
+        public string Comparison => NullGuarded ? $"({Name} is null ? null : {Value})" : Value;
+
+        public static QueryArgumentExpression For(SemanticReadModelQueryArgument argument, SemanticTypeSystem types)
+        {
+            var name = Identifiers.EscapeKeyword(Identifiers.ToCamelCase(argument.Name));
+            var concept = types.ValidatedQueryConcept(argument.Type);
+            if (concept is null) return new(name, types.Type(argument.Type), name, false);
+
+            var primitive = argument.Type.IsOptional && concept.Primitive != SemanticPrimitiveType.Text ? $"{name}.Value" : name;
+            return new(name, types.QueryArgumentType(argument.Type), $"new {types.CommonType(concept.Name)}({primitive})", argument.Type.IsOptional);
+        }
+
+        public string Guarded(string expression) => NullGuarded ? $"{Name} is null ? null : {expression}" : expression;
     }
 }

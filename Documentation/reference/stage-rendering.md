@@ -54,6 +54,18 @@ these refusals as unsupported capabilities: `/stage/status` reports `unsupported
 HTTP 501 rather than executing an unconditional action. If such a guard reaches the frontend runtime anyway, the
 action is shown disabled with the diagnostic and never executes.
 
+## Generated C# query arguments
+
+Optional snapshot lookups by identifier and filtered observable collections accept scalar concepts
+with validation rules. Stage renders these query arguments as their underlying primitive and
+constructs the concept inside the method. An out-of-rule key returns `null` or an empty collection,
+not an Arc validation failure, matching the Screenplay reference semantics. Command properties
+remain concept-typed and still validate. Concepts without rules retain their concept-typed query
+parameters; TypeScript proxy argument types are unchanged.
+
+A composite or collection query argument containing a validated concept fails admission with
+`STAGE-ESM-010`, naming the query and concept.
+
 ## Generated C# whole numbers
 
 The semantic Cratis renderer maps whole-number primitives and concepts to `long` for ESM v8 and later,

@@ -110,6 +110,23 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     }
 
     /// <summary>
+    /// Gets the query parameter type without applying concept rules to query keys.
+    /// </summary>
+    /// <param name="reference">The query argument type.</param>
+    /// <returns>The underlying primitive for a validated scalar concept, otherwise its declared type.</returns>
+    public string QueryArgumentType(SemanticTypeReference reference) =>
+        reference.Kind == SemanticTypeReferenceKind.Concept && !reference.IsCollection && ValidatedQueryConcept(reference) is { } concept
+            ? Primitive(concept.Primitive) + (reference.IsOptional ? "?" : string.Empty)
+            : Type(reference);
+
+    /// <summary>
+    /// Finds a validated concept in a query argument, including nested properties.
+    /// </summary>
+    /// <param name="reference">The query argument type.</param>
+    /// <returns>The first validated concept, or null when no concept rules apply.</returns>
+    public SemanticConcept? ValidatedQueryConcept(SemanticTypeReference reference) => ValidatedQueryConcept(reference, []);
+
+    /// <summary>
     /// Whether the rendered type already carries Chronicle's event-source identity.
     /// </summary>
     /// <param name="type">The semantic type reference.</param>
@@ -228,6 +245,14 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             : throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/enum {concept.Name}", value is SemanticTextValue unknown ? unknown.Value : value.Kind.ToString());
 
     static string Literal(string value) => CSharpCodeBuilder.StringLiteral(value);
+
+    SemanticConcept? ValidatedQueryConcept(SemanticTypeReference reference, HashSet<SemanticId> visited) => reference.Kind switch
+    {
+        SemanticTypeReferenceKind.Concept when context.Concepts.TryGetValue(reference.Target, out var concept) && !concept.Validations.IsEmpty => concept,
+        SemanticTypeReferenceKind.CompositeType when visited.Add(reference.Target) && context.Types.TryGetValue(reference.Target, out var type) =>
+            type.Properties.Select(property => ValidatedQueryConcept(property.Type, visited)).FirstOrDefault(concept => concept is not null),
+        _ => null
+    };
 
     string PrimitiveValue(SemanticValue value, SemanticPrimitiveType primitive) => (value, primitive) switch
     {

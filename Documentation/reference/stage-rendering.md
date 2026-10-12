@@ -60,7 +60,7 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
-Stage uses Screenplay 4.139.0 and admits exact ESM v1–v12 language/semantic pairs, including v11's corrected Double-mode literal lowering.
+Stage uses Screenplay 4.141.0 and admits exact ESM v1–v13 language/semantic pairs, including v11's corrected Double-mode literal lowering.
 For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
 `9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction
 `0.10000000000000002` renders as `0.10000000000000002m`. Command inputs, event payloads,
@@ -76,6 +76,14 @@ arithmetic. Generated fractions use C# `decimal`, not the full binary expansion 
 Moving an existing model from v7 to v8 widens stored event schemas from int32 to int64. Chronicle refuses
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
+
+## Generated C# concept compliance
+
+ESM v13 renders personal-data concepts with `[PII]` and operational secrets with `[Encrypted]` plus
+`[NotAudited]`. Personal classification takes precedence when both are present. Protection travels
+with the `ConceptAs` type; identity uses and enum concepts refuse with `STAGE-ESM-040` before emission.
+See [Concept compliance rendering](compliance-rendering.md) for scope mapping, registration caveats
+and the difference between generated applications and Play.
 
 ## Generated C# enumerations
 

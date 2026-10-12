@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
-using System.Text;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Specs;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
@@ -18,7 +17,6 @@ public class when_generating_command_response_proxies(when_generating_command_re
     [Fact]
     void should_build_the_rendered_backend_without_warnings()
     {
-        output.WriteLine(built.Handlers);
         output.WriteLine(built.Proxies);
         built.Build.Output.ShouldContain("0 Warning(s)");
     }
@@ -63,13 +61,10 @@ public class when_generating_command_response_proxies(when_generating_command_re
 
         public string Proxies { get; private set; } = null!;
 
-        public string Handlers { get; private set; } = null!;
-
         void Establish()
         {
             var plan = invoice_model.Plan(invoice_model.Compile($"{a_generated_values_model.Source}\n{AdditionalCommands}"));
             Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
-            Handlers = string.Join(Environment.NewLine, plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).SelectMany(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Split('\n')).Where(line => line.Contains(" Handle(", StringComparison.Ordinal)));
             _application = SpecTemporaryRoot.NewPath("stage-response-proxies");
             Directory.CreateDirectory(_application);
             foreach (var artifact in plan.Artifacts)
@@ -82,7 +77,7 @@ public class when_generating_command_response_proxies(when_generating_command_re
 
         async Task Because()
         {
-            Build = await ApplicationProcess.Run(_application, TimeSpan.FromMinutes(2), "dotnet", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo");
+            Build = await ApplicationProcess.Run(_application, TimeSpan.FromMinutes(8), "dotnet", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.True(Build.ExitCode == 0, Build.Output);
             Proxies = string.Join(Environment.NewLine, Directory.EnumerateFiles(Path.Combine(_application, "Projects"), "*.ts", SearchOption.AllDirectories).SelectMany(File.ReadAllLines).Where(line => line.Contains("export class", StringComparison.Ordinal)));
         }

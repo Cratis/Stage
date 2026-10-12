@@ -10,18 +10,26 @@ internal static partial class SemanticCratisAdmission
 {
     static void ValidateCompliance(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var concept in context.Application.Concepts.Where(concept => concept.Compliance is not null && !concept.Values.IsEmpty))
+        foreach (var concept in context.Application.Concepts.Where(concept => concept.Compliance is not null).Where(concept => !concept.Values.IsEmpty))
         {
             diagnostics.Add(Error(SemanticVersionFeatures.ProtectedIdentity, $"Concept '{concept.Name}' has compliance on an enumeration; its protection cannot be rendered.", concept.Id));
         }
 
-        foreach (var (type, use) in IdentityUses(context))
+        var protectedUses = IdentityUses(context)
+            .Select(identity => (Concept: ProtectedConcept(context, identity.Type), identity.Use))
+            .Where(identity => identity.Concept is not null);
+        foreach (var (concept, use) in protectedUses)
         {
-            if (type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts.TryGetValue(type.Target, out var concept) && concept.Compliance is not null)
-            {
-                diagnostics.Add(Error(SemanticVersionFeatures.ProtectedIdentity, $"Protected concept '{concept.Name}' is used as {use}. Use a surrogate identity and keep the protected value as a separate property.", concept.Id));
-            }
+            diagnostics.Add(Error(SemanticVersionFeatures.ProtectedIdentity, $"Protected concept '{concept!.Name}' is used as {use}. Use a surrogate identity and keep the protected value as a separate property.", concept.Id));
         }
+    }
+
+    static SemanticConcept? ProtectedConcept(SemanticApplicationContext context, SemanticTypeReference type)
+    {
+        if (type.Kind != SemanticTypeReferenceKind.Concept) return null;
+        if (!context.Concepts.TryGetValue(type.Target, out var concept)) return null;
+
+        return concept.Compliance is not null ? concept : null;
     }
 
     static IEnumerable<(SemanticTypeReference Type, string Use)> IdentityUses(SemanticApplicationContext context)
@@ -39,54 +47,44 @@ internal static partial class SemanticCratisAdmission
         foreach (var use in ProjectionIdentities(context, slices)) yield return use;
     }
 
-    static IEnumerable<(SemanticTypeReference Type, string Use)> CommandDestinations(IEnumerable<SemanticSlice> slices)
+    static IEnumerable<(SemanticTypeReference Type, string Use)> CommandDestinations(IEnumerable<SemanticSlice> slices) =>
+        slices.SelectMany(slice => slice.Commands).SelectMany(CommandDestinations);
+
+    static IEnumerable<(SemanticTypeReference Type, string Use)> CommandDestinations(SemanticCommand command) =>
+        command.Produces.Select(produced => SemanticDestinations.Of(command, produced)).OfType<SemanticResolvedExpression>()
+            .Select(destination => command.Properties.SingleOrDefault(property => property.Id == destination.Target))
+            .OfType<SemanticProperty>()
+            .Select(property => (property.Type, $"command destination '{command.Name}.{property.Name}'"));
+
+    static IEnumerable<(SemanticTypeReference Type, string Use)> EventSourceIdentities(SemanticApplication application) =>
+        application.EventSources.SelectMany(source => TypedIdentity(source.IdentifierType, $"event source identifier '{source.Name}'")
+            .Concat(source.Streams.SelectMany(stream => StreamIdentities(source.Name, stream))));
+
+    static IEnumerable<(SemanticTypeReference Type, string Use)> StreamIdentities(string source, SemanticEventStream stream) =>
+        TypedIdentity(stream.StreamIdType, $"stream identity '{source}.{stream.Name}'")
+            .Concat(stream.StreamIdParts.Select(part => (part.Type, $"stream identity part '{source}.{stream.Name}.{part.Name}'")));
+
+    static IEnumerable<(SemanticTypeReference Type, string Use)> TypedIdentity(SemanticTypeReference? type, string use) =>
+        type is null ? [] : [(type, use)];
+
+    static IEnumerable<(SemanticTypeReference Type, string Use)> ProjectionIdentities(SemanticApplicationContext context, IEnumerable<SemanticSlice> slices) =>
+        slices.SelectMany(slice => slice.Projections).SelectMany(projection =>
+            projection.Transitions.Select(transition => FlatProjectionKeyType(context, transition)).OfType<SemanticTypeReference>()
+                .Select(type => (type, $"projection key '{projection.Name}'"))
+                .Concat(ScopedProjectionKeyTypes(context, projection.Scope).Select(type => (type, $"projection or removal key '{projection.Name}'"))));
+
+    static SemanticTypeReference? FlatProjectionKeyType(SemanticApplicationContext context, SemanticProjectionTransition transition)
     {
-        foreach (var command in slices.SelectMany(slice => slice.Commands))
-        {
-            foreach (var destination in command.Produces.Select(produced => SemanticDestinations.Of(command, produced)).OfType<SemanticResolvedExpression>())
-            {
-                var property = command.Properties.SingleOrDefault(property => property.Id == destination.Target);
-                if (property is not null) yield return (property.Type, $"command destination '{command.Name}.{property.Name}'");
-            }
-        }
+        if (transition.AffectedInstance.Key is not SemanticResolvedExpression key) return null;
+        if (!context.Events.TryGetValue(transition.EventContract, out var @event)) return null;
+
+        return @event.Properties.SingleOrDefault(property => property.Id == key.Target)?.Type;
     }
 
-    static IEnumerable<(SemanticTypeReference Type, string Use)> EventSourceIdentities(SemanticApplication application)
-    {
-        foreach (var source in application.EventSources)
-        {
-            if (source.IdentifierType is { } identifier) yield return (identifier, $"event source identifier '{source.Name}'");
-            foreach (var stream in source.Streams)
-            {
-                if (stream.StreamIdType is { } type) yield return (type, $"stream identity '{source.Name}.{stream.Name}'");
-                foreach (var part in stream.StreamIdParts) yield return (part.Type, $"stream identity part '{source.Name}.{stream.Name}.{part.Name}'");
-            }
-        }
-    }
-
-    static IEnumerable<(SemanticTypeReference Type, string Use)> ProjectionIdentities(SemanticApplicationContext context, IEnumerable<SemanticSlice> slices)
-    {
-        foreach (var projection in slices.SelectMany(slice => slice.Projections))
-        {
-            foreach (var transition in projection.Transitions)
-            {
-                if (transition.AffectedInstance.Key is SemanticResolvedExpression key && context.Events.TryGetValue(transition.EventContract, out var @event))
-                {
-                    var property = @event.Properties.SingleOrDefault(property => property.Id == key.Target);
-                    if (property is not null) yield return (property.Type, $"projection key '{projection.Name}'");
-                }
-            }
-
-            if (projection.Scope is not { } scope) continue;
-            foreach (var (contract, key) in ProjectionKeys(scope))
-            {
-                foreach (var path in KeyPaths(key))
-                {
-                    if (ProjectionKeyType(context, contract, path) is { } type) yield return (type, $"projection or removal key '{projection.Name}'");
-                }
-            }
-        }
-    }
+    static IEnumerable<SemanticTypeReference> ScopedProjectionKeyTypes(SemanticApplicationContext context, SemanticProjectionScope? scope) =>
+        scope is null ? [] : ProjectionKeys(scope)
+            .SelectMany(identity => KeyPaths(identity.Key).Select(path => ProjectionKeyType(context, identity.Contract, path)))
+            .OfType<SemanticTypeReference>();
 
     static IEnumerable<(SemanticId Contract, SemanticProjectionKey Key)> ProjectionKeys(SemanticProjectionScope scope) =>
         scope.From.SelectMany(from => Keys(from.EventContract, from.Key, from.ParentKey))

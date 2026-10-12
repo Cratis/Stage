@@ -17,23 +17,23 @@ internal static class ConceptComplianceRendering
     {
         var pii = concept.Attributes.FirstOrDefault(attribute => attribute.Name == ConceptAttributeSyntax.Pii);
         var secret = concept.Attributes.FirstOrDefault(attribute => attribute.Name == ConceptAttributeSyntax.Sensitive);
-        RenderProtection(builder, pii is not null, pii is not null && complianceDetails ? Details(pii) : string.Empty, secret is not null ? Encrypted(secret.Scope, secret.Reason, complianceDetails, false) : null, false);
+        RenderProtection(builder, new(pii is not null, pii is not null && complianceDetails ? Details(pii) : string.Empty, secret is not null ? Encrypted(secret.Scope, secret.Reason, complianceDetails, false) : null), false);
     }
 
     internal static void Render(CSharpCodeBuilder builder, SemanticConceptCompliance? compliance) =>
-        RenderProtection(builder, compliance?.Personal is not null, string.Empty, compliance?.Secret is { } secret ? Encrypted(secret.Scope, null, false, true) : null, true);
+        RenderProtection(builder, new(compliance?.Personal is not null, string.Empty, compliance?.Secret is { } secret ? Encrypted(secret.Scope, null, false, true) : null), true);
 
-    static void RenderProtection(CSharpCodeBuilder builder, bool personal, string details, string? encrypted, bool qualified)
+    static void RenderProtection(CSharpCodeBuilder builder, Protection protection, bool qualified)
     {
-        if (personal)
+        if (protection.Personal)
         {
             Attribute(builder, "Cratis.Chronicle.Compliance.GDPR", qualified ? "PIIAttribute" : "PII", qualified);
-            if (details.Length > 0)
+            if (protection.Details.Length > 0)
             {
-                Attribute(builder, "Cratis.Chronicle.Compliance", $"ComplianceDetails({CSharpCodeBuilder.StringLiteral(details)})", qualified);
+                Attribute(builder, "Cratis.Chronicle.Compliance", $"ComplianceDetails({CSharpCodeBuilder.StringLiteral(protection.Details)})", qualified);
             }
         }
-        else if (encrypted is not null)
+        else if (protection.Encrypted is { } encrypted)
         {
             Attribute(builder, "Cratis.Chronicle.ProtectedValues", encrypted, qualified);
             Attribute(builder, "Cratis.Arc.Chronicle.Commands", qualified ? "NotAuditedAttribute" : "NotAudited", qualified);
@@ -79,4 +79,6 @@ internal static class ConceptComplianceRendering
 
         return string.Join(' ', parts);
     }
+
+    sealed record Protection(bool Personal, string Details, string? Encrypted);
 }

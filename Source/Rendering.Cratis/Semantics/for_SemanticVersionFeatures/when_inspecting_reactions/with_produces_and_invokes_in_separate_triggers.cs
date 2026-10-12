@@ -19,6 +19,6 @@ public class with_produces_and_invokes_in_separate_triggers : given.an_event_rea
 
     void Because() => _features = [.. SemanticVersionFeatures.InSlice(_slice)];
 
-    [Fact] void should_not_report_a_mixed_handler_result() => _features.Select(feature => feature.Code).ShouldNotContain("STAGE-ESM-037");
-    [Fact] void should_still_refuse_the_reaction() => _features[0].Message.ShouldEqual("Reaction 'ReminderScheduler' is an ESM v6 automation construct; reaction rendering is not yet admitted.");
+    [Fact] void should_report_a_mixed_handler_result() => _features[0].Code.ShouldEqual("STAGE-ESM-037");
+    [Fact] void should_keep_the_execution_refusal() => _features.Single(feature => feature.Kind == "reaction" && feature.Code == "STAGE-ESM-024").Message.ShouldEqual("Reaction 'ReminderScheduler' is an ESM v6 automation construct; the Stage Host and specification executor do not run reactions yet.");
 }

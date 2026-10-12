@@ -170,6 +170,7 @@ internal static partial class SemanticCratisAdmission
         ValidateSliceKind(context, located.Slice, diagnostics);
         ValidateCallerFixtures(located.Slice, diagnostics);
         SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics);
+
         return analysedBodies;
     }
 
@@ -179,6 +180,9 @@ internal static partial class SemanticCratisAdmission
         {
             case SemanticSliceKind.StateChange:
                 ValidateStateChange(context, slice, diagnostics);
+                break;
+            case SemanticSliceKind.Automation:
+                ValidateAutomation(context, slice, diagnostics);
                 break;
             case SemanticSliceKind.StateView:
                 ValidateStateView(context, slice, diagnostics);

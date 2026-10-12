@@ -131,34 +131,4 @@ internal static partial class SemanticCratisAdmission
             }
         }
     }
-
-    static bool UsesEventSourceIdentity(
-        SemanticApplicationContext context,
-        SemanticProjectionTransition transition,
-        SemanticEventContract @event,
-        SemanticReadModel readModel)
-    {
-        var eventKey = ((SemanticResolvedExpression)transition.AffectedInstance.Key).Target;
-        var eventProperty = @event.Properties.Single(_ => _.Id == eventKey);
-        var readModelKeys = readModel.Properties.Where(_ => _.IsIdentifier).ToArray();
-        if (readModelKeys.Length != 1 || eventProperty.Type.Kind != SemanticTypeReferenceKind.Concept ||
-            !context.IdentifierConcepts.Contains(eventProperty.Type.Target))
-        {
-            return false;
-        }
-
-        var keyMapping = transition.Mappings.SingleOrDefault(_ => _.TargetProperty == readModelKeys[0].Id);
-        if (!IsProperty(keyMapping?.Source, SemanticExpressionRootKind.Event, [eventKey]))
-        {
-            return false;
-        }
-
-        var producers = context.Commands.Values.SelectMany(command =>
-            command.Produces.Where(produced => produced.EventContract == @event.Id).Select(produced => (Command: command, Produced: produced))).ToArray();
-        return producers.Length > 0 && producers.All(producer =>
-            SemanticDestinations.Of(producer.Command, producer.Produced) is SemanticResolvedExpression destination &&
-            producer.Produced.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == eventKey)?.Source is SemanticResolvedExpression source &&
-            destination.Root == SemanticExpressionRootKind.Command && source.Root == SemanticExpressionRootKind.Command &&
-            destination.Target == source.Target);
-    }
 }

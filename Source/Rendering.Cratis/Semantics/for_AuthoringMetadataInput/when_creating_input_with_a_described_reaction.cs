@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Xunit;
 
@@ -13,6 +15,7 @@ public class when_creating_input_with_a_described_reaction : Specification
     SemanticCompilation _compilation = null!;
     AuthoringMetadataInput.Catalog? _catalog;
     bool _accepted;
+    string _reactor = string.Empty;
 
     void Establish() => _compilation = when_rendering_authoring_documentation.Compile(
         when_rendering_authoring_documentation.Source.Replace(
@@ -32,10 +35,16 @@ public class when_creating_input_with_a_described_reaction : Specification
         var input = AuthoringMetadataInput.Create(_compilation);
         input.ShouldNotBeNull();
         _accepted = AuthoringMetadataInput.TryRead(input!, _compilation.Model, out _catalog);
+        var model = _compilation.Model;
+        var profile = CratisRendering.WithAuthoringMetadata(CratisRendering.CreateProfile("Projects", new("Projects", "Projects")), _compilation);
+        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)), new("Projects", "Projects"));
+        var located = context.SelectedSlices().Single(slice => !slice.Slice.Reactions.IsEmpty);
+        _reactor = SemanticReactorArtifactRenderer.Render(located, located.Slice.Reactions.Single(), context).Content;
     }
 
     [Fact] void should_admit_the_metadata_it_creates() => _accepted.ShouldBeTrue();
     [Fact] void should_preserve_the_command_metadata() => _catalog!.Entries.Values.ShouldContain(new AuthoringMetadataInput.Metadata("Registers <project> & name", "# Command <notes> & details\n\n- **Keep** the requested name."));
-    [Fact] void should_exclude_the_syntax_only_reaction_description() => _catalog!.Entries.Values.ShouldNotContain(new AuthoringMetadataInput.Metadata("Notifies about registration", null));
+    [Fact] void should_preserve_the_reaction_description() => _catalog!.Entries.Values.ShouldContain(new AuthoringMetadataInput.Metadata("Notifies about registration", null));
+    [Fact] void should_render_the_reaction_summary() => _reactor.ShouldContain("/// Notifies about registration");
     [Fact] void should_exclude_the_syntax_only_trigger_description() => _catalog!.Entries.Values.ShouldNotContain(new AuthoringMetadataInput.Metadata("Handles a registered project", null));
 }

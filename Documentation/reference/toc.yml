@@ -14,6 +14,8 @@
   href: stage-rendering.md
 - name: Generated values and command responses
   href: generated-values-rendering.md
+- name: Event reaction rendering
+  href: reaction-rendering.md
 - name: Event-source routing
   href: event-source-routing.md
 - name: Plan artifacts from Screenplay sources

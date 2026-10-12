@@ -16,9 +16,9 @@ internal static partial class SemanticCratisAdmission
         var analysed = 0;
         foreach (var reducer in slice.Reducers)
         {
-            if (slice.Kind != SemanticSliceKind.StateView)
+            if (slice.Kind is not (SemanticSliceKind.StateView or SemanticSliceKind.Automation))
             {
-                diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' must be declared in a StateView slice.", slice.Id));
+                diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' must be declared in a StateView or Automation slice.", slice.Id));
                 continue;
             }
 
@@ -122,7 +122,7 @@ internal static partial class SemanticCratisAdmission
 
                 // StateView artifacts emit read models and reducers, not event declarations,
                 // including when the event is declared in a different StateView slice.
-                if (context.DeclaringSlice(@event.Id).Slice.Kind != SemanticSliceKind.StateChange)
+                if (context.DeclaringSlice(@event.Id).Slice.Kind is not (SemanticSliceKind.StateChange or SemanticSliceKind.Automation))
                 {
                     diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' observes an event declared in a StateView slice, which cannot render an event contract.", reducer.ReadModel));
                     continue;

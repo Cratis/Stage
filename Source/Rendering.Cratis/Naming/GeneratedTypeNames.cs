@@ -53,6 +53,10 @@ internal static class GeneratedTypeNames
         foreach (var (path, slice) in selectedSlices)
         {
             var ns = string.Join('.', path);
+            foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
+            {
+                foreach (var name in Names(ns, reaction.Name, reaction.Id, "Reaction")) yield return name;
+            }
             foreach (var reducer in slice.Reducers)
             {
                 foreach (var name in Names(ns, reducer.Name, reducer.ReadModel, "Reducer")) yield return name;

@@ -44,6 +44,7 @@ internal static partial class SemanticCratisAdmission
         }
 
         foreach (var use in CommandDestinations(slices)) yield return use;
+        foreach (var use in ReactionDestinations(context.Application)) yield return use;
         foreach (var use in EventSourceIdentities(context.Application)) yield return use;
         foreach (var use in ProjectionIdentities(context, slices)) yield return use;
     }
@@ -56,6 +57,11 @@ internal static partial class SemanticCratisAdmission
             .Select(destination => command.Properties.SingleOrDefault(property => property.Id == destination.Target))
             .OfType<SemanticProperty>()
             .Select(property => (property.Type, $"command destination '{command.Name}.{property.Name}'"));
+
+    static IEnumerable<(SemanticTypeReference Type, string Use)> ReactionDestinations(SemanticApplication application) =>
+        SemanticReactionProductions.In(application)
+            .Where(production => production.Produced.Destination is not null)
+            .SelectMany(production => TypedIdentity(production.Produced.DestinationType, $"reaction destination '{production.Reaction.Name}'"));
 
     static IEnumerable<(SemanticTypeReference Type, string Use)> EventSourceIdentities(SemanticApplication application) =>
         application.EventSources.SelectMany(source => TypedIdentity(source.IdentifierType, $"event source identifier '{source.Name}'")

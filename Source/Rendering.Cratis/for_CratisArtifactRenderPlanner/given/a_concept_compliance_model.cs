@@ -38,6 +38,9 @@ public static class a_concept_compliance_model
         type CredentialEnvelope
           entries Credentials[]
           optionalKey ApiKey?
+        type HealthEnvelope
+          entries HealthInformation[]
+          optionalHealth HealthInformation?
         """;
 
     public const string ContainerSlice = """
@@ -47,15 +50,22 @@ public static class a_concept_compliance_model
                 keys ApiKey[]
                 credentials CredentialEnvelope
                 optionalCredentials CredentialEnvelope?
+                healths HealthInformation[]
+                healthDetails HealthEnvelope
+                optionalHealthDetails HealthEnvelope?
                 visible String
                 produces CredentialsRecorded
                   for id
                   keys = keys
                   credentials = credentials
+                  healths = healths
+                  healthDetails = healthDetails
                   visible = visible
               event CredentialsRecorded
                 keys ApiKey[]
                 credentials CredentialEnvelope
+                healths HealthInformation[]
+                healthDetails HealthEnvelope
                 visible String
         """;
 

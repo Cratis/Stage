@@ -64,7 +64,11 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
                 var credentials = new CredentialEnvelope(
                     new[] { new Credentials(new ApiKey("nested-secret-value-345"), new HealthInformation("nested-personal-value-345")) },
                     new ApiKey("optional-secret-value-345"));
-                var result = await scenario.Execute(new RecordCredentials(id, new[] { new ApiKey("collection-secret-value-345") }, credentials, credentials, "auditable-value-345"));
+                var healthDetails = new HealthEnvelope(
+                    new[] { new HealthInformation("nested-pii-only-value-345") },
+                    new HealthInformation("optional-pii-only-value-345"));
+                var result = await scenario.Execute(new RecordCredentials(id, new[] { new ApiKey("collection-secret-value-345") }, credentials, credentials,
+                    new[] { new HealthInformation("collection-pii-only-value-345") }, healthDetails, healthDetails, "auditable-value-345"));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
                 var payload = Assert.IsType<CredentialsRecorded>(appended.Content);
@@ -73,13 +77,20 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
                 Assert.Equal("nested-secret-value-345", entry.Key.Value);
                 Assert.Equal("nested-personal-value-345", entry.Health.Value);
                 Assert.Equal("optional-secret-value-345", payload.Credentials.OptionalKey!.Value);
+                Assert.Equal("collection-pii-only-value-345", Assert.Single(payload.Healths).Value);
+                Assert.Equal("nested-pii-only-value-345", Assert.Single(payload.HealthDetails!.Entries).Value);
+                Assert.Equal("optional-pii-only-value-345", payload.HealthDetails.OptionalHealth!.Value);
                 Assert.NotEmpty(appended.Context.Causation);
                 var causation = JsonSerializer.Serialize(appended.Context.Causation);
-                foreach (var value in new[] { payload.Keys[0].Value, entry.Key.Value, entry.Health.Value, payload.Credentials.OptionalKey.Value })
+                foreach (var value in new[] { payload.Keys[0].Value, entry.Key.Value, entry.Health.Value, payload.Credentials.OptionalKey.Value,
+                    payload.Healths[0].Value, payload.HealthDetails.Entries[0].Value, payload.HealthDetails.OptionalHealth.Value })
                 {
                     Assert.DoesNotContain(value, causation);
                 }
-                Assert.All(appended.Context.Causation, cause => Assert.False(cause.Properties.ContainsKey("keys") || cause.Properties.ContainsKey("credentials") || cause.Properties.ContainsKey("optionalCredentials")));
+                foreach (var property in new[] { "keys", "credentials", "optionalCredentials", "healths", "healthDetails", "optionalHealthDetails" })
+                {
+                    Assert.All(appended.Context.Causation, cause => Assert.False(cause.Properties.ContainsKey(property)));
+                }
                 Assert.Contains(appended.Context.Causation, cause => cause.Properties.TryGetValue("visible", out var value) && value == "auditable-value-345");
             }
         }

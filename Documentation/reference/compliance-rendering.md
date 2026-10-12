@@ -28,15 +28,18 @@ are carried by ESM v13 but do not change the generated attribute. Reasons are au
 not ESM members. Opt-in details remain a syntax-renderer feature ([Stage #259](https://github.com/Cratis/Stage/issues/259)).
 Unmarked models retain their earlier ESM version and byte-identical artifacts.
 
-On the semantic path, each command input that transitively contains a `secret` concept also gets
-`[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]`. This includes optional inputs,
-collections, and nested composites. Arc omits the entire input from causation, including its non-secret
-members; unrelated inputs remain auditable. The concept-level attribute remains in place.
+On the semantic path, each command input that transitively contains any compliance-marked concept
+(`pii`, `secret`, or both) also gets
+`[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]`. This uniform rule includes
+scalar inputs, optional inputs, collections, and nested composites. Arc omits the entire input from
+causation, including its unprotected members; unrelated inputs remain auditable. The concept-level
+attributes remain in place for event-payload protection.
 
-Pinned Arc 22.68.0 checks only the command property, its direct type, and its constructor parameter.
-It does not recursively inspect members or collection elements. Scalar `pii` inputs are withheld by
-Arc's PII check, but **PII-only collections and composites are not withheld from causation** unless
-that same input also contains a `secret`. Event-payload encryption does not protect those causation
+Arc 22.68.0 already withholds scalar `[PII]` concept inputs through Chronicle's `PIIMetadataProvider`.
+That check examines the command property, its declaring type, its direct property type, and its
+constructor parameter, but does not recursively inspect composite members or collection elements.
+Stage's property-level exclusion covers those nested personal values and secrets, and is also emitted
+for scalar PII inputs for consistency. Event-payload encryption alone does not protect causation
 values. The syntax renderer retains its existing concept-level attributes; it does not add the
 semantic path's transitive input exclusions.
 

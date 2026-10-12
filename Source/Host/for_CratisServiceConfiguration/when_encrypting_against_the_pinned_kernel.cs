@@ -52,8 +52,11 @@ public class when_encrypting_against_the_pinned_kernel
         Assert.IsType<SemanticAccepted>(result);
 
         // Read BSON directly inside the development container: Chronicle's sequence APIs release values.
-        var container = (await Docker("ps", "--filter", $"publish={new Uri(address).Port}", "--format", "{{.ID}}")).Trim();
-        Assert.Single(container.Split('\n', StringSplitOptions.RemoveEmptyEntries));
+        // The publish filter matches the container-side port, so locate the kernel by its host-side mapping instead.
+        var hostPort = $":{new Uri(address).Port}->";
+        var container = Assert.Single(
+            (await Docker("ps", "--format", "{{.ID}} {{.Ports}}")).Split('\n', StringSplitOptions.RemoveEmptyEntries),
+            line => line.Contains(hostPort, StringComparison.Ordinal)).Split(' ')[0];
         var script = $"const e = db.getSiblingDB({JsonSerializer.Serialize($"{name}+es+Default")}).getCollection('event-log').findOne(); if (!e) throw new Error('Missing stored event'); print(JSON.stringify(e.content['1']));";
         using var raw = JsonDocument.Parse(await Docker("exec", container, "mongosh", "--quiet", "--eval", script));
         foreach (var property in new[] { "name", "number", "token" })

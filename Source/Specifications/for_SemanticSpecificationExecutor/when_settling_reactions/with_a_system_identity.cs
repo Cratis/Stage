@@ -14,7 +14,7 @@ public class with_a_system_identity : given.a_reaction_plan
     [InlineData("role \"Automation\" or claim \"actor\" matches \"system\"", "runs as system role \"Automation\"", true)]
     public async Task should_use_only_the_declared_roles_and_keep_claims_unknown(string condition, string identity, bool accepted)
     {
-        Compile($"reaction Worker\n  {identity}\n  when Started\n    item\n    invokes Complete\n      item = item", accepted ? "then Completed" : "then denied", policy: $"policy Access\n  require {condition}", authorization: "authorize Access");
+        Compile($"reaction Worker\n  {identity}\n  when Started\n    item\n    invokes Complete\n      item = item", accepted ? "then Completed" : "then denied", new() { Policy = $"policy Access\n  require {condition}", Authorization = "authorize Access" });
         await Execute();
         AssertMatchesReference();
     }

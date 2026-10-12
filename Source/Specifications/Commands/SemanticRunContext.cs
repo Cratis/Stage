@@ -73,16 +73,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     {
         cancellationToken.ThrowIfCancellationRequested();
         var instance = runtimeTypes.Materialize(fact);
-        var source = destination switch
-        {
-            // Chronicle requires a storage key even when the semantic direct append has no identity.
-            // This private log key never becomes the fact's modeled destination or typed context.
-            SemanticNullValue => "stage:semantic-null",
-            SemanticTextValue text => text.Value,
-            SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
-            SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
-            _ => throw new UnsupportedSemanticMapping()
-        };
+        var source = StorageKey(destination);
         var route = SemanticRunRoutes.Format(plan, fact.Route);
         var result = await eventLog.Append(
             new EventSourceId(source),
@@ -124,6 +115,17 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, Evaluate(mapping.Source, inputs))).ToImmutableArray();
         return (new(produced.EventContract, values) { EventSource = identity, Route = _commandRoute }, destination);
     }
+
+    static string StorageKey(SemanticValue destination) => destination switch
+    {
+        // Chronicle requires a storage key even when the semantic direct append has no identity.
+        // This private log key never becomes the fact's modeled destination or typed context.
+        SemanticNullValue => "stage:semantic-null",
+        SemanticTextValue text => text.Value,
+        SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
+        SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
+        _ => throw new UnsupportedSemanticMapping()
+    };
 
     Dictionary<SemanticId, SemanticValue> Inputs() => specification.When!.Values.Concat(specification.When.GeneratedValues).ToDictionary(value => value.TargetProperty, value => value.Value);
 }

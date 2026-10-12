@@ -35,20 +35,20 @@ internal static class SemanticRunReactionExpressions
         }
         if (type.IsCollection || type.Kind == SemanticTypeReferenceKind.CompositeType) throw new UnsupportedSemanticMapping();
         var concept = type.Kind == SemanticTypeReferenceKind.Concept ? plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target) : null;
-        var primitive = concept?.Primitive ?? type.Primitive;
-        var compatible = value switch
-        {
-            SemanticTextValue text => TextMatches(text.Value, primitive),
-            SemanticNumberValue number => primitive == SemanticPrimitiveType.DecimalNumber || (primitive == SemanticPrimitiveType.WholeNumber && decimal.Truncate(number.Value) == number.Value),
-            SemanticBooleanValue => primitive == SemanticPrimitiveType.Boolean,
-            _ => false
-        };
-        if (!compatible) throw new InvalidSemanticContract($"A {description} is incompatible with its target type.");
-        if (concept is { Values.IsEmpty: false } && (value is not SemanticTextValue enumerated || !concept.Values.Contains(enumerated.Value, StringComparer.Ordinal)))
-        {
-            throw new InvalidSemanticContract($"A {description} targets an enumeration concept but is not a declared value.");
-        }
+        if (!IsCompatible(value, concept?.Primitive ?? type.Primitive)) throw new InvalidSemanticContract($"A {description} is incompatible with its target type.");
+        if (!IsDeclaredValue(concept, value)) throw new InvalidSemanticContract($"A {description} targets an enumeration concept but is not a declared value.");
     }
+
+    static bool IsCompatible(SemanticValue value, SemanticPrimitiveType primitive) => value switch
+    {
+        SemanticTextValue text => TextMatches(text.Value, primitive),
+        SemanticNumberValue number => primitive == SemanticPrimitiveType.DecimalNumber || (primitive == SemanticPrimitiveType.WholeNumber && decimal.Truncate(number.Value) == number.Value),
+        SemanticBooleanValue => primitive == SemanticPrimitiveType.Boolean,
+        _ => false
+    };
+
+    static bool IsDeclaredValue(SemanticConcept? concept, SemanticValue value) =>
+        concept is not { Values.IsEmpty: false } || (value is SemanticTextValue enumerated && concept.Values.Contains(enumerated.Value, StringComparer.Ordinal));
 
     static bool TextMatches(string value, SemanticPrimitiveType primitive) => primitive switch
     {
@@ -63,11 +63,20 @@ internal static class SemanticRunReactionExpressions
     {
         var left = Operand(comparison.Left, values);
         var right = Operand(comparison.Right, values);
-        if (comparison.Operator == SemanticComparisonOperator.Equal) return SemanticExpectationComparer.AreEqual(left, right);
-        if (comparison.Operator == SemanticComparisonOperator.NotEqual) return !SemanticExpectationComparer.AreEqual(left, right);
-        if (left is not SemanticNumberValue a || right is not SemanticNumberValue b) throw new InvalidSemanticContract("Ordering condition requires numeric operands.");
 
         return comparison.Operator switch
+        {
+            SemanticComparisonOperator.Equal => SemanticExpectationComparer.AreEqual(left, right),
+            SemanticComparisonOperator.NotEqual => !SemanticExpectationComparer.AreEqual(left, right),
+            _ => Ordered(comparison.Operator, left, right)
+        };
+    }
+
+    static bool Ordered(SemanticComparisonOperator comparison, SemanticValue left, SemanticValue right)
+    {
+        if (left is not SemanticNumberValue a || right is not SemanticNumberValue b) throw new InvalidSemanticContract("Ordering condition requires numeric operands.");
+
+        return comparison switch
         {
             SemanticComparisonOperator.GreaterThan => a.Value > b.Value,
             SemanticComparisonOperator.GreaterThanOrEqual => a.Value >= b.Value,

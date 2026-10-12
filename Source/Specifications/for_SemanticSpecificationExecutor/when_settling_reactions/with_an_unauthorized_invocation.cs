@@ -5,7 +5,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_set
 
 public class with_an_unauthorized_invocation : given.a_reaction_plan
 {
-    void Establish() => Compile("reaction Worker\n  when Started\n    item\n    invokes Complete\n      item = item", "then denied", policy: "policy Access\n  require role \"Automation\"", authorization: "authorize Access", caller: "given caller\n  authenticated\n  role \"Automation\"");
+    void Establish() => Compile("reaction Worker\n  when Started\n    item\n    invokes Complete\n      item = item", "then denied", new() { Policy = "policy Access\n  require role \"Automation\"", Authorization = "authorize Access", Caller = "given caller\n  authenticated\n  role \"Automation\"" });
     Task Because() => Execute();
     [Fact] void should_deny_without_forwarding_the_given_caller() => AssertMatchesReference();
     [Fact] void should_report_the_authorization_rejection() => _result.Trace!.Rejection.ShouldEqual("Caller is not authorized.");

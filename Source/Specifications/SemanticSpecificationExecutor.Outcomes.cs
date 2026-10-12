@@ -9,13 +9,34 @@ namespace Cratis.Stage.Specifications;
 
 public sealed partial class SemanticSpecificationExecutor
 {
-    internal static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, string message, string? code = null, bool denied = false)
-    {
-        var failures = SemanticExpectationComparer.Compare(specification, [], [], message, code, denied);
+    internal static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, string message) =>
+        Rejected(slice, specification, new SemanticRejection(message));
 
-        return Record(slice, specification, failures.Count == 0 ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed, "Rejected", failures: failures, trace: new SemanticExecutionTrace([], new Dictionary<string, string>(), new Dictionary<string, string>(), message) { RejectionCode = code });
+    internal static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, SemanticRejection rejection)
+    {
+        var failures = SemanticExpectationComparer.Compare(specification, new([], []), rejection);
+        var trace = new SemanticExecutionTrace([], new Dictionary<string, string>(), new Dictionary<string, string>(), rejection.Message) { RejectionCode = rejection.Code };
+
+        return Settled(slice, specification, failures, trace);
     }
 
-    internal static SemanticSpecificationRunRecord Record(SemanticSlice slice, SemanticSpecification specification, SemanticSpecificationOutcome outcome, string? kind = null, SemanticUnsupportedCapability? unsupported = null, IReadOnlyList<string>? failures = null, SemanticExecutionTrace? trace = null) =>
-        new(specification.Id.ToString(), specification.Name, slice.Id.ToString(), slice.Kind.ToString(), outcome, kind, unsupported, failures ?? [], trace);
+    internal static SemanticSpecificationRunRecord Settled(SemanticSlice slice, SemanticSpecification specification, IReadOnlyList<string> failures, SemanticExecutionTrace trace) =>
+        Create(slice, specification, failures.Count == 0 ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed) with
+        {
+            ExecutionKind = trace.Rejection is null ? "Accepted" : "Rejected",
+            Failures = failures,
+            Trace = trace
+        };
+
+    internal static SemanticSpecificationRunRecord Unsupported(SemanticSlice slice, SemanticSpecification specification, SemanticUnsupportedCapability unsupported) =>
+        Create(slice, specification, SemanticSpecificationOutcome.Unsupported) with { Unsupported = unsupported };
+
+    internal static SemanticSpecificationRunRecord Failed(SemanticSlice slice, SemanticSpecification specification, IReadOnlyList<string> failures) =>
+        Create(slice, specification, SemanticSpecificationOutcome.Failed) with { Failures = failures };
+
+    internal static SemanticSpecificationRunRecord Cancelled(SemanticSlice slice, SemanticSpecification specification) =>
+        Create(slice, specification, SemanticSpecificationOutcome.Cancelled);
+
+    static SemanticSpecificationRunRecord Create(SemanticSlice slice, SemanticSpecification specification, SemanticSpecificationOutcome outcome) =>
+        new(specification.Id.ToString(), specification.Name, slice.Id.ToString(), slice.Kind.ToString(), outcome, null, null, [], null);
 }

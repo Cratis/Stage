@@ -5,7 +5,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_set
 
 public class with_a_constrained_production : given.a_reaction_plan
 {
-    void Establish() => Compile("reaction Worker\n  when Started\n    item\n    produces Followed\n      item = item\n    produces Followed\n      item = item", "then error \"Already followed\"", declarations: "constraint Once\n  unique event Followed\n  message \"Already followed\"");
+    void Establish() => Compile("reaction Worker\n  when Started\n    item\n    produces Followed\n      item = item\n    produces Followed\n      item = item", "then error \"Already followed\"", new() { Declarations = "constraint Once\n  unique event Followed\n  message \"Already followed\"" });
     Task Because() => Execute();
     [Fact] void should_reject_the_second_production_as_the_reference_does() => AssertMatchesReference();
     [Fact] void should_preserve_the_constraint_name() => _result.Trace!.RejectionCode.ShouldEqual("Once");

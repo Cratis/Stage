@@ -7,7 +7,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_set
 
 public class with_an_invoked_generated_command : given.a_reaction_plan
 {
-    void Establish() => Compile("reaction Worker\n  when Started\n    item\n    invokes Complete\n      item = item", "", commandProperties: "token Token generated");
+    void Establish() => Compile("reaction Worker\n  when Started\n    item\n    invokes Complete\n      item = item", "", new() { CommandProperties = "token Token generated" });
     Task Because() => Execute();
     [Fact] void should_match_the_reference_generation_refusal() => AssertMatchesReference();
     [Fact] void should_require_deterministic_fixtures() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.IdentityAllocation);

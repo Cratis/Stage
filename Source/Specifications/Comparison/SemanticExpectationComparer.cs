@@ -10,8 +10,12 @@ namespace Cratis.Stage.Specifications.Comparison;
 internal static class SemanticExpectationComparer
 {
     // Mirrors SemanticSpecificationRunner.Compare/CompareFacts for the admitted fact/error subset.
-    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, IReadOnlyList<SemanticValue> destinations, string? rejection, string? rejectionCode = null, bool denied = false, SemanticExecutionPlan? plan = null, int? actionFacts = null)
+    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, SemanticActualRun run, SemanticRejection? rejected = null)
     {
+        var (actual, destinations, plan, actionFacts) = run;
+        var rejection = rejected?.Message;
+        var rejectionCode = rejected?.Code;
+        var denied = rejected?.Denied ?? false;
         var failures = new List<string>();
         if (expected.ThenDenied)
         {

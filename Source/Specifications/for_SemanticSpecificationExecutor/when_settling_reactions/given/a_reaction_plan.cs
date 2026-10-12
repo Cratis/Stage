@@ -13,8 +13,9 @@ public class a_reaction_plan : Specification
     protected SemanticSpecificationRunRecord _result = null!;
     protected SemanticSpecificationRun _reference = null!;
 
-    protected void Compile(string reaction, string expected, string action = "when append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1", string policy = "", string authorization = "", string commandProperties = "", string declarations = "", string caller = "", string eventSources = "")
+    protected void Compile(string reaction, string expected, ReactionScenario? scenario = null)
     {
+        var (action, policy, authorization, commandProperties, declarations, caller, eventSources) = scenario ?? new ReactionScenario();
         var source = $"""
             {policy}
             concept Token : Uuid
@@ -80,3 +81,22 @@ public class a_reaction_plan : Specification
 
     static string Indent(string text, int spaces) => string.Join('\n', text.Split('\n').Select(line => new string(' ', spaces) + line));
 }
+
+/// <summary>
+/// The optional parts of a reaction scenario around its reaction and expectation.
+/// </summary>
+/// <param name="Action">The specification's action.</param>
+/// <param name="Policy">The policy declarations.</param>
+/// <param name="Authorization">The authorization clause of the command that completes.</param>
+/// <param name="CommandProperties">Extra properties of the command that completes.</param>
+/// <param name="Declarations">Extra slice declarations, such as constraints.</param>
+/// <param name="Caller">The specification's given caller.</param>
+/// <param name="EventSources">The event source declarations.</param>
+public record ReactionScenario(
+    string Action = "when append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1",
+    string Policy = "",
+    string Authorization = "",
+    string CommandProperties = "",
+    string Declarations = "",
+    string Caller = "",
+    string EventSources = "");

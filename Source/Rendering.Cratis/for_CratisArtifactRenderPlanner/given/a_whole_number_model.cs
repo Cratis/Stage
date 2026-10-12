@@ -2,13 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
 public static class a_whole_number_model
 {
-    // Screenplay's binder loses precision in literals with 16+ significant digits until Cratis/Screenplay#639.
-    // Use exactly bound 15-digit literals here; executable-model specs cover the exact ±(2^53−1) extremes.
     internal const string Source = """
         concept StockId : String
         concept Quantity : Int
@@ -29,27 +28,27 @@ public static class a_whole_number_model
               specification RecordingPositive
                 when RecordStock
                   id = "positive"
-                  quantity = 900719925474099
-                  count = 900719925474099
+                  quantity = 9007199254740991
+                  count = 9007199254740991
                 then StockRecorded
-                  quantity = 900719925474099
-                  count = 900719925474099
+                  quantity = 9007199254740991
+                  count = 9007199254740991
                 then readmodel Stock
                   id = "positive"
-                  quantity = 900719925474099
-                  count = 900719925474099
+                  quantity = 9007199254740991
+                  count = 9007199254740991
               specification RecordingNegative
                 when RecordStock
                   id = "negative"
-                  quantity = -900719925474099
-                  count = -900719925474099
+                  quantity = -9007199254740991
+                  count = -9007199254740991
                 then StockRecorded
-                  quantity = -900719925474099
-                  count = -900719925474099
+                  quantity = -9007199254740991
+                  count = -9007199254740991
                 then readmodel Stock
                   id = "negative"
-                  quantity = -900719925474099
-                  count = -900719925474099
+                  quantity = -9007199254740991
+                  count = -9007199254740991
             slice StateView Stocks
               readmodel Stock
                 id StockId
@@ -68,6 +67,14 @@ public static class a_whole_number_model
         var marker = version.IsAtLeast(SemanticVersion.V8)
             ? "eventsource VersionMarker\n  identifier String\n"
             : "policy VersionMarker\n  require not authenticated\n";
-        return invoice_model.Compile(marker + (source ?? Source));
+
+        // Earlier source fixtures must genuinely select their released version, not relabel a v11 model.
+        var numbers = version.IsAtLeast(SemanticVersion.V11) ? Source : Source.Replace("9007199254740991", "900719925474099", StringComparison.Ordinal);
+
+        var model = invoice_model.Compile(marker + (source ?? numbers));
+        model.LanguageVersion.ShouldEqual(new LanguageVersion(version.Major, version.Minor));
+        model.SemanticVersion.ShouldEqual(version);
+
+        return model;
     }
 }

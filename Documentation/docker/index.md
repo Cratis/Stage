@@ -132,8 +132,11 @@ captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`, naming t
 reaction execution identity (`STAGE-ESM-034`) and reaction or reducer observer filters (`STAGE-ESM-035`).
 Per-production route overrides fail `STAGE-ESM-036` on the semantic engine; the legacy engine refuses their stream syntax with `STAGE-ESM-030`.
 The semantic engine also refuses reactions: clock, application, startup and shutdown triggers and opaque reaction bodies fail `STAGE-ESM-024` naming the trigger kind, a trigger that both produces and invokes fails `STAGE-ESM-037`, `$context.causedBy.*` fails `STAGE-ESM-013`, and event-triggered reactions fail `STAGE-ESM-024` until reaction rendering is admitted.
-The semantic engine admits ESM v1–v10 version pairs; unaudited language/semantic versions refuse the
-whole model with `STAGE-ESM-016` before registration or execution.
+The semantic engine uses Screenplay 4.137.0 and admits ESM v1–v11 version pairs; unaudited
+language/semantic versions refuse the whole model with `STAGE-ESM-016` before registration or execution.
+ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and
+read-model state, including ±9007199254740991 and `0.10000000000000002`. Source integers still use
+the Double safe range; `numbers exact` and arbitrary-precision arithmetic are not admitted.
 The semantic engine executes command routes, registers named sources and streams with Chronicle on every
 connect, and checks stored routes during world reconstruction. Routed specification runs are still refused
 with `STAGE-ESM-030`, as are routes in the structural SpecRunner and EventModel engine.

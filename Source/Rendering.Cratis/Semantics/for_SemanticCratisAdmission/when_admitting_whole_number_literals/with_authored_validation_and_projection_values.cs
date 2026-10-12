@@ -17,7 +17,7 @@ public class with_authored_validation_and_projection_values
     [InlineData("projection")]
     public void should_refuse_each_emitted_int32_literal_position(string position)
     {
-        var source = a_whole_number_model.Source.Replace("900719925474099", "42", StringComparison.Ordinal);
+        var source = a_whole_number_model.Source.Replace("9007199254740991", "42", StringComparison.Ordinal);
         source = position switch
         {
             "concept" => source.Replace("concept Quantity : Int", "concept Quantity : Int\n  validate\n    < 2147483648", StringComparison.Ordinal),

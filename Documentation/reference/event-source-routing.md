@@ -38,7 +38,7 @@ An ESM v10 reducer's `from` clause filters the facts delivered to its generated 
 
 `TSource` is the generated event-source definition. Filters use stored names, not declaration names or stream identities. Unrouted facts never match a filtered reducer. A source-only filter accepts every stream of that source; a source-and-stream filter accepts only that pair. Reserved stored names fail planning with `STAGE-ESM-030`.
 
-This support is rendering-only. Stage's Host and in-memory specification executor still refuse reducers; filtered reducers retain `STAGE-ESM-035` in those paths. Reaction `from` remains refused with `STAGE-ESM-035` everywhere. Generated read-model companion specifications for filtered reducers fail with `STAGE-ESM-011`: Chronicle's `ReadModelScenario` does not preserve route metadata or apply observer filters.
+This support is rendering-only. Stage's Host and in-memory specification executor still refuse reducers; filtered reducers retain `STAGE-ESM-035` in those paths. Reaction `from` remains refused with `STAGE-ESM-035` by the renderer and specification executor; the Host applies the filter during event-reaction settlement. Generated read-model companion specifications for filtered reducers fail with `STAGE-ESM-011`: Chronicle's `ReadModelScenario` does not preserve route metadata or apply observer filters.
 
 ## Identity codec
 

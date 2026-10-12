@@ -310,6 +310,11 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 return unsupported with { World = world };
             }
 
+            if (command is not null && request.GeneratedValues.IsDefaultOrEmpty)
+            {
+                request = request with { GeneratedValues = GeneratedValues(command) };
+            }
+
             return evaluator.Execute(plan, world, request);
         }
     }

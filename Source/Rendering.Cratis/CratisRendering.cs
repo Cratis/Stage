@@ -8,6 +8,7 @@ using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
@@ -57,9 +58,9 @@ public static partial class CratisRendering
     /// </remarks>
     public static IReadOnlyList<ScenePackage> ShippedPackages { get; } =
     [
-        new("core", "1.0.0", PackageKind.ComponentLibrary, [], [], [], [], [], []),
-        new("scene.web", "1.0.0", PackageKind.ComponentLibrary, [], [], [], [], [], []),
-        new("Cratis.Components", Dependencies.FrontendPackageSet.ComponentsPackageVersion, PackageKind.ComponentLibrary, [], [], [], [], [], [])
+        new(StageShippedPackages.Core, "1.0.0", PackageKind.ComponentLibrary, [], [], [], [], [], []),
+        new(StageShippedPackages.SceneWeb, "1.0.0", PackageKind.ComponentLibrary, [], [], [], [], [], []),
+        new(StageShippedPackages.CratisComponents, Dependencies.FrontendPackageSet.ComponentsPackageVersion, PackageKind.ComponentLibrary, [], [], [], [], [], [])
     ];
 
     /// <summary>

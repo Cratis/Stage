@@ -319,6 +319,55 @@ jobs:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
         run: dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Debug --filter "FullyQualifiedName~when_compiling_generated_name_matrix"
 
+  # Builds the Stage image the way publish.yml does and starts it against a model whose ui profile names a custom package,
+  # handing it the approved package set and the package's browser build as `cratis run --package-set` does. A browser asserts
+  # the live Stage loaded the package at runtime and rendered its component, and refused to render when the package is missing.
+  live-custom-packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Verification/generated-react-browser/package-lock.json
+
+      - name: Publish Host
+        run: >-
+          dotnet publish ./Source/Host/Host.csproj -c Release -p:Version=0.0.0-ci
+          -p:EnableSourceControlManagerQueries=false -p:EnableSourceLink=false -o ./Source/Host/out
+
+      - name: Build the Stage image
+        run: docker build --file Source/Host/Dockerfile --tag cratis/stage:ci .
+
+      - name: Install the browser harness
+        working-directory: Verification/generated-react-browser
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run the live custom package scenarios
+        run: Verification/live-custom-packages/run.sh cratis/stage:ci "$PWD/TestResults/live-custom-packages"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-custom-packages-results
+          path: TestResults/live-custom-packages
+          if-no-files-found: error
+          retention-days: 7
+
   # Renders the canonical screen-composition corpus into a generated React application, builds it the way its author
   # would (Debug backend with its proxies and generated specifications, npm install, frontend build), then serves it
   # on its own backend against the pinned Chronicle kernel and runs the browser scenarios used against a live Stage.

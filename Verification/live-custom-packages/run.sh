@@ -28,7 +28,7 @@ start() {
     docker rm --force --volumes "$container" >/dev/null 2>&1
     docker run --detach --name "$container" --publish "127.0.0.1:$port:9090" \
         --volume "$here/model:/eventmodel:ro" \
-        --volume "$here/packages/approved-packages.json:/packages/approved-packages.json:ro" \
+        --volume "$here/approved/approved-packages.json:/packages/approved-packages.json:ro" \
         "$@" "$image" >/dev/null || { echo "could not run: the Stage image $image did not start"; exit 2; }
     for _ in $(seq 1 90); do
         curl --silent --fail --output /dev/null "http://127.0.0.1:$port/stage/status" && return 0
@@ -42,7 +42,7 @@ start() {
 status=0
 
 echo "== A live Stage handed the approved package"
-start --volume "$here/packages/@acme/scene.charts:/packages/@acme/scene.charts:ro"
+start --volume "$here/approved/@acme/scene.charts:/packages/@acme/scene.charts:ro"
 STAGE_LIVE_URL="http://127.0.0.1:$port" STAGE_LIVE_RESULT="$results/live-custom-packages.json" node "$here/scenario.cjs"
 code=$?
 [ $code -eq 2 ] && exit 2

@@ -12,5 +12,5 @@ public class when_classifying_optional_concepts : given.a_schema
 
     void Because() => _schema = Value(Schema("concept Email : String pii", "Email?")).ToJsonString();
 
-    [Fact] void should_classify_the_property_not_just_a_union_branch() => _schema.ShouldEqual("{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}],\"compliance\":[{\"metadataType\":\"PII\",\"details\":\"\"}]}");
+    [Fact] void should_classify_the_primitive_once_without_a_union_wrapper() => _schema.ShouldEqual("{\"type\":\"string\",\"compliance\":[{\"metadataType\":\"PII\",\"details\":\"\"}]}");
 }

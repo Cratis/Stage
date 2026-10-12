@@ -63,6 +63,14 @@ public static class SemanticSchemas
     {
         if (reference.IsOptional)
         {
+            // Chronicle represents nullable protected concepts as their converter-backed primitive,
+            // with metadata on that primitive node, not on an optional-union wrapper.
+            if (!reference.IsCollection && reference.Kind == SemanticTypeReferenceKind.Concept &&
+                application.Concepts.Single(concept => concept.Id == reference.Target).Compliance is not null)
+            {
+                return TypeShape(reference with { IsOptional = false }, application);
+            }
+
             return new JsonObject
             {
                 ["anyOf"] = new JsonArray(

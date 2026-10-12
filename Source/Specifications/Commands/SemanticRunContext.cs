@@ -22,15 +22,17 @@ namespace Cratis.Stage.Specifications.Commands;
 /// <param name="runtimeTypes">The runtime event contracts.</param>
 /// <param name="eventLog">The fresh Chronicle in-memory event log.</param>
 /// <param name="plan">The model's execution plan.</param>
-internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticExecutionPlan plan)
+/// <param name="parent">The scenario state shared by an invoked command.</param>
+internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticExecutionPlan plan, SemanticRunContext? parent = null)
 {
-    readonly List<SemanticSpecificationEvent> _facts = [];
-    readonly List<SemanticValue> _destinations = [];
+    readonly List<SemanticSpecificationEvent> _facts = parent?._facts ?? [];
+    readonly List<SemanticValue> _destinations = parent?._destinations ?? [];
     SemanticFixtureRoute? _commandRoute;
 
     internal Type CommandType => commandType;
     internal SemanticCommand Command => command;
     internal SemanticSpecification Specification => specification;
+    internal SemanticExecutionPlan Plan => plan;
     internal IReadOnlyList<SemanticSpecificationEvent> Facts => _facts;
     internal IReadOnlyList<SemanticValue> Destinations => _destinations;
     internal DateTimeOffset Occurred => options.Clock.GetUtcNow();
@@ -72,13 +74,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     {
         cancellationToken.ThrowIfCancellationRequested();
         var instance = runtimeTypes.Materialize(fact);
-        var source = destination switch
-        {
-            SemanticTextValue text => text.Value,
-            SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
-            SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
-            _ => throw new UnsupportedSemanticMapping()
-        };
+        var source = StorageKey(destination);
         var route = SemanticRunRoutes.Format(plan, fact.Route);
         var result = await eventLog.Append(
             new EventSourceId(source),
@@ -120,6 +116,17 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, Evaluate(mapping.Source, inputs))).ToImmutableArray();
         return (new(produced.EventContract, values) { EventSource = identity, Route = _commandRoute }, destination);
     }
+
+    static string StorageKey(SemanticValue destination) => destination switch
+    {
+        // Chronicle requires a storage key even when the semantic direct append has no identity.
+        // This private log key never becomes the fact's modeled destination or typed context.
+        SemanticNullValue => "stage:semantic-null",
+        SemanticTextValue text => text.Value,
+        SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
+        SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
+        _ => throw new UnsupportedSemanticMapping()
+    };
 
     Dictionary<SemanticId, SemanticValue> Inputs() => specification.When!.Values.Concat(specification.When.GeneratedValues).ToDictionary(value => value.TargetProperty, value => value.Value);
 }

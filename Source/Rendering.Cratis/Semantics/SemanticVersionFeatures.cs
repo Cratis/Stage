@@ -228,18 +228,18 @@ internal static class SemanticVersionFeatures
     {
         if (slice.Kind == SemanticSliceKind.Automation)
         {
-            yield return new(Automation, StageExecutionCapability.Reaction, slice.Id, "slice", $"Slice '{slice.Name}' is an ESM v6 Automation slice; the specification executor does not run reactions yet.");
+            yield return new(Automation, StageExecutionCapability.Reaction, slice.Id, "slice", $"Slice '{slice.Name}' is an ESM v6 Automation slice; targets must explicitly admit its reaction behavior.");
         }
     }
 
     /// <summary>
-    /// Finds reactions the specification executor still refuses.
+    /// Finds event reactions that targets must explicitly admit.
     /// </summary>
     /// <param name="slice">The slice.</param>
     /// <returns>The execution-only reaction refusals.</returns>
     public static IEnumerable<SemanticVersionFeature> EventReactionsInSlice(SemanticSlice slice) =>
         (slice.Reactions.IsDefault ? [] : slice.Reactions).Select(reaction => new SemanticVersionFeature(
-            Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct; the specification executor does not run reactions yet."));
+            Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct; targets must explicitly admit its event-triggered behavior."));
 
     /// <summary>
     /// Finds public or foreign events declared elsewhere but referenced by a slice.

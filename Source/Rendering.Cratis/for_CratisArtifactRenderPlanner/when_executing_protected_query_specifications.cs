@@ -21,7 +21,6 @@ public class when_executing_protected_query_specifications : a_generated_applica
         // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
         #if DEBUG
-        using System.Reactive.Subjects;
         using Cratis.Arc.Authorization;
         using Cratis.Arc.Queries.ModelBound;
         using Cratis.Arc.Testing.Queries;
@@ -46,11 +45,13 @@ public class when_executing_protected_query_specifications : a_generated_applica
         {
             public static int Invocations;
 
+            // Arc 22.78 observes ISubject queries in QueryScenario (Cratis/Arc#3153); asynchronous streams stay refused.
             [AllowAnonymous]
-            public static ISubject<StreamingQueryProbe> Stream()
+            public static async IAsyncEnumerable<StreamingQueryProbe> Stream()
             {
                 Interlocked.Increment(ref Invocations);
-                return new Subject<StreamingQueryProbe>();
+                await Task.CompletedTask;
+                yield break;
             }
         }
         #endif

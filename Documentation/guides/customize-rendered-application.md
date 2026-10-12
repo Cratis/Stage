@@ -226,9 +226,10 @@ that has one.
 
 ## What the hooks do not do
 
-- **Modeled captures, reactions, and `file` realizations are still unsupported.** A service you register is not
-  bound to any Screenplay construct, and planner admission is unchanged: a selected slice the planner does not
-  support, such as an Automation or Translation slice, still blocks the plan with `STAGE-ESM-024`.
+- **Hooks do not bypass model admission.** Event-triggered Automation slices render their reactions and own artifacts;
+  captures, non-event triggers, opaque reaction bodies and Translate slices still fail `STAGE-ESM-024`.
+  Registering a service does not bind it to a modeled `file` realization or make an unsupported construct renderable.
+  See [Event reaction rendering](../reference/reaction-rendering.md) for the supported shape.
 - **No authorization is applied to your code.** Endpoints you map are anonymous unless you secure them with ASP.NET
   Core authorization yourself. Modeled authorization covers only the artifacts Stage renders.
 - **Middleware order is fixed.** `ConfigureApplication` runs last, so middleware you add there runs after the

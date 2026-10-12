@@ -20,28 +20,34 @@ internal static class SemanticStateChangeArtifactRenderer
     /// <returns>The generated slice source.</returns>
     public static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicationContext context)
     {
-        var types = new SemanticTypeSystem(context);
-        var command = located.Slice.Commands.Single();
+        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        Configure(builder, located, context);
+        RenderMembers(builder, located, context);
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
+        return new(path, builder.ToString())
+        {
+            Sources = [located.Slice.Id, .. located.Slice.Commands.Select(_ => _.Id), .. located.Slice.Events.Select(_ => _.Id)]
+        };
+    }
+
+    internal static void Configure(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
+    {
         var ownNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
-        var builder = new CSharpCodeBuilder()
-            .Namespace(ownNamespace)
-            .Using("Cratis.Arc.Authorization")
+        builder.Using("Cratis.Arc.Authorization")
             .Using("Cratis.Arc.Commands.ModelBound")
             .Using("Cratis.Arc.Validation")
             .Using("Cratis.Chronicle.Events");
-        if (command.Produces.Length > 1 || command.Produces.Any(produced =>
-            produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }) ||
-            !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty))
+        if (located.Slice.Commands.Any(command => NeedsEventSequenceUsing(command, context)))
         {
             builder.Using("Cratis.Chronicle.EventSequences");
         }
-        if (command.Properties.Concat(located.Slice.Events.SelectMany(_ => _.Properties))
+        if (located.Slice.Commands.SelectMany(command => command.Properties).Concat(located.Slice.Events.SelectMany(_ => _.Properties))
             .Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)))
         {
             builder.Using(context.CommonNamespace);
         }
 
-        foreach (var eventContract in command.Produces.Select(_ => context.Events[_.EventContract]))
+        foreach (var eventContract in located.Slice.Commands.SelectMany(command => command.Produces).Select(_ => context.Events[_.EventContract]))
         {
             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(eventContract.Id).Path);
             if (!string.Equals(ownNamespace, eventNamespace, StringComparison.Ordinal))
@@ -49,20 +55,29 @@ internal static class SemanticStateChangeArtifactRenderer
                 builder.Using(eventNamespace);
             }
         }
+    }
 
-        RenderCommand(builder, command, context, types);
+    internal static void RenderMembers(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
+    {
+        var types = new SemanticTypeSystem(context);
+        foreach (var command in located.Slice.Commands)
+        {
+            RenderCommand(builder, command, context, types);
+        }
         foreach (var declaredEvent in located.Slice.Events)
         {
             RenderEvent(builder, declaredEvent, types, context);
         }
-
-        RenderValidator(builder, command, context);
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
-        return new(path, builder.ToString())
+        foreach (var command in located.Slice.Commands)
         {
-            Sources = [located.Slice.Id, .. located.Slice.Commands.Select(_ => _.Id), .. located.Slice.Events.Select(_ => _.Id)]
-        };
+            RenderValidator(builder, command, context);
+        }
     }
+
+    static bool NeedsEventSequenceUsing(SemanticCommand command, SemanticApplicationContext context) =>
+        command.Produces.Length > 1 || command.Produces.Any(produced =>
+            produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }) ||
+            !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty);
 
     static void RenderCommand(
         CSharpCodeBuilder builder,

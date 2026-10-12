@@ -32,21 +32,24 @@ public class when_refusing_the_canonical_v6_corpus : Specification
 
     [Fact] void should_load_an_esm_v6_model() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V6);
     [Fact] void should_admit_the_version_but_refuse_the_automation_constructs() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-024"]);
-    [Fact] void should_name_every_reaction() => _model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
-        .SelectMany(slice => slice.Reactions).All(reaction => _plan.Diagnostics.Any(diagnostic => diagnostic.Artifact == reaction.Id)).ShouldBeTrue();
+    [Fact]
+    void should_name_every_unsupported_reaction() => _model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
+        .SelectMany(slice => slice.Reactions).Where(reaction => reaction.Triggers.Any(trigger => trigger.Kind != SemanticReactionTriggerKind.Event || trigger.RequirementId is not null)).All(reaction => _plan.Diagnostics.Any(diagnostic => diagnostic.Artifact == reaction.Id)).ShouldBeTrue();
     [Fact] void should_not_publish_a_partial_plan() => _plan.Success.ShouldBeFalse();
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
-    [Fact] void should_refuse_through_semantic_admission_as_well()
+    [Fact]
+    void should_refuse_through_semantic_admission_as_well()
     {
         var context = new SemanticApplicationContext(_request, new("Reactions", "Reactions"));
         SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-024"]);
     }
-    [Fact] void should_classify_every_v6_member_as_rejected()
+    [Fact]
+    void should_keep_the_remaining_v6_surface_refused()
     {
         var entries = SemanticSurfaceLedger.Entries.Values.Where(entry => entry.Detail == "STAGE-ESM-024").ToArray();
 
-        // 101: the v6 automation surface plus translation direction; v9 events-source captures use STAGE-ESM-033.
-        entries.Length.ShouldEqual(101);
+        // Event reactions render; clock/capture/translation surface remains rejected.
+        entries.Length.ShouldEqual(87);
         entries.All(entry => entry.Kind == SemanticSurfaceDispositionKind.Rejected).ShouldBeTrue();
     }
 

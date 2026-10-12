@@ -7,6 +7,8 @@ Reference material for a model Stage is performing, and for the targets it resol
 
 ## Topics
 
+- [Event reaction rendering](reaction-rendering.md) — Automation artifacts, reactor identity, side effects, retry behavior and remaining refusals.
+
 - [Generated values and command responses](generated-values-rendering.md) — UUID concepts, generation fixtures, response contracts and limits.
 
 - [Default generated Scene](default-scene-composition.md) — eligible editable keyed lookups, omitted cases, input formats and stable proxy identities.

@@ -17,7 +17,8 @@ internal static class SemanticSliceArtifactRenderers
     public static IReadOnlyList<ISemanticSliceArtifactRenderer> Ordered { get; } =
     [
         new StateChange(),
-        new StateView()
+        new StateView(),
+        new Automation()
     ];
 
     static IEnumerable<RenderedFile> RenderWithSpecifications(
@@ -41,6 +42,27 @@ internal static class SemanticSliceArtifactRenderers
 
         public IEnumerable<RenderedFile> Render(LocatedSemanticSlice located, SemanticApplicationContext context) =>
             RenderWithSpecifications(SemanticStateChangeArtifactRenderer.Render(located, context), located, context);
+    }
+
+    sealed class Automation : ISemanticSliceArtifactRenderer
+    {
+        public bool Handles(LocatedSemanticSlice located) => located.Slice.Kind == SemanticSliceKind.Automation;
+
+        public IEnumerable<RenderedFile> Render(LocatedSemanticSlice located, SemanticApplicationContext context)
+        {
+            foreach (var file in RenderWithSpecifications(SemanticAutomationArtifactRenderer.Render(located, context), located, context))
+            {
+                yield return file;
+            }
+            foreach (var reducer in located.Slice.Reducers)
+            {
+                yield return SemanticReducerArtifactRenderer.Render(located, reducer, context);
+            }
+            foreach (var reaction in located.Slice.Reactions)
+            {
+                yield return SemanticReactorArtifactRenderer.Render(located, reaction, context);
+            }
+        }
     }
 
     sealed class StateView : ISemanticSliceArtifactRenderer

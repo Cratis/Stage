@@ -31,6 +31,6 @@ public class when_refusing_v10_corpora : Specification
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
-        if (form == "identity") plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-034"]);
+        if (form == "identity") plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-034"]);
     }
 }

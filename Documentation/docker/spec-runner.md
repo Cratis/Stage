@@ -18,7 +18,7 @@ publication (`STAGE-ESM-032`), foreign events and `source events` captures (`STA
 Translate slices (`STAGE-ESM-024`, naming the direction), reaction execution identity (`STAGE-ESM-034`),
 and reaction or reducer observer filters (`STAGE-ESM-035`). Per-production route overrides fail `STAGE-ESM-036`
 on the semantic engine; the structural engine refuses their stream syntax with `STAGE-ESM-030`.
-Reaction models are refused too: unrealisable trigger kinds and opaque bodies with `STAGE-ESM-024` naming the kind, a trigger that both produces and invokes with `STAGE-ESM-037`, `$context.causedBy.*` with `STAGE-ESM-013`, and event-triggered reactions with `STAGE-ESM-024` until reaction rendering is admitted.
+Reaction models are refused too: unrealisable trigger kinds and opaque bodies with `STAGE-ESM-024` naming the kind, a trigger that both produces and invokes with `STAGE-ESM-037`, `$context.causedBy.*` with `STAGE-ESM-013`, and event-triggered reactions with `STAGE-ESM-024` because the specification executor does not run reactions yet, even though the renderer admits event-triggered reactions.
 Structural refusals exit `1` without writing results;
 semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.139.0, admits exact ESM v1–v12
 version pairs and refuses unaudited language/semantic versions with `STAGE-ESM-016`.

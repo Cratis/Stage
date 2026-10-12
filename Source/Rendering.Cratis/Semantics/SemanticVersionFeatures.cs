@@ -137,9 +137,11 @@ internal static class SemanticVersionFeatures
 
         foreach (var filter in ReducerFiltersInSlice(slice)) yield return filter;
 
-        if (slice.Kind is SemanticSliceKind.Automation or SemanticSliceKind.Translate)
+        foreach (var feature in AutomationSlices(slice)) yield return feature;
+
+        if (slice.Kind == SemanticSliceKind.Translate)
         {
-            var direction = slice.Kind == SemanticSliceKind.Translate ? $" ({slice.Direction?.ToString() ?? "Inbound"})" : string.Empty;
+            var direction = $" ({slice.Direction?.ToString() ?? "Inbound"})";
             yield return new(Automation, StageExecutionCapability.Reaction, slice.Id, "slice", $"Slice '{slice.Name}' is an ESM v6 {slice.Kind}{direction} slice; Stage renders only StateChange and StateView slices.");
         }
 
@@ -189,32 +191,9 @@ internal static class SemanticVersionFeatures
             yield return new(ObserverFilters, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
         }
 
-        foreach (var reaction in reactions)
-        {
-            foreach (var trigger in reaction.Triggers.Where(trigger => !trigger.Produces.IsDefaultOrEmpty && !trigger.Invokes.IsDefaultOrEmpty))
-            {
-                yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' both produces events and invokes commands in one '{trigger.Kind}' trigger; Arc cannot return events and commands from one handler (Cratis/Arc#3156).");
-            }
-        }
+        foreach (var feature in reactions.SelectMany(MixedEffectsInReaction)) yield return feature;
 
-        foreach (var reaction in reactions)
-        {
-            var expressions = reaction.Triggers.SelectMany(trigger => trigger.Produces.SelectMany(produced =>
-                    produced.Mappings.Select(mapping => mapping.Source).Concat(produced.Destination is { } destination ? [destination] : []))
-                .Concat(trigger.Invokes.SelectMany(invocation => invocation.Mappings.Select(mapping => mapping.Source))));
-            foreach (var context in expressions.OfType<SemanticEventContextExpression>().Where(context => context.Value is
-                SemanticEventContextValueKind.CausedBySubject or SemanticEventContextValueKind.CausedByName or SemanticEventContextValueKind.CausedByUserName)
-                .Select(context => context.Value).Distinct())
-            {
-                var member = context switch
-                {
-                    SemanticEventContextValueKind.CausedBySubject => "subject",
-                    SemanticEventContextValueKind.CausedByName => "name",
-                    _ => "userName"
-                };
-                yield return new("STAGE-ESM-013", StageExecutionCapability.Occurrence, reaction.Id, "reaction", $"Reaction '{reaction.Name}' maps $context.causedBy.{member}, which Stage does not support yet.");
-            }
-        }
+        foreach (var feature in reactions.SelectMany(UnsupportedReactionContexts)) yield return feature;
 
         foreach (var reaction in reactions)
         {
@@ -232,11 +211,30 @@ internal static class SemanticVersionFeatures
             }
         }
 
-        foreach (var reaction in reactions)
+        foreach (var feature in EventReactionsInSlice(slice)) yield return feature;
+    }
+
+    /// <summary>
+    /// Finds Automation slices the Host and specification executor still refuse.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The execution-only slice refusal.</returns>
+    public static IEnumerable<SemanticVersionFeature> AutomationSlices(SemanticSlice slice)
+    {
+        if (slice.Kind == SemanticSliceKind.Automation)
         {
-            yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct; reaction rendering is not yet admitted.");
+            yield return new(Automation, StageExecutionCapability.Reaction, slice.Id, "slice", $"Slice '{slice.Name}' is an ESM v6 Automation slice; the Stage Host and specification executor do not run reactions yet.");
         }
     }
+
+    /// <summary>
+    /// Finds reactions the Host and specification executor still refuse.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The execution-only reaction refusals.</returns>
+    public static IEnumerable<SemanticVersionFeature> EventReactionsInSlice(SemanticSlice slice) =>
+        (slice.Reactions.IsDefault ? [] : slice.Reactions).Select(reaction => new SemanticVersionFeature(
+            Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' is an ESM v6 automation construct; the Stage Host and specification executor do not run reactions yet."));
 
     /// <summary>
     /// Finds public or foreign events declared elsewhere but referenced by a slice.
@@ -395,6 +393,51 @@ internal static class SemanticVersionFeatures
             }
         }
     }
+
+    static IEnumerable<SemanticVersionFeature> MixedEffectsInReaction(SemanticReaction reaction)
+    {
+        foreach (var trigger in reaction.Triggers.Where(trigger => !trigger.Produces.IsDefaultOrEmpty && !trigger.Invokes.IsDefaultOrEmpty))
+        {
+            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' both produces events and invokes commands in one '{trigger.Kind}' trigger; Arc cannot return events and commands from one handler (Cratis/Arc#3156).");
+        }
+        foreach (var group in reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event).GroupBy(trigger => trigger.Source).Where(HasMixedTriggerGroup))
+        {
+            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' produces events and invokes commands across triggers on event '{group.Key}'; Arc cannot return events and commands from one handler (Cratis/Arc#3156).");
+        }
+    }
+
+    static bool HasMixedTriggerGroup(IGrouping<SemanticId, SemanticReactionTrigger> group) =>
+        group.Count() > 1 && group.Any(trigger => !trigger.Produces.IsEmpty) && group.Any(trigger => !trigger.Invokes.IsEmpty);
+
+    static IEnumerable<SemanticVersionFeature> UnsupportedReactionContexts(SemanticReaction reaction)
+    {
+        var contexts = ReactionContextExpressions(reaction).ToArray();
+        if (contexts.Any(context => context.Value == SemanticEventContextValueKind.EventSourceIdentity))
+        {
+            yield return new("STAGE-ESM-013", StageExecutionCapability.IdentityAllocation, reaction.Id, "reaction", $"Reaction '{reaction.Name}' maps $context.eventSourceId, which Stage does not support yet.");
+        }
+        foreach (var context in contexts.Where(context => IsCausedBy(context.Value)).Select(context => context.Value).Distinct())
+        {
+            var member = CausedByMember(context);
+            yield return new("STAGE-ESM-013", StageExecutionCapability.Occurrence, reaction.Id, "reaction", $"Reaction '{reaction.Name}' maps $context.causedBy.{member}, which Stage does not support yet.");
+        }
+    }
+
+    static IEnumerable<SemanticEventContextExpression> ReactionContextExpressions(SemanticReaction reaction) =>
+        reaction.Triggers.SelectMany(trigger => trigger.Produces.SelectMany(produced =>
+                produced.Mappings.Select(mapping => mapping.Source).Concat(produced.Destination is { } destination ? [destination] : []))
+            .Concat(trigger.Invokes.SelectMany(invocation => invocation.Mappings.Select(mapping => mapping.Source))))
+            .OfType<SemanticEventContextExpression>();
+
+    static bool IsCausedBy(SemanticEventContextValueKind value) => value is
+        SemanticEventContextValueKind.CausedBySubject or SemanticEventContextValueKind.CausedByName or SemanticEventContextValueKind.CausedByUserName;
+
+    static string CausedByMember(SemanticEventContextValueKind value) => value switch
+    {
+        SemanticEventContextValueKind.CausedBySubject => "subject",
+        SemanticEventContextValueKind.CausedByName => "name",
+        _ => "userName"
+    };
 
     static bool UnsupportedGeneratedType(SemanticTypeReference type, IEnumerable<SemanticConcept>? concepts)
     {

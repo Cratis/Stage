@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticVersionFeatureAdmission;
 
-public class when_refusing_reactions : Specification
+public class when_rendering_event_reactions : Specification
 {
     ExecutableSemanticModel _model = null!;
     ArtifactRenderPlan _plan = null!;
@@ -26,15 +26,14 @@ public class when_refusing_reactions : Specification
         model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
         {
             Triggers = [],
-            Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Where(slice => slice.Kind == SemanticSliceKind.StateChange), reminders] }] }]
+            Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Where(slice => slice.Kind == SemanticSliceKind.StateChange).Select(slice => slice with { Specifications = [] }), reminders] }] }]
         });
         _model = model;
     }
 
     void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Reactions", "Reactions"));
 
-    [Fact] void should_keep_event_reactions_refused() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_emit_nothing() => _plan.Artifacts.ShouldBeEmpty();
-    [Fact] void should_name_the_reaction_refusal() => _plan.Diagnostics.Single(diagnostic => diagnostic.Artifact == _model.Application.Modules[0].Features[0].Slices[^1].Reactions.Single().Id).Message.ShouldEqual("Reaction 'ReminderScheduler' is an ESM v6 automation construct; reaction rendering is not yet admitted.");
-    [Fact] void should_report_the_automation_code() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-024"]);
+    [Fact] void should_admit_event_reactions() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_emit_the_reactor() => _plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("/ReminderScheduler.cs", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_emit_no_refusals() => _plan.Diagnostics.ShouldBeEmpty();
 }

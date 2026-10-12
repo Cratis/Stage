@@ -82,9 +82,9 @@ public class with_a_pre_v8_model
             6 => """
                 slice Automation VersionMarker
                   reaction MarkerScheduler
-                    when InvoiceIssued
-                      payload
+                    every 1 minutes
                       produces VersionMarked
+                        for "marker"
                         markedAt = $context.occurred
                   event VersionMarked
                     markedAt DateTime

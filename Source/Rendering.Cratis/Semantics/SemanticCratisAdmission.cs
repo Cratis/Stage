@@ -99,18 +99,7 @@ internal static partial class SemanticCratisAdmission
 
             analysedBodies += ValidateReducers(context, located.Slice, diagnostics);
 
-            switch (located.Slice.Kind)
-            {
-                case SemanticSliceKind.StateChange:
-                    ValidateStateChange(context, located.Slice, diagnostics);
-                    break;
-                case SemanticSliceKind.StateView:
-                    ValidateStateView(context, located.Slice, diagnostics);
-                    break;
-                default:
-                    diagnostics.Add(Error("STAGE-ESM-001", "The slice kind is not supported by the Cratis ESM planner.", located.Slice.Id));
-                    break;
-            }
+            ValidateSliceKind(context, located.Slice, diagnostics);
 
             ValidateCallerFixtures(located.Slice, diagnostics);
             SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics);
@@ -183,6 +172,25 @@ internal static partial class SemanticCratisAdmission
                 .Concat(located.Slice.Queries.Select(query => query.Authorization)))
             .OfType<SemanticAuthorization>()
             .Any(authorization => OpaquePolicies(authorization, context.Application.Policies).Any());
+
+    static void ValidateSliceKind(SemanticApplicationContext context, SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        switch (slice.Kind)
+        {
+            case SemanticSliceKind.StateChange:
+                ValidateStateChange(context, slice, diagnostics);
+                break;
+            case SemanticSliceKind.Automation:
+                ValidateAutomation(context, slice, diagnostics);
+                break;
+            case SemanticSliceKind.StateView:
+                ValidateStateView(context, slice, diagnostics);
+                break;
+            default:
+                diagnostics.Add(Error("STAGE-ESM-001", "The slice kind is not supported by the Cratis ESM planner.", slice.Id));
+                break;
+        }
+    }
 
     static void ValidateEventSourceRoutes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {

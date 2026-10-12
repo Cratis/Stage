@@ -310,10 +310,12 @@ Stage builds against Screenplay 4.139.0 and admits exact ESM v1 through v12 lang
 | Application `Triggers` declarations | v6 | `STAGE-ESM-024`, naming the application trigger |
 | Reaction triggers of kind Interval, Schedule, ApplicationTrigger, Startup or Shutdown | v6 | `STAGE-ESM-024`, naming the trigger kind |
 | Opaque reaction bodies | v6 | `STAGE-ESM-024`, naming the body and its trigger kind |
-| Event-triggered reactions | v6 | `STAGE-ESM-024`: reaction rendering is not yet admitted |
-| Reaction mappings of `$context.causedBy.subject`, `.name` or `.userName` | v6 | `STAGE-ESM-013`, naming the context member |
-| Captures, Automation and Translate slices, and specifications with a clock, trigger or capture | v6 | `STAGE-ESM-024` |
-| A reaction trigger that both produces events and invokes commands | v6 | `STAGE-ESM-037`: Arc cannot return events and commands from one handler ([Arc #3156](https://github.com/Cratis/Arc/issues/3156)) |
+| Event-triggered reactions and Automation slice artifacts | v6 | Rendered as Chronicle reactors plus the slice's commands and read surface; Host/executor retain `STAGE-ESM-024` |
+| Reaction conditions, destinations or mappings outside the faithful target subset | v6 | `STAGE-ESM-039` |
+| Command specifications whose produced events trigger reactions, and `when append` specifications | v6 | `STAGE-ESM-011`: generated scenarios do not settle reactions |
+| Reaction mappings of `$context.causedBy.subject`, `.name`, `.userName` or `$context.eventSourceId` | v6 | `STAGE-ESM-013`, naming the context member |
+| Captures and Translate slices, and specifications with a clock, trigger or capture | v6 | `STAGE-ESM-024` |
+| A reaction handler that both produces events and invokes commands, including separate triggers on the same event | v6 | `STAGE-ESM-037`: pinned Arc cannot return events and commands from one handler |
 | Generated command properties and specification generation fixtures | v7 | Required scalar UUID-backed concepts render; other generated shapes fail `STAGE-ESM-028` |
 | Command responses and `then returns` expectations | v7 | Scalar and named responses render; no blanket `STAGE-ESM-029` refusal |
 | Unsupported generated-value/response combinations | v7+ | `STAGE-ESM-038`: routing, legacy destination allocation, generated-property rules/constraints, unsupported response sources or name collisions; unpinned unordered/projected expectations |
@@ -340,7 +342,7 @@ numbers remain bounded by ±(2^53−1). See [Generated C# numbers](../reference/
 
 [Generated values and command responses](../reference/generated-values-rendering.md) describes the UUID mapping, pins, relational assertions, runtime responses and the precise `038` limits.
 
-Reaction admission reports execution identity (`034`), observer filters (`035`), mixed effects (`037`), and caused-by context (`013`) before trigger-kind and generic reaction refusals (`024`). The renderer, Host and specification executor still refuse every reaction model.
+Reaction admission reports execution identity (`034`), observer filters (`035`), mixed effects (`037`), and unsupported context (`013`) before trigger-kind refusals (`024`). The renderer admits event reactions and Automation artifacts; the Host and specification executor retain their execution refusals. See [Event reaction rendering](../reference/reaction-rendering.md) for destinations, invocation arguments, ordering, retry and catch-up behavior.
 
 Diagnostics apply to the selected scope: a slice-scoped render of a slice that uses none of these constructs can still render, and application triggers refuse only an application render. The in-memory specification executor reports unsupported constructs rather than skipping them. Reducer `from` is rendering-only: neither the executor nor Stage's Host executes reducer bodies. Generated read-model companion specifications for filtered reducers retain `STAGE-ESM-011`, because Chronicle's scenario replay cannot apply the filter; see [Event-source routing](../reference/event-source-routing.md#reducer-observer-filters). Keep these constructs in the model and use a renderer that explicitly supports them rather than deleting them to pass admission. A specification that supplies a generated property as input never compiles (`PLAY0485`), so Stage plans nothing for it.
 

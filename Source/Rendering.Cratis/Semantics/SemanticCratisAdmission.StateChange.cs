@@ -23,7 +23,15 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
-        var command = slice.Commands[0];
+        ValidateCommand(context, slice, slice.Commands[0], diagnostics);
+    }
+
+    static void ValidateCommand(
+        SemanticApplicationContext context,
+        SemanticSlice slice,
+        SemanticCommand command,
+        List<ArtifactRenderDiagnostic> diagnostics)
+    {
         if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name)))
         {
             diagnostics.Add(Error("STAGE-ESM-012", $"Command '{command.Name}' has property names that collide in generated C#.", command.Id));
@@ -49,7 +57,7 @@ internal static partial class SemanticCratisAdmission
             command.Properties.Any(_ => !TypeExists(context, _.Type)) ||
             !command.Validations.All(rule => SemanticValidationRendering.CanRender(rule, context)) ||
             command.Validations.Any(rule => command.Properties.Single(property => property.Id == rule.Property).Type is
-                { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } type &&
+            { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } type &&
                 context.Concepts[type.Target].Primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean) ||
             !command.Requirements.All(_ => SemanticRequirementRendering.CanRender(_, command, context)) ||
             (!command.Requirements.IsEmpty && command.Properties.Any(_ => HasValidatedConcept(context, _.Type, []))) ||

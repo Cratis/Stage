@@ -85,7 +85,7 @@ internal static class AuthoringMetadataInput
         QuerySyntax declaration => new(Normalize(declaration.Description), null),
         TypeSyntax declaration => new(Normalize(declaration.Description), null),
         SpecificationSyntax declaration => new(Normalize(declaration.Description), null),
-        ReactionSyntax declaration => new(Normalize(declaration.Description), null),
+        ReactionSyntax declaration => new(Normalize(declaration.Description), Normalize(declaration.Documentation)),
         ReactionTriggerSyntax declaration => new(Normalize(declaration.Description), null),
         _ => new(null, null)
     };
@@ -132,7 +132,8 @@ internal static class AuthoringMetadataInput
                     .Concat(slice.Commands.Select(declaration => declaration.Id))
                     .Concat(slice.ReadModels.Select(declaration => declaration.Id))
                     .Concat(slice.Queries.Select(declaration => declaration.Id))
-                    .Concat(slice.Specifications.Select(declaration => declaration.Id))));
+                    .Concat(slice.Specifications.Select(declaration => declaration.Id))
+                    .Concat((slice.Reactions.IsDefault ? [] : slice.Reactions).Select(declaration => declaration.Id))));
 
     static IEnumerable<SemanticSlice> Slices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(Slices));
 

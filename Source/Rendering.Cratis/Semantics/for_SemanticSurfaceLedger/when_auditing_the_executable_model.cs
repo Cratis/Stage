@@ -38,7 +38,8 @@ public class when_auditing_the_executable_model : Specification
             }).Select(entry => entry.Key).Order(StringComparer.Ordinal)];
     }
 
-    [Fact] void should_cover_every_member_without_stale_or_invalid_entries() =>
+    [Fact]
+    void should_cover_every_member_without_stale_or_invalid_entries() =>
         Assert.True(_count > 0 && _missing.Length == 0 && _stale.Length == 0 && _invalid.Length == 0,
             $"Audited {_count} semantic members. Missing ({_missing.Length}): {string.Join(", ", _missing)}; " +
             $"Stale ({_stale.Length}): {string.Join(", ", _stale)}; Invalid ({_invalid.Length}): {string.Join(", ", _invalid)}");
@@ -74,7 +75,6 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticApplication.Triggers")]
     [InlineData("SemanticReactionTrigger.RequirementId")]
     [InlineData("SemanticReactionTriggerKind.Unknown")]
-    [InlineData("SemanticReactionTriggerKind.Event")]
     [InlineData("SemanticReactionTriggerKind.ApplicationTrigger")]
     [InlineData("SemanticReactionTriggerKind.Interval")]
     [InlineData("SemanticReactionTriggerKind.Schedule")]
@@ -83,11 +83,20 @@ public class when_auditing_the_executable_model : Specification
     public void should_keep_every_trigger_kind_and_opaque_body_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
 
     [Theory]
-    [InlineData(false, false, "STAGE-ESM-024")]
-    [InlineData(true, false, "STAGE-ESM-024")]
-    [InlineData(false, true, "STAGE-ESM-024")]
-    [InlineData(true, true, "STAGE-ESM-037")]
-    public void should_classify_reaction_side_effect_combinations(bool produces, bool invokes, string code) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void should_render_unmixed_reaction_side_effects(bool produces, bool invokes) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
+
+    [Fact] void should_refuse_mixed_reaction_side_effects() => SemanticSurfaceLedger.ReactionSideEffectShapes[(true, true)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-037"));
+
+    [Theory]
+    [InlineData("SemanticSliceKind.Automation")]
+    [InlineData("SemanticReactionTriggerKind.Event")]
+    [InlineData("SemanticSlice.Reactions")]
+    [InlineData("SemanticReactionTrigger.Where")]
+    [InlineData("SemanticInvocation.Mappings")]
+    public void should_render_event_reactions(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     static bool IsDiagnosticCode(string code) => code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) &&
         code.Length == 13 && code.AsSpan(10).ToString().All(char.IsAsciiDigit);

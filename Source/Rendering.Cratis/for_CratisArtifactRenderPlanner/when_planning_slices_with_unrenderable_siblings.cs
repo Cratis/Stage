@@ -35,9 +35,9 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
             ("""
                 slice Automation Unsupported
                   reaction ReminderScheduler
-                    when ProjectRegistered
-                      projectId
+                    every 1 minutes
                       produces ReminderScheduled
+                        for "reminders"
                         scheduledAt = $context.occurred
                   event ReminderScheduled
                     scheduledAt DateTime

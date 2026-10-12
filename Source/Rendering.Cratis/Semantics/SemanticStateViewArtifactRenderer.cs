@@ -21,11 +21,21 @@ internal static class SemanticStateViewArtifactRenderer
     /// <returns>The generated slice source.</returns>
     public static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicationContext context)
     {
-        var types = new SemanticTypeSystem(context);
+        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        Configure(builder, located, context);
+        RenderMembers(builder, located, context);
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
+        return new(path, builder.ToString())
+        {
+            Sources = [located.Slice.Id, .. located.Slice.ReadModels.Select(_ => _.Id),
+                .. located.Slice.Projections.Select(_ => _.Id), .. located.Slice.Queries.Select(_ => _.Id)]
+        };
+    }
+
+    internal static void Configure(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
+    {
         var ownNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
-        var builder = new CSharpCodeBuilder()
-            .Namespace(ownNamespace)
-            .Using("Cratis.Arc.Authorization")
+        builder.Using("Cratis.Arc.Authorization")
             .Using("Cratis.Arc.Queries.ModelBound")
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
@@ -52,7 +62,11 @@ internal static class SemanticStateViewArtifactRenderer
         {
             builder.Using("Cratis.Chronicle.Keys");
         }
+    }
 
+    internal static void RenderMembers(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
+    {
+        var types = new SemanticTypeSystem(context);
         var firstModel = true;
         foreach (var readModel in located.Slice.ReadModels)
         {
@@ -85,13 +99,6 @@ internal static class SemanticStateViewArtifactRenderer
                 builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
             }
         }
-
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
-        return new(path, builder.ToString())
-        {
-            Sources = [located.Slice.Id, .. located.Slice.ReadModels.Select(_ => _.Id),
-                .. located.Slice.Projections.Select(_ => _.Id), .. located.Slice.Queries.Select(_ => _.Id)]
-        };
     }
 
     internal static IOrderedEnumerable<SemanticProperty> OrderedProperties(IEnumerable<SemanticProperty> properties) =>

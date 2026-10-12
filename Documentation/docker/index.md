@@ -131,7 +131,7 @@ Both engines also refuse public-event publication (`STAGE-ESM-032`), foreign eve
 captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`, naming the direction),
 reaction execution identity (`STAGE-ESM-034`) and reaction or reducer observer filters (`STAGE-ESM-035`).
 Per-production route overrides fail `STAGE-ESM-036` on the semantic engine; the legacy engine refuses their stream syntax with `STAGE-ESM-030`.
-The semantic engine also refuses reactions: clock, application, startup and shutdown triggers and opaque reaction bodies fail `STAGE-ESM-024` naming the trigger kind, a trigger that both produces and invokes fails `STAGE-ESM-037`, `$context.causedBy.*` fails `STAGE-ESM-013`, and event-triggered reactions fail `STAGE-ESM-024` until reaction rendering is admitted.
+The semantic engine also refuses reactions: clock, application, startup and shutdown triggers and opaque reaction bodies fail `STAGE-ESM-024` naming the trigger kind, a trigger that both produces and invokes fails `STAGE-ESM-037`, `$context.causedBy.*` fails `STAGE-ESM-013`, and event-triggered reactions fail `STAGE-ESM-024` because the Stage Host does not run reactions yet, even though the renderer admits event-triggered reactions.
 The semantic engine uses Screenplay 4.139.0 and admits exact ESM v1–v12 version pairs; unaudited
 language/semantic versions refuse the whole model with `STAGE-ESM-016` before registration or execution.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and

@@ -16,14 +16,18 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_comparing_validated_query_keys(when_comparing_validated_query_keys.context fixture) : IClassFixture<when_comparing_validated_query_keys.context>
 {
     [Fact] void should_accept_valid_and_out_of_rule_keys_in_the_reference() => Assert.All(fixture.ReferenceResults, passed => passed.ShouldBeTrue());
-    [Fact] void should_accept_valid_and_out_of_rule_keys_in_stage() => Assert.All(fixture.StageResults, outcome => outcome.ShouldEqual(SemanticSpecificationOutcome.Passed));
+    [Fact] void should_report_the_stage_executor_given_read_model_gap() => Assert.All(fixture.StageResults, result => result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported));
+    [Fact] void should_name_the_unsupported_stage_capability() => Assert.All(fixture.StageResults, result => result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.GivenReadModel));
+    [Fact] void should_explain_the_stage_seeding_limit() => Assert.All(fixture.StageResults, result => result.Unsupported!.Details.ShouldEqual("Given read-model state cannot be seeded into the per-run projection scenario."));
+    [Fact] void should_report_the_same_stage_limit_without_validation_rules() => Assert.Equal(fixture.StageResults.Select(result => (result.Outcome, result.Unsupported)), fixture.StageResultsWithoutValidation.Select(result => (result.Outcome, result.Unsupported)));
     [Fact] void should_match_lookup_and_collection_results_in_the_rendered_query_pipeline() => fixture.RenderedResults.ShouldContain("Passed!");
     [Fact] void should_build_the_rendered_application_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
 
     public class context : a_generated_application
     {
         public bool[] ReferenceResults { get; private set; } = [];
-        public SemanticSpecificationOutcome[] StageResults { get; private set; } = [];
+        public SemanticSpecificationRunRecord[] StageResults { get; private set; } = [];
+        public SemanticSpecificationRunRecord[] StageResultsWithoutValidation { get; private set; } = [];
         public string RenderedResults { get; private set; } = string.Empty;
         public string DebugWarnings { get; private set; } = string.Empty;
 
@@ -49,7 +53,8 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
             var original = slice.Specifications.Single();
             var expected = original.ThenQueries.Single();
             var references = new List<bool>();
-            var stages = new List<SemanticSpecificationOutcome>();
+            var stages = new List<SemanticSpecificationRunRecord>();
+            var stagesWithoutValidation = new List<SemanticSpecificationRunRecord>();
             foreach (var query in slice.Queries)
             {
                 foreach (var key in new[] { "invoice-one", "x" })
@@ -65,12 +70,23 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
                     var candidate = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
                     var plan = SemanticExecutionPlan.Compile(candidate).Plan!;
                     references.Add(new SemanticSpecificationRunner().Run(plan, specification.Id).Passed);
-                    stages.Add((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single().Outcome);
+
+                    // Stage cannot seed Given read-model state into its per-run projection scenario,
+                    // regardless of concept validation rules; retain the typed refusal for this leg.
+                    stages.Add((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single());
+                    var withoutValidation = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application with
+                    {
+                        Concepts = [.. application.Concepts.Select(concept => concept with { Validations = [] })]
+                    });
+                    var planWithoutValidation = SemanticExecutionPlan.Compile(withoutValidation).Plan!;
+                    stagesWithoutValidation.Add((await new SemanticSpecificationExecutor().Run(planWithoutValidation, new([specification.Id]), new())).Results.Single());
                 }
             }
 
             ReferenceResults = [.. references];
             StageResults = [.. stages];
+            StageResultsWithoutValidation = [.. stagesWithoutValidation];
+
             // Empty query expectations are outside companion-spec admission today. Exercise those
             // vectors through the real generated Arc pipeline without widening that admission here.
             AddGeneratedSpecification("QueryKeys.cs", a_validated_query_key_model.Probe + "\n" + """

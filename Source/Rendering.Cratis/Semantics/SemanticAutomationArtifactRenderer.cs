@@ -14,13 +14,14 @@ internal static class SemanticAutomationArtifactRenderer
     internal static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicationContext context)
     {
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var hasReadSurface = SemanticReadSurface.IsDeclaredBy(located.Slice);
         SemanticStateChangeArtifactRenderer.Configure(builder, located, context);
-        if (!located.Slice.ReadModels.IsEmpty)
+        if (hasReadSurface)
         {
             SemanticStateViewArtifactRenderer.Configure(builder, located, context);
         }
         SemanticStateChangeArtifactRenderer.RenderMembers(builder, located, context);
-        if (!located.Slice.ReadModels.IsEmpty)
+        if (hasReadSurface)
         {
             builder.BlankLine();
             SemanticStateViewArtifactRenderer.RenderMembers(builder, located, context);

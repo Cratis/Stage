@@ -18,7 +18,7 @@ internal static partial class SemanticCratisAdmission
         {
             ValidateCommand(context, slice, command, diagnostics);
         }
-        if (HasAutomationReadSurface(slice))
+        if (SemanticReadSurface.IsDeclaredBy(slice))
         {
             ValidateStateView(context, slice, diagnostics);
         }
@@ -31,8 +31,6 @@ internal static partial class SemanticCratisAdmission
             diagnostics.Add(Error("STAGE-ESM-039", $"Automation slice '{slice.Name}' declares event properties the Cratis target cannot preserve.", slice.Id));
         }
     }
-
-    static bool HasAutomationReadSurface(SemanticSlice slice) => !slice.ReadModels.IsEmpty || !slice.Reducers.IsEmpty;
 
     static void ValidateReaction(SemanticApplicationContext context, SemanticSlice slice, SemanticReaction reaction, List<ArtifactRenderDiagnostic> diagnostics)
     {

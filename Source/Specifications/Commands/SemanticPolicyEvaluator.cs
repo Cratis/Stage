@@ -9,12 +9,19 @@ namespace Cratis.Stage.Specifications.Commands;
 
 internal static class SemanticPolicyEvaluator
 {
-    internal static ClaimsPrincipal Principal(SemanticCaller caller)
+    internal static ClaimsPrincipal Principal(SemanticCaller caller, bool system = false)
     {
         const string roleClaim = ClaimTypes.Role;
         var claims = caller.Roles.Select(role => new Claim(roleClaim, role))
             .Concat(caller.Claims.Select(claim => new Claim(claim.Type, claim.Value)));
-        return new(new ClaimsIdentity(claims, caller.Authenticated ? "stage" : null, ClaimTypes.Name, roleClaim));
+        var authentication = (caller.Authenticated, system) switch
+        {
+            (false, _) => null,
+            (true, true) => "stage-system",
+            _ => "stage"
+        };
+
+        return new(new ClaimsIdentity(claims, authentication, ClaimTypes.Name, roleClaim));
     }
 
     internal static bool Allows(SemanticAuthorization? authorization, SemanticExecutionPlan plan, SemanticCaller? caller, ClaimsPrincipal principal, SemanticCommand command, SemanticSpecification specification)
@@ -59,7 +66,7 @@ internal static class SemanticPolicyEvaluator
     {
         SemanticAuthenticatedCondition => principal.Identity?.IsAuthenticated == true,
         SemanticRoleCondition role => principal.IsInRole(role.Role),
-        SemanticClaimCondition claim => ClaimMatches(claim, plan, caller, artifact, subject, properties),
+        SemanticClaimCondition claim => principal.Identity?.AuthenticationType == "stage-system" ? null : ClaimMatches(claim, plan, caller, artifact, subject, properties),
         SemanticNotPolicyCondition not => Not(Condition(not.Operand, plan, caller, principal, artifact, subject, properties)),
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => And(Condition(logical.Left, plan, caller, principal, artifact, subject, properties), Condition(logical.Right, plan, caller, principal, artifact, subject, properties)),
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => Or(Condition(logical.Left, plan, caller, principal, artifact, subject, properties), Condition(logical.Right, plan, caller, principal, artifact, subject, properties)),

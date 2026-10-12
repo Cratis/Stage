@@ -10,7 +10,7 @@ namespace Cratis.Stage.Specifications.Comparison;
 internal static class SemanticExpectationComparer
 {
     // Mirrors SemanticSpecificationRunner.Compare/CompareFacts for the admitted fact/error subset.
-    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, IReadOnlyList<SemanticValue> destinations, string? rejection, string? rejectionCode = null, bool denied = false, SemanticExecutionPlan? plan = null)
+    internal static IReadOnlyList<string> Compare(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, IReadOnlyList<SemanticValue> destinations, string? rejection, string? rejectionCode = null, bool denied = false, SemanticExecutionPlan? plan = null, int? actionFacts = null)
     {
         var failures = new List<string>();
         if (expected.ThenDenied)
@@ -47,16 +47,13 @@ internal static class SemanticExpectationComparer
 
         if (expected.WhenAppended is null || expected.ThenEvents.Length > 0)
         {
-            // Screenplay v4.114.0 SemanticScenario.Perform counts the direct append as one action fact.
-            // Stage admits no reactions, so no facts follow that action in the current executable subset.
-            var actionFacts = -1;
-            if (plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6)) actionFacts = expected.WhenAppended is null ? actual.Count : 1;
+            // A direct append's then-events describe only its reaction effects; commands include action facts.
             var following = actual;
-            if (actionFacts >= 0 && expected.WhenAppended is not null) following = [.. actual.Skip(actionFacts)];
-            CompareFacts(expected, following, failures, plan);
+            if (expected.WhenAppended is not null && plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6)) following = [.. actual.Skip(actionFacts ?? 1)];
+            CompareFacts(expected, following, failures, plan!);
         }
 
-        CompareCommandDestination(expected, destinations, plan, failures);
+        CompareCommandDestination(expected, actionFacts is { } count ? [.. destinations.Take(count)] : destinations, plan, failures);
 
         return failures;
     }

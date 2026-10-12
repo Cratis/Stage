@@ -22,10 +22,11 @@ namespace Cratis.Stage.Specifications.Commands;
 /// <param name="runtimeTypes">The runtime event contracts.</param>
 /// <param name="eventLog">The fresh Chronicle in-memory event log.</param>
 /// <param name="plan">The model's execution plan.</param>
-internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticExecutionPlan plan)
+/// <param name="parent">The scenario state shared by an invoked command.</param>
+internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticExecutionPlan plan, SemanticRunContext? parent = null)
 {
-    readonly List<SemanticSpecificationEvent> _facts = [];
-    readonly List<SemanticValue> _destinations = [];
+    readonly List<SemanticSpecificationEvent> _facts = parent?._facts ?? [];
+    readonly List<SemanticValue> _destinations = parent?._destinations ?? [];
     SemanticFixtureRoute? _commandRoute;
 
     internal Type CommandType => commandType;
@@ -74,6 +75,9 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         var instance = runtimeTypes.Materialize(fact);
         var source = destination switch
         {
+            // Chronicle requires a storage key even when the semantic direct append has no identity.
+            // This private log key never becomes the fact's modeled destination or typed context.
+            SemanticNullValue => "stage:semantic-null",
             SemanticTextValue text => text.Value,
             SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
             SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),

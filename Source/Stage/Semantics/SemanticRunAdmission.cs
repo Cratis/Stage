@@ -39,7 +39,7 @@ public static class SemanticRunAdmission
         var events = slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Id);
 
         return SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
-            .Concat(slices.SelectMany(slice => SemanticVersionFeatures.InSlice(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
+            .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
             .Distinct().Select(Feature);
     }
 
@@ -214,6 +214,15 @@ public static class SemanticRunAdmission
         }
         return null;
     }
+
+    // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
+    // Keep non-event triggers, opaque bodies and unsupported context mappings refused. Specification runs
+    // deliberately retain the unfiltered renderer feature set until their independent reaction executor exists.
+    static IEnumerable<SemanticVersionFeature> LiveSliceFeatures(SemanticSlice slice) =>
+        SemanticVersionFeatures.InSlice(slice)
+            .Except(SemanticVersionFeatures.AutomationSlices(slice))
+            .Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
+            .Where(feature => feature.Kind != "reaction" || feature.Code is not ("STAGE-ESM-034" or "STAGE-ESM-035" or "STAGE-ESM-037"));
 
     static SemanticAdmissionFeature Feature(SemanticVersionFeature feature) => new(feature.Artifact.ToString(), feature.Kind, feature.Capability.ToString(), $"{feature.Code}: {feature.Message}");
 

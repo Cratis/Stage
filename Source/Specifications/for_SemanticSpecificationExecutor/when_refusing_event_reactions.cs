@@ -33,6 +33,6 @@ public class when_refusing_event_reactions : Specification
 
     [Fact] void should_run_no_reaction_scenarios() => _report.Results.All(result => result.Trace is null).ShouldBeTrue();
     [Fact] void should_refuse_every_specification() => _report.Results.Select(result => result.Outcome).Distinct().ShouldContainOnly([SemanticSpecificationOutcome.Unsupported]);
-    [Fact] void should_name_reaction_admission_before_the_automation_slice() => _report.Results.Select(result => result.Unsupported!.Details).Distinct().ShouldContainOnly(["STAGE-ESM-024: Reaction 'ReminderScheduler' is an ESM v6 automation construct; the Stage Host and specification executor do not run reactions yet."]);
+    [Fact] void should_name_reaction_admission_before_the_automation_slice() => _report.Results.Select(result => result.Unsupported!.Details).Distinct().ShouldContainOnly(["STAGE-ESM-024: Reaction 'ReminderScheduler' is an ESM v6 automation construct; the specification executor does not run reactions yet."]);
     [Fact] void should_report_the_reaction_capability() => _report.Results.Select(result => result.Unsupported!.Capability).Distinct().ShouldContainOnly([StageExecutionCapability.Reaction]);
 }

@@ -69,17 +69,13 @@ internal static class SemanticWorldRebuilder
             EnsureExactStorageType(property.Name, property.Type, plan.Model.Application);
         }
 
-        var producers = plan.Commands.Values.SelectMany(command => command.Produces
-            .Where(produced => produced.EventContract == contract.Id)
-            .Select(produced => (Command: command, Produced: produced))).ToArray();
+        var producers = Productions(plan, contract.Id).ToArray();
         var destinationType = route is null ? null : plan.Model.Application.EventSources
             .Single(source => source.SourceKind == route.SourceKind).IdentifierType;
         if (destinationType is null)
         {
             // Screenplay falls back across all producers, not just those on the stored route.
-            var destinations = producers.Select(producer => producer.Produced.Destination is SemanticResolvedExpression resolved
-                ? producer.Command.Properties.Single(property => property.Id == resolved.Target).Type
-                : producer.Command.Destination?.Type).Distinct().ToArray();
+            var destinations = DestinationTypes(plan, contract.Id, []).Distinct().ToArray();
             if (destinations is not [{ IsOptional: false, IsCollection: false }])
             {
                 throw new SemanticWorldRebuildRefused($"Event '{contract.Name}' has no unambiguous typed destination.");
@@ -95,12 +91,12 @@ internal static class SemanticWorldRebuilder
 
         using var content = JsonDocument.Parse(stored.Content);
         var values = Values(content.RootElement, contract.Properties, plan.Model.Application);
-        if (!producers.Any(producer => RouteMatches(plan, producer.Command, route)))
+        if (!producers.Any(producer => RouteMatches(plan, producer.Route, route)))
         {
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has a route inconsistent with every modeled production of '{contract.Name}'.");
         }
 
-        if (!producers.Any(producer => RouteMatches(plan, producer.Command, route) && ProductionMatches(producer.Produced, contract, values, context, occurred)))
+        if (!producers.Any(producer => RouteMatches(plan, producer.Route, route) && ProductionMatches(producer.Produced, contract, values, context, occurred)))
         {
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has tags or occurrence values inconsistent with every modeled production of '{contract.Name}'.");
         }
@@ -109,6 +105,7 @@ internal static class SemanticWorldRebuilder
         {
             Context = plan.Model.SemanticVersion != SemanticVersion.V1 ? new(new(destinationType, destination)) : null,
             Tags = [.. context.Tags],
+            Occurred = occurred,
             Route = route
         };
     }
@@ -133,14 +130,46 @@ internal static class SemanticWorldRebuilder
             !keyed && context.EventStreamId == EventStreamId.Default ? null : context.EventStreamId);
     }
 
-    static bool RouteMatches(SemanticExecutionPlan plan, SemanticCommand command, SemanticEventRoute? route)
+    // Screenplay 4.141 settlement creates unrouted reaction productions, even from a routed cause.
+    static IEnumerable<(SemanticProducedEvent Produced, SemanticCommandRoute? Route)> Productions(SemanticExecutionPlan plan, SemanticId eventContract) =>
+        plan.Commands.Values.SelectMany(command => command.Produces
+            .Where(produced => produced.EventContract == eventContract)
+            .Select(produced => (produced, produced.Route ?? command.Route)))
+            .Concat(plan.Reactions.SelectMany(reaction => reaction.Triggers).SelectMany(trigger => trigger.Produces)
+                .Where(produced => produced.EventContract == eventContract)
+                .Select(produced => (produced, (SemanticCommandRoute?)null)));
+
+    static IEnumerable<SemanticTypeReference?> DestinationTypes(SemanticExecutionPlan plan, SemanticId eventContract, ImmutableHashSet<SemanticId> visited)
+    {
+        if (visited.Contains(eventContract))
+        {
+            return [];
+        }
+
+        var path = visited.Add(eventContract);
+        var commands = plan.Commands.Values.SelectMany(command => command.Produces
+            .Where(produced => produced.EventContract == eventContract)
+            .Select(produced => produced.Destination is SemanticResolvedExpression resolved
+                ? command.Properties.Single(property => property.Id == resolved.Target).Type
+                : command.Destination?.Type ?? command.Properties.SingleOrDefault(property => property.IsIdentifier)?.Type));
+        var reactions = plan.Reactions.SelectMany(reaction => reaction.Triggers)
+            .Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event)
+            .SelectMany(trigger => trigger.Produces.Where(produced => produced.EventContract == eventContract)
+                .SelectMany(produced => produced.DestinationType is { } type
+                    ? [type]
+                    : DestinationTypes(plan, trigger.Source, path)));
+
+        return commands.Concat(reactions);
+    }
+
+    static bool RouteMatches(SemanticExecutionPlan plan, SemanticCommandRoute? productionRoute, SemanticEventRoute? route)
     {
         if (route is null)
         {
-            return command.Route is null;
+            return productionRoute is null;
         }
 
-        if (command.Route is not { } declaration)
+        if (productionRoute is not { } declaration)
         {
             return false;
         }

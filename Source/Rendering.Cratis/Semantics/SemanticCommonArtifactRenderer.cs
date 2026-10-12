@@ -55,9 +55,9 @@ internal static class SemanticCommonArtifactRenderer
     static void RenderEnum(CSharpCodeBuilder builder, SemanticConcept concept, string name)
     {
         builder.Summary($"Represents the possible values of {name}.").OpenBlock($"public enum {name}");
-        foreach (var value in concept.Values)
+        foreach (var member in SemanticEnumMembers.Declarations(concept))
         {
-            builder.Line($"{Identifiers.ToPascalCase(value)},");
+            builder.Line($"{member},");
         }
 
         builder.EndBlock();

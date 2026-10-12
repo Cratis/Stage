@@ -260,6 +260,13 @@ internal static class SemanticWorldRebuilder
             property.Id, Value(json.GetProperty(property.Name), property.Type, application)))];
     }
 
+    static int EnumerationIndex(SemanticConcept concept, int number)
+    {
+        if (concept.Numbers is { } numbers) return numbers.IndexOf(number);
+
+        return number >= 0 && number < concept.Values.Length ? number : -1;
+    }
+
     static SemanticValue Text(string value, SemanticTypeReference type, SemanticApplication application) => Value(JsonSerializer.SerializeToElement(value), type, application);
 
     static SemanticValue Value(JsonElement json, SemanticTypeReference type, SemanticApplication application)
@@ -287,7 +294,7 @@ internal static class SemanticWorldRebuilder
         {
             return json.ValueKind switch
             {
-                JsonValueKind.Number when json.TryGetInt32(out var number) && number >= 0 && number < allowed.Length => SemanticValue.Text(allowed[number]),
+                JsonValueKind.Number when json.TryGetInt32(out var number) && EnumerationIndex(concept, number) is var index && index >= 0 => SemanticValue.Text(allowed[index]),
                 JsonValueKind.String when allowed.Contains(json.GetString()!, StringComparer.Ordinal) => SemanticValue.Text(json.GetString()!),
                 JsonValueKind.String => throw new SemanticWorldRebuildRefused("Chronicle content contains a value outside its concept enumeration."),
                 _ => throw new SemanticWorldRebuildRefused("Chronicle content contains a value incompatible with its semantic type.")

@@ -199,7 +199,7 @@ internal static partial class PureTransitionAdmission
         {
             if (!concept.Values.IsEmpty)
             {
-                definitions.Add($"namespace {context.CommonNamespace} {{ public enum {Identifiers.ToPascalCase(concept.Name)} {{ {string.Join(", ", concept.Values.Select(Identifiers.ToPascalCase))} }} }}");
+                definitions.Add($"namespace {context.CommonNamespace} {{ public enum {Identifiers.ToPascalCase(concept.Name)} {{ {string.Join(", ", SemanticEnumMembers.Declarations(concept))} }} }}");
                 continue;
             }
 
@@ -706,7 +706,7 @@ internal static partial class PureTransitionAdmission
 
     static bool HasOrdinalComparison(IInvocationOperation call) =>
         call.Arguments.SingleOrDefault(argument => argument.Parameter?.Type.ToDisplayString() == "System.StringComparison") is
-            { Value: IFieldReferenceOperation field } && field.Field.Name == "Ordinal";
+        { Value: IFieldReferenceOperation field } && field.Field.Name == "Ordinal";
 
     static bool NameIs(string name, params string[] names) => names.Contains(name, StringComparer.Ordinal);
 

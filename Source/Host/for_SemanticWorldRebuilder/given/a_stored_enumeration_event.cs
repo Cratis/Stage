@@ -18,7 +18,7 @@ public class a_stored_enumeration_event : Specification
     protected AppendedEventResponse _stored = null!;
     protected object? _converted;
 
-    protected void Prepare(string jsonValue)
+    protected void Prepare(string jsonValue, bool numbered = false)
     {
         const string source = """
             concept InvoiceId : String
@@ -38,13 +38,16 @@ public class a_stored_enumeration_event : Specification
                     status Status
             """;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Invoices"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("enumeration-event"), "enumeration-event", "Invoices.play", source);
+        var declarations = numbered ? source.Replace("  draft\n  issued", "  draft = -1\n  issued = 90", StringComparison.Ordinal) : source;
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("enumeration-event"), "enumeration-event", "Invoices.play", declarations);
         var compiled = new SemanticModelCompiler().Compile("Invoices", SemanticDocumentSet.Create([document], catalog));
         _plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
         var contract = _plan.Events.Values.Single();
 
         // The rendered application's Chronicle schema, not the Host's current string schema (Stage#310).
-        var schema = JsonSchema.FromJson("""{"type":"object","properties":{"status":{"type":"integer","enum":[0,1],"x-enumNames":["Draft","Issued"]}}}""");
+        var schema = JsonSchema.FromJson(numbered
+            ? """{"type":"object","properties":{"status":{"type":"integer","enum":[-1,90],"x-enumNames":["Draft","Issued"]}}}"""
+            : """{"type":"object","properties":{"status":{"type":"integer","enum":[0,1],"x-enumNames":["Draft","Issued"]}}}""");
         var converter = new ExpandoObjectConverter(new TypeFormats());
         var content = converter.ToExpandoObject(JsonNode.Parse($$"""{"status":{{jsonValue}}}""")!.AsObject(), schema);
         _converted = ((IDictionary<string, object?>)content)["status"];

@@ -127,6 +127,7 @@ if (warmMode)
     return;
 }
 
+StagePackageEndpoints.Map(app);
 SemanticReadModelBrowser.MapEventModel(app);
 SemanticHost.MapReadModelBrowserPage(app);
 

@@ -4,6 +4,21 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Cratis Stage</title>
+        <!--
+          What an approved custom package imports by bare name resolves to the Stage's own copy of React, so a
+          package's hooks and contexts are the Stage's (see stageSharedModules.ts). It must precede every module.
+        -->
+        <script type="importmap">
+            {
+                "imports": {
+                    "react": "./stage-shared/react.js",
+                    "react/jsx-runtime": "./stage-shared/react--jsx-runtime.js",
+                    "react/jsx-dev-runtime": "./stage-shared/react--jsx-dev-runtime.js",
+                    "react-dom": "./stage-shared/react-dom.js",
+                    "react-dom/client": "./stage-shared/react-dom--client.js"
+                }
+            }
+        </script>
     </head>
     <body>
         <div id="root"></div>

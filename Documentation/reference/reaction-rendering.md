@@ -3,17 +3,21 @@ title: Event reaction rendering
 description: How Stage renders event-triggered Automation slices, their side effects and their remaining limits.
 ---
 
-Stage renders event-triggered reactions in Automation slices as Chronicle reactors. The semantic Stage Host also runs event reactions, but the independent in-memory specification executor still refuses them.
+Stage renders event-triggered reactions in Automation slices as Chronicle reactors. The semantic Stage Host and the independent in-memory specification executor also run event reactions.
 
 | Execution path | Event reaction behavior |
 | --- | --- |
 | Semantic Stage Host | Settles productions, invocations and cascades with the command; appends all facts in one tail-guarded batch or refuses the entire command |
 | Rendered Chronicle reactors | Independent, eventually consistent observers; a failed partition can retry after the initiating command has committed |
-| In-memory specification executor | Refuses event reactions with `STAGE-ESM-024` |
+| In-memory specification executor | Settles event reactions after commands and direct appends with its own deterministic loop; stops at the first rejection or unsupported capability |
 
 The Host applies `where`, `runs as` and `from` through Screenplay's reference settlement. Clock,
 application, startup and shutdown triggers and opaque bodies remain unsupported. Host execution does not
-relax renderer admission: the diagnostics below describe generated reactors, not the live semantic Host.
+relax renderer admission: the diagnostics below describe generated reactors, not the live semantic Host
+or the specification executor. The executor also applies `where`, `runs as`, `from` and mixed effects;
+invocations use declared system roles or no caller, never the specification's `given caller`. System
+claims remain unknown. It enforces append constraints and a limit of 1000 new facts, excluding given
+history. Invoked generated commands remain unsupported without deterministic fixtures.
 
 ## Model to C# mapping
 
@@ -52,6 +56,12 @@ A denied, rejected or throwing invoked command fails the live reactor partition 
 A newly registered reactor catches up from the existing event log. `[OnceOnly]` prevents replay; it does **not** deduplicate ordinary deliveries or retries after failure. Keep commands and external effects safe for repeated delivery, and inspect failed partitions during operation.
 
 ## Specifications and verification
+
+The in-memory executor runs event-reaction specifications without building a generated application.
+Given events establish history without firing reactions. Direct-append then-events describe only the
+reaction effects; command then-events include the initiating command's facts and all cascading effects.
+Clock fixtures and clock/trigger/capture actions remain unsupported; an `$context.occurred` production
+without a scenario clock is a contract rejection.
 
 Stage does not yet render `when append` reaction specifications. It also refuses a command specification when that command produces an event subscribed to by any event reaction in the application: the generated `CommandScenario` does not settle reactions, whereas the reference does. Both refusals use `STAGE-ESM-011`.
 

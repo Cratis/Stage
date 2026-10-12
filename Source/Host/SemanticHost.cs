@@ -66,6 +66,7 @@ internal static class SemanticHost
         app.UseStaticFiles(StageStaticFileOptions.Create());
         app.UseRouting();
         app.UseCratisChronicle();
+        StagePackageEndpoints.Map(app);
         app.MapPost("/stage/load", () => Results.Conflict());
         app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
         MapReadModelBrowserPage(app);

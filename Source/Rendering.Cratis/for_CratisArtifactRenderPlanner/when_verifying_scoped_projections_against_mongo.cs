@@ -338,7 +338,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         var reference = (SemanticExecutionPlan)constructor.Invoke([
             model, plan.Commands, plan.Events, plan.Projections, plan.ReadModels, plan.Queries,
             plan.Specifications.SetItem(specification.Id, specification), plan.Constraints,
-            plan.Reactions, plan.Captures
+            plan.Reactions, plan.Captures, UnadmittedArtifacts(plan)
         ]);
         var accepted = Assert.IsType<SemanticAccepted>(new SemanticSpecificationRunner().Run(reference, specification.Id).Execution);
         var readModel = modifiedView.ReadModels.Single(candidate => candidate.Name == "ProjectSummary");
@@ -352,6 +352,10 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         Assert.Empty(Assert.IsType<SemanticArrayValue>(firstValues["notes"]).Values);
         Assert.Empty(Assert.IsType<SemanticArrayValue>(secondValues["notes"]).Values);
     }
+
+    // The execution plan keeps what it did not admit internally; a reference plan assembled for a probe carries the same.
+    static object? UnadmittedArtifacts(SemanticExecutionPlan plan) =>
+        typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(plan);
 
     sealed class UnknownReferenceProperty(string name) : Exception($"Unknown reference property '{name}'.");
 }

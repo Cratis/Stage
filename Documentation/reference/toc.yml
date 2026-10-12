@@ -8,8 +8,12 @@
   href: compliance-rendering.md
 - name: Default generated Scene
   href: default-scene-composition.md
+- name: Custom runtime packages
+  href: custom-packages.md
 - name: How the Stage renders a model
   href: stage-rendering.md
+- name: Generated values and command responses
+  href: generated-values-rendering.md
 - name: Event-source routing
   href: event-source-routing.md
 - name: Plan artifacts from Screenplay sources

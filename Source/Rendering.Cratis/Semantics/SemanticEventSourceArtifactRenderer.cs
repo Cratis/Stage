@@ -2,27 +2,20 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
-using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Renders the named source definitions consumed by routed commands.
+/// Renders the named source definitions consumed by routed commands and filtered reducers.
 /// </summary>
 internal static class SemanticEventSourceArtifactRenderer
 {
     internal static string ClassName(SemanticEventSource source) => GeneratedTypeNames.EventSourceName(source.Name);
 
-    internal static IReadOnlyList<SemanticEventSource> Selected(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
-    {
-        if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application) return context.Application.EventSources;
-        var references = slices.SelectMany(slice => slice.Slice.Commands).Select(command => command.Route?.Source)
-            .Concat(slices.SelectMany(slice => slice.Slice.Specifications).SelectMany(specification =>
-                specification.GivenEvents.Concat(specification.ThenEvents).Select(occurrence => occurrence.Route?.Source))).ToHashSet();
-        return [.. context.Application.EventSources.Where(source => references.Contains(source.Id))];
-    }
+    internal static IReadOnlyList<SemanticEventSource> Selected(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        SemanticSharedReferences.EventSources(context, slices);
 
     internal static string Namespace(SemanticApplicationContext context) => string.Join('.', new[] { context.RootNamespace }.Concat(context.Domain).Append("EventSources"));
 

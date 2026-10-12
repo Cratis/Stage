@@ -6,6 +6,8 @@
 # container, runs the browser scenarios against it and removes everything it started.
 #
 # usage: run.sh <rendered application directory> <result json path>
+#   STAGE_GENERATED_REACT_SCENARIO names another scenario script to run instead of screen-composition.cjs - for example one
+#   that asserts a custom package renders. It receives the same environment and may require('playwright') from this folder.
 #   The application must already be built: `dotnet build Workspaces.csproj -c Release` and `npm run build`.
 # exit:  0 every scenario passed, 1 a scenario found a defect, 2 the scenarios could not run.
 set -uo pipefail
@@ -13,7 +15,7 @@ set -uo pipefail
 application=${1:?usage: run.sh <application directory> <result json path>}
 result=${2:?usage: run.sh <application directory> <result json path>}
 harness=$(cd "$(dirname "$0")" && pwd)
-chronicle_image=${STAGE_GENERATED_REACT_CHRONICLE_IMAGE:-cratis/chronicle:19.32.0-development}
+chronicle_image=${STAGE_GENERATED_REACT_CHRONICLE_IMAGE:-cratis/chronicle:19.45.0-development}
 container="stage-generated-react-$$"
 port=${STAGE_GENERATED_REACT_PORT:-19371}
 host_pid=""
@@ -57,8 +59,12 @@ for _ in $(seq 1 90); do
 done
 [ "$ready" = 1 ] || could_not_run "the generated host did not become healthy; see $result.host.log"
 
+scenario=${STAGE_GENERATED_REACT_SCENARIO:-$harness/screen-composition.cjs}
+[ -f "$scenario" ] || could_not_run "the scenario $scenario does not exist"
+
 STAGE_GENERATED_REACT_URL="http://127.0.0.1:$port" \
 STAGE_GENERATED_REACT_APPLICATION="$application" \
 STAGE_GENERATED_REACT_RESULT="$result" \
-    node "$harness/screen-composition.cjs"
+NODE_PATH="$harness/node_modules${NODE_PATH:+:$NODE_PATH}" \
+    node "$scenario"
 exit $?

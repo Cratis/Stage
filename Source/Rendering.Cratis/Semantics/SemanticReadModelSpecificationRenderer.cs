@@ -45,7 +45,7 @@ internal static class SemanticReadModelSpecificationRenderer
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
 
         context.Docs(specification.Id).Render(builder)
-            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification")
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .BlankLine()
             .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
@@ -64,7 +64,7 @@ internal static class SemanticReadModelSpecificationRenderer
             needsCommon |= SemanticTypeSystem.ValueNeedsCommon(givenSource.Value, givenSource.Type) ||
                 givenEvent.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}).Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
         }
 
         foreach (var (produced, expectedEvent) in replay)
@@ -82,7 +82,7 @@ internal static class SemanticReadModelSpecificationRenderer
                     expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}).Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
         builder.EndBlock()
@@ -120,7 +120,7 @@ internal static class SemanticReadModelSpecificationRenderer
             }
         }
 
-        builder.EndBlock();
+        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         if (needsCommon)
         {
             builder.Using(context.CommonNamespace);

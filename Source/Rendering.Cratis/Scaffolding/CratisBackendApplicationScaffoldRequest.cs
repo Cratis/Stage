@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Scene.Engine.Packages;
+
 namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 
 /// <summary>
@@ -23,12 +25,14 @@ public sealed class CratisBackendApplicationScaffoldRequest
         string applicationName,
         string projectName,
         string rootNamespace,
-        CratisBackendApplicationScaffoldProfile profile)
+        CratisBackendApplicationScaffoldProfile profile,
+        ApprovedPackageSet approvedPackages)
     {
         ApplicationName = applicationName;
         ProjectName = projectName;
         RootNamespace = rootNamespace;
         Profile = profile;
+        ApprovedPackages = approvedPackages;
     }
 
     /// <summary>
@@ -50,6 +54,12 @@ public sealed class CratisBackendApplicationScaffoldRequest
     /// Gets the exact scaffold profile.
     /// </summary>
     public CratisBackendApplicationScaffoldProfile Profile { get; }
+
+    /// <summary>
+    /// Gets the custom runtime packages the application's frontend is composed with, on top of the packages the
+    /// scaffold ships. Empty unless <see cref="WithApprovedPackages"/> supplied some.
+    /// </summary>
+    public ApprovedPackageSet ApprovedPackages { get; }
 
     /// <summary>
     /// Creates a request using one name for the application, project, and root namespace.
@@ -82,7 +92,33 @@ public sealed class CratisBackendApplicationScaffoldRequest
         ValidateName(projectName, "project");
         ValidateName(rootNamespace, "root namespace");
 
-        return new(applicationName, projectName, rootNamespace, profile ?? CratisBackendApplicationScaffoldProfile.Current);
+        return new(applicationName, projectName, rootNamespace, profile ?? CratisBackendApplicationScaffoldProfile.Current, ApprovedPackageSet.Empty);
+    }
+
+    /// <summary>
+    /// Creates the same request with the custom runtime packages its frontend is composed with.
+    /// </summary>
+    /// <param name="approvedPackages">The approved package set; validated against the packages the scaffold ships.</param>
+    /// <returns>The request carrying the approved packages.</returns>
+    /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when a package reuses the name or npm package of one the scaffold ships.</exception>
+    public CratisBackendApplicationScaffoldRequest WithApprovedPackages(ApprovedPackageSet approvedPackages)
+    {
+        ArgumentNullException.ThrowIfNull(approvedPackages);
+        var shippedNpm = CratisFrontendApplicationScaffold.ShippedNpmPackages(Profile.FrontendPackageSet);
+        foreach (var package in approvedPackages.Packages)
+        {
+            if (CratisRendering.ShippedPackageNames.Contains(package.Manifest.Name, StringComparer.Ordinal))
+            {
+                throw new InvalidCratisBackendApplicationScaffold($"The approved package '{package.Manifest.Name}' reuses the name of a package the scaffold ships.");
+            }
+
+            if (shippedNpm.Contains(package.Module.Npm, StringComparer.Ordinal))
+            {
+                throw new InvalidCratisBackendApplicationScaffold($"The approved package '{package.Manifest.Name}' is imported from '{package.Module.Npm}', which the scaffold already installs.");
+            }
+        }
+
+        return new(ApplicationName, ProjectName, RootNamespace, Profile, approvedPackages);
     }
 
     static void ValidateName(string value, string role)

@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.131.0; ESM v1–v10 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.137.0; ESM v1–v11 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -106,7 +106,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values");
         Add(entries, "SemanticCompositeType", rendered, "Id Name Properties");
         Add(entries, "SemanticProperty", rendered, "Id IsIdentifier Name Type");
-        Add(entries, "SemanticProperty", rejected("STAGE-ESM-028"), "IsGenerated");
+        Add(entries, "SemanticProperty", rendered, "IsGenerated");
         Add(entries, "SemanticTypeReference", rendered, "IsCollection IsOptional Kind Primitive Target");
         Add(entries, "SemanticTypeReferenceKind", rendered, "Primitive Concept CompositeType");
         Add(entries, "SemanticTypeReferenceKind", rejected("STAGE-ESM-003"), "Unknown");
@@ -340,11 +340,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecificationCapture", v6, "Capture Record");
         Add(entries, "SemanticSpecificationTrigger", v6, "Kind Trigger Values");
 
-        // Screenplay 4.68 added ESM v7 generated command values and command responses (Stage#175). Each refuses
-        // the model before any artifact is planned; nothing is dropped from the request, proxy or specification.
-        var generated = rejected("STAGE-ESM-028");
+        // ESM v7 generated UUID concepts and responses render through Arc's generated-value and response contracts.
+        // Admission still refuses non-UUID generation and combinations the target cannot preserve.
+        var generated = rendered;
         Add(entries, "SemanticSpecificationCommand", generated, "GeneratedValues");
-        var responses = rejected("STAGE-ESM-029");
+        var responses = rendered;
         Add(entries, "SemanticCommand", responses, "Response");
         Add(entries, "SemanticCommandResponse", responses, "$type");
         Add(entries, "SemanticScalarCommandResponse", responses, "Source Type");
@@ -375,15 +375,18 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
 
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
-        // Admit the version pair, but refuse each construct until every execution path can preserve it.
+        // Admit each construct only on the paths that can preserve it.
         var identity = rejected(SemanticVersionFeatures.ReactionIdentity);
         Add(entries, "SemanticReaction", identity, "RunsAs");
         Add(entries, "SemanticReactionIdentity", identity, "Kind Roles");
         Add(entries, "SemanticReactionIdentityKind", identity, "System");
         var filters = rejected(SemanticVersionFeatures.ObserverFilters);
         Add(entries, "SemanticReaction", filters, "From");
-        Add(entries, "SemanticReducer", filters, "From");
-        Add(entries, "SemanticObserverFilter", filters, "Source Stream");
+
+        // Reducer filters render as Chronicle attributes. The Host and executor retain STAGE-ESM-035:
+        // neither executes reducer bodies. Reaction usage of the same filter members stays refused.
+        Add(entries, "SemanticReducer", rendered, "From");
+        Add(entries, "SemanticObserverFilter", rendered, "Source Stream");
         Add(entries, "SemanticProducedEvent", rejected(SemanticVersionFeatures.ProductionRoutes), "Route");
 
         return entries;

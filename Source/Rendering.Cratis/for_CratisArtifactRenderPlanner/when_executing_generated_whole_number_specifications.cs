@@ -18,7 +18,7 @@ public class when_executing_generated_whole_number_specifications : a_generated_
     string[] _cases = [];
     string[] _outcomes = [];
 
-    protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(a_whole_number_model.Compile(SemanticVersion.V8));
+    protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(a_whole_number_model.Compile(SemanticVersion.V11));
 
     async Task Because()
     {

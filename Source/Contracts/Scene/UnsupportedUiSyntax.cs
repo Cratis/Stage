@@ -11,7 +11,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <param name="member">The unsupported syntax member.</param>
 /// <param name="location">The authored source location.</param>
 public sealed class UnsupportedUiSyntax(string member, SourceLocation location) : Exception(
-    $"{DiagnosticCode}: '{member}' at {location} has no faithful Stage Scene translation. No scene was emitted.")
+    $"{DiagnosticCode}: '{member}' at {location} has no faithful Stage Scene translation. " +
+    "No scene was emitted.")
 {
     /// <summary>
     /// The stable diagnostic code for unsupported UI syntax.

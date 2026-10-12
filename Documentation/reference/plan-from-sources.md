@@ -40,6 +40,43 @@ if (result.Success)
 `PlanFrom(LoadedSemanticModel, PlanSelection, CratisPlanOptions)` performs the same
 selection and rendering without I/O, for callers that already compiled their sources.
 
+## Caller profile and byte parity
+
+Set `CratisPlanOptions.Profile` to the complete `ArtifactRenderProfile` you use for a
+full render. Build it with `CratisRendering.CreateProfile`, including any composed
+Scene and companion strings catalog, then add authored documentation with
+`CratisRendering.WithAuthoringMetadata` from the same compilation. Pass that profile
+to either `PlanFrom` overload; keep its project and root namespace equal to the plan
+options.
+
+For example, given an existing `compilation`, `loaded` model, `selection`, optional
+`scene`, and companion `stringsFiles` with a default locale of `en`:
+
+```csharp
+var options = new CratisPlanOptions("Shop", "Shop.Backend", "Acme.Shop");
+var profile = CratisRendering.WithAuthoringMetadata(
+    CratisRendering.CreateProfile(options.ApplicationName,
+        new(options.ProjectName, options.RootNamespace), scene, stringsFiles, "en"),
+    compilation);
+var scoped = CratisRendering.PlanFrom(loaded, selection, options with { Profile = profile });
+```
+
+For the same compiled model, attachments, names, profile inputs, and domain, every
+artifact in a successful scoped plan is byte-identical to the artifact at the same
+path in a full application plan. Scoped plans still exclude application scaffolding
+and application-only Scene and strings artifacts. A null `Profile` keeps the existing
+defaults and bytes; Stage does not automatically add authored documentation or strings.
+
+The caller profile uses the same admission as the public artifact planner. Invalid,
+stale, duplicate, or unrecognized inputs and mismatched project or namespace names
+produce `STAGE-CRATIS-001`, not a planning exception. The package-owned scaffold roster
+cannot be replaced. Omit domain placement from the supplied profile and use `Domain`
+instead: `PlanFrom` owns that input and refuses a caller-supplied domain input.
+Pass the same `Profile` to `PlanScaffold` and `PlanFrom`. The scaffold supplies
+`GeneratedStrings.cs` and configures `Program.cs` for its strings catalog, so scoped
+code that references localized messages compiles with that scaffold. Documentation
+is checked against the model by `PlanFrom`; scaffold planning does not consume it.
+
 ## Sources and identity
 
 | `PlaySources` member | Meaning |
@@ -125,11 +162,18 @@ event-type ids; identity evolution is tracked by
 
 ## Scaffold-only mode
 
-`PlanScaffold(options)` needs no sources. It emits the plain backend and frontend
-scaffold at the application root, without a semantic revision or underlying
-`ArtifactRenderPlan`. Domain must be empty. This mode does not compose a default Scene
-or add model-specific strings wiring. The scaffold's pinned dependencies satisfy
-Chronicle 19.30.0 and Arc.Chronicle 22.49.1 or later.
+`PlanScaffold(options)` needs no sources. It emits the backend and frontend scaffold
+at the application root, without a semantic revision or underlying `ArtifactRenderPlan`.
+Domain must be empty. Pass the same `Profile` as subsequent `PlanFrom` calls: a strings
+catalog adds `GeneratedStrings.cs` and the same request-localization wiring in
+`Program.cs` as an application-scope render. Without a profile, scaffold bytes are
+unchanged. The scaffold's pinned dependencies satisfy Chronicle 19.30.0 and
+Arc.Chronicle 22.49.1 or later.
+
+Scene composition, bindings, and screen runtime artifacts require the whole model and
+come only from an application-scope render ([#275](https://github.com/Cratis/Stage/issues/275)).
+A scaffold profile carrying a Scene emits no Scene artifacts and reports the
+`STAGE-PLAN-031` information diagnostic. This mode does not compose a default Scene.
 
 Plan the scaffold once per application. Every subsequent source or loaded-model scoped
 plan excludes it, regardless of selection size. Studio can scaffold in one session,
@@ -208,6 +252,7 @@ is exposed separately: equal output digests do not promise equal input revisions
 | `STAGE-PLAN-021` | Domain collides with a reserved root path. |
 | `STAGE-PLAN-022` | Domain supplied for scaffold-only mode. |
 | `STAGE-PLAN-030` | Invalid application, project, or namespace options. |
+| `STAGE-PLAN-031` | Information: a scaffold profile carries Scene input; Scene artifacts are produced only by application-scope plans. |
 
 Existing renderer `STAGE-CRATIS`, `STAGE-ESM`, and authorization diagnostics pass through
 unchanged. See [How the Stage renders a model](stage-rendering.md) for renderer admission.

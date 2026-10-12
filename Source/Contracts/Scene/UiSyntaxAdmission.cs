@@ -12,7 +12,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// Package components, toolbars, UI bindings, template metadata and outlets on layouts and screen templates are
 /// translated by the converters, and so is the typed composition ABI of Screenplay 4.120: exposures, instance values,
 /// screen contributions, template slot content and picker metadata, grid/grow/span arrangements, and a
-/// <c>navigate</c> directive's route, outlet and parameters (as a Scene <c>DestinationReference</c>). Dialog template
+/// <c>navigate</c> directive's route, outlet and parameters (as a Scene <c>DestinationReference</c>), and a navigation
+/// contribution's id, icon, presentation, group and destination. Dialog template
 /// outlets have no Scene counterpart - a Scene dialog template declares none - so they are refused rather than dropped.
 /// </remarks>
 public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker

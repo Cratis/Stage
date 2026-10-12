@@ -132,8 +132,11 @@ captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`, naming t
 reaction execution identity (`STAGE-ESM-034`) and reaction or reducer observer filters (`STAGE-ESM-035`).
 Per-production route overrides fail `STAGE-ESM-036` on the semantic engine; the legacy engine refuses their stream syntax with `STAGE-ESM-030`.
 The semantic engine also refuses reactions: clock, application, startup and shutdown triggers and opaque reaction bodies fail `STAGE-ESM-024` naming the trigger kind, a trigger that both produces and invokes fails `STAGE-ESM-037`, `$context.causedBy.*` fails `STAGE-ESM-013`, and event-triggered reactions fail `STAGE-ESM-024` until reaction rendering is admitted.
-The semantic engine admits ESM v1–v10 version pairs; unaudited language/semantic versions refuse the
-whole model with `STAGE-ESM-016` before registration or execution.
+The semantic engine uses Screenplay 4.137.0 and admits ESM v1–v11 version pairs; unaudited
+language/semantic versions refuse the whole model with `STAGE-ESM-016` before registration or execution.
+ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and
+read-model state, including ±9007199254740991 and `0.10000000000000002`. Source integers still use
+the Double safe range; `numbers exact` and arbitrary-precision arithmetic are not admitted.
 The semantic engine executes command routes, registers named sources and streams with Chronicle on every
 connect, and checks stored routes during world reconstruction. Routed specification runs are still refused
 with `STAGE-ESM-030`, as are routes in the structural SpecRunner and EventModel engine.
@@ -188,6 +191,60 @@ queries read the in-process world, not Chronicle projections. If an append's out
 history passes the same strict admission checks.
 
 The sandbox constructs caller identities from Arc's unsigned `x-ms-client-principal` request headers. Clients that can reach the host can forge those headers; modeled authorization is not a security boundary here. Restrict access at a trusted proxy and keep the session private. An anonymous semantic caller has empty audit identity fields (`subject`, `name`, `userName`), not an invented `unknown` identity; the default EventModel path omits those identity values entirely.
+
+### Browse read models in a semantic session
+
+The semantic engine keeps read models in its live in-process world, not in Chronicle projections. To see what
+your commands produced, open `http://localhost:9090/read-models` (or `<session-base>/read-models` behind a proxy,
+for example `/api/play/<session>/read-models` in Studio). The browser lists every read model, including ones
+without queries or instances. Select a model to inspect its keys and property values; arrays and composite
+values appear as compact JSON. **Refresh** reads the current world again, including the selected model.
+The Chronicle Workbench still shows the event log, but does not show these semantic read models.
+
+You can also read the same state over HTTP:
+
+- `GET /stage/read-models` returns the models in declaration order, their module/feature/slice location,
+  property names and types, and current instance counts.
+- `GET /stage/read-models/{id}` returns one model's property contract and current instances. Use the `id`
+  from the list; an unknown or malformed identity returns HTTP 404.
+
+For example, a list entry has this shape (the semantic identity is abbreviated for illustration):
+
+```json
+{
+  "readModels": [{
+    "id": "sm:…",
+    "name": "ProjectSummary",
+    "module": "Projects",
+    "feature": "Registration",
+    "slice": "ProjectLookup",
+    "properties": [{ "name": "name", "type": "ProjectName" }],
+    "instances": 1
+  }]
+}
+```
+
+Inspecting that model returns named JSON values, not semantic property identities:
+
+```json
+{
+  "id": "sm:…",
+  "name": "ProjectSummary",
+  "properties": [{ "name": "name", "type": "ProjectName" }],
+  "instances": [{ "key": "project-one", "values": { "name": "Screenplay" } }]
+}
+```
+
+Both endpoints return HTTP 503 with `state: "loading"` and `Retry-After: 1` until the world has been rebuilt.
+A faulted session returns HTTP 503 with `{ "state": "faulted", "reason": "…" }` and no rows, rather than
+presenting indeterminate state as current. Restart the session before inspecting it again. A refused model
+returns HTTP 501 with the same refusal headers and `exceptionMessages` as the specification endpoint.
+These diagnostic endpoints expose the whole session, independently of modeled query authorization; keep the
+session private behind the trusted proxy described above.
+
+Under the `eventmodel` engine, both endpoints return HTTP 404 with `engine: "eventmodel"` and a `reason`
+explaining that read models are shown in the Chronicle Workbench. The browser displays that message instead
+of a read-model table.
 
 ### Run specifications in a semantic session
 

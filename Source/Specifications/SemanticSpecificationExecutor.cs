@@ -150,18 +150,17 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
             return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
         }
 
+        if (command is null)
+        {
+            return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
+        }
+
         var caller = specification.GivenCaller;
         var principal = caller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.Principal(caller);
         var allowed = SemanticPolicyEvaluator.Allows(command!.Authorization, plan, caller, principal, command, specification);
-        if (allowed && SemanticRuleEvaluation.FirstFailure(command, specification, plan.Model.Application.Concepts) is { } failure)
+        if (CommandInputOutcome(context, slice, plan.Model.Application.Concepts, allowed) is { } inputOutcome)
         {
-            return Rejected(slice, specification, failure);
-        }
-
-        // The reference resolves the route after authorization and validation, before identity allocation.
-        if (allowed && !context.TryResolveRoute(out var routeFailure))
-        {
-            return Rejected(slice, specification, SemanticStreamIdFormatter.FailureMessage(routeFailure));
+            return inputOutcome;
         }
 
         // An accepted command whose events have no destination and no stated source needs an allocated
@@ -215,9 +214,53 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
         return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, plan);
     }
 
-    static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, string message, string? code = null)
+    static SemanticSpecificationRunRecord? CommandInputOutcome(SemanticRunContext context, SemanticSlice slice, IEnumerable<SemanticConcept> concepts, bool allowed)
     {
-        var failures = SemanticExpectationComparer.Compare(specification, [], [], message, code);
+        if (!allowed) return null;
+        if (SemanticRuleEvaluation.FirstFailure(context.Command, context.Specification, concepts) is { } failure)
+        {
+            return Rejected(slice, context.Specification, failure);
+        }
+
+        // The reference resolves the route after authorization and validation, before identity allocation.
+        if (!context.TryResolveRoute(out var routeFailure))
+        {
+            return Rejected(slice, context.Specification, SemanticStreamIdFormatter.FailureMessage(routeFailure));
+        }
+
+        return GeneratedFixtureOutcome(context, slice, concepts, allowed);
+    }
+
+    static SemanticSpecificationRunRecord? GeneratedFixtureOutcome(SemanticRunContext context, SemanticSlice slice, IEnumerable<SemanticConcept> concepts, bool allowed)
+    {
+        if (!allowed) return null;
+        var command = context.Command;
+        var properties = command.Properties.Where(property => property.IsGenerated).ToArray();
+        if (properties.Length == 0) return null;
+        var specification = context.Specification;
+        var generated = specification.When!.GeneratedValues.IsDefault ? [] : specification.When.GeneratedValues;
+        if (!GeneratedFixturesMatch(properties, generated))
+        {
+            return Rejected(slice, specification, "Generated fixtures do not match the command's generated UUID properties.");
+        }
+        if (properties.Any(property => !generated.Any(value => value.TargetProperty == property.Id)))
+        {
+            return Record(slice, specification, SemanticSpecificationOutcome.Unsupported, unsupported: new(StageExecutionCapability.IdentityAllocation, command.Id.ToString(), "Generated command values require deterministic fixtures."));
+        }
+        var failure = SemanticRuleEvaluation.GeneratedFailure(command, specification, concepts);
+
+        return failure is null ? null : Rejected(slice, specification, failure);
+    }
+
+    static bool GeneratedFixturesMatch(IEnumerable<SemanticProperty> properties, System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> generated) =>
+        generated.Select(value => value.TargetProperty).Distinct().Count() == generated.Length &&
+        generated.All(value => properties.Any(property => property.Id == value.TargetProperty) && IsUuidFixture(value.Value));
+
+    static bool IsUuidFixture(SemanticValue value) => value is SemanticTextValue text && Guid.TryParse(text.Value, out _);
+
+    static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, string message, string? code = null, bool denied = false)
+    {
+        var failures = SemanticExpectationComparer.Compare(specification, [], [], message, code, denied);
         return Record(slice, specification, failures.Count == 0 ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed, "Rejected", failures: failures, trace: new SemanticExecutionTrace([], new Dictionary<string, string>(), new Dictionary<string, string>(), message) { RejectionCode = code });
     }
 
@@ -231,9 +274,17 @@ public sealed class SemanticSpecificationExecutor : ISemanticSpecificationExecut
 
         var facts = context.Facts.Skip(specification.GivenEvents.Length).ToArray();
         var destinations = context.Destinations.Skip(specification.GivenEvents.Length).ToArray();
-        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, null, plan: plan).ToList();
         var projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
+        foreach (var assertion in specification.ThenQueries)
+        {
+            if (!SemanticPolicyEvaluator.Allows(plan.Queries[assertion.Query], assertion.Key, plan, specification.GivenCaller))
+            {
+                return Rejected(slice, specification, "Caller is not authorized.", denied: true);
+            }
+        }
+        var failures = SemanticExpectationComparer.Compare(specification, facts, destinations, null, plan: plan).ToList();
         failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
+        failures.AddRange(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
         var trace = new SemanticExecutionTrace(
             [.. facts.Select((fact, index) => new SemanticTraceFact(
                 fact.EventContract.ToString(),

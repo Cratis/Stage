@@ -56,13 +56,18 @@ internal static class SemanticExpectationComparer
             CompareFacts(expected, following, failures, plan);
         }
 
-        if (expected.When?.EventSource is { } source && destinations.Any(destination => !AreEqual(destination, source.Value)))
-        {
-            failures.Add("Produced fact destination does not match the specification command event source.");
-        }
+        CompareCommandDestination(expected, destinations, plan, failures);
 
         return failures;
     }
+
+    internal static IReadOnlyList<string> CompareResponse(SemanticSpecificationResponse? expected, SemanticExecutionResponse? actual) => expected switch
+    {
+        null => [],
+        SemanticScalarSpecificationResponse scalar => CompareScalarResponse(scalar, actual),
+        SemanticRecordSpecificationResponse record when actual is SemanticRecordExecutionResponse fields => CompareResponseFields(record, fields),
+        _ => ["Command response does not match the expected shape."]
+    };
 
     internal static IReadOnlyList<string> CompareProjections(SemanticSpecification expected, IReadOnlyList<SemanticRunProjections.Projected> projected, SemanticExecutionPlan plan)
     {
@@ -72,6 +77,13 @@ internal static class SemanticExpectationComparer
             if (!MatchesState(state, projected))
             {
                 failures.Add($"Expected read model '{state.ReadModel}' with key '{state.Key}' was not found with matching values.");
+            }
+        }
+        foreach (var absent in expected.ThenAbsentReadModels)
+        {
+            if (projected.Any(row => row.ReadModel == absent.ReadModel && AreEqual(row.Key, absent.Key)))
+            {
+                failures.Add($"Expected read model '{absent.ReadModel}' with key '{absent.Key}' to be absent.");
             }
         }
         for (var index = 0; index < expected.ThenQueries.Length; index++)
@@ -99,6 +111,23 @@ internal static class SemanticExpectationComparer
             a.Properties.All(property => b.Properties.Any(candidate => candidate.TargetProperty == property.TargetProperty && AreEqual(property.Value, candidate.Value))),
         _ => false
     };
+
+    static IReadOnlyList<string> CompareScalarResponse(SemanticScalarSpecificationResponse expected, SemanticExecutionResponse? actual) =>
+        actual is SemanticScalarExecutionResponse response && AreEqual(expected.Value, response.Value) ? [] : ["Command response does not match the expected value."];
+
+    static IReadOnlyList<string> CompareResponseFields(SemanticRecordSpecificationResponse expected, SemanticRecordExecutionResponse actual) =>
+        [.. expected.Fields.Where(field => !actual.Fields.Any(value => value.Name == field.Name && AreEqual(value.Value, field.Value)))
+            .Select(field => $"Response field '{field.Name}' does not match the expected value.")];
+
+    static void CompareCommandDestination(SemanticSpecification expected, IReadOnlyList<SemanticValue> destinations, SemanticExecutionPlan? plan, List<string> failures)
+    {
+        if (expected.When is not { } action) return;
+        if (plan!.Commands[action.Command].Properties.Any(property => property.IsGenerated && property.IsIdentifier)) return;
+        if (action.EventSource is { } source && destinations.Any(destination => !AreEqual(destination, source.Value)))
+        {
+            failures.Add("Produced fact destination does not match the specification command event source.");
+        }
+    }
 
     static void CompareFacts(SemanticSpecification expected, IReadOnlyList<SemanticSpecificationEvent> actual, List<string> failures, SemanticExecutionPlan plan)
     {

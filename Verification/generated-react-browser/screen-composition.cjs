@@ -405,7 +405,10 @@ async function assertGuardedActions(page, result, network) {
 async function assertTwoItemSelectionLifecycle(page, result, network) {
     await page.goto(`${baseUrl}/#/WorkItemList`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
     await page.waitForTimeout(3_000);
-    await expectText(page, result, 'browser.navigation.WorkItemList', 'WorkItemList');
+    // The authored navigation entry names the screen "Work items" inside the Workspaces > Tracking hierarchy.
+    await expectText(page, result, 'browser.navigation.WorkItemList', 'Work items');
+    await expectText(page, result, 'browser.navigation.hierarchy.module', 'Workspaces');
+    await expectText(page, result, 'browser.navigation.hierarchy.feature', 'Tracking');
     await expectText(page, result, 'browser.query.AllWorkItems.titleA', workItemA.title);
     await expectText(page, result, 'browser.query.AllWorkItems.titleB', workItemB.title);
 
@@ -591,6 +594,72 @@ async function assertNavigationAndTheme(page, result) {
     else block(result, 'browser.theme.dark.appliedStyle', `body background did not change from ${before}`);
 }
 
+// The vector authors a module-level `contribute to Navigation` ("Overview"), a toolbar on the list with an icon-only dialog item and
+// an item carrying a placement hint, and screens no entry lists. Each reaches the running application through the Scene host.
+async function assertAuthoredToolbarAndHierarchy(page, result) {
+    await page.goto(`${baseUrl}/#/WorkItemList`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    await page.waitForTimeout(2_000);
+
+    const groupsOf = href => page.evaluate(target => {
+        const link = document.querySelector(`nav a[href="${target}"]`);
+        const names = [];
+        for (let node = link?.closest('li')?.parentElement?.closest('li'); node; node = node.parentElement?.closest('li')) {
+            names.unshift(node.querySelector(':scope > span, :scope > a, :scope > button')?.textContent?.trim() ?? '');
+        }
+        return link ? names : undefined;
+    }, href);
+
+    const labelled = await page.evaluate(() => Array.from(document.querySelectorAll('nav a')).map(link => `${link.textContent?.trim()}|${link.getAttribute('href')}`));
+    const overview = labelled.find(entry => entry.startsWith('Overview|'));
+    if (overview) record(result, 'browser.navigation.moduleContribution.label', 'passed', overview);
+    else block(result, 'browser.navigation.moduleContribution.label', `no module-level navigation entry "Overview" in [${labelled.join(', ')}]`);
+
+    const overviewGroups = await page.evaluate(() => {
+        const link = Array.from(document.querySelectorAll('nav a')).find(candidate => candidate.textContent?.trim() === 'Overview');
+        const names = [];
+        for (let node = link?.closest('li')?.parentElement?.closest('li'); node; node = node.parentElement?.closest('li')) {
+            names.unshift(node.querySelector(':scope > span, :scope > a, :scope > button')?.textContent?.trim() ?? '');
+        }
+        return link ? names : undefined;
+    });
+    if (overviewGroups?.join('>') === 'Workspaces') record(result, 'browser.navigation.moduleContribution.hierarchy', 'passed', 'Workspaces');
+    else block(result, 'browser.navigation.moduleContribution.hierarchy', `Overview is nested under [${overviewGroups?.join(' > ')}], expected [Workspaces]`);
+
+    const detailsGroups = await groupsOf('#/WorkItemDetails');
+    if (detailsGroups?.join('>') === 'Workspaces>Tracking') record(result, 'browser.navigation.unlistedScreen.hierarchy', 'passed', 'Workspaces > Tracking > WorkItemDetails');
+    else block(result, 'browser.navigation.unlistedScreen.hierarchy', `WorkItemDetails is nested under [${detailsGroups?.join(' > ')}], expected [Workspaces > Tracking]`);
+
+    const toolbar = page.getByRole('toolbar', { name: 'main' });
+    if (await toolbar.count() > 0) record(result, 'browser.toolbar.rendered', 'passed');
+    else {
+        block(result, 'browser.toolbar.rendered', 'the authored toolbar "main" is not rendered');
+        return;
+    }
+
+    const create = toolbar.locator('[data-scene-toolbar-item="create"]');
+    const mode = await create.getAttribute('data-scene-mode').catch(() => null);
+    const text = (await create.textContent().catch(() => null))?.trim();
+    const name = await create.getAttribute('aria-label').catch(() => null);
+    if (mode === 'icon' && text === '' && name === 'New work item') record(result, 'browser.toolbar.presentation.iconOnly', 'passed', `mode ${mode}, accessible name ${name}`);
+    else block(result, 'browser.toolbar.presentation.iconOnly', `expected an icon-only item named "New work item", saw mode ${mode}, text "${text}", name ${name}`);
+
+    const placement = await toolbar.locator('[data-scene-toolbar-item="refresh"]').getAttribute('data-scene-presentation-placement').catch(() => null);
+    if (placement === 'secondary') record(result, 'browser.toolbar.presentation.hint', 'passed', placement);
+    else block(result, 'browser.toolbar.presentation.hint', `expected the placement hint "secondary", saw ${placement}`);
+
+    await create.click();
+    const dialog = page.getByRole('dialog');
+    try {
+        await dialog.first().waitFor({ timeout: 10_000 });
+        record(result, 'browser.toolbar.dialogDestination.opens', 'passed', (await dialog.first().getAttribute('aria-label')) ?? '');
+    } catch {
+        block(result, 'browser.toolbar.dialogDestination.opens', 'the toolbar dialog item did not open its dialog');
+        return;
+    }
+
+    await closeDialog(page, result, 'browser.toolbar.dialogDestination.closes');
+}
+
 async function runBrowserFlow(result) {
     const { chromium } = require('playwright');
     const browser = await chromium.launch({ headless: true });
@@ -615,6 +684,7 @@ async function runBrowserFlow(result) {
         await assertRenameDialog(page, result, network);
         await assertAddComment(page, result, network);
         await assertNavigationAndTheme(page, result);
+        await assertAuthoredToolbarAndHierarchy(page, result);
         await assertGuardedActions(page, result, network);
 
         const stageRequests = network.requests.filter(request => new URL(request.url).pathname.startsWith('/stage/'));

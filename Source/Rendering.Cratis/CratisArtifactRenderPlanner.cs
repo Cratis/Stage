@@ -5,6 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
@@ -174,11 +175,6 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                     StageModuleRenderer.Render(context),
                     [context.Application.Id]));
             }
-
-            if (context.Strings is { } strings)
-            {
-                artifacts.Add(PlannedArtifact.CreateText(StringsCatalogInput.RelativePath, StringsCatalogInput.Render(strings, context.RootNamespace), [context.Application.Id]));
-            }
         }
 
         var shared = request.Scope.Kind == ArtifactRenderScopeKind.Application
@@ -217,51 +213,24 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return;
         }
 
-        var count = 0;
-        foreach (var input in request.Profile.Inputs.Where(input => input.Name is not StringsCatalogInput.Name and not AuthoringMetadataInput.Name and not DomainPlacementInput.Name))
+        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id]));
+        var scene = request.Profile.Inputs.SingleOrDefault(input => input.Name == $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}");
+        if (scene is null)
         {
-            if (CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact))
-            {
-                // A runnable application carries guarded actions and interactions the Stage runtime evaluates, and
-                // never one it cannot. Inspect the wire model here so manually built Scenes and JSON cannot bypass
-                // admission.
-                if (artifact!.RelativePath == SceneCompositionInput.RelativePath &&
-                    Contracts.Scene.SceneGuards.HasUnevaluableGuard(System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))
-                {
-                    var refusal = new Contracts.Scene.UnsupportedGuardedScreenAction("scene.json", Screenplay.Diagnostics.SourceLocation.Start);
-                    diagnostics.Add(Error(Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode, refusal.Message, request.Model.Application.Id));
-                    return;
-                }
-
-                if (artifact.RelativePath == "Program.cs" && context.Strings is { } strings)
-                {
-                    var source = System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
-                    artifacts.Add(PlannedArtifact.CreateText(artifact.RelativePath, StringsCatalogInput.ConfigureProgram(source, strings)));
-                }
-                else
-                {
-                    artifacts.Add(artifact.RelativePath == SceneCompositionInput.RelativePath
-                        ? PlannedArtifact.CreateText(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), [request.Model.Application.Id])
-                        : artifact);
-                }
-                count++;
-            }
-            else
-            {
-                diagnostics.Add(Error(
-                    "STAGE-CRATIS-002",
-                    $"Renderer input '{input.Name}' is not a recognized Cratis scaffold artifact.",
-                    request.Model.Application.Id));
-            }
+            return;
         }
 
-        if (count == 0)
+        var sceneJson = System.Text.Encoding.UTF8.GetString(scene.Bytes.AsSpan());
+
+        // Keep guarded Scene admission at the application boundary, where Scene artifacts are actually emitted.
+        if (Contracts.Scene.SceneGuards.HasUnevaluableGuard(sceneJson))
         {
-            diagnostics.Add(Error(
-                "STAGE-CRATIS-003",
-                "Application planning requires at least one fully resolved Cratis scaffold artifact input.",
-                request.Model.Application.Id));
+            var refusal = new Contracts.Scene.UnsupportedGuardedScreenAction("scene.json", Screenplay.Diagnostics.SourceLocation.Start);
+            diagnostics.Add(Error(Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode, refusal.Message, request.Model.Application.Id));
+            return;
         }
+
+        artifacts.Add(PlannedArtifact.CreateText(SceneCompositionInput.RelativePath, sceneJson, [request.Model.Application.Id]));
     }
 
     static ArtifactRenderPlan CreatePlan(

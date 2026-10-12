@@ -19,8 +19,10 @@
         usings and the type collisions that come with them. These carry no build assets. Arc.Chronicle and
         Arc.Swagger are here only so the spec compilation can model the ambient namespaces a real Cratis
         application has, not because rendered code names anything in them; MongoDB.Driver is, because a
-        rendered read model exposes its collection query as IMongoCollection&lt;T&gt;. The two Testing packages
-        are what a rendered specification compiles against - CommandScenario and the appended-event assertions.
+        rendered read model exposes its collection query as IMongoCollection&lt;T&gt;. The Testing packages
+        are what a rendered specification compiles against - CommandScenario, ReadModelScenario and the appended-event
+        assertions. Cratis.Chronicle.Testing is named explicitly so the compile sees the pinned client, not the older one
+        Arc.Chronicle.Testing brings transitively.
 
         Arc.MongoDB is the one the scaffolded project template also references, and it is what puts Observe and
         ObserveById on IMongoCollection&lt;T&gt; - a rendered observable query calls them and nothing else does,
@@ -39,6 +41,7 @@
         <PackageReference Include="Cratis.Arc.Swagger" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Chronicle" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Chronicle.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="MongoDB.Driver" />
         <!--
             The frozen RegisterProject conformance corpus - the planner fixture loads its source and identity

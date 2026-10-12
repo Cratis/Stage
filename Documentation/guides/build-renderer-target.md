@@ -274,7 +274,7 @@ The Cratis renderer applies the same rule when emission reaches a semantic kind 
 
 A model that uses an ESM v2 construct arrives as language and semantic version `2.0`. Admit it construct by construct rather than treating it as v1. The Cratis renderer handles the v2 constructs this way:
 
-- **Event-source routes (ESM v8).** Named sources and streams render as Chronicle definitions; commands select them through an Arc attribute and set keyed stream identities inside the handler, after authorization and validation. See [Event-source routing](../reference/event-source-routing.md) for generated shapes, the identity codec and reserved names. Command specifications seed routed givens and assert explicit routes or `unrouted`; routed read-model/query replay still fails `STAGE-ESM-030`.
+- **Event-source routes (ESM v8).** Named sources and streams render as Chronicle definitions; commands select them through an Arc attribute and set keyed stream identities inside the handler, after authorization and validation. See [Event-source routing](../reference/event-source-routing.md) for generated shapes, the identity codec and reserved names. Command specifications seed routed givens and assert explicit routes or `unrouted`; read-model and query companion specifications replay routed givens on their routes.
 - **Typed destination.** A command appends to the event source named by `produces … for <property>`, and the identity is not copied into the event record. The rendered command provides that property as its event source id. When a produced event has no destination of its own, the command's typed destination applies, as it does in the Screenplay evaluator.
 - **Specification event sources.** When a `given`, `when`, or `then` event states `for <value>`, the rendered specification seeds the given fact or asserts the appended event on that stream rather than on the command's destination value. In a specification that expects success, the stated sources must agree with each other, have the command destination's type, convert to a Chronicle event source id without losing identity (text or UUID), and have an expected event to assert them on. Otherwise the specification fails admission with `STAGE-ESM-011`. A rejection appends nothing, so a `when … for` on a rejection specification is admitted as is.
 - **Command occurrence values.** A `$context.occurred` mapping renders when the target property has the occurrence type. The generated handler obtains Arc's dispatch receipt time through an `IOperationContextAccessor` parameter, truncates it to UTC milliseconds (Chronicle's storage precision), and uses it both for the payload property and for `EventForEventSourceId.Occurred` on every event the command produces. This is the same receipt that opaque policies see, not a later reading of the clock. A missing or unset receipt throws `CommandReceiptTimeUnavailable` before any event is returned; there is no wall-clock fallback. A specification that asserts a fixed value derived from that occurrence fails admission with `STAGE-ESM-011`, because the generated handler uses the actual time. `$context.identity.*` and other caller mappings still fail admission with `STAGE-ESM-013`.
@@ -302,11 +302,11 @@ ESM v4 (`4.0` language and semantic versions) is admitted by the version gates, 
 
 Evolution waits for migration modeling and rendering (Screenplay #71 and a Stage migration-rendering follow-up). In both Chronicle 19.8.1 and 19.32.0, registration validation requires migrators for every generation above 1 even on an empty store. Production kernels always validate; the development image can skip validation, permitting unsafe historical replay. Neither path is an admitted realization without migrations, so Stage refuses before emission rather than relying on the kernel configuration. Stage's Host also retains its `EventContract` refusal, "Only the initial event revision can be registered in Chronicle." Its registrar and fact appender remain generation-1-only; an evolved model is not registered or appended.
 
-Stage builds against Screenplay 4.131.0 and admits ESM v1 through v10 by version. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
+Stage builds against Screenplay 4.137.0 and admits ESM v1 through v11 by version. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
 
 | Construct | Version | Diagnostic |
 |---|---|---|
-| A specification asserting a read model is absent (`thenAbsentReadModels`) | v5 | `STAGE-ESM-027` |
+| A specification asserting a read model is absent (`thenAbsentReadModels`) | v5 | Renderer: `STAGE-ESM-027`; the [semantic specification engine](../docker/spec-runner.md) executes keyed absence for admitted per-run projections |
 | Application `Triggers` declarations | v6 | `STAGE-ESM-024`, naming the application trigger |
 | Reaction triggers of kind Interval, Schedule, ApplicationTrigger, Startup or Shutdown | v6 | `STAGE-ESM-024`, naming the trigger kind |
 | Opaque reaction bodies | v6 | `STAGE-ESM-024`, naming the body and its trigger kind |
@@ -314,22 +314,34 @@ Stage builds against Screenplay 4.131.0 and admits ESM v1 through v10 by version
 | Reaction mappings of `$context.causedBy.subject`, `.name` or `.userName` | v6 | `STAGE-ESM-013`, naming the context member |
 | Captures, Automation and Translate slices, and specifications with a clock, trigger or capture | v6 | `STAGE-ESM-024` |
 | A reaction trigger that both produces events and invokes commands | v6 | `STAGE-ESM-037`: Arc cannot return events and commands from one handler ([Arc #3156](https://github.com/Cratis/Arc/issues/3156)) |
-| Generated command properties and specification generation fixtures | v7 | `STAGE-ESM-028` |
-| Command responses and `then returns` expectations | v7 | `STAGE-ESM-029` |
+| Generated command properties and specification generation fixtures | v7 | Required scalar UUID-backed concepts render; other generated shapes fail `STAGE-ESM-028` |
+| Command responses and `then returns` expectations | v7 | Scalar and named responses render; no blanket `STAGE-ESM-029` refusal |
+| Unsupported generated-value/response combinations | v7+ | `STAGE-ESM-038`: routing, legacy destination allocation, generated-property rules/constraints, unsupported response sources or name collisions; unpinned unordered/projected expectations |
 | Policy negation (`not`) | v7 | Rendered |
 | Named event sources, streams and command routes | v8 | Rendered; reserved stored names fail `STAGE-ESM-030` |
-| Routed command specifications | v8 | Rendered: route-aware givens and assertions, assignment matching for any-order expectations; unformattable fixtures or routed read-model/query replay fail `STAGE-ESM-030` |
+| Routed command specifications | v8 | Rendered: route-aware givens and assertions, assignment matching for any-order expectations; routed read-model/query replay is rendered; unformattable fixtures fail `STAGE-ESM-030` |
 | Authored whole-number literals outside the C# `int` range | v1–v7 | `STAGE-ESM-031`; v8+ renders whole numbers as `long` |
 | Local public events declared or referenced by the selected slice, and event-target projections or reducers | v9 | `STAGE-ESM-032` |
 | Events with an origin store and `source events` captures | v9 | `STAGE-ESM-033` |
 | Directed Translate slices (inbound or outbound) | v9 | `STAGE-ESM-024`, naming the direction |
 | Reaction execution identity (`runsAs`) | v10 | `STAGE-ESM-034` |
-| Reaction and reducer observer filters (`from`) | v10 | `STAGE-ESM-035` |
+| Reducer observer filters (`from`) | v10 | Rendered as Chronicle source/source-and-stream attributes; Host and executor retain `STAGE-ESM-035` because reducers are not executed |
+| Reaction observer filters (`from`) | v10 | `STAGE-ESM-035` |
 | Per-production route overrides | v10 | `STAGE-ESM-036` |
+| Exact Double-mode number literal lowering | v11 | Rendered as `long` whole numbers and `decimal` fractions, preserving the retained ESM values |
+
+ESM v11 preserves retained non-route numbers such as `9007199254740991`, `-9007199254740991`,
+`1234567890123456` and `0.10000000000000002` through command, event and read-model rendering.
+The compiler selects v11 only when a retained non-route number needs the corrected lowering; route-only
+literals and route-feeding inputs retain their earlier version. Existing v1–v10 ESM values are not
+normalized or rounded again. This does not enable `numbers exact` or arbitrary precision; source whole
+numbers remain bounded by ±(2^53−1). See [Generated C# numbers](../reference/stage-rendering.md#generated-c-whole-numbers).
+
+[Generated values and command responses](../reference/generated-values-rendering.md) describes the UUID mapping, pins, relational assertions, runtime responses and the precise `038` limits.
 
 Reaction admission reports execution identity (`034`), observer filters (`035`), mixed effects (`037`), and caused-by context (`013`) before trigger-kind and generic reaction refusals (`024`). The renderer, Host and specification executor still refuse every reaction model.
 
-Diagnostics apply to the selected scope: a slice-scoped render of a slice that uses none of these constructs can still render, and application triggers refuse only an application render. The in-memory specification executor reports the same constructs as unsupported rather than skipping them. Keep these constructs in the model and use a renderer that explicitly supports them rather than deleting them to pass admission. A specification that supplies a generated property as input never compiles (`PLAY0485`), so Stage plans nothing for it.
+Diagnostics apply to the selected scope: a slice-scoped render of a slice that uses none of these constructs can still render, and application triggers refuse only an application render. The in-memory specification executor reports unsupported constructs rather than skipping them. Reducer `from` is rendering-only: neither the executor nor Stage's Host executes reducer bodies. Generated read-model companion specifications for filtered reducers retain `STAGE-ESM-011`, because Chronicle's scenario replay cannot apply the filter; see [Event-source routing](../reference/event-source-routing.md#reducer-observer-filters). Keep these constructs in the model and use a renderer that explicitly supports them rather than deleting them to pass admission. A specification that supplies a generated property as input never compiles (`PLAY0485`), so Stage plans nothing for it.
 
 Build target-local indexes keyed by `SemanticId`. Use `ExecutableSemanticModel` and `SemanticExecutionPlan` mappings for command production, destinations, properties, projection transitions, affected-instance keys, queries, and typed specification values. Never join artifacts by a short or display name.
 

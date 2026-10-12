@@ -4,6 +4,7 @@
 using System.Globalization;
 using Cratis.Chronicle;
 using Cratis.Chronicle.EventSequences;
+using Cratis.Stage;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Host;
@@ -126,6 +127,9 @@ if (warmMode)
     return;
 }
 
+SemanticReadModelBrowser.MapEventModel(app);
+SemanticHost.MapReadModelBrowserPage(app);
+
 if (issues.Count > 0)
 {
     SemanticHost.MapRefused(app, issues, StageRuntimeEngineSelection.Name(engine));
@@ -168,7 +172,7 @@ app.MapGet("/stage/status", () => new StageStatus("ready", new StageStatusModel(
 // with 405 Method Not Allowed, which reads as a broken endpoint rather than an occupied stage - and the pool
 // looking for somewhere to put a play session treated it as a fault instead of moving on to the next stage.
 app.MapPost("/stage/load", () => Results.Conflict());
-app.MapGet("/stage/scene", () => Results.Json(sceneRoutes.Scene, StageJson.Options));
+app.MapGet("/stage/scene", () => Results.Json(sceneRoutes.Scene, StageSceneJson.Options));
 
 // What an interaction needs that an element does not: where a command named anywhere in the model is posted.
 // Served alongside the scene rather than folded into it, because it answers a question about the running

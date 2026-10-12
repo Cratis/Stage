@@ -68,6 +68,7 @@ internal static class SemanticHost
         app.UseCratisChronicle();
         app.MapPost("/stage/load", () => Results.Conflict());
         app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
+        MapReadModelBrowserPage(app);
 
         if (surface is null)
         {
@@ -79,6 +80,7 @@ internal static class SemanticHost
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
         SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
+        SemanticReadModelBrowser.Map(app, app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null);
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();
@@ -142,6 +144,11 @@ internal static class SemanticHost
         }
     }
 
+    // Endpoint routing ignores trailing slashes. Match the exact path so the canonical URL never redirects to itself.
+    internal static void MapReadModelBrowserPage(IApplicationBuilder app) => app.MapWhen(
+        context => HttpMethods.IsGet(context.Request.Method) && context.Request.Path == "/read-models/",
+        branch => branch.Run(context => Results.Redirect($"../read-models{context.Request.QueryString}").ExecuteAsync(context)));
+
     internal static void MapSceneEndpoints(WebApplication app, SceneApplication scene, string modelPath)
     {
         var routes = new StageSceneRoutes(scene, app.Services, app.Logger);
@@ -149,7 +156,7 @@ internal static class SemanticHost
 
         // The EventModel visitor names the application after its first modeled module (or EventModel
         // when none is declared), rather than after the source folder used by the semantic compiler.
-        app.MapGet("/stage/scene", () => Results.Json(routes.Scene, StageJson.Options));
+        app.MapGet("/stage/scene", () => Results.Json(routes.Scene, StageSceneJson.Options));
         app.MapGet("/stage/routes", () => Results.Json(new StageRoutes(routes.CommandRoutes, routes.QueryRoutes) { Diagnostics = routes.Diagnostics }, StageJson.Options));
         app.MapGet("/stage/locales", () => Results.Json(strings.Locales(), StageJson.Options));
         app.MapGet("/stage/strings/{locale}", (string locale) => Results.Json(strings.Dictionary(locale), StageJson.Options));
@@ -206,6 +213,12 @@ internal static class SemanticHost
             Engine = engine, Issues = issues
         });
         app.MapPost(SemanticSpecificationRuns.Route, (HttpContext context) => RefusedResponse(context, issues));
+        if (engine == "semantic")
+        {
+            app.MapGet(SemanticReadModelBrowser.Route, (HttpContext context) => RefusedResponse(context, issues));
+            app.MapGet($"{SemanticReadModelBrowser.Route}/{{id}}", (HttpContext context, string id) => RefusedResponse(context, issues));
+            app.MapFallbackToFile("/read-models", "index.html");
+        }
         MapRefusedApi(app, issues);
     }
 

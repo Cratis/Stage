@@ -4,6 +4,7 @@
 /** What executing a modeled command came back with. */
 export interface StageCommandOutcome {
     isSuccess: boolean;
+    response?: unknown;
     validationErrors: { member: string; message: string }[];
 
     /** Why the command did not run or failed, as a person should read it. Empty on success. */
@@ -30,9 +31,9 @@ export async function executeStageCommand(command: string, route: string, values
 
     if (!response.ok) return { isSuccess: false, validationErrors: [], messages: [`“${command}” failed with ${response.status}.`] };
 
-    const result = await response.json() as { isSuccess?: boolean; validationResults?: { message: string; members: string[] }[]; exceptionMessages?: string[] };
+    const result = await response.json() as { isSuccess?: boolean; response?: unknown; validationResults?: { message: string; members: string[] }[]; exceptionMessages?: string[] };
     const validationErrors = (result.validationResults ?? []).map(_ => ({ member: _.members[0] ?? '', message: _.message }));
     const isSuccess = result.isSuccess !== false && validationErrors.length === 0;
     const messages = isSuccess ? [] : [...validationErrors.map(_ => _.message), ...(result.exceptionMessages ?? [])];
-    return { isSuccess, validationErrors, messages: isSuccess || messages.length > 0 ? messages : [`“${command}” was not accepted.`] };
+    return { isSuccess, response: isSuccess ? result.response : undefined, validationErrors, messages: isSuccess || messages.length > 0 ? messages : [`“${command}” was not accepted.`] };
 }

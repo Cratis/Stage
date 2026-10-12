@@ -14,7 +14,7 @@ public class with_an_esm_v7_model : Specification
 {
     ArtifactRenderPlan _plan = null!;
 
-    void Because() => _plan = invoice_model.Plan(a_whole_number_model.Compile(SemanticVersion.V7, a_whole_number_model.Source.Replace("900719925474099", "2147483647", StringComparison.Ordinal)));
+    void Because() => _plan = invoice_model.Plan(a_whole_number_model.Compile(SemanticVersion.V7, a_whole_number_model.Source.Replace("9007199254740991", "2147483647", StringComparison.Ordinal)));
 
     string Text(string suffix) => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith(suffix, StringComparison.Ordinal)).Bytes.AsSpan());
 

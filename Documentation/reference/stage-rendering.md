@@ -60,6 +60,19 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
+Stage uses Screenplay 4.137.0 and explicitly admits ESM v11's corrected Double-mode literal lowering.
+For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
+`9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction
+`0.10000000000000002` renders as `0.10000000000000002m`. Command inputs, event payloads,
+validation operands, projection constants and generated specification expectations preserve those
+retained ESM values.
+
+A retained non-route number whose legacy lowering would lose digits selects language/semantic v11
+and schema 11. Already-lossless route literals and route-feeding inputs alone keep their earlier
+version. Reading a v1–v10 model does not change its numbers. Source still uses Double mode with whole
+numbers limited to ±9007199254740991; v11 neither admits `numbers exact` nor promises arbitrary-precision
+arithmetic. Generated fractions use C# `decimal`, not the full binary expansion of a Double value.
+
 Moving an existing model from v7 to v8 widens stored event schemas from int32 to int64. Chronicle refuses
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
@@ -97,6 +110,43 @@ The semantic executor, Host and generated C# validators use the same rule.
 The topbar, sidebar, menu, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them:
 the menu lists the model's screens, the breadcrumb shows the current one, and the topbar carries the blueprint's
 theme switcher and, when the model declares more than one locale, a locale picker.
+
+### Authored navigation hierarchy
+
+When a feature declares `contribute to Navigation` entries, the menu is the application hierarchy the model wrote
+instead of a flat list of screen names: a group for the module and for each feature, nested as deep as the model
+nests features, with each entry under the feature that contributed it and ordered by its `order`. An entry links to
+the screen it opens; the current screen is marked, and the breadcrumb shows the groups leading to it. A feature's
+entry reaches the runtime on every screen of that feature and is shown once. A model with no navigation entries keeps
+the flat list of screens.
+
+A navigation entry carries everything it was authored with. Its `id`, `icon`, `presentation` and `group` reach the
+runtime, and a `destination outlet|dialog|external` composes with its `navigate to` into one Scene destination: the
+entry opens in the named outlet, opens the named dialog, or leaves the application. The `presentation` hint decides
+what the menu shows - `icon`, `text` or `both` (the default) - and an icon-only entry keeps its label as its accessible
+name. An entry that opens somewhere a plain link does not reach is executed by the Scene navigation host, the same as a
+toolbar item.
+
+A module's own `contribute to` reaches every screen beneath the module, recorded against the module alone, and a
+`contribute to` written inside a screen records the module and features the screen sits in. Every screen carries
+that place as `path`: the modules and features, outermost first, it was declared in. A screen no entry lists is
+shown under its own module and feature - beside the entries that do list screens there - instead of a single
+"Other screens" group, and the breadcrumb leads to it through that place. Only a screen declared outside any module
+has no place to be under and goes under "Other screens".
+
+### Navigation host, outlets, dialogs and toolbars
+
+The Stage does not keep a navigation state of its own. Where the user is - the screen in the primary region, the screens
+in nested outlets, the dialog on top - and the address (`#/Screen?parameter=value`) that reaches it belong to the Scene
+navigation host (`useSceneHistoryNavigation` over `createHashSceneHistory`), the same way a generated or embedded host
+runs them. Destinations resolve through Scene: a `core:outlet` renders the screen placed in it inside the Stage's data
+scope, a dialog destination opens the authored dialog template and closing it goes back, and an address that stands for an
+outlet destination restores the whole composition (the list with its details beside it), not just the details.
+
+A `toolbar` renders as `core:toolbar` with a `core:toolbarItem` for each item. An `action` item announces its command with
+its parameters read from the screen; a `navigate` or `dialog` item carries the destination it opens (`navigate` to the screen,
+or the dialog template) and executes it through the host. An item's `presentation` is honoured: `mode` is `icon`, `text` or
+`both`, and every other hint (`placement`, `density`, ...) is exposed to themes as a `data-scene-presentation-<name>` attribute.
 
 Themes are the blueprint's (`Scene Default Light` and `Scene Default Dark`). The active theme's colour scheme is
 mirrored onto the document root so PrimeReact overlays, which are portalled to `body`, follow it.

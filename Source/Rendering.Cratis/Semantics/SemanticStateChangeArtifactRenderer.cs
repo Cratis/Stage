@@ -70,11 +70,7 @@ internal static class SemanticStateChangeArtifactRenderer
         SemanticApplicationContext context,
         SemanticTypeSystem types)
     {
-        var name = Identifiers.ToPascalCase(command.Name);
-        var parameters = string.Join(", ", command.Properties.Select(_ => $"{types.Type(_.Type)} {Identifiers.ToPascalCase(_.Name)}"));
-        var destination = (SemanticResolvedExpression)SemanticDestinations.Of(command, command.Produces[0])!;
-        var destinationProperty = command.Properties.Single(_ => _.Id == destination.Target);
-        var destinationExpression = types.EventSourceExpression(Identifiers.ToPascalCase(destinationProperty.Name), destinationProperty.Type);
+        var results = new SemanticCommandResultRendering(command, context);
 
         var severities = command.Validations.Select(rule => rule.Severity)
             .Concat(command.Requirements.Select(requirement => requirement.Severity))
@@ -96,11 +92,7 @@ internal static class SemanticStateChangeArtifactRenderer
             builder.Attribute($"global::Cratis.Arc.Commands.ModelBound.BlockOnValidationSeverityAttribute(global::Cratis.Arc.Validation.ValidationResultSeverity.{floor})");
         }
 
-        builder.Attribute(SemanticAuthorizationAttributes.For(command, context))
-            .OpenBlock($"public record {name}({parameters}) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId")
-            .Line("/// <inheritdoc/>")
-            .ExpressionMember("public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId()", destinationExpression)
-            .BlankLine();
+        results.RenderDeclaration(builder);
         var hasOccurrence = command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
         var hasTags = command.Produces.Any(produced => !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty);
@@ -115,7 +107,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 if (mapping.Source is SemanticEventContextExpression) return "occurred";
                 if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                 var commandProperty = command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target);
-                var expression = Identifiers.ToPascalCase(commandProperty.Name);
+                var expression = SemanticCommandResultRendering.PropertyValue(commandProperty);
                 return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
             });
             return $"new {types.EventType(@event)}({string.Join(", ", arguments)})";
@@ -142,62 +134,66 @@ internal static class SemanticStateChangeArtifactRenderer
                 metadata.Add($"Tags = [{string.Join(", ", tags.Select(tag => System.Text.Json.JsonSerializer.Serialize(tag)))}]");
             }
 
-            var wrapper = $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({types.EventSourceExpression(Identifiers.ToPascalCase(targetProperty.Name), targetProperty.Type)}, {EventValue(produced)})";
+            var wrapper = $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({types.EventSourceExpression(SemanticCommandResultRendering.PropertyValue(targetProperty), targetProperty.Type)}, {EventValue(produced)})";
             return metadata.Count == 0 ? wrapper : $"{wrapper} {{ {string.Join(", ", metadata)} }}";
         }
 
-        if (routing.HasText)
+        results.RenderHandle(builder, WrappedEvent, () =>
         {
-            var eventResult = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
-            var result = $"global::OneOf.OneOf<{eventResult}, global::Cratis.Arc.Validation.ValidationResult>";
-            builder.OpenBlock($"public {result} Handle({(hasOccurrence ? "global::Cratis.Arc.IOperationContextAccessor operation" : string.Empty)})");
-            routing.RenderChecks(builder, result);
-            if (hasOccurrence)
+            if (routing.HasChecks)
             {
-                builder.Line($"var occurred = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);");
+                var eventResult = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
+                var result = $"global::OneOf.OneOf<{eventResult}, global::Cratis.Arc.Validation.ValidationResult>";
+                builder.OpenBlock($"public {result} Handle({(hasOccurrence ? "global::Cratis.Arc.IOperationContextAccessor operation" : string.Empty)})");
+                routing.RenderChecks(builder, result);
+                if (hasOccurrence)
+                {
+                    builder.Line($"var occurred = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);");
+                }
+                var events = command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(WrappedEvent))} }}";
+                builder.Line($"return {result}.FromT0({events});").EndBlock();
             }
-            var events = command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(WrappedEvent))} }}";
-            builder.Line($"return {result}.FromT0({events});").EndBlock();
-        }
-        else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null)
-        {
-            var @event = context.Events[command.Produces[0].EventContract];
-            var arguments = @event.Properties.Select(property =>
+            else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null)
             {
-                var mapping = command.Produces[0].Mappings.Single(_ => _.TargetProperty == property.Id);
-                if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
-                var source = (SemanticResolvedExpression)mapping.Source;
-                var commandProperty = command.Properties.Single(_ => _.Id == source.Target);
-                var expression = Identifiers.ToPascalCase(commandProperty.Name);
-                return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
-            });
-            builder.ExpressionMember($"public {types.EventType(@event)} Handle()", $"new({string.Join(", ", arguments)})");
-        }
-        else if (!hasOccurrence)
-        {
-            var events = command.Produces.Select(WrappedEvent);
-            if (command.Produces.Length == 1)
+                var @event = context.Events[command.Produces[0].EventContract];
+                var arguments = @event.Properties.Select(property =>
+                {
+                    var mapping = command.Produces[0].Mappings.Single(_ => _.TargetProperty == property.Id);
+                    if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
+                    var source = (SemanticResolvedExpression)mapping.Source;
+                    var commandProperty = command.Properties.Single(_ => _.Id == source.Target);
+                    var expression = SemanticCommandResultRendering.PropertyValue(commandProperty);
+                    return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
+                });
+                builder.ExpressionMember($"public {types.EventType(@event)} Handle()", $"new({string.Join(", ", arguments)})");
+            }
+            else if (!hasOccurrence)
             {
-                builder.ExpressionMember("public global::Cratis.Chronicle.EventSequences.EventForEventSourceId Handle()", events.Single());
+                var events = command.Produces.Select(WrappedEvent);
+                if (command.Produces.Length == 1)
+                {
+                    builder.ExpressionMember("public global::Cratis.Chronicle.EventSequences.EventForEventSourceId Handle()", events.Single());
+                }
+                else
+                {
+                    builder.ExpressionMember("public global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
+                }
             }
             else
             {
-                builder.ExpressionMember("public global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId> Handle()", $"[{string.Join(", ", events)}]");
-            }
-        }
-        else
-        {
-            var result = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
+                var result = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
 
-            // Chronicle's MongoDB event context retains UTC milliseconds. Normalize the payload
-            // and append context together so a stored replay sees identical occurrence values.
-            builder.OpenBlock($"public {result} Handle(global::Cratis.Arc.IOperationContextAccessor operation)")
-                .Line($"var occurred = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);")
-                .Line($"return {(command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(WrappedEvent))}]")};")
-                .EndBlock();
-        }
+                // Chronicle's MongoDB event context retains UTC milliseconds. Normalize the payload
+                // and append context together so a stored replay sees identical occurrence values.
+                builder.OpenBlock($"public {result} Handle(global::Cratis.Arc.IOperationContextAccessor operation)")
+                    .Line($"var occurred = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);")
+                    .Line($"return {(command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(WrappedEvent))}]")};")
+                    .EndBlock();
+            }
+        });
 
         builder.EndBlock().BlankLine();
+        results.RenderResponseType(builder);
     }
 
     static IEnumerable<SemanticValidationRule> ReferencedValidations(

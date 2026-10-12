@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using SceneContributionPoints = Cratis.Scene.Model.ContributionPoints;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneModel = Cratis.Scene.Model.Interactions;
 using SceneScreens = Cratis.Scene.Model.Screens;
@@ -93,24 +94,32 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     {
         var forms = module.Forms?.ToList() ?? [];
         var inherited = scope.Resolve(module.Behaviors, module.UsedBehaviors, module.Name);
+
+        // What a module contributes belongs to every screen beneath it, recorded against the module alone.
+        IReadOnlyList<string> path = [module.Name];
+        IReadOnlyList<SceneContributionPoints.Contribution> contributed = [.. (module.Contributions ?? [])
+            .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{module.Name}.contribution[{index}]", path))];
         foreach (var feature in module.Features)
         {
-            ConvertFeatureScreens(feature, module.Name, layoutName, forms, screens, scope, inherited);
+            ConvertFeatureScreens(feature, path, layoutName, forms, screens, scope, inherited, contributed);
         }
     }
 
     static void ConvertFeatureScreens(
         ScreenplaySyntax.FeatureSyntax feature,
-        string featurePath,
+        IReadOnlyList<string> parentPath,
         string layoutName,
         IReadOnlyList<ScreenplaySyntax.FormSyntax> forms,
         List<SceneScreens.Screen> screens,
         BehaviorScope scope,
-        IReadOnlyList<SceneModel.Behavior> inherited)
+        IReadOnlyList<SceneModel.Behavior> inherited,
+        IReadOnlyList<SceneContributionPoints.Contribution> moduleContributions)
     {
-        var path = $"{featurePath}.{feature.Name}";
-        var contributions = (feature.Contributions ?? [])
-            .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{path}.contribution[{index}]"))
+        IReadOnlyList<string> hierarchy = [.. parentPath, feature.Name];
+        var path = string.Join('.', hierarchy);
+        var contributions = moduleContributions
+            .Concat((feature.Contributions ?? [])
+                .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{path}.contribution[{index}]", hierarchy)))
             .ToList();
 
         // Outermost first: a module's behaviors precede a feature's, which precede the screen's own. That is the
@@ -120,11 +129,11 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         screens.AddRange(feature.Slices
             .SelectMany(slice => slice.Screens)
-            .Select(screen => ScreenConverter.Convert(screen, layoutName, forms, contributions, scope, inheritedHere)));
+            .Select(screen => ScreenConverter.Convert(screen, layoutName, forms, contributions, scope, inheritedHere, hierarchy)));
 
         foreach (var subFeature in feature.Features)
         {
-            ConvertFeatureScreens(subFeature, path, layoutName, forms, screens, scope, inheritedHere);
+            ConvertFeatureScreens(subFeature, hierarchy, layoutName, forms, screens, scope, inheritedHere, moduleContributions);
         }
     }
 }

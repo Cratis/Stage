@@ -14,6 +14,7 @@ internal static partial class SemanticCommandSpecificationRenderer
 {
     static void RenderAccepted(SpecificationScope scope)
     {
+        var generated = new SemanticGeneratedCommandSpecification(scope.Specification, scope.Command, scope.Types);
         var builder = scope.Builder;
         var specification = scope.Specification;
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
@@ -34,7 +35,7 @@ internal static partial class SemanticCommandSpecificationRenderer
 
         foreach (var (expected, index) in Indexed(specification.ThenEvents))
         {
-            RenderOrderedEvent(scope, expected, index);
+            RenderOrderedEvent(scope, expected, index, generated);
         }
     }
 
@@ -82,16 +83,14 @@ internal static partial class SemanticCommandSpecificationRenderer
         }
     }
 
-    static void RenderOrderedEvent(SpecificationScope scope, SemanticSpecificationEvent expected, int index)
+    static void RenderOrderedEvent(SpecificationScope scope, SemanticSpecificationEvent expected, int index, SemanticGeneratedCommandSpecification generated)
     {
         var builder = scope.Builder;
         var context = scope.Context;
         var types = scope.Types;
-        var specification = scope.Specification;
         var @event = context.Events[expected.EventContract];
         var produced = scope.Command.Produces[index];
-        var source = SemanticDestinations.ForSpecification(specification, scope.Command, produced);
-        if (SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
+        if (generated.DestinationNeedsCommon(produced) ||
             PropertyValuesNeedCommon(@event.Properties, expected.Values))
         {
             builder.Using(context.CommonNamespace);
@@ -100,9 +99,9 @@ internal static partial class SemanticCommandSpecificationRenderer
         var predicate = @event.Properties.IsEmpty ? "true" : string.Join(" && ", @event.Properties.Select(property =>
         {
             var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
-            return EventPropertyPredicate(property, value, types, index);
+            return generated.EventPredicate(produced, property, EventPropertyPredicate(property, value, types, index));
         }));
-        var sourceValue = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
+        var sourceValue = generated.DestinationExpression(produced);
         var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
         if (IsPlainSingleEvent(scope, expected))
         {

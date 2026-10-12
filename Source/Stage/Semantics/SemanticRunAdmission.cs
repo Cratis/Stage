@@ -57,7 +57,7 @@ public static class SemanticRunAdmission
     /// <param name="specification">The specification.</param>
     /// <returns>The precise capability refusals.</returns>
     public static IEnumerable<SemanticAdmissionFeature> SpecificationFeatures(SemanticSpecification specification) =>
-        SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)).Select(Feature);
+        RunSpecificationFeatures(specification).Select(Feature);
 
     /// <summary>
     /// Returns the first unsupported construct in deterministic precedence order.
@@ -156,7 +156,10 @@ public static class SemanticRunAdmission
             if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");
         }
         if (specification.WhenAppended is not null) return SemanticRunProjectionAdmission.Check(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
-        if (specification.When is not { } when) return Block(StageExecutionCapability.Specification, specification.Id, "Only command or direct-append specifications are admitted.");
+        if (specification.When is not { } when)
+        {
+            return SemanticRunProjectionAdmission.Check(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
+        }
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
         if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, command.Id, "Command property names collide in generated C#.");
         foreach (var emitted in command.Produces)
@@ -215,18 +218,24 @@ public static class SemanticRunAdmission
     static SemanticAdmissionFeature Feature(SemanticVersionFeature feature) => new(feature.Artifact.ToString(), feature.Kind, feature.Capability.ToString(), $"{feature.Code}: {feature.Message}");
 
     // ESM v5-v10 constructs Stage cannot execute block the run rather than being skipped: a reaction's follow-up work,
-    // an absence assertion, a generated value or a response would otherwise be dropped and the run could pass.
+    // a generated value or a response would otherwise be dropped and the run could pass.
     // Any automation construct in the model blocks every run, since its consequences could follow any command.
     static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
         var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
             .Concat(slices.SelectMany(slice => SemanticVersionFeatures.InSlice(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
-            .Concat(SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)))
+            .Concat(RunSpecificationFeatures(specification))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))
             .FirstOrDefault();
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
+
+    // Rendering keeps its own absence refusal; the per-run engine compares the keyed instance collection.
+    static IEnumerable<SemanticVersionFeature> RunSpecificationFeatures(SemanticSpecification specification) =>
+        SemanticVersionFeatures.InSpecification(specification)
+            .Except(SemanticVersionFeatures.RoutesInSpecification(specification))
+            .Where(feature => feature.Code != SemanticVersionFeatures.Absence);
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
         feature.Slices.Concat(feature.Features.SelectMany(AllSlices));

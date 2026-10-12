@@ -240,18 +240,14 @@ internal static partial class SemanticCratisAdmission
             diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' has a fixture route whose stream identity cannot be formatted portably.", specification.Id));
         }
 
-        if (DiscardsRoutedFixtures(context, specification, fixtures.Length))
+        // Companion scenarios replay actual command routes, even if a then-event leaves its route unspecified.
+        if ((!specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
+            SemanticSpecificationRouteRendering.ForCommand(specification, context) is { } commandRoute &&
+            !SemanticSpecificationRouteRendering.CanFormat(commandRoute, context))
         {
-            diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' requires a read-model or query scenario that preserves routed replay fixtures (Cratis/Chronicle#4738).", specification.Id));
+            diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' has a command replay route whose stream identity cannot be formatted portably.", specification.Id));
         }
     }
-
-    // ReadModelScenario collects only source ids and event content, not routes. Do not seed a routed
-    // fixture into its projected/query companion specification with the route silently discarded.
-    static bool DiscardsRoutedFixtures(SemanticApplicationContext context, SemanticSpecification specification, int routedFixtures) =>
-        specification.WhenAppended is null &&
-        (specification.When is null || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
-        (routedFixtures > 0 || (specification.When is { } action && context.Commands[action.Command].Route is not null));
 
     static bool IsProperty(SemanticExpression? expression, SemanticExpressionRootKind root, IEnumerable<SemanticId> candidates) =>
         expression is SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property } resolved &&

@@ -18,7 +18,7 @@ public class with_occurred : given.a_routed_command
     }
     void Because() => Plan();
 
-    [Fact] void should_preserve_both_route_and_occurrence() => _code.Contains("EventStreamId = global::InvoiceApp.GeneratedEventSources.StreamIds.Integer(Month.Value), Occurred = occurred", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_preserve_both_route_and_occurrence() => _code.Contains("EventStreamId = streamIdPart0, Occurred = occurred", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_read_the_dispatch_receipt() => _code.Contains("CommandReceiptTime.OccurredAtReceipt(operation)", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_compile() => RenderedOutput.Errors(Files()).ShouldBeEmpty();
 }

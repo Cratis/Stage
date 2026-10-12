@@ -35,8 +35,8 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
         _bytes = Encoding.UTF8.GetBytes(CanonicalSceneJson.Serialize(_scene));
     }
 
-    [Fact] void should_pin_the_canonical_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("953eba4275d6d0b2357e3cb17f062e2960f5e4e956f214d076388361481c5dfb");
-    [Fact] void should_pin_the_canonical_scene_length() => _bytes.Length.ShouldEqual(18453);
+    [Fact] void should_pin_the_canonical_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("ec0f8749d79b89cbce128d1c54d4e205e88a78e6e556f0e5b466ade5b253d621");
+    [Fact] void should_pin_the_canonical_scene_length() => _bytes.Length.ShouldEqual(23735);
 
     [Fact] void should_declare_what_each_template_exposes() => _scene.Exposures.Select(exposure => exposure.Owner).ShouldContainOnly(["WorkspaceFeatureShell", "EditWorkItemDialog"]);
     [Fact] void should_expose_a_collection_with_its_operations() => Exposed("WorkspaceFeatureShell", "actions").Operations!.ShouldContainOnly([CollectionOperation.Add, CollectionOperation.Remove, CollectionOperation.Reorder, CollectionOperation.EditFields]);
@@ -58,10 +58,23 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
     [Fact] void should_weigh_each_grid_slot() => Grid.Children.OfType<FlowSlotLeaf>().Select(slot => $"{slot.SlotName}:{slot.Grow}").ShouldEqual(["list:1", "detail:2"]);
     [Fact] void should_span_each_grid_slot() => Grid.Children.OfType<FlowSlotLeaf>().Select(slot => slot.Span).ShouldEqual([1, 1]);
 
-    [Fact] void should_add_the_screens_own_contributions_after_its_scopes() => _scene.Screens.Single(screen => screen.Name == "WorkItemList").Contributions.Select(contribution => contribution.ContributionPointName).ShouldEqual(["Navigation", "WorkspaceActions", "Navigation"]);
+    [Fact] void should_add_the_screens_own_contributions_after_its_scopes() => _scene.Screens.Single(screen => screen.Name == "WorkItemList").Contributions.Select(contribution => contribution.ContributionPointName).ShouldEqual(["Navigation", "Navigation", "Navigation", "WorkspaceActions", "Navigation"]);
     [Fact] void should_navigate_into_an_outlet() => Destination.Outlet.ShouldEqual("details");
     [Fact] void should_mark_the_destination_as_an_outlet() => Destination.Kind.ShouldEqual(DestinationKind.Outlet);
     [Fact] void should_bind_the_route_parameter() => Destination.RouteParameterBindings!["workItemId"].ComponentPropertyPath.ShouldEqual("selectedItem.workItemId");
+
+    [Fact] void should_record_where_each_screen_was_declared() => _scene.Screens.All(screen => string.Join('/', screen.Path) == "Workspaces/Tracking").ShouldBeTrue();
+    [Fact] void should_carry_the_stable_id_of_a_navigation_entry() => Entry("Work items").Properties["id"].ShouldEqual("nav:work-items");
+    [Fact] void should_carry_the_icon_of_a_navigation_entry() => Entry("Work items").Properties["icon"].ShouldEqual("folder");
+    [Fact] void should_carry_the_presentation_of_a_navigation_entry() => Entry("Work items").Properties["presentation"].ShouldEqual("primary");
+    [Fact] void should_open_a_navigation_entry_in_its_outlet() => EntryDestination("Work items").Outlet.ShouldEqual("details");
+    [Fact] void should_open_a_navigation_entry_in_its_dialog() => string.Join('/', EntryDestination("Edit work item").Dialog, EntryDestination("Edit work item").Kind).ShouldEqual("EditWorkItemDialog/Dialog");
+    [Fact] void should_send_a_navigation_entry_to_an_external_route() => string.Join('/', EntryDestination("Help").Route, EntryDestination("Help").Kind).ShouldEqual("https://cratis.io/help/External");
+
+    ExternalComponent Entry(string label) => _scene.Screens.Single(screen => screen.Name == "WorkItemList").Contributions
+        .Select(contribution => contribution.Content).OfType<ExternalComponent>().Single(content => (string?)content.Properties.GetValueOrDefault("label") == label);
+
+    DestinationReference EntryDestination(string label) => (DestinationReference)Entry(label).Properties[SceneElementProperties.Destination]!;
 
     ScreenTemplate Shell => _scene.ScreenTemplates.Single(template => template.Name == "WorkspaceFeatureShell");
     FlowGrid Grid => All(((FlowArrangement)Shell.Arrangement!).Root).OfType<FlowGrid>().Single();
@@ -73,7 +86,7 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
         .SelectMany(Elements)
         .Select(element => element.Properties.GetValueOrDefault(SceneElementProperties.Destination))
         .OfType<DestinationReference>()
-        .Single(destination => destination.Outlet is not null);
+        .Single(destination => destination.Outlet is not null && destination.RouteParameterBindings!.ContainsKey("workItemId"));
 
     static IEnumerable<FlowNode> All(FlowNode node) =>
         node is FlowContainer container ? [node, .. container.Children.SelectMany(All)] : [node];

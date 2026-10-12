@@ -26,6 +26,6 @@ public class with_a_composite_stream_id : given.a_routed_command
     }
     void Because() => Plan();
 
-    [Fact] void should_format_parts_in_declaration_order() => _code.Contains("StreamIds.Composite(global::InvoiceApp.GeneratedEventSources.StreamIds.Uuid(AccountId.Value), global::InvoiceApp.GeneratedEventSources.StreamIds.Integer(Month.Value), \"a|b%\")", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_format_parts_in_declaration_order() => _code.Contains("StreamIds.Composite(global::InvoiceApp.GeneratedEventSources.StreamIds.Uuid(AccountId.Value), streamIdPart1, \"a|b%\")", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_compile() => RenderedOutput.Errors(Files()).ShouldBeEmpty();
 }

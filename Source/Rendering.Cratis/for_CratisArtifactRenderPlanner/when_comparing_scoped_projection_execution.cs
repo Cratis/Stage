@@ -148,7 +148,8 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
             compiled.Specifications.SetItem(spec.Id, spec),
             compiled.Constraints,
             compiled.Reactions,
-            compiled.Captures
+            compiled.Captures,
+            UnadmittedArtifacts(compiled)
         ]);
         var result = new SemanticSpecificationRunner().Run(reference, spec.Id);
         var accepted = Assert.IsType<SemanticAccepted>(result.Execution);
@@ -156,6 +157,10 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         return JsonSerializer.Serialize(new[] { First, Second }.Select(key => Snapshot(
             accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key), readModel, _model)));
     }
+
+    // The execution plan keeps what it did not admit internally; a reference plan assembled for a probe carries the same.
+    static object? UnadmittedArtifacts(SemanticExecutionPlan plan) =>
+        typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(plan);
 
     static object? Snapshot(SemanticReadModelInstance? instance, SemanticReadModel readModel, ExecutableSemanticModel model)
     {

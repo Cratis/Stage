@@ -25,6 +25,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var command = context.Commands[when.Command];
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
+        var generated = new SemanticGeneratedCommandSpecification(specification, command, types);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
         var ownNamespace = $"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}";
         var builder = new CSharpCodeBuilder()
@@ -33,17 +34,16 @@ internal static partial class SemanticCommandSpecificationRenderer
             .Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications")
             .Using("Xunit");
-        AddInputUsings(builder, specification, command, context, located);
+        AddInputUsings(builder, specification, command, context, located, generated);
 
         var commandName = types.SliceType(command.Id, command.Name);
-        var arguments = command.Properties.Select(property =>
-            types.Value(when.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+        var arguments = generated.Arguments();
         var scope = new SpecificationScope(builder, specification, command, context, types, SeedsEventLog(specification, command, context), commandName, arguments);
 
         RenderHeader(scope, behavior);
-        RenderEstablish(scope);
+        RenderEstablish(scope, generated);
         RenderBecause(scope);
-        RenderOutcome(scope);
+        RenderOutcome(scope, generated);
 
         builder.BlankLine()
             .ExpressionMember("public void Dispose()", "_scenario.Dispose()")
@@ -67,11 +67,10 @@ internal static partial class SemanticCommandSpecificationRenderer
         SemanticSpecification specification,
         SemanticCommand command,
         SemanticApplicationContext context,
-        LocatedSemanticSlice located)
+        LocatedSemanticSlice located,
+        SemanticGeneratedCommandSpecification generated)
     {
-        var when = specification.When!;
-        if (command.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
-            when.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type)))
+        if (command.Properties.Any(generated.NeedsCommon))
         {
             builder.Using(context.CommonNamespace);
         }
@@ -127,12 +126,11 @@ internal static partial class SemanticCommandSpecificationRenderer
         builder.BlankLine();
     }
 
-    static void RenderEstablish(SpecificationScope scope)
+    static void RenderEstablish(SpecificationScope scope, SemanticGeneratedCommandSpecification generated)
     {
         var builder = scope.Builder;
         var specification = scope.Specification;
-        var hasSetup = !specification.GivenEvents.IsEmpty || specification.GivenCaller is not null;
-        if (hasSetup)
+        if (generated.RequiresEstablish)
         {
             builder.OpenBlock(scope.SeedInLog ? "async global::System.Threading.Tasks.Task Establish()" : "void Establish()");
             if (scope.Command.Authorization is not null)
@@ -141,12 +139,14 @@ internal static partial class SemanticCommandSpecificationRenderer
             }
         }
 
+        generated.RenderFixtures(builder);
+
         foreach (var given in specification.GivenEvents)
         {
             RenderGivenEvent(scope, given);
         }
 
-        if (hasSetup)
+        if (generated.RequiresEstablish)
         {
             if (scope.CountsGivenEvents)
             {
@@ -208,7 +208,7 @@ internal static partial class SemanticCommandSpecificationRenderer
             .BlankLine();
     }
 
-    static void RenderOutcome(SpecificationScope scope)
+    static void RenderOutcome(SpecificationScope scope, SemanticGeneratedCommandSpecification generated)
     {
         if (scope.Specification.ThenDenied)
         {
@@ -220,7 +220,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         }
         else
         {
-            RenderAccepted(scope);
+            generated.RenderAccepted(scope.Builder, () => RenderAccepted(scope));
         }
     }
 

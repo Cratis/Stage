@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Xunit;
 
@@ -27,11 +28,14 @@ public class when_reading_shared_codec_vectors : given.a_compiled_codec
             {
                 if ((string)Invoke("Uuid", Guid.Parse(input)) != uuid.GetString()) _differences.Add(vector.ToString());
             }
-            else if (kind == "Int" && long.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer) && vector.TryGetProperty("canonical", out var number))
+            else if (kind == "Int" && vector.GetProperty("doubleBound").GetBoolean() && long.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer))
             {
-                if ((string)Invoke("Integer", integer) != number.GetString()) _differences.Add(vector.ToString());
+                var valid = FormatWholeNumber(integer, out var text);
+                var expected = vector.TryGetProperty("canonical", out var number);
+                if (valid != expected || (valid && text != number.GetString())) _differences.Add(vector.ToString());
             }
 
+            // doubleBound:false vectors are not applicable to executable routes and are deliberately separate.
             // Malformed UUIDs and integers outside Int64 are binder/literal admission vectors;
             // generated handlers receive a Guid or long, never authored scalar text.
         }
@@ -40,6 +44,11 @@ public class when_reading_shared_codec_vectors : given.a_compiled_codec
             var parts = vector.GetProperty("parts").EnumerateArray().Select(part => part.GetString()).ToArray();
             if ((string)Invoke("Composite", (object)parts) != vector.GetProperty("encoded").GetString()) _differences.Add(vector.ToString());
         }
+        var outOfRangeComposite = _vectors.RootElement.GetProperty("decode").EnumerateArray().Single(vector => vector.TryGetProperty("input", out var input) && input.GetString() == "9007199254740992|b");
+        var integerPart = long.Parse(Input(outOfRangeComposite).Split('|')[0], CultureInfo.InvariantCulture);
+        var actual = FormatWholeNumber(integerPart, out _);
+        var expectedComposite = SemanticStreamIdFormatter.TryDecodeComposite(Input(outOfRangeComposite), [StreamIdScalarKind.WholeNumber, StreamIdScalarKind.Text], out _, out _);
+        if (actual != expectedComposite || actual) _differences.Add(outOfRangeComposite.ToString());
     }
 
     [Fact] void should_match_every_applicable_shared_vector() => _differences.ShouldBeEmpty();

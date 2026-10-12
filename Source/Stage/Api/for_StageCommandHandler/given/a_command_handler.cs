@@ -42,6 +42,9 @@ public class a_command_handler : Specification
     protected StageCommandHandler HandlerProducing(ProducedEvent produced, ITenantIdAccessor? tenants = null) =>
         new(typeof(DynamicCommand), [], Definition("invoiceId") with { Produces = [produced] }, _appender, _identity, tenants ?? _tenants);
 
+    protected StageCommandHandler HandlerWith(string schema, params Cratis.Stage.Contracts.Rules.CommandPropertyRules[] rules) =>
+        new(typeof(DynamicCommand), [], Definition("invoiceId") with { Schema = schema, Rules = rules }, _appender, _identity, _tenants);
+
     protected static CommandContext ContextFor(string payload) =>
         new(
             CorrelationId.New(),

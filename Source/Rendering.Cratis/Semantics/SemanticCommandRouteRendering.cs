@@ -15,9 +15,9 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="context">The indexed semantic application.</param>
 internal sealed class SemanticCommandRouteRendering(SemanticCommand command, SemanticApplicationContext context)
 {
-    readonly List<(string Expression, string Variable, string Member)> _textParts = [];
+    readonly List<(string Expression, string Variable, string Member, SemanticPrimitiveType Primitive)> _checkedParts = [];
 
-    internal bool HasText => _textParts.Count > 0;
+    internal bool HasChecks => _checkedParts.Count > 0;
 
     string Helper => $"global::{context.RootNamespace}.GeneratedEventSources.StreamIds";
 
@@ -34,10 +34,14 @@ internal sealed class SemanticCommandRouteRendering(SemanticCommand command, Sem
 
     internal void RenderChecks(CSharpCodeBuilder builder, string result)
     {
-        foreach (var (expression, variable, member) in _textParts)
+        foreach (var (expression, variable, member, primitive) in _checkedParts)
         {
-            builder.OpenBlock($"if (!{Helper}.TryText({expression}, out var {variable}))")
-                .Line($"return {result}.FromT1(global::Cratis.Arc.Validation.ValidationResult.Error({CSharpCodeBuilder.StringLiteral($"Stream id property '{member}' must be nonempty, well-formed Unicode NFC text.")}, [{CSharpCodeBuilder.StringLiteral(member)}]));")
+            var method = primitive == SemanticPrimitiveType.Text ? "TryText" : "TryInteger";
+            var message = primitive == SemanticPrimitiveType.Text
+                ? $"Stream id property '{member}' must be nonempty, well-formed Unicode NFC text."
+                : $"Stream id property '{member}' must be between -9007199254740991 and 9007199254740991.";
+            builder.OpenBlock($"if (!{Helper}.{method}({expression}, out var {variable}))")
+                .Line($"return {result}.FromT1(global::Cratis.Arc.Validation.ValidationResult.Error({CSharpCodeBuilder.StringLiteral(message)}, [{CSharpCodeBuilder.StringLiteral(member)}]));")
                 .EndBlock();
         }
     }
@@ -62,17 +66,16 @@ internal sealed class SemanticCommandRouteRendering(SemanticCommand command, Sem
         var property = command.Properties.Single(property => property.Id == ((SemanticResolvedExpression)value).Target);
         var member = Identifiers.ToPascalCase(property.Name);
         var expression = type.Kind == SemanticTypeReferenceKind.Concept ? $"{member}.Value" : member;
-        if (primitive == SemanticPrimitiveType.Text)
+        if (primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber)
         {
             // Property names cannot be a lower-case local name after generated PascalCase admission.
             var variable = $"streamIdPart{index}";
-            _textParts.Add((expression, variable, member));
+            _checkedParts.Add((expression, variable, member, primitive));
             return variable;
         }
         return primitive switch
         {
             SemanticPrimitiveType.Uuid => $"{Helper}.Uuid({expression})",
-            SemanticPrimitiveType.WholeNumber => $"{Helper}.Integer({expression})",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
         };
     }

@@ -28,6 +28,12 @@ are carried by ESM v13 but do not change the generated attribute. Reasons are au
 not ESM members. Opt-in details remain a syntax-renderer feature ([Stage #259](https://github.com/Cratis/Stage/issues/259)).
 Unmarked models retain their earlier ESM version and byte-identical artifacts.
 
+The semantic renderer and Host refuse non-text `secret` concepts with `STAGE-ESM-041`:
+`Int`, `Decimal`, `Bool`, `Date`, `DateTime`, and `Uuid`. Chronicle cannot yet safely store
+non-text secrets ([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)). Use text-backed
+secrets without removing their classification. This refusal does not apply to `pii secret`, which
+uses PII protection only.
+
 On the semantic path, each command input that transitively contains any compliance-marked concept
 (`pii`, `secret`, or both) also gets
 `[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]`. This uniform rule includes

@@ -38,6 +38,8 @@ public class when_encrypting_against_the_pinned_kernel
         var client = app.Services.GetRequiredService<IChronicleClient>();
         var plan = compiled_plan.From(a_compliance_store.Source);
         Assert.Empty(new SemanticRuntimeAdmission(plan).Blocking);
+        var nonTextSecret = compiled_plan.From(a_compliance_store.Source.Replace("AccessToken : String secret", "AccessToken : Int secret", StringComparison.Ordinal));
+        Assert.StartsWith("STAGE-ESM-041:", Assert.Single(new SemanticRuntimeAdmission(nonTextSecret).Blocking).Details);
         await SemanticChronicleRegistration.Register(client, name, plan);
         var appender = new SemanticFactAppender(client, new StageEventStoreName(name), plan);
         var runtime = SemanticRuntimeHosting.Create(plan, appender);
@@ -95,9 +97,7 @@ public class when_encrypting_against_the_pinned_kernel
         foreach (var (classification, primitive, optional, value) in new (string, string, bool, object)[]
         {
             ("pii", "String", true, "optional-personal"),
-            ("secret", "String", true, "optional-secret"),
-            ("secret", "Int", false, 41),
-            ("secret", "Bool", false, true)
+            ("secret", "String", true, "optional-secret")
         })
         {
             try

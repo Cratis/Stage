@@ -151,6 +151,10 @@ The semantic Stage Host encrypts personal-data and secret concept values at rest
 like rendered applications, and releases them on read. Personal-data erasure uses Chronicle's
 key deletion keyed by the event source; explicit subject lineage remains
 [Stage #28](https://github.com/Cratis/Stage/issues/28). Existing Play stores retain earlier plaintext events.
+The semantic Host and renderer refuse non-text `secret` concepts (`Int`, `Decimal`, `Bool`,
+`Date`, `DateTime`, and `Uuid`) with `STAGE-ESM-041` until Chronicle can safely store them
+([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)). `pii secret` uses PII only and
+is not subject to this refusal. Keep secrets text-backed and retain their classification.
 The renderer refuses compliance on identity uses or enums with `STAGE-ESM-040`;
 see [Concept compliance rendering](../reference/compliance-rendering.md).
 The semantic engine executes command routes, registers named sources and streams with Chronicle on every

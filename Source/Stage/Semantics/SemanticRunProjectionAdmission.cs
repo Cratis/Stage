@@ -57,6 +57,14 @@ internal static class SemanticRunProjectionAdmission
         return null;
     }
 
+    internal static SemanticUnsupportedCapability? CheckFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact)
+    {
+        // Reuse the same concrete source/key checks as fixture admission before a reaction fact is appended.
+        var fixture = new SemanticSpecification(fact.EventContract, "Reaction production", [fact], [], null, [], [], [], []);
+
+        return Check(plan, fixture, [fact.EventContract]);
+    }
+
     internal static string QueryType(SemanticTypeReference type, SemanticExecutionPlan plan) =>
         type.Kind switch
         {

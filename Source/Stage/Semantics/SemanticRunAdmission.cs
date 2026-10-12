@@ -154,10 +154,10 @@ public static class SemanticRunAdmission
             if (!GeneratedPascalCase.EventMembersAreUnique(givenContract.Name, givenContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, givenContract.Id, "Event property names collide in generated C#.");
             if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");
         }
-        if (specification.WhenAppended is not null) return SemanticRunProjectionAdmission.Check(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
+        if (specification.WhenAppended is not null) return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
         if (specification.When is not { } when)
         {
-            return SemanticRunProjectionAdmission.Check(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
+            return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
         }
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
         if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, command.Id, "Command property names collide in generated C#.");
@@ -183,7 +183,7 @@ public static class SemanticRunAdmission
         // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
         var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? command.Produces.Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
-        if (SemanticRunProjectionAdmission.Check(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
+        if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
         if (command.Properties.Any(property => !Scalar(property.Type)) ||
             command.Produces.Any(produced => !plan.Events.TryGetValue(produced.EventContract, out var eventContract) || eventContract.Properties.Any(property => !Scalar(property.Type))))
@@ -213,6 +213,15 @@ public static class SemanticRunAdmission
         }
         return null;
     }
+
+    /// <summary>
+    /// Checks a concrete reaction fact before it can reach per-run projection replay.
+    /// </summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="fact">The fact about to be appended.</param>
+    /// <returns>The projection refusal, or null when the fact is safe to project.</returns>
+    public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact) =>
+        SemanticRunProjectionAdmission.CheckFact(plan, fact);
 
     // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
     // Keep non-event triggers, opaque bodies and unsupported context mappings refused in both engines.

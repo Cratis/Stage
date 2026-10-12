@@ -149,10 +149,6 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var actionFacts = context.Facts.Count - specification.GivenEvents.Length;
         var reactions = new SemanticRunReactions(plan, context, specification.GivenEvents.Length, async fixture =>
         {
-            if (SemanticSpecificationAdmission.Check(plan, fixture) is { } blocker)
-            {
-                return Unsupported(slice, specification, blocker);
-            }
             var invoked = plan.Commands[fixture.When!.Command];
             var invokedType = runtimeTypes.ForCommand(invoked);
             var invokedContext = new SemanticRunContext(invokedType, invoked, fixture, options, runtimeTypes, eventScenario.EventLog, plan, context);
@@ -231,6 +227,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
         if (run.IsInvocation && InvocationContractFailure(context, run.Plan) is { } contractFailure) return Rejected(slice, expected, contractFailure);
         if (CommandInputOutcome(context, slice, run.Plan.Model.Application.Concepts, true) is { } inputOutcome) return Reframe(inputOutcome, slice, expected);
+        if (run.IsInvocation && SemanticSpecificationAdmission.Check(run.Plan, context.Specification) is { } blocker) return Unsupported(slice, expected, blocker);
         if (NeedsExplicitDestination(context))
         {
             return Unsupported(slice, expected, new(StageExecutionCapability.IdentityAllocation, context.Command.Id.ToString(), "An accepted command requires an explicit destination."));

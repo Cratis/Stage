@@ -12,7 +12,7 @@ internal static class SemanticExpectationComparer
     // Mirrors SemanticSpecificationRunner.Compare/CompareFacts for the admitted fact/error subset.
     internal static IReadOnlyList<string> Compare(SemanticSpecification expected, SemanticActualRun run, SemanticRejection? rejected = null)
     {
-        var (actual, _, plan, _) = run;
+        var plan = run.Plan;
         var rejection = rejected?.Message;
         var rejectionCode = rejected?.Code;
         var denied = rejected?.Denied ?? false;
@@ -59,12 +59,6 @@ internal static class SemanticExpectationComparer
 
         return failures;
     }
-
-    static IReadOnlyList<SemanticSpecificationEvent> Following(SemanticSpecification expected, SemanticActualRun run) =>
-        expected.WhenAppended is not null && run.Plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6) ? [.. run.Facts.Skip(run.ActionFacts ?? 1)] : run.Facts;
-
-    static IReadOnlyList<SemanticValue> ActionDestinations(SemanticActualRun run) =>
-        run.ActionFacts is { } count ? [.. run.Destinations.Take(count)] : run.Destinations;
 
     internal static IReadOnlyList<string> CompareResponse(SemanticSpecificationResponse? expected, SemanticExecutionResponse? actual) => expected switch
     {
@@ -123,6 +117,12 @@ internal static class SemanticExpectationComparer
     static IReadOnlyList<string> CompareResponseFields(SemanticRecordSpecificationResponse expected, SemanticRecordExecutionResponse actual) =>
         [.. expected.Fields.Where(field => !actual.Fields.Any(value => value.Name == field.Name && AreEqual(value.Value, field.Value)))
             .Select(field => $"Response field '{field.Name}' does not match the expected value.")];
+
+    static IReadOnlyList<SemanticSpecificationEvent> Following(SemanticSpecification expected, SemanticActualRun run) =>
+        expected.WhenAppended is not null && run.Plan!.Model.SemanticVersion.IsAtLeast(SemanticVersion.V6) ? [.. run.Facts.Skip(run.ActionFacts ?? 1)] : run.Facts;
+
+    static IReadOnlyList<SemanticValue> ActionDestinations(SemanticActualRun run) =>
+        run.ActionFacts is { } count ? [.. run.Destinations.Take(count)] : run.Destinations;
 
     static void CompareCommandDestination(SemanticSpecification expected, IReadOnlyList<SemanticValue> destinations, SemanticExecutionPlan? plan, List<string> failures)
     {

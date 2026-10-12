@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Semantics;
 using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Specifications;
@@ -126,6 +127,10 @@ internal sealed class SemanticRunReactions(
         {
             return SemanticRunReactionFailure.Reject(SemanticConstraintEvaluator.Message(violation), violation.Name);
         }
+        if (SemanticRunAdmission.CheckProjectionFact(plan, fact) is { } blocker)
+        {
+            return SemanticRunReactionFailure.Refused(blocker);
+        }
         await context.Append(fact, destination, cancellationToken);
 
         return null;
@@ -163,13 +168,18 @@ internal sealed record SemanticRunReactionFailure
 
     SemanticSpecificationRunRecord? Result { get; }
 
+    SemanticUnsupportedCapability? ProjectionBlocker { get; init; }
+
     internal static SemanticRunReactionFailure Reject(string message, string? code = null) => new(new(message, code), null, null);
 
     internal static SemanticRunReactionFailure Unsupported(string message) => new(null, message, null);
 
+    internal static SemanticRunReactionFailure Refused(SemanticUnsupportedCapability blocker) => new(null, null, null) { ProjectionBlocker = blocker };
+
     internal static SemanticRunReactionFailure Complete(SemanticSpecificationRunRecord result) => new(null, null, result);
 
-    internal SemanticSpecificationRunRecord ToRecord(SemanticSlice slice, SemanticSpecification specification) => Result ?? (UnsupportedMessage is { } message
+    internal SemanticSpecificationRunRecord ToRecord(SemanticSlice slice, SemanticSpecification specification) => ProjectionBlocker is { } blocker
+        ? SemanticSpecificationExecutor.Unsupported(slice, specification, blocker) : Result ?? (UnsupportedMessage is { } message
         ? SemanticSpecificationExecutor.Unsupported(slice, specification, new(StageExecutionCapability.Reaction, specification.Id.ToString(), message))
         : SemanticSpecificationExecutor.Rejected(slice, specification, Rejection!));
 }

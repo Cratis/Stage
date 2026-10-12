@@ -15,7 +15,8 @@ public class a_reaction_plan : Specification
 
     protected void Compile(string reaction, string expected, ReactionScenario? scenario = null)
     {
-        var (action, policy, authorization, commandProperties, declarations, caller, eventSources) = scenario ?? new ReactionScenario();
+        scenario ??= new ReactionScenario();
+        var (action, policy, authorization, commandProperties, declarations, caller, eventSources, commandDestination) = scenario;
         var source = $"""
             {policy}
             concept Token : Uuid
@@ -35,7 +36,7 @@ public class a_reaction_plan : Specification
             {Indent(commandProperties, 8)}
             {Indent(authorization, 8)}
                     produces Completed
-                      for item
+            {Indent(commandDestination, 10)}
                   event Started
                     item String
                     amount Decimal
@@ -92,6 +93,7 @@ public class a_reaction_plan : Specification
 /// <param name="Declarations">Extra slice declarations, such as constraints.</param>
 /// <param name="Caller">The specification's given caller.</param>
 /// <param name="EventSources">The event source declarations.</param>
+/// <param name="CommandDestination">The destination clause of the completing production.</param>
 public record ReactionScenario(
     string Action = "when append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1",
     string Policy = "",
@@ -99,4 +101,5 @@ public record ReactionScenario(
     string CommandProperties = "",
     string Declarations = "",
     string Caller = "",
-    string EventSources = "");
+    string EventSources = "",
+    string CommandDestination = "for item");

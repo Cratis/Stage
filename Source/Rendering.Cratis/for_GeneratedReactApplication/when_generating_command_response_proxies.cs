@@ -2,33 +2,74 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using System.Text;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Specs;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication.given;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication;
 
-public class when_generating_command_response_proxies(when_generating_command_response_proxies.context built)
+public class when_generating_command_response_proxies(when_generating_command_response_proxies.context built, ITestOutputHelper output)
     : IClassFixture<when_generating_command_response_proxies.context>
 {
-    [Fact] void should_build_the_rendered_backend_without_warnings() => built.Build.Output.ShouldContain("0 Warning(s)");
+    [Fact]
+    void should_build_the_rendered_backend_without_warnings()
+    {
+        output.WriteLine(built.Handlers);
+        output.WriteLine(built.Proxies);
+        built.Build.Output.ShouldContain("0 Warning(s)");
+    }
     [Fact] void should_type_the_scalar_response_with_the_uuid_value() => Assert.True(built.Proxies.Contains("export class RegisterProject extends Command<IRegisterProject, Guid> implements IRegisterProject {", StringComparison.Ordinal), built.Proxies);
     [Fact] void should_type_the_named_response_with_the_response_record() => Assert.True(built.Proxies.Contains("export class RegisterReceipt extends Command<IRegisterReceipt, RegisterReceiptResponse> implements IRegisterReceipt {", StringComparison.Ordinal), built.Proxies);
+    [Fact] void should_not_type_the_single_event_as_a_response() => Assert.True(built.Proxies.Contains("export class PublishProject extends Command<IPublishProject> implements IPublishProject {", StringComparison.Ordinal), built.Proxies);
+    [Fact] void should_not_type_the_event_collection_as_a_response() => Assert.True(built.Proxies.Contains("export class PublishProjectTwice extends Command<IPublishProjectTwice> implements IPublishProjectTwice {", StringComparison.Ordinal), built.Proxies);
+    [Fact] void should_type_the_scalar_response_alongside_the_event_collection() => Assert.True(built.Proxies.Contains("export class RegisterProjectTwice extends Command<IRegisterProjectTwice, Guid> implements IRegisterProjectTwice {", StringComparison.Ordinal), built.Proxies);
+    [Fact] void should_type_the_response_without_an_event() => Assert.True(built.Proxies.Contains("export class AllocateReceipt extends Command<IAllocateReceipt, Guid> implements IAllocateReceipt {", StringComparison.Ordinal), built.Proxies);
 
     public class context : Specification
     {
+        const string AdditionalCommands = """
+            slice StateChange PublishProject
+              command PublishProject
+                projectId ProjectId generated identifier
+                name String
+                produces event ProjectPublished
+                  name String = name
+            slice StateChange PublishProjectTwice
+              command PublishProjectTwice
+                projectId ProjectId generated identifier
+                name String
+                produces event FirstProjectPublication
+                  name String = name
+                produces event SecondProjectPublication
+                  name String = name
+            slice StateChange RegisterProjectTwice
+              command RegisterProjectTwice
+                projectId ProjectId generated identifier
+                name String
+                produces event FirstProjectRegistration
+                  name String = name
+                produces event SecondProjectRegistration
+                  name String = name
+                returns projectId
+        """;
+
         string _application = null!;
 
         public ProcessResult Build { get; private set; } = null!;
 
         public string Proxies { get; private set; } = null!;
 
+        public string Handlers { get; private set; } = null!;
+
         void Establish()
         {
-            var plan = invoice_model.Plan(invoice_model.Compile(a_generated_values_model.Source));
+            var plan = invoice_model.Plan(invoice_model.Compile($"{a_generated_values_model.Source}\n{AdditionalCommands}"));
             Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+            Handlers = string.Join(Environment.NewLine, plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).SelectMany(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Split('\n')).Where(line => line.Contains(" Handle(", StringComparison.Ordinal)));
             _application = SpecTemporaryRoot.NewPath("stage-response-proxies");
             Directory.CreateDirectory(_application);
             foreach (var artifact in plan.Artifacts)

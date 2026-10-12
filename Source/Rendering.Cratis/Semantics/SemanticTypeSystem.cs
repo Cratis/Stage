@@ -120,6 +120,17 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             : Type(reference);
 
     /// <summary>
+    /// Renders a query key according to the generated query parameter type.
+    /// </summary>
+    /// <param name="value">The specification key.</param>
+    /// <param name="reference">The query argument type.</param>
+    /// <returns>The primitive value for a validated concept, otherwise the declared value.</returns>
+    public string QueryArgumentValue(SemanticValue value, SemanticTypeReference reference) =>
+        value is not SemanticNullValue && ValidatedQueryConcept(reference) is { } concept
+            ? PrimitiveValue(value, concept.Primitive)
+            : Value(value, reference);
+
+    /// <summary>
     /// Finds a validated concept in a query argument, including nested properties.
     /// </summary>
     /// <param name="reference">The query argument type.</param>

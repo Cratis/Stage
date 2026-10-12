@@ -102,7 +102,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
     {
         var query = context.Queries[expected.Query];
         var argument = query.Argument ?? throw UnsupportedSemanticRendering.For("protected query argument", query.Name);
-        return new SemanticTypeSystem(context).Value(expected.Key, argument.Type);
+        return new SemanticTypeSystem(context).QueryArgumentValue(expected.Key, argument.Type);
     }
 
     static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> Replay(SemanticSpecification specification, SemanticReadModel readModel, SemanticApplicationContext context) =>

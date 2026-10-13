@@ -141,6 +141,15 @@ public class when_encrypting_against_the_pinned_kernel
         {
             Assert.Equal(expected.GetRawText(), released.RootElement.GetProperty("value").GetRawText());
         }
+        if (string.Equals(testCase.Primitive, "Decimal", StringComparison.Ordinal) || string.Equals(testCase.Primitive, "DateTime", StringComparison.Ordinal))
+        {
+            // The Host refuses to rebuild any Decimal or DateTime event property, protected or not, because Chronicle
+            // storage cannot round-trip them exactly. Encryption must not hide or change that refusal.
+            await Assert.ThrowsAsync<SemanticWorldRebuildRefused>(() => RebuiltValues(accessor, protectedStore, plan, appender));
+            Console.WriteLine($"PASS {testCase}: stored ciphertext; released {expected.GetRawText()}; rebuild refused as for unprotected values.");
+            return;
+        }
+
         AssertRebuiltValue(plan, await RebuiltValues(accessor, protectedStore, plan, appender), "value", expected);
         Console.WriteLine($"PASS {testCase}: stored {(testCase.Value is null ? "null" : "ciphertext")}; released and rebuilt {expected.GetRawText()}.");
     }

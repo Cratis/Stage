@@ -20,8 +20,9 @@ that decision. If not, note the need as a view and move on.
 
 - When people describe the same step differently, first check whether they describe different
   situations (two branches, two roles). Often both are right.
-- If it is a real disagreement, write both versions as an open question in STATE.md, take one
-  as the working assumption (say which), and continue. Do not stall the session on it.
+- If it is a real disagreement, record both versions in an anchored `question`
+  note; carry its note ID and working assumption in STATE.md. Say which assumption
+  you use and continue. Do not stall the session on it.
 - Domain experts decide business meaning; engineers decide feasibility. When only engineers
   are present, mark business-meaning decisions as assumptions to confirm.
 
@@ -38,17 +39,15 @@ that decision. If not, note the need as a view and move on.
 
 ## Unattended runs
 
-- Never block on a question. Take the most reasonable assumption, record it in STATE.md with
-  why, and mark it in the feature `description` when it shapes the model.
+- Never block on a question during discovery. Take a visible working assumption
+  and record it with its reason in an anchored `question` note, not chat or
+  `description` text. STATE.md carries the note ID.
 - Prefer assumptions that keep the model honest (fewer, clearly named facts) over ones that
   invent detail.
 
-## Evidence and privacy
-
-- Do not paste production data, customer records or personal data into hosted models or
-  sub-agents without the user's approval. Use invented examples in the model and in
-  specifications.
-- Classify personal data on the concept as soon as it shows up.
+Read `plotting-and-handoff.md` "Durable discovery questions" when recording or
+resolving a note with project decision `refs`. Never put secrets or personal data
+in notes. See "Evidence and privacy" in SKILL.md.
 
 ## Closing a session
 
@@ -58,6 +57,7 @@ that decision. If not, note the need as a view and move on.
 4. List assumptions taken.
 5. Per workflow give the happy path, the decision points and the terminal facts in a few lines.
 6. Propose the next step: the next workflow, or `cratis-screenplay-slice-design` for this one.
-7. Update STATE.md (phase, status, carry-forward); keep durable rationale in model
-   `description` text, which is rendered and queryable; `//` comments survive printing at
-   Screenplay v4.64.0, but check the dropped-comments report after any edit that cannot retain them.
+7. Update STATE.md (phase, status, carry-forward); keep durable rationale in fenced Markdown
+   `documentation`, summaries in `description`. At 4.127.0 canonical printing retains
+   documentation on its owner; MCP exposes it, but it changes no `modelRevision` and
+   reaches no rendered code. Inspect dropped comments after canonicalizing edits.

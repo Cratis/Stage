@@ -1,8 +1,8 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-slice-design/references/rule-layers.md -->
 # Rule layers
 
-Put each rule in the lowest layer where it is true for every caller. Descriptions never reach
-rendered code (Stage#178): a rule that exists only in prose is unenforced in rendered scope.
+Put each rule in the lowest layer where it is true for every caller. Descriptions reach rendered
+code only as XML doc comments (Stage#178): a rule that exists only in prose is unenforced in rendered scope.
 
 | Rule is about | Layer | Notes |
 |---|---|---|
@@ -10,23 +10,23 @@ rendered code (Stage#178): a rule that exists only in prose is unenforced in ren
 | a predicate that is not a comparison (checksum, registry format) | `rule <Name>` on the property or concept | design mode; blocks V3 (PLAY0268) |
 | this command's own inputs | command `validate` / `require` | a rule that applies only sometimes is an implication: `require a == false or b > c` |
 | who may ask | `authorize` with a policy (role, claim, authenticated) | enclosing gates combine with AND and run first. Gates every command and query in a feature shares go on the feature or module so a new path inherits them |
-| whose instance | policy `claim "x" matches subject` (the command identifier) or `matches <command property>` | executable; renders only for text-backed subjects (Uuid: STAGE-ESM-015) |
+| whose instance | policy `claim "x" matches subject` (the command identifier) or `matches <command property>` | executable; renders for text, Uuid, Date and DateTime subjects; an authorized command needs exactly one identifier (STAGE-ESM-015 otherwise) |
 | uniqueness, once-only facts | `constraint` (`unique ... on`, `unique event`) | append-time; the constraint name is its identity |
-| stored state (record exists, balance, current status) | `reads <View>` + `require <expr> message "..."` | stated intent, **NOT enforced in the model today** (PLAY0268/0271 at binding are expected in design mode; Screenplay#129/#209). Name the target: Arc `[ProtectedDecision]` + `DecisionRead<T>` (Arc 22.39.0 or later), Chronicle DCB (`concurrency` scope), or a constraint |
+| stored state (record exists, balance, current status) | `reads <View>` + `require <expr> message "..."` | stated intent, **NOT enforced in the model today** (PLAY0268/0271 at binding are expected in design mode; Screenplay#129). Name the target: Arc `[ProtectedDecision]` + `DecisionRead<T>` (Arc 22.39.0 or later), Chronicle DCB (`concurrency` scope), or a constraint |
 
 An unguarded materialized read is unsafe for a protected decision; a guarded read is the
-supported route. Availability: `[ProtectedDecision]` and `DecisionRead<T>` need Arc 22.39.0 or
-later and are **not available in Stage-rendered apps**, whose scaffold pins Arc 22.25.0 (Stage
-4.24.0); never edit the managed dependency files to get them. For rendered scope, record a
-capability gap (or a separately verified compatible enforcement path, such as a constraint or
-a Chronicle DCB scope) and keep the rule as NOT enforced. Forbidden: caller-supplied copies of state in `require`, boolean attestation
+supported route. Availability: `[ProtectedDecision]` and `DecisionRead<T>` exist in
+the Arc/Chronicle package set Stage 4.73.1 scaffolds (see the Stage skill's `references/rendered-application.md`), but Stage does not emit
+protected decisions. Gap-fill must use an admitted projection/key shape and active
+unit-of-work enrollment; do not edit managed dependencies. Keep the `.play` rule
+NOT enforced until its target enforcement is separately verified. Forbidden: caller-supplied copies of state in `require`, boolean attestation
 inputs (`confirmsX == true`), rules in `handler` / implementation-hint prose.
 
 ## Authorization is executable
 
 Persona Does/Reads/Cannot text is intent. Every Cannot line resolves to an `authorize` gate
-(policy or ownership claim) plus a `then denied` spec whose `given caller` carries the roles
-and claims standing for that persona; otherwise record a gap. Every command and query under an
+(policy or ownership claim) plus a `then denied` spec using `given caller as <Persona>` or an explicit
+caller for the effective gate; otherwise record a gap. Every command and query under an
 inherited module/feature `authorize` gets its own `then denied` spec. Ownership gates need a
 second caller with another claim value.
 
@@ -34,9 +34,10 @@ second caller with another claim value.
 
 Command property values are, by default, recorded in the causation chain of the events they
 produce, so treat them as permanent. Newer Chronicle versions can omit causation properties
-(`CausationPropertyRetention.Omit`, Chronicle v19.32.0); rendered apps pin Chronicle 19.8.1.
+(`CausationPropertyRetention.Omit`, Chronicle v19.32.0); Stage-rendered apps pin the Chronicle release listed in the Stage skill's `references/rendered-application.md` (not the latest).
 Verify the actual auditing and retention configuration before relying on omission, and never
-audit secrets. Never mark the identifier's
-concept `@pii`; use a surrogate `Uuid` identity and carry the personal value as a `@pii`
-property. Bearer tokens, magic links and signed URLs are never facts (record a keyed hash or
+audit secrets. Classify personal values as bare `pii` and operational secrets as
+`secret` on their concepts, never the identifier concept. Use a surrogate identity
+and protected payload (PLAY0515). Processing use/basis/retention is a `purpose`,
+not a reason; see command-surface `references/compliance.md`. Bearer tokens, magic links and signed URLs are never facts (record a keyed hash or
 reference).

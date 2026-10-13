@@ -1,6 +1,13 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-discovery/references/storming-loop.md -->
 # The storming loop on `.play`
 
+## Contents
+
+- One turn
+- Choosing the next question
+- When to stop
+- A discovery skeleton
+
 The model is the whiteboard. Every piece of input is turned into model edits first; the chat
 then reports what changed and asks one question. The user should always be able to look at the
 `.play` source and see the conversation so far.
@@ -23,7 +30,7 @@ then reports what changed and asks one question. The user should always be able 
    | rename | better business name for an existing fact | identity-affecting once persisted: see SKILL.md |
    | split | one name was covering two facts | keep the original if it is persisted; add the second |
    | merge | two names for one fact | only when they truly mean the same thing |
-   | reorder | the story order changed | update the feature `description`/STATE.md; files sort by name |
+   | reorder | the story order changed | change declaration/import order for the board; update the feature `documentation`/STATE.md for causes and branches |
    | drop | not a fact after all | record why in STATE.md |
    | none | already modeled | say so briefly |
 
@@ -59,10 +66,11 @@ open, start the sweep (`divergent-sweep.md`).
 ## A discovery skeleton
 
 What a model looks like after the first workflow has been stormed: no commands, read models
-or screens yet. Slices are named after the command expected to produce each event and are
-sorted by name when a folder layout is written back (a single document keeps authored order
-at v4.64.0), so the order of the story lives in the feature `description`, not in position. Persona
-`description` text holds Does / Reads / Cannot on one quoted line here; the multi-line fenced
+or screens yet. Slices are named after the command expected to produce each event. At
+Screenplay 4.125.0, boards use authored declaration/import order, and MCP `expand-layout`
+preserves it with imports. An import-less `PlayFileWriter.Expand` layout still falls back to
+path order. Order is presentation only; the feature `documentation` records causes and branches.
+Persona `description` text holds Does / Reads / Cannot on one quoted line here; the multi-line fenced
 form is in `personas-and-causes.md`.
 
 ```screenplay
@@ -115,6 +123,7 @@ module Moorings
         reason String
 ```
 
-Open questions that would sit in STATE.md next to it: is a declined request final or can it be
+Record anchored `question` notes for these uncertainties, carrying their note IDs
+in STATE.md: is a declined request final or can it be
 put on a waiting list; who may withdraw an assignment; must the season fee be remembered as
 set at assignment time (a decision, so a fact) or recalculated (a view)?

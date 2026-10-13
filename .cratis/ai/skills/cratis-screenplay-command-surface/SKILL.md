@@ -7,48 +7,82 @@ license: MIT
 
 # The Screenplay write surface
 
+Read [preferred syntax](../cratis-screenplay-toolchain/references/preferred-syntax.md) when writing or reviewing `.play`.
+
 Everything that changes the system: the `command` that expresses intent, the
 `event` it appends, the rules that can refuse it, and the strongly-typed values
 they are all built from.
 
 ## Locate the model
 
-Look first in `.cratis/screenplay/` at the repository root. This is the
-conventional home for consumer-owned `.play` source; do not invent another
-location or search the whole repository before checking it.
-
-`cratis ai install` manages `.cratis/ai/`, not `.cratis/screenplay/`. Never
-hand-copy Screenplay source between repositories. Keep Markdown that explains,
-questions or navigates the model in the repository's documentation; the `.play`
-source is the single flow model.
+Look first for the project's existing `.play` files: their folder is the model.
+For a new model, check `Source/` or `src/`, else use `Screenplay/` at the repository
+root. Never put a model under `.cratis/` or hand-copy it between repositories.
+`cratis ai install` manages `.cratis/ai/`, never model files. Keep explanatory
+Markdown in project documentation; `.play` is the single flow model.
 
 ## Verified product sources
 
-| Package | Version | Purpose |
-| --- | --- | --- |
-| `Cratis.Screenplay` | `4.31.0` | Original examples and executable boundaries |
-| `Cratis.Screenplay` | main `fd18129` | Inline events, repairs and canonical `optional`; changed examples compiled |
-| `Cratis.Screenplay` | `4.64.0` (`7e16162`) | Binding behaviour of `handler`, code attachments, `persona` and compliance attributes: `Semantics/SemanticModelBinder*.cs`, `Diagnostics/DiagnosticCodes.cs` |
+Pins: toolchain `references/versions.md`; sources below. Compilation is not execution.
 
-The update follows `commands.md`, `events.md`, `types.md`, `diagnostics.md`,
-`mcp/authoring-tools.md` and decision 0023 at that main commit (after v4.52.0).
-Compilation checks syntax and model consistency, not reference execution.
-
-Checked against the Screenplay repository at tag `v4.31.0` (commit `355dffb`):
-`Documentation/screenplay/{commands,constraints,policies,context,concepts,diagnostics}.md`
-and decisions 0001 and 0003 established the original baseline. Changed examples
-use the newer main commit above; do not attribute their verification to the old tag.
+- `4.31.0`: original examples and executable boundaries; main `fd18129`: inline events, repairs, canonical `optional`.
+- `4.66.0` (`c89198b`): `handler`, code attachments, `persona` and compliance binding (`Semantics/SemanticModelBinder*.cs`, `Diagnostics/DiagnosticCodes.cs`).
+- `4.68.0` (`79801bf`): generated-value/response rule probes (ESM v7).
+- `4.127.0`: identity and compliance syntax (`identity.md`, `context.md`, `concepts.md`, `purposes.md`, `events.md`, `diagnostics.md`).
+- `4.141.0`: v13 compliance admission; rechecked at `4.142.0`: `references/compliance.md`.
+- `4.148.0`: v15 generation strategies/strict fixtures/freshness; Stage `4.89.1` realization: `references/generated-values-and-responses.md`.
 
 "Parses" and "runs" are different claims. The executable profile, and what
 each construct binds to, is in the `cratis-screenplay-model-authoring` language
 reference.
 
-## The command block
-
-Excerpt: the concepts, the `InvoiceLine` type, the policy and the event are
-declared elsewhere in the model.
+## `concept` and `type`
 
 ```screenplay
+concept InvoiceId : Uuid
+concept DiscountPercentage : Decimal
+  validate
+    >= 0    message "A discount cannot be negative"
+    <= 100  message "A discount cannot exceed 100 percent"
+concept PersonName : String pii
+  pii reason "Identifies the billing contact."
+concept InvoiceStatus : Enum
+  draft
+  sent
+  paid
+```
+
+The seven primitives are `Uuid`, `String`, `Int`, `Decimal`, `Bool`, `Date` and
+`DateTime`. `Enum` is **not** one of them — it is a separate concept kind, which
+is why the compiler says *expected … or Enum* rather than listing it among them.
+Use bare `pii` (`personal` alias) and `secret` on concepts; **Compliance is inherited**.
+Keep protection even when a compiler or renderer refuses it. Read
+[compliance and purposes](references/compliance.md) for ESM v13, binder-only refusals,
+consumer ceilings, marker repairs, reasons, scopes and provider limits.
+
+**Identifiers cannot be personal data or secrets.** PLAY0515 is a source error
+for command identifiers, typed `for` destinations, event-source identities,
+scalar/composite stream-id types and nested route mapping sources, including legacy
+markers. Keep a surrogate identity and carry protected data in the payload.
+Chronicle likewise rejects `[PII]`/`[Encrypted]` identifiers (CHR0034/CHR0052).
+
+Read [enum numbers](references/enum-numbers.md) for `draft = 1`, unique int32
+all-or-none pins, stored/public identity safety, `enum-pinning`, ESM v12 and the
+CLI/Stage gap. Unnumbered enums keep positions; specifications use names.
+
+⚠️ **Enum trap.** A value literally named `validate` is read as an empty validate
+block. Write `@validate` for the value; the compiler warns when it sees the
+ambiguity.
+
+Use `type <Name>` for a composite shape (several properties) that events and
+commands reference; use `concept` for a single wrapped primitive.
+
+## The command block
+
+Excerpt: the concepts, `InvoiceLine`, policy and shared event are declared elsewhere.
+For a command-owned event, use the complete inline example in [inline events](references/inline-events.md).
+
+```screenplay excerpt
 command RegisterInvoice
   description "Registers a new invoice with its lines and payment terms"
   invoiceId      InvoiceId identifier
@@ -99,7 +133,7 @@ something whose identity the caller does not supply).
 Excerpt: the `Account` read model, its projection and its keyed query are
 declared elsewhere.
 
-```screenplay
+```screenplay excerpt
 command TransferFunds
   sourceId      AccountId
   destinationId AccountId
@@ -130,24 +164,16 @@ When a rule depends on state:
 - otherwise state the rule, and say in review that the target implementation
   must enforce it consistently. Do not claim the model guarantees it.
 
-Do not use `reads` to fetch data the caller could supply.
+Do not use `reads` to fetch data the caller could supply. A composite-key view's `by` block is
+`PLAY0268` (#599; read-surface `references/named-keys.md`).
 
 ## `validate`
 
 Each rule takes an optional `severity information|warning|error` and then an
 optional `message "<text>"` (or `$strings.<key>`). The default severity is `error`.
 
-| Rule | Example |
-| --- | --- |
-| `not empty` | `name not empty` |
-| `max <n>` / `min <n>` | `reason max 500` (length on text), `quantity min 1` (value on numbers) |
-| `> <v>` / `>= <v>` / `< <v>` / `<= <v>` | `quantity > 0`, `discountPct <= 100` |
-| `== <v>` / `!= <v>` | `currency == "NOK"`, `status != draft` |
-| `length == <n>` | `currency length == 3` |
-| `matches email` | the only named pattern; any other name is `PLAY0366` |
-| `matches "<regex>"` | ECMAScript; matches **any substring** unless anchored with `^…$`; an invalid pattern is `PLAY0367` |
-| `all > <v>` / `all >= <v>` | `lines.quantity all > 0` |
-| `rule <Name>` | `orgNumber rule BeAValidOrganizationNumber` |
+The rule vocabulary (`not empty`, `min`/`max`, comparisons, `length`, `matches`, `all`, `rule <Name>`) is in
+[references/validate-rules.md](references/validate-rules.md): read it when choosing or writing a rule form.
 
 ⚠️ **Validation severity is not compiler severity.** Every failed rule and
 `require` rejects the command, at `information` and `warning` too; severity only
@@ -158,24 +184,9 @@ optional `severity`, sharing the condition grammar with `produces … when`:
 `and` binds tighter than `or`, parentheses group. A conditional rule is an
 implication: `require isExtension == false or newEndDate > endDate`.
 
-**Rules whose logic is code.** A bare `rule <Name>` records that a rule exists but
-has no portable meaning (`PLAY0268`). Give it a body when the logic can live in the
-model — a `file` or a tagged ` ```csharp ` fence indented under the rule, or a
-fenced `validate` block for cross-field rules. Excerpt, inside a command:
-
-```screenplay
-validate
-  orgNumber rule BeAValidOrganizationNumber message "Must be a valid organization number"
-    file Validations/BeAValidOrganizationNumber.cs
-```
-
-A bodied rule or fenced block on a validation, rule or policy binds as opaque code
-(ESM v3): the reference runner reports it unsupported, and a target must supply the
-implementation. Two exceptions never bind: the command `handler`, and a `file`
-constraint (the binder records the requirement, then rejects it with `PLAY0268`;
-only `unique` constraints bind).
-Stage 4.24 admits only pure reducer bodies, so such a body is gap-fill code there. Prefer a
-declarative rule when one can say it.
+**Rules whose logic is code.** A bare `rule <Name>` has no portable meaning (`PLAY0268`) and a bodied rule binds only as
+opaque code. Read [references/validate-rules.md](references/validate-rules.md) when a rule's logic must live in a `file`
+or fenced code body.
 
 **Put format rules on the `concept`, not the command.** A concept carries its own
 `validate` block and every use inherits it — that is Screenplay's type system, and
@@ -185,7 +196,7 @@ a rule that travels is worth more than one that is repeated.
 
 Excerpt: the policies are declared at the top of the model.
 
-```screenplay
+```screenplay excerpt
 authorize IsAccountant
           or IsCustomerSelf
 
@@ -208,77 +219,25 @@ A continuation line extends the clause.
 
 ## Inline events and destinations
 
-Use `produces event` when the command introduces a new, generation-1 event.
-This complete example declares its payload and mappings together:
-
-````screenplay
-concept ProjectId : Uuid
-concept ProjectName : String
-module Projects
-  feature Naming
-    slice StateChange RenameProject
-      command RenameProject
-        projectId ProjectId identifier
-        name ProjectName
-        produces event ProjectRenamed
-          description "A project received a new name"
-          documentation
-            ```markdown
-            Existing links retain the project's identity.
-            ```
-          tag audit
-          name ProjectName = name
-````
-
-The omitted `for` means the command's required scalar identifier **only for
-inline productions**, when every production targets that same source. Once a
-production targets another source, every production must state `for`. Mixing
-omitted inline and plain destinations also fails (`PLAY0470`); there is no
-verified MCP repair for that diagnostic. Explicit syntax does not make cross-source
-execution supported.
-
-Plain `produces X` references a declared event; omitting `for` does not infer
-the command's identifier. In ESM v2+, it inherits a sibling production's resolved
-destination through the command destination default. An allocated identity is
-used only when no production resolves a destination. State `for` explicitly on
-every production targeting the identifier. `PLAY0478` offers advice and a
-reviewed repair, not permission to silently retarget an append. Supply an
-allocated identity to the executable model when allocation is intentional.
-
-Inline declarations are slice-owned contracts, usable by other consumers.
-Their `tag` lines are event-type tags; plain production tags apply at that one
-append site. Both inline and standalone events accept a quoted description or
-text/Markdown description fence, and one nonempty fenced Markdown `documentation`.
-New events omit `id`. Only a rename preserving an old stored name needs
-`id "<old name>"`; it does not replace the catalog's `EventContractId`.
-
-| Diagnostic | What to change |
-| --- | --- |
-| `PLAY0469` | Do not copy the same-source command identifier into payload. Inline copies warn; plain copies with explicit `for` are information. Review persistence before changing a contract. |
-| `PLAY0471` / `PLAY0472` | Remove a redundant name-equal `id`; an id must be one nonempty quoted value. |
-| `PLAY0473` / `PLAY0474` | Avoid declaration/import collisions; inline events belong only in commands, never reactions. |
-| `PLAY0475` | Extract the inline event before adding generations. |
-| `PLAY0476` | Inline `origin` and unescaped system-assigned production metadata are forbidden. |
-| `PLAY0477` | Use one nonempty Markdown documentation fence. |
-
-MCP can declare a missing produced event (`PLAY0166`), add explicit routing
-(`PLAY0478`), remove a redundant pin (`PLAY0471`), or remove an inline identifier
-copy (`PLAY0469`). The last **changes the event contract**, retires a property,
-refuses affected consumers/opaque implementations and is not fix-all. It does
-not establish that stored data is safe to migrate. Use
-`cratis-screenplay-model-authoring` for discovery, preview, extraction and rename.
+Prefer inline `produces event <Name>` for an event owned by one command: `for`
+defaults to its identifier; never copy that identifier into payload. For events
+shared by commands or reactions, declare `event` separately and use plain
+`produces <Name>` with explicit `for <identifier>` on commands. Reactions cannot
+declare inline events. Rendered Arc commands ignore `for` (Stage#187).
+Read [references/inline-events.md](references/inline-events.md) when declaring an event inline in `produces event`,
+choosing or omitting `for` on a production, or fixing `PLAY0469`-`PLAY0478`.
 
 ## `produces`
 
 - **Mapping sources** that bind to the executable model: a command property
   (`= invoiceNumber`), a literal (`= "draft"`, `= 0`), `$context.occurred`, and
-  the caller's audit identity (`$context.identity.id`/`.name`/`.userName`, the
-  same values as `$context.causedBy.*`). The last two select ESM v2.
+  the caller's audit identity (`$identity.id`/`.name`/`.userName`, also supported
+  as `$context.identity.id`/`.name`/`.userName`, the same values as `$context.causedBy.*`). The last two select ESM v2.
   `$context.tenant`, claims, roles, causation, `$env.` values, templates and
   computed expressions parse but block binding (`PLAY0268`).
 - **`for <identifier>`** on an indented line names the event source the event is
   appended to. At most one per `produces`. To bind, it must name the command's
-  `identifier` property (`PLAY0273` otherwise); fanning out to another event
+  `identifier` property (`PLAY0273` otherwise; a `generated identifier` command, ESM v7, may name another required scalar property); fanning out to another event
   source parses but does not run today.
 - **`tag`** lines apply literal tags to this append. Tags also exist on the
   `event` declaration, where they apply to every append of that type.
@@ -292,11 +251,27 @@ not establish that stored data is safe to migrate. Use
   must bind on an older version.
   Excerpt:
 
-```screenplay
+```screenplay excerpt
 produces when isProForma == true
   ProFormaInvoiceIssued
     for invoiceId
 ```
+
+## Routes and external operations
+
+Routes bind as ESM v8; production `stream Source.Stream` overrides
+select v10. Read toolchain [routes](../cratis-screenplay-toolchain/references/production-routes-and-filters.md)
+and [source/stream declarations](../cratis-screenplay-toolchain/references/sources-and-streams.md).
+`public event X` is a local export; `event X from "store"` is a locally declared,
+unverified foreign shape. Commands never produce public events. Read
+[translation direction](../cratis-screenplay-automations-and-translations/references/public-events-and-direction.md)
+for the released ESM v9 boundary and quoted opaque origins.
+
+Use `system`, `uses` and inline/standalone `operation` declarations to state
+external work in the authored production sequence, with execute/compensate phase
+intent. These remain unadmitted (PLAY0268), not post-commit reactions. Read
+[operation intent](references/operations.md) for forms, boundaries and checked
+failure/compensation specification syntax.
 
 ## `concurrency`
 
@@ -317,19 +292,23 @@ An empty block or an unknown dimension is an error. Omitting `concurrency` does
 not mean unchecked appends: Chronicle's default optimistic concurrency applies
 to the routed scope. This does not make command `reads` protected.
 
-Decision 0023's constructs differ in availability. **Authorable at 4.64.0, never
-executable yet** (binding reports `PLAY0268`, so they stop a model at V1): generated
-values and `returns` responses (execution awaits ESM v8), operations (ESM v9), and
-named event sources and streams (ESM v10). Syntax or MCP acceptance is not proof of
-execution. `derive` and `provide` have no documented syntax at that tag; treat them as
-planned and do not write them.
+## Generated values and responses (ESM v7 and v15)
+
+UUID generation/responses bind as v7; serialized concept `generate` selects v15:
+UUIDv7/ULID/TypeID/NanoID/bytes, strict fixtures and whole-source freshness.
+Reuse rejects Concurrency, no append/retry. Generated rules/secrets and pattern/random/rule
+remain refused. Historical CLI 3.41.0 refusals: STAGE-ESM-028/029.
+Read [references/generated-values-and-responses.md](references/generated-values-and-responses.md)
+for `generated`, `generate`, `returns`, strict fixtures/freshness and renderer limits.
+Complete example: `cratis-screenplay-toolchain/references/generated-responses-example.md`.
+Routes and realization: `cratis-screenplay-toolchain/references/sources-and-streams.md`.
 
 ## `constraint` — uniqueness at append time
 
 Chronicle's constraints enforce **uniqueness only**. Excerpt: the events are
 declared in the same model.
 
-```screenplay
+```screenplay excerpt
 constraint UniqueInvoiceNumber
   unique invoiceNumber on InvoiceRegistered
   released by InvoiceCancelled
@@ -358,97 +337,25 @@ constraint OneRegistrationPerInvoice
 hand-written Chronicle `IConstraint`, which can only declare uniqueness; it warns
 (`PLAY0396`) and the executable model rejects it. A state transition rule
 belongs in `validate`/`require`. Use a constraint when two concurrent appends must
-not both win — a `validate` rule cannot do that.
-
-## `concept` and `type`
-
-```screenplay
-concept InvoiceId : Uuid
-concept DiscountPercentage : Decimal
-  validate
-    >= 0    message "A discount cannot be negative"
-    <= 100  message "A discount cannot exceed 100 percent"
-concept PersonName : String @pii
-  pii reason "Billing contact name; lawful basis: contract performance."
-concept InvoiceStatus : Enum
-  draft
-  sent
-  paid
-```
-
-The seven primitives are `Uuid`, `String`, `Int`, `Decimal`, `Bool`, `Date` and
-`DateTime`. `Enum` is **not** one of them — it is a separate concept kind, which
-is why the compiler says *expected … or Enum* rather than listing it among them.
-Attributes `@pii` and `@sensitive`, each with at most one `reason`; a
-reason for an attribute the concept does not declare is an error. **Compliance is
-inherited** — a property typed with a `@pii` concept is PII everywhere. The
-executable model does not bind compliance attributes (`PLAY0268`, "compliance attributes
-require portable data-subject semantics"), so a `@pii` model stops at authorable (V1);
-keep the attribute, because the classification is the point, and never drop it to bind
-or render.
-
-⚠️ **Identifiers are not `@pii`.** `@pii` on a concept that types an identifier
-compiles silently, but Chronicle rejects PII on an event source id (`CHR0034`). Keep
-the stream identity a surrogate `Uuid` concept and carry the personal value (name,
-email) as a separate `@pii` property. **`@sensitive` is unverified:** it has no
-defined portable meaning (Screenplay#384). Stage 4.24.0's legacy syntax renderer maps
-`@sensitive` to `[PII]` (`ConceptRenderer.cs:84`, Stage#197), while the current
-`cratis render` path rejects the model with `PLAY0268`. Do not promise a behaviour for it; both issues are open.
-
-⚠️ **Enum trap.** A value literally named `validate` is read as an empty validate
-block. Write `@validate` for the value; the compiler warns when it sees the
-ambiguity.
-
-Use `type <Name>` for a composite shape (several properties) that events and
-commands reference; use `concept` for a single wrapped primitive.
+not both win — a `validate` rule cannot do that. Stage renders only single-text-property and
+`unique event` constraints (`STAGE-ESM-014`; `cratis-stage-rendering-and-sandbox` `references/admission.md`).
 
 ## `policy` and `persona`
 
-```screenplay
-policy IsAuthenticated
-  require authenticated
-policy IsAccountant
-  require role "Accountant"
-policy CanManageInvoice
-  require role "InvoiceManager"
-    or role "Accountant"
-policy OwnsInvoice
-  require claim "sub" matches subject
-policy IsAdultCustomer
-  file Policies/IsAdultCustomer.cs
+A policy has **exactly one** `require` line (`PLAY0441`) **or** one implementation, never both (`PLAY0440`). Read [references/policy-persona-seed.md](references/policy-persona-seed.md) when
+declaring a policy, a persona, or a `seed` block.
 
-persona Accountant
-  description "Handles invoicing and collections"
-  policy IsAccountant
-```
+## Event data subject
 
-Three condition forms: `authenticated`, `role "<name>"`, and
-`claim "<name>" matches subject | "<value>" | <path>`. A policy has **exactly one**
-`require` line — continue the condition on deeper-indented lines instead of adding
-a second (`PLAY0441`) — **or** one implementation (a tagged ` ```csharp ` block or
-`file`), never both (`PLAY0440`). Declarative policies run in the reference
-runner; a code policy binds as opaque ESM v3 and needs a target to evaluate it.
-A `persona` is authoring metadata: the binder reports it as information `PLAY0270`
-(report-only) and it does not block binding; an unknown policy it lists is an error.
+One event property may carry trailing `subject`; it identifies the person whose
+data the event holds, not the stream identity. Only unprotected required scalar
+String/Uuid or String/Uuid/Int-backed concepts are allowed. The mark is report-only
+(PLAY0270), changes no ESM bytes and emits no C# `[Subject]` yet; read models are
+not supported. See [subject lineage](references/compliance.md#identify-the-person-not-the-stream).
 
-## `seed`
+## `$context` and `$identity`
 
-Excerpt: `CustomerRegistered` is declared in a slice.
-
-```screenplay
-seed
-  for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-    CustomerRegistered
-      name = "Acme Corp"
-```
-
-Events append to that event source in declaration order, using the same mapping
-expression grammar as `produces`. Several `seed` blocks accumulate. Seeding is
-operational metadata, not part of executable behavior (`PLAY0270`).
-
-## `$context`
-
-Four contexts, and **what each omits is load-bearing** — read
+Four contexts, and **what each omits is load-bearing** — when writing a code body or a context/expression mapping, read
 [context.md](references/context.md) for the full member lists, the declarative
 `$context.` paths, and `$causedBy` / `$env` / `$strings`.
 
@@ -461,10 +368,9 @@ Four contexts, and **what each omits is load-bearing** — read
 
 ## Verify
 
-- [ ] Standalone `screenplay <model> --warnaserror` (4.64.0) reports zero errors and zero
-      warnings; with only the bundled compiler, `cratis screenplay validate
-      --warnings-as-errors` on the model folder (3.27.1 bundles Screenplay 4.60.1, ESM v5 or
-      lower). Name which tool produced the result.
+- [ ] Validate the complete model root with warnings as errors; name the tool,
+      version and result. Pins: toolchain `references/versions.md`;
+      bundle compatibility and execution are separate checks.
 - [ ] No unintended `PLAY0478` or `PLAY0479` information remains.
 - [ ] At most one command property carries `identifier`, and no event property does.
 - [ ] Format rules live on the `concept`; state-dependent rules are specifications.
@@ -473,14 +379,15 @@ Four contexts, and **what each omits is load-bearing** — read
       is stated.
 - [ ] Constraints are `unique` forms; no `file` constraint stands in for another rule.
 - [ ] Each policy has one `require` or one implementation, not both.
-- [ ] Personal data is `@pii` on the concept, with a reason; no identifier concept is `@pii`;
-      no behaviour is claimed for `@sensitive`.
+- [ ] Personal data is `pii` on the concept; operational secrets are `secret`;
+      no identifier or subject concept carries either. Reasons explain the value,
+      while purposes declare basis/retention; run `--check purposes` separately.
 - [ ] No `handler` where the model must bind, and no bodied construct described as
       runnable or renderable without saying which tool admits it.
 - [ ] No event carries an optional property covering two situations.
 
-Versions, tool capabilities and the executable and renderable subsets: `cratis-screenplay-toolchain` (`references/versions.md`). Where a construct sits in the
-method: `cratis-screenplay-modeling-lifecycle` and `cratis-screenplay-slice-design`.
+Compiler pins and admission: `cratis-screenplay-toolchain/references/versions.md`.
+Method: `cratis-screenplay-modeling-lifecycle` and `cratis-screenplay-slice-design`.
 
 ## Route near misses
 

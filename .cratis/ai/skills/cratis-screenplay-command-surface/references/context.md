@@ -1,6 +1,17 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-command-surface/references/context.md -->
 # Contexts and context expressions
 
+## Contents
+
+- The four contexts
+- The values they carry
+- Reaching the context declaratively
+- Caller paths and identity details
+- Production metadata is not a context expression
+- The other expression roots
+- Templates and literals
+- Escaping
+
 Four contexts, one per job. What each **omits** is as deliberate as what it
 carries: a validation rule cannot see the caller's roles, and a policy cannot see
 the causation chain.
@@ -41,6 +52,15 @@ time: `CommandAs<T>()`, `ArgumentsAs<T>()`, `ArtifactAs<T>()`, `ValueAs<T>()`, a
 `StateAs<T>()`/`EventAs<T>()` on the reducer context. A payload of another type
 throws `ContextPayloadTypeMismatch`.
 
+At Screenplay 4.125.0, typed contexts before generation (`CommandValidation`,
+`ConceptValidation`, `RulePredicate`, `PolicyPredicate`) expose **input properties
+only**. Generated values exist only after authorization/validation, so they are
+absent from those shapes. A generated identifier's policy subject is `unavailable`,
+not the eventual id; never authorize against it. The handler CommandContext retains
+the full command shape, including generated properties. Sidecars belong to the same
+compilation/revision as their requirements, not a shape borrowed from another model.
+Source: `v4.125.0:Documentation/screenplay/context.md`.
+
 ## The values they carry
 
 | Type | Members |
@@ -79,6 +99,53 @@ roles, claims and causation report `PLAY0268`.
 
 An unknown `$context.` path is reported, so a typo does not silently become null.
 
+## Caller paths and identity details
+
+Checked at Screenplay 4.127.0: `$identity.<property>` is the same caller value as
+`$context.identity.<property>`. Prefer `$identity` in new mappings; the older root
+is supported, not deprecated. Historical `cratis` CLI 3.41.0 bundled Screenplay 4.114.0, which predated both:
+its parser rejected a top-level `identity` block (`PLAY0001`), and with `--executable` it read a
+`$identity.<property>` mapping as a raw expression (`PLAY0268`). Those checks used standalone 4.127.0;
+they are not current parser claims; compiler pins are in toolchain `references/versions.md`. Check current renderer
+admission separately before choosing caller mappings. Built-ins are `id`, `name`, `userName`,
+`isAuthenticated`, `roles`, `claims.<name>` (everything after `claims.` is opaque).
+Bare `$identity` reports PLAY0152; unknown properties report PLAY0155. Only
+`$identity.id`/`.name`/`.userName` bind in portable `produces` mappings, exactly
+like the older forms; roles, authentication status and claims still report PLAY0268.
+
+A top-level `identity` block declares additional typed caller details:
+
+```screenplay
+identity
+  description "What the application knows about whoever is calling"
+  department String optional from claim "department"
+  organization Organization optional from query MyOrganization by $identity.id
+module Organizations
+  feature Membership
+    slice StateView Mine
+      readmodel Organization
+        name String
+      query MyOrganization => Organization optional
+        by userId String
+```
+
+At most one block per document and assembled folder; layout expansion writes it
+to `application.play`. Each unique detail has exactly one source: opaque claim,
+keyed single-result query, tagged inline code fence or repository-relative `file`.
+It cannot redeclare built-ins. Claim/query sources have no body; refresh/cache
+belongs to the runtime. Query sources need `by <expression>` using only token
+built-ins, claims or literals, never another detail, input, environment or view.
+The query's effective authorization must not depend on details. Result type must
+match; an optional query result needs an optional detail, while a required result
+may populate an optional detail. Details may themselves be optional or collections.
+
+The block is **authoring metadata**, not runtime source resolution or ESM data.
+Declarations alone do not block executable readiness. Executable reads of
+`$identity.<detail>` report PLAY0268; `$context.identity` stays built-ins only.
+`scoped to` is an opaque scope name, not a detail reference. PLAY0633–0646 diagnose
+source/header/type/cardinality errors; there are no automatic identity repairs.
+Authority: v4.127.0 `identity.md`, `context.md`, `diagnostics.md`.
+
 ## Production metadata is not a context expression
 
 `namespace`, `sequence`, `correlation`, `causation`, `causedBy` and `occurred`
@@ -93,6 +160,7 @@ occurrence metadata; use `given clock`, never `given time`, to state scenario ti
 
 | Root | Where | Yields |
 | --- | --- | --- |
+| `$identity.<property>` | caller expression | built-in caller value or declared authoring detail; execution admission is narrower |
 | `$env.<VAR_NAME>` | mapping sources | an environment variable |
 | `$eventContext.<property>` | **projections only** | `occurred`, `sequenceNumber`, `correlationId`, `eventSourceId` |
 | `$eventSourceId` | **projections only** | shorthand for `$eventContext.eventSourceId` |
@@ -106,7 +174,7 @@ A template is backticked with `${}` substitutions. It parses in mappings but doe
 not bind to the executable model in `produces` or projections. Excerpt, one
 mapping line inside a `produces` block:
 
-```screenplay
+```screenplay excerpt
 fullName = `${firstName} ${lastName}`
 ```
 
@@ -115,7 +183,7 @@ Literals are `true` / `false`, `"quoted text"`, numbers (`42`, `-3.14`), and
 rather than a property path — that is how a constant key is written. Excerpt,
 inside a `projection`:
 
-```screenplay
+```screenplay excerpt
 from UserLoggedIn key literal "site-stats"
   count totalLogins
 ```

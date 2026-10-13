@@ -1,6 +1,18 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-scenario-coverage/references/view-and-story-specs.md -->
 # View specifications and lifecycle families
 
+## Contents
+
+- Per read model, decide before drafting
+- Required specs per projected read model
+- Lifecycle families (storyline emulation)
+- Worked family: a todo list
+- Removal is a positive obligation
+- Ordering, lag and rebuild
+- Performer-backed views (no events build them)
+- Cross-context views
+- Gated views
+
 Views cannot reject a stored fact, so view specs have no error cases. They answer: after these
 facts, what does the screen (or automation input) show?
 
@@ -48,10 +60,11 @@ candidate for a family. Walk one row through three states (`OpenInvoices`: empty
 `InvoiceIssued`, empty again after `PaymentReceived`) as three independent specs, each with its
 own full givens. The excerpt is copied from `invoicing-dues-example.md`; the last spec asserts
 both that the stored row is gone and that the keyed query returns nothing. The whole-list query
-(no key) is a design-mode expectation here: a list-query collection check does not run on the
-reference route, so record it in the matrix rather than asserting it.
+(no key) is executable too (Screenplay 4.105.0 or later): `invoicing-dues-example.md` adds
+`ListOpenInvoices => OpenInvoice[]` with one spec that expects one `result` row and one that
+expects the empty list after `PaymentReceived`. Only `filter`, `scoped to` and `performer` queries stay design-mode.
 The source document also asserts the other terminal outcomes (`InvoiceVoided`, `InvoiceSettled`) the same way; they are not copied here.
-```screenplay excerpt
+```screenplay excerpt parent=references/invoicing-dues-example.md#1
 specification OpenInvoicesLifecycle1Empty
   given caller
     authenticated
@@ -107,9 +120,11 @@ Keep three claims apart:
 - one stored instance is absent: `then no readmodel`;
 - a query returns no rows: `then query` without `result`, or `when query` + `then no result`;
 - a list-valued property is empty: assert that property as `[]`.
-List-query results use repeated `result` blocks; count and order are exact. A keyed lookup does
-not prove an entire list is empty. Keep the list contract in design mode and record the
-execution/rendering limit.
+List-query results use repeated `result` blocks; count is exact and rows match
+by read model and instance key regardless of order. A keyed lookup does
+not prove an entire list is empty: assert the unkeyed list query itself (an unkeyed query takes no
+`arguments`; each `result` row states the read-model identifier, else PLAY0351). A snapshot list does not render
+(`STAGE-ESM-010`, Stage 4.73.1); an `observable` list does. Record that rendering limit.
 
 ## Ordering, lag and rebuild
 - **Out of order across sources**: if a joined or cross-context fact can arrive first, add a
@@ -118,7 +133,7 @@ execution/rendering limit.
   being current (a booking screen that must not offer a taken berth), that is not protection:
   the command needs its own constraint, or the rule is `recorded` as target-enforced.
 - **Rebuild**: a view rebuilt from all facts must give the same rows. Mappings from
-  `$eventContext.occurred` or other occurrence data cannot be executed at Screenplay v4.64.0:
+  `$eventContext.occurred` or other occurrence data cannot be executed at Screenplay v4.66.0:
   the plan blocks every event-context path except the event source id
   (`UnsupportedEventContext`). `given clock` does not change that; it supplies `$context.occurred`
   to command productions only. Record such projection cases as capability gaps (keep the

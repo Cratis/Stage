@@ -1,6 +1,13 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-slice-design/references/command-inventory.md -->
 # Command design and the per-command refusal inventory
 
+## Contents
+
+- Command card
+- The inventory
+- Filled for `worked-example.md`
+- Common mistakes
+
 For every command, record what it needs, where each input comes from, how it can succeed and
 every way it can be refused. The inventory is the design output that
 `cratis-screenplay-scenario-coverage` consumes: each refusal becomes a specification there,
@@ -10,7 +17,7 @@ and each persona that must be denied becomes a `given caller` fixture. Build it 
 ## Command card
 
 Fill one card per command before (or while) writing the slice. Keep it in the phase report;
-durable rationale goes in the slice `description`.
+durable rationale goes in fenced Markdown slice `documentation`.
 
 ```text
 Command:        <ImperativeBusinessName>  (one decision)
@@ -70,7 +77,8 @@ Rules for filling it:
   as a gap. Persona description text is intent only.
 - A refusal that depends on stored state is a row marked **NOT enforced in the model today**
   with its target (Arc `[ProtectedDecision]` + `DecisionRead<T>` where Arc 22.39.0 or later is
-  available, which Stage-rendered apps are not; Chronicle DCB, or a
+  available, including Stage 4.73.1's rendered package set for gap-fill, not emitted
+  protection; Chronicle DCB, or a
   constraint). It still gets a spec row, because the intended behaviour is the contract.
 - A decided refusal never goes to open questions: it goes here, then to scenarios.
 - A refusal message is a fact of the design; keep the wording identical in the rule, the
@@ -95,7 +103,7 @@ Rules for filling it:
 | AssignLocker | caller is not an attendant | `authorize IsAttendant` | denied: Customer | RefusingACustomerAssigningALocker |
 | AssignLocker | locker already has a request | constraint `OneRequestPerLocker` | "The locker is already assigned" | AppendingASecondAssignmentOfALocker (`when append`: the command's own `require` would reject first) |
 | AssignLocker | request already has a locker | constraint `OneLockerPerRequest` | "The request already has a locker" | gap |
-| AssignLocker | locker is not free | `reads` + `require`, NOT enforced today | "The locker is not free"; target: `[ProtectedDecision]` (Arc 22.39.0+; unavailable in Stage-rendered apps, so a capability gap there) or DCB on the locker stream | RejectingASecondAssignmentOfALocker (pins the message; blocked until the target exists) |
+| AssignLocker | locker is not free | `reads` + `require`, NOT enforced today | "The locker is not free"; target: `[ProtectedDecision]` (Arc 22.39.0+; available to Stage 4.73.1 gap-fill, not emitted protection) or DCB on the locker stream | RejectingASecondAssignmentOfALocker (pins the message; blocked until the target exists) |
 | AssignLocker | request is not waiting | `reads` + `require`, NOT enforced today | "The request is not waiting for a locker" | gap (same) |
 | LockerById, ListLockers | caller is anonymous | module `authorize IsAuthenticated` | denied: no caller | RefusingAnAnonymousLockerLookup, RefusingAnAnonymousLockerList |
 | RequestById | caller is anonymous | module `authorize IsAuthenticated` | denied: no caller | RefusingAnAnonymousRequestLookup |
@@ -112,9 +120,11 @@ not been asked the refusal questions.
 - Copying state into the command so `require` can read it, instead of `reads <View>`.
 - An origin that is neither reachable (no screen, form or reaction leads there) nor authorized
   for the persona who should act.
-- A reaction invoking a gated command: the invocation has no caller and is refused; design the
-  trusted path (`cratis-screenplay-automations-and-translations`), never delete the gate.
+- A reaction invoking a gated command without `runs as system role "<Role>"`: the invocation has
+  no caller and is refused; declare the trusted path with the role the gate admits
+  (`cratis-screenplay-automations-and-translations`), never delete the gate.
 - Refusals recorded as prose in the `description` with no layer and no spec row.
 - Personal data or secrets as command input: values are by default recorded in the causation chain, so treat them as permanent
   (retention can be configured in newer Chronicle; verify it, never audit secrets).
-  Mark the concept `@pii` or record the need; never put `@pii` on the identifier's concept.
+  Mark concepts bare `pii` for personal data or `secret` for operational secrets,
+  never on the identifier; declare use/basis/retention in a purpose, not a reason.

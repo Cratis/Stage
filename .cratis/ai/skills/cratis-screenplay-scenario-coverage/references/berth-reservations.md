@@ -3,7 +3,7 @@
 
 Complete, compiled design-mode model (marina guest berths) showing a coverage matrix turned into specifications: happy path, one rejection per rule, authorization denial, duplicate and retry, competing claim, state violation, alternative branches, compensation and a view lifecycle family. The matrix for it is in `coverage-matrix.md`; the catalogue (`scenario-catalogue.md`) names its specifications.
 
-```screenplay
+```screenplay test=unbound
 // Scenario coverage worked example: guest berths at a marina (complete document).
 // Shows a coverage matrix turned into specifications: happy path, one rejection per rule,
 // authorization denial, duplicate/retry, concurrent claim, state violation, alternative branches,
@@ -11,7 +11,7 @@ Complete, compiled design-mode model (marina guest berths) showing a coverage ma
 // Screens and personas are out of scope here (cratis-screenplay-slice-design). This is the canonical design-mode
 // example: stored-state rules (the reservation must be live) are stated as `reads BerthBooking`
 // + `require ... message` and marked NOT enforced in the slice descriptions, with their target
-// named. Binding reports PLAY0271/PLAY0268 for them (expected; Screenplay#129/#209): such a model
+// named. Binding reports PLAY0271/PLAY0268 for them (expected; Screenplay#129): such a model
 // is design-complete but not binding-ready, and that is reported, never "fixed" by deleting the
 // rules. The past-date rule (`night >= today`) is declarative too: ESM v1 has no runtime date,
 // so binding reports PLAY0268 on it (recorded as blocked, not moved into prose); the rule and its rejection
@@ -42,17 +42,11 @@ module Berths
           boatLength > 0    message "Boat length must be positive"
           boatLength <= 24  message "Guest berths take boats up to 24 metres"
           night >= today    message "The night must not be in the past"
-        produces BerthReserved
-          for reservationId
-          berth      = berth
-          night      = night
-          boatName   = boatName
-          boatLength = boatLength
-      event BerthReserved
-        berth      BerthCode
-        night      Date
-        boatName   String
-        boatLength Decimal
+        produces event BerthReserved
+          berth BerthCode = berth
+          night Date = night
+          boatName String = boatName
+          boatLength Decimal = boatLength
       constraint OneBoatPerBerthNight
         unique berth, night on BerthReserved
         released by ReservationCancelled
@@ -227,11 +221,8 @@ module Berths
           reason not empty  message "Say why the reservation is cancelled"
           require booking.status == "reserved"
             message "Only a live reservation can be cancelled"
-        produces ReservationCancelled
-          for reservationId
-          reason = reason
-      event ReservationCancelled
-        reason String
+        produces event ReservationCancelled
+          reason String = reason
       constraint CancelOrDepart
         unique event ReservationCancelled
         unique event BoatDeparted
@@ -352,12 +343,10 @@ module Berths
         validate
           require booking.status == "reserved"
             message "Only a live reservation can record a departure"
-        produces BoatDeparted
-          for reservationId
+        produces event BoatDeparted
         produces when damageObserved == true
           BerthDamageReported
             for reservationId
-      event BoatDeparted
       event BerthDamageReported
 
       specification RecordingACleanDeparture

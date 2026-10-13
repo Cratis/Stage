@@ -52,7 +52,6 @@ public class and_a_source_has_streams : a_routed_command
             /// Identifies the transactions stream.
             /// </summary>
             public const string Transactions = "Transactions";
-
         }
 
         """);

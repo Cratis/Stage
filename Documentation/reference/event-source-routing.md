@@ -12,8 +12,11 @@ An `Account` source with a `Transactions` stream produces `EventSources/AccountE
 ```csharp
 namespace Banking.EventSources;
 
+/// <summary>
+/// Defines the account event source.
+/// </summary>
 [global::Cratis.Chronicle.EventSources.EventSourceAttribute("Account")]
-[global::Cratis.Chronicle.EventSources.EventStreamAttribute(AccountEventSource.Transactions)]
+[global::Cratis.Chronicle.EventSources.EventStreamAttribute(global::Banking.EventSources.AccountEventSource.Transactions)]
 public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSource
 {
     /// <summary>
@@ -23,9 +26,9 @@ public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSo
 }
 ```
 
-The source attribute uses the **stored** source name explicitly. Each stream has a public string constant on the source class: its identifier is the model stream name and its value is the stored stream name. Stream attributes, command attributes and generated specification routes reference that constant directly, including when the stored name differs. Streams appear in ordinal stored-name order. Stage emits neither descriptions nor concurrency dimensions.
+The source attribute uses the **stored** source name explicitly. Recoverability applies to identity names: PascalCase names that normalization leaves unchanged, are valid C# identifiers and are not keywords. For these names, definition classes append `EventSource` to the model name, even if it already ends in that suffix. Each identity-named stream has a public string constant on the source class: its identifier is the model stream name and its value is the stored stream name. Stream attributes, command attributes and generated specification routes reference that constant directly, including when the stored name differs. Streams appear in ordinal stored-name order. Stage emits neither descriptions nor concurrency dimensions.
 
-Definition class names always append `EventSource` to the model name, even if the model name already ends in that suffix. Class-name collisions fail planning with `STAGE-ESM-012`, rather than renaming a definition. Stream constant names must be PascalCase Screenplay identifiers and cannot collide with another member, the class name or a C# keyword; unsupported names also fail with `STAGE-ESM-012`.
+Other names retain the existing normalized class names and stored stream-name literals. For example, source `account` becomes `AccountEventSource`, and stream `Account_Name` uses its stored name as a literal without declaring a misleading `AccountName` constant. Such names do not round-trip through the recoverable shape; readers fall back to treating them as code. Class-name collisions fail planning with `STAGE-ESM-012`, rather than renaming a definition. Identity-named stream constants that collide with another member or the class name also fail with `STAGE-ESM-012`.
 
 Chronicle 19.54.0's bare source attribute removes the trailing `EventSource` from the class name when deriving its stored name. Stage retains explicit source attributes instead of relying on that default.
 
@@ -43,10 +46,10 @@ An ESM v10 reducer or reaction's `from` clause filters the facts delivered to it
 
 | Filter | Generated class attribute |
 |---|---|
-| Source only | `Cratis.Chronicle.Events.EventSourceTypeAttribute("<stored source name>")` |
-| Source and stream | `Cratis.Chronicle.EventSources.FromEventSourceAttribute<AccountEventSource>(AccountEventSource.Transactions)` |
+| Source only | `global::Cratis.Chronicle.Events.EventSourceTypeAttribute("<stored source name>")` |
+| Source and stream | `global::Cratis.Chronicle.EventSources.FromEventSourceAttribute<global::Banking.EventSources.AccountEventSource>(global::Banking.EventSources.AccountEventSource.Transactions)` |
 
-`TSource` is the generated event-source definition. Filters use stored names, not declaration names or stream identities. Unrouted facts never match a filtered observer. A source-only filter accepts every stream of that source; a source-and-stream filter accepts only that pair. Reserved stored names fail planning with `STAGE-ESM-030`.
+`TSource` is the generated event-source definition. The stream filter references the model-named constant, whose value is the stored stream name, or uses a stored-name literal for a non-identity name. Filters do not select stream identities. Unrouted facts never match a filtered observer. A source-only filter accepts every stream of that source; a source-and-stream filter accepts only that pair. Reserved stored names fail planning with `STAGE-ESM-030`.
 
 Reaction filters render and also apply in the semantic Host and specification executor. Generated reaction productions retain unrouted destination metadata; the observer filter does not route their output. The legacy syntax paths still refuse observer filters with `STAGE-ESM-035`. Reducer support is rendering-only: Stage's Host and in-memory specification executor still refuse reducers, and filtered reducers retain `STAGE-ESM-035` in those paths. Generated read-model companion specifications for filtered reducers fail with `STAGE-ESM-011`: Chronicle's `ReadModelScenario` does not preserve route metadata or apply observer filters.
 

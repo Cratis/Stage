@@ -14,11 +14,6 @@ public class and_stream_names_cannot_be_preserved : a_routed_command
     [InlineData("AccountEventSource")]
     [InlineData("Equals")]
     [InlineData("GetType")]
-    [InlineData("class")]
-    [InlineData("required")]
-    [InlineData("notes")]
-    [InlineData("Notes-Archive")]
-    [InlineData("1Notes")]
     public void should_refuse_instead_of_renaming_the_constant(string name)
     {
         _source = _source with { Streams = [_source.Streams[0] with { Name = name }] };

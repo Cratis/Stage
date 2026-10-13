@@ -135,7 +135,12 @@ internal static class GeneratedTypeNames
         }
     }
 
-    internal static string EventSourceName(string source) => $"{GeneratedPascalCase.From(source)}EventSource";
+    internal static string EventSourceName(string source)
+    {
+        var name = GeneratedPascalCase.From(source);
+
+        return source != name && name.EndsWith("EventSource", StringComparison.Ordinal) ? name : $"{name}EventSource";
+    }
 
     internal static bool UsesStreamIds(IEnumerable<SemanticCommand> commands) =>
         commands.Any(command => command.Route is { } route && (route.StreamId is SemanticResolvedExpression || !route.StreamIdParts.IsDefaultOrEmpty));

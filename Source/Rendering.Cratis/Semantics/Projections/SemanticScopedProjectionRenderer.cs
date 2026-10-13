@@ -99,6 +99,13 @@ internal static class SemanticScopedProjectionRenderer
                 code.Line("every.ExcludeChildProjections();");
             }
 
+            // FromAll creates instances for event sources no from block keys, so it must establish the
+            // identifier itself, as each from block does; the reference fills it from the instance key.
+            if (every.SubscribesToAllEvents && rootIdentifier is { } identifier && !every.Mappings.Any(mapping => mapping.Target.Contains(identifier.Id)))
+            {
+                code.Line($"every.Set(model => model.{Identifiers.ToPascalCase(identifier.Name)}).ToEventSourceId();");
+            }
+
             foreach (var mapping in every.Mappings.Where(mapping => mapping.Source is not SemanticProjectionLiteral))
             {
                 var target = Path(mapping.Target, properties, context);

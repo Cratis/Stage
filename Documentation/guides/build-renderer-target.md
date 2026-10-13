@@ -196,6 +196,47 @@ Before writing, publishers must call `CratisRendering.CheckPublication` at every
 A rename without a pin still orphans stored events: a renderer cannot distinguish it from deleting one type and adding another. Use the Screenplay workspace/MCP rename, which pins by default.
 :::
 
+## Carry a release-baseline assessment
+
+To warn about frozen event revisions without adding file I/O to the planner, set
+`ArtifactRenderRequest.ReleaseBaseline` before planning. The default is
+`ReleaseBaselineAssessment.NotSupplied`: bare-ESM callers remain unchecked and keep
+their existing artifacts and diagnostics.
+
+For a caller that holds an authoritative `SemanticCompilation` and its model root,
+this excerpt computes the assessment without admitting or writing anything:
+
+```csharp
+using Cratis.Screenplay.Workspaces;
+using Cratis.Stage.Contracts.Semantics;
+
+var baselineRead = ReleaseBaselineStore.Read(
+    screenplayRoot, compilation.Documents.IdentityCatalog.Application);
+var assessment = StageReleaseBaseline.Check(compilation, baselineRead);
+var assessedRequest = request with { ReleaseBaseline = assessment };
+var plan = new CratisArtifactRenderPlanner().Plan(assessedRequest);
+```
+
+The excerpt assumes a successful `SemanticCompilation` named `compilation`, a
+`screenplayRoot`, and a render `request` for that compilation. The workspace overload
+accepts unsaved authoring state directly. Neither overload guesses identities: missing
+authoritative document or event assignments make a present baseline check unavailable.
+Reconstructed compilations must retain the same semantic revision. Source loading
+reads `.screenplay/release-baseline.json` under the model root and exposes the
+assessment through `LoadedSemanticModel.ReleaseBaseline`; `PlanFrom` forwards it.
+
+Assess the entire application before selecting a render scope. The Cratis planner
+adds `STAGE-BASELINE-001` through `004` warnings for changed, missing, unreadable,
+and unavailable or stale assessments. Add warnings after blocking admission, or
+check error severity rather than diagnostic count, so a warning-only plan still
+succeeds with identical artifact bytes. See [Baseline warning codes](../reference/plan-from-sources.md#admitted-release-revisions).
+
+The baseline comes from an explicit `screenplay baseline admit` release step.
+Use `screenplay baseline check <root>` as the CI gate; warnings are not an equality
+or Chronicle compatibility gate. Baseline assessment and destination publication
+checks are independent: `CheckPublication` still refuses changed event type ids
+with `STAGE-EVENT-002`, even on a plan carrying baseline warnings.
+
 ## Implement a pure planner
 
 `IArtifactRenderPlanner.Plan(...)` is a pure planning boundary. Given the same immutable request, it must return the same plan or the same contract failure. It must not:
@@ -312,7 +353,7 @@ ESM v4 (`4.0` language and semantic versions) is admitted by the version gates, 
 
 Evolution waits for migration modeling and rendering (Screenplay #71 and a Stage migration-rendering follow-up). In both Chronicle 19.8.1 and 19.32.0, registration validation requires migrators for every generation above 1 even on an empty store. Production kernels always validate; the development image can skip validation, permitting unsafe historical replay. Neither path is an admitted realization without migrations, so Stage refuses before emission rather than relying on the kernel configuration. Stage's Host also retains its `EventContract` refusal, "Only the initial event revision can be registered in Chronicle." Its registrar and fact appender remain generation-1-only; an evolved model is not registered or appended.
 
-Stage builds against Screenplay 4.152.0 and admits exact ESM v1 through v16 language/semantic pairs. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
+Stage builds against Screenplay 4.154.0 and admits exact ESM v1 through v16 language/semantic pairs. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
 
 | Construct | Version | Diagnostic |
 |---|---|---|

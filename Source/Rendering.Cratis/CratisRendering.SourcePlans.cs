@@ -99,7 +99,8 @@ public static partial class CratisRendering
             ImplementationRequirements = loaded.ImplementationRequirements,
             ImplementationContents = loaded.ImplementationContents,
             AttachmentDiagnostics = loaded.AttachmentDiagnostics,
-            TypedContextDescriptors = loaded.TypedContextDescriptors
+            TypedContextDescriptors = loaded.TypedContextDescriptors,
+            ReleaseBaseline = loaded.ReleaseBaseline
         };
         if (!CratisArtifactRenderProfileAdmission.Matches(request, out var admittedOptions, out var mismatch))
         {

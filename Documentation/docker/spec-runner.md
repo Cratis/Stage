@@ -33,7 +33,7 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.152.0, admits exact ESM v1–v16
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.154.0, admits exact ESM v1–v16
 version pairs and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
 At v11 it executes retained exact Double-mode integer and fractional values without a second rounding
 step, including the safe whole-number bounds ±9007199254740991 and `0.10000000000000002`.

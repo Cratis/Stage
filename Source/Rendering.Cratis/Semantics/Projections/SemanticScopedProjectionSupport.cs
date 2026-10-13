@@ -336,9 +336,14 @@ internal static class SemanticScopedProjectionSupport
 
         string? EveryLimitRejection()
         {
-            if (scope.Every is { SubscribesToAllEvents: true })
+            if (scope.Every is { SubscribesToAllEvents: true, Mappings.Length: 0 })
             {
-                return "FromAll cannot render: Chronicle#4266 remains open; MongoDB does not materialize a read model for an unrelated event source even when its in-memory scenario does.";
+                return "An all block without mappings cannot render: Chronicle's FromAll subscribes only through a mapping, so the reference's instances for unrelated event sources would not exist.";
+            }
+
+            if (scope.Every is { SubscribesToAllEvents: true } all && all.Mappings.Any(mapping => mapping.Source is SemanticProjectionLiteral))
+            {
+                return "Literal mappings in all cannot render: Chronicle's FromAll has no native constant (Chronicle#4663), and lowering literals onto from blocks would miss events from unrelated types and sources.";
             }
 
             if (scope.Every is { IncludeChildren: true } && HasChildScopes())

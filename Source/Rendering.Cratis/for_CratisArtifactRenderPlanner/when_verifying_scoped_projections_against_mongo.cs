@@ -13,8 +13,8 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
-/// Verifies Chronicle 19.32.0 MongoDB behavior for admitted nested clear/recreation and child join-removal shapes when explicitly configured.
-/// Checks clearing, recreation, every literals including collisions, removal from both parents, and the absence of failed partitions.
+/// Verifies pinned Chronicle MongoDB behavior for admitted scoped projections when explicitly configured.
+/// Checks nested clearing/recreation, child join removal, every literals, identity-only all over an unrelated source, and failed partitions.
 /// </summary>
 public class when_verifying_scoped_projections_against_mongo : a_generated_application
 {
@@ -31,6 +31,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         using Projects.Common;
         using Projects.Projects.Registration.RegisterProject;
         using Projects.Projects.Registration.ProjectLookup;
+        using Projects.Projects.Registration.AllLookup;
         using Xunit;
 
         namespace Projects.MongoProbe;
@@ -101,6 +102,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
             const string First = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
             const string Second = "4fa85f64-5717-4562-b3fc-2c963f66afa7";
             const string Note = "5fa85f64-5717-4562-b3fc-2c963f66afa8";
+            const string Unrelated = "6fa85f64-5717-4562-b3fc-2c963f66afa9";
 
             [Fact]
             public async Task should_report_persistent_snapshots()
@@ -132,6 +134,22 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                 Console.WriteLine($"JOIN_IN_MEMORY_PARENT_SECOND={string.Join(",", memoryChildren.InstanceForEventSourceId((EventSourceId)second)?.Notes?.Select(item => item.Name.Value) ?? [])}");
                 await Append((EventSourceId)first, new ProjectRegistered(first, new ProjectName("First")));
                 await Append((EventSourceId)second, new ProjectRegistered(second, new ProjectName("Second")));
+                var unrelated = new ProjectId(Guid.Parse(Unrelated));
+                var unrelatedEvent = new ProjectNamed(new ProjectName("Unrelated"));
+                var memoryAll = new ReadModelScenario<AllSummary>();
+                await memoryAll.Given.ForEventSource((EventSourceId)first).Events(new ProjectRegistered(first, new ProjectName("First")));
+                await memoryAll.Given.ForEventSource((EventSourceId)unrelated).Events(unrelatedEvent);
+                await Append((EventSourceId)unrelated, unrelatedEvent);
+                foreach (var id in new[] { first, unrelated })
+                {
+                    var memoryInstance = memoryAll.InstanceForEventSourceId((EventSourceId)id);
+                    var persistedInstance = await store.ReadModels.GetInstanceById<AllSummary>((EventSourceId)id);
+                    Assert.NotNull(memoryInstance);
+                    Assert.NotNull(persistedInstance);
+                    Assert.Equal(id, memoryInstance.LastSeen);
+                    Assert.Equal(memoryInstance.LastSeen, persistedInstance.LastSeen);
+                    Console.WriteLine($"ALL_SOURCE={id.Value}; MEMORY={memoryInstance.LastSeen?.Value}; MONGO={persistedInstance.LastSeen?.Value}");
+                }
                 await Append((EventSourceId)note, new ProjectNoted(note, first, new ProjectName("A")));
                 await Append((EventSourceId)note, new ProjectNoted(note, second, new ProjectName("B")));
                 var firstBefore = await store.ReadModels.GetInstanceById<ChildrenProbe>((EventSourceId)first);
@@ -195,11 +213,14 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                     }
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<NestedProbeProjection>());
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<ChildrenProbeProjection>());
-                    if (fact is ProjectRegistered or ProjectRenamed or ProjectNamed or ProjectRemoved or ProjectNoted or ProjectNoteRemovedViaJoin)
+                    // ProjectNamed is unrelated to ProjectSummary's subscriptions; only AllSummary observes it.
+                    if (fact is ProjectRegistered or ProjectRenamed or ProjectRemoved or ProjectNoted or ProjectNoteRemovedViaJoin)
                     {
                         await store.Projections.WaitTillReachesEventSequenceNumber<ProjectSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
                     }
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<ProjectSummaryProjection>());
+                    await store.Projections.WaitTillReachesEventSequenceNumber<AllSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
+                    Assert.Empty(await store.Projections.GetFailedPartitionsFor<AllSummaryProjection>());
                 }
             }
         }
@@ -211,7 +232,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
 
         // ClearWith binds to the event-source key, so its root from must use the same key.
-        var source = every_literal_projection.Source;
+        var source = all_events_projection.Source;
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mongo"), "mongo", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
@@ -233,7 +254,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         }
     }
 
-    [Fact] void should_not_admit_from_all_without_mongo_equivalence() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
+    [Fact] void should_admit_identity_only_all() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
 
     [Fact] void should_report_both_mongo_shapes_when_configured()
     {
@@ -243,6 +264,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         }
 
         Assert.Contains("Test Run Successful.", _output, StringComparison.Ordinal);
+        Assert.Contains("ALL_SOURCE=6fa85f64-5717-4562-b3fc-2c963f66afa9; MEMORY=6fa85f64-5717-4562-b3fc-2c963f66afa9; MONGO=6fa85f64-5717-4562-b3fc-2c963f66afa9", _output, StringComparison.Ordinal);
     }
 
     [Fact] void should_confirm_screenplay_reference_for_both_sequences()

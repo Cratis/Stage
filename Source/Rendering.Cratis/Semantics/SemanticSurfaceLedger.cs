@@ -189,11 +189,12 @@ internal static class SemanticSurfaceLedger
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
         // from and identical key fail STAGE-ESM-017. Composite keys remain rejected because Stage
         // cannot issue keyed lookups for composite read models (Chronicle#4265). Every literals lower to from
-        // Set mappings only at join-free levels (Chronicle#4663); prefix overlaps and non-Set collisions remain refused. FromAll (Chronicle#4266) and
+        // Set mappings only at join-free levels (Chronicle#4663); prefix overlaps and non-Set collisions remain refused. All literals and
         // text literals outside Chronicle's fluent $value grammar, expression-like event-property
         // names (including derived functions), unsafe read-model property paths and camel-case
         // collisions, and unvalidated $eventSourceId mapping targets also fail STAGE-ESM-017.
-        // FromAll stays rejected (Chronicle#4266): MongoDB does not materialize an unrelated source observed in memory.
+        // Identity-only all renders as FromAll; literals in all remain rejected (Chronicle#4663), because
+        // lowering onto from blocks would miss unrelated event types and sources.
         // Child join removal across parents and nested clear/recreation render on Chronicle 19.32.0;
         // differential and MongoDB probes cover both sequences. Root join removal remains blocked by
         // Chronicle#4263 and Screenplay#563; joins/children inside nested by Chronicle#4125. Nested clear requires a matching root from
@@ -203,8 +204,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
         Add(entries, "SemanticProjectionEventContextValue", rejected("STAGE-ESM-017"), "Path");
         Add(entries, "SemanticProjectionEventProperty", rendered, "Path");
-        Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings");
-        Add(entries, "SemanticProjectionEvery", rejected("STAGE-ESM-017"), "SubscribesToAllEvents");
+        Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings SubscribesToAllEvents");
         Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
         Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
         Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");

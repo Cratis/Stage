@@ -41,13 +41,14 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     SemanticExecutionPlan _execution = null!;
     string _testOutput = null!;
     string _laterFromExpected = null!;
+    string _allExpected = null!;
 
     protected override ArtifactRenderPlan CreatePlan()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
 
         // ClearWith binds to the event-source key, so its root from must use the same key.
-        var source = every_literal_projection.Source;
+        var source = all_events_projection.Source;
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
@@ -73,16 +74,21 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
             AddGeneratedSpecification($"Projects/Registration/ProjectLookup/when_{name}.cs", GeneratedSpecification(name, facts, expected));
         }
 
+        Fact[] allFacts = [new("ProjectRegistered", First, First, "First"), new("ProjectNamed", Second, Name: "Unrelated")];
+        _allExpected = Reference(allFacts, "AllSummary");
+        AddGeneratedSpecification("Projects/Registration/AllLookup/when_observing_an_unrelated_event.cs", GeneratedAllSpecification(allFacts, _allExpected));
+
         await Run("differential-debug.log", "build", "-c", "Debug", "-warnaserror");
         _testOutput = await Run("differential-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
     [Fact] void should_match_all_reference_snapshots() => _testOutput.ShouldContain("Passed!");
-    [Fact] void should_not_admit_from_all_when_mongo_cannot_match_reference() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
+    [Fact] void should_admit_identity_only_all() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
+    [Fact] void should_materialize_an_unrelated_source_in_the_reference() => _allExpected.ShouldEqual(JsonSerializer.Serialize(new[] { new { lastSeen = First }, new { lastSeen = Second } }));
 
     [Fact] void should_keep_the_literal_after_a_later_local_write() => _laterFromExpected.ShouldContain("\"label\":\"fixed\"");
 
-    string Reference(Fact[] facts)
+    string Reference(Fact[] facts, string readModelName = "ProjectSummary")
     {
         var module = _model.Application.Modules.Single();
         var feature = module.Features.Single();
@@ -153,7 +159,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         ]);
         var result = new SemanticSpecificationRunner().Run(reference, spec.Id);
         var accepted = Assert.IsType<SemanticAccepted>(result.Execution);
-        var readModel = feature.Slices.SelectMany(slice => slice.ReadModels).Single(candidate => candidate.Name == "ProjectSummary");
+        var readModel = feature.Slices.SelectMany(slice => slice.ReadModels).Single(candidate => candidate.Name == readModelName);
         return JsonSerializer.Serialize(new[] { First, Second }.Select(key => Snapshot(
             accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key), readModel, _model)));
     }
@@ -166,6 +172,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     {
         if (instance is null) return null;
         var values = instance.Values.ToDictionary(value => readModel.Properties.Single(property => property.Id == value.TargetProperty).Name, value => value.Value);
+        if (readModel.Name == "AllSummary") return new { lastSeen = Text(values["lastSeen"]) };
         var noteType = model.Application.Types.Single(type => type.Name == "ProjectNote");
         var infoType = model.Application.Types.Single(type => type.Name == "ProjectInfo");
         var notes = values["notes"] is SemanticArrayValue array ? array.Values.Select(value =>
@@ -221,6 +228,45 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
                             info = instance.Info?.Name.Value,
                             notes = instance.Notes?.Select(note => new { id = note.NoteId.Value.ToString(), name = note.Name.Value }).ToArray()
                         };
+                    });
+                    Assert.Equal({{JsonSerializer.Serialize(expected)}}, JsonSerializer.Serialize(actual));
+                }
+            }
+            #endif
+            """;
+    }
+
+    static string GeneratedAllSpecification(Fact[] facts, string expected)
+    {
+        var seeds = string.Join('\n', facts.Select(fact => $"await scenario.Given.ForEventSource(new EventSourceId(\"{fact.Source}\")).Events({fact.CSharpEvent()});"));
+        return $$"""
+            // Copyright (c) Cratis. All rights reserved.
+            // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+            #if DEBUG
+            using System.Text.Json;
+            using Cratis.Chronicle.Events;
+            using Cratis.Chronicle.Testing.ReadModels;
+            using Projects.Common;
+            using Projects.Projects.Registration.RegisterProject;
+            using Xunit;
+
+            namespace Projects.Projects.Registration.AllLookup;
+
+            public class when_observing_an_unrelated_event
+            {
+                static readonly string[] _keys = ["{{First}}", "{{Second}}"];
+
+                [Fact]
+                public async Task should_match_screenplay()
+                {
+                    var scenario = new ReadModelScenario<AllSummary>();
+            {{seeds}}
+                    var actual = _keys.Select(key =>
+                    {
+                        var instance = scenario.InstanceForEventSourceId(new EventSourceId(key));
+                        Assert.NotNull(instance);
+                        return new { lastSeen = instance.LastSeen?.Value.ToString() };
                     });
                     Assert.Equal({{JsonSerializer.Serialize(expected)}}, JsonSerializer.Serialize(actual));
                 }

@@ -35,6 +35,6 @@ public class with_from_all : a_command_only_plan
         _record = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([_original.Id]), new())).Results);
     }
 
-    [Fact] void should_reject_the_scoped_form_before_execution() => _record.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_share_the_renderers_from_all_rejection() => Assert.Contains("FromAll", _record.Unsupported!.Details);
+    [Fact] void should_refuse_the_scope_before_execution() => _record.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
+    [Fact] void should_share_the_renderers_empty_all_rejection() => Assert.Contains("An all block without mappings cannot render", _record.Unsupported!.Details);
 }

@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Semantics;
 
 namespace Cratis.Stage.Contracts.Rendering;
 
@@ -92,4 +93,9 @@ public sealed record ArtifactRenderRequest(
 
     /// <summary>Attachment-loader diagnostics to include with a missing body's render diagnostic.</summary>
     public ImmutableArray<Diagnostic> AttachmentDiagnostics { get; init; } = [];
+
+    /// <summary>
+    /// Gets the optional whole-application baseline assessment. Not supplied preserves unchecked rendering.
+    /// </summary>
+    public ReleaseBaselineAssessment ReleaseBaseline { get; init; } = ReleaseBaselineAssessment.NotSupplied;
 }

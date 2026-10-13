@@ -102,6 +102,39 @@ Context-only sources need no flag: supply concepts, types, sibling features, and
 compile dependencies in `Paths`, but omit their scopes from `PlanSelection`. Referenced
 shared declarations and required constraints can still appear in the output.
 
+## Admitted release revisions
+
+Source loading reads `.screenplay/release-baseline.json` under `PlaySources.Root`
+with Screenplay's `ReleaseBaselineStore.Read`; it never admits a release or writes
+sidecars. Supply `CatalogPath` for authoritative document and event identities.
+An absent baseline adds no warnings. A present baseline without authoritative
+identities reports an unavailable check, not guessed changed or missing revisions.
+
+`LoadedSemanticModel.ReleaseBaseline` carries the assessment of the whole compiled
+application. Both `PlanFrom` overloads forward it, including violations in sibling
+slices outside the selected scopes. A manually constructed loaded model defaults to
+`NotSupplied` and remains unchecked. For an in-memory workspace, compute the
+assessment with `StageReleaseBaseline.Check(workspace, baselineRead)`; a
+`SemanticCompilation` overload reconstructs its workspace and requires semantic-revision
+parity. These types are in `Cratis.Stage.Contracts.Semantics`.
+
+| Warning | Meaning |
+| --- | --- |
+| `STAGE-BASELINE-001` | An admitted event revision changed; includes contract identity, revision, stored name, display hint, admitted release, and first differing schema path when available. |
+| `STAGE-BASELINE-002` | An admitted event revision is missing. |
+| `STAGE-BASELINE-003` | The baseline is unreadable, has an unsupported schema, or belongs to another application. |
+| `STAGE-BASELINE-004` | The check is unavailable, or the assessment belongs to a different semantic revision than the planned model. |
+
+Warnings alone keep `Success` true and preserve every artifact byte. They contribute
+to the plan digest because diagnostics are part of that digest. Blocking renderer
+errors still refuse the plan. Use `screenplay baseline check <root>` as your CI gate:
+Stage warnings do not enforce frozen revisions or Chronicle schema compatibility.
+The baseline comes from an explicit `screenplay baseline admit` release step, not
+rendering. See [Screenplay's baseline commands](/screenplay/screenplay/tool/).
+
+Baseline checking is independent of `CheckPublication`: warnings do not make a
+compatible destination incompatible, and they never waive `STAGE-EVENT-002`.
+
 ## Selection
 
 Names match authored names exactly and ordinally, not their generated PascalCase

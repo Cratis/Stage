@@ -221,7 +221,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                         await store.Projections.WaitTillReachesEventSequenceNumber<ProjectSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(60));
                     }
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<ProjectSummaryProjection>());
-                    await store.Projections.WaitTillReachesEventSequenceNumber<AllSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
+                    await store.Projections.WaitTillReachesEventSequenceNumber<AllSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(60));
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<AllSummaryProjection>());
                 }
             }

@@ -19,7 +19,7 @@ public class when_rendering_all_with_unmapped_properties : Specification
 {
     [Theory]
     [InlineData("count Int")]
-    [InlineData("flag Boolean")]
+    [InlineData("flag Bool")]
     [InlineData("reference Uuid")]
     [InlineData("amount Decimal")]
     [InlineData("tags String[]")]
@@ -33,9 +33,9 @@ public class when_rendering_all_with_unmapped_properties : Specification
     }
 
     [Theory]
-    [InlineData("note String")]
-    [InlineData("count Int?")]
-    [InlineData("reference Uuid?")]
+    [InlineData("note String optional")]
+    [InlineData("count Int optional")]
+    [InlineData("reference Uuid optional")]
     void should_admit_a_property_chronicle_leaves_null(string property)
     {
         var plan = Plan(property);

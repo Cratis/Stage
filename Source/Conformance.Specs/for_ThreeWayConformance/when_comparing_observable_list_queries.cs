@@ -1,0 +1,130 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+#if DEBUG
+using System.Xml.Linq;
+using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Specifications;
+using Xunit;
+
+namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
+
+public class when_comparing_observable_list_queries(when_comparing_observable_list_queries.context fixture) : IClassFixture<when_comparing_observable_list_queries.context>
+{
+    [Fact] void should_pass_each_correct_reference_expectation() => fixture.ReferenceCorrect.ShouldContainOnly(true, true, true, true);
+    [Fact] void should_fail_each_wrong_reference_expectation() => fixture.ReferenceWrong.ShouldContainOnly(false, false, false, false);
+    [Fact] void should_report_the_stage_query_gap() => fixture.StageResults.All(result => result.Outcome == SemanticSpecificationOutcome.Unsupported && result.Unsupported!.Capability == StageExecutionCapability.Query).ShouldBeTrue();
+    [Fact] void should_build_without_warnings() => fixture.Warnings.ShouldEqual(string.Empty);
+    [Fact] void should_pass_each_correct_generated_expectation() => fixture.GeneratedCorrect.ShouldContainOnly("Passed", "Passed", "Passed", "Passed");
+    [Fact] void should_fail_each_wrong_generated_expectation() => fixture.GeneratedWrong.ShouldContainOnly("Failed", "Failed", "Failed", "Failed");
+    [Fact] void should_compare_all_four_query_shapes() => fixture.GeneratedCorrect.Length.ShouldEqual(4);
+    [Fact] void should_fail_wrong_generated_rows_as_assertions() => fixture.WrongFailures.All(message => message.Contains("Assert.True() Failure", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_push_filtered_updates_in_process() => fixture.PushOutcome.ShouldEqual("Passed");
+
+    public class context : a_generated_application
+    {
+        public bool[] ReferenceCorrect { get; private set; } = [];
+        public bool[] ReferenceWrong { get; private set; } = [];
+        public SemanticSpecificationRunRecord[] StageResults { get; private set; } = [];
+        public string Warnings { get; private set; } = string.Empty;
+        public string[] GeneratedCorrect { get; private set; } = [];
+        public string[] GeneratedWrong { get; private set; } = [];
+        public string[] WrongFailures { get; private set; } = [];
+        public string PushOutcome { get; private set; } = string.Empty;
+
+        protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(Model());
+
+        async Task Because()
+        {
+            var model = Model();
+            var plan = SemanticExecutionPlan.Compile(model).Plan!;
+            var specifications = plan.Specifications.Values.ToArray();
+            var runner = new SemanticSpecificationRunner();
+            ReferenceCorrect = [.. specifications.Where(specification => specification.Name.StartsWith("Correct", StringComparison.Ordinal)).Select(specification => runner.Run(plan, specification.Id).Passed)];
+            ReferenceWrong = [.. specifications.Where(specification => specification.Name.StartsWith("Wrong", StringComparison.Ordinal)).Select(specification => runner.Run(plan, specification.Id).Passed)];
+            StageResults = [.. (await new SemanticSpecificationExecutor().Run(plan, new([.. specifications.Select(specification => specification.Id)]), new())).Results];
+            AddGeneratedSpecification("ObservablePush.cs", PushProbe);
+            Warnings = BuildWarnings(await Run("observable-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
+            await Run("observable-test.log", true, "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=observable.trx", "--results-directory", _evidence.FullName);
+            var trx = XDocument.Load(Path.Combine(_evidence.FullName, "observable.trx"));
+            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
+            var results = trx.Descendants(ns + "UnitTestResult").ToArray();
+            GeneratedCorrect = Outcomes(results, "when_correct");
+            GeneratedWrong = Outcomes(results, "when_wrong");
+            WrongFailures = [.. results.Where(result => ((string)result.Attribute("testName")!).Contains("when_wrong", StringComparison.Ordinal)).Select(result => result.Descendants(ns + "Message").Single().Value)];
+            PushOutcome = Outcomes(results, "should_push_matching_rows_and_exclude_other_rows").Single();
+        }
+
+        static string[] Outcomes(IEnumerable<XElement> results, string name) =>
+            [.. results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).Select(result => (string)result.Attribute("outcome")!)];
+
+        static ExecutableSemanticModel Model()
+        {
+            var source = a_query_filter_model.Source.Replace("      projection InvoiceSummaryProjection", "      query SnapshotInvoices => InvoiceSummary[]\n      projection InvoiceSummaryProjection", StringComparison.Ordinal);
+            foreach (var query in new[] { "AllInvoices", "FilteredById", "FilteredInvoices", "SnapshotInvoices" })
+            {
+                var arguments = query switch
+                {
+                    "FilteredById" => "          arguments\n            invoiceId = \"one\"\n            status = \"open\"\n            category = \"North\"\n",
+                    "FilteredInvoices" => "          arguments\n            status = \"open\"\n            category = \"North\"\n",
+                    _ => string.Empty
+                };
+                var correct = $$"""
+                          specification Correct{{query}}
+                            given InvoiceIssued
+                              for "one"
+                              invoiceId = "one"
+                              status = "open"
+                              category = "North"
+                            then query {{query}}
+                    {{arguments}}          result
+                                invoiceId = "one"
+                                status = "open"
+                                category = "North"
+                    """;
+                var offset = correct.LastIndexOf("status = \"open\"", StringComparison.Ordinal);
+                var wrong = (correct[..offset] + "status = \"closed\"" + correct[(offset + "status = \"open\"".Length)..])
+                    .Replace("Correct", "Wrong", StringComparison.Ordinal);
+                source += "\n" + correct + "\n" + wrong;
+            }
+            return invoice_model.Compile(source);
+        }
+    }
+
+    const string PushProbe = """
+        using System.Reactive.Linq;
+        using System.Threading.Channels;
+        using Cratis.Chronicle.Testing.Events;
+        using Invoices.Billing.Invoicing.Issue;
+        using Invoices.Billing.Invoicing.Lookup;
+        using Invoices.Common;
+        using Xunit;
+
+        namespace Invoices.Probes;
+
+        public class observable_push
+        {
+            [Fact]
+            public async Task should_push_matching_rows_and_exclude_other_rows()
+            {
+                using var store = new EventStoreForTesting();
+                var emissions = Channel.CreateUnbounded<InvoiceSummary[]>();
+                var subject = InvoiceSummary.FilteredInvoices(store.ReadModels, "open", "North");
+                using var subscription = subject.Subscribe(rows => emissions.Writer.TryWrite(rows.ToArray()));
+                Assert.Empty(await emissions.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10)));
+                await store.EventLog.Append("one", new InvoiceIssued(InvoiceId: new InvoiceId("one"), Status: "open", Category: new Category("North")));
+                var matching = await emissions.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+                Assert.Equal("one", Assert.Single(matching).InvoiceId.Value);
+                await store.EventLog.Append("two", new InvoiceIssued(InvoiceId: new InvoiceId("two"), Status: "closed", Category: new Category("South")));
+                var filtered = await InvoiceSummary.FilteredInvoices(store.ReadModels, "open", "North").FirstAsync();
+                Assert.Equal("one", Assert.Single(filtered).InvoiceId.Value);
+            }
+        }
+        """;
+}
+#endif

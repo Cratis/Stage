@@ -113,7 +113,7 @@ internal static partial class SemanticCratisAdmission
             var readModel = slice.ReadModels.SingleOrDefault(_ => _.Id == query.ReadModel);
             if (!QueryFiltersAreRenderable(context, query, readModel, diagnostics))
             {
-                diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is neither an optional snapshot lookup by identifier nor an observable collection query the renderer can preserve.", query.Id));
+                diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is neither an optional snapshot lookup by identifier nor a collection query the renderer can preserve.", query.Id));
             }
         }
     }
@@ -139,7 +139,7 @@ internal static partial class SemanticCratisAdmission
     static bool QueryFiltersAreRenderable(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel, List<ArtifactRenderDiagnostic> diagnostics)
     {
         if (IsSnapshotLookup(context, query, readModel)) return query.Filters.IsDefaultOrEmpty;
-        if (!IsLiveCollection(context, query, readModel)) return false;
+        if (!IsCollection(context, query, readModel)) return false;
 
         var optionalSeen = false;
         foreach (var filter in query.Filters)
@@ -164,8 +164,8 @@ internal static partial class SemanticCratisAdmission
             identifiers is [var identifier] && query.KeyProperty == identifier.Id && TypeExists(context, argument.Type);
     }
 
-    static bool IsLiveCollection(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel) =>
-        (readModel, query) is ({ } model, { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live }) &&
+    static bool IsCollection(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel) =>
+        (readModel, query) is ({ } model, { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live }) &&
         (query.Argument is not { } argument || (TypeExists(context, argument.Type) && model.Properties.Any(property => property.Id == query.KeyProperty)));
 
     static bool FilterHasMatchingScalarProperty(SemanticApplicationContext context, SemanticQueryFilter filter, SemanticReadModel readModel) =>

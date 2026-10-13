@@ -17,7 +17,7 @@ public class when_rendering_an_unfiltered_query_as_before : Specification
 
     void Because()
     {
-        var plan = invoice_model.Plan(invoice_model.Compile(a_query_filter_model.Source));
+        var plan = invoice_model.Plan(invoice_model.Compile(a_query_filter_model.Source.Replace("=> observable InvoiceSummary[]", "=> InvoiceSummary[]", StringComparison.Ordinal)));
         Assert.True(plan.Success, string.Join("; ", plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
         var content = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Lookup.cs", StringComparison.Ordinal)).Bytes.AsSpan());
         _actual = Encoding.UTF8.GetBytes(content.Split('\n').Single(line => line.Contains(" AllInvoices(", StringComparison.Ordinal)) + "\n");

@@ -106,6 +106,12 @@ instances of the read model. `All<ReadModels>` returns that window. `Get<ReadMod
 for an instance whose identity matches `id` (compared case-insensitively) and returns `data: null` when none does,
 including an instance that exists beyond the first 500.
 
+The Host serves one-shot results for both snapshot and `observable` queries; it does not
+stream modeled collection changes. In a generated C# application, observable lists instead
+return Chronicle subjects: a plain GET can answer 202 before the first emission,
+`?waitForFirstResult=true` waits for a 200 result, and `Accept: text/event-stream` subscribes
+to SSE updates. Generated React routes use the wait flag but do not yet consume SSE push.
+
 Every query the model declares is also served under its own name, so `query AllWorkItems => WorkItemSummary[]`
 answers at `.../all-work-items`. A query that shares a conventional name takes that name's place. A query the model
 narrows with `by` only returns what its argument names. Given this declaration:
@@ -251,6 +257,9 @@ document, but it is there:
 | `/.cratis/queries/ws`                                                                        | WebSocket transport for observable queries (a plain `GET` fails — it needs the upgrade). |
 | `/.cratis/queries/sse`, `/.cratis/queries/sse/subscribe`, `/.cratis/queries/sse/unsubscribe` | Server-Sent Events transport for observable queries.                                     |
 | `/.cratis/queries/health`                                                                    | Observable query health. Answers `202` until it has produced its first result.           |
+
+These observable transports apply to generated observable C# queries. A mapped SSE endpoint
+does not turn the Host's one-shot array performer into a stream.
 
 Two request headers are honored on every call: **`X-Correlation-Id`** to correlate a call with what it caused, and
 **`X-Tenant-Id`** to pick the tenant.

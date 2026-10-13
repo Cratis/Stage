@@ -59,6 +59,11 @@ for _ in $(seq 1 90); do
 done
 [ "$ready" = 1 ] || could_not_run "the generated host did not become healthy; see $result.host.log"
 
+# The fresh screens app must expose actual Arc observable queries before browser fixtures seed it.
+if [ -z "${STAGE_GENERATED_REACT_SCENARIO:-}" ]; then
+    python3 "$harness/../verify-observable-query.py" "http://127.0.0.1:$port" "$result.observable" || exit $?
+fi
+
 scenario=${STAGE_GENERATED_REACT_SCENARIO:-$harness/screen-composition.cjs}
 [ -f "$scenario" ] || could_not_run "the scenario $scenario does not exist"
 

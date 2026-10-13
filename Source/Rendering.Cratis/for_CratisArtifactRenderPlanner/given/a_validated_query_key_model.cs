@@ -49,6 +49,16 @@ public static class a_validated_query_key_model
 
         namespace Invoices.Probes;
 
+        public sealed class QueryReadModels(IReadModels inner, IEnumerable<InvoiceSummary> rows) : Cratis.Chronicle.Testing.ReadModels.ReadModelsForTesting(inner), IReadModels
+        {
+            readonly IReadModels _inner = inner;
+
+            public new Task<T> GetInstanceById<T>(ReadModelKey key, ReadModelSessionId? sessionId = null) => _inner.GetInstanceById<T>(key, sessionId);
+
+            public new System.Reactive.Subjects.ISubject<IEnumerable<T>> Observe<T>(System.Linq.Expressions.Expression<Func<T, bool>>? filter = null) =>
+                new System.Reactive.Subjects.BehaviorSubject<IEnumerable<T>>(filter is null ? rows.Cast<T>().ToArray() : rows.Cast<T>().Where(filter.Compile()).ToArray());
+        }
+
         public static class QueryKeys
         {
             public static async Task<QueryResult[]> Execute()
@@ -59,14 +69,15 @@ public static class a_validated_query_key_model
                 var readModels = Substitute.For<IReadModels>();
                 readModels.GetInstanceById<InvoiceSummary>((EventSourceId)id).Returns(instance);
                 readModels.GetInstanceById<InvoiceSummary>((EventSourceId)invalidId).Returns(Task.FromResult<InvoiceSummary>(null!));
-                readModels.GetInstances<InvoiceSummary>().Returns((IEnumerable<InvoiceSummary>)[instance]);
+                InvoiceSummary[] rows = [instance];
+
                 // Arc's Chronicle interceptor releases each returned instance before assigning Data.
                 // This model has no protected properties, so release must preserve the instance.
                 readModels.Release<InvoiceSummary>(Arg.Any<InvoiceSummary>()).Returns(call => Task.FromResult(call.Arg<InvoiceSummary>()));
                 using var lookupScenario = new QueryScenario<InvoiceSummary>();
                 // Snapshot reads normally require a silo. Keep the real Arc argument conversion
                 // and validation pipeline, but substitute the store as companion specs do.
-                lookupScenario.Services.AddSingleton(readModels);
+                lookupScenario.Services.AddSingleton<IReadModels>(new QueryReadModels(readModels, rows));
                 var valid = new QueryArguments { ["invoiceId"] = "invoice-one" };
                 var invalid = new QueryArguments { ["invoiceId"] = "x" };
                 var lookup = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), valid);

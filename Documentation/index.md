@@ -108,6 +108,12 @@ existing partial-output failure flow described above. No supported external bind
 is supplied; migrate to declarative behavior only when it is equivalent. This narrow correction does not close
 the broader Stage #13 file-backed implementation work or change other file implementation families.
 
+Portable ESM collection queries render as Chronicle `Observe` subjects for observable lists and
+`Task<IEnumerable<T>>` for snapshot lists, preserving `by` keys and equality filters. Generated React
+routes wait for the first result; the Host still serves one-shot arrays. See
+[Observable list queries](reference/stage-rendering.md#generated-c-observable-list-queries) for SSE,
+consistency and specification limits.
+
 Legacy state-view query rendering supports conventional unfiltered collections, identifying `by` lookups,
 observable variants, and per-method authorization. It rejects declared filter parameter contracts and file or
 inline performers rather than replacing their intent with an unrestricted query. Every query in a selected

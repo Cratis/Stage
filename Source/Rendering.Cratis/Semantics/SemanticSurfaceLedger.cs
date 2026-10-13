@@ -35,7 +35,7 @@ internal static class SemanticSurfaceLedger
     public static IReadOnlyDictionary<string, SemanticSurfaceDisposition> Entries { get; } = Build();
 
     /// <summary>
-    /// Gets the query shape matrix. Snapshot optional lookups require a key; live collections may be keyed or unkeyed.
+    /// Gets the query shape matrix. Snapshot optional lookups require a key; snapshot and live collections may be keyed or unkeyed.
     /// Other cardinality/delivery/key combinations fail STAGE-ESM-010 before rendering.
     /// </summary>
     public static IReadOnlyDictionary<(SemanticQueryCardinality Cardinality, SemanticQueryDelivery Delivery, bool Keyed), SemanticSurfaceDisposition> QueryShapes { get; } =
@@ -45,7 +45,7 @@ internal static class SemanticSurfaceLedger
          select (Cardinality: cardinality, Delivery: delivery, Keyed: keyed))
         .ToDictionary(shape => shape, shape =>
             (shape.Cardinality == SemanticQueryCardinality.ZeroOrOne && shape.Delivery == SemanticQueryDelivery.Snapshot && shape.Keyed) ||
-            (shape.Cardinality == SemanticQueryCardinality.Many && shape.Delivery == SemanticQueryDelivery.Live)
+            (shape.Cardinality == SemanticQueryCardinality.Many && shape.Delivery is SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live)
                 ? new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered)
                 : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-010"));
 
@@ -166,7 +166,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown EventSourceIdentity CausedBySubject CausedByName CausedByUserName");
         Add(entries, "SemanticValueExpression", rejected("STAGE-ESM-006"), "Value");
 
-        // State view: an optional snapshot lookup by identifier or a live collection (keyed by one `by` or unkeyed).
+        // State view: an optional snapshot lookup by identifier or a snapshot/live collection (keyed by one `by` or unkeyed).
         // Validated scalar concept keys render as primitive arguments and convert inside the query;
         // nested/collection validated concepts fail STAGE-ESM-010 rather than adding Arc query validation.
         // QueryShapes records the cross-product rather than treating an enum value as universally supported.
@@ -177,7 +177,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticAffectedInstance", rendered, "Cardinality Key");
         Add(entries, "AffectedInstanceCardinality", rendered, "One");
         Add(entries, "AffectedInstanceCardinality", rejected("STAGE-ESM-009"), "Unknown Many ZeroOrOne");
-        Add(entries, "SemanticKeyedQuery", rendered, "Argument Cardinality Delivery Id KeyProperty Name ReadModel Authorization Filters"); // Snapshot collection shapes still refuse with STAGE-ESM-010.
+        Add(entries, "SemanticKeyedQuery", rendered, "Argument Cardinality Delivery Id KeyProperty Name ReadModel Authorization Filters");
         Add(entries, "SemanticQueryFilter", rendered, "Id Name Type Property");
         Add(entries, "SemanticQueryFilterValue", rendered, "Filter Value");
         Add(entries, "SemanticReadModelQueryArgument", rendered, "Id Name Type");
@@ -229,7 +229,8 @@ internal static class SemanticSurfaceLedger
         // incomplete or ambiguous unordered duplicate replay fails STAGE-ESM-011. Unordered event
         // assertions compare the produced stream even when the expected fact omits its source.
         // Protected query results and query-only denials execute through Arc QueryScenario with fixture principals;
-        // live collections render as collection reads; live single-result queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
+        // live collections render as Observe subjects and snapshots as Task collection reads; protected collection success
+        // specifications fail STAGE-ESM-011 (Arc#3221). Live single-result queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
         // fail STAGE-ESM-011 before log seeding. An unauthenticated caller fixture with roles or claims
         // also fails STAGE-ESM-011 before rendering: Arc supplies an empty guest principal.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");

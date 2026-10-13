@@ -191,7 +191,7 @@ The profile validates file names and assignments with Screenplay's `StringsFile.
 :::caution[Renaming events]
 An event's Chronicle id is its stored name: the `id` pin, otherwise the name. Its generated class follows the current name. ESM v16 carries a differing pin as `storedName`, rendered as `[EventType("Original")]`; unpinned events retain argument-free `[EventType]`.
 
-Before writing, publishers call `CratisRendering.CheckPublication` at every scope. It refuses a changed id with `STAGE-EVENT-002`. Pin the existing id in the model, add a new event instead of renaming, or write an event type migration. If the release baseline records the wrong name, correct it per Screenplay decision 0070.
+Before writing, publishers must call `CratisRendering.CheckPublication` at every scope and refuse every non-`Compatible` result. Only these publishers enforce `STAGE-EVENT-002` for changed ids. Existing `cratis render` versions check only scoped plans and refuse only `RequiresApplicationScope`; they do not enforce this diagnostic. The CLI integration is tracked in [Cratis/cli#354](https://github.com/Cratis/cli/issues/354). Pin the existing id in the model, add a new event instead of renaming, or write an event type migration. If the release baseline records the wrong name, correct it per Screenplay decision 0070.
 
 A rename without a pin still orphans stored events: a renderer cannot distinguish it from deleting one type and adding another. Use the Screenplay workspace/MCP rename, which pins by default.
 :::
@@ -346,7 +346,7 @@ Stage builds against Screenplay 4.152.0 and admits exact ESM v1 through v16 lang
 | Concept compliance | v13 | `[PII]` or `[Encrypted]` + `[NotAudited]` on `ConceptAs` records; compliance on identity uses or enums fails `STAGE-ESM-040`; text and non-text secrets retain their primitive types; `pii secret` uses PII only |
 | Equality query filters | v14 | Rendered on `Many` + `Live` collections; Host uses the reference evaluator; executor refuses filtered assertions with `STAGE-ESM-010`. Snapshot collections retain `010` ([Stage #58](https://github.com/Cratis/Stage/issues/58)) |
 | Generated-value strategies and freshness | v15 | Required scalar Uuid/String concepts render strategy factories and `BeforeFirst` freshness scopes; invalid fixture shapes fail `STAGE-ESM-011`, unknown strategies fail `STAGE-ESM-028`; see [Generated values](../reference/generated-values-rendering.md) |
-| Stored event names | v16 | A differing `storedName` renders as `[EventType("storedName")]`; the class follows the current name. Publication refuses changed or unreadable destination ids with `STAGE-EVENT-002` |
+| Stored event names | v16 | A differing `storedName` renders as `[EventType("storedName")]`; the class follows the current name. Publishers that refuse every non-`Compatible` publication check result reject changed or unreadable destination ids with `STAGE-EVENT-002` |
 
 In every ESM version, `not empty` on text rejects null, empty and whitespace-only values using Unicode White_Space (`char.IsWhiteSpace`). This applies to both concept and command rules. Collections require at least one element; identity text retains exact-empty semantics.
 

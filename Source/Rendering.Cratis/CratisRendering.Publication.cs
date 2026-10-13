@@ -30,16 +30,18 @@ public static partial class CratisRendering
     /// </remarks>
     public static CratisPublicationCheck CheckPublication(ArtifactRenderPlan plan, Func<string, string?> readExistingFile)
     {
-        if (CheckEventTypeIds(plan, readExistingFile) is { } eventChanges)
+        if (plan.Scope.Kind != ArtifactRenderScopeKind.Application && CheckPolicyLayout(plan, readExistingFile) is { } policyLayout)
         {
-            return eventChanges;
+            return policyLayout;
         }
 
-        if (plan.Scope.Kind == ArtifactRenderScopeKind.Application)
-        {
-            return new CratisPublicationCheck.Compatible();
-        }
+        return CheckEventTypeIds(plan, readExistingFile) is { } eventChanges
+            ? eventChanges
+            : new CratisPublicationCheck.Compatible();
+    }
 
+    static CratisPublicationCheck.RequiresApplicationScope? CheckPolicyLayout(ArtifactRenderPlan plan, Func<string, string?> readExistingFile)
+    {
         var paths = plan.Artifacts.Where(artifact => AggregatePolicyPath(artifact.RelativePath) is not null)
             .Where(artifact => readExistingFile(artifact.RelativePath) is { } existing &&
                 NormalizePolicyText(existing) != Encoding.UTF8.GetString(artifact.Bytes.AsSpan()) &&
@@ -47,7 +49,7 @@ public static partial class CratisRendering
             .Select(artifact => artifact.RelativePath).ToImmutableArray();
 
         return paths.IsEmpty
-            ? new CratisPublicationCheck.Compatible()
+            ? null
             : new CratisPublicationCheck.RequiresApplicationScope(
                 paths,
                 "The destination contains an aggregate or unrecognized policy layout. Render the entire application before publishing a scoped plan so unselected operations retain their policies.");

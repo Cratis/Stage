@@ -13,8 +13,11 @@ public class an_event_plan : a_policy_plan
     protected ArtifactRenderPlan Events(string code, bool application = false, bool policies = false)
     {
         var scope = application ? _application.Scope : _plan.Scope;
-        var request = new ArtifactRenderRequest(_loaded.Model, _loaded.Plan,
-            CratisRendering.CreateProfile(_loaded.Model.Application.Name, new(_loaded.Model.Application.Name, "InvoiceApp", "Invoices")), scope);
+        var request = new ArtifactRenderRequest(
+            _loaded.Model,
+            _loaded.Plan,
+            CratisRendering.CreateProfile(_loaded.Model.Application.Name, new("InvoiceApp", "Invoices")),
+            scope);
 
         return ArtifactRenderPlan.Create(request, [PlannedArtifact.CreateText(EventPath, code), .. policies ? _plan.Artifacts : []], []);
     }

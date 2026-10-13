@@ -203,9 +203,11 @@ so the check never treats an unreadable destination file as absent.
 | `CratisPublicationCheck.RequiresApplicationScope` | Refuse the scoped publication or render the entire application first. `Paths` lists incompatible paths in ordinal order; `Reason` explains the migration requirement. |
 | `CratisPublicationCheck.ChangesEventTypeIds` | Refuse publication at every scope and surface the `STAGE-EVENT-002` error diagnostics. `Changes` lists path, qualified type name, existing id and planned id in ordinal path/type order. Pin the existing id, add a new event, or write an event type migration before replanning. |
 
-Event identity checks run before policy-layout checks, including at application scope.
-The check reads planned `.cs` paths containing an `[EventType]` declaration and compares
-namespace-qualified types. An argument-free or empty-string id falls back to the class
+Scoped plans check policy layouts first and return `RequiresApplicationScope` when needed,
+preserving the refusal understood by existing publishers. Otherwise event identities are
+checked at every scope, including application scope. The check reads planned `.cs` paths
+containing an `[EventType]` declaration and matches simple type identifiers within each path,
+using canonical namespace-qualified names only to break ties and report changes. An argument-free or empty-string id falls back to the class
 name. A nonliteral existing id or existing parse errors refuse publication because its
 identity cannot be read safely. An unpinned rename that replaces one class with another
 cannot be detected; use Screenplay's workspace/MCP rename, which pins by default.
@@ -219,7 +221,10 @@ planned content (after newline normalization) is compatible. Otherwise the check
 recognizes the split registry and shared C# declarations, rejecting aggregate
 `StagePolicy_*` classes, per-site bodies, `TypedContext_*` wrappers and unrecognized
 content. Application-scope plans skip this policy-layout check, but still read event destinations.
-Publishers matching the closed result type must handle `ChangesEventTypeIds` before writing any artifacts.
+`STAGE-EVENT-002` is enforced only by publishers that refuse every non-`Compatible`
+result before writing any artifacts. Existing `cratis render` versions check only scoped
+plans and refuse only `RequiresApplicationScope`; they do not enforce `STAGE-EVENT-002`.
+The CLI integration is tracked in [Cratis/cli#354](https://github.com/Cratis/cli/issues/354).
 
 A scaffold-only plan never contains event or policy files, so there is nothing to check.
 `PlanScaffold` has no underlying `ArtifactRenderPlan`. Publication checks do not

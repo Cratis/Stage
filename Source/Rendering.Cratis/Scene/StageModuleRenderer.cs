@@ -44,6 +44,9 @@ internal static class StageModuleRenderer
             .Select((query, index) => (query.Name, Export: Identifiers.ToPascalCase(query.Name), Module: Module(context, query.Id), Alias: $"__stageQuery{index}"))
             .ToArray();
 
+        var liveQueries = context.Queries.Values
+            .Where(query => query.Delivery == Screenplay.Semantics.SemanticQueryDelivery.Live)
+            .Select(query => query.Name).ToHashSet(StringComparer.Ordinal);
         var builder = new StringBuilder()
             .Append("// What the Stage runtime renders this application from - the counterpart of a live Stage's\n")
             .Append("// /stage/scene, /stage/routes and /stage/strings endpoints. Generated; do not edit.\n")
@@ -70,7 +73,8 @@ internal static class StageModuleRenderer
             .Append("        queries: {\n");
         foreach (var (name, _, _, alias) in queries)
         {
-            builder.Append("            ").Append(JsonSerializer.Serialize(name)).Append(": new ").Append(alias).Append("().route,\n");
+            var route = liveQueries.Contains(name) ? $"`${{new {alias}().route}}?waitForFirstResult=true`" : $"new {alias}().route";
+            builder.Append("            ").Append(JsonSerializer.Serialize(name)).Append(": ").Append(route).Append(",\n");
         }
 
         builder.Append("        },\n")

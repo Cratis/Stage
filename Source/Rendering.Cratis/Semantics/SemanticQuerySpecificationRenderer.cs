@@ -9,7 +9,7 @@ using Cratis.Stage.Rendering.Cratis.Specifications;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Renders optional snapshot query expectations directly from ESM.
+/// Renders snapshot and observable query expectations directly from ESM.
 /// </summary>
 internal static class SemanticQuerySpecificationRenderer
 {
@@ -78,8 +78,12 @@ internal static class SemanticQuerySpecificationRenderer
 
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
-            .Line("readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
-            .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
+            .Line(IsLiveList(query)
+                ? "global::Cratis.Chronicle.ReadModels.IReadModels _readModels => _scenario.ReadModels;"
+                : "readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
+            .Line(IsLiveList(query)
+                ? "readonly global::Cratis.Chronicle.Testing.Events.EventStoreForTesting _scenario = new();"
+                : $"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
 
             // Only the field the query's cardinality assigns: an unused one is a CS0169 warning in the generated build.
             .Line(query.Cardinality == SemanticQueryCardinality.Many
@@ -93,7 +97,7 @@ internal static class SemanticQuerySpecificationRenderer
             var givenArguments = givenEvent.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var givenSource = given.EventSource!;
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
+            builder.Line(SeedEvent(query, types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type), $"new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)})", given.Route, context));
         }
 
         foreach (var (produced, expectedEvent) in replay)
@@ -102,15 +106,18 @@ internal static class SemanticQuerySpecificationRenderer
             var source = SemanticDestinations.ForSpecification(specification, command!, produced);
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+            builder.Line(SeedEvent(query, types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type), $"new {types.EventType(@event)}({string.Join(", ", arguments)})", SemanticSpecificationRouteRendering.ForCommand(specification, context), context));
         }
 
         if (query.Cardinality == SemanticQueryCardinality.Many)
         {
-            builder.Line($"_readModels.GetInstances<{readModelName}>().Returns(_scenario.Instances.Values);")
-                .EndBlock()
+            if (!IsLiveList(query))
+            {
+                builder.Line($"_readModels.GetInstances<{readModelName}>().Returns(_scenario.Instances.Values);");
+            }
+            builder.EndBlock()
                 .BlankLine()
-                .Line($"async global::System.Threading.Tasks.Task Because() => _results = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}({collectionCall});")
+                .Line($"async global::System.Threading.Tasks.Task Because() => _results = await {CollectionExecution(query, readModelName, collectionCall)};")
                 .BlankLine()
                 .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({collectionPredicate}).ShouldBeTrue();")
                 .Line("public void Dispose() => _scenario.Dispose();")
@@ -214,6 +221,22 @@ internal static class SemanticQuerySpecificationRenderer
         }
 
         return new(path, Conditional(content));
+    }
+
+    static bool IsLiveList(SemanticKeyedQuery query) =>
+        query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live };
+
+    static string SeedEvent(SemanticKeyedQuery query, string source, string @event, SemanticFixtureRoute? route, SemanticApplicationContext context) =>
+        IsLiveList(query)
+            ? $"(await _scenario.EventLog.Append({source}, {@event}{(route is null ? string.Empty : $", {SemanticSpecificationRouteRendering.Arguments(route, context)}")})).IsSuccess.ShouldBeTrue();"
+            : $"await _scenario.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(route, context)}.Events({@event});";
+
+    static string CollectionExecution(SemanticKeyedQuery query, string readModelName, string arguments)
+    {
+        var invocation = $"{readModelName}.{Identifiers.ToPascalCase(query.Name)}({arguments})";
+        return query.Delivery == SemanticQueryDelivery.Live
+            ? $"global::System.Reactive.Threading.Tasks.TaskObservableExtensions.ToTask(global::System.Reactive.Linq.Observable.FirstAsync({invocation}))"
+            : invocation;
     }
 
     static string CollectionArguments(SemanticKeyedQuery query, SemanticSpecificationQueryResult expected, SemanticTypeSystem types) =>

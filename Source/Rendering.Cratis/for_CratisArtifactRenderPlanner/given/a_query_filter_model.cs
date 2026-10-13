@@ -107,10 +107,10 @@ public static class a_query_filter_model
                 var nullCategory = matching with { InvoiceId = new InvoiceId("three"), Category = null };
                 var differentFlag = matching with { InvoiceId = new InvoiceId("four"), Flag = false };
                 var readModels = Substitute.For<IReadModels>();
-                readModels.GetInstances<InvoiceSummary>().Returns((IEnumerable<InvoiceSummary>)[matching, nullFlag, nullCategory, differentFlag]);
+                InvoiceSummary[] rows = [matching, nullFlag, nullCategory, differentFlag];
                 readModels.Release<InvoiceSummary>(Arg.Any<InvoiceSummary>()).Returns(call => Task.FromResult(call.Arg<InvoiceSummary>()));
                 using var scenario = new QueryScenario<InvoiceSummary>();
-                scenario.Services.AddSingleton(readModels);
+                scenario.Services.AddSingleton<IReadModels>(new QueryReadModels(readModels, rows));
                 var result = await scenario.Perform(nameof(InvoiceSummary.FilteredOptionalProperties), new QueryArguments { ["flag"] = true, ["category"] = "North" });
                 Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                 Assert.Empty(result.ValidationResults);
@@ -164,6 +164,12 @@ public static class a_query_filter_model
 
         namespace Invoices.Probes;
 
+        public sealed class QueryReadModels(IReadModels inner, IEnumerable<InvoiceSummary> rows) : Cratis.Chronicle.Testing.ReadModels.ReadModelsForTesting(inner), IReadModels
+        {
+            public new System.Reactive.Subjects.ISubject<IEnumerable<T>> Observe<T>(System.Linq.Expressions.Expression<Func<T, bool>>? filter = null) =>
+                new System.Reactive.Subjects.BehaviorSubject<IEnumerable<T>>(filter is null ? rows.Cast<T>().ToArray() : rows.Cast<T>().Where(filter.Compile()).ToArray());
+        }
+
         public class query_filters
         {
             [Fact]
@@ -173,10 +179,10 @@ public static class a_query_filter_model
                 var closed = new InvoiceSummary(InvoiceId: new InvoiceId("two"), Status: "closed", Category: new Category("North"));
                 var south = new InvoiceSummary(InvoiceId: new InvoiceId("three"), Status: "open", Category: new Category("South"));
                 var readModels = Substitute.For<IReadModels>();
-                readModels.GetInstances<InvoiceSummary>().Returns((IEnumerable<InvoiceSummary>)[north, closed, south]);
+                InvoiceSummary[] rows = [north, closed, south];
                 readModels.Release<InvoiceSummary>(Arg.Any<InvoiceSummary>()).Returns(call => Task.FromResult(call.Arg<InvoiceSummary>()));
                 using var scenario = new QueryScenario<InvoiceSummary>();
-                scenario.Services.AddSingleton(readModels);
+                scenario.Services.AddSingleton<IReadModels>(new QueryReadModels(readModels, rows));
                 var filtered = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open", ["category"] = "North" });
                 var optional = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open" });
                 var keyed = await scenario.Perform(nameof(InvoiceSummary.FilteredById), new QueryArguments { ["invoiceId"] = "three", ["status"] = "open" });

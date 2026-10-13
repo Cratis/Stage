@@ -44,7 +44,8 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
-        specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) && (CanDenyQueryOnly(specification, context) ||
+        specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) &&
+        !HasProtectedCollectionSuccess(context, specification) && (CanDenyQueryOnly(specification, context) ||
                 (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
                 (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
@@ -163,8 +164,17 @@ internal static partial class SemanticSpecificationAdmission
         return false;
     }
 
+    static bool HasProtectedCollectionSuccess(SemanticApplicationContext context, SemanticSpecification specification) =>
+        !specification.ThenDenied && specification.ThenQueries.Any(expected => context.Queries.TryGetValue(expected.Query, out var query) &&
+            query.Authorization is not null && query.Cardinality == SemanticQueryCardinality.Many);
+
     static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {
+        if (HasProtectedCollectionSuccess(context, specification))
+        {
+            return "Protected collection success specifications require a collection-aware query scenario; live queries also require IReadModels.Observe forwarding (Arc#3221).";
+        }
+
         if (DependsOnOpaquePolicy(context, specification))
         {
             return "The operation's authorization depends on an opaque csharp/file policy, which the reference evaluator cannot decide (Unsupported).";

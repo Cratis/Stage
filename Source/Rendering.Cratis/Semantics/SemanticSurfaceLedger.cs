@@ -229,7 +229,8 @@ internal static class SemanticSurfaceLedger
         // incomplete or ambiguous unordered duplicate replay fails STAGE-ESM-011. Unordered event
         // assertions compare the produced stream even when the expected fact omits its source.
         // Protected query results and query-only denials execute through Arc QueryScenario with fixture principals;
-        // live collections render as collection reads; live single-result queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
+        // live collections render as Observe subjects and snapshots as Task collection reads; protected collection success
+        // specifications fail STAGE-ESM-011 (Arc#3221). Live single-result queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
         // fail STAGE-ESM-011 before log seeding. An unauthenticated caller fixture with roles or claims
         // also fails STAGE-ESM-011 before rendering: Arc supplies an empty guest principal.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");

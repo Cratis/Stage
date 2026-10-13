@@ -143,6 +143,12 @@ internal static class SemanticStateViewArtifactRenderer
         var methodName = Identifiers.ToPascalCase(query.Name);
         var documentation = context.Docs(query.Id).Render(builder.BlankLine())
             .Attribute(SemanticAuthorizationAttributes.For(query, context));
+        if (query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live })
+        {
+            RenderObservableQuery(documentation, query, readModel, types);
+            return;
+        }
+
         if (!query.Filters.IsDefaultOrEmpty)
         {
             RenderFilteredQuery(documentation, query, readModel, types);
@@ -186,28 +192,42 @@ internal static class SemanticStateViewArtifactRenderer
             GuardRequiredFilters(expression, filters, readModelName, methodName));
     }
 
+    static void RenderObservableQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types)
+    {
+        var filters = query.Filters.Select(filter => RenderFilter(filter, readModel, types, expressionTree: true)).ToArray();
+        var parameters = KeyParameters(query, types).Concat(filters.Select(filter => filter.Parameter))
+            .Prepend("global::Cratis.Chronicle.ReadModels.IReadModels readModels");
+        var predicates = KeyPredicates(query, readModel, types, expressionTree: true).Concat(filters.Select(filter => filter.Predicate)).ToArray();
+        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var methodName = Identifiers.ToPascalCase(query.Name);
+        var filterExpression = predicates.Length == 0 ? string.Empty : $"instance => {string.Join(" && ", predicates)}";
+        builder.ExpressionMember(
+            $"public static global::System.Reactive.Subjects.ISubject<global::System.Collections.Generic.IEnumerable<{readModelName}>> {methodName}({string.Join(", ", parameters)})",
+            GuardRequiredFilters($"readModels.Observe<{readModelName}>({filterExpression})", filters, readModelName, methodName));
+    }
+
     static IEnumerable<string> KeyParameters(SemanticKeyedQuery query, SemanticTypeSystem types) =>
         query.Argument is { } keyed ? [QueryArgumentExpression.For(keyed, types).Parameter] : [];
 
-    static IEnumerable<string> KeyPredicates(SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types) =>
+    static IEnumerable<string> KeyPredicates(SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types, bool expressionTree = false) =>
         query.Argument is { } keyed
-            ? [EqualityPredicate(keyed.Type, readModel.Properties.Single(property => property.Id == query.KeyProperty), QueryArgumentExpression.For(keyed, types), types)]
+            ? [EqualityPredicate(keyed.Type, readModel.Properties.Single(property => property.Id == query.KeyProperty), QueryArgumentExpression.For(keyed, types), types, expressionTree)]
             : [];
 
-    static string EqualityPredicate(SemanticTypeReference type, SemanticProperty property, QueryArgumentExpression argument, SemanticTypeSystem types) =>
-        $"global::System.Collections.Generic.EqualityComparer<{types.Type(type with { IsOptional = type.IsOptional || property.Type.IsOptional })}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {argument.Comparison})";
+    static string EqualityPredicate(SemanticTypeReference type, SemanticProperty property, QueryArgumentExpression argument, SemanticTypeSystem types, bool expressionTree = false) =>
+        $"global::System.Collections.Generic.EqualityComparer<{types.Type(type with { IsOptional = type.IsOptional || property.Type.IsOptional })}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {(expressionTree ? argument.ExpressionComparison : argument.Comparison)})";
 
-    static RenderedQueryFilter RenderFilter(SemanticQueryFilter filter, SemanticReadModel readModel, SemanticTypeSystem types)
+    static RenderedQueryFilter RenderFilter(SemanticQueryFilter filter, SemanticReadModel readModel, SemanticTypeSystem types, bool expressionTree = false)
     {
         var argument = QueryArgumentExpression.For(new(filter.Id, filter.Name, filter.Type), types);
         var property = readModel.Properties.Single(property => property.Id == filter.Property);
-        var equality = EqualityPredicate(filter.Type, property, argument, types);
+        var equality = EqualityPredicate(filter.Type, property, argument, types, expressionTree);
 
         // Arc treats plain reference parameters as implicitly optional. Match its required-by
         // rejection explicitly for text, including validated concepts accepted as text primitives.
         return new(
             argument.Parameter + (filter.Type.IsOptional ? " = null" : string.Empty),
-            filter.Type.IsOptional ? $"({argument.Name} is null || {equality})" : equality,
+            filter.Type.IsOptional ? $"({argument.Name} {(expressionTree ? "== null" : "is null")} || {equality})" : equality,
             !filter.Type.IsOptional && argument.Type == "string" ? argument : null);
     }
 
@@ -236,6 +256,9 @@ internal static class SemanticStateViewArtifactRenderer
         public string Parameter => $"{Type} {Name}";
 
         public string Comparison => NullGuarded ? $"({Name} is null ? null : {Value})" : Value;
+
+        // Expression trees cannot contain C# pattern matching. Snapshot output keeps its original bytes.
+        public string ExpressionComparison => NullGuarded ? $"({Name} == null ? null : {Value})" : Value;
 
         public static QueryArgumentExpression For(SemanticReadModelQueryArgument argument, SemanticTypeSystem types)
         {

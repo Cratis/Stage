@@ -26,7 +26,6 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         }
 
         var readModelName = new SemanticTypeSystem(context).SliceType(readModel.Id, readModel.Name);
-        var key = Key(expected, context);
         var builder = new CSharpCodeBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{name}")
             .Using("System.Security.Claims")
@@ -74,7 +73,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             .OpenBlock("async global::System.Threading.Tasks.Task Because()")
             .Line($"var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
             .Line("using var scope = _principalAccessor.BeginScope(principal);")
-            .Line($"_result = await _scenario.Perform(nameof({readModelName}.{Identifiers.ToPascalCase(query.Name)}), new global::Cratis.Arc.Queries.QueryArguments {{ [{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(query.Argument!.Name))}] = {key} }});")
+            .Line($"_result = await _scenario.Perform(nameof({readModelName}.{Identifiers.ToPascalCase(query.Name)}), new global::Cratis.Arc.Queries.QueryArguments {{ {Arguments(expected, context)} }});")
             .EndBlock().BlankLine();
 
         Write(builder, Assertions(specification, expected, readModelName, context));
@@ -101,8 +100,18 @@ internal static class SemanticProtectedQuerySpecificationRenderer
     static string Key(SemanticSpecificationQueryResult expected, SemanticApplicationContext context)
     {
         var query = context.Queries[expected.Query];
-        var argument = query.Argument ?? throw UnsupportedSemanticRendering.For("protected query argument", query.Name);
-        return new SemanticTypeSystem(context).QueryArgumentValue(expected.Key, argument.Type);
+        return query.Argument is { } argument ? new SemanticTypeSystem(context).QueryArgumentValue(expected.Key, argument.Type) : string.Empty;
+    }
+
+    static string Arguments(SemanticSpecificationQueryResult expected, SemanticApplicationContext context)
+    {
+        var query = context.Queries[expected.Query];
+        var types = new SemanticTypeSystem(context);
+        var key = query.Argument is { } argument
+            ? new[] { $"[{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(argument.Name))}] = {Key(expected, context)}" }
+            : [];
+        return string.Join(", ", key.Concat(query.Filters.Select(filter =>
+            $"[{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(filter.Name))}] = {types.QueryArgumentValue(expected.Filters.SingleOrDefault(value => value.Filter == filter.Id)?.Value ?? SemanticValue.Null, filter.Type)}")));
     }
 
     static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> Replay(SemanticSpecification specification, SemanticReadModel readModel, SemanticApplicationContext context) =>

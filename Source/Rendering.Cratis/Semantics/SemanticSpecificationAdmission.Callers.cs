@@ -35,7 +35,7 @@ internal static partial class SemanticSpecificationAdmission
         specification.ThenEvents.IsEmpty && specification.ThenReadModels.IsEmpty && specification.ThenErrors.IsEmpty &&
         specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty &&
         context.Queries.TryGetValue(specification.ThenQueries[0].Query, out var query) && query.Authorization is not null &&
-        IsScalar(specification.ThenQueries[0].Key);
+        (query.Argument is null || IsScalar(specification.ThenQueries[0].Key));
 
     internal static bool CanSeedQueryOnly(SemanticSpecification specification, SemanticApplicationContext context)
     {
@@ -51,6 +51,7 @@ internal static partial class SemanticSpecificationAdmission
         var given = specification.GivenReadModels[0];
         var expected = specification.ThenQueries[0];
         return context.Queries.TryGetValue(expected.Query, out var query) && query.Authorization is null &&
+            query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot } &&
             context.ReadModels.TryGetValue(given.ReadModel, out var readModel) && query.ReadModel == given.ReadModel &&
             Equals(given.Key, expected.Key) && expected.Results.Length == 1 &&
             ValuesMatch(given.Values, readModel.Properties) && IsScalar(given.Key) &&

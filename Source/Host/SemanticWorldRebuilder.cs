@@ -279,15 +279,19 @@ internal static class SemanticWorldRebuilder
 
     static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
     {
-        if (json.ValueKind != JsonValueKind.Object || json.EnumerateObject().Count() != properties.Length ||
-            json.EnumerateObject().Any(entry => properties.Count(property => property.Name == entry.Name) != 1))
+        // Chronicle may omit an absent optional value (it does for protected concepts), so only optional properties may be missing.
+        if (json.ValueKind != JsonValueKind.Object ||
+            json.EnumerateObject().Any(entry => properties.Count(property => property.Name == entry.Name) != 1) ||
+            properties.Any(property => !property.Type.IsOptional && !json.TryGetProperty(property.Name, out _)))
         {
             throw new SemanticWorldRebuildRefused("Chronicle content does not match its semantic property schema.");
         }
 
-        return [.. properties.Select(property => new SemanticPropertyValue(
-            property.Id, Value(json.GetProperty(property.Name), property.Type, application)))];
+        return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
     }
+
+    static SemanticValue PropertyValue(JsonElement json, SemanticProperty property, SemanticApplication application) =>
+        json.TryGetProperty(property.Name, out var value) ? Value(value, property.Type, application) : SemanticValue.Null;
 
     static int EnumerationIndex(SemanticConcept concept, int number)
     {

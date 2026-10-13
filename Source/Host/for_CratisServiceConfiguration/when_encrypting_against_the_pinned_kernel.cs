@@ -115,7 +115,8 @@ public class when_encrypting_against_the_pinned_kernel
         using var raw = await StoredContent(protectedStore);
         if (testCase.Value is null)
         {
-            Assert.Equal(JsonValueKind.Null, raw.RootElement.GetProperty("value").ValueKind);
+            // Chronicle may omit an absent value from stored content; either form means nothing was stored.
+            AssertAbsent(raw.RootElement);
         }
         else
         {
@@ -124,7 +125,14 @@ public class when_encrypting_against_the_pinned_kernel
         var store = await client.GetEventStore(name);
         var accessor = (IChronicleServicesAccessor)store.Connection;
         using var released = await ReleasedContent(accessor, protectedStore);
-        Assert.Equal(expected.GetRawText(), released.RootElement.GetProperty("value").GetRawText());
+        if (testCase.Value is null)
+        {
+            AssertAbsent(released.RootElement);
+        }
+        else
+        {
+            Assert.Equal(expected.GetRawText(), released.RootElement.GetProperty("value").GetRawText());
+        }
         AssertRebuiltValue(plan, await RebuiltValues(accessor, protectedStore, plan, appender), "value", expected);
         Console.WriteLine($"PASS {testCase}: stored {(testCase.Value is null ? "null" : "ciphertext")}; released and rebuilt {expected.GetRawText()}.");
     }
@@ -211,6 +219,9 @@ public class when_encrypting_against_the_pinned_kernel
         var actual = values.Single(entry => entry.TargetProperty == property.Id).Value;
         Assert.Equal(SemanticJsonValues.Bind(expected, property.Type, plan.Model), actual);
     }
+
+    static void AssertAbsent(JsonElement content) =>
+        Assert.True(!content.TryGetProperty("value", out var value) || value.ValueKind == JsonValueKind.Null, content.GetRawText());
 
     static async Task<string> Docker(params string[] arguments)
     {

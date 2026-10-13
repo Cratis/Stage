@@ -68,24 +68,39 @@ internal static partial class SemanticCommandSpecificationRenderer
 
     static void RenderAppendedCount(SpecificationScope scope)
     {
-        var builder = scope.Builder;
         var count = scope.Specification.ThenEvents.Length;
-        if (count == 0 && scope.Command.Produces.Any(produced => produced.When is not null))
+        if (count == 0)
         {
-            builder.Line(scope.SeedInLog
-                ? "[global::Xunit.FactAttribute] void should_append_no_new_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(0);"
-                : "[global::Xunit.FactAttribute] void should_append_no_new_events() => _scenario.AppendedEvents.Count.ShouldEqual(0);");
-        }
-        if (count > 1 || (count == 1 && !scope.SeedInLog && scope.Command.Produces.Any(produced => produced.When is not null)))
-        {
-            builder.Line(scope.SeedInLog
-                ? $"[global::Xunit.FactAttribute] void should_append_exactly_{count}_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual({count});"
-                : $"[global::Xunit.FactAttribute] void should_append_exactly_{count}_events() => _scenario.AppendedEvents.Count.ShouldEqual({count});");
+            RenderNoAppendedEvents(scope);
+            return;
         }
 
         if (scope.SeedInLog && count == 1)
         {
-            builder.Line("[global::Xunit.FactAttribute] void should_append_exactly_one_new_event() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(1);");
+            scope.Builder.Line("[global::Xunit.FactAttribute] void should_append_exactly_one_new_event() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(1);");
+            return;
+        }
+
+        RenderExactAppendedCount(scope, count);
+    }
+
+    static void RenderNoAppendedEvents(SpecificationScope scope)
+    {
+        if (scope.Command.Produces.Any(produced => produced.When is not null))
+        {
+            scope.Builder.Line(scope.SeedInLog
+                ? "[global::Xunit.FactAttribute] void should_append_no_new_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(0);"
+                : "[global::Xunit.FactAttribute] void should_append_no_new_events() => _scenario.AppendedEvents.Count.ShouldEqual(0);");
+        }
+    }
+
+    static void RenderExactAppendedCount(SpecificationScope scope, int count)
+    {
+        if (count > 1 || scope.Command.Produces.Any(produced => produced.When is not null))
+        {
+            scope.Builder.Line(scope.SeedInLog
+                ? $"[global::Xunit.FactAttribute] void should_append_exactly_{count}_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual({count});"
+                : $"[global::Xunit.FactAttribute] void should_append_exactly_{count}_events() => _scenario.AppendedEvents.Count.ShouldEqual({count});");
         }
     }
 

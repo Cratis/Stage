@@ -9,16 +9,12 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
 internal static class an_observer_filter_model
 {
-    internal static ExecutableSemanticModel Create(string specification = "RoutedReaction", bool renameArchive = true)
+    internal static ExecutableSemanticModel Create(string specification = "RoutedReaction")
     {
         var model = SemanticModelSerializer.Deserialize(EventRoutesCorpus.ObserverFiltersV10.EsmBytes.AsSpan());
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();
-        var sources = model.Application.EventSources.Select(source => source with
-        {
-            Streams = [.. source.Streams.Select(stream => renameArchive && stream.StreamKind == "All" ? stream with { StreamKind = "Archive" } : stream)]
-        });
         var example = slice.Specifications.Single(value => value.Name == specification);
         if (!example.ThenAbsentReadModels.IsEmpty)
         {
@@ -39,7 +35,6 @@ internal static class an_observer_filter_model
 
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
         {
-            EventSources = [.. sources],
             Modules = [module with { Features = [feature with { Slices = [selected] }] }]
         });
     }

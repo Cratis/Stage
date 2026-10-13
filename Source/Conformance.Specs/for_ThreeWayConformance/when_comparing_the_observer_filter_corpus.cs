@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
@@ -19,17 +21,27 @@ public class when_comparing_the_observer_filter_corpus(when_comparing_the_observ
     [Fact] void should_keep_history_without_reacting_to_it() => fixture.FactCount.ShouldEqual(3);
 
     [Theory]
-    [InlineData("RoutedReaction", false, "STAGE-ESM-030")]
-    [InlineData("UnroutedReaction", true, "STAGE-ESM-011")]
-    [InlineData("WrongStreamReaction", true, "STAGE-ESM-011")]
-    public void should_refuse_the_remaining_corpus_boundaries_separately(string specification, bool renameArchive, string code)
+    [InlineData("UnroutedReaction", "STAGE-ESM-011")]
+    [InlineData("WrongStreamReaction", "STAGE-ESM-011")]
+    public void should_refuse_the_remaining_corpus_boundaries_separately(string specification, string code)
     {
-        var model = an_observer_filter_model.Create(specification, renameArchive);
+        var model = an_observer_filter_model.Create(specification);
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ObserverFilters", "ObserverFilters"));
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-035");
+    }
+
+    [Fact]
+    void should_refuse_the_unrendered_reducer_body_in_the_complete_corpus()
+    {
+        var model = SemanticModelSerializer.Deserialize(EventRoutesCorpus.ObserverFiltersV10.EsmBytes.AsSpan());
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ObserverFilters", "ObserverFilters"));
+        plan.Success.ShouldBeFalse();
+        plan.Artifacts.ShouldBeEmpty();
+        plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-027");
+        plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-030");
     }
 
     public class context : a_three_way_application

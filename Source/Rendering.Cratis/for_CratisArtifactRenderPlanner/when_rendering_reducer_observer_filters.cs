@@ -81,7 +81,13 @@ public class when_rendering_reducer_observer_filters
             Streams = [.. source.Streams.Select(stream => stream with { StreamKind = stream.StreamKind == "stored-entries" ? "All" : stream.StreamKind })]
         });
         var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, original.Application with { EventSources = [.. sources] });
-        var plan = when_rendering_a_pure_reducer.Plan(loaded with { Model = model, Plan = SemanticExecutionPlan.Compile(model).Plan! });
+        // The rebuilt model has a new revision; carry the unchanged typed contexts over to it.
+        var plan = when_rendering_a_pure_reducer.Plan(loaded with
+        {
+            Model = model,
+            Plan = SemanticExecutionPlan.Compile(model).Plan!,
+            TypedContextDescriptors = [.. loaded.TypedContextDescriptors.Select(descriptor => descriptor with { ModelRevision = model.Revision })]
+        });
         Assert.False(plan.Success);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-030");
         Assert.Empty(plan.Artifacts);

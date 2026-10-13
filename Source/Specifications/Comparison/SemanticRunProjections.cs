@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.Projections;
@@ -28,9 +29,8 @@ internal static class SemanticRunProjections
         var requested = specification.ThenReadModels.Select(state => state.ReadModel)
             .Concat(specification.ThenAbsentReadModels.Select(state => state.ReadModel))
             .Concat(specification.ThenQueries.Select(query => plan.Queries[query.Query].ReadModel))
-            .Concat(plan.Projections.Values.Where(projection => context.Facts.Any(fact =>
-                projection.Scope?.From.Any(from => from.EventContract == fact.EventContract) == true ||
-                projection.Transitions.Any(transition => transition.EventContract == fact.EventContract))).Select(projection => projection.ReadModel)).Distinct();
+            .Concat(plan.Projections.Values.Where(projection => context.Facts.Any(fact => Observes(projection, fact.EventContract)))
+                .Select(projection => projection.ReadModel)).Distinct();
         var output = new List<Projected>();
         foreach (var id in requested)
         {
@@ -64,6 +64,10 @@ internal static class SemanticRunProjections
                         Target: model.Properties.Single(property => property.Id == mapping.Target[0]).Name,
                         Source: mapping.Source is SemanticProjectionEventProperty source ? @event.Properties.Single(property => property.Id == source.Path[0]).Name : null)).ToArray();
                     DefineFrom(builder, types.For(from.EventContract), mappings);
+                }
+                if (scope.Every is { } every)
+                {
+                    DefineEvery(builder, every, model);
                 }
             }
             else
@@ -114,8 +118,46 @@ internal static class SemanticRunProjections
     }
 
     static bool Observes(SemanticProjection projection, SemanticId eventContract) =>
+        projection.Scope?.Every is { SubscribesToAllEvents: true } ||
         projection.Scope?.From.Any(from => from.EventContract == eventContract) == true ||
         projection.Transitions.Any(transition => transition.EventContract == eventContract);
+
+    static void DefineEvery<TReadModel>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionEvery every, SemanticReadModel model)
+    {
+        void Define(Action<string> set)
+        {
+            var identifier = model.Properties.Single(property => property.IsIdentifier);
+            if (every.SubscribesToAllEvents && !every.Mappings.Any(mapping => mapping.Target.Contains(identifier.Id)))
+            {
+                set(identifier.Name);
+            }
+            foreach (var mapping in every.Mappings)
+            {
+                var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
+                set(target.Name);
+            }
+        }
+        if (every.SubscribesToAllEvents)
+        {
+            // FromAll has no child-inclusion switch; child scopes are refused before lowering.
+            builder.FromAll(from => Define(target => from.Set(Property<TReadModel>(target)).ToEventSourceId()));
+        }
+        else
+        {
+            builder.FromEvery(from =>
+            {
+                from.ExcludeChildProjections();
+                Define(target => from.Set(Property<TReadModel>(target)).ToEventSourceId());
+            });
+        }
+    }
+
+    static Expression<Func<TReadModel, object>> Property<TReadModel>(string name)
+    {
+        var parameter = Expression.Parameter(typeof(TReadModel), "model");
+
+        return Expression.Lambda<Func<TReadModel, object>>(Expression.Convert(Expression.Property(parameter, name), typeof(object)), parameter);
+    }
 
     static void DefineFrom<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, (string Target, string? Source)[] mappings)
     {

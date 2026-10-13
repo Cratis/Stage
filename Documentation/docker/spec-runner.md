@@ -25,8 +25,9 @@ producing events before invoking commands. Given events establish history withou
 An invocation uses the declared system roles, or no caller; it never inherits `given caller`, and system
 claims remain unknown. Invoked generated commands require unavailable deterministic fixtures and return
 `Unsupported` for `IdentityAllocation`. More than 1000 new facts returns `Unsupported` for `Reaction`.
-Clock, application, startup and shutdown triggers, opaque bodies and clock/trigger/capture specifications
-remain refused with `STAGE-ESM-024`; unsupported `$context.causedBy.*` mappings retain `STAGE-ESM-013`.
+A command specification with a millisecond-aligned `given clock` (no earlier than the Unix epoch) runs with that
+instant as the command occurrence. Clock, application, startup and shutdown triggers, opaque bodies, `when clock`,
+clocks on reaction specifications (and, in this executor, any clock in a model with reactions) and trigger/capture specifications remain refused with `STAGE-ESM-024`; unsupported `$context.causedBy.*` mappings retain `STAGE-ESM-013`.
 A production mapping `$context.occurred` without `given clock` rejects the scenario instead of inventing time.
 The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.md#opt-in-to-semantic-execution),
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or

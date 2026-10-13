@@ -24,10 +24,30 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in WithoutReactionCascades(context, slice, diagnostics))
         {
-            var valid = specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) && (CanDenyQueryOnly(specification, context) ||
+            if (specification.WhenAppended is not null)
+            {
+                ValidateReactionAppend(context, specification, diagnostics);
+                continue;
+            }
+            var valid = CanRenderSpecification(context, specification);
+
+            if (!valid)
+            {
+                var reason = RejectionReason(context, specification);
+                diagnostics.Add(new(
+                    "STAGE-ESM-011",
+                    ArtifactRenderDiagnosticSeverity.Error,
+                    $"Specification '{specification.Name}' cannot render: {reason}",
+                    specification.Id));
+            }
+        }
+    }
+
+    static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
+        specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) && (CanDenyQueryOnly(specification, context) ||
                 (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
                 (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
-                (HasRenderableCallerAndCommand(context, specification, out var command) &&
+                (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
                     !AssertsUncontrolledOccurrence(specification, command!) &&
                     !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
@@ -49,18 +69,6 @@ internal static partial class SemanticSpecificationAdmission
                     HasRenderableErrors(context, specification, command) &&
                     HasRenderableEventSources(context, specification, command!) &&
                     ProtectedQuerySourcesMatch(context, specification, command!)));
-
-            if (!valid)
-            {
-                var reason = RejectionReason(context, specification);
-                diagnostics.Add(new(
-                    "STAGE-ESM-011",
-                    ArtifactRenderDiagnosticSeverity.Error,
-                    $"Specification '{specification.Name}' cannot render: {reason}",
-                    specification.Id));
-            }
-        }
-    }
 
     static IEnumerable<SemanticSpecification> WithoutReactionCascades(SemanticApplicationContext context, SemanticSlice slice, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {

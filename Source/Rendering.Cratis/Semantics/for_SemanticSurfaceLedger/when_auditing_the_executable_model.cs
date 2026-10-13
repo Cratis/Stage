@@ -62,6 +62,11 @@ public class when_auditing_the_executable_model : Specification
     public void should_classify_v10_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
 
     [Theory]
+    [InlineData("SemanticSpecification.WhenAppended")]
+    [InlineData("SemanticSpecificationAppend.EventContract")]
+    [InlineData("SemanticSpecificationAppend.EventSource")]
+    [InlineData("SemanticSpecificationAppend.Values")]
+    [InlineData("SemanticSpecificationAppend.Route")]
     [InlineData("SemanticReaction.RunsAs")]
     [InlineData("SemanticReactionIdentity.Kind")]
     [InlineData("SemanticReactionIdentity.Roles")]

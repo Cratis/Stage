@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Frozen;
 using System.Text.Json.Nodes;
 using Cratis.Screenplay.Semantics;
 
@@ -11,6 +12,18 @@ namespace Cratis.Stage.Semantics;
 /// </summary>
 public static class SemanticSchemas
 {
+    static readonly FrozenDictionary<SemanticPrimitiveType, (string Type, string? Format)> _primitiveShapes =
+        new Dictionary<SemanticPrimitiveType, (string Type, string? Format)>
+        {
+            [SemanticPrimitiveType.Uuid] = ("string", "uuid"),
+            [SemanticPrimitiveType.Text] = ("string", null),
+            [SemanticPrimitiveType.WholeNumber] = ("integer", null),
+            [SemanticPrimitiveType.DecimalNumber] = ("number", null),
+            [SemanticPrimitiveType.Boolean] = ("boolean", null),
+            [SemanticPrimitiveType.Date] = ("string", "date"),
+            [SemanticPrimitiveType.DateTime] = ("string", "date-time")
+        }.ToFrozenDictionary();
+
     /// <summary>
     /// Builds a JSON object schema for semantic properties.
     /// </summary>
@@ -99,21 +112,11 @@ public static class SemanticSchemas
 
     static JsonObject PrimitiveShape(SemanticPrimitiveType primitive)
     {
-        var (typeName, format) = primitive switch
+        if (!_primitiveShapes.TryGetValue(primitive, out var shape)) throw new UnsupportedSemanticSchema();
+        var schema = new JsonObject { ["type"] = shape.Type };
+        if (shape.Format is not null)
         {
-            SemanticPrimitiveType.Uuid => ("string", "uuid"),
-            SemanticPrimitiveType.Text => ("string", null),
-            SemanticPrimitiveType.WholeNumber => ("integer", null),
-            SemanticPrimitiveType.DecimalNumber => ("number", null),
-            SemanticPrimitiveType.Boolean => ("boolean", null),
-            SemanticPrimitiveType.Date => ("string", "date"),
-            SemanticPrimitiveType.DateTime => ("string", "date-time"),
-            _ => throw new UnsupportedSemanticSchema()
-        };
-        var schema = new JsonObject { ["type"] = typeName };
-        if (format is not null)
-        {
-            schema["format"] = format;
+            schema["format"] = shape.Format;
         }
 
         return schema;

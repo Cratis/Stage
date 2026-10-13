@@ -36,8 +36,8 @@ public class when_encrypting_against_the_pinned_kernel
         builder.Services.PostConfigure<ChronicleAspNetCoreOptions>(options => options.ConnectionString = address);
         await using var app = builder.Build();
         var client = app.Services.GetRequiredService<IChronicleClient>();
-        var container = await KernelContainer(address);
-        await VerifyRequiredProperties(client, container, name);
+        var kernelStore = new KernelStore(await KernelContainer(address), name);
+        await VerifyRequiredProperties(client, kernelStore);
         var failures = new List<Exception>();
         foreach (var testCase in new ProtectedCase[]
         {
@@ -49,7 +49,7 @@ public class when_encrypting_against_the_pinned_kernel
         {
             try
             {
-                await VerifySingleProtectedProperty(client, container, testCase);
+                await VerifySingleProtectedProperty(client, kernelStore, testCase);
             }
             catch (Exception error)
             {
@@ -61,8 +61,9 @@ public class when_encrypting_against_the_pinned_kernel
         Assert.Empty(failures);
     }
 
-    static async Task VerifyRequiredProperties(IChronicleClient client, string container, string name)
+    static async Task VerifyRequiredProperties(IChronicleClient client, KernelStore kernelStore)
     {
+        var name = kernelStore.Name;
         var plan = compiled_plan.From(a_compliance_store.Source);
         Assert.Empty(new SemanticRuntimeAdmission(plan).Blocking);
         var nonTextSecret = compiled_plan.From(a_compliance_store.Source.Replace("AccessToken : String secret", "AccessToken : Int secret", StringComparison.Ordinal));
@@ -79,18 +80,18 @@ public class when_encrypting_against_the_pinned_kernel
         };
         var result = await runtime.Execute(plan.Commands.Values.Single(), valuesToAppend, new ClaimsPrincipal(), new(DateTimeOffset.UtcNow, "caller", "Caller", "user"), false);
         Assert.IsType<SemanticAccepted>(result);
-        using var raw = await StoredContent(container, name);
+        using var raw = await StoredContent(kernelStore);
         foreach (var property in new[] { "name", "number", "token" })
         {
             AssertCiphertext(raw.RootElement.GetProperty(property), valuesToAppend[property]);
         }
         var store = await client.GetEventStore(name);
         var accessor = (IChronicleServicesAccessor)store.Connection;
-        using var released = await ReleasedContent(accessor, name);
+        using var released = await ReleasedContent(accessor, kernelStore);
         Assert.Equal("Synthetic Name", released.RootElement.GetProperty("name").GetString());
         Assert.Equal(37, released.RootElement.GetProperty("number").GetInt32());
         Assert.Equal("synthetic-secret", released.RootElement.GetProperty("token").GetString());
-        var values = await RebuiltValues(accessor, name, plan, appender);
+        var values = await RebuiltValues(accessor, kernelStore, plan, appender);
         foreach (var property in new[] { "name", "number", "token" })
         {
             AssertRebuiltValue(plan, values, property, valuesToAppend[property]);
@@ -98,9 +99,10 @@ public class when_encrypting_against_the_pinned_kernel
         Console.WriteLine("Raw name, number and token are nonempty ciphertext strings; released and rebuilt values are Synthetic Name, 37 and synthetic-secret.");
     }
 
-    static async Task VerifySingleProtectedProperty(IChronicleClient client, string container, ProtectedCase testCase)
+    static async Task VerifySingleProtectedProperty(IChronicleClient client, KernelStore kernelStore, ProtectedCase testCase)
     {
         var name = $"StageProtect{Guid.NewGuid():N}";
+        var protectedStore = kernelStore with { Name = name };
         var plan = ProtectedPlan(testCase);
         Assert.Empty(new SemanticRuntimeAdmission(plan).Blocking);
         await SemanticChronicleRegistration.Register(client, name, plan);
@@ -110,7 +112,7 @@ public class when_encrypting_against_the_pinned_kernel
         var payload = new Dictionary<string, JsonElement> { ["id"] = JsonSerializer.SerializeToElement("record-1"), ["value"] = expected };
         var result = await runtime.Execute(plan.Commands.Values.Single(), payload, new ClaimsPrincipal(), new(DateTimeOffset.UtcNow, "caller", "Caller", "user"), false);
         Assert.True(result is SemanticAccepted, result.ToString());
-        using var raw = await StoredContent(container, name);
+        using var raw = await StoredContent(protectedStore);
         if (testCase.Value is null)
         {
             Assert.Equal(JsonValueKind.Null, raw.RootElement.GetProperty("value").ValueKind);
@@ -121,9 +123,9 @@ public class when_encrypting_against_the_pinned_kernel
         }
         var store = await client.GetEventStore(name);
         var accessor = (IChronicleServicesAccessor)store.Connection;
-        using var released = await ReleasedContent(accessor, name);
+        using var released = await ReleasedContent(accessor, protectedStore);
         Assert.Equal(expected.GetRawText(), released.RootElement.GetProperty("value").GetRawText());
-        AssertRebuiltValue(plan, await RebuiltValues(accessor, name, plan, appender), "value", expected);
+        AssertRebuiltValue(plan, await RebuiltValues(accessor, protectedStore, plan, appender), "value", expected);
         Console.WriteLine($"PASS {testCase}: stored {(testCase.Value is null ? "null" : "ciphertext")}; released and rebuilt {expected.GetRawText()}.");
     }
 
@@ -166,19 +168,19 @@ public class when_encrypting_against_the_pinned_kernel
             line => line.Contains(hostPort, StringComparison.Ordinal)).Split(' ')[0];
     }
 
-    static async Task<JsonDocument> StoredContent(string container, string name)
+    static async Task<JsonDocument> StoredContent(KernelStore kernelStore)
     {
         // Read BSON directly inside the development container: Chronicle's sequence APIs release values.
-        var script = $"const e = db.getSiblingDB({JsonSerializer.Serialize($"{name}+es+Default")}).getCollection('event-log').findOne(); if (!e) throw new Error('Missing stored event'); print(JSON.stringify(e.content['1']));";
+        var script = $"const e = db.getSiblingDB({JsonSerializer.Serialize($"{kernelStore.Name}+es+Default")}).getCollection('event-log').findOne(); if (!e) throw new Error('Missing stored event'); print(JSON.stringify(e.content['1']));";
 
-        return JsonDocument.Parse(await Docker("exec", container, "mongosh", "--quiet", "--eval", script));
+        return JsonDocument.Parse(await Docker("exec", kernelStore.Container, "mongosh", "--quiet", "--eval", script));
     }
 
-    static async Task<JsonDocument> ReleasedContent(IChronicleServicesAccessor accessor, string name)
+    static async Task<JsonDocument> ReleasedContent(IChronicleServicesAccessor accessor, KernelStore kernelStore)
     {
         var events = (await accessor.Services.Sequences.FromSequenceNumber(new FromSequenceNumberRequest
         {
-            EventStore = name,
+            EventStore = kernelStore.Name,
             Namespace = EventStoreNamespaceName.Default,
             EventSequenceId = EventSequenceId.Log,
             FromEventSequenceNumber = 0
@@ -187,9 +189,9 @@ public class when_encrypting_against_the_pinned_kernel
         return JsonDocument.Parse(Assert.Single(events).Content);
     }
 
-    static async Task<IReadOnlyList<SemanticPropertyValue>> RebuiltValues(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, SemanticFactAppender appender)
+    static async Task<IReadOnlyList<SemanticPropertyValue>> RebuiltValues(IChronicleServicesAccessor accessor, KernelStore kernelStore, SemanticExecutionPlan plan, SemanticFactAppender appender)
     {
-        var world = await SemanticChronicleRegistration.Rebuild(accessor, name, plan, await appender.Tail());
+        var world = await SemanticChronicleRegistration.Rebuild(accessor, kernelStore.Name, plan, await appender.Tail());
         var rebuilt = SemanticRuntimeHosting.Create(plan, appender, world);
         var queried = Assert.IsType<SemanticAccepted>(await rebuilt.Query(plan.Queries.Values.Single(), SemanticValue.Null, new ClaimsPrincipal()));
 
@@ -231,5 +233,6 @@ public class when_encrypting_against_the_pinned_kernel
         }
     }
 
+    sealed record KernelStore(string Container, string Name);
     sealed record ProtectedCase(string Classification, string Primitive, bool Optional, object? Value);
 }

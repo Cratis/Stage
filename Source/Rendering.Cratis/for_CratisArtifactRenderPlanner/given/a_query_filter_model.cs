@@ -153,6 +153,7 @@ public static class a_query_filter_model
         """;
 
     public const string Probe = """
+        using Cratis.Arc.Chronicle.Testing.Queries;
         using Cratis.Arc.Queries;
         using Cratis.Arc.Testing.Queries;
         using Invoices.Billing.Invoicing.Lookup;

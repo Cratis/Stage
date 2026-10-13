@@ -316,7 +316,7 @@ Stage builds against Screenplay 4.146.0 and admits exact ESM v1 through v14 lang
 | Command specifications whose produced events trigger reactions, and `when append` specifications | v6 | `STAGE-ESM-011`: generated scenarios do not settle reactions |
 | Reaction mappings of `$context.causedBy.subject`, `.name`, `.userName` or `$context.eventSourceId` | v6 | `STAGE-ESM-013`, naming the context member |
 | Captures and Translate slices, and specifications with a clock, trigger or capture | v6 | `STAGE-ESM-024` |
-| A reaction handler that both produces events and invokes commands, including separate triggers on the same event | v6 | Renderer: `STAGE-ESM-037`; pinned Arc cannot return events and commands from one handler; the Host and specification executor settle both |
+| A reaction handler that both produces events and invokes commands, including separate triggers on the same event | v6 | Renderer: `STAGE-ESM-037`; a failed command would make Chronicle redeliver the trigger and append the reaction's events again, until reactor appends are idempotent ([Stage#342](https://github.com/Cratis/Stage/issues/342)); the Host and specification executor settle both atomically |
 | Generated command properties and specification generation fixtures | v7 | Required scalar UUID-backed concepts render; other generated shapes fail `STAGE-ESM-028` |
 | Command responses and `then returns` expectations | v7 | Scalar and named responses render; no blanket `STAGE-ESM-029` refusal |
 | Unsupported generated-value/response combinations | v7+ | `STAGE-ESM-038`: routing, legacy destination allocation, generated-property rules/constraints, unsupported response sources or name collisions; unpinned unordered/projected expectations |

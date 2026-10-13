@@ -19,7 +19,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "f25fcb00f6002a88eb20ae63c378f3bf73d8663b7c5fbf6327b769b86cc35a20";
+    const string Digest = "2e8b47fb03839677883d00509d6d8a87cbccf8b0fba39e9ea77c2eb4f51fd163";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
@@ -59,7 +59,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Directory.Packages.props af799a176bf7be0de5e660924f4bde3444170788e9633399a1f65f0b72c9602f 133
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
-        Workspaces.csproj eb5183b938695bdf07a42a4c58e83b6855405d6b6f916aea6b24d32ccbae7011 2379
+        Workspaces.csproj 04adc02aa2883c40241affa7f9181b8294b895e70f74397c9d4209c4aed7b2c0 2379
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
         Workspaces/Tracking/AddComment/when_adding_acomment.cs 317e90a82f631bd47dd13a15aaba8c2dae99c23e0459631c7274be2101570c95 1884

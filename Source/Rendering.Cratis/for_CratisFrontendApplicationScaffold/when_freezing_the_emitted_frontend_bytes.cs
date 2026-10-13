@@ -29,7 +29,7 @@ public class when_freezing_the_emitted_frontend_bytes : a_current_frontend_scaff
         _digest = Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    [Fact] void should_freeze_the_complete_frontend_shell_with_the_arc_22582_and_scene_421_contract() => _digest.ShouldEqual("b322e08f77022a14735450d909ec2a9314d120a137f49b389daa605ea805faca");
+    [Fact] void should_freeze_the_complete_frontend_shell_with_the_arc_22582_and_scene_4221_contract() => _digest.ShouldEqual("3e893db99090c241242c11377782cb9220a81ac75968f2feda27af14a73660b6");
 
     static bool IsRuntime(string path) =>
         path.StartsWith(".frontend/stage/", StringComparison.Ordinal) || path == ".frontend/styledPrimeReact.ts";

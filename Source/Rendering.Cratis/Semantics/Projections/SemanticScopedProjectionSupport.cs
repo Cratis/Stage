@@ -334,6 +334,16 @@ internal static class SemanticScopedProjectionSupport
             return null;
         }
 
+        // Chronicle leaves a property it never sets null only where the C# type is a reference type: optional
+        // values, text (including text concepts) and single composite objects. Value types, enumerations and
+        // collections get a non-null default.
+        bool NullWhenUnset(SemanticProperty property) =>
+            property.Type.IsOptional ||
+            (!property.Type.IsCollection && (property.Type.Kind == SemanticTypeReferenceKind.CompositeType ||
+                (property.Type.Kind is SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept &&
+                    UnderlyingPrimitive(property.Type, context) == SemanticPrimitiveType.Text &&
+                    !(property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Concepts[property.Type.Target].Values.Length > 0))));
+
         string? EveryLimitRejection()
         {
             if (scope.Every is { SubscribesToAllEvents: true, Mappings.Length: 0 })
@@ -344,6 +354,12 @@ internal static class SemanticScopedProjectionSupport
             if (scope.Every is { SubscribesToAllEvents: true } all && all.Mappings.Any(mapping => mapping.Source is SemanticProjectionLiteral))
             {
                 return "Literal mappings in all cannot render: Chronicle's FromAll has no native constant (Chronicle#4663), and lowering literals onto from blocks would miss events from unrelated types and sources.";
+            }
+
+            if (scope.Every is { SubscribesToAllEvents: true } unrelated && properties.FirstOrDefault(property =>
+                !property.IsIdentifier && !unrelated.Mappings.Any(mapping => mapping.Target.Contains(property.Id)) && !NullWhenUnset(property)) is { } unset)
+            {
+                return $"All cannot render while '{unset.Name}' is neither mapped by all nor optional: the reference leaves it unset (null) on instances for unrelated events, but Chronicle materializes its default value.";
             }
 
             if (scope.Every is { IncludeChildren: true } && HasChildScopes())

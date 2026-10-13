@@ -30,11 +30,22 @@ public class when_comparing_generated_value_strategies(when_comparing_generated_
 
         Task Because()
         {
+            var instant = new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero);
+            const string clock = "new global::System.DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, global::System.TimeSpan.Zero)";
             var checks = a_generation_model.Model().Application.Concepts.Select(concept =>
-                $"[Xunit.Fact] public void should_encode_{concept.Name}() {{ for (var index = 0; index < 256; index++) Xunit.Assert.Matches({CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(concept))}, global::GenerationApp.Common.{concept.Name}.New().Value.ToString()!); }}");
+            {
+                var timeOrdered = SemanticGenerationRendering.IsTimeOrdered(concept.Generation);
+                var arguments = timeOrdered ? $"new global::Cratis.Concepts.GenerationContext({clock}, global::Cratis.Concepts.GenerationContext.DefaultTenant)" : string.Empty;
+                var timeCheck = timeOrdered ? $"Xunit.Assert.StartsWith({CSharpCodeBuilder.StringLiteral(SemanticGenerationTime.Prefix(concept, instant))}, value);" : string.Empty;
+                return $"[Xunit.Fact] public void should_encode_{concept.Name}() {{ for (var index = 0; index < 256; index++) {{ var value = global::GenerationApp.Common.{concept.Name}.New({arguments}).Value.ToString()!; Xunit.Assert.Matches({CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(concept))}, value); {timeCheck} }} }}";
+            });
             var captures = a_generation_model.Model().Application.Concepts.Select(concept =>
-                $"Xunit.Assert.Matches({CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(concept))}, scenario.GeneratedValues.Last<global::GenerationApp.Common.{concept.Name}>({CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(concept.Name))}).Value.ToString()!);");
-            var pipeline = $"[Xunit.Fact] public async global::System.Threading.Tasks.Task should_generate_strategy_values_through_arc() {{ await using var scenario = new global::Cratis.Arc.Testing.Commands.CommandScenario<global::GenerationApp.Billing.Creation.Start.Create>(); scenario.AllowGeneration(); var result = await scenario.Execute(new global::GenerationApp.Billing.Creation.Start.Create()); Xunit.Assert.True(result.IsSuccess); {string.Join(' ', captures)} }}";
+            {
+                var capture = $"scenario.GeneratedValues.Last<global::GenerationApp.Common.{concept.Name}>({CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(concept.Name))}).Value.ToString()!";
+                var timeCheck = SemanticGenerationRendering.IsTimeOrdered(concept.Generation) ? $"Xunit.Assert.StartsWith({CSharpCodeBuilder.StringLiteral(SemanticGenerationTime.Prefix(concept, instant))}, {capture});" : string.Empty;
+                return $"Xunit.Assert.Matches({CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(concept))}, {capture}); {timeCheck}";
+            });
+            var pipeline = $"[Xunit.Fact] public async global::System.Threading.Tasks.Task should_generate_strategy_values_through_arc() {{ await using var scenario = new global::Cratis.Arc.Testing.Commands.CommandScenario<global::GenerationApp.Billing.Creation.Start.Create>(); scenario.Clock({clock}); scenario.AllowGeneration(); var result = await scenario.Execute(new global::GenerationApp.Billing.Creation.Start.Create()); Xunit.Assert.True(result.IsSuccess); {string.Join(' ', captures)} }}";
             AddGeneratedSpecification("EncodingsProbe.cs", $"#if DEBUG\nusing Cratis.Arc.Testing.Commands; namespace GeneratedEncodings; public class Probe {{ {string.Join('\n', checks)} {pipeline} }}\n#endif\n");
 
             AddUnpinnedCapture();

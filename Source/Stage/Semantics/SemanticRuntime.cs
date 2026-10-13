@@ -256,7 +256,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
             return evaluated;
         }
 
-        var settlement = new SemanticReactionSettlement(new ReactionEvaluator(this, _evaluator));
+        var settlement = new SemanticReactionSettlement(new ReactionEvaluator(this, _evaluator, occurrence));
         var result = settlement.Settle(Plan, accepted.World, accepted.Facts, occurrence.Occurred);
 
         return result is SemanticAccepted settled
@@ -274,7 +274,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
             {
                 Caller = SemanticCallers.From(principal),
                 Occurrence = occurrence,
-                GeneratedValues = SemanticGeneratedValues.For(command, Plan.Model)
+                GeneratedValues = SemanticGeneratedValues.For(command, Plan.Model, occurrence.Occurred)
             };
             var result = _evaluator.Execute(Plan, _world, request);
             if (unknown is not null && result is not SemanticRejected { Category: SemanticRejectionCategory.Unauthorized })
@@ -292,7 +292,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
             {
                 Caller = SemanticCallers.From(principal),
                 Occurrence = occurrence,
-                GeneratedValues = SemanticGeneratedValues.For(command, Plan.Model)
+                GeneratedValues = SemanticGeneratedValues.For(command, Plan.Model, occurrence.Occurred)
             });
             return authorization is SemanticRejected { Category: SemanticRejectionCategory.Unauthorized } or SemanticUnsupported
                 ? authorization
@@ -300,7 +300,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         }
     }
 
-    sealed class ReactionEvaluator(SemanticRuntime runtime, ISemanticEvaluator evaluator) : ISemanticEvaluator
+    sealed class ReactionEvaluator(SemanticRuntime runtime, ISemanticEvaluator evaluator, SemanticCommandOccurrence occurrence) : ISemanticEvaluator
     {
         public SemanticExecutionResult Execute(SemanticExecutionPlan plan, SemanticWorld world, SemanticExecutionRequest request)
         {
@@ -312,7 +312,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
 
             if (command is not null && request.GeneratedValues.IsDefaultOrEmpty)
             {
-                request = request with { GeneratedValues = SemanticGeneratedValues.For(command, plan.Model) };
+                request = request with { GeneratedValues = SemanticGeneratedValues.For(command, plan.Model, request.Occurrence?.Occurred ?? occurrence.Occurred) };
             }
 
             return evaluator.Execute(plan, world, request);

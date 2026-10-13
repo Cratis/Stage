@@ -102,13 +102,18 @@ internal static class SemanticCommonArtifactRenderer
             ? SemanticGenerationShapes.Supported(concept) : concept.Primitive == SemanticPrimitiveType.Uuid);
 
     static string GenerationInterface(SemanticConcept concept, SemanticApplicationContext context) =>
-        IsGeneratable(concept, context) ? $", global::Cratis.Concepts.IGeneratable<{Identifiers.ToPascalCase(concept.Name)}>" : string.Empty;
+        IsGeneratable(concept, context) ? $", global::Cratis.Concepts.{(UsesGenerationContext(concept, context) ? "IGeneratableInContext" : "IGeneratable")}<{Identifiers.ToPascalCase(concept.Name)}>" : string.Empty;
+
+    static bool UsesGenerationContext(SemanticConcept concept, SemanticApplicationContext context) =>
+        IsGeneratable(concept, context) && context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) && SemanticGenerationRendering.IsTimeOrdered(concept.Generation);
 
     static void RenderFactory(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context)
     {
         if (!NeedsFactory(concept, context)) return;
-        var value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept) : new SemanticTypeSystem(context).NotSet(concept.Primitive);
-        builder.Line($"public static {Identifiers.ToPascalCase(concept.Name)} New() => new({value});").BlankLine();
+        var usesContext = UsesGenerationContext(concept, context);
+        var value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null) : new SemanticTypeSystem(context).NotSet(concept.Primitive);
+        var parameters = usesContext ? "global::Cratis.Concepts.GenerationContext context" : string.Empty;
+        builder.Line($"public static {Identifiers.ToPascalCase(concept.Name)} New({parameters}) => new({value});").BlankLine();
     }
 
     static void RenderValidator(CSharpCodeBuilder builder, SemanticConcept concept, string name, string rootNamespace)

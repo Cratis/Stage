@@ -147,6 +147,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         if (requiresEstablish)
         {
             builder.OpenBlock(scope.SeedInLog ? "async global::System.Threading.Tasks.Task Establish()" : "void Establish()");
+            generated.RenderClock(builder);
             RenderPolicyRegistration(scope);
         }
 

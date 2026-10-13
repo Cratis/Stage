@@ -15,9 +15,11 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     void Because()
     {
         var source = a_validated_query_key_model.Source.Replace("      query InvoicesById => observable InvoiceSummary[]\n        by invoiceId InvoiceId\n", string.Empty, StringComparison.Ordinal);
-        _plan = invoice_model.Plan(invoice_model.Compile(source));
+        var model = invoice_model.Compile(source);
+        model.Application.EventSources.ShouldBeEmpty();
+        _plan = invoice_model.Plan(model);
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte() => _plan.Digest.ShouldEqual("2f62af8da340d8f80b01a1dc75ad3ab349e86545569407ebcd782adf61f124c7");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("2f62af8da340d8f80b01a1dc75ad3ab349e86545569407ebcd782adf61f124c7");
 }

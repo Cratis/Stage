@@ -11,7 +11,7 @@ public class with_a_property_stream_id : given.a_routed_command
 {
     void Because() => Plan();
 
-    [Fact] void should_declare_the_source_and_stream() => _code.Contains("EventSourceAttribute<global::InvoiceApp.EventSources.AccountEventSource>(\"Transactions\")", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_declare_the_source_and_stream() => _code.Contains("EventSourceAttribute<global::InvoiceApp.EventSources.AccountEventSource>(global::InvoiceApp.EventSources.AccountEventSource.Transactions)", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_validate_the_integer_inside_the_handler() => _code.Contains("TryInteger(Month.Value, out var streamIdPart0)", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_route_the_validated_integer() => _code.Contains("EventStreamId = streamIdPart0", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_not_resolve_the_stream_id_before_authorization() => _code.Contains("ICanProvideEventStreamId", StringComparison.Ordinal).ShouldBeFalse();

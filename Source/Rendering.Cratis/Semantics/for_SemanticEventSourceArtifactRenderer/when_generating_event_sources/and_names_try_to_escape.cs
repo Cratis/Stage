@@ -22,7 +22,7 @@ public class and_names_try_to_escape : a_routed_command
     }
 
     [Fact] void should_escape_stored_source_names() => _definition.Contains($"EventSourceAttribute({CSharpCodeBuilder.StringLiteral(Stored)})", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_escape_stored_stream_names() => _definition.Contains($"EventStreamAttribute({CSharpCodeBuilder.StringLiteral(Stored)})", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_escape_stored_stream_names() => _definition.Contains($"public const string Transactions = {CSharpCodeBuilder.StringLiteral(Stored)};", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_compile_without_an_injected_declaration() => RenderedOutput.Errors(Files()).ShouldBeEmpty();
     [Fact] void should_not_compile_an_injected_type() => Load().GetType("InvoiceApp.EventSources.Escaped").ShouldBeNull();
 }

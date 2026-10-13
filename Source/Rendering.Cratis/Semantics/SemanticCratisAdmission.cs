@@ -216,6 +216,7 @@ internal static partial class SemanticCratisAdmission
         foreach (var source in SemanticEventSourceArtifactRenderer.Selected(context, slices))
         {
             ValidateReservedNames(source, diagnostics);
+            ValidateEventSourceNames(source, diagnostics);
         }
 
         foreach (var specification in slices.SelectMany(_ => _.Slice.Specifications))

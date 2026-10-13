@@ -43,8 +43,14 @@ reports `Unsupported`; seeded read-model specifications retain the `GivenReadMod
 The Host executes query filters through the reference evaluator, but that does not enable
 them in the independent per-run specification executor.
 At v13 it executes concept-compliance specifications with unchanged outcomes; a passing specification
-is not evidence of encryption or redaction. **Play/the Stage Host does not encrypt or redact values of
-personal-data concepts** ([Stage #346](https://github.com/Cratis/Stage/issues/346)); use synthetic data.
+is not evidence of encryption or redaction. The semantic Stage Host encrypts personal-data and secret
+concept values at rest through Chronicle, like rendered applications, and releases them on read.
+Personal-data erasure uses Chronicle's key deletion keyed by the event source; explicit subject lineage
+remains [Stage #28](https://github.com/Cratis/Stage/issues/28). Existing Play stores retain earlier plaintext events.
+The semantic executor, Host and renderer refuse non-text `secret` concepts (`Int`, `Decimal`, `Bool`,
+`Date`, `DateTime`, and `Uuid`) with `STAGE-ESM-041` until Chronicle can safely store them
+([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)). `pii secret` uses PII only and
+is not subject to this refusal; keep secrets text-backed without removing their classification.
 Generated applications carry protection attributes, and renderer admission refuses protected identity
 uses or enums with `STAGE-ESM-040` ([Concept compliance rendering](../reference/compliance-rendering.md)).
 Migrate to `--engine semantic` and the semantic report format described below.

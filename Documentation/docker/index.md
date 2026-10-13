@@ -151,11 +151,16 @@ ESM v14 equality query filters execute through the reference evaluator in the Ho
 optional omission and required-filter rejection. The independent specification executor
 refuses filtered query assertions with `STAGE-ESM-010` rather than ignoring the filters;
 seeded read-model specifications retain the `GivenReadModel` gap.
-**Play/the Stage Host does not encrypt or redact values of personal-data concepts**, and its own event store
-keeps those values in plain text. Operational secrets are not protected there either. Use synthetic data
-for Play; protection in the Host is tracked in [Stage #346](https://github.com/Cratis/Stage/issues/346).
-This differs from generated applications, which carry Chronicle/Arc protection attributes. The renderer
-refuses compliance on identity uses or enums with `STAGE-ESM-040`; see [Concept compliance rendering](../reference/compliance-rendering.md).
+The semantic Stage Host encrypts personal-data and secret concept values at rest through Chronicle,
+like rendered applications, and releases them on read. Personal-data erasure uses Chronicle's
+key deletion keyed by the event source; explicit subject lineage remains
+[Stage #28](https://github.com/Cratis/Stage/issues/28). Existing Play stores retain earlier plaintext events.
+The semantic Host and renderer refuse non-text `secret` concepts (`Int`, `Decimal`, `Bool`,
+`Date`, `DateTime`, and `Uuid`) with `STAGE-ESM-041` until Chronicle can safely store them
+([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)). `pii secret` uses PII only and
+is not subject to this refusal. Keep secrets text-backed and retain their classification.
+The renderer refuses compliance on identity uses or enums with `STAGE-ESM-040`;
+see [Concept compliance rendering](../reference/compliance-rendering.md).
 The semantic engine executes command routes, registers named sources and streams with Chronicle on every
 connect, and checks stored routes during world reconstruction. Routed specification runs are still refused
 with `STAGE-ESM-030`, as are routes in the structural SpecRunner and EventModel engine.

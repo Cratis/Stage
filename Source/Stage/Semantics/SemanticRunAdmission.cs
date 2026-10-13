@@ -39,6 +39,7 @@ public static class SemanticRunAdmission
         var events = slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Id);
 
         return SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
+            .Concat(SemanticVersionFeatures.NonTextSecrets(application))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
             .Distinct().Select(Feature);
     }
@@ -233,6 +234,7 @@ public static class SemanticRunAdmission
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
         var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
+            .Concat(SemanticVersionFeatures.NonTextSecrets(plan.Model.Application))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
             .Concat(RunSpecificationFeatures(specification))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))

@@ -333,7 +333,7 @@ Stage builds against Screenplay 4.146.0 and admits exact ESM v1 through v14 lang
 | Per-production route overrides | v10 | `STAGE-ESM-036` |
 | Exact Double-mode number literal lowering | v11 | Rendered as `long` whole numbers and `decimal` fractions, preserving the retained ESM values |
 | Explicit enum member numbers | v12 | Rendered as `Member = N`, preserving sparse and negative int32 identities; stored numbers rebuild to the matching member |
-| Concept compliance | v13 | `[PII]` or `[Encrypted]` + `[NotAudited]` on `ConceptAs` records; compliance on identity uses or enums fails `STAGE-ESM-040` |
+| Concept compliance | v13 | `[PII]` or `[Encrypted]` + `[NotAudited]` on `ConceptAs` records; compliance on identity uses or enums fails `STAGE-ESM-040`; non-text secrets fail `STAGE-ESM-041` ([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)), excluding `pii secret` which uses PII only |
 | Equality query filters | v14 | Rendered on `Many` + `Live` collections; Host uses the reference evaluator; executor refuses filtered assertions with `STAGE-ESM-010`. Snapshot collections retain `010` ([Stage #58](https://github.com/Cratis/Stage/issues/58)) |
 
 ESM v11 preserves retained non-route numbers such as `9007199254740991`, `-9007199254740991`,

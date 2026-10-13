@@ -75,6 +75,7 @@ public class when_rendering_reducer_observer_filters
     public async Task should_refuse_a_reserved_stored_stream_filter_without_artifacts()
     {
         var loaded = await Load("OrdersSource.Entries");
+
         // Screenplay rejects All in source, so exercise Stage's ESM admission directly.
         var original = loaded.Model;
         var sources = original.Application.EventSources.Select(source => source with

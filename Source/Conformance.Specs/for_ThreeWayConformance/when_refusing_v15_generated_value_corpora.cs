@@ -40,7 +40,7 @@ public class when_refusing_v15_generated_value_corpora : Specification
             }
             var stage = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
             stage.Results.Count.ShouldEqual(vector.SpecificationExpectations.Length);
-            stage.Results.All(result => result.Outcome == SemanticSpecificationOutcome.Unsupported && result.Unsupported!.Details.Contains("conditional", StringComparison.OrdinalIgnoreCase)).ShouldBeTrue();
+            stage.Results.All(result => result.Outcome == SemanticSpecificationOutcome.Passed).ShouldBeTrue();
             var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GeneratedCorpus", "GeneratedCorpus"));
             rendered.Success.ShouldBeFalse();
             rendered.Artifacts.ShouldBeEmpty();

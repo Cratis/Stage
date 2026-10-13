@@ -238,13 +238,13 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     }
 
     static bool NeedsExplicitDestination(SemanticRunContext context) =>
-        context.Specification.When!.EventSource is null && context.Command.Destination?.Value is null && context.Command.Produces.Any(produced => produced.Destination is null);
+        context.Specification.When!.EventSource is null && context.Command.Destination?.Value is null && context.Command.Produces.Where(context.Holds).Any(produced => produced.Destination is null);
 
     static SemanticSpecificationRunRecord? CommandAppendOutcome(SemanticCommandRun run)
     {
         var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
         var history = context.Facts.Select((fact, index) => new SemanticConstraintEvaluator.Fact(fact.EventContract, context.Destinations[index], fact.Values)).ToArray();
-        var candidates = context.Command.Produces.Select(context.Produce)
+        var candidates = context.Command.Produces.Where(context.Holds).Select(context.Produce)
             .Select(item => new SemanticConstraintEvaluator.Fact(item.Fact.EventContract, item.Destination, item.Fact.Values)).ToArray();
         if (ReusesGeneratedSource(context, candidates.Select(candidate => candidate.Destination)))
         {

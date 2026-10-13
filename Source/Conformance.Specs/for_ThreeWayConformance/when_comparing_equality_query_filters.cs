@@ -53,7 +53,7 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
                 GivenReadModels = [.. specification.GivenEvents.Select(fact => new SemanticSpecificationReadModel(
                     readModel.Id,
                     fact.EventSource!.Value,
-                    [.. fact.Values.Select(value => new SemanticPropertyValue(readModel.Properties.Single(property => property.Name == feature.Slices.SelectMany(value => value.Events).Single().Properties.Single(property => property.Id == value.TargetProperty).Name).Id, value.Value))]))]
+                    [.. fact.Values.Select(value => new SemanticPropertyValue(readModel.Properties.Single(property => property.Name == ReadModelPropertyName(value.TargetProperty)).Id, value.Value))]))]
             }).ToArray();
             var application = model.Application with
             {
@@ -77,6 +77,13 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
             OptionalPropertyProbeOutcome = Outcome("should_exclude_null_properties_from_required_filters");
 
             string Outcome(string name) => (string)results.Single(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).Attribute("outcome")!;
+
+            string ReadModelPropertyName(SemanticId propertyId)
+            {
+                var name = feature.Slices.SelectMany(value => value.Events).Single().Properties.Single(property => property.Id == propertyId).Name;
+
+                return name == "invoiceId" ? "id" : name;
+            }
         }
 
         static ExecutableSemanticModel Model(bool includeOptionalPropertySpecification = false)
@@ -106,7 +113,7 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
                             status = "open"
                             category = "North"
                           result
-                            invoiceId = "one"
+                            id = "one"
                             status = "open"
                             category = "North"
                             flag = true

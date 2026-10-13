@@ -16,7 +16,7 @@ public class with_a_scoped_plan_with_a_domain : given.a_policy_plan
     }
 
     void Because() => _check = CratisRendering.CheckPublication(_plan, Read);
-    [Fact] void should_check_the_application_root_policy_paths() => _readPaths.ShouldContainOnly("GeneratedPolicies/Policies.cs", "GeneratedPolicies/PolicyBodies.cs", "TypedContexts/PolicyContext.cs");
+    [Fact] void should_check_application_root_policies_before_domain_events() => _readPaths.ShouldContainOnly("GeneratedPolicies/Policies.cs", "GeneratedPolicies/PolicyBodies.cs", "TypedContexts/PolicyContext.cs");
     [Fact] void should_name_the_application_root_aggregate() => ((CratisPublicationCheck.RequiresApplicationScope)_check).Paths.ShouldContainOnly("GeneratedPolicies/Policies.cs");
 }
 #endif

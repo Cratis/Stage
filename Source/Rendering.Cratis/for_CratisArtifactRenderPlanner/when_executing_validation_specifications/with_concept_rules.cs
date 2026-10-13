@@ -15,7 +15,7 @@ public class with_concept_rules(context fixture) : IClassFixture<context>
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_acceptance_and_rejection_specifications() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_execute_every_specification() => fixture.Results.Length.ShouldEqual(12);
+    [Fact] void should_execute_every_specification() => fixture.Results.Length.ShouldEqual((2 * 2) + (3 * 4));
     [Fact] void should_render_the_reference_default_message() => fixture.ConceptGenerated.ShouldContain(".WithMessage(\"A value must be at least 2 characters long.\")");
 
     public class context : a_generated_invoice_application
@@ -26,7 +26,8 @@ public class with_concept_rules(context fixture) : IClassFixture<context>
                 .Replace("        produces InvoiceIssued\n", "        display Display\n        requiredDisplay RequiredDisplay\n        produces InvoiceIssued\n", StringComparison.Ordinal)
                 .Replace("          streamReference = ", "          display = \"xy\"\n          requiredDisplay = \"present\"\n          streamReference = ", StringComparison.Ordinal) +
             "\n      specification RejectingInvalidDisplay\n        when IssueInvoice\n          streamReference = \"invoice-one\"\n          description = \"A description\"\n          display = \"x\"\n          requiredDisplay = \"present\"\n        then error \"A value must be at least 2 characters long.\"\n" +
-            "\n      specification RejectingEmptyConcept\n        when IssueInvoice\n          streamReference = \"invoice-one\"\n          description = \"A description\"\n          display = \"xy\"\n          requiredDisplay = \"\"\n        then error \"A required concept value is empty.\"\n";
+            "\n      specification RejectingEmptyConcept\n        when IssueInvoice\n          streamReference = \"invoice-one\"\n          description = \"A description\"\n          display = \"xy\"\n          requiredDisplay = \"\"\n        then error \"A required concept value is empty.\"\n" +
+            "\n      specification RejectingWhitespaceConcept\n        when IssueInvoice\n          streamReference = \"invoice-one\"\n          description = \"A description\"\n          display = \"xy\"\n          requiredDisplay = \"   \"\n        then error \"A required concept value is empty.\"\n";
 
         async Task Because()
         {

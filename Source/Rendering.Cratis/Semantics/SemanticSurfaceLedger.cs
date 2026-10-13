@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.147.1; ESM v1–v15 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.152.0; ESM v1–v16 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -140,7 +140,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition When");
-        Add(entries, "SemanticEventContract", rendered, "Id Name Properties Tags");
+        Add(entries, "SemanticEventContract", rendered, "Id Name StoredName Properties Tags");
         Add(entries, "SemanticEventContract", ignored("Carried revision selects admission: initial events render unchanged; evolved revisions fail STAGE-ESM-026 until event migrations can render."), "Revision");
         Add(entries, "SemanticEventContract", ignored("The initial event revision's stable contract identity is owned by Screenplay, not emitted by the first renderer."), "ContractId");
 
@@ -230,7 +230,7 @@ internal static class SemanticSurfaceLedger
         // assertions compare the produced stream even when the expected fact omits its source.
         // Protected query results and query-only denials execute through Arc QueryScenario with fixture principals;
         // live collections render as Observe subjects and snapshots as Task collection reads; protected collection success
-        // specifications fail STAGE-ESM-011 (Arc#3221). Live single-result queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
+        // specifications use QueryScenario's default Chronicle observations. Live single-result queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint
         // fail STAGE-ESM-011 before log seeding. An unauthenticated caller fixture with roles or claims
         // also fails STAGE-ESM-011 before rendering: Arc supplies an empty guest principal.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");

@@ -40,7 +40,5 @@ public class with_non_text_secret_compliance : Specification
 
     void Because() => _admissions.AddRange(_plans.Select(plan => (new SemanticRuntimeAdmission(plan), plan.Model.Application.Concepts.Single().Id.ToString())));
 
-    [Fact] void should_block_non_text_secrets_before_runtime_execution() => _admissions.TrueForAll(entry => entry.Admission.Blocking.Count == 1 && entry.Admission.Blocking[0].Details!.StartsWith("STAGE-ESM-041:", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_identify_the_secret_concept() => _admissions.TrueForAll(entry => entry.Admission.Blocking[0].Artifact == entry.Concept && entry.Admission.Blocking[0].Kind == "concept").ShouldBeTrue();
-    [Fact] void should_report_an_occurrence_capability_refusal() => _admissions.TrueForAll(entry => entry.Admission.Blocking[0].Capability == "Occurrence").ShouldBeTrue();
+    [Fact] void should_admit_non_text_secrets_for_runtime_execution() => _admissions.TrueForAll(entry => entry.Admission.Blocking.Count == 0).ShouldBeTrue();
 }

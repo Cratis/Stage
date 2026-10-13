@@ -9,7 +9,7 @@ using Cratis.Stage.Rendering.Cratis.Specifications;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Executes protected snapshot queries through Arc's query pipeline and the fixture caller.
+/// Executes protected snapshot and observable queries through Arc's query pipeline and the fixture caller.
 /// </summary>
 internal static class SemanticProtectedQuerySpecificationRenderer
 {
@@ -150,7 +150,17 @@ internal static class SemanticProtectedQuerySpecificationRenderer
 
         if (routedReplay)
         {
-            yield return $"_scenario.Given.ForEventSource((global::Cratis.Chronicle.Events.EventSourceId){key}).ReadModel(_readModelScenario.InstanceForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key})!);";
+            if (context.Queries[expected.Query].Cardinality == SemanticQueryCardinality.Many)
+            {
+                yield return "foreach (var instance in _readModelScenario.Instances)";
+                yield return "{";
+                yield return "    _scenario.Given.ForEventSource(instance.Key).ReadModel(instance.Value);";
+                yield return "}";
+            }
+            else
+            {
+                yield return $"_scenario.Given.ForEventSource((global::Cratis.Chronicle.Events.EventSourceId){key}).ReadModel(_readModelScenario.InstanceForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key})!);";
+            }
         }
     }
 
@@ -167,6 +177,25 @@ internal static class SemanticProtectedQuerySpecificationRenderer
 
         var types = new SemanticTypeSystem(context);
         var readModel = context.ReadModels[context.Queries[expected.Query].ReadModel];
+        if (context.Queries[expected.Query].Cardinality == SemanticQueryCardinality.Many)
+        {
+            var predicates = expected.Results.Select(result =>
+            {
+                var rowComparisons = result.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal).Select(value =>
+                {
+                    var property = readModel.Properties.Single(candidate => candidate.Id == value.TargetProperty);
+                    return $"model.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value.Value, property.Type)}";
+                });
+                return $"global::System.Linq.Enumerable.Any(models, row => row is {readModelName} model{string.Concat(rowComparisons.Select(value => $" && {value}"))})";
+            });
+            var predicate = string.Join(" && ", new[] { $"global::System.Linq.Enumerable.Count(models) == {expected.Results.Length}" }.Concat(predicates));
+
+            return
+            [
+                "[global::Xunit.FactAttribute] void should_be_authorized() => _result.IsAuthorized.ShouldBeTrue();",
+                $"[global::Xunit.FactAttribute] void should_return_the_expected_rows() => (_result.Data is global::System.Collections.Generic.IEnumerable<object> models && {predicate}).ShouldBeTrue();"
+            ];
+        }
         var comparisons = expected.Results.Single().Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal).Select(value =>
         {
             var property = readModel.Properties.Single(candidate => candidate.Id == value.TargetProperty);

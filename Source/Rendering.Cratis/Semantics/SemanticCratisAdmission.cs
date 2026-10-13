@@ -37,6 +37,7 @@ internal static partial class SemanticCratisAdmission
         ValidateCompliance(context, diagnostics);
         ValidateConstraints(context, slices, diagnostics);
         ValidateGeneratedTypeNames(context, slices, diagnostics);
+        ValidateEventTypeIdentities(context, slices, diagnostics);
 
         var analysedBodies = 0;
         foreach (var located in slices)

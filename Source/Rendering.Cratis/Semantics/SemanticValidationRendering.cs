@@ -101,7 +101,7 @@ internal static class SemanticValidationRendering
         return rule.Kind switch
         {
             SemanticValidationRuleKind.NotEmpty when collection => "value is { Count: > 0 }",
-            SemanticValidationRuleKind.NotEmpty => wrapped ? "value is not null && !global::System.String.IsNullOrEmpty(value.Value)" : "!global::System.String.IsNullOrEmpty(value)",
+            SemanticValidationRuleKind.NotEmpty => "!global::System.String.IsNullOrWhiteSpace(value)",
             SemanticValidationRuleKind.Equal when primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber => $"{absentPasses}{scalar} == {number}",
             SemanticValidationRuleKind.NotEqual when primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber => $"{absentPasses}{scalar} != {number}",
             SemanticValidationRuleKind.Equal => $"{absentPasses}global::System.Object.Equals({scalar}, {equality})",

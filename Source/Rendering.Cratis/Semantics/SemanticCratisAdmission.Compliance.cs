@@ -11,11 +11,6 @@ internal static partial class SemanticCratisAdmission
 {
     static void ValidateCompliance(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var feature in SemanticVersionFeatures.NonTextSecrets(context.Application))
-        {
-            diagnostics.Add(Error(feature.Code, feature.Message, feature.Artifact));
-        }
-
         foreach (var concept in context.Application.Concepts.Where(concept => concept.Compliance is not null).Where(concept => !concept.Values.IsEmpty))
         {
             diagnostics.Add(Error(SemanticVersionFeatures.ProtectedIdentity, $"Concept '{concept.Name}' has compliance on an enumeration; its protection cannot be rendered.", concept.Id));

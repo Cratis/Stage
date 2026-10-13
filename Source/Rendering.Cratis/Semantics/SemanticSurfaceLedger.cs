@@ -381,10 +381,9 @@ internal static class SemanticSurfaceLedger
 
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
         // Admit each construct only on the paths that can preserve it.
-        var identity = rejected(SemanticVersionFeatures.ReactionIdentity);
-        Add(entries, "SemanticReaction", identity, "RunsAs");
-        Add(entries, "SemanticReactionIdentity", identity, "Kind Roles");
-        Add(entries, "SemanticReactionIdentityKind", identity, "System");
+        Add(entries, "SemanticReaction", rendered, "RunsAs");
+        Add(entries, "SemanticReactionIdentity", rendered, "Kind Roles");
+        Add(entries, "SemanticReactionIdentityKind", rendered, "System");
         var filters = rejected(SemanticVersionFeatures.ObserverFilters);
         Add(entries, "SemanticReaction", filters, "From");
 

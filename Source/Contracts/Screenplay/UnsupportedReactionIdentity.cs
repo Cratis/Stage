@@ -10,7 +10,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// </summary>
 /// <param name="location">The authored source location.</param>
 public sealed class UnsupportedReactionIdentity(SourceLocation location) : Exception(
-    $"{DiagnosticCode}: Reaction execution identity at {location} cannot run on the legacy event model or renderer; Stage does not support runsAs yet.")
+    $"{DiagnosticCode}: Reaction execution identity at {location} cannot run on the legacy event model or renderer; use the semantic path to preserve runsAs.")
 {
     /// <summary>
     /// The stable diagnostic code for unsupported reaction identity.

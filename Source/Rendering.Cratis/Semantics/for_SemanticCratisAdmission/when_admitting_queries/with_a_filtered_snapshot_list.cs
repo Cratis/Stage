@@ -19,5 +19,5 @@ public class with_a_filtered_snapshot_list : given.a_query_shape
 
     void Because() => Evaluate();
 
-    [Fact] void should_refuse_the_snapshot_collection_shape() => _diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-010");
+    [Fact] void should_admit_the_snapshot_collection_shape() => _diagnostics.ShouldBeEmpty();
 }

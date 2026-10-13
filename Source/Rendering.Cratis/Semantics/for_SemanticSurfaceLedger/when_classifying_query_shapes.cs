@@ -18,8 +18,10 @@ public class when_classifying_query_shapes : Specification
         _refused = [.. SemanticSurfaceLedger.QueryShapes.Where(entry => entry.Value.Kind == SemanticSurfaceDispositionKind.Rejected).Select(entry => entry.Value)];
     }
 
-    [Fact] void should_render_only_snapshot_lookups_and_live_lists() => _rendered.ShouldContainOnly(
+    [Fact] void should_render_only_snapshot_lookups_and_collections() => _rendered.ShouldContainOnly(
         (SemanticQueryCardinality.ZeroOrOne, SemanticQueryDelivery.Snapshot, true),
+        (SemanticQueryCardinality.Many, SemanticQueryDelivery.Snapshot, false),
+        (SemanticQueryCardinality.Many, SemanticQueryDelivery.Snapshot, true),
         (SemanticQueryCardinality.Many, SemanticQueryDelivery.Live, false),
         (SemanticQueryCardinality.Many, SemanticQueryDelivery.Live, true));
     [Fact] void should_refuse_all_other_combinations_with_the_query_shape_code() => _refused.Select(_ => _.Detail).Distinct().ShouldContainOnly("STAGE-ESM-010");

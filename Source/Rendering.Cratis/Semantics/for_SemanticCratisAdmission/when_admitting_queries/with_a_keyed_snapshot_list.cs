@@ -12,5 +12,5 @@ public class with_a_keyed_snapshot_list : given.a_query_shape
     void Establish() => Configure(SemanticQueryCardinality.Many, SemanticQueryDelivery.Snapshot, true);
     void Because() => Evaluate();
 
-    [Fact] void should_refuse_the_query_shape() => _diagnostics.Select(_ => _.Code).ShouldContainOnly("STAGE-ESM-010");
+    [Fact] void should_admit_the_query_shape() => _diagnostics.ShouldBeEmpty();
 }

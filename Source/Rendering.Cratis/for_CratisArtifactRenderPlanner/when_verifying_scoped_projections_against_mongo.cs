@@ -148,6 +148,8 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                     Assert.NotNull(persistedInstance);
                     Assert.Equal(id, memoryInstance.LastSeen);
                     Assert.Equal(memoryInstance.LastSeen, persistedInstance.LastSeen);
+                    Assert.Equal(id, memoryInstance.ProjectId);
+                    Assert.Equal(memoryInstance.ProjectId, persistedInstance.ProjectId);
                     Console.WriteLine($"ALL_SOURCE={id.Value}; MEMORY={memoryInstance.LastSeen?.Value}; MONGO={persistedInstance.LastSeen?.Value}");
                 }
                 await Append((EventSourceId)note, new ProjectNoted(note, first, new ProjectName("A")));

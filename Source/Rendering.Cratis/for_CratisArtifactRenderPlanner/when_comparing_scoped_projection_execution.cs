@@ -84,7 +84,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
 
     [Fact] void should_match_all_reference_snapshots() => _testOutput.ShouldContain("Passed!");
     [Fact] void should_admit_identity_only_all() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
-    [Fact] void should_materialize_an_unrelated_source_in_the_reference() => _allExpected.ShouldEqual(JsonSerializer.Serialize(new[] { new { lastSeen = First }, new { lastSeen = Second } }));
+    [Fact] void should_materialize_an_unrelated_source_in_the_reference() => _allExpected.ShouldEqual(JsonSerializer.Serialize(new[] { new { projectId = First, lastSeen = First }, new { projectId = Second, lastSeen = Second } }));
 
     [Fact] void should_keep_the_literal_after_a_later_local_write() => _laterFromExpected.ShouldContain("\"label\":\"fixed\"");
 
@@ -172,7 +172,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
     {
         if (instance is null) return null;
         var values = instance.Values.ToDictionary(value => readModel.Properties.Single(property => property.Id == value.TargetProperty).Name, value => value.Value);
-        if (readModel.Name == "AllSummary") return new { lastSeen = Text(values["lastSeen"]) };
+        if (readModel.Name == "AllSummary") return new { projectId = values.TryGetValue("projectId", out var projectId) ? Text(projectId) : null, lastSeen = Text(values["lastSeen"]) };
         var noteType = model.Application.Types.Single(type => type.Name == "ProjectNote");
         var infoType = model.Application.Types.Single(type => type.Name == "ProjectInfo");
         var notes = values["notes"] is SemanticArrayValue array ? array.Values.Select(value =>
@@ -266,7 +266,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
                     {
                         var instance = scenario.InstanceForEventSourceId(new EventSourceId(key));
                         Assert.NotNull(instance);
-                        return new { lastSeen = instance.LastSeen?.Value.ToString() };
+                        return new { projectId = instance.ProjectId?.Value.ToString(), lastSeen = instance.LastSeen?.Value.ToString() };
                     });
                     Assert.Equal({{JsonSerializer.Serialize(expected)}}, JsonSerializer.Serialize(actual));
                 }

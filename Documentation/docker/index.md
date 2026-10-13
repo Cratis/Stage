@@ -140,7 +140,7 @@ Clock, application, startup and shutdown triggers and opaque reaction bodies sti
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.147.1 and admits exact ESM v1–v15 version pairs; unaudited
+The semantic engine uses Screenplay 4.151.0 and admits exact ESM v1–v15 version pairs; unaudited
 language/semantic versions refuse the whole model with `STAGE-ESM-016` before registration or execution.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and
 read-model state, including ±9007199254740991 and `0.10000000000000002`. Source integers still use
@@ -155,10 +155,8 @@ The semantic Stage Host encrypts personal-data and secret concept values at rest
 like rendered applications, and releases them on read. Personal-data erasure uses Chronicle's
 key deletion keyed by the event source; explicit subject lineage remains
 [Stage #28](https://github.com/Cratis/Stage/issues/28). Existing Play stores retain earlier plaintext events.
-The semantic Host and renderer refuse non-text `secret` concepts (`Int`, `Decimal`, `Bool`,
-`Date`, `DateTime`, and `Uuid`) with `STAGE-ESM-041` until Chronicle can safely store them
-([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)). `pii secret` uses PII only and
-is not subject to this refusal. Keep secrets text-backed and retain their classification.
+The semantic Host and renderer admit text and non-text `secret` concepts (`Int`, `Decimal`, `Bool`,
+`Date`, `DateTime`, and `Uuid`), preserving their primitive types. `pii secret` uses PII only.
 The renderer refuses compliance on identity uses or enums with `STAGE-ESM-040`;
 see [Concept compliance rendering](../reference/compliance-rendering.md).
 The semantic engine executes command routes, registers named sources and streams with Chronicle on every

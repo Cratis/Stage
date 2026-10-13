@@ -13,7 +13,7 @@ encryption without erasure.
 
 ## Executable semantic models
 
-Stage admits exact ESM v1–v15 language/semantic pairs from Screenplay 4.147.1. The semantic planner maps
+Stage admits exact ESM v1–v15 language/semantic pairs from Screenplay 4.151.0. The semantic planner maps
 `SemanticConcept.Compliance` using fully qualified attribute names:
 
 | Concept classification | Generated attributes |
@@ -28,11 +28,10 @@ are carried by ESM v13 but do not change the generated attribute. Reasons are au
 not ESM members. Opt-in details remain a syntax-renderer feature ([Stage #259](https://github.com/Cratis/Stage/issues/259)).
 Unmarked models retain their earlier ESM version and byte-identical artifacts.
 
-The semantic renderer and Host refuse non-text `secret` concepts with `STAGE-ESM-041`:
-`Int`, `Decimal`, `Bool`, `Date`, `DateTime`, and `Uuid`. Chronicle cannot yet safely store
-non-text secrets ([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)). Use text-backed
-secrets without removing their classification. This refusal does not apply to `pii secret`, which
-uses PII protection only.
+The semantic renderer and Host admit text and non-text `secret` concepts: `Int`, `Decimal`,
+`Bool`, `Date`, `DateTime`, and `Uuid` retain their primitive types. Chronicle 19.55.2 encrypts
+these values at rest and releases them in their original shape. `pii secret` still uses PII
+protection only.
 
 On the semantic path, each command input that transitively contains any compliance-marked concept
 (`pii`, `secret`, or both) also gets
@@ -41,7 +40,7 @@ scalar inputs, optional inputs, collections, and nested composites. Arc omits th
 causation, including its unprotected members; unrelated inputs remain auditable. The concept-level
 attributes remain in place for event-payload protection.
 
-Arc 22.83.0 withholds scalar `[PII]` concept inputs through Chronicle's `PIIMetadataProvider`.
+Arc 22.87.0 withholds scalar `[PII]` concept inputs through Chronicle's `PIIMetadataProvider`.
 That check examines the command property, its declaring type, its direct property type, and its
 constructor parameter, but does not recursively inspect composite members or collection elements.
 Stage's property-level exclusion covers those nested personal values and secrets, and is also emitted
@@ -106,7 +105,7 @@ Personal-data text joins these parts with one space, in order:
 
 Reasons are escaped as C# string literals, including quotes, backslashes, line breaks and Unicode line separators. These notes do not establish lawful processing, retention or a processing purpose.
 
-`ComplianceDetailsAttribute(string details)` lives in `Cratis.Chronicle.Compliance`; `[PII]` remains in `Cratis.Chronicle.Compliance.GDPR`. In the pinned Chronicle client (19.54.0), `EncryptedAttribute` takes optional `EncryptionScope scope` and `string details`. Scope members are `Subject`, `Namespace` and `Global`. With details disabled, namespace/global secrets pass only the scope argument, using the constructor's default empty details string. With details enabled, a reason without a scope emits `EncryptionScope.Subject` explicitly because there is no reason-only positional overload; this preserves Chronicle's default. A scope without a reason emits an empty details string.
+`ComplianceDetailsAttribute(string details)` lives in `Cratis.Chronicle.Compliance`; `[PII]` remains in `Cratis.Chronicle.Compliance.GDPR`. In the pinned Chronicle client (19.55.2), `EncryptedAttribute` takes optional `EncryptionScope scope` and `string details`. Scope members are `Subject`, `Namespace` and `Global`. With details disabled, namespace/global secrets pass only the scope argument, using the constructor's default empty details string. With details enabled, a reason without a scope emits `EncryptionScope.Subject` explicitly because there is no reason-only positional overload; this preserves Chronicle's default. A scope without a reason emits an empty details string.
 
 ## Existing event generations
 

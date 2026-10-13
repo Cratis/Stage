@@ -43,6 +43,12 @@ public class when_encrypting_against_the_pinned_kernel
         {
             new("pii", "String", true, "optional-personal"),
             new("secret", "String", true, "optional-secret"),
+            new("secret", "Int", false, 37),
+            new("secret", "Bool", false, true),
+            new("secret", "Int", true, 42),
+            new("secret", "Bool", true, false),
+            new("secret", "Int", true, null),
+            new("secret", "Bool", true, null),
             new("pii", "String", true, null),
             new("secret", "String", true, null)
         })
@@ -66,8 +72,6 @@ public class when_encrypting_against_the_pinned_kernel
         var name = kernelStore.Name;
         var plan = compiled_plan.From(a_compliance_store.Source);
         Assert.Empty(new SemanticRuntimeAdmission(plan).Blocking);
-        var nonTextSecret = compiled_plan.From(a_compliance_store.Source.Replace("AccessToken : String secret", "AccessToken : Int secret", StringComparison.Ordinal));
-        Assert.StartsWith("STAGE-ESM-041:", Assert.Single(new SemanticRuntimeAdmission(nonTextSecret).Blocking).Details);
         await SemanticChronicleRegistration.Register(client, name, plan);
         var appender = new SemanticFactAppender(client, new StageEventStoreName(name), plan);
         var runtime = SemanticRuntimeHosting.Create(plan, appender);

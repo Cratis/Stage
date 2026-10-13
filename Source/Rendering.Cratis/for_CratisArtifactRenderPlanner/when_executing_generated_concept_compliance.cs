@@ -25,6 +25,7 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
         using Invoices.Invoices.Lifecycle.Lookup;
         using Invoices.Invoices.Lifecycle.Record;
         using Invoices.Invoices.Lifecycle.RecordCredentials;
+        using Invoices.Invoices.Lifecycle.RecordSecrets;
         using Xunit;
 
         namespace Invoices.ComplianceProbe;
@@ -54,6 +55,21 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
                 Assert.Equal("well", projection.Instance!.Health.Value);
                 Assert.Equal("scalar-secret-value-345", projection.Instance.ApiKey.Value);
                 Assert.Equal("private", projection.Instance.Note.Value);
+            }
+
+            [Fact]
+            public async Task should_append_integer_and_boolean_secrets_without_leaking_causation()
+            {
+                using var scenario = new CommandScenario<RecordSecrets>();
+                var id = new InvoiceId(Guid.NewGuid());
+                var result = await scenario.Execute(new RecordSecrets(id, new SecretNumber(37), new SecretFlag(true)));
+                Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
+                var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
+                var payload = Assert.IsType<SecretsRecorded>(appended.Content);
+                Assert.Equal(37, payload.Number.Value);
+                Assert.True(payload.Flag.Value);
+                Assert.NotEmpty(appended.Context.Causation);
+                Assert.All(appended.Context.Causation, cause => Assert.False(cause.Properties.ContainsKey("number") || cause.Properties.ContainsKey("flag")));
             }
 
             [Fact]
@@ -97,10 +113,25 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
         #endif
         """;
 
+    const string NonTextSecrets = """
+            slice StateChange RecordSecrets
+              command RecordSecrets
+                id InvoiceId identifier
+                number SecretNumber
+                flag SecretFlag
+                produces SecretsRecorded
+                  for id
+                  number = number
+                  flag = flag
+              event SecretsRecorded
+                number SecretNumber
+                flag SecretFlag
+        """;
+
     string _build = null!;
     string _tests = null!;
 
-    protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(invoice_model.Compile(a_concept_compliance_model.ContainerTypes + "\n" + a_concept_compliance_model.Source + "\n" + a_concept_compliance_model.ContainerSlice + "\n" + a_concept_compliance_model.Lookup));
+    protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(invoice_model.Compile("concept SecretNumber : Int secret\nconcept SecretFlag : Bool secret\n" + a_concept_compliance_model.ContainerTypes + "\n" + a_concept_compliance_model.Source + "\n" + a_concept_compliance_model.ContainerSlice + "\n" + NonTextSecrets + "\n" + a_concept_compliance_model.Lookup));
 
     async Task Because()
     {

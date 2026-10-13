@@ -23,8 +23,12 @@ public static class SemanticSpecificationClock
 
         return specification.When is not null && specification.WhenClock is null &&
             specification.GivenClock is { } clock &&
-            DateTimeOffset.TryParseExact(clock, "yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out instant) &&
+            DateTimeOffset.TryParseExact(
+                clock,
+                "yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out instant) &&
             instant >= DateTimeOffset.UnixEpoch && instant.Ticks % TimeSpan.TicksPerMillisecond == 0;
     }
 }

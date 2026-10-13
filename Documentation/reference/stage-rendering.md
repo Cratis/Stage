@@ -67,7 +67,11 @@ A composite or collection query argument containing a validated concept fails ad
 `STAGE-ESM-010`, naming the query and concept.
 
 :::caution[Renaming events]
-Stage renders each event with argument-free `[EventType]`, so its Chronicle event type id is the event's current name. Renaming an event in the model renames its Chronicle type; events already stored under the old name are no longer recognized by the rendered application. Until [Screenplay carries the stored event name in the ESM](https://github.com/Cratis/Screenplay/issues/704), do not rename events in a model whose rendered application already holds data. Add a new event instead.
+An event's Chronicle id is its stored name: the `id` pin, otherwise the name. Its generated class follows the current name. ESM v16 carries a differing pin as `storedName`, rendered as `[EventType("Original")]`; unpinned events retain argument-free `[EventType]`.
+
+Before writing, publishers call `CratisRendering.CheckPublication` at every scope. It refuses a changed id with `STAGE-EVENT-002`. Pin the existing id in the model, add a new event instead of renaming, or write an event type migration. If the release baseline records the wrong name, correct it per [Screenplay decision 0070](https://github.com/Cratis/Screenplay/blob/v4.152.0/decisions/0070-derive-event-mutability-from-an-admitted-release-baseline.md).
+
+A rename without a pin still orphans stored events: a renderer cannot distinguish it from deleting one type and adding another. Use the Screenplay workspace/MCP rename, which pins by default.
 :::
 
 ## Generated C# whole numbers
@@ -76,7 +80,7 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
-Stage uses Screenplay 4.151.0 and admits exact ESM v1–v15 language/semantic pairs, including v11's corrected Double-mode literal lowering and v15's generation strategies with atomic freshness scopes. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
+Stage uses Screenplay 4.152.0 and admits exact ESM v1–v16 language/semantic pairs, including v11's corrected Double-mode literal lowering and v15's generation strategies with atomic freshness scopes. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
 For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
 `9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction
 `0.10000000000000002` renders as `0.10000000000000002m`. Command inputs, event payloads,

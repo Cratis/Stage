@@ -14,15 +14,15 @@ public static partial class CratisRendering
     static readonly string[] _aggregatePolicyPaths = ["GeneratedPolicies/Policies.cs", "GeneratedPolicies/PolicyBodies.cs", "TypedContexts/PolicyContext.cs"];
 
     /// <summary>
-    /// Checks the shared policy files a plan would overwrite before the publisher writes any artifacts.
-    /// Application scope is always compatible; scoped plans require application scope over an aggregate policy layout.
+    /// Checks stored event identities and shared policy files before the publisher writes any artifacts.
+    /// Every scope preserves event identities; scoped plans require application scope over an aggregate policy layout.
     /// </summary>
     /// <param name="plan">The destination-independent plan, including its requested scope and artifact placement.</param>
     /// <param name="readExistingFile">
     /// Reads an application-root-relative path. Return null only when the file is confirmed absent; let any read failure
-    /// throw, so the check fails closed instead of treating an unreadable aggregate policy file as absent.
+    /// throw, so the check fails closed instead of treating an unreadable destination file as absent.
     /// </param>
-    /// <returns>A compatible result or the incompatible paths and the reason application scope is required.</returns>
+    /// <returns>A compatible result, refused event identity changes, or the paths requiring application scope.</returns>
     /// <remarks>
     /// Identical content is compatible. Otherwise, declaration syntax distinguishes the split layout from aggregate
     /// policy classes, per-site bodies and typed wrappers. Unrecognized content requires application scope.
@@ -30,6 +30,11 @@ public static partial class CratisRendering
     /// </remarks>
     public static CratisPublicationCheck CheckPublication(ArtifactRenderPlan plan, Func<string, string?> readExistingFile)
     {
+        if (CheckEventTypeIds(plan, readExistingFile) is { } eventChanges)
+        {
+            return eventChanges;
+        }
+
         if (plan.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
             return new CratisPublicationCheck.Compatible();

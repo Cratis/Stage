@@ -31,7 +31,7 @@ internal static class SemanticChronicleRegistration
             var schema = SemanticSchemas.Schema(@event.Properties, plan.Model.Application);
             return new ChronicleEvents.EventTypeRegistration
             {
-                Type = new ChronicleEvents.EventType { Id = @event.Name, Generation = 1 },
+                Type = new ChronicleEvents.EventType { Id = SemanticStoredEventNames.Of(@event), Generation = 1 },
                 Schema = schema,
                 Owner = ChronicleEvents.EventTypeOwner.Client,
                 Source = ChronicleEvents.EventTypeSource.Code,

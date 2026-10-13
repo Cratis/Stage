@@ -5,6 +5,8 @@
 using System.Text;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.EventSources;
+using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -71,8 +73,15 @@ public class when_rendering_reducer_observer_filters
     [Fact]
     public async Task should_refuse_a_reserved_stored_stream_filter_without_artifacts()
     {
-        var loaded = await when_rendering_a_pure_reducer.Load(Source("OrdersSource.Entries").Replace("id \"stored-entries\"", "id \"All\"", StringComparison.Ordinal));
-        var plan = when_rendering_a_pure_reducer.Plan(loaded);
+        var loaded = await Load("OrdersSource.Entries");
+        // Screenplay rejects All in source, so exercise Stage's ESM admission directly.
+        var original = loaded.Model;
+        var sources = original.Application.EventSources.Select(source => source with
+        {
+            Streams = [.. source.Streams.Select(stream => stream with { StreamKind = stream.StreamKind == "stored-entries" ? "All" : stream.StreamKind })]
+        });
+        var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, original.Application with { EventSources = [.. sources] });
+        var plan = when_rendering_a_pure_reducer.Plan(loaded with { Model = model, Plan = SemanticExecutionPlan.Compile(model).Plan! });
         Assert.False(plan.Success);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-030");
         Assert.Empty(plan.Artifacts);

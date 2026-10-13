@@ -116,6 +116,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
     static async Task<SemanticSpecificationRunRecord> Execute(SemanticSpecification specification, SemanticSlice slice, SemanticExecutionPlan plan, SemanticSpecificationRunOptions options, CancellationToken cancellationToken)
     {
+        if (SemanticSpecificationClock.TryGet(specification, out var instant)) options = options with { Clock = new FixedSemanticClock(instant) };
         var when = specification.When;
         var command = when is null ? null : plan.Commands[when.Command];
         var runtimeTypes = _types.GetOrAdd(plan.Revision, static (_, source) => new SemanticRuntimeTypes(source), plan);
@@ -198,6 +199,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     static CurrentPrincipalAccessor ConfigureScenario(CommandScenario<object> scenario, SemanticCommandRun run, ClaimsPrincipal principal)
     {
         var context = run.Context;
+        if (SemanticSpecificationClock.TryGet(context.Specification, out var instant)) scenario.Clock(instant);
         scenario.Services.AddSingleton(context);
         scenario.Services.AddSingleton<IDiscoverableValidators>(new SemanticCommandValidators(context));
         scenario.Services.AddSingleton<IAuthorizationEvaluator>(new SemanticArcAuthorization(run.Plan, context.Command, context.Specification, principal, context.CommandType));

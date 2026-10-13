@@ -18,7 +18,9 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
 {
     static readonly DateTimeOffset _receiptTime = new(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero);
 
-    internal bool RequiresEstablish => !specification.GivenEvents.IsEmpty || specification.GivenCaller is not null || GeneratedProperties.Any();
+    internal bool RequiresEstablish => specification.GivenClock is not null || !specification.GivenEvents.IsEmpty || specification.GivenCaller is not null || GeneratedProperties.Any();
+
+    DateTimeOffset ReceiptTime => SemanticSpecificationClock.TryGet(specification, out var instant) ? instant : _receiptTime;
 
     IEnumerable<SemanticProperty> GeneratedProperties => command.Properties.Where(property => property.IsGenerated);
     IEnumerable<SemanticProperty> UnpinnedProperties => GeneratedProperties.Where(property => !IsPinned(property.Id));
@@ -37,7 +39,14 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
 
     internal void RenderClock(CSharpCodeBuilder builder)
     {
-        if (UnpinnedProperties.Any(IsTimeOrdered)) builder.Line("_scenario.Clock(new global::System.DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, global::System.TimeSpan.Zero));");
+        if (SemanticSpecificationClock.TryGet(specification, out var instant))
+        {
+            builder.Line($"_scenario.Clock(new global::System.DateTimeOffset({instant.Ticks}L, global::System.TimeSpan.Zero));");
+        }
+        else if (UnpinnedProperties.Any(IsTimeOrdered))
+        {
+            builder.Line("_scenario.Clock(new global::System.DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, global::System.TimeSpan.Zero));");
+        }
     }
 
     internal void RenderFixtures(CSharpCodeBuilder builder)
@@ -100,7 +109,7 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
             builder.Line($"[global::Xunit.FactAttribute] void should_generate_{Identifiers.ToSnakeCase(property.Name)}() => {expectation};");
             if (IsTimeOrdered(property))
             {
-                var prefix = SemanticGenerationTime.Prefix(context.Concepts[property.Type.Target], _receiptTime);
+                var prefix = SemanticGenerationTime.Prefix(context.Concepts[property.Type.Target], ReceiptTime);
                 builder.Line($"[global::Xunit.FactAttribute] void should_generate_{Identifiers.ToSnakeCase(property.Name)}_at_the_receipt_time() => {Captured(property)}.Value.ToString()!.StartsWith({CSharpCodeBuilder.StringLiteral(prefix)}, global::System.StringComparison.Ordinal).ShouldBeTrue();");
             }
         }

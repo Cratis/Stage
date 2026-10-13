@@ -347,7 +347,7 @@ internal static class SemanticVersionFeatures
             yield return route;
         }
 
-        if (specification.GivenClock is not null || specification.WhenClock is not null || specification.WhenTrigger is not null ||
+        if ((specification.GivenClock is not null && !SemanticSpecificationClock.TryGet(specification, out _)) || specification.WhenClock is not null || specification.WhenTrigger is not null ||
             specification.WhenCapture is not null || !specification.GivenCaptures.IsDefaultOrEmpty)
         {
             var capability = specification.GivenClock is not null || specification.WhenClock is not null ? StageExecutionCapability.Time : StageExecutionCapability.Reaction;

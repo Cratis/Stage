@@ -186,7 +186,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
                     var property = readModel.Properties.Single(candidate => candidate.Id == value.TargetProperty);
                     return $"model.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value.Value, property.Type)}";
                 });
-                return $"global::System.Linq.Enumerable.Any(models, row => row is {readModelName} model && {string.Join(" && ", rowComparisons)})";
+                return $"global::System.Linq.Enumerable.Any(models, row => row is {readModelName} model{string.Concat(rowComparisons.Select(value => $" && {value}"))})";
             });
             var predicate = string.Join(" && ", new[] { $"global::System.Linq.Enumerable.Count(models) == {expected.Results.Length}" }.Concat(predicates));
 

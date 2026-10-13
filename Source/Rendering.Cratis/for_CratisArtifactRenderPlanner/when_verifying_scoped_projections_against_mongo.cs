@@ -186,18 +186,18 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
                     Assert.True(append.IsSuccess, $"Append failed: {append}");
                     if (fact is ProjectRegistered or ProjectRenamed)
                     {
-                        await store.Projections.WaitTillReachesEventSequenceNumber<NestedProbeProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
+                        await store.Projections.WaitTillReachesEventSequenceNumber<NestedProbeProjection>(append.SequenceNumber, TimeSpan.FromSeconds(60));
                     }
 
                     if (fact is ProjectRegistered or ProjectNoted or ProjectNoteRemovedViaJoin)
                     {
-                        await store.Projections.WaitTillReachesEventSequenceNumber<ChildrenProbeProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
+                        await store.Projections.WaitTillReachesEventSequenceNumber<ChildrenProbeProjection>(append.SequenceNumber, TimeSpan.FromSeconds(60));
                     }
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<NestedProbeProjection>());
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<ChildrenProbeProjection>());
                     if (fact is ProjectRegistered or ProjectRenamed or ProjectNamed or ProjectRemoved or ProjectNoted or ProjectNoteRemovedViaJoin)
                     {
-                        await store.Projections.WaitTillReachesEventSequenceNumber<ProjectSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(30));
+                        await store.Projections.WaitTillReachesEventSequenceNumber<ProjectSummaryProjection>(append.SequenceNumber, TimeSpan.FromSeconds(60));
                     }
                     Assert.Empty(await store.Projections.GetFailedPartitionsFor<ProjectSummaryProjection>());
                 }

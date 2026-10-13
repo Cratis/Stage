@@ -1,6 +1,16 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-modeling-lifecycle/references/verdicts-and-modes.md -->
 # Verdicts and modes
 
+## Contents
+
+- Five independent results
+- Commands (enough to check without loading the toolchain skill)
+- Report template
+- Source identity
+- Render revision drift
+- Tool-version gaps
+- Modes
+
 Exact commands, exit codes, admitted subsets and every version-specific fact live in
 `cratis-screenplay-toolchain` (`references/versions.md` and its subset references). This file
 defines what each result means and how to report it. Do not copy version facts here.
@@ -9,16 +19,17 @@ defines what each result means and how to report it. Do not copy version facts h
 
 | Result | Evidence | Does NOT prove |
 |---|---|---|
-| V1 authorable | folder-mode validate with warnings as errors. The standalone compiler includes imports in folder and file mode; the pinned `cratis` CLI (v3.27.1) file validation ignores imports, so folder mode is the cross-tool check | semantics, binding, specs |
+| V1 authorable | folder-mode validate with warnings as errors. The standalone compiler includes imports in folder and file mode; `cratis` CLI 3.28.2 file validation ignored imports (cli#244, probed); since 3.28.4 (PR #258) it compiles the file with its imports, but folder mode stays the recommended cross-tool check | semantics, binding, specs |
 | V2 executable diagnostics | the executable model reports no diagnostics for the scope | that any spec runs or passes |
 | V3 binding-ready | the model binds to the executable semantic model | that any spec runs or passes |
-| V4 reference specs run | the reference execution route only: engine, and per `.play` specification passed / failed / unsupported / cancelled | rendering, generated code, build or target tests |
+| V4 reference specs run | the reference execution route only: engine, and per `.play` specification passed / failed / unsupported (overall model may be unbound) | rendering, generated code, build or target tests |
 | V5 delivery and target-verified | admission, publication, Debug build, Debug tests of generated specifications, each reported separately | customization conformance, faithful UI |
 
 Results are independent: V3 can be ready while V1 has warnings; V5 build can pass with V4 not
 run. Never infer one from another. Spec outcomes for V4 come only from a reference execution
 route. Written or bound specifications are never "specs pass", and rendered Debug tests are
-V5 evidence, not V4.
+V5 evidence, not V4. A read-only `run-specifications` proposal run (Screenplay
+4.145.0+) is V4 evidence for that retained candidate only, not the disk model.
 
 V4 rules:
 - Report per `.play` specification (expected = specifications in the accepted scope; discovered =
@@ -150,7 +161,7 @@ LC_ALL=C sort -u "$tmp/manifest" > "$tmp/sorted" || fail "sort failed"
 d=$(shasum -a 256 < "$tmp/sorted") || fail "digest failed"
 echo "$commit+${d:0:12}"
 ```
-Example: `ident.sh .cratis/screenplay .cratis/screenplay/.screenplay/identities.json src/Billing/Rule.cs`
+Example: `ident.sh Source/Screenplay Source/Screenplay/.screenplay/identities.json src/Billing/Rule.cs`
 (the identity catalog sits inside the root, so list it only if it lives elsewhere; duplicates are
 merged). Record the output as the source identity; a changed digest invalidates acceptance. After the P6
 commit, recompute it: the digest must equal the one reviewed at P5 (only the commit part may differ). Add the
@@ -164,7 +175,7 @@ file changing the digest, a filename containing a tab or a newline, and an expli
 ### Revisions are three different things
 - **Source identity** (above): bytes of the inputs. Used for acceptance.
 - **Workspace revision** (MCP `expectedRevision` and catalog revision): guards edits in one workspace session.
-- **`modelRevision`** (MCP `read-workspace view=executable-model`): the canonical semantic revision
+- **`modelRevision`** (the `screenplay` server's `read-workspace` tool with `view=executable-model`): the canonical semantic revision
   of the bound executable model. It exists only when the model binds. Descriptions and source
   locations are not part of it; the application identity is (without `identities.json` it is
   bootstrapped from the root folder name, so renaming the root changes it). Moving a file changes
@@ -198,8 +209,10 @@ skill):
 - Never use syntax the toolchain does not show compiling. Future-facing syntax only on request.
 - Constructs outside the narrower subset stay in the model as design-mode content; the gap is
   recorded and routed (P8: fallback with the model as contract).
-- Never remove `@pii`, `@sensitive`, authorization, date or state-dependent rules to reach V3 or
+- Never remove `pii`, `secret`, authorization, date or state-dependent rules to reach V3 or
   V5. Report blocked execution.
 - Narrowing the mode is the user's decision; widening back to design is always allowed.
-- Roadmap items that would change verdicts (a spec runner in the compiler tool, a lineage and
-  completeness report) stay "not available" until the toolchain skill lists them as released.
+- Never assume a roadmap item shipped. Current `screenplay test`, MCP
+  `run-specifications`, obligations/smells and opt-in completeness are released
+  at the toolchain pin; they do not prove full field lineage or target behavior.
+  Check `cratis-screenplay-toolchain` before changing a verdict.

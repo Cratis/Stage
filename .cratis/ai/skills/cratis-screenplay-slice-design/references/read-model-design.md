@@ -1,6 +1,23 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-slice-design/references/read-model-design.md -->
 # Read-model design
 
+## Contents
+
+- Start from the consumer
+- The typical slice pattern
+- Events or views
+- Common view patterns
+- Components
+- Fan-in per field
+- Builder and freshness
+- Query shape follows the business view
+- No clock-relative state
+- Who may see what
+- Collections and many-at-once
+- Building it
+- Omissions are decisions
+- Checks before handing off
+
 ## Start from the consumer
 
 List every consumer before designing any read model: each screen area a person looks at, and
@@ -56,6 +73,22 @@ and a recovery contract, or a pending-work view; only an immediate, internal, al
 effect may leave no trace
 (`cratis-screenplay-automations-and-translations`).
 
+## Common view patterns
+
+Four shapes recur. Name the one a view is before choosing its fields, so the consumer and the
+events line up.
+
+| Pattern | Events feeding it | The view holds | Used for |
+|---|---|---|---|
+| Status view | The lifecycle events of one instance (booked, confirmed, arrived, cancelled) | The accumulated current state of that instance | A screen that shows where one thing stands and which actions are available |
+| List view | Create, change and end events of many instances | One summary row per instance, with the fields people filter, sort or search by | Worklists, search, filtering; end events either `remove with` the row or set a status literal (see "Omissions are decisions") |
+| Timeline or history view | Any events that carry a time | A chronological list, one entry per event, kept apart from the status view | History and audit trail; keep a growing history in its own view, never inside the status view |
+| Processor decision view | The state-changing events a reaction cares about | Current state only, nothing a person would read | A `reaction` or `trigger` that reads it to decide the next action; a reaction that also `produces` directly cannot `reads` it (`PLAY0268`), so it `invokes` a command that holds the `reads` (a pending-work view is this pattern for work that can wait, retry or fail) |
+
+The patterns describe what the view is for, not new syntax: each is a `readmodel`, a projection
+and, where a person or caller reads it, a `query`. A view that fits two patterns at once is
+usually two views.
+
 ## Components
 
 - A component is an area of a screen a person would describe as one thing ("the locker list",
@@ -103,21 +136,27 @@ it stays.
 
 | The person... | Design-mode query | Executable/renderable scope |
 |---|---|---|
-| opens one thing | `XById => RM optional` + `by xId XId` | same (the only shape that binds today) |
-| scans a list | `ListX => RM[]` (optionally `observable`, `filter`) | keep the list for design; add the keyed query; record V3 blocked by the list |
-| sees their own rows | list with scope/`from` on the caller | as above; access rules are part of the view, enforced by the target |
+| opens one thing | `XById => RM optional` + `by xId XId` | binds at 4.135.0 with caller-supplied `by`; check target renderer |
+| scans a list | `ListX => RM[]` (optionally `observable`, `filter`) | collection/observable delivery bind; caller-supplied equality filters bind since 4.143.0 as ESM v14; check target renderer |
+| sees their own rows | list with scope/`from` on the caller | scope and context-derived `by`/`filter` remain PLAY0268 because portable scope/query context is unadmitted; caller-supplied filters are not access control |
 | sees a site-wide figure | singleton read model, `from <Event> key literal "global"` on every `from` (a projection-level `key` routes nothing, PLAY0381; example in Screenplay `projections/keys.md`, "Literal keys") | check the binding (V3, `cratis-screenplay-toolchain`) |
 
 - `observable` when people are expected to see others' or automation's changes while looking
-  (worklists, status awaiting an outside answer); one-shot otherwise. Design mode only
-  (PLAY0268). If access can be revoked mid-session, record that the target re-checks per emission.
+  (worklists, status awaiting an outside answer); one-shot otherwise. Observable delivery
+  binds at 4.135.0; renderer support is separate. If access can be revoked mid-session,
+  record that the target re-checks per emission.
 - Never model paging or page size (no syntax, Screenplay#140). State the order in the query
-  `description` ("oldest first"); an unbounded list is a review question.
+  `description` ("oldest first"; queries do not accept `documentation`); an unbounded list is a review question.
 - A gated keyed query needs its own denial spec.
 
-Never drop a list query from a design model just to make it bind; record the capability gap.
-The keyed query also defines the read model's identity: its `by` property must be a read-model
-property. The identifier always equals the projection's effective key:
+Never drop a business-required list query to satisfy an old compiler or renderer;
+record any actual capability gap. At 4.135.0, explicit trailing `key` takes precedence
+for read-model identity. Otherwise single-instance queries in the owning slice must
+agree on one `by` property declared on the read model. Only with no single-instance
+identifier and an admitted collection/list query does conventional `*Id` inference
+run; queryless views need explicit `key`. The fallback excludes collection-query key
+candidates when that leaves one identifier (full algorithm: read-surface
+`references/named-keys.md`). The identifier equals the projection's effective key:
 
 | Effective key | Executable model | Renderable model (Stage) |
 |---|---|---|
@@ -151,7 +190,7 @@ has children, not a single value.
 
 - Event properties fill read-model properties of the same name automatically (AutoMap), but the
   match differs by binding: a scoped projection matches names case-insensitively and only for
-  the same type (Screenplay v4.64.0 `ProjectionValues.cs` `AutoMapped`); a flat-bound projection
+  the same type (Screenplay v4.66.0 `ProjectionValues.cs` `AutoMapped`); a flat-bound projection
   matches exact names only and does not check the type, so a same-named property of another
   type makes the model invalid (`Projections.cs` `BindFlatTransition`). Do not rely on AutoMap
   where it matters: map explicitly when names or types differ, and use `no automap` where an
@@ -167,8 +206,8 @@ has children, not a single value.
 If a view must stop showing cancelled items, use `remove with <Event>` and pin it with
 `then no readmodel <RM> for "<key>"`. If it keeps them, map a status literal from that event
 instead. The slice `description`, the projection and every spec of the view must agree.
-A complete example (marina berths; the `then no readmodel` assertion needs the keyed
-query, which is why the view has one):
+A complete example (marina berths; the keyed query supplies the view's identity
+for the `then no readmodel` assertion; explicit `key` could supply it instead):
 
 ```screenplay
 domain Harbourlight.Berths
@@ -193,11 +232,8 @@ module Berths
       command BookBerth
         bookingId BookingId identifier
         berth BerthName
-        produces BerthBooked
-          for bookingId
-          berth = berth
-      event BerthBooked
-        berth BerthName
+        produces event BerthBooked
+          berth BerthName = berth
       specification BookingABerth
         given caller
           authenticated
@@ -212,9 +248,7 @@ module Berths
       description "A skipper cancels a booking they no longer need"
       command CancelBooking
         bookingId BookingId identifier
-        produces BookingCancelled
-          for bookingId
-      event BookingCancelled
+        produces event BookingCancelled
 
     slice StateView OpenBookings
       description "The harbour office lists bookings that still hold a berth. BerthBooked sets berth: the booking enters the list. BookingCancelled removes it: a cancelled booking never shows."
@@ -245,7 +279,7 @@ module Berths
 
 ## Checks before handing off
 
-- The StateView slice `description` gives, per contributing event, the fields it sets and why
+- StateView slice `documentation` gives, per contributing event, the fields it sets and why
   (see `LockerBoard` in `worked-example.md`); extend it whenever a `from` is added. Shape of
   the note: `BerthBooked sets bookingId, status="booked": the view's creation event; the booking
   does not exist before it.` / `BoatArrived sets status="arrived", arrivedAt: the only
@@ -262,7 +296,8 @@ module Berths
 - Every consumer that needs state has its read model (a blank creation form and a direct reaction
   with a documented no-pending-work reason need none); every read model has a consumer.
 - Every field traced (`field-lineage.md`).
-- Executable/renderable scope: one unambiguous key per read model (one or more keyed queries,
-  all with the same `by` property), identifier equal to the projection's key (table above);
-  no list queries.
+- Executable scope: one identity per read model: explicit `key`, else agreeing
+  single-instance `by`, else unambiguous `*Id` only with an admitted list query and
+  no single-instance identifier. Queryless views need explicit `key`. The identifier
+  equals the projection's key (table above); check target renderer admission separately.
 - Design-only shapes listed with the V3 code they cause.

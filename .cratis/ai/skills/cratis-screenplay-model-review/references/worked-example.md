@@ -1,11 +1,21 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-model-review/references/worked-example.md -->
 # Worked example: reviewing a marina berth model
 
+## Contents
+
+- The model under review
+- Phase 1: element sweep (working notes)
+- Phase 2: entity walk (Berth)
+- Phase 3: field lineage
+- The report (excerpt)
+- After the fix
+
 A small model with one seeded design defect, reviewed in critic mode. The model file is
 `berths.play`; line numbers below refer to it. The report follows `report-template.md` and is
 shortened: it shows the flagged checks of each phase and elides the passing ones, which a real
-report lists in full. The model compiles in design mode: the `ListBerths` list query blocks V3
-(`PLAY0268`), which is why the report below does not run V3.
+report lists in full. The model compiles and, on the standalone 4.139.0 tool, binds and runs one specification (the
+`ListBerths` list query binds since Screenplay 4.105.0). The report works in design mode, so it
+does not run V3 or V4.
 
 ## The model under review
 
@@ -113,7 +123,7 @@ Every event has a consumer (BerthList). Terminal reason: none needed.
 Mode: design   Stance: critic   Review kind: independent
 Source identity: 4f1c2ab+3e9a1c0b7d42 (source-identity helper)
 Scope: feature Moorings/Berths
-V1 authorable: pass (screenplay 4.64.0, 1 file)
+V1 authorable: pass (screenplay 4.66.0, 1 file)
 V2 executable diagnostics: not run: design mode
 V3 binding-ready: not run: design mode
 V4 reference specs run: not run: no route
@@ -163,7 +173,7 @@ Confidence: medium (design mode; V2 to V5 not run)
 
 ## After the fix
 The same scope after the modeler applied the edit request and added denial specifications.
-The review is re-run only on the changed scope. The query contract is unchanged: no edit request asked for a different query, so `ListBerths => BerthSummary[]` stays. This document compiles (design mode), but the list query blocks V3 (binding reports PLAY0268, a query must declare one caller-supplied `by` argument), so its specifications do not run here. Adding a keyed `BerthById` next to the list would not unblock binding; replacing the list would change the contract and needs its own domain-justified edit request.
+The review is re-run only on the changed scope. The query contract is unchanged: no edit request asked for a different query, so `ListBerths => BerthSummary[]` stays. This document compiles and binds, and its four specifications pass in `screenplay test` (4.139.0). Replacing the list with a keyed lookup would change the contract and needs its own domain-justified edit request. Stage 4.73.1 would refuse the snapshot list (`STAGE-ESM-010`); only an `observable` list or a keyed lookup renders.
 
 ```screenplay
 concept BerthId : Uuid

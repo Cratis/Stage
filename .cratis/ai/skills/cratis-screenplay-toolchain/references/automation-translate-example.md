@@ -1,12 +1,11 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-toolchain/references/automation-translate-example.md -->
 # Automation and Translate example (ESM v6)
 
-Executable Automation and Translate slices. Needs the standalone compiler: the cratis-bundled compiler rejects it (PLAY0268 at binding, false PLAY0285 at compile on the cascade spec in `SubscribingAMember`); see [versions.md](versions.md). Shows a reaction `produces` cascade, `invokes`, `where`, clock `at`, an application trigger, a capture with translate and a transition `when`, and v6 specifications.
+Executable Automation and Translate slices. Binds on Screenplay 4.66.0, standalone and bundled in cratis 3.28.2 (probed: `executableReady`; `cratis render` refuses it whole with `STAGE-ESM-016`). The compiler bundled in cratis before 3.28.2 rejected it (PLAY0268 at binding, false PLAY0285 at compile on the cascade spec in `SubscribingAMember`); see [versions.md](versions.md). Shows a reaction `produces` cascade, `invokes`, `where`, clock `at`, an application trigger, a capture with translate and a transition `when`, and v6 specifications.
 
 The `Renew` command is ungated so that the reaction can invoke it: this is a syntax demonstration, not a safe production design. Reactions invoke with no caller, so a real model needs a trusted path (see [cratis-screenplay-automations-and-translations](../../cratis-screenplay-automations-and-translations/SKILL.md)).
 
 ```screenplay
-// Needs the standalone screenplay compiler (ESM v6)
 // Automation and Translate: ESM v6 forms.
 concept MemberId : Uuid
 
@@ -19,11 +18,8 @@ module Membership
     slice StateChange Subscribe
       command Subscribe
         memberId MemberId identifier
-        produces MemberSubscribed
-          for memberId
-          subscribedAt = $context.occurred
-      event MemberSubscribed
-        subscribedAt DateTime
+        produces event MemberSubscribed
+          subscribedAt DateTime = $context.occurred
       specification SubscribingAMember
         given clock "2026-10-05T09:00:00Z"
         when Subscribe
@@ -41,11 +37,8 @@ module Membership
         months   Int
         validate
           months > 0  message "Renew for at least one month"
-        produces MembershipRenewed
-          for memberId
-          months = months
-      event MembershipRenewed
-        months Int
+        produces event MembershipRenewed
+          months Int = months
       specification RejectingAZeroRenewal
         when Renew
           memberId = "5b6c1f7e-2d3a-4e8b-9c0d-1a2b3c4d5e6f"

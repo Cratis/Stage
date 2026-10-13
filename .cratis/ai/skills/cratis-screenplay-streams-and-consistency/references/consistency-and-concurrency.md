@@ -1,8 +1,31 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-streams-and-consistency/references/consistency-and-concurrency.md -->
 # Consistency and concurrency
 
-Pins: Screenplay v4.64.0, Chronicle v19.32.0, Arc v22.50.5, Stage v4.24.0 (table in `versions.md` of
+## Contents
+
+- 1. Invariant table (fill before writing constraints)
+- 2. Where a rule can be enforced
+- 3. Record each state-dependent rule that the model cannot enforce
+- 4. Concurrency scenarios
+- 5. Three different guarantees (do not conflate)
+- 6. Lost acknowledgements
+- 7. Ordering
+- 8. Projection lag and rebuild
+- 9. Corrections and backdated facts
+- 10. Specification limits (no local spec engine)
+
+Historical checks: Screenplay v4.66.0, Chronicle v19.32.0, Arc v22.50.5, Stage v4.24.2 (current pins in `versions.md` of
 `cratis-screenplay-toolchain`).
+
+Routing identity checks verified at 4.127.0: PLAY0515 refuses personal/secret
+concepts in stream-id types, composite parts and route sources, including nested
+paths. Composite keys require every named scalar part, not a legacy separator
+split. Text must be well-formed, nonempty NFC and Double integer ids bounded by
+±(2^53−1); PLAY0504 is an error for routed nominal destination-type mismatch.
+Canonical specification comparisons preserve part order and treat UUID case
+variants as equal. Key-schema evolution for stored events requires a new stream
+identity or migration. These checks do not protect command decision reads.
+Details: toolchain `references/sources-and-streams.md`.
 
 ## 1. Invariant table (fill before writing constraints)
 | # | Rule (business words) | Data it needs | Decided atomically where | Screenplay construct | Status | Race / retry outcome |
@@ -42,20 +65,21 @@ observed legacy check from verified atomic protection.
 Never accept the caller's copy of the state: `currentStatus Status` on the command with
 `require currentStatus == "approved"` protects nothing, and neither does a boolean attestation
 input (`confirmsX == true`) standing in for the rule. Never move the rule into `handler` or
-`implementation hint` prose; a description is not rendered (Stage#178), so prose alone leaves
+`implementation hint` prose; a description renders only as an XML doc comment (Stage#178), so prose alone leaves
 the rule unenforced in rendered scope.
 
 Right: write the rule as stated intent and mark it unenforced.
 - `reads <View> as x by …` plus `require <expr over x> message "…"` on the command (the
   `StateChange` slice in `streams-example.md`). Binding reports PLAY0271 / PLAY0268; that is
   expected in design mode, so keep the lines. Do not remove them to pass a tool.
-- Slice `description`, one block per rule:
+- Slice `description`: one short marker per rule, `NOT enforced in the model today; target: <mechanism>`.
+- Slice fenced `documentation`, one block per rule:
   - Requirement: the business rule in business words.
-  - Status: NOT enforced in the model today (Screenplay#129, #209).
+  - Status: NOT enforced in the model today (Screenplay#129).
   - Decision inputs: the authoritative facts or state.
   - Missing guarantee: why the construct does not protect the decision.
   - Race consequence: what two individually plausible commands could jointly violate.
-  - Intended enforcement: the target mechanism (below), or the options awaiting agreement.
+  - Intended enforcement: the target mechanism ("Target realization" below), or the options awaiting agreement.
   - Business outcome: what a rejected, delayed or compensated request means.
 - A `STATE.md` row with owner and revisit condition. A general note "some state rules are
   unsupported" does not replace these per-rule blocks.
@@ -65,7 +89,7 @@ Right: write the rule as stated intent and mark it unenforced.
 Options to discuss with the domain expert (decide, do not assume):
 a. **one stream is the boundary**: put the decision on the stream that owns the state (often a
    different identity choice) and enforce it in the target with a concurrency scope, plus the
-   first-append check described under "First append into a scope" below (a scope on an empty
+   first-append check described under "First append into a scope" in SKILL.md (a scope on an empty
    source or partition is not checked by default);
 b. **reservation by identity**: if the scarce things can be named (seat 1..N, slot at 09:00),
    give each its own identity and use uniqueness, after checking it expresses the invariant;
@@ -83,18 +107,20 @@ empty or `$eventSourceId`). Reducers, joins, children, nested sources and **even
 routing** (fan-in from many streams by a payload reference) are refused, and a concurrency scope
 on the referenced source does not see appends made on other sources. A rule over such a view, for
 example a course capacity computed from enrolment streams, needs option a or b: write the
-deciding fact on the source that owns the state, or give each scarce item its own identity. Sources: Arc `v22.50.5:Documentation/backend/csharp/chronicle/read-models/injecting-into-commands.md`;
+deciding fact on the source that owns the state, or give each scarce item its own identity. Sources: Arc `v22.72.0:Documentation/backend/csharp/chronicle/read-models/injecting-into-commands.md` (limits unchanged since v22.50.5);
 `chronicle-boundaries.md`.
 
-**Availability caveat for Stage-rendered applications.** `cratis render` scaffolds Arc 22.25.0 and
-Chronicle client 19.8.1 (Stage v4.24.0), which predate `[ProtectedDecision]` and `DecisionRead<T>`.
-In a rendered app that attribute is not available, so a gap-fill handler cannot use it unless the
-application's Arc and Chronicle packages are upgraded as a separately approved change. When they
-are not, choose option a or b (put the deciding fact on the stream that owns the state, or give
-each scarce item its own identity and claim it with a constraint), or option c, and keep the rule
-**NOT enforced in the model today** in the slice description with the race consequence. Never
-claim protection for a rendered app because the rule is written as `reads` + `require`, and never
-weaken the rule to make it render.
+**Availability in Stage-rendered applications.** The Stage scaffold pins Arc and Chronicle client/kernel
+releases (not the latest). `[ProtectedDecision]` and `DecisionRead<T>` /
+`IDecisionReads` exist in that package set; source checks are in
+`cratis-stage-rendering-and-sandbox` `references/rendered-application.md`.
+This does not mean Stage emits protected decisions. Gap-fill must opt into the
+protected command profile, use an admitted projection/key shape and enroll the
+read in the active unit of work. For refused shapes choose option a/b (state on
+its owning stream or one identity per scarce item), or agreed compensation c.
+Keep the rule **NOT enforced in the model today** with its race consequence.
+Never infer protection from `.play` `reads` + `require`, weaken the rule to render,
+or edit managed dependency files. Older Stage 4.24.x scaffolds predate these APIs. Arc 22.72.0 and Chronicle 19.50.0 are the latest releases; the scaffold does not move with them.
 
 ## 4. Concurrency scenarios
 For each enforced or recorded rule write three short scenarios:
@@ -113,24 +139,7 @@ Chronicle applies optimistic concurrency to appends by default; the `concurrency
 narrows the scope (eventSource, sourceType, streamType, streamId, events). It does not bind
 in the executable model; it documents intent for the target.
 
-**First append into a scope (Chronicle v19.32.0, version-qualified).** The default optimistic
-strategy compares the scope's tail sequence number. When nothing matches the scope yet (the
-first event on a new event source, or the first event of a new source type, stream type or
-stream id), there is no tail and the append is **not checked**: two writers opening the same
-source or narrowed partition can both succeed. This is the append most exposed to a race, so a
-concurrency scope alone does not protect "only one writer may open this". For a target that
-needs it:
-- enable the check, application-wide with `ConcurrencyOptions.CheckFirstAppendIntoAScope`
-  (default `false`) or per append with `ConcurrencyScopeBuilder.ExpectingNoMatchingEvent()`,
-  and handle the `ConcurrencyViolation` it can now raise; or
-- use a unique event constraint, which the kernel enforces for every writer whether or not the
-  append declared a scope (the model's `unique event`).
-Require target evidence that the check ran: a concurrent first-append scenario against a real
-Chronicle, asserting one append wins, one is rejected, and `IAppendResult.ConcurrencyCheckPerformed`
-is `true` (a skipped check and a passing one look identical otherwise; a current client against
-an older kernel always reads `false`). This was source- and documentation-inspected, not
-concurrency-tested here. Stage-rendered apps pin Chronicle client 19.8.1: do not assume these
-APIs exist there; confirm the package version before recommending them.
+See "First append into a scope" in SKILL.md.
 
 ## 5. Three different guarantees (do not conflate)
 | Guarantee | Meaning | Screenplay evidence |
@@ -148,7 +157,7 @@ The append may commit while the reply is lost. The caller retries. Decide per co
   rejection the caller must see; never report it as success;
 - **new identifier** -> duplicate unless a business-key constraint exists.
 The model shows only the rejection; payload comparison and outcome replay are target
-behaviour. Write the answer in the slice `description`.
+behaviour. Write the answer in the slice `documentation`.
 
 ## 7. Ordering
 - Within one source, facts are in append order. Across sources, do not assume an order
@@ -177,11 +186,12 @@ behaviour. Write the answer in the slice `description`.
   date views and rules use. Constraints and reactions still see record order.
 
 ## 10. Specification limits (no local spec engine)
-- A spec can show a source re-claiming its own value and a `unique event` violation. Whether
-  it can show a collision between two different sources is contested in the docs:
-  `constraints.md` says not yet, `specifications.md` says `for` on `given` events allows it. Treat
-  such a spec as parsed (V1), not proven; spec outcomes come only from a reference run (V4) or
-  rendered tests. See `cratis-screenplay-scenario-coverage`.
+- A spec can show a source re-claiming its own value, a `unique event` violation and a collision
+  between two different sources: `for` on `given` events (ESM v2) establishes a claim on one source
+  and attempts the same value on another (`specifications.md`; `streams-example.md` uses it). It is a
+  sequential history, not a race proof. The `constraints.md` sentence that it "cannot yet show a
+  collision between two event sources" is stale (`cratis-screenplay-toolchain` `references/doc-contradictions.md`).
+  Spec outcomes come only from a reference run (V4) or rendered tests. See `cratis-screenplay-scenario-coverage`.
 - Constraint violation messages are fixed strings: copy them exactly into `then error`.
 - For every value constraint write a competing-claim spec (one source owns the value, a
   different source attempts it) using `when <Command>` with the earlier fact as `given`.

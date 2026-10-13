@@ -1,6 +1,15 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-model-review/references/business-questions.md -->
 # Business-question pass (explain brief)
 
+## Contents
+
+- Ground rules
+- Stance
+- Question categories
+- Method: walk each journey
+- Translating model words
+- Output format
+
 Purpose: before acceptance (P6), find the decisions only a domain person can make, and put them
 so that person can answer without learning modeling. The method follows Event Modeling's idea
 of information completeness (every decision has the information it needs, every recorded fact

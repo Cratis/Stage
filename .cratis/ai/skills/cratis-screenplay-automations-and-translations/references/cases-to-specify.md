@@ -17,7 +17,7 @@ One spec in the slice does not cover the others.
 | queue opens / closes | item appears, item disappears | `then query …ById`; `when append <Closing>` + `then no readmodel … for` |
 | already done | trigger re-delivered after the result exists | `given <Result>` + `when <Command>` -> `then error "<fixed constraint message>"` |
 | invoked command rejects | validation or constraint refuses | command spec in its StateChange slice; record what the queue shows afterwards |
-| no caller | invoked command is gated | record the expected rejection and the actor decision (`automation-patterns.md` §4); V4 is "not run: no route" |
+| no declared actor | invoked command is gated | specify its denial; for the trusted path declare reaction `runs as system role` and reference-test with standalone 4.125.0 |
 | clock boundary | due exactly at the instant, just before, just after | `given clock` + `when clock`; boundary semantics are contested in the docs, mark the expectation as an assumption |
 | each branch | does every filter and conditional production have both outcomes? | concrete triggering and non-triggering values; assert the resulting facts or view |
 | denied actor | every command and query under an inherited module/feature `authorize` needs its own denial; also, can an unauthorized caller reach a gated invoked command by another origin? | command spec with otherwise-valid inputs, `given caller` carrying the wrong role/claim (or no caller) and `then denied`; separate from the caller-less reaction gap |
@@ -39,7 +39,7 @@ One spec in the slice does not cover the others.
 | invalid | unknown code, wrong type | `translate` has no entry -> decide and specify |
 | changed / corrected | outside value changes after our fact | correction fact or open decision (`translation-patterns.md` §6) |
 | mis-correlated | reference points at the wrong stream | property constraint on the external reference, or an expert review case |
-| personal data | field we must not keep | excluded from the append mappings; note in `description`; the source record may still carry it |
+| personal data | field we must not keep | excluded from the append mappings; record the reason in `documentation`; the source record may still carry it |
 | authenticity / ownership | wrong source, tenant or entity reference | specify the rejection and name where it is enforced; capture metadata does not verify it |
 | each mapping branch | every recognized code has its intended local meaning | concrete payload and exact translated values; unknown code is a separate case |
 | same object, different occurrence | two legitimate events share a provider object id | both stay representable; dedup hits only the repeated occurrence |
@@ -59,12 +59,12 @@ One spec in the slice does not cover the others.
   The decision must not depend on it (it is not protected).
 
 ## Spec limits (tool differences: `cratis-screenplay-toolchain` `references/versions.md`)
-- These Automation/Translate specs parse and bind (V3) on Screenplay 4.64.0, but no MCP tool,
-  `validate` or Stage render runs them (Stage renders no Automation or Translate slice). Report
-  V4 as "not run: no route"; never as passed.
-- With the standalone compiler, a command spec lists the cascade (v6 semantics: after
-  `when <Command>`, `then` lists every new fact, including reaction appends). Only when the
-  cratis-bundled compiler is the V1 tool does it report a false PLAY0285 on a cascade (cli#242):
+- Current admitted Automation/Translate specifications run through standalone
+  `screenplay test` or MCP `run-specifications`. Validate/render alone is not V4;
+  report unsupported/unbound separately from passing scenarios.
+- With Screenplay 4.66.0 (standalone or cratis 3.28.2), a command spec lists the cascade (v6 semantics: after
+  `when <Command>`, `then` lists every new fact, including reaction appends). Only when a
+  cratis before 3.28.2 bundle (4.60.1) is the V1 tool does it report a false PLAY0285 on a cascade (cli#242):
   then keep the cascade out of the command spec, specify it in the Automation slice
   (`when append <Trigger>`) and record the expectation. See `cratis-screenplay-scenario-coverage`.
 - `given capture` never persists between specs: state the baseline in each spec that needs it.

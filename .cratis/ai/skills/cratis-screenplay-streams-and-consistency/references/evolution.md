@@ -17,7 +17,7 @@ compatibility scenarios below first; the identity owner then applies the change 
 
 | Change | Old facts still mean the same? | Screenplay action | Edit class |
 |---|---|---|---|
-| add a property with a business-defined value for old facts | yes | new `generation N+1`, every generation declared in full in the same slice; record the default for old facts in the slice `description` | contract evolution |
+| add a property with a business-defined value for old facts | yes | new `generation N+1`, every generation declared in full in the same slice; record the default and its reason for old facts in slice `documentation` | contract evolution |
 | add a property with no sensible old value | the old fact lacks information | usually a **new event** for the new situation, or a separate fact recording the extra information | review with the expert |
 | remove a property | yes, if no reader needs it | new generation without it; every reference fails with PLAY0273 until removed | contract evolution, check readers |
 | change meaning (same name, different business fact) | **no** | **new event** with its own name; old event stays for history | identity: add, not rename |
@@ -28,8 +28,25 @@ compatibility scenarios below first; the identity owner then applies the change 
 A test for "generation or new event": a new version must be convertible from the old one
 without inventing facts. If it is not, it is a different event.
 
+## Enum identities are stored contracts
+
+Unnumbered enums use zero-based declaration positions: a reorder or insertion can
+reinterpret stored numbers. Before reordering or removing members, pin each to its
+**existing stored number**, not its new position. `propose-number-enum-members`
+pins an unnumbered enum to current positions; use it before changing order, only
+when those positions match storage. Never renumber or reuse a published member's
+number. Removing a member still needs replay and mixed-reader compatibility decisions.
+
+Numbered members may have sparse or negative unique int32 values, all or none per
+enum. Source authoring shipped in 4.137.0; non-positional numbers bind as ESM v12
+in 4.139.0. Positional pins retain older executable bytes/version. CLI 3.57.0 bundles Screenplay 4.147.1 /
+Stage 4.89.1, admitting v12 and rendering explicit member numbers; keep the pins.
+Short-lived input/view-only enums may remain positional. Use opt-in
+`--check enum-pinning` (PLAY0671) to find unnumbered enums used by event properties.
+Syntax/example and source evidence: command-surface [enum numbers](../../cratis-screenplay-command-surface/references/enum-numbers.md).
+
 ## Compatibility scenarios (write before editing)
-For each changed event, answer in the slice `description` or `STATE.md`:
+For each changed event, answer in the slice `documentation` or `STATE.md`:
 1. **Replay**: does every projection still build from generation 1 facts? Which value do old
    facts give the new property (default, absent, derived)?
 2. **Readers**: which projections, reactions, constraints, specifications and other modules
@@ -61,6 +78,9 @@ Procedure and ownership: the identity procedure in `cratis-screenplay-modeling-l
 owning session, or a brief that asks for the rename, applies it; a subagent without MCP returns
 the catalog-changing request to the owner; never leave a requested change silently unapplied).
 - Several generations select ESM v4; that binds executably on both tools (compiled
-  with `evolution-example.md`).
+  with `evolution-example.md`). Stage (still, at 4.73.1) admits v4 but refuses any evolved event and its
+  dependent scope with `STAGE-ESM-026` (it cannot render event-type migrations yet, Stage#204,
+  which depends on Screenplay#71), and its runtime still refuses evolved events: the evolved
+  events are gap-fill, with migrations hand-written per `cratis-chronicle-event-type-migration`.
 
 Complete compiled example: `evolution-example.md` (generation, rename pin, meaning change).

@@ -1,6 +1,25 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-modeling-lifecycle/references/phases.md -->
 # Phases: Input, Carry-forward, Gate
 
+## Contents
+
+- Phase transition protocol
+- P0 Intake
+- P1 Discover (`cratis-screenplay-discovery`; modeling stance)
+- P2 Model (`cratis-screenplay-slice-design`, `-streams-and-consistency`, `-automations-and-translations`)
+- P3 Specify (`cratis-screenplay-scenario-coverage`; modeling stance)
+- P4 Self-check (`cratis-screenplay-model-review`, self-check; critic stance)
+- P5 Independent review (`cratis-screenplay-model-review`)
+- P6 Accept (the user)
+- P7 Execute (executable mode; modeling stance)
+- P8 Render or fall back (`cratis-screenplay-render-and-gap-fill`)
+- P9 Verify
+- Entry points for changes to an existing model
+- Resume mid-workflow
+- Final output of a modeling engagement
+- Quality checklist (closing)
+- Legacy entry (replaces P1-P2)
+
 Every phase uses the same template, adapted from the per-step "Input / Output to carry forward /
 Gate" structure of the TrogonStack orchestrating skill (see `provenance.md`). Owners are roles:
 the **main session** orchestrates and owns the MCP connection while it is the identity owner;
@@ -29,10 +48,10 @@ next skill loads (never skipped, also after a small change):
 ```
 The Interview Trail row's status becomes `done` and its key output one line. Also record, at any
 phase, a decision important enough that a later reader could misread the model (see
-`reasoning-notes.md` for when it belongs in a `description`).
+`reasoning-notes.md` for when it belongs in fenced Markdown `documentation`).
 
 ## P0 Intake
-- **Input**: the request, the repository, `.cratis/screenplay/` or the configured root.
+- **Input**: the request, the repository, the project's model folder or the configured root.
 - **Carry-forward**: mode; model root; tool check (versions per `cratis-screenplay-toolchain`);
   the decision-rule outcome (model or code-first); STATE.md.
 - **Gate**: mode stated; STATE.md exists; the five intake points (domain, source, goal, constraints,
@@ -59,18 +78,18 @@ phase, a decision important enough that a later reader could misread the model (
 
 ## P3 Specify (`cratis-screenplay-scenario-coverage`; modeling stance)
 - **Input**: the P2 model.
-- **Carry-forward**: coverage matrix, specifications, then reasoning descriptions for features with
+- **Carry-forward**: coverage matrix, specifications, then reasoning documentation, written last in P3, for features with
   real decisions (`reasoning-notes.md`).
 - **Gate**: matrix written before drafting; per command each applicable scenario type is a spec or
   "n/a" with a domain reason (one success plus one failure is not coverage); each gated command and
   query, including those under an inherited module or feature `authorize`, has its own `then denied`
-  spec with a caller fixture carrying the persona's roles or claims; each `produces when` has a spec
+  spec with a synthesized persona caller or an explicit effective-gate fixture; each `produces when` has a spec
   per branch; each value-unique constraint has a competing-claim spec; per read model a view spec, an
   update spec when several sources feed it, a removal or absence spec when it removes. A command-only
   pass fails the gate.
 
 ## P4 Self-check (`cratis-screenplay-model-review`, self-check; critic stance)
-- **Input**: the P3 model including reasoning descriptions.
+- **Input**: the P3 model including reasoning documentation.
 - **Carry-forward**: five verdict lines from fresh runs; the completeness walk; findings by tier.
 - **Gate**: completeness walk done (field origins, event consumers or terminal reasons); every gap
   fixed, accepted by the user, or an open question with its assumption. The critic reports; fixes go
@@ -109,7 +128,7 @@ phase, a decision important enough that a later reader could misread the model (
 - **Input**: the accepted identity.
 - **Carry-forward**: the admission result; render output and named gaps in `Customizations/`;
   non-renderable scope handed to a code agent with the model as contract, plus a fallback record
-  naming the blocking codes. Automations and translations are not rendered at the pinned Stage version, so the whole behavior is gap-fill. Three cases stay distinct: admission failure (nothing rendered); an
+  naming the blocking codes. Stage 4.89.1 renders supported event-triggered Automation; Translate/captures and refused reactions remain gap-fill (mixed effects keep one modeled reaction; `STAGE-ESM-037` is a redelivery-safety refusal, not a reason to split it). Three cases stay distinct: admission failure (nothing rendered); an
   existing generated base plus separately authorized gap-fill; fully hand-written delivery.
 - **Gate**: V5 sub-results, or a fallback entry per non-renderable scope. A customization never
   makes a rejected model renderable; no whole-application V5 from a subset.

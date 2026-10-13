@@ -3,8 +3,9 @@
 
 A complete model: a webhook record from an outside proctoring service is captured, kept as an
 external fact in the provider's vocabulary, then translated by reactions into our facts. It
-binds on Screenplay 4.64.0 (`executableReady: true`); the cratis 3.27.1 bundled compiler
-(Screenplay 4.60.1) compiles it (V1) but rejects the Translate slice at binding (PLAY0268).
+binds on Screenplay 4.66.0 (`executableReady: true`), standalone and through `cratis screenplay mcp`
+3.28.2; the cratis 3.27.1 bundle (Screenplay 4.60.1) compiled it (V1) but rejected the Translate
+slice at binding (PLAY0268). `cratis render` refuses it (3.28.2: whole, `STAGE-ESM-016`; Stage 4.73.1: `STAGE-ESM-024`).
 
 Read the slice `description`: it is the per-field disposition (map, translate, ignore) and it
 states what this example does not do. Examples never show the whole integration contract; use
@@ -38,11 +39,8 @@ module Exams
       command BookExam
         attemptId AttemptId identifier
         memberId  MemberId
-        produces ExamBooked
-          for attemptId
-          memberId = memberId
-      event ExamBooked
-        memberId MemberId
+        produces event ExamBooked
+          memberId MemberId = memberId
       specification BookingAnExam
         given caller
           authenticated

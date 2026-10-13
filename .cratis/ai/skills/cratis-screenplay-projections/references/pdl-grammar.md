@@ -1,9 +1,19 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-projections/references/pdl-grammar.md -->
 # PDL — syntax grammar, meaning and diagnostics
 
+## Contents
+
+- Grammar
+- Parser regexes
+- Diagnostics
+- Syntax that parses but means something else
+- Worked examples
+
 Checked against `Documentation/screenplay/projections/{grammar,semantic-model,keys,variants}.md`
 and `Source/DotNET/Screenplay/Parsing/ProjectionParser.cs` at Screenplay tag
-`v4.31.0` (commit `355dffb`).
+`v4.31.0` (commit `355dffb`); the header `description` and the dynamic dictionary-key target
+(`Target = ["@"] Path [DynamicKey]`, `DynamicKey = "." "$eventContext" "." EventContextPath`) were added in
+later releases and re-read at v4.139.0.
 
 The grammar says what **parses**. It does not say what an event does at runtime:
 Chronicle's lowering decides that (Screenplay decision 0001), and the
@@ -136,7 +146,7 @@ LiteralKeyword  = "literal", " ", Literal ;   (* parsed at the Expr level *)
 | `PLAY0190` | A reducer rule body opens with an unknown word |
 | `PLAY0191` | A read model is built by more than one projection or reducer |
 | `PLAY0192` | A read model is declared more than once |
-| `PLAY0295`–`PLAY0299` | An `$eventContext` path the event-context catalog does not have |
+| `PLAY0295`–`PLAY0299` | An `$eventContext` path the event-context catalog does not have; `PLAY0299` also warns when a dynamic dictionary key uses a `$` source other than `$eventContext` |
 | `PLAY0380` | Chronicle drops part of a construct: `all` below the top level, or `automap` on a joined event |
 | `PLAY0381` | A projection-level `key` routes no event |
 | `PLAY0382`–`PLAY0385` | Variant errors: no `enters on`, shared mapping missing on a variant, duplicate variant name, entering event claimed twice |
@@ -174,7 +184,7 @@ that contains them; a target must run their specifications.
 
 ### Composite key with event context
 
-```screenplay
+```screenplay excerpt
 projection LineItems => LineItemReadModel
   from LineItemAdded
     key LineItemKey
@@ -187,7 +197,7 @@ projection LineItems => LineItemReadModel
 
 ### Global counter with a literal key
 
-```screenplay
+```screenplay excerpt
 projection SiteStats => SiteStatsReadModel
   from UserLoggedIn key literal "site-stats"
     count totalLogins
@@ -198,7 +208,7 @@ Every `UserLoggedIn` updates the same instance, whatever its event source.
 
 ### System-wide audit with `all` alongside `from`
 
-```screenplay
+```screenplay excerpt
 projection ActivityFeed => ActivityFeedModel
   all
     count totalSystemEvents
@@ -214,7 +224,7 @@ and its own count; `all` takes no key of its own.
 
 ### Children with a join and scoped removal
 
-```screenplay
+```screenplay excerpt
 projection Group => GroupReadModel
   from GroupCreated
     name = name
@@ -231,7 +241,7 @@ projection Group => GroupReadModel
 
 ### `every` that ignores child activity
 
-```screenplay
+```screenplay excerpt
 projection Group => GroupReadModel
   every
     lastActivity = $eventContext.occurred
@@ -248,7 +258,7 @@ Group-level events bump `lastActivity`; member events do not.
 
 ### Nested nullable object
 
-```screenplay
+```screenplay excerpt
 projection Slice => SliceReadModel
   from SliceCreated
     name = name
@@ -266,7 +276,7 @@ projection Slice => SliceReadModel
 
 ### Several projections in one slice
 
-```screenplay
+```screenplay excerpt
 slice StateView CustomerPortalReport
   readmodel PortalReportReadModel
     invitedAt DateTime

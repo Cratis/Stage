@@ -1,6 +1,19 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-event-modeling/references/nine-steps.md -->
 # The nine-step workflow design process
 
+## Contents
+
+- Step 1 — Identify the user goal
+- Step 2 — Brainstorm events
+- Step 3 — Order events chronologically
+- Step 4 — Create wireframes
+- Step 5 — Identify commands
+- Step 6 — Design read models
+- Step 7 — Find automations
+- Step 8 — Map external integrations
+- Step 9 — Decompose into vertical slices
+- Facilitation questions quick reference
+
 Follow all nine steps for each workflow. Do not skip steps, do not combine them,
 and do not start workflow 2 while workflow 1 is incomplete — **discovery is
 design**. Each step has a defined Screenplay output; produce it.
@@ -20,8 +33,8 @@ module Invoicing
     description "Registering and managing the lifecycle of invoices"
 ```
 
-`description` is the optional **first body line** of a module, feature, slice,
-persona or command; at most one. Use a fenced block tagged ` ```text ` when one line
+`description` is optional on a module, feature, slice, persona or command;
+at most one, anywhere in its body. Use a fenced block tagged ` ```text ` when one line
 is not enough (a bare fence warns with `PLAY0397`).
 
 ## Step 2 — Brainstorm events
@@ -47,9 +60,10 @@ Phase skill: `cratis-screenplay-discovery`.
 Arrange into the timeline — the plot. *"What happens first? And then what
 happens?"* Identify the happy path **and** the alternative and error paths.
 
-**Output:** the order the slices will be written in. A folder round-trip sorts
-modules, features and slices by name, so the timeline is documentation, not
-structure.
+**Output:** the authored declaration/import order for the board, with causes
+and branches documented. Screenplay 4.125.0 MCP layouts preserve this presentation
+order with imports; an import-less `PlayFileWriter.Expand` layout uses path order.
+Timeline position does not impose execution order or change identities.
 
 ## Step 4 — Create wireframes
 
@@ -98,9 +112,10 @@ property (at most one; leave it out only when the runtime should allocate a new
 identity), `authorize`, and `produces`. Excerpt: the complete document is
 [invoicing-example.md](invoicing-example.md). Give the event a description of the
 fact, and fenced Markdown `documentation` when its meaning needs elaboration.
-Alternatively, declare it in the command with `produces event` and typed mappings.
+Prefer `produces event` with typed mappings for an event owned by one command;
+shared events stay standalone with explicit command destinations.
 
-```screenplay excerpt
+```screenplay excerpt parent=references/invoicing-example.md#1
 // Parent: references/invoicing-example.md (complete document), slice RegisterInvoice
 slice StateChange RegisterInvoice
   command RegisterInvoice
@@ -109,10 +124,9 @@ slice StateChange RegisterInvoice
     authorize CanManageInvoice
     validate
       invoiceNumber not empty  message "Invoice number is required"
-    produces InvoiceRegistered
-      for invoiceId
-      invoiceNumber = invoiceNumber
-      registeredAt  = $context.occurred
+    produces event InvoiceRegistered
+      invoiceNumber InvoiceNumber = invoiceNumber
+      registeredAt DateTime = $context.occurred
 ```
 
 The "under what circumstances would this NOT happen" answers become `validate`
@@ -151,7 +165,7 @@ A `from` without a key never inherits another `from`'s key, and a projection-lev
 `key` routes nothing (`PLAY0381`). Excerpt: the complete document is
 [invoicing-example.md](invoicing-example.md); both events target the invoice's event source.
 
-```screenplay excerpt
+```screenplay excerpt parent=references/invoicing-example.md#1
 // Parent: references/invoicing-example.md (complete document), slice InvoiceList
 slice StateView InvoiceList
   readmodel InvoiceListReadModel
@@ -185,9 +199,11 @@ system state?"* If no, it is co-production — one `StateChange` slice with seve
 `produces` blocks, not an `Automation` slice.
 
 **Output:** the `reaction`, in an `Automation` slice. It binds on the standalone
-`screenplay` 4.64.0 (ESM v6); the `cratis` 3.27.1 bundle rejects the slice at binding and
-Stage 4.24.0 renders none, so the automation is gap-fill there (versions:
-`cratis-screenplay-toolchain`). When the automation decides from a view, declare it under
+`screenplay` and the `cratis` bundle (ESM v6; the 3.27.1 bundle rejected the slice at binding) and
+Stage 4.89.1 renders supported event-triggered Automation; refused scope stays gap-fill (versions:
+`cratis-screenplay-toolchain`). A reaction that `produces` and `invokes` stays one reaction: Stage
+refuses it (`STAGE-ESM-037`) but Arc 22.72.0 and later run it as one reactor (events first, then
+commands; no cross-effect transaction; the scaffold includes the handler, but retries can duplicate events), so gap-fill it whole, never split it. When the automation decides from a view, declare it under
 the trigger with `reads` (see `cratis-screenplay-captures-and-reactions`).
 
 The example below is a complete document: a Monday-morning clock occurrence invokes a command
@@ -198,15 +214,13 @@ event source, so the invoked command binds its own identifier (`weekly`).
 
 **What the model does and does not do.** The view stores the deadline (`dueDate`), never an
 "overdue" flag: overdue is a comparison with the clock, not a fact to materialize. The
-reaction's `reads UnpaidInvoice` is report-only metadata at 4.64.0 (information `PLAY0270`);
+reaction's `reads UnpaidInvoice` is report-only metadata (information `PLAY0270`, checked at 4.139.0);
 it does not make the model consult the view. Binding therefore admits only a scheduled
 invocation that records a timestamp. Choosing which invoices are overdue (due date before the
 clock instant) is a target-side decision: record it as gap-fill with the model as the
-contract (`cratis-screenplay-render-and-gap-fill`), and say so in the slice description as
-the example does. Do not claim the specification proves the overdue decision.
+contract (`cratis-screenplay-render-and-gap-fill`), and say so in the slice `documentation`. Do not claim the specification proves the overdue decision.
 
 ```screenplay
-// Needs the standalone screenplay compiler (ESM v6)
 domain Acme.Invoicing
 
 concept InvoiceId : Uuid
@@ -238,11 +252,8 @@ module Invoicing
       description "Records that the weekly collections digest was issued"
       command IssueCollectionsDigest
         period DigestPeriod identifier
-        produces CollectionsDigestIssued
-          for period
-          issuedAt = $context.occurred
-      event CollectionsDigestIssued
-        issuedAt DateTime
+        produces event CollectionsDigestIssued
+          issuedAt DateTime = $context.occurred
       specification IssuingTheDigest
         given clock "2026-10-05T07:30:00Z"
         when IssueCollectionsDigest
@@ -266,7 +277,7 @@ module Invoicing
           issuedAt = "2026-10-05T07:30:00Z"
 ```
 
-Iterating the overdue items needs code today (a clock trigger reads the whole view and takes
+At the example's verified Screenplay version (4.139.0), iterating the overdue items needs code (a clock trigger reads the whole view and takes
 no `by`); see `cratis-screenplay-automations-and-translations`. A reaction that `produces`
 directly while it `reads` fails binding (`PLAY0268`): decide in a command instead.
 

@@ -97,7 +97,7 @@ public class with_all_declarative_rules(context fixture) : IClassFixture<context
         }
 
         AddSpecification("AcceptingBoundaryValues", null, null, null);
-        AddSpecification("AcceptingWhitespaceAsNonEmpty", "present", "\" \"", null);
+        AddSpecification("RejectingWhitespaceAsEmpty", "present", "\" \"", "present is required");
         foreach (var rule in Rules)
         {
             AddSpecification($"Rejecting{char.ToUpperInvariant(rule.Name[0])}{rule.Name[1..]}", rule.Name, rule.Invalid, rule.Message);

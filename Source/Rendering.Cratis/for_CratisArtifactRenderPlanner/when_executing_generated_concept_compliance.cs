@@ -25,6 +25,7 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
         using Invoices.Invoices.Lifecycle.Lookup;
         using Invoices.Invoices.Lifecycle.Record;
         using Invoices.Invoices.Lifecycle.RecordCredentials;
+        using Invoices.Invoices.Lifecycle.RecordSecrets;
         using Xunit;
 
         namespace Invoices.ComplianceProbe;
@@ -54,6 +55,31 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
                 Assert.Equal("well", projection.Instance!.Health.Value);
                 Assert.Equal("scalar-secret-value-345", projection.Instance.ApiKey.Value);
                 Assert.Equal("private", projection.Instance.Note.Value);
+            }
+
+            [Fact]
+            public async Task should_append_all_non_text_secrets_without_leaking_causation()
+            {
+                using var scenario = new CommandScenario<RecordSecrets>();
+                var id = new InvoiceId(Guid.NewGuid());
+                var date = new DateOnly(2026, 10, 21);
+                var time = new DateTimeOffset(2026, 10, 21, 12, 30, 0, TimeSpan.Zero);
+                var uuid = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+                var result = await scenario.Execute(new RecordSecrets(id, new SecretNumber(37), new SecretFlag(true), new SecretAmount(37.25m), new SecretDate(date), new SecretTime(time), new SecretUuid(uuid)));
+                Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
+                var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
+                var payload = Assert.IsType<SecretsRecorded>(appended.Content);
+                Assert.Equal(37, payload.Number.Value);
+                Assert.True(payload.Flag.Value);
+                Assert.Equal(37.25m, payload.Amount.Value);
+                Assert.Equal(date, payload.Date.Value);
+                Assert.Equal(time, payload.Time.Value);
+                Assert.Equal(uuid, payload.Uuid.Value);
+                Assert.NotEmpty(appended.Context.Causation);
+                foreach (var property in new[] { "number", "flag", "amount", "date", "time", "uuid" })
+                {
+                    Assert.All(appended.Context.Causation, cause => Assert.False(cause.Properties.ContainsKey(property)));
+                }
             }
 
             [Fact]
@@ -97,10 +123,37 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
         #endif
         """;
 
+    const string NonTextSecrets = """
+            slice StateChange RecordSecrets
+              command RecordSecrets
+                id InvoiceId identifier
+                number SecretNumber
+                flag SecretFlag
+                amount SecretAmount
+                date SecretDate
+                time SecretTime
+                uuid SecretUuid
+                produces SecretsRecorded
+                  for id
+                  number = number
+                  flag = flag
+                  amount = amount
+                  date = date
+                  time = time
+                  uuid = uuid
+              event SecretsRecorded
+                number SecretNumber
+                flag SecretFlag
+                amount SecretAmount
+                date SecretDate
+                time SecretTime
+                uuid SecretUuid
+        """;
+
     string _build = null!;
     string _tests = null!;
 
-    protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(invoice_model.Compile(a_concept_compliance_model.ContainerTypes + "\n" + a_concept_compliance_model.Source + "\n" + a_concept_compliance_model.ContainerSlice + "\n" + a_concept_compliance_model.Lookup));
+    protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(invoice_model.Compile("concept SecretNumber : Int secret\nconcept SecretFlag : Bool secret\nconcept SecretAmount : Decimal secret\nconcept SecretDate : Date secret\nconcept SecretTime : DateTime secret\nconcept SecretUuid : Uuid secret\n" + a_concept_compliance_model.ContainerTypes + "\n" + a_concept_compliance_model.Source + "\n" + a_concept_compliance_model.ContainerSlice + "\n" + NonTextSecrets + "\n" + a_concept_compliance_model.Lookup));
 
     async Task Because()
     {

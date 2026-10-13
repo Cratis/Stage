@@ -15,20 +15,25 @@ internal static class SemanticGenerationRendering
 {
     const string Generator = "global::Cratis.Concepts.GenerateValue";
 
-    internal static string Factory(SemanticConcept concept)
+    internal static bool IsTimeOrdered(SemanticGeneration? generation) =>
+        string.Equals(generation?.Kind, "uuidv7", StringComparison.Ordinal) ||
+        string.Equals(generation?.Kind, "ulid", StringComparison.Ordinal) ||
+        string.Equals(generation?.Kind, "typeid", StringComparison.Ordinal);
+
+    internal static string Factory(SemanticConcept concept, string? context)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
-        var value = Strategy(generation);
+        var value = Strategy(generation, context);
 
         return concept.Primitive == SemanticPrimitiveType.Uuid ? value : Text(generation, value);
     }
 
-    static string Strategy(SemanticGeneration generation) => generation.Kind switch
+    static string Strategy(SemanticGeneration generation, string? context) => generation.Kind switch
     {
         "uuid" => $"{Generator}.Uuid()",
-        "uuidv7" => $"{Generator}.UuidV7()",
-        "ulid" => $"{Generator}.Ulid()",
-        "typeid" => $"{Generator}.TypeId({Literal(generation.Prefix ?? string.Empty)})",
+        "uuidv7" => $"{Generator}.UuidV7({context})",
+        "ulid" => $"{Generator}.Ulid({context})",
+        "typeid" => $"{Generator}.TypeId({Literal(generation.Prefix ?? string.Empty)}, {context})",
         "nanoid" => $"{Generator}.NanoId({Number(generation.Size ?? 21)}, {(generation.Alphabet is { } alphabet ? Literal(alphabet) : "null")})",
         "bytes" => $"{Generator}.Bytes({Number(generation.Count!.Value)}, global::Cratis.Concepts.ValueEncoding.{Encoding(generation.Encoding)})",
         _ => throw new InvalidArtifactRenderContract($"Generation strategy '{generation.Kind}' is not admitted.")

@@ -16,7 +16,11 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="context">The indexed semantic application.</param>
 internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecification specification, SemanticCommand command, SemanticTypeSystem types, SemanticApplicationContext context)
 {
-    internal bool RequiresEstablish => !specification.GivenEvents.IsEmpty || specification.GivenCaller is not null || GeneratedProperties.Any();
+    static readonly DateTimeOffset _receiptTime = new(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero);
+
+    internal bool RequiresEstablish => specification.GivenClock is not null || !specification.GivenEvents.IsEmpty || specification.GivenCaller is not null || GeneratedProperties.Any();
+
+    DateTimeOffset ReceiptTime => SemanticSpecificationClock.TryGet(specification, out var instant) ? instant : _receiptTime;
 
     IEnumerable<SemanticProperty> GeneratedProperties => command.Properties.Where(property => property.IsGenerated);
     IEnumerable<SemanticProperty> UnpinnedProperties => GeneratedProperties.Where(property => !IsPinned(property.Id));
@@ -31,6 +35,18 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
     {
         renderEvents();
         RenderResponse(builder);
+    }
+
+    internal void RenderClock(CSharpCodeBuilder builder)
+    {
+        if (SemanticSpecificationClock.TryGet(specification, out var instant))
+        {
+            builder.Line($"_scenario.Clock(new global::System.DateTimeOffset({instant.Ticks}L, global::System.TimeSpan.Zero));");
+        }
+        else if (UnpinnedProperties.Any(IsTimeOrdered))
+        {
+            builder.Line("_scenario.Clock(new global::System.DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, global::System.TimeSpan.Zero));");
+        }
     }
 
     internal void RenderFixtures(CSharpCodeBuilder builder)
@@ -91,8 +107,16 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
                 ? $"global::System.Text.RegularExpressions.Regex.IsMatch({Captured(property)}.Value.ToString()!, {CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(context.Concepts[property.Type.Target]))}, global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.TimeSpan.FromSeconds(1)).ShouldBeTrue()"
                 : $"{Captured(property)}.Value.ShouldNotEqual(global::System.Guid.Empty)";
             builder.Line($"[global::Xunit.FactAttribute] void should_generate_{Identifiers.ToSnakeCase(property.Name)}() => {expectation};");
+            if (IsTimeOrdered(property))
+            {
+                var prefix = SemanticGenerationTime.Prefix(context.Concepts[property.Type.Target], ReceiptTime);
+                builder.Line($"[global::Xunit.FactAttribute] void should_generate_{Identifiers.ToSnakeCase(property.Name)}_at_the_receipt_time() => {Captured(property)}.Value.ToString()!.StartsWith({CSharpCodeBuilder.StringLiteral(prefix)}, global::System.StringComparison.Ordinal).ShouldBeTrue();");
+            }
         }
     }
+
+    bool IsTimeOrdered(SemanticProperty property) => context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) &&
+        SemanticGenerationRendering.IsTimeOrdered(context.Concepts[property.Type.Target].Generation);
 
     // Arc 22.68 wraps a present optional scalar by its boxed runtime type, and a null response is a plain
     // CommandResult. ResponseValue is protected internal; read the public Response property without assuming

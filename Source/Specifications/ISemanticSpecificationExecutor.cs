@@ -82,9 +82,9 @@ public sealed record SemanticSpecificationRunOptions
     public string Tenant { get; init; } = "default";
 }
 
-sealed class FixedSemanticClock : TimeProvider
+sealed class FixedSemanticClock(DateTimeOffset? instant = null) : TimeProvider
 {
-    public override DateTimeOffset GetUtcNow() => DateTimeOffset.UnixEpoch;
+    public override DateTimeOffset GetUtcNow() => instant ?? DateTimeOffset.UnixEpoch;
 }
 
 sealed class DeterministicSemanticIdentityAllocator : ISemanticIdentityAllocator

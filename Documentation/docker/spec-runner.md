@@ -25,14 +25,15 @@ producing events before invoking commands. Given events establish history withou
 An invocation uses the declared system roles, or no caller; it never inherits `given caller`, and system
 claims remain unknown. Invoked generated commands require unavailable deterministic fixtures and return
 `Unsupported` for `IdentityAllocation`. More than 1000 new facts returns `Unsupported` for `Reaction`.
-Clock, application, startup and shutdown triggers, opaque bodies and clock/trigger/capture specifications
-remain refused with `STAGE-ESM-024`; unsupported `$context.causedBy.*` mappings retain `STAGE-ESM-013`.
+A command specification with a millisecond-aligned `given clock` (no earlier than the Unix epoch) runs with that
+instant as the command occurrence. Clock, application, startup and shutdown triggers, opaque bodies, `when clock`,
+clocks on reaction specifications (and, in this executor, any clock in a model with reactions) and trigger/capture specifications remain refused with `STAGE-ESM-024`; unsupported `$context.causedBy.*` mappings retain `STAGE-ESM-013`.
 A production mapping `$context.occurred` without `given clock` rejects the scenario instead of inventing time.
 The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.md#opt-in-to-semantic-execution),
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.147.1, admits exact ESM v1–v15
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.152.0, admits exact ESM v1–v16
 version pairs and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
 At v11 it executes retained exact Double-mode integer and fractional values without a second rounding
 step, including the safe whole-number bounds ±9007199254740991 and `0.10000000000000002`.
@@ -47,10 +48,8 @@ is not evidence of encryption or redaction. The semantic Stage Host encrypts per
 concept values at rest through Chronicle, like rendered applications, and releases them on read.
 Personal-data erasure uses Chronicle's key deletion keyed by the event source; explicit subject lineage
 remains [Stage #28](https://github.com/Cratis/Stage/issues/28). Existing Play stores retain earlier plaintext events.
-The semantic executor, Host and renderer refuse non-text `secret` concepts (`Int`, `Decimal`, `Bool`,
-`Date`, `DateTime`, and `Uuid`) with `STAGE-ESM-041` until Chronicle can safely store them
-([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)). `pii secret` uses PII only and
-is not subject to this refusal; keep secrets text-backed without removing their classification.
+The semantic executor, Host and renderer admit text and non-text `secret` concepts (`Int`, `Decimal`,
+`Bool`, `Date`, `DateTime`, and `Uuid`), preserving their primitive types. `pii secret` uses PII only.
 Generated applications carry protection attributes, and renderer admission refuses protected identity
 uses or enums with `STAGE-ESM-040` ([Concept compliance rendering](../reference/compliance-rendering.md)).
 Migrate to `--engine semantic` and the semantic report format described below.

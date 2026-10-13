@@ -25,7 +25,7 @@ internal static partial class SemanticSpecificationAdmission
 
     internal static bool CanProjectQueryOnly(SemanticSpecification specification, SemanticApplicationContext context)
     {
-        if (specification.When is not null || specification.WhenAppended is not null || specification.GivenCaller is not null ||
+        if (specification.When is not null || specification.WhenAppended is not null ||
             specification.GivenEvents.IsEmpty || !specification.GivenReadModels.IsEmpty || specification.ThenQueries.Length != 1 ||
             !specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenErrors.IsEmpty ||
             specification.ThenDenied || !specification.ThenAbsentReadModels.IsEmpty)
@@ -34,7 +34,12 @@ internal static partial class SemanticSpecificationAdmission
         }
 
         var expected = specification.ThenQueries[0];
-        return context.Queries.TryGetValue(expected.Query, out var query) && query.Authorization is null &&
+        return ProtectedCollectionRejectionReason(context, specification) is null &&
+            context.Queries.TryGetValue(expected.Query, out var query) &&
+            (query.Authorization is null ? specification.GivenCaller is null :
+                query.Cardinality == SemanticQueryCardinality.Many && specification.GivenCaller is { } caller &&
+                !caller.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) &&
+                HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification)) &&
             !context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel) && QueryMatches(context, expected) &&
             HasExpectedProjectionEvents(context, specification, expected);
     }

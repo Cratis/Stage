@@ -182,7 +182,7 @@ Screenplay root.
 
 ## Publication check
 
-Before writing a scoped plan, publishers must call:
+Before writing a plan at any scope, publishers must call:
 
 ```csharp
 public static CratisPublicationCheck CheckPublication(
@@ -195,23 +195,38 @@ This is a signature excerpt; `ArtifactRenderPlan` is in
 or `CratisPlanResult.Plan` after a successful `PlanFrom` call. The reader receives
 an application-root-relative path and returns existing text, or null only when the file
 is confirmed absent. A reader that cannot read a file must throw rather than return null,
-so the check never treats an unreadable aggregate policy file as absent.
+so the check never treats an unreadable destination file as absent.
 
 | Result | Publisher action |
 | --- | --- |
 | `CratisPublicationCheck.Compatible` | Continue with the publisher's normal safety checks. |
 | `CratisPublicationCheck.RequiresApplicationScope` | Refuse the scoped publication or render the entire application first. `Paths` lists incompatible paths in ordinal order; `Reason` explains the migration requirement. |
+| `CratisPublicationCheck.ChangesEventTypeIds` | Refuse publication at every scope and surface the `STAGE-EVENT-002` error diagnostics. `Changes` lists path, qualified type name, existing id and planned id in ordinal path/type order. Pin the existing id, add a new event, or write an event type migration before replanning. |
 
-The check reads only the legacy aggregate paths the plan would overwrite:
+Scoped plans check policy layouts first and return `RequiresApplicationScope` when needed,
+preserving the refusal understood by existing publishers. Otherwise event identities are
+checked at every scope, including application scope. The check reads planned `.cs` paths
+containing an `[EventType]` declaration and matches simple type identifiers within each path,
+using canonical namespace-qualified names only to break ties and report changes. An argument-free or empty-string id falls back to the class
+name. A nonliteral existing id or existing parse errors refuse publication because its
+identity cannot be read safely. An unpinned rename that replaces one class with another
+cannot be detected; use Screenplay's workspace/MCP rename, which pins by default.
+Event files at paths the plan does not overwrite are not checked.
+
+Scoped plans also read the legacy aggregate paths they would overwrite:
 `GeneratedPolicies/Policies.cs`, `GeneratedPolicies/PolicyBodies.cs`, and
 `TypedContexts/PolicyContext.cs`, at their planned placement. File presence alone
 is not a legacy signal, because the split layout uses the same paths. Identical
 planned content (after newline normalization) is compatible. Otherwise the check
 recognizes the split registry and shared C# declarations, rejecting aggregate
 `StagePolicy_*` classes, per-site bodies, `TypedContext_*` wrappers and unrecognized
-content. Application-scope plans are always compatible, without destination reads.
+content. Application-scope plans skip this policy-layout check, but still read event destinations.
+`STAGE-EVENT-002` is enforced only by publishers that refuse every non-`Compatible`
+result before writing any artifacts. Existing `cratis render` versions check only scoped
+plans and refuse only `RequiresApplicationScope`; they do not enforce `STAGE-EVENT-002`.
+The CLI integration is tracked in [Cratis/cli#354](https://github.com/Cratis/cli/issues/354).
 
-A scaffold-only plan never contains policy files, so there is nothing to check.
+A scaffold-only plan never contains event or policy files, so there is nothing to check.
 `PlanScaffold` has no underlying `ArtifactRenderPlan`. Publication checks do not
 alter planning or replace destination ownership, concurrency, recovery or write-failure
 checks.

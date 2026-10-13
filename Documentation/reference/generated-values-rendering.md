@@ -3,7 +3,7 @@ title: Generated values and command responses
 description: Generation strategies, freshness guards, deterministic fixtures and command responses in rendered applications.
 ---
 
-A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards. The generated backend pins Arc **22.83.0**, which brings Fundamentals **7.24.0**.
+A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards. The generated backend pins Arc **22.87.0**, which brings Fundamentals **7.24.0**.
 
 ## Model to C# mapping
 
@@ -57,7 +57,7 @@ public record ProjectRegistered(string Name);
 
 The generated property is absent from the command constructor and request inputs. Its modeled name becomes the case-sensitive generated-value name. Mappings read the Handle parameter. An event targeting that identifier uses an explicit `EventForEventSourceId`; `GetEventSourceId()` never references a removed request property.
 
-A generated concept that is not an identifier derives from `ConceptAs<T>` and also implements `IGeneratable<T>` with `New()`. The example above uses implicit UUID generation and stays below ESM v15; its handler remains unguarded.
+A generated concept that is not an identifier derives from `ConceptAs<T>`. It implements `IGeneratable<T>` with `New()` for non-time-ordered strategies, or `IGeneratableInContext<T>` with `New(GenerationContext context)` for time-ordered strategies. The example above uses implicit UUID generation and stays below ESM v15; its handler remains unguarded.
 
 ## ESM v15 strategies
 
@@ -66,15 +66,17 @@ Declare a strategy on the concept, for example `generate uuidv7` under a Uuid co
 | Strategy | Backing type | Factory and default shape |
 | --- | --- | --- |
 | `uuid` | Uuid or String | `GenerateValue.Uuid()`; version 4, RFC variant, lowercase hyphenated text |
-| `uuidv7` | Uuid or String | `GenerateValue.UuidV7()`; version 7, RFC variant |
-| `ulid` | String | `GenerateValue.Ulid()`; 26 uppercase Crockford symbols |
-| `typeid "user"` | String | `GenerateValue.TypeId("user")`; lowercase prefix, underscore and a UUID-v7 Crockford suffix; an empty prefix omits the underscore |
+| `uuidv7` | Uuid or String | `GenerateValue.UuidV7(context)`; version 7, RFC variant |
+| `ulid` | String | `GenerateValue.Ulid(context)`; 26 uppercase Crockford symbols |
+| `typeid "user"` | String | `GenerateValue.TypeId("user", context)`; lowercase prefix, underscore and a UUID-v7 Crockford suffix; an empty prefix omits the underscore |
 | `nanoid` | String | `GenerateValue.NanoId(size, alphabet)`; default size 21 and URL-safe alphabet; custom size 1–256 |
 | `bytes n base64url` | String | `GenerateValue.Bytes(n, ValueEncoding.Base64Url)`; URL-safe text without padding |
 | `bytes n hex` | String | `GenerateValue.Bytes(n, ValueEncoding.Hex)`; lowercase hexadecimal |
 | `bytes n base32` | String | `GenerateValue.Bytes(n, ValueEncoding.Base32)`; uppercase base32 without padding |
 
 String-backed strategies accept the modifiers admitted by Screenplay: `prefix` adds printable ASCII text before the generated portion, and `case upper` or `case lower` selects its casing without changing the prefix. Bytes accept counts 1–512; unused trailing encoding bits must be zero. Screenplay refuses unsupported strategies and identifiers below 64 random bits before rendering.
+
+Time-ordered concepts implement `IGeneratableInContext<T>` instead of `IGeneratable<T>`. Arc supplies a `GenerationContext` whose `Now` is the command's `ReceivedAt`. The value's time component and `$context.occurred` agree to the millisecond. Hand-written calls to these concepts must now pass a context to `New(context)`; the parameterless `New()` is no longer emitted. `uuid`, `nanoid` and `bytes` retain `New()`.
 
 ### Fresh event sources
 
@@ -118,6 +120,8 @@ Pinned event and `then returns` assertions compare the authored values. A named 
 
 When a rendered specification omits a fixture, Stage calls `_scenario.AllowGeneration()`. Ordered event destinations and payload mappings that depend on that unpinned property compare against `_scenario.GeneratedValues.Last<T>(name)`, and response assertions compare against the same capture. Below v15, the UUID must be nonempty. At v15, every unpinned capture must also match its strategy's derived encoding shape. These are relational assertions, not assertions that random generation equals an authored UUID literal. Unordered or projected expectations require pins.
 
+For an unpinned time-ordered value, Stage emits `_scenario.Clock(new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero))` as the first setup statement, before policy registration and givens. A `should_generate_<name>_at_the_receipt_time` fact checks the capture's encoded millisecond prefix as well as its shape. The random portion remains unpinned. If a command specification states `given clock`, Stage uses that authored instant instead, normalized to UTC, for both the scenario clock and the receipt-time prefix assertion. Authored clocks also produce clock setup for fully pinned commands and commands without time-ordered generation. Without an authored clock, those specifications get no clock setup. Clocks must be millisecond-aligned and at or after the Unix epoch; `when clock`, query-only, append and reaction clocks remain refused.
+
 The in-memory specification executor requires deterministic fixtures, just like the Screenplay evaluator. Missing fixtures produce an `Unsupported(IdentityAllocation)` outcome; they do not silently allocate a value and pass. It compares scalar responses and each asserted named field after successful execution.
 
 Rendering is not compilation or execution. Build the generated project in Debug, then run its Debug specifications. A successful run proves that Arc resolves the parameters, the events land on the intended streams, and the response assertions execute.
@@ -125,6 +129,8 @@ Rendering is not compilation or execution. Build the generated project in Debug,
 ## Partial-perform runtime
 
 The live semantic runtime supplies a value from the concept's strategy as a semantic text value for every generated property, including validation-only requests. Models below v15 retain UUID generation. It rejects attempts to supply generated properties as request inputs. Validation-only requests do not append facts or reserve the generated UUID for a later execution.
+
+For time-ordered strategies, the Host uses the same occurrence instant for generation and event metadata. It takes that instant from `CommandContext.ReceivedAt`, retaining a UTC wall-clock fallback only for hand-built contexts without a receipt. Reaction-invoked Host commands use the triggering command's occurrence; rendered reactions dispatch through Arc and use their own pipeline receipt.
 
 An accepted scalar response becomes the HTTP command result's `response` value. A named response becomes an object with camelCase field names. Rejected or unauthorized results carry no response. The Stage frontend passes the accepted response through Scene's `CommandOutcome.response`.
 
@@ -146,7 +152,7 @@ Generated-concept validation is refused because Arc treats an invalid generated 
 
 The last case is not shorthand for using the generated identifier. Screenplay keeps legacy allocation in a separate `AllocatedIdentities` channel. Use an inline `produces event` declaration as above, or an explicit production destination. Stage refuses the ambiguous combination instead of sending the event to a different stream than the evaluator.
 
-Time-ordered factories (`uuidv7`, `ulid`, `typeid`) use the wall clock. Arc calls `IGeneratable<T>.New()` rather than a receipt-time `IGeneratableInContext<T>` factory, so Stage does not claim command-receipt timestamps for these values. Pinned fixtures are unaffected. Sequences and clock fixtures remain unsupported.
+Time-ordered factories (`uuidv7`, `ulid`, `typeid`) follow Arc's `ReceivedAt`, with no wall-clock fallback in the rendered app. Missing receipt times fail generation. Pins bypass the factory and need not encode the receipt time. Values reveal the receipt time and are not monotonic within a millisecond. Screenplay `given clock` is supported on otherwise admitted command specifications from ESM v6. Fixed `$context.occurred` payload assertions use that instant; a wrong expected instant fails rather than changing the clock. The executor also uses the authored instant for stored occurrence metadata, while retaining deterministic generated fixtures. Authored clocks with reactions, `when clock`, `sequence` and tenant-aware `rule` generation remain unsupported.
 
 ## Pitfalls
 

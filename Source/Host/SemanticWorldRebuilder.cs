@@ -9,6 +9,7 @@ using Cratis.Chronicle.Contracts.Sequences;
 using Cratis.Chronicle.Events;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
 
@@ -56,7 +57,7 @@ internal static class SemanticWorldRebuilder
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has an unsupported generation or revision.");
         }
 
-        var contracts = plan.Events.Values.Where(candidate => candidate.Name == context.EventType.Id).ToArray();
+        var contracts = plan.Events.Values.Where(candidate => SemanticStoredEventNames.Of(candidate) == context.EventType.Id).ToArray();
         if (contracts.Length != 1)
         {
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has unknown or ambiguous type '{context.EventType.Id}'.");

@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
+using Cratis.Concepts;
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
@@ -12,6 +14,21 @@ namespace Cratis.Stage.Host.for_SemanticGeneratedValues;
 
 public class when_generating_strategy_values : Specification
 {
+    [Theory]
+    [InlineData("Uuid", "uuidv7")]
+    [InlineData("String", "ulid")]
+    [InlineData("String", "typeid \"user\"")]
+    public void should_encode_the_context_time_in_milliseconds(string primitive, string strategy)
+    {
+        var instant = new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero);
+        var plan = compiled_plan.From($"concept Identity : {primitive}\n  generate {strategy}\nmodule Work\n  feature Creation\n    slice StateChange Start\n      event Started");
+        var value = SemanticGeneratedValues.New(plan.Model.Application.Concepts.Single(), SemanticVersion.V15, new(instant, GenerationContext.DefaultTenant));
+        var milliseconds = strategy == "uuidv7"
+            ? long.Parse(value[..8] + value[9..13], NumberStyles.HexNumber, CultureInfo.InvariantCulture)
+            : (strategy.StartsWith("typeid", StringComparison.Ordinal) ? value[5..15] : value[..10]).Aggregate(0L, (time, symbol) => (time << 5) + "0123456789ABCDEFGHJKMNPQRSTVWXYZ".IndexOf(char.ToUpperInvariant(symbol)));
+        milliseconds.ShouldEqual(instant.ToUnixTimeMilliseconds());
+    }
+
     [Theory]
     [InlineData("Uuid", "uuid")]
     [InlineData("Uuid", "uuidv7")]
@@ -30,7 +47,7 @@ public class when_generating_strategy_values : Specification
     {
         var plan = compiled_plan.From($"concept Identity : {primitive}\n  generate {strategy}\nmodule Work\n  feature Creation\n    slice StateChange Start\n      event Started");
         var concept = plan.Model.Application.Concepts.Single();
-        Enumerable.Range(0, 256).Select(_ => SemanticGeneratedValues.New(concept, SemanticVersion.V15))
+        Enumerable.Range(0, 256).Select(_ => SemanticGeneratedValues.New(concept, SemanticVersion.V15, new(new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero), GenerationContext.DefaultTenant)))
             .All(value => SemanticGenerationShapes.Matches(concept, SemanticValue.Text(value))).ShouldBeTrue();
     }
 }

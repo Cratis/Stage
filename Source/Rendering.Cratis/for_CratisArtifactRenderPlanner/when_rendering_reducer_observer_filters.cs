@@ -5,10 +5,13 @@
 using System.Text;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.EventSources;
+using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -71,11 +74,28 @@ public class when_rendering_reducer_observer_filters
     [Fact]
     public async Task should_refuse_a_reserved_stored_stream_filter_without_artifacts()
     {
-        var loaded = await when_rendering_a_pure_reducer.Load(Source("OrdersSource.Entries").Replace("id \"stored-entries\"", "id \"All\"", StringComparison.Ordinal));
-        var plan = when_rendering_a_pure_reducer.Plan(loaded);
+        var loaded = await Load("OrdersSource.Entries");
+
+        // Screenplay rejects All in source, so exercise Stage's ESM admission directly.
+        var original = loaded.Model;
+        var sources = original.Application.EventSources.Select(source => source with
+        {
+            Streams = [.. source.Streams.Select(stream => stream with { StreamKind = stream.StreamKind == "stored-entries" ? "All" : stream.StreamKind })]
+        });
+        var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, original.Application with { EventSources = [.. sources] });
+        var plan = when_rendering_a_pure_reducer.Plan(loaded with { Model = model, Plan = SemanticExecutionPlan.Compile(model).Plan! });
         Assert.False(plan.Success);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-030");
         Assert.Empty(plan.Artifacts);
+
+        // The rebuilt model has a new revision, so its compiler-issued typed contexts no longer match and the
+        // planner refuses them first. Screenplay does not let callers re-stamp them, so check admission directly.
+        var request = new ArtifactRenderRequest(
+            model,
+            SemanticExecutionPlan.Compile(model).Plan,
+            CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
+            new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
+        Assert.Contains(SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()), diagnostic => diagnostic.Code == "STAGE-ESM-030");
     }
 
     [Fact]

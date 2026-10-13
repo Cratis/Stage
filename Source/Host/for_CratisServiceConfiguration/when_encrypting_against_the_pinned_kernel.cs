@@ -43,6 +43,16 @@ public class when_encrypting_against_the_pinned_kernel
         {
             new("pii", "String", true, "optional-personal"),
             new("secret", "String", true, "optional-secret"),
+            new("secret", "Int", false, 37),
+            new("secret", "Bool", false, true),
+            new("secret", "Decimal", false, 37.25m),
+            new("secret", "Date", false, "2026-10-21"),
+            new("secret", "DateTime", false, "2026-10-21T12:30:00.0000000Z"),
+            new("secret", "Uuid", false, "3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+            new("secret", "Int", true, 42),
+            new("secret", "Bool", true, false),
+            new("secret", "Int", true, null),
+            new("secret", "Bool", true, null),
             new("pii", "String", true, null),
             new("secret", "String", true, null)
         })
@@ -66,8 +76,6 @@ public class when_encrypting_against_the_pinned_kernel
         var name = kernelStore.Name;
         var plan = compiled_plan.From(a_compliance_store.Source);
         Assert.Empty(new SemanticRuntimeAdmission(plan).Blocking);
-        var nonTextSecret = compiled_plan.From(a_compliance_store.Source.Replace("AccessToken : String secret", "AccessToken : Int secret", StringComparison.Ordinal));
-        Assert.StartsWith("STAGE-ESM-041:", Assert.Single(new SemanticRuntimeAdmission(nonTextSecret).Blocking).Details);
         await SemanticChronicleRegistration.Register(client, name, plan);
         var appender = new SemanticFactAppender(client, new StageEventStoreName(name), plan);
         var runtime = SemanticRuntimeHosting.Create(plan, appender);
@@ -133,6 +141,15 @@ public class when_encrypting_against_the_pinned_kernel
         {
             Assert.Equal(expected.GetRawText(), released.RootElement.GetProperty("value").GetRawText());
         }
+        if (string.Equals(testCase.Primitive, "Decimal", StringComparison.Ordinal) || string.Equals(testCase.Primitive, "DateTime", StringComparison.Ordinal))
+        {
+            // The Host refuses to rebuild any Decimal or DateTime event property, protected or not, because Chronicle
+            // storage cannot round-trip them exactly. Encryption must not hide or change that refusal.
+            await Assert.ThrowsAsync<SemanticWorldRebuildRefused>(() => RebuiltValues(accessor, protectedStore, plan, appender));
+            Console.WriteLine($"PASS {testCase}: stored ciphertext; released {expected.GetRawText()}; rebuild refused as for unprotected values.");
+            return;
+        }
+
         AssertRebuiltValue(plan, await RebuiltValues(accessor, protectedStore, plan, appender), "value", expected);
         Console.WriteLine($"PASS {testCase}: stored {(testCase.Value is null ? "null" : "ciphertext")}; released and rebuilt {expected.GetRawText()}.");
     }

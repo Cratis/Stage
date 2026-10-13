@@ -48,7 +48,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         _ => JsonSerializer.Serialize(value)
     };
 
-    internal static bool Empty(SemanticValue value) => value is SemanticNullValue or SemanticTextValue { Value.Length: 0 } or SemanticArrayValue { Values.IsEmpty: true };
+    internal static bool Empty(SemanticValue value) => value is SemanticNullValue || (value is SemanticTextValue text && string.IsNullOrWhiteSpace(text.Value)) || value is SemanticArrayValue { Values.IsEmpty: true };
 
     internal static SemanticValue Evaluate(SemanticExpression expression, Dictionary<SemanticId, SemanticValue> inputs) => expression switch
     {
@@ -115,7 +115,9 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
             ? command.Properties.Single(property => property.Id == resolved.Target).Type
             : command.Destination?.Type ?? specification.When!.EventSource?.Type;
         var identity = plan.Model.SemanticVersion != SemanticVersion.V1 && identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
-        var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, Evaluate(mapping.Source, inputs))).ToImmutableArray();
+        var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }
+            ? SemanticValue.Text(Occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture))
+            : Evaluate(mapping.Source, inputs))).ToImmutableArray();
         return (new(produced.EventContract, values) { EventSource = identity, Route = _commandRoute }, destination);
     }
 

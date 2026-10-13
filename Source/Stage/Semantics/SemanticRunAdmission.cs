@@ -39,7 +39,6 @@ public static class SemanticRunAdmission
         var events = slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Id);
 
         return SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
-            .Concat(SemanticVersionFeatures.NonTextSecrets(application))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
             .Distinct().Select(Feature);
     }
@@ -72,6 +71,10 @@ public static class SemanticRunAdmission
         if (!SemanticVersionFeatures.Supports(plan.Model)) return Block(StageExecutionCapability.PlanIssue, plan.Model.Application.Id, UnsupportedVersion);
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
         if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
+        if (specification.GivenClock is not null && slices.Any(slice => !slice.Reactions.IsDefaultOrEmpty))
+        {
+            return Block(StageExecutionCapability.Time, specification.Id, $"{SemanticVersionFeatures.Automation}: Authored clocks with reactions are not admitted.");
+        }
 
         // A per-run result must not pass an application whose selected slice cannot be rendered.
         // Include declarations in the specification's slice even if the example never produces them.
@@ -190,7 +193,8 @@ public static class SemanticRunAdmission
             return Block(StageExecutionCapability.Command, command.Id, "A command validation rule is not admitted.");
         }
 
-        if (command.Produces.Any(produced => produced.Condition is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }))))
+        if (command.Produces.Any(produced => produced.Condition is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }) &&
+                !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } && SemanticSpecificationClock.TryGet(specification, out _)))))
         {
             return Block(StageExecutionCapability.Command, command.Id, "Expression conditions or non-command mappings are not admitted.");
         }
@@ -234,7 +238,6 @@ public static class SemanticRunAdmission
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
         var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
-            .Concat(SemanticVersionFeatures.NonTextSecrets(plan.Model.Application))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
             .Concat(RunSpecificationFeatures(specification))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))

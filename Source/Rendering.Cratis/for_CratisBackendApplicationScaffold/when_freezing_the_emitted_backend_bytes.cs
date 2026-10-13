@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    const string FrozenDigest = "db3b46acef940d2cb2930fe3998ce2cd270935de694db59534984e3d3d589df5";
+    const string FrozenDigest = "e4b83f5c1904247742428fd96a061c4928c5d31f68ac2f33f429f401eeeef6eb";
 
     string _digest = null!;
 

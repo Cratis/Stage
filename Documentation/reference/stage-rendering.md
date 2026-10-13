@@ -113,9 +113,11 @@ Without `observable`, a list query renders as `Task<IEnumerable<ReadModel>>` usi
 `GetInstances` and in-memory filtering. Optional snapshot lookups retain their existing bytes.
 Live-list companion specifications append fixtures to `EventStoreForTesting` and await
 an emission from the generated query, executing its actual filter expression. Protected
-collection-success specifications use Arc's `QueryScenario` with its default Chronicle read models,
-including observable lists and row expectations. Both allowed and denied protected queries run
-through Arc's authorization pipeline with the fixture caller.
+observable collection-success specifications use Arc's `QueryScenario` with its default Chronicle
+read models. Scoped projections remain refused with `STAGE-ESM-011`; routed replay requires a
+readable generated `Key`, `Subject`, or `Id` on every pinned row. Protected snapshot collection
+success remains refused because Arc 22.87's `GetInstances` does not read scenario-seeded rows.
+Both allowed and denied protected queries run through Arc's authorization pipeline with the fixture caller.
 
 ## Generated C# query filters
 

@@ -34,7 +34,8 @@ internal static partial class SemanticSpecificationAdmission
         }
 
         var expected = specification.ThenQueries[0];
-        return context.Queries.TryGetValue(expected.Query, out var query) &&
+        return ProtectedCollectionRejectionReason(context, specification) is null &&
+            context.Queries.TryGetValue(expected.Query, out var query) &&
             (query.Authorization is null ? specification.GivenCaller is null :
                 query.Cardinality == SemanticQueryCardinality.Many && specification.GivenCaller is { } caller &&
                 !caller.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) &&

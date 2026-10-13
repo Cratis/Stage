@@ -87,7 +87,7 @@ internal static partial class SemanticCratisAdmission
 
         if (command.Produces.Any(produced =>
             !context.Events.TryGetValue(produced.EventContract, out var @event) || produced.Condition is not null ||
-            (produced.When is not null && !SemanticConditionRendering.CanRender(produced.When, command.Properties, context, numericOrderingOnly: true)) ||
+            !HasRenderableProductionCondition(produced, command, context) ||
             @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() != @event.Tags.Length + produced.Tags.Length ||
             !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, command.Properties.Where(_ => _.IsIdentifier).Select(_ => _.Id)) ||
             @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
@@ -100,6 +100,9 @@ internal static partial class SemanticCratisAdmission
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }
     }
+
+    static bool HasRenderableProductionCondition(SemanticProducedEvent produced, SemanticCommand command, SemanticApplicationContext context) =>
+        produced.When is null || SemanticConditionRendering.CanRender(produced.When, command.Properties, context, numericOrderingOnly: true);
 
     static bool HasValidatedConcept(SemanticApplicationContext context, SemanticTypeReference type, HashSet<SemanticId> visited) =>
         type.Kind switch

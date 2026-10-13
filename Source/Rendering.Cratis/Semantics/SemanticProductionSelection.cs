@@ -36,20 +36,8 @@ internal static class SemanticProductionSelection
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticCondition), condition.GetType().Name)
     };
 
-    static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values)
-    {
-        var left = comparison.Left.Property.IsSet ? values[comparison.Left.Property] : comparison.Left.Value;
-        var right = comparison.Right.Property.IsSet ? values[comparison.Right.Property] : comparison.Right.Value;
-        if (comparison.Operator == SemanticComparisonOperator.Equal) return Equals(left, right);
-        if (comparison.Operator == SemanticComparisonOperator.NotEqual) return !Equals(left, right);
-        if (left is not SemanticNumberValue a || right is not SemanticNumberValue b) throw UnsupportedSemanticRendering.For(nameof(SemanticComparison), comparison.Operator);
-        return comparison.Operator switch
-        {
-            SemanticComparisonOperator.GreaterThan => a.Value > b.Value,
-            SemanticComparisonOperator.GreaterThanOrEqual => a.Value >= b.Value,
-            SemanticComparisonOperator.LessThan => a.Value < b.Value,
-            SemanticComparisonOperator.LessThanOrEqual => a.Value <= b.Value,
-            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison.Operator)
-        };
-    }
+    static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values) =>
+        SemanticProductionComparison.Compare(comparison, values,
+            (() => UnsupportedSemanticRendering.For(nameof(SemanticComparison), comparison.Operator),
+             () => UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison.Operator)));
 }

@@ -19,8 +19,9 @@ internal static class SemanticGeneratedFreshness
             .Select(destination => command.Properties.Single(property => property.Id == destination.Target))
             .Where(property => Primitive(property, context) is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text).DistinctBy(property => property.Id);
 
-    internal static string Events(SemanticCommand command, SemanticApplicationContext context, Func<SemanticProducedEvent, string> wrappedEvent, string? selectedEvents = null, Func<SemanticProperty, string>? inclusion = null)
+    internal static string Events(SemanticGeneratedFreshnessContext selection)
     {
+        var (command, context, wrappedEvent, selectedEvents, inclusion) = selection;
         var types = new SemanticTypeSystem(context);
         const string sourceType = "global::Cratis.Chronicle.Events.EventSourceId";
         var sources = Destinations(command, context).Select((property, index) =>

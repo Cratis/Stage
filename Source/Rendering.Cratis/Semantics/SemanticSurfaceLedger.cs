@@ -138,8 +138,7 @@ internal static class SemanticSurfaceLedger
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
         // admitted through the closed-compilation pure gate; opaque validation still cannot receive RuleContext.Occurred.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
-        Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags");
-        Add(entries, "SemanticProducedEvent", rendered, "When");
+        Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags When");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition");
         Add(entries, "SemanticEventContract", rendered, "Id Name Properties Tags");
         Add(entries, "SemanticEventContract", ignored("Carried revision selects admission: initial events render unchanged; evolved revisions fail STAGE-ESM-026 until event migrations can render."), "Revision");

@@ -63,13 +63,15 @@ internal static partial class SemanticSpecificationAdmission
         if (!context.Commands.TryGetValue(action.Command, out var command)) return false;
         var conditionProperties = command.Produces.Where(produced => produced.When is not null)
             .SelectMany(produced => SemanticProductionSelection.Properties(produced.When!)).ToHashSet();
-        if (command.Properties.Any(property => property.IsGenerated && conditionProperties.Contains(property.Id) &&
-            !action.GeneratedValues.Any(value => value.TargetProperty == property.Id))) return true;
-        if (!HasProjectedOrUnorderedExpectations(specification)) return false;
+        var unpinned = UnpinnedGeneratedProperties(command, action).ToArray();
+        if (unpinned.Any(property => conditionProperties.Contains(property.Id))) return true;
 
-        return command.Properties.Any(property =>
-            property.IsGenerated && !action.GeneratedValues.Any(value => value.TargetProperty == property.Id));
+        return HasProjectedOrUnorderedExpectations(specification) && unpinned.Length > 0;
     }
+
+    static IEnumerable<SemanticProperty> UnpinnedGeneratedProperties(SemanticCommand command, SemanticSpecificationCommand action) =>
+        command.Properties.Where(property => property.IsGenerated)
+            .Where(property => !action.GeneratedValues.Any(value => value.TargetProperty == property.Id));
 
     static bool HasProjectedOrUnorderedExpectations(SemanticSpecification specification) =>
         specification.ThenEventsInAnyOrder || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty;

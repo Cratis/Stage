@@ -105,7 +105,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     {
         if (SemanticGeneratedFreshness.Destinations(command, context).Any())
         {
-            return new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(command, context, wrappedEvent));
+            return new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(new(command, context, wrappedEvent)));
         }
 
         return command.Produces.Length == 1

@@ -41,7 +41,7 @@ internal static partial class SemanticSpecificationAdmission
                     taken.Where(produced => produced.EventContract == expected.EventContract).All(produced => HasType(produced, source.Type))));
         }
 
-        if (taken.Length == 1)
+        if (taken.Length == 1 && command.Produces.Length == 1)
         {
             var sources = SemanticDestinations.Explicit(specification).Distinct().ToArray();
             if (sources.Length == 0)

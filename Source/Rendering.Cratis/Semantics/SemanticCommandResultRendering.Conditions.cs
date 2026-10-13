@@ -15,6 +15,7 @@ internal sealed partial class SemanticCommandResultRendering
         var events = ConditionalEvents(wrappedEvent);
         var response = Response();
         var routing = new SemanticCommandRouteRendering(command, context);
+        routing.StreamId();
         var resultType = response is null ? events.Type : $"({response.Type}, {events.Type})";
         var routeResult = $"global::OneOf.OneOf<{resultType}, global::Cratis.Arc.Validation.ValidationResult>";
         builder.OpenBlock($"public {(routing.HasChecks ? routeResult : resultType)} Handle({Parameters()})");
@@ -32,7 +33,7 @@ internal sealed partial class SemanticCommandResultRendering
     {
         foreach (var (produced, index) in command.Produces.Select((produced, index) => (produced, index)))
         {
-            var condition = produced.When is null ? "true" : SemanticConditionRendering.Render(produced.When, command.Properties, string.Empty, context, PropertyValue);
+            var condition = produced.When is null ? "true" : SemanticConditionRendering.Render(produced.When, new(command.Properties, string.Empty, context, PropertyValue));
             builder.Line($"var stageProduces{index} = {condition};");
         }
         builder.Line("var stageEvents = new global::System.Collections.Generic.List<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>();");
@@ -44,7 +45,7 @@ internal sealed partial class SemanticCommandResultRendering
 
     ResultExpression ConditionalEvents(Func<SemanticProducedEvent, string> wrappedEvent) =>
         SemanticGeneratedFreshness.Destinations(command, context).Any()
-            ? new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(command, context, wrappedEvent, "stageEvents", SourceGuard))
+            ? new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(new(command, context, wrappedEvent, "stageEvents", SourceGuard)))
             : new(ConditionalEventsType, "stageEvents");
 
     string SourceGuard(SemanticProperty property)

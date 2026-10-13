@@ -42,5 +42,6 @@
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ProjectionReferencedEventNamesAreUnique.cs" Link="Semantics/Admission/ProjectionReferencedEventNamesAreUnique.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Semantics/Admission/SemanticVersionFeatures.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Semantics/Admission/SemanticGenerationShapes.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticProductionComparison.cs" Link="Semantics/Admission/SemanticProductionComparison.cs" />
     </ItemGroup>
 </Project>

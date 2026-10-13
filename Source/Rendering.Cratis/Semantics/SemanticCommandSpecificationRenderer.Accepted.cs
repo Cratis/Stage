@@ -76,7 +76,7 @@ internal static partial class SemanticCommandSpecificationRenderer
                 ? "[global::Xunit.FactAttribute] void should_append_no_new_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(0);"
                 : "[global::Xunit.FactAttribute] void should_append_no_new_events() => _scenario.AppendedEvents.Count.ShouldEqual(0);");
         }
-        if (count > 1)
+        if (count > 1 || (count == 1 && !scope.SeedInLog && scope.Command.Produces.Any(produced => produced.When is not null)))
         {
             builder.Line(scope.SeedInLog
                 ? $"[global::Xunit.FactAttribute] void should_append_exactly_{count}_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual({count});"

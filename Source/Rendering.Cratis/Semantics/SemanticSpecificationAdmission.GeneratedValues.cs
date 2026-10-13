@@ -15,7 +15,11 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in slice.Specifications)
         {
-            if (NeedsPinnedGeneratedValues(context, specification))
+            if (InvalidStrategyFixture(context, specification) is { } message)
+            {
+                diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, message, specification.Id));
+            }
+            else if (NeedsPinnedGeneratedValues(context, specification))
             {
                 diagnostics.Add(new(
                     SemanticVersionFeatures.CommandResults,
@@ -28,6 +32,25 @@ internal static partial class SemanticSpecificationAdmission
                 yield return specification;
             }
         }
+    }
+
+    static string? InvalidStrategyFixture(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (!context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) || specification.When is not { } action ||
+            !context.Commands.TryGetValue(action.Command, out var command))
+        {
+            return null;
+        }
+        foreach (var fixture in action.GeneratedValues)
+        {
+            var property = command.Properties.SingleOrDefault(property => property.Id == fixture.TargetProperty && property.IsGenerated);
+            if (property is not null && !SemanticGenerationShapes.Matches(context.Concepts[property.Type.Target], fixture.Value))
+            {
+                return $"Specification '{specification.Name}' cannot render: {SemanticGenerationShapes.FixtureMessage(property.Name)}";
+            }
+        }
+
+        return null;
     }
 
     static bool NeedsPinnedGeneratedValues(SemanticApplicationContext context, SemanticSpecification specification)

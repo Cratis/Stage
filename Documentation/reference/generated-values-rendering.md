@@ -1,9 +1,9 @@
 ---
 title: Generated values and command responses
-description: How Stage renders server-owned UUID concepts, deterministic generation fixtures and command responses.
+description: Generation strategies, freshness guards, deterministic fixtures and command responses in rendered applications.
 ---
 
-A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated UUID concepts as Arc Handle parameters and carries scalar or named responses back to the caller. The generated backend pins Arc **22.78.0**.
+A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards. The generated backend pins Arc **22.83.0**, which brings Fundamentals **7.24.0**.
 
 ## Model to C# mapping
 
@@ -57,7 +57,30 @@ public record ProjectRegistered(string Name);
 
 The generated property is absent from the command constructor and request inputs. Its modeled name becomes the case-sensitive generated-value name. Mappings read the Handle parameter. An event targeting that identifier uses an explicit `EventForEventSourceId`; `GetEventSourceId()` never references a removed request property.
 
-A generated UUID concept that is not an identifier derives from `ConceptAs<Guid>` and also implements `IGeneratable<T>` with `New()`. Existing UUID identifier factories use `GenerateValue.Uuid()` too.
+A generated concept that is not an identifier derives from `ConceptAs<T>` and also implements `IGeneratable<T>` with `New()`. The example above uses implicit UUID generation and stays below ESM v15; its handler remains unguarded.
+
+## ESM v15 strategies
+
+Declare a strategy on the concept, for example `generate uuidv7` under a Uuid concept or `generate bytes 16 hex case upper` under a String concept. The command property still says `generated`.
+
+| Strategy | Backing type | Factory and default shape |
+| --- | --- | --- |
+| `uuid` | Uuid or String | `GenerateValue.Uuid()`; version 4, RFC variant, lowercase hyphenated text |
+| `uuidv7` | Uuid or String | `GenerateValue.UuidV7()`; version 7, RFC variant |
+| `ulid` | String | `GenerateValue.Ulid()`; 26 uppercase Crockford symbols |
+| `typeid "user"` | String | `GenerateValue.TypeId("user")`; lowercase prefix, underscore and a UUID-v7 Crockford suffix; an empty prefix omits the underscore |
+| `nanoid` | String | `GenerateValue.NanoId(size, alphabet)`; default size 21 and URL-safe alphabet; custom size 1–256 |
+| `bytes n base64url` | String | `GenerateValue.Bytes(n, ValueEncoding.Base64Url)`; URL-safe text without padding |
+| `bytes n hex` | String | `GenerateValue.Bytes(n, ValueEncoding.Hex)`; lowercase hexadecimal |
+| `bytes n base32` | String | `GenerateValue.Bytes(n, ValueEncoding.Base32)`; uppercase base32 without padding |
+
+String-backed strategies accept the modifiers admitted by Screenplay: `prefix` adds printable ASCII text before the generated portion, and `case upper` or `case lower` selects its casing without changing the prefix. Bytes accept counts 1–512; unused trailing encoding bits must be zero. Screenplay refuses unsupported strategies and identifiers below 64 random bits before rendering.
+
+### Fresh event sources
+
+At v15, a command that produces facts on a generated destination returns `EventsWithConcurrencyScopes`, with one `ConcurrencyScope(EventSequenceNumber.BeforeFirst, EventSourceId: id)` per generated source. Chronicle checks the source is empty atomically when appending; several initial facts in the same invocation are allowed. A previously used source rejects the entire command with `ValidationResultReason.ConcurrencyViolation`. Generated rejection specifications assert that reason rather than Arc's message text.
+
+The Host and specification executor use the reference freshness message: "A generated event source already has facts; retry the command with a fresh generated value." Earlier facts without a destination never make the generated source stale. Below v15, handlers remain unguarded. These explicit scopes will be replaced when [Arc #3129](https://github.com/Cratis/Arc/issues/3129) supplies its generated-identifier freshness contract.
 
 ## Responses
 
@@ -83,7 +106,7 @@ _scenario.PinGeneratedValue("projectId", new ProjectId(Guid.Parse("11111111-1111
 
 Pinned event and `then returns` assertions compare the authored values. A named return expectation can assert a subset of the response fields.
 
-When a rendered specification omits a fixture, Stage calls `_scenario.AllowGeneration()`. Ordered event destinations and payload mappings that depend on that unpinned property compare against `_scenario.GeneratedValues.Last<T>(name)`, and response assertions compare against the same capture. The UUID must be nonempty. These are relational assertions, not assertions that random generation equals an authored UUID literal. Unordered or projected expectations require pins.
+When a rendered specification omits a fixture, Stage calls `_scenario.AllowGeneration()`. Ordered event destinations and payload mappings that depend on that unpinned property compare against `_scenario.GeneratedValues.Last<T>(name)`, and response assertions compare against the same capture. Below v15, the UUID must be nonempty. At v15, every unpinned capture must also match its strategy's derived encoding shape. These are relational assertions, not assertions that random generation equals an authored UUID literal. Unordered or projected expectations require pins.
 
 The in-memory specification executor requires deterministic fixtures, just like the Screenplay evaluator. Missing fixtures produce an `Unsupported(IdentityAllocation)` outcome; they do not silently allocate a value and pass. It compares scalar responses and each asserted named field after successful execution.
 
@@ -91,7 +114,7 @@ Rendering is not compilation or execution. Build the generated project in Debug,
 
 ## Partial-perform runtime
 
-The live semantic runtime supplies a fresh UUID as a semantic text value for every generated property, including validation-only requests. It rejects attempts to supply generated properties as request inputs. Validation-only requests do not append facts or reserve the generated UUID for a later execution.
+The live semantic runtime supplies a value from the concept's strategy as a semantic text value for every generated property, including validation-only requests. Models below v15 retain UUID generation. It rejects attempts to supply generated properties as request inputs. Validation-only requests do not append facts or reserve the generated UUID for a later execution.
 
 An accepted scalar response becomes the HTTP command result's `response` value. A named response becomes an object with camelCase field names. Rejected or unauthorized results carry no response. The Stage frontend passes the accepted response through Scene's `CommandOutcome.response`.
 
@@ -101,7 +124,9 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 
 | Diagnostic | Refused shape |
 | --- | --- |
-| `STAGE-ESM-028` | Generated values other than required, scalar UUID-backed concepts: raw UUIDs, optional values, collections and other backing types |
+| `STAGE-ESM-028` | Unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy |
+| `STAGE-ESM-011` | A v15 generated fixture that does not match its strategy shape |
+| `STAGE-ESM-004` / `STAGE-ESM-006` | Multi-command StateChange slices / conditional productions remain refused ([Stage #360](https://github.com/Cratis/Stage/issues/360)) |
 | `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, generated-concept validation rules, occurrence parameter name collisions; unsupported response sources, composite or collection responses; response/factory name collisions; generated values mapped into unique-property constraints |
 | `STAGE-ESM-038` | Unpinned generation with unordered event, read-model or query expectations |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
@@ -110,12 +135,13 @@ Generated-concept validation is refused because Arc treats an invalid generated 
 
 The last case is not shorthand for using the generated identifier. Screenplay keeps legacy allocation in a separate `AllocatedIdentities` channel. Use an inline `produces event` declaration as above, or an explicit production destination. Stage refuses the ambiguous combination instead of sending the event to a different stream than the evaluator.
 
-Stage's phase-1 mapping always uses `GenerateValue.Uuid()`. Screenplay's ESM carries no generation strategy or freshness policy, so Stage does not render UuidV7, guarded freshness, `IGeneratableInContext<T>`, sequences or clock-dependent generation. Clock fixtures remain unsupported automation constructs. These limits concern Stage's mapping; they do not redefine the capabilities of Arc's generation helpers.
+Time-ordered factories (`uuidv7`, `ulid`, `typeid`) use the wall clock. Arc calls `IGeneratable<T>.New()` rather than a receipt-time `IGeneratableInContext<T>` factory, so Stage does not claim command-receipt timestamps for these values. Pinned fixtures are unaffected. Sequences and clock fixtures remain unsupported.
 
 ## Pitfalls
 
 - Do not put a generated identifier back into the request to make a spec deterministic. Pin it in the scenario instead.
-- Do not edit generated commands or concepts to select a strategy. Keep the model authoritative and wait for an admitted strategy contract.
+- Do not edit generated commands or concepts to select a strategy. Declare it on the concept in the model.
+- Moving an implicit UUID fixture to v15 requires a lowercase version-4 UUID with the RFC variant. A pin such as `11111111-1111-1111-1111-111111111111` no longer matches; uppercase Uuid text is noncanonical even before the strategy check.
 - A pin has the exact concept type and modeled name. A raw UUID or differently cased name is not the same fixture.
 - A returned UUID is not proof that a projection is ready, an external effect succeeded, or an identifier is absent from storage.
 

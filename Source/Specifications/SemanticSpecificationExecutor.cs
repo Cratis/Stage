@@ -16,6 +16,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Types;
@@ -245,6 +246,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var history = context.Facts.Select((fact, index) => new SemanticConstraintEvaluator.Fact(fact.EventContract, context.Destinations[index], fact.Values)).ToArray();
         var candidates = context.Command.Produces.Select(context.Produce)
             .Select(item => new SemanticConstraintEvaluator.Fact(item.Fact.EventContract, item.Destination, item.Fact.Values)).ToArray();
+        if (ReusesGeneratedSource(context, candidates.Select(candidate => candidate.Destination)))
+        {
+            return Rejected(slice, expected, SemanticGenerationShapes.FreshnessMessage);
+        }
         if (SemanticConstraintEvaluator.FindViolation(run.Plan, history, candidates) is { } constraint)
         {
             return Rejected(slice, expected, new SemanticRejection(SemanticConstraintEvaluator.Message(constraint), constraint.Name));
@@ -302,7 +307,11 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         if (properties.Length == 0) return null;
         var specification = context.Specification;
         var generated = specification.When!.GeneratedValues.IsDefault ? [] : specification.When.GeneratedValues;
-        if (!GeneratedFixturesMatch(properties, generated))
+        if (context.Plan.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15))
+        {
+            if (StrategyFixtureFailure(context, generated) is { } strategyFailure) return Rejected(slice, specification, strategyFailure);
+        }
+        else if (!GeneratedFixturesMatch(properties, generated))
         {
             return Rejected(slice, specification, "Generated fixtures do not match the command's generated UUID properties.");
         }

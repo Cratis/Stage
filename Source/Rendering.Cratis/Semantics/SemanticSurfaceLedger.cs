@@ -101,7 +101,8 @@ internal static class SemanticSurfaceLedger
 
         // Types, declarations and validation. Properties carry type and identifier semantics into
         // generated records, event destinations, projection keys and specification values.
-        Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values Numbers Compliance");
+        Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values Numbers Compliance Generation");
+        Add(entries, "SemanticGeneration", rendered, "Kind Prefix Case Size Alphabet Count Encoding");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");
         Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via opt-in [ComplianceDetails] (#259)."), "Special Criminal");

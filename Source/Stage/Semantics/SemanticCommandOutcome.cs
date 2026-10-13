@@ -21,6 +21,10 @@ internal static class SemanticCommandOutcome
         {
             ValidationResults = [ValidationResult.Error(rejected.Details, reason: ValidationResultReason.ConstraintViolation, reasonDetail: rejected.Code)]
         },
+        SemanticRejected { Category: SemanticRejectionCategory.Concurrency } rejected => new CommandResult
+        {
+            ValidationResults = [ValidationResult.Error(rejected.Details, reason: ValidationResultReason.ConcurrencyViolation)]
+        },
         SemanticRejected rejected => new CommandResult
         {
             ValidationResults = rejected.ValidationFailures.IsEmpty

@@ -14,7 +14,7 @@ internal static partial class SemanticCommandSpecificationRenderer
 {
     static void RenderAccepted(SpecificationScope scope)
     {
-        var generated = new SemanticGeneratedCommandSpecification(scope.Specification, scope.Command, scope.Types);
+        var generated = new SemanticGeneratedCommandSpecification(scope.Specification, scope.Command, scope.Types, scope.Context);
         var builder = scope.Builder;
         var specification = scope.Specification;
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")

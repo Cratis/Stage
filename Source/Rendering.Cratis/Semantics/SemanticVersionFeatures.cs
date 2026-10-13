@@ -102,7 +102,7 @@ internal static class SemanticVersionFeatures
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV14Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV15Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -400,7 +400,7 @@ internal static class SemanticVersionFeatures
     {
         foreach (var property in command.Properties.Where(property => property.IsGenerated).Where(property => UnsupportedGeneratedType(property.Type, concepts)))
         {
-            yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}'; phase 1 renders non-optional, non-collection UUID-backed concepts only.");
+            yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}'; Stage renders only non-optional, non-collection concepts with admitted generation strategies.");
         }
         if (concepts is not null)
         {
@@ -467,7 +467,7 @@ internal static class SemanticVersionFeatures
     {
         if (type is not { Kind: SemanticTypeReferenceKind.Concept, IsOptional: false, IsCollection: false }) return true;
 
-        return concepts?.Any(concept => concept.Id == type.Target && concept.Primitive == SemanticPrimitiveType.Uuid) == false;
+        return concepts?.Any(concept => concept.Id == type.Target && SemanticGenerationShapes.Supported(concept)) == false;
     }
 
     static bool UnsupportedCommandResults(SemanticCommand command) =>

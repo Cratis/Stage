@@ -13,7 +13,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="specification">The specification to render.</param>
 /// <param name="command">The command under specification.</param>
 /// <param name="types">The generated type and value expressions.</param>
-internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecification specification, SemanticCommand command, SemanticTypeSystem types)
+/// <param name="context">The indexed semantic application.</param>
+internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecification specification, SemanticCommand command, SemanticTypeSystem types, SemanticApplicationContext context)
 {
     internal bool RequiresEstablish => !specification.GivenEvents.IsEmpty || specification.GivenCaller is not null || GeneratedProperties.Any();
 
@@ -86,7 +87,10 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
         }
         foreach (var property in UnpinnedProperties)
         {
-            builder.Line($"[global::Xunit.FactAttribute] void should_generate_{Identifiers.ToSnakeCase(property.Name)}() => {Captured(property)}.Value.ShouldNotEqual(global::System.Guid.Empty);");
+            var expectation = context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15)
+                ? $"global::System.Text.RegularExpressions.Regex.IsMatch({Captured(property)}.Value.ToString()!, {CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(context.Concepts[property.Type.Target]))}, global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.TimeSpan.FromSeconds(1)).ShouldBeTrue()"
+                : $"{Captured(property)}.Value.ShouldNotEqual(global::System.Guid.Empty)";
+            builder.Line($"[global::Xunit.FactAttribute] void should_generate_{Identifiers.ToSnakeCase(property.Name)}() => {expectation};");
         }
     }
 

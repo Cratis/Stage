@@ -72,7 +72,12 @@ internal sealed class SemanticRuntimeCommandHandler : ICommandHandler
         {
             throw new ProducedEventConstraintRejected(ValidationResult.Error(
                 rejected.Details,
-                reason: rejected.Category == SemanticRejectionCategory.Constraint ? ValidationResultReason.ConstraintViolation : ValidationResultReason.Rule,
+                reason: rejected.Category switch
+                {
+                    SemanticRejectionCategory.Constraint => ValidationResultReason.ConstraintViolation,
+                    SemanticRejectionCategory.Concurrency => ValidationResultReason.ConcurrencyViolation,
+                    _ => ValidationResultReason.Rule
+                },
                 reasonDetail: rejected.Code));
         }
 

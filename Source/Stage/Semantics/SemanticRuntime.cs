@@ -214,9 +214,6 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
         feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
 
-    static ImmutableArray<SemanticPropertyValue> GeneratedValues(SemanticCommand command) =>
-        [.. command.Properties.Where(property => property.IsGenerated).Select(property => new SemanticPropertyValue(property.Id, SemanticValue.Text(Guid.NewGuid().ToString())))];
-
     static bool OpaqueRule(SemanticValidationRuleKind kind) =>
         kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
 
@@ -277,7 +274,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
             {
                 Caller = SemanticCallers.From(principal),
                 Occurrence = occurrence,
-                GeneratedValues = GeneratedValues(command)
+                GeneratedValues = SemanticGeneratedValues.For(command, Plan.Model)
             };
             var result = _evaluator.Execute(Plan, _world, request);
             if (unknown is not null && result is not SemanticRejected { Category: SemanticRejectionCategory.Unauthorized })
@@ -295,7 +292,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
             {
                 Caller = SemanticCallers.From(principal),
                 Occurrence = occurrence,
-                GeneratedValues = GeneratedValues(command)
+                GeneratedValues = SemanticGeneratedValues.For(command, Plan.Model)
             });
             return authorization is SemanticRejected { Category: SemanticRejectionCategory.Unauthorized } or SemanticUnsupported
                 ? authorization
@@ -315,7 +312,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
 
             if (command is not null && request.GeneratedValues.IsDefaultOrEmpty)
             {
-                request = request with { GeneratedValues = GeneratedValues(command) };
+                request = request with { GeneratedValues = SemanticGeneratedValues.For(command, plan.Model) };
             }
 
             return evaluator.Execute(plan, world, request);

@@ -157,12 +157,16 @@ internal static class SemanticRunProjectionAdmission
             {
                 return "A mapping-free identifier-only from block does not materialize a Chronicle read model.";
             }
-            if (scope.From.Any(from => reachable.Contains(from.EventContract) && !ScopedKeysMatch(plan, specification, from.EventContract, identifier.Type)))
+            if (scope.Every is { SubscribesToAllEvents: true }
+                ? reachable.Any(eventContract => !ScopedKeysMatch(plan, specification, eventContract, identifier.Type))
+                : scope.From.Any(from => reachable.Contains(from.EventContract) && !ScopedKeysMatch(plan, specification, from.EventContract, identifier.Type)))
             {
                 return "A scoped event-source key must have the read-model identifier's value type and enumeration values.";
             }
             if (projection.Transitions.Length > 0 || scope.Joins.Length > 0 || scope.Removals.Length > 0 ||
-                scope.JoinRemovals.Length > 0 || scope.Children.Length > 0 || scope.Nested.Length > 0 || scope.Every is not null ||
+                scope.JoinRemovals.Length > 0 || scope.Children.Length > 0 || scope.Nested.Length > 0 ||
+                (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
+                    mapping.Target.Length != 1 || mapping.Source is not SemanticProjectionEventSourceIdentity)) ||
                 scope.From.Any(from => from.ParentKey is not null || from.Key is not SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } ||
                     from.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set || mapping.Target.Length != 1 ||
                         mapping.Source is not (SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionEventSourceIdentity))))

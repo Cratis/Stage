@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticProductionComparison
 {
     static readonly Dictionary<SemanticComparisonOperator, Func<decimal, decimal, bool>> _ordering =
-        new Dictionary<SemanticComparisonOperator, Func<decimal, decimal, bool>>
+        new()
         {
             [SemanticComparisonOperator.GreaterThan] = (left, right) => left > right,
             [SemanticComparisonOperator.GreaterThanOrEqual] = (left, right) => left >= right,

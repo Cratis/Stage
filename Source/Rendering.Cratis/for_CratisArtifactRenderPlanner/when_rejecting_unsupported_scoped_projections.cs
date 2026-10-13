@@ -5,6 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
@@ -44,7 +45,8 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("root-id-collision")]
     [InlineData("flat-expression-read-model-property")]
     [InlineData("all-literal")]
-    [InlineData("all-events")]
+    [InlineData("all-mixed")]
+    [InlineData("all-empty")]
     [InlineData("unsafe-text-literal")]
     [InlineData("unsafe-text-concept-literal")]
     public void should_fail_closed_for_unsupported_blocks(string variant)
@@ -94,24 +96,30 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         scope = variant switch
         {
             "composite-key" => scope,
-            "all-events" => scope with
+            "every-unsafe-literal" or "every-with-join" or "all-literal" or "all-mixed" => scope with
             {
-                Children = [],
-                Nested = [],
-                Every = scope.Every! with { IncludeChildren = true, SubscribesToAllEvents = true }
-            },
-            "every-unsafe-literal" or "every-with-join" or "all-literal" => scope with
-            {
-                Joins = variant == "every-unsafe-literal" ? [] : scope.Joins,
+                Joins = Variant(variant, "every-unsafe-literal", "all-literal", "all-mixed") ? [] : scope.Joins,
+                Children = Variant(variant, "all-literal", "all-mixed") ? [] : scope.Children,
+                Nested = Variant(variant, "all-literal", "all-mixed") ? [] : scope.Nested,
+                Removals = Variant(variant, "all-literal", "all-mixed") ? [] : scope.Removals,
                 Every = scope.Every! with
                 {
-                    SubscribesToAllEvents = variant == "all-literal",
-                    IncludeChildren = variant == "all-literal",
+                    SubscribesToAllEvents = Variant(variant, "all-literal", "all-mixed"),
+                    IncludeChildren = Variant(variant, "all-literal", "all-mixed"),
                     Mappings = [new SemanticProjectionMapping(
-                        [variant == "all-literal" ? nameTarget : view.ReadModels.Single(model => model.Name == "ProjectSummary").Properties.Single(property => property.Name == "label").Id],
+                        [Variant(variant, "all-literal", "all-mixed") ? nameTarget : view.ReadModels.Single(model => model.Name == "ProjectSummary").Properties.Single(property => property.Name == "label").Id],
                         SemanticProjectionOperation.Set,
-                        variant == "every-unsafe-literal" ? unsafeLiteral : new SemanticProjectionLiteral(SemanticValue.Text("fixed")))]
+                        variant == "every-unsafe-literal" ? unsafeLiteral : new SemanticProjectionLiteral(SemanticValue.Text("fixed"))),
+                        .. variant == "all-mixed" ? scope.Every!.Mappings : []]
                 }
+            },
+            "all-empty" => scope with
+            {
+                Joins = [],
+                Children = [],
+                Nested = [],
+                Removals = [],
+                Every = scope.Every! with { SubscribesToAllEvents = true, IncludeChildren = true, Mappings = [] }
             },
             "every-arithmetic-collision" => scope with
             {
@@ -313,15 +321,22 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Contains("A join has an unsupported correlation key or mapping", diagnostic.Message, StringComparison.Ordinal);
         }
 
-        if (variant == "all-events" || variant == "all-literal")
+        if (Variant(variant, "all-literal", "all-mixed"))
         {
-            Assert.Contains("Chronicle#4266", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("Chronicle#4663", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("unrelated types and sources", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "all-empty")
+        {
+            Assert.Contains("An all block without mappings cannot render", diagnostic.Message, StringComparison.Ordinal);
         }
 
         if (variant == "composite-key" || variant == "every-whole-number" || variant == "every-enumerated-concept" ||
             variant == "event-source-with-property-key" || variant == "join-event-source" || variant == "expression-event-property" ||
             Variant(variant, "derived-event-property", "derived-lower-event-property", "normalized-event-property", "flat-expression-event-property", "flat-derived-event-property", "flat-normalized-event-property") ||
-            variant == "expression-read-model-property" || variant == "root-id-collision" || variant == "flat-expression-read-model-property")
+            variant == "expression-read-model-property" || variant == "root-id-collision" || variant == "flat-expression-read-model-property" ||
+            Variant(variant, "all-literal", "all-mixed", "all-empty"))
         {
             var changedExecution = SemanticExecutionPlan.Compile(model);
             Assert.True(changedExecution.Success, string.Join(Environment.NewLine, changedExecution.Issues));
@@ -356,18 +371,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 
     internal static void VerifyFromAllAdmission()
     {
-        const string source = when_rendering_scoped_projections.ScopedSource + "\n" + """
-                slice StateView AllLookup
-                  readmodel AllSummary
-                    projectId ProjectId
-                    lastSeen ProjectId?
-                  query AllById => AllSummary?
-                    by projectId ProjectId
-                  projection AllSummaryProjection => AllSummary
-                    from ProjectRegistered key projectId
-                    all
-                      lastSeen = $eventSourceId
-            """;
+        var source = all_events_projection.Source;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("all"), "all", "All.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
@@ -376,9 +380,12 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
         var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Message.Contains("MongoDB", StringComparison.Ordinal));
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var rendered = Assert.Single(plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
+            .Select(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
+            source => source.Contains("public class AllSummaryProjection :", StringComparison.Ordinal));
+        Assert.Contains("builder.FromAll", rendered, StringComparison.Ordinal);
+        Assert.Contains("every.Set(model => model.LastSeen).ToEventSourceId()", rendered, StringComparison.Ordinal);
     }
 
     sealed class UnknownScopeVariant(string name) : Exception($"Unknown projection scope variant '{name}'.");

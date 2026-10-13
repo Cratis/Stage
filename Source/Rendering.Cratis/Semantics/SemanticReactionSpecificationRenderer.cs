@@ -76,7 +76,8 @@ internal static partial class SemanticReactionSpecificationRenderer
         {
             builder.Line("// The model has no append source; this reaction never uses the trigger destination.");
         }
-        builder.Line($"await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(append.Route, context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+        builder.Line("// Given facts establish history; reactions only observe the append.")
+            .Line($"await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(append.Route, context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
     }
 
     static RenderedFile RenderProductions(SemanticSpecification specification, SemanticApplicationContext context, SemanticReactionSpecificationPrelude prelude)

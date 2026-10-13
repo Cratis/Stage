@@ -21,6 +21,7 @@ internal static class SemanticReactorArtifactRenderer
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(reaction.Id.ToString())})")
             .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute");
         RenderIdentityAttribute(builder, reaction);
+        if (reaction.From is { } filter) SemanticObserverFilterRendering.Attribute(builder, filter, context);
         builder.OpenBlock($"public class {name} : global::Cratis.Chronicle.Reactors.IReactor");
         foreach (var group in reaction.Triggers.GroupBy(trigger => trigger.Source))
         {

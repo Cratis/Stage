@@ -147,7 +147,8 @@ internal static class GeneratedTypeNames
     internal static bool UsesStreamIds(IEnumerable<SemanticSlice> slices) =>
         slices.Any(slice => UsesStreamIds(slice.Commands) || slice.Specifications.Any(specification =>
             specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is { } route &&
-                (route.StreamId is not null || !route.StreamIdParts.IsDefaultOrEmpty))));
+                (route.StreamId is not null || !route.StreamIdParts.IsDefaultOrEmpty)) ||
+            (specification.WhenAppended?.Route is { } appendRoute && (appendRoute.StreamId is not null || !appendRoute.StreamIdParts.IsDefaultOrEmpty))));
 
     internal static bool UsesCommandReceiptTime(IEnumerable<SemanticCommand> commands) =>
         commands.Any(command => command.Produces.Any(produced => produced.Mappings.Any(mapping =>

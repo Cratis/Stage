@@ -207,10 +207,7 @@ internal static class SemanticVersionFeatures
         var reactions = slice.Reactions.IsDefault ? [] : slice.Reactions;
         foreach (var feature in ReactionIdentitiesInSlice(slice)) yield return feature;
 
-        foreach (var reaction in reactions.Where(reaction => reaction.From is not null))
-        {
-            yield return new(ObserverFilters, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 observer filter, which Stage does not support yet.");
-        }
+        foreach (var feature in ReactionFiltersInSlice(slice)) yield return feature;
 
         foreach (var feature in reactions.SelectMany(MixedEffectsInReaction)) yield return feature;
 
@@ -234,6 +231,15 @@ internal static class SemanticVersionFeatures
 
         foreach (var feature in EventReactionsInSlice(slice)) yield return feature;
     }
+
+    /// <summary>
+    /// Finds reaction observer filters that targets must explicitly admit.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The declared observer filters.</returns>
+    public static IEnumerable<SemanticVersionFeature> ReactionFiltersInSlice(SemanticSlice slice) =>
+        (slice.Reactions.IsDefault ? [] : slice.Reactions).Where(reaction => reaction.From is not null)
+            .Select(reaction => new SemanticVersionFeature(ObserverFilters, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 observer filter."));
 
     /// <summary>
     /// Finds reaction execution identities that targets must explicitly admit.

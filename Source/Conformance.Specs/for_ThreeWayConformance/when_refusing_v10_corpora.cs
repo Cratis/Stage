@@ -16,7 +16,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 public class when_refusing_v10_corpora : Specification
 {
     [Theory]
-    [InlineData("filters", "STAGE-ESM-035")]
+    [InlineData("filters", "STAGE-ESM-027")]
     [InlineData("production", "STAGE-ESM-036")]
     public async Task should_preserve_reference_outcomes_and_renderer_refusals(string form, string code)
     {
@@ -35,10 +35,11 @@ public class when_refusing_v10_corpora : Specification
         }
         var stage = await new SemanticSpecificationExecutor().Run(plan, new([.. plan.Specifications.Keys]), new());
         stage.Results.Select(result => result.Outcome).Distinct().ShouldContainOnly([SemanticSpecificationOutcome.Unsupported]);
-        stage.Results.All(result => result.Unsupported!.Details.StartsWith(code + ":", StringComparison.Ordinal)).ShouldBeTrue();
+        stage.Results.All(result => result.Unsupported!.Details.StartsWith((form == "filters" ? "STAGE-ESM-035" : code) + ":", StringComparison.Ordinal)).ShouldBeTrue();
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("V10", "V10"));
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
+        if (form == "filters") rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-035");
         rendered.Success.ShouldBeFalse();
         rendered.Artifacts.ShouldBeEmpty();
     }

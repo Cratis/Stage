@@ -16,7 +16,7 @@ internal sealed record SemanticReactionSpecification(SemanticReaction Reaction, 
     internal static IEnumerable<SemanticReactionSpecification> Candidates(SemanticApplicationContext context, SemanticSpecificationAppend append) =>
         SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions)
             .SelectMany(reaction => reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == append.EventContract)
-                .Select(trigger => new SemanticReactionSpecification(reaction, trigger, trigger.Where is null || Matches(trigger.Where, append))));
+                .Select(trigger => new SemanticReactionSpecification(reaction, trigger, SemanticObserverFilterMatching.Matches(reaction.From, append.Route, context) && (trigger.Where is null || Matches(trigger.Where, append)))));
 
     internal SemanticSpecification Lower(SemanticSpecification specification, SemanticApplicationContext context)
     {

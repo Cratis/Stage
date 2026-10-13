@@ -30,6 +30,8 @@ history. Invoked generated commands remain unsupported without deterministic fix
 | `runs as system` | Class-level `[ExecuteCommandsAsSystem]`; declared roles become attribute arguments, in canonical order |
 | Event triggers | One handler per triggering event type; triggers on that event are combined in authored order |
 | `where` | A guard over the triggering event's values |
+| `from Source` | `[EventSourceType("<stored source name>")]`; accepts every stream of that source |
+| `from Source.Stream` | `[FromEventSource<TSource>("<stored stream name>")]`; accepts only that source and stream, independent of stream identity |
 | `invokes` | Returned model-bound command records, executed by Arc's reactor result handlers |
 | `produces` | Explicit `EventForEventSourceId` envelopes, never bare event returns |
 
@@ -66,9 +68,9 @@ reaction effects; command then-events include the initiating command's facts and
 Clock fixtures and clock/trigger/capture actions remain unsupported; an `$context.occurred` production
 without a scenario clock is a contract rejection.
 
-Stage renders single-hop `when append` reaction specifications through `ReactorScenario`. A production-only scenario checks the exact effect count, payloads, destinations and unrouted stream metadata, with assignment matching for any-order expectations. An invocation scenario executes the one returned command through `CommandScenario`, reading the system identity from the reactor's attribute rather than forwarding `given caller`. Screenplay requires an outcome: a `when append` specification always asserts the reaction's produced events or the invoked command's outcome.
+Stage renders single-hop `when append` reaction specifications through `ReactorScenario`. Givens establish history and are not delivered to the reactor. A production-only scenario checks the exact effect count, payloads, destinations and all three unrouted metadata values (`EventSourceType.Default`, `EventStreamType.All`, `EventStreamId.Default`), with assignment matching for any-order expectations. An invocation scenario executes the one returned command through `CommandScenario`, reading the system identity from the reactor's attribute rather than forwarding `given caller`. Screenplay requires an outcome: a `when append` specification always asserts the reaction's produced events or the invoked command's outcome.
 
-Append fixtures may carry an explicit source and route. A sourceless append uses a fixed scenario placeholder only when no production relies on the trigger destination. Fan-out, deeper cascades, multiple invocations, `$context`, read-model/query/absence expectations and constraint-target appends or products remain refused with `STAGE-ESM-011`. Non-reaction appends also remain refused. The append values must select exactly one active trigger after `where` is evaluated; guarded alternative paths can each be specified with their own outcome.
+Append fixtures may carry an explicit source and route. A sourceless append uses a fixed scenario placeholder only when no production relies on the trigger destination. Fan-out, deeper cascades, multiple invocations, `$context`, read-model/query expectations and constraint-target appends or products remain refused with `STAGE-ESM-011`. Keyed read-model absence expectations have the earlier `STAGE-ESM-027` refusal. Non-reaction appends also remain refused. The append values must select exactly one active trigger after `from` and `where` are evaluated; an excluded append fails admission with `STAGE-ESM-011`. Guarded alternative paths can each be specified with their own outcome.
 
 Stage still refuses a command specification when that command produces an event subscribed to by any event reaction in the application: the generated `CommandScenario` does not settle reactions, whereas the reference does. This uses `STAGE-ESM-011`.
 
@@ -80,7 +82,8 @@ Render admission, generated Debug compilation, generated specifications and live
 | --- | --- |
 | `STAGE-ESM-024` | Clock, application, startup and shutdown triggers; opaque reaction bodies; captures and Translate slices; clock/trigger/capture specifications |
 | `STAGE-ESM-034` | `runs as` invoking a claim-reading or opaque authorization gate; all `runs as` on legacy syntax paths |
-| `STAGE-ESM-035` | Reaction `from` |
+| `STAGE-ESM-035` | Reaction `from` on legacy syntax paths only; use the semantic planner |
+| `STAGE-ESM-030` | Reserved stored source or stream names in observer filters |
 | `STAGE-ESM-037` | Events and commands returned by one handler, whether authored in one trigger or separate triggers on the same event in one reaction |
 | `STAGE-ESM-013` | Reaction mappings of `$context.causedBy.*` or `$context.eventSourceId` |
 | `STAGE-ESM-039` | Conditions, destinations or mappings that cannot retain their modeled meaning; incomplete event mappings or a reaction without an event subscription |

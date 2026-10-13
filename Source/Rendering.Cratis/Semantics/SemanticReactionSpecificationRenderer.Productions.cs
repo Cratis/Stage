@@ -23,7 +23,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             var identity = produced.Destination is { } destination
                 ? new SemanticEventSourceIdentity(produced.DestinationType!, SemanticReactionSpecification.Evaluate(destination, prelude.Append)) : prelude.Append.EventSource!;
             var source = types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type);
-            builder.Line($"[global::Xunit.FactAttribute] void should_preserve_destination_{index + 1}() => (_reactor.ProducedEvents[{index}].EventSourceId == {source} && _reactor.ProducedEvents[{index}].EventStreamType == global::Cratis.Chronicle.Events.EventStreamType.All).ShouldBeTrue();");
+            builder.Line($"[global::Xunit.FactAttribute] void should_preserve_destination_{index + 1}() => (_reactor.ProducedEvents[{index}].EventSourceId == {source} && _reactor.ProducedEvents[{index}].EventSourceType == global::Cratis.Chronicle.Events.EventSourceType.Default && _reactor.ProducedEvents[{index}].EventStreamType == global::Cratis.Chronicle.Events.EventStreamType.All && _reactor.ProducedEvents[{index}].EventStreamId == global::Cratis.Chronicle.Events.EventStreamId.Default).ShouldBeTrue();");
         }
         if (specification.ThenEventsInAnyOrder)
         {

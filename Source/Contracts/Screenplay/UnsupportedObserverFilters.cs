@@ -10,7 +10,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// </summary>
 /// <param name="location">The authored source location.</param>
 public sealed class UnsupportedObserverFilters(SourceLocation location) : Exception(
-    $"{DiagnosticCode}: Reaction or reducer observer filter at {location} cannot run on the legacy event model or renderer; Stage does not support observer filters yet.")
+    $"{DiagnosticCode}: Reaction or reducer observer filter at {location} cannot run on the legacy event model or renderer; use the semantic path to preserve observer filters.")
 {
     /// <summary>
     /// The stable diagnostic code for unsupported observer filters.

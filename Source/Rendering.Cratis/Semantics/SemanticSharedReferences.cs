@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticSharedReferences
 {
     /// <summary>
-    /// Collects source definitions referenced by commands, fixtures and reducer filters in declaration order.
+    /// Collects source definitions referenced by commands, fixtures and observer filters in declaration order.
     /// </summary>
     /// <param name="context">The indexed application.</param>
     /// <param name="slices">The selected slices.</param>
@@ -24,6 +24,8 @@ internal static class SemanticSharedReferences
         if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application) return context.Application.EventSources;
         var references = slices.SelectMany(slice => slice.Slice.Commands).Select(command => command.Route?.Source)
             .Concat(slices.SelectMany(slice => slice.Slice.Reducers).Select(reducer => reducer.From?.Source))
+            .Concat(slices.SelectMany(slice => slice.Slice.Reactions.IsDefault ? [] : slice.Slice.Reactions).Select(reaction => reaction.From?.Source))
+            .Concat(slices.SelectMany(slice => slice.Slice.Specifications).Select(specification => specification.WhenAppended?.Route?.Source))
             .Concat(slices.SelectMany(slice => slice.Slice.Specifications).SelectMany(specification =>
                 specification.GivenEvents.Concat(specification.ThenEvents).Select(occurrence => occurrence.Route?.Source))).ToHashSet();
         return [.. context.Application.EventSources.Where(source => references.Contains(source.Id))];

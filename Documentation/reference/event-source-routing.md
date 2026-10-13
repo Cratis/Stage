@@ -19,7 +19,7 @@ public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSo
 
 The attributes use the **stored** source and stream names, including explicitly pinned names that differ from the declaration names. Streams appear in ordinal stored-name order. Stage emits neither descriptions nor concurrency dimensions. Definition class names retain an existing `EventSource` suffix; otherwise Stage adds it. Collisions fail planning with `STAGE-ESM-012`, rather than renaming a definition.
 
-An application render emits every source. A narrower render emits only sources referenced by selected commands, specification fixtures or reducer filters, together with their identifier, stream-id and part-type dependencies. A domain placement such as `Sales/Retail` moves definitions to `Sales/Retail/EventSources/` and `{Root}.Sales.Retail.EventSources`. The shared codec remains at the application root.
+An application render emits every source. A narrower render emits only sources referenced by selected commands, specification fixtures or observer filters, together with their identifier, stream-id and part-type dependencies. A domain placement such as `Sales/Retail` moves definitions to `Sales/Retail/EventSources/` and `{Root}.Sales.Retail.EventSources`. The shared codec remains at the application root.
 
 ## Generated commands
 
@@ -27,18 +27,18 @@ A routed command carries `Cratis.Arc.Chronicle.Commands.EventSourceAttribute<TSo
 
 For a keyed stream, the handler returns `EventForEventSourceId` wrappers with `EventStreamId` set. Literal identities are formatted during planning and emitted as escaped C# literals. Property identities are formatted inside `Handle()`. Composite identities use declaration order. Every event the command produces receives the same route, even when a production targets another event-source instance. Existing `Occurred` metadata and tags remain on each wrapper.
 
-## Reducer observer filters
+## Observer filters
 
-An ESM v10 reducer's `from` clause filters the facts delivered to its generated Chronicle reducer:
+An ESM v10 reducer or reaction's `from` clause filters the facts delivered to its generated Chronicle observer:
 
 | Filter | Generated class attribute |
 |---|---|
 | Source only | `Cratis.Chronicle.Events.EventSourceTypeAttribute("<stored source name>")` |
 | Source and stream | `Cratis.Chronicle.EventSources.FromEventSourceAttribute<TSource>("<stored stream name>")` |
 
-`TSource` is the generated event-source definition. Filters use stored names, not declaration names or stream identities. Unrouted facts never match a filtered reducer. A source-only filter accepts every stream of that source; a source-and-stream filter accepts only that pair. Reserved stored names fail planning with `STAGE-ESM-030`.
+`TSource` is the generated event-source definition. Filters use stored names, not declaration names or stream identities. Unrouted facts never match a filtered observer. A source-only filter accepts every stream of that source; a source-and-stream filter accepts only that pair. Reserved stored names fail planning with `STAGE-ESM-030`.
 
-This support is rendering-only. Stage's Host and in-memory specification executor still refuse reducers; filtered reducers retain `STAGE-ESM-035` in those paths. Reaction `from` remains refused with `STAGE-ESM-035` by the renderer; the Host and the specification executor apply the filter when they settle event reactions. Generated read-model companion specifications for filtered reducers fail with `STAGE-ESM-011`: Chronicle's `ReadModelScenario` does not preserve route metadata or apply observer filters.
+Reaction filters render and also apply in the semantic Host and specification executor. Generated reaction productions retain unrouted destination metadata; the observer filter does not route their output. The legacy syntax paths still refuse observer filters with `STAGE-ESM-035`. Reducer support is rendering-only: Stage's Host and in-memory specification executor still refuse reducers, and filtered reducers retain `STAGE-ESM-035` in those paths. Generated read-model companion specifications for filtered reducers fail with `STAGE-ESM-011`: Chronicle's `ReadModelScenario` does not preserve route metadata or apply observer filters.
 
 ## Identity codec
 

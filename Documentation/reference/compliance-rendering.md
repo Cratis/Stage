@@ -13,7 +13,7 @@ encryption without erasure.
 
 ## Executable semantic models
 
-Stage admits exact ESM v1–v14 language/semantic pairs from Screenplay 4.146.0. The semantic planner maps
+Stage admits exact ESM v1–v15 language/semantic pairs from Screenplay 4.147.1. The semantic planner maps
 `SemanticConcept.Compliance` using fully qualified attribute names:
 
 | Concept classification | Generated attributes |
@@ -41,7 +41,7 @@ scalar inputs, optional inputs, collections, and nested composites. Arc omits th
 causation, including its unprotected members; unrelated inputs remain auditable. The concept-level
 attributes remain in place for event-payload protection.
 
-Arc 22.78.0 withholds scalar `[PII]` concept inputs through Chronicle's `PIIMetadataProvider`.
+Arc 22.83.0 withholds scalar `[PII]` concept inputs through Chronicle's `PIIMetadataProvider`.
 That check examines the command property, its declaring type, its direct property type, and its
 constructor parameter, but does not recursively inspect composite members or collection elements.
 Stage's property-level exclusion covers those nested personal values and secrets, and is also emitted

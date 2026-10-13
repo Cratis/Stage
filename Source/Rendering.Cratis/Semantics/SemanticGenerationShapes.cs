@@ -33,20 +33,22 @@ internal static class SemanticGenerationShapes
     internal static string Pattern(SemanticConcept concept)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
-        var prefix = generation.Prefix ?? string.Empty;
-        if (string.Equals(generation.Kind, "typeid", StringComparison.Ordinal) && prefix.Length > 0) prefix += "_";
-        var shape = generation.Kind switch
-        {
-            "uuid" or "uuidv7" => Uuid(generation),
-            "ulid" => $"[0-7]{Symbols(Case(Crockford, generation.Case, true), 25)}",
-            "typeid" => TypeId(),
-            "nanoid" => Symbols(generation.Alphabet ?? NanoIdAlphabet, generation.Size ?? 21),
-            "bytes" => Bytes(generation),
-            _ => "(?!)"
-        };
 
-        return $"\\A{Regex.Escape(prefix)}{shape}\\z";
+        return $"\\A{Regex.Escape(Prefix(generation))}{Shape(generation)}\\z";
     }
+
+    static string Prefix(SemanticGeneration generation) => generation.Prefix is { Length: > 0 } prefix &&
+        string.Equals(generation.Kind, "typeid", StringComparison.Ordinal) ? prefix + "_" : generation.Prefix ?? string.Empty;
+
+    static string Shape(SemanticGeneration generation) => generation.Kind switch
+    {
+        "uuid" or "uuidv7" => Uuid(generation),
+        "ulid" => $"[0-7]{Symbols(Case(Crockford, generation.Case, true), 25)}",
+        "typeid" => TypeId(),
+        "nanoid" => Symbols(generation.Alphabet ?? NanoIdAlphabet, generation.Size ?? 21),
+        "bytes" => Bytes(generation),
+        _ => "(?!)"
+    };
 
     static bool IsUuid(string kind) => string.Equals(kind, "uuid", StringComparison.Ordinal) || string.Equals(kind, "uuidv7", StringComparison.Ordinal);
 

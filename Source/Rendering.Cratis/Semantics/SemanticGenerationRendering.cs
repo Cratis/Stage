@@ -18,17 +18,24 @@ internal static class SemanticGenerationRendering
     internal static string Factory(SemanticConcept concept)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
-        var value = generation.Kind switch
-        {
-            "uuid" => $"{Generator}.Uuid()",
-            "uuidv7" => $"{Generator}.UuidV7()",
-            "ulid" => $"{Generator}.Ulid()",
-            "typeid" => $"{Generator}.TypeId({Literal(generation.Prefix ?? string.Empty)})",
-            "nanoid" => $"{Generator}.NanoId({Number(generation.Size ?? 21)}, {(generation.Alphabet is { } alphabet ? Literal(alphabet) : "null")})",
-            "bytes" => $"{Generator}.Bytes({Number(generation.Count!.Value)}, global::Cratis.Concepts.ValueEncoding.{Encoding(generation.Encoding)})",
-            _ => throw new InvalidArtifactRenderContract($"Generation strategy '{generation.Kind}' is not admitted.")
-        };
-        if (concept.Primitive == SemanticPrimitiveType.Uuid) return value;
+        var value = Strategy(generation);
+
+        return concept.Primitive == SemanticPrimitiveType.Uuid ? value : Text(generation, value);
+    }
+
+    static string Strategy(SemanticGeneration generation) => generation.Kind switch
+    {
+        "uuid" => $"{Generator}.Uuid()",
+        "uuidv7" => $"{Generator}.UuidV7()",
+        "ulid" => $"{Generator}.Ulid()",
+        "typeid" => $"{Generator}.TypeId({Literal(generation.Prefix ?? string.Empty)})",
+        "nanoid" => $"{Generator}.NanoId({Number(generation.Size ?? 21)}, {(generation.Alphabet is { } alphabet ? Literal(alphabet) : "null")})",
+        "bytes" => $"{Generator}.Bytes({Number(generation.Count!.Value)}, global::Cratis.Concepts.ValueEncoding.{Encoding(generation.Encoding)})",
+        _ => throw new InvalidArtifactRenderContract($"Generation strategy '{generation.Kind}' is not admitted.")
+    };
+
+    static string Text(SemanticGeneration generation, string value)
+    {
         if (string.Equals(generation.Kind, "uuid", StringComparison.Ordinal) || string.Equals(generation.Kind, "uuidv7", StringComparison.Ordinal)) value += ".ToString(\"D\")";
         value += generation.Case switch
         {

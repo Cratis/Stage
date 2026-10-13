@@ -307,13 +307,9 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         if (properties.Length == 0) return null;
         var specification = context.Specification;
         var generated = specification.When!.GeneratedValues.IsDefault ? [] : specification.When.GeneratedValues;
-        if (context.Plan.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15))
+        if (FixtureShapeFailure(context, properties, generated) is { } shapeFailure)
         {
-            if (StrategyFixtureFailure(context, generated) is { } strategyFailure) return Rejected(slice, specification, strategyFailure);
-        }
-        else if (!GeneratedFixturesMatch(properties, generated))
-        {
-            return Rejected(slice, specification, "Generated fixtures do not match the command's generated UUID properties.");
+            return Rejected(slice, specification, shapeFailure);
         }
         if (properties.Any(property => !generated.Any(value => value.TargetProperty == property.Id)))
         {
@@ -322,6 +318,13 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var failure = SemanticRuleEvaluation.GeneratedFailure(command, specification, concepts);
 
         return failure is null ? null : Rejected(slice, specification, failure);
+    }
+
+    static string? FixtureShapeFailure(SemanticRunContext context, IEnumerable<SemanticProperty> properties, System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> generated)
+    {
+        if (context.Plan.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15)) return StrategyFixtureFailure(context, generated);
+
+        return GeneratedFixturesMatch(properties, generated) ? null : "Generated fixtures do not match the command's generated UUID properties.";
     }
 
     static bool GeneratedFixturesMatch(IEnumerable<SemanticProperty> properties, System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> generated) =>

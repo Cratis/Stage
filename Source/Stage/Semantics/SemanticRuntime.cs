@@ -168,7 +168,10 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
     }
 
     /// <inheritdoc/>
-    public async Task<SemanticExecutionResult> Query(SemanticKeyedQuery query, SemanticValue key, ClaimsPrincipal principal)
+    public Task<SemanticExecutionResult> Query(SemanticKeyedQuery query, SemanticValue key, ClaimsPrincipal principal) => Query(query, key, principal, []);
+
+    /// <inheritdoc/>
+    public async Task<SemanticExecutionResult> Query(SemanticKeyedQuery query, SemanticValue key, ClaimsPrincipal principal, ImmutableArray<SemanticQueryFilterValue> filters)
     {
         await _gate.WaitAsync();
         try
@@ -184,7 +187,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 return unsupported;
             }
 
-            var request = SemanticExecutionRequest.ForQueries([new(query.Id, key)]) with { Caller = SemanticCallers.From(principal) };
+            var request = SemanticExecutionRequest.ForQueries([new(query.Id, key) { Filters = filters }]) with { Caller = SemanticCallers.From(principal) };
             return _evaluator.Execute(Plan, _world, request);
         }
         finally

@@ -75,15 +75,27 @@ public class a_generated_application : a_register_project_render_request
     protected Task<string> Run(string logName, params string[] arguments) => Run(logName, false, arguments);
 
     // A parity vector with an intentionally wrong expectation must still yield a complete TRX result.
-    protected async Task<string> Run(string logName, bool allowFailedTests, params string[] arguments)
+    protected Task<string> Run(string logName, bool allowFailedTests, params string[] arguments) => RunProcess(logName, allowFailedTests, false, arguments);
+
+    protected Task<string> RunInPhase(string logName, bool allowFailedTests, params string[] arguments) => RunProcess(logName, allowFailedTests, true, arguments);
+
+    async Task<string> RunProcess(string logName, bool allowFailedTests, bool managed, params string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("dotnet")
+        var startInfo = new ProcessStartInfo(managed ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".pi/agent/bin/pi-phase") : "dotnet")
         {
             WorkingDirectory = _application!.FullName,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
         };
+        if (managed)
+        {
+            foreach (var argument in new[] { "run", "--kind", arguments[0] == "build" ? "build" : "test", "--label", logName, "--timeout", "300", "--queue-timeout", "300", "--", "dotnet" })
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+        }
+
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
@@ -93,7 +105,7 @@ public class a_generated_application : a_register_project_render_request
         process.Start();
         var standardOutput = ReadOutput(process.StandardOutput);
         var standardError = ReadOutput(process.StandardError);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(8));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(managed ? 11 : 8));
         var timedOut = false;
         try
         {

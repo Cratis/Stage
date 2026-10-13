@@ -41,7 +41,8 @@ internal static class SemanticStateViewArtifactRenderer
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels");
         if (located.Slice.ReadModels.SelectMany(_ => _.Properties).Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)) ||
-            located.Slice.Queries.Any(_ => _.Argument is not null && SemanticTypeSystem.DeclarationNeedsCommon(_.Argument.Type)))
+            located.Slice.Queries.Any(_ => (_.Argument is not null && SemanticTypeSystem.DeclarationNeedsCommon(_.Argument.Type)) ||
+                _.Filters.Any(filter => SemanticTypeSystem.DeclarationNeedsCommon(filter.Type))))
         {
             builder.Using(context.CommonNamespace);
         }
@@ -139,6 +140,12 @@ internal static class SemanticStateViewArtifactRenderer
         var methodName = Identifiers.ToPascalCase(query.Name);
         var documentation = context.Docs(query.Id).Render(builder.BlankLine())
             .Attribute(SemanticAuthorizationAttributes.For(query, context));
+        if (!query.Filters.IsDefaultOrEmpty)
+        {
+            RenderFilteredQuery(documentation, query, readModel, types);
+            return;
+        }
+
         if (query.Argument is null)
         {
             documentation.ExpressionMember(
@@ -160,6 +167,45 @@ internal static class SemanticStateViewArtifactRenderer
         documentation.ExpressionMember(
             $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argument.Parameter})",
             argument.Guarded($"await readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){argument.Value})"));
+    }
+
+    static void RenderFilteredQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types)
+    {
+        var parameters = new List<string> { "global::Cratis.Chronicle.ReadModels.IReadModels readModels" };
+        var predicates = new List<string>();
+        var guards = new List<QueryArgumentExpression>();
+        if (query.Argument is { } keyed)
+        {
+            var argument = QueryArgumentExpression.For(keyed, types);
+            parameters.Add(argument.Parameter);
+            var property = readModel.Properties.Single(property => property.Id == query.KeyProperty);
+            predicates.Add($"global::System.Collections.Generic.EqualityComparer<{types.Type(keyed.Type)}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {argument.Comparison})");
+        }
+
+        foreach (var filter in query.Filters)
+        {
+            var argument = QueryArgumentExpression.For(new(filter.Id, filter.Name, filter.Type), types);
+            parameters.Add(argument.Parameter + (filter.Type.IsOptional ? " = null" : string.Empty));
+            var property = readModel.Properties.Single(property => property.Id == filter.Property);
+            var equality = $"global::System.Collections.Generic.EqualityComparer<{types.Type(filter.Type)}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {argument.Comparison})";
+            predicates.Add(filter.Type.IsOptional ? $"({argument.Name} is null || {equality})" : equality);
+
+            // Arc treats plain reference parameters as implicitly optional. Match its required-by
+            // rejection explicitly for text, including validated concepts accepted as text primitives.
+            if (!filter.Type.IsOptional && argument.Type == "string") guards.Add(argument);
+        }
+
+        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var methodName = Identifiers.ToPascalCase(query.Name);
+        var expression = $"global::System.Linq.Enumerable.Where(await readModels.GetInstances<{readModelName}>(), instance => {string.Join(" && ", predicates)})";
+        foreach (var guard in guards.AsEnumerable().Reverse())
+        {
+            expression = $"{guard.Name} is null ? throw new global::Cratis.Arc.Queries.ModelBound.MissingArgumentForQuery(nameof({guard.Name}), typeof({guard.Type}), $\"{{typeof({readModelName}).FullName}}.{methodName}\") : {expression}";
+        }
+
+        builder.ExpressionMember(
+            $"public static async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>> {methodName}({string.Join(", ", parameters)})",
+            expression);
     }
 
     /// <summary>

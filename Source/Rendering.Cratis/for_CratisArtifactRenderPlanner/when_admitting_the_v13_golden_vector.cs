@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
@@ -17,10 +18,7 @@ public class when_admitting_the_v13_golden_vector : Specification
 
     void Establish()
     {
-        using var resource = typeof(when_admitting_the_v13_golden_vector).Assembly.GetManifestResourceStream("full-esm-v13.json")!;
-        using var bytes = new MemoryStream();
-        resource.CopyTo(bytes);
-        _model = SemanticModelSerializer.Deserialize(bytes.ToArray());
+        _model = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(13).Bytes.AsSpan());
     }
 
     void Because()

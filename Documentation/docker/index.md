@@ -140,13 +140,17 @@ Clock, application, startup and shutdown triggers and opaque reaction bodies sti
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.141.0 and admits exact ESM v1–v13 version pairs; unaudited
+The semantic engine uses Screenplay 4.146.0 and admits exact ESM v1–v14 version pairs; unaudited
 language/semantic versions refuse the whole model with `STAGE-ESM-016` before registration or execution.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and
 read-model state, including ±9007199254740991 and `0.10000000000000002`. Source integers still use
 the Double safe range; `numbers exact` and arbitrary-precision arithmetic are not admitted.
 ESM v12 preserves explicit enum member numbers when rebuilding stored integer values; decisions still compare member names.
 ESM v13 admits concept compliance without changing command decisions or world reconstruction.
+ESM v14 equality query filters execute through the reference evaluator in the Host, including
+optional omission and required-filter rejection. The independent specification executor
+refuses filtered query assertions with `STAGE-ESM-010` rather than ignoring the filters;
+seeded read-model specifications retain the `GivenReadModel` gap.
 **Play/the Stage Host does not encrypt or redact values of personal-data concepts**, and its own event store
 keeps those values in plain text. Operational secrets are not protected there either. Use synthetic data
 for Play; protection in the Host is tracked in [Stage #346](https://github.com/Cratis/Stage/issues/346).

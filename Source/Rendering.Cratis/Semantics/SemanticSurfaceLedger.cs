@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.141.0; ESM v1–v13 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.146.0; ESM v1–v14 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -180,7 +180,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "AffectedInstanceCardinality", rendered, "One");
         Add(entries, "AffectedInstanceCardinality", rejected("STAGE-ESM-009"), "Unknown Many ZeroOrOne");
         Add(entries, "SemanticKeyedQuery", rendered, "Argument Cardinality Delivery Id KeyProperty Name ReadModel");
-        Add(entries, "SemanticKeyedQuery", rendered, "Authorization");
+        Add(entries, "SemanticKeyedQuery", rendered, "Authorization Filters"); // Snapshot collection shapes still refuse with STAGE-ESM-010.
+        Add(entries, "SemanticQueryFilter", rendered, "Id Name Type Property");
+        Add(entries, "SemanticQueryFilterValue", rendered, "Filter Value");
         Add(entries, "SemanticReadModelQueryArgument", rendered, "Id Name Type");
         Add(entries, "SemanticQueryCardinality", rendered, "ZeroOrOne Many");
         Add(entries, "SemanticQueryCardinality", rejected("STAGE-ESM-010"), "Unknown One");
@@ -248,7 +250,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticFixtureRoutePart", rendered, "Part Value");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Key ReadModel Values");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Exactly");
-        Add(entries, "SemanticSpecificationQueryResult", rendered, "Key Query Results Exactly");
+        Add(entries, "SemanticSpecificationQueryResult", rendered, "Key Query Results Exactly Filters");
         Add(entries, "SemanticSpecificationError", rendered, "Message");
         Add(entries, "SemanticSpecificationError", rejected("STAGE-ESM-011"), "Code"); // Codes naming a rendered constraint are admitted.
         Add(entries, "SemanticPropertyValue", rendered, "TargetProperty Value");

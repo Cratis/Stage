@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Text.Json;
 using Cratis.Arc.Queries;
 using Cratis.Arc.Validation;
@@ -63,7 +64,11 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         _context = context;
         _byId = byId;
         _filters = filters ?? [];
-        Parameters = byId ? new QueryParameters { { query?.Argument?.Name ?? "id", typeof(string) } } : QueryParameters.Empty;
+        Parameters = byId ? new QueryParameters { { query?.Argument?.Name ?? "id", typeof(string) } } : [];
+        foreach (var filter in query?.Filters ?? [])
+        {
+            Parameters.Add(filter.Name, typeof(string));
+        }
     }
 
     /// <inheritdoc/>
@@ -131,7 +136,10 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         var key = context.Arguments?.TryGetValue(argumentName, out var value) == true ? value?.ToString() : null;
         if (_query is not null)
         {
-            var result = await _runtime.Query(_query, Key(context), _context.HttpContext?.User ?? new());
+            var principal = _context.HttpContext?.User ?? new();
+            var result = _query.Filters.IsDefaultOrEmpty
+                ? await _runtime.Query(_query, Key(context), principal)
+                : await _runtime.Query(_query, Key(context), principal, Filters(context));
             return result switch
             {
                 SemanticAccepted accepted when _query.Cardinality == SemanticQueryCardinality.Many => accepted.Queries.Single().Results.Select(Convert).ToArray(),
@@ -175,6 +183,12 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         var text = context.Arguments?.TryGetValue(argument.Name, out var value) == true ? value?.ToString() : null;
         return SemanticQueryKeys.From(text, argument.Type, _runtime.Plan.Model.Application);
     }
+
+    ImmutableArray<SemanticQueryFilterValue> Filters(QueryContext context) =>
+        [.. _query!.Filters.Where(filter => context.Arguments?.ContainsKey(filter.Name) == true)
+            .Select(filter => new SemanticQueryFilterValue(
+                filter.Id,
+                SemanticQueryKeys.From(context.Arguments![filter.Name]?.ToString(), filter.Type, _runtime.Plan.Model.Application)))];
 
     SemanticQueryUnsupported UnsupportedWorld(string reason) => UnsupportedResponse("World", reason);
 

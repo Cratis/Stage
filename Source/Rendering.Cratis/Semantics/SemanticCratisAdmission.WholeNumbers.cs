@@ -71,7 +71,12 @@ internal static partial class SemanticCratisAdmission
                 }
                 foreach (var query in specification.ThenQueries)
                 {
-                    if (context.Queries[query.Query].Argument is { } argument) Check(query.Key, argument.Type, specification.Id);
+                    var definition = context.Queries[query.Query];
+                    if (definition.Argument is { } argument) Check(query.Key, argument.Type, specification.Id);
+                    foreach (var filter in query.Filters)
+                    {
+                        Check(filter.Value, definition.Filters.Single(value => value.Id == filter.Filter).Type, specification.Id);
+                    }
                 }
             }
         }

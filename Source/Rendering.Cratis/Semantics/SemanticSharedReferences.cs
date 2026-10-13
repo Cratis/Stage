@@ -138,6 +138,7 @@ internal static class SemanticSharedReferences
         void Query(SemanticKeyedQuery query)
         {
             Reference(query.Argument?.Type);
+            foreach (var filter in query.Filters) Reference(filter.Type);
             ReadModel(query.ReadModel);
         }
 

@@ -41,7 +41,7 @@ internal static class SemanticStateViewArtifactRenderer
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels");
         if (located.Slice.ReadModels.SelectMany(_ => _.Properties).Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)) ||
-            located.Slice.Queries.Any(_ => _.Argument is not null && SemanticTypeSystem.DeclarationNeedsCommon(_.Argument.Type)))
+            located.Slice.Queries.Any(QueryNeedsCommon))
         {
             builder.Using(context.CommonNamespace);
         }
@@ -104,6 +104,10 @@ internal static class SemanticStateViewArtifactRenderer
     internal static IOrderedEnumerable<SemanticProperty> OrderedProperties(IEnumerable<SemanticProperty> properties) =>
         properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal);
 
+    static bool QueryNeedsCommon(SemanticKeyedQuery query) =>
+        (query.Argument is not null && SemanticTypeSystem.DeclarationNeedsCommon(query.Argument.Type)) ||
+        query.Filters.Any(filter => SemanticTypeSystem.DeclarationNeedsCommon(filter.Type));
+
     static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
         string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
             $"{((property.IsIdentifier || queries.Any(_ => _.Cardinality == SemanticQueryCardinality.ZeroOrOne && _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[global::Cratis.Chronicle.Keys.KeyAttribute] " : string.Empty)}{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
@@ -139,6 +143,12 @@ internal static class SemanticStateViewArtifactRenderer
         var methodName = Identifiers.ToPascalCase(query.Name);
         var documentation = context.Docs(query.Id).Render(builder.BlankLine())
             .Attribute(SemanticAuthorizationAttributes.For(query, context));
+        if (!query.Filters.IsDefaultOrEmpty)
+        {
+            RenderFilteredQuery(documentation, query, readModel, types);
+            return;
+        }
+
         if (query.Argument is null)
         {
             documentation.ExpressionMember(
@@ -161,6 +171,57 @@ internal static class SemanticStateViewArtifactRenderer
             $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argument.Parameter})",
             argument.Guarded($"await readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){argument.Value})"));
     }
+
+    static void RenderFilteredQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types)
+    {
+        var filters = query.Filters.Select(filter => RenderFilter(filter, readModel, types)).ToArray();
+        var parameters = KeyParameters(query, types).Concat(filters.Select(filter => filter.Parameter))
+            .Prepend("global::Cratis.Chronicle.ReadModels.IReadModels readModels");
+        var predicates = KeyPredicates(query, readModel, types).Concat(filters.Select(filter => filter.Predicate));
+        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var methodName = Identifiers.ToPascalCase(query.Name);
+        var expression = $"global::System.Linq.Enumerable.Where(await readModels.GetInstances<{readModelName}>(), instance => {string.Join(" && ", predicates)})";
+        builder.ExpressionMember(
+            $"public static async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>> {methodName}({string.Join(", ", parameters)})",
+            GuardRequiredFilters(expression, filters, readModelName, methodName));
+    }
+
+    static IEnumerable<string> KeyParameters(SemanticKeyedQuery query, SemanticTypeSystem types) =>
+        query.Argument is { } keyed ? [QueryArgumentExpression.For(keyed, types).Parameter] : [];
+
+    static IEnumerable<string> KeyPredicates(SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types) =>
+        query.Argument is { } keyed
+            ? [EqualityPredicate(keyed.Type, readModel.Properties.Single(property => property.Id == query.KeyProperty), QueryArgumentExpression.For(keyed, types), types)]
+            : [];
+
+    static string EqualityPredicate(SemanticTypeReference type, SemanticProperty property, QueryArgumentExpression argument, SemanticTypeSystem types) =>
+        $"global::System.Collections.Generic.EqualityComparer<{types.Type(type with { IsOptional = type.IsOptional || property.Type.IsOptional })}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {argument.Comparison})";
+
+    static RenderedQueryFilter RenderFilter(SemanticQueryFilter filter, SemanticReadModel readModel, SemanticTypeSystem types)
+    {
+        var argument = QueryArgumentExpression.For(new(filter.Id, filter.Name, filter.Type), types);
+        var property = readModel.Properties.Single(property => property.Id == filter.Property);
+        var equality = EqualityPredicate(filter.Type, property, argument, types);
+
+        // Arc treats plain reference parameters as implicitly optional. Match its required-by
+        // rejection explicitly for text, including validated concepts accepted as text primitives.
+        return new(
+            argument.Parameter + (filter.Type.IsOptional ? " = null" : string.Empty),
+            filter.Type.IsOptional ? $"({argument.Name} is null || {equality})" : equality,
+            !filter.Type.IsOptional && argument.Type == "string" ? argument : null);
+    }
+
+    static string GuardRequiredFilters(string expression, IEnumerable<RenderedQueryFilter> filters, string readModelName, string methodName)
+    {
+        foreach (var guard in filters.Select(filter => filter.RequiredGuard).OfType<QueryArgumentExpression>().Reverse())
+        {
+            expression = $"{guard.Name} is null ? throw new global::Cratis.Arc.Queries.ModelBound.MissingArgumentForQuery(nameof({guard.Name}), typeof({guard.Type}), $\"{{typeof({readModelName}).FullName}}.{methodName}\") : {expression}";
+        }
+
+        return expression;
+    }
+
+    sealed record RenderedQueryFilter(string Parameter, string Predicate, QueryArgumentExpression? RequiredGuard);
 
     /// <summary>
     /// The C# expressions for a query argument. A validated concept argument is accepted as its primitive and converted

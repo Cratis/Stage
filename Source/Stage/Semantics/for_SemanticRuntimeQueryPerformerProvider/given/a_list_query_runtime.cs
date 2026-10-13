@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Security.Claims;
+using System.Text.Json;
 using Cratis.Arc.Queries;
 using Cratis.Execution;
 using Cratis.Screenplay.Semantics;
@@ -10,7 +11,6 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Api;
 using Microsoft.AspNetCore.Http;
-using NSubstitute;
 
 namespace Cratis.Stage.Semantics.for_SemanticRuntimeQueryPerformerProvider.given;
 
@@ -46,6 +46,9 @@ public class a_list_query_runtime : Specification
                   query AllProjects => ProjectSummary[]
                   query ProjectsByName => ProjectSummary[]
                     by name String
+                  query FilteredProjects => ProjectSummary[]
+                    filter name String
+                    filter projectId String optional
                   projection ProjectSummaryProjection => ProjectSummary
                     from ProjectRegistered key projectId
                       projectId = projectId
@@ -70,10 +73,7 @@ public class a_list_query_runtime : Specification
             world = result.World;
         }
 
-        _runtime = Substitute.For<ISemanticRuntime>();
-        _runtime.Plan.Returns(plan);
-        _runtime.Query(Arg.Any<SemanticKeyedQuery>(), Arg.Any<SemanticValue>(), Arg.Any<ClaimsPrincipal>()).Returns(call =>
-            new SemanticEvaluator().Execute(plan, world, SemanticExecutionRequest.ForQueries([new(call.Arg<SemanticKeyedQuery>().Id, call.Arg<SemanticValue>())])));
+        _runtime = new query_runtime(plan, world);
         _factory = new();
         _http = new HttpContextAccessor { HttpContext = new DefaultHttpContext() };
     }
@@ -84,5 +84,21 @@ public class a_list_query_runtime : Specification
     {
         _performer = _provider.Performers.Single(performer => performer.Name == name);
         _result = await _performer.Perform(new QueryContext(_performer.FullyQualifiedName, CorrelationId.NotSet, Paging.NotPaged, Sorting.None, arguments));
+    }
+
+    // Castle cannot intercept default interface methods; this double implements both query overloads.
+    sealed class query_runtime(SemanticExecutionPlan plan, SemanticWorld world) : ISemanticRuntime
+    {
+        public SemanticExecutionPlan Plan => plan;
+
+        public Task<SemanticExecutionResult> Query(SemanticKeyedQuery query, SemanticValue key, ClaimsPrincipal principal) => Query(query, key, principal, []);
+
+        public Task<SemanticExecutionResult> Query(SemanticKeyedQuery query, SemanticValue key, ClaimsPrincipal principal, ImmutableArray<SemanticQueryFilterValue> filters) =>
+            Task.FromResult(new SemanticEvaluator().Execute(plan, world, SemanticExecutionRequest.ForQueries([new(query.Id, key) { Filters = filters }])));
+
+        public Task<ImmutableArray<SemanticReadModelInstance>> ReadModels(SemanticId model) => Task.FromResult(world.ReadModels);
+
+        public Task<SemanticExecutionResult> Execute(SemanticCommand command, IReadOnlyDictionary<string, JsonElement> payload, ClaimsPrincipal principal, SemanticCommandOccurrence occurrence, bool validateOnly) =>
+            Task.FromResult<SemanticExecutionResult>(new SemanticUnsupported(world, SemanticExecutionCapability.Query, "This query double does not execute commands."));
     }
 }

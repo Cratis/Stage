@@ -56,6 +56,13 @@ internal static class GeneratedPascalCase
             queries.All(query => char.ToLowerInvariant(From(query.Argument)[0]) + From(query.Argument)[1..] != "readModels");
     }
 
+    internal static bool QueryParametersAreUnique(IEnumerable<string> parameters)
+    {
+        var names = parameters.Select(name => char.ToLowerInvariant(From(name)[0]) + From(name)[1..]).ToArray();
+
+        return names.Distinct(StringComparer.Ordinal).Count() == names.Length && !names.Contains("readModels", StringComparer.Ordinal);
+    }
+
     internal static bool ProjectionTypeNameIsSafe(string name) => From(name) != "Define";
 
     internal static bool ConstraintTypeNameIsSafe(string name) => From(name) != "Define";

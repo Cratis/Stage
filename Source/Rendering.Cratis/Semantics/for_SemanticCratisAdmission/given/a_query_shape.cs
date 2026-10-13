@@ -36,7 +36,8 @@ public class a_query_shape : a_register_project_render_request
     {
         var feature = _feature with { Slices = [_registerProject with { Specifications = [] }, _slice] };
         var module = _module with { Features = [feature] };
-        var model = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, _model.Application with { Modules = [module] });
+        var hasFilters = !_query.Filters.IsDefaultOrEmpty;
+        var model = ExecutableSemanticModel.Create(hasFilters ? LanguageVersion.V14 : _model.LanguageVersion, hasFilters ? SemanticVersion.V14 : _model.SemanticVersion, _model.Application with { Modules = [module] });
         return new(_request with { Model = model }, _options);
     }
 

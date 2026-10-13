@@ -13,7 +13,7 @@ encryption without erasure.
 
 ## Executable semantic models
 
-Stage admits exact ESM v13 language/semantic pairs from Screenplay 4.141.0. The semantic planner maps
+Stage admits exact ESM v1–v14 language/semantic pairs from Screenplay 4.146.0. The semantic planner maps
 `SemanticConcept.Compliance` using fully qualified attribute names:
 
 | Concept classification | Generated attributes |

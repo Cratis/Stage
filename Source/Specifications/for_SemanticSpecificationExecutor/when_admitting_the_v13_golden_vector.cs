@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
@@ -15,9 +16,7 @@ public class when_admitting_the_v13_golden_vector : Specification
 
     void Establish()
     {
-        // The renderer embeds the owned vector. This project copies the same bytes: an EmbeddedResource
-        // here creates a cycle between Arc's embedded-Screenplay and Roslyn resource targets.
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "full-esm-v13.json"))), []).Plan!;
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(13).Bytes.AsSpan()), []).Plan!;
     }
 
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());

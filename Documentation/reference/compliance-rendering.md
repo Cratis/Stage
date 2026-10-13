@@ -13,7 +13,7 @@ encryption without erasure.
 
 ## Executable semantic models
 
-Stage admits exact ESM v13 language/semantic pairs from Screenplay 4.141.0. The semantic planner maps
+Stage admits exact ESM v1–v14 language/semantic pairs from Screenplay 4.146.0. The semantic planner maps
 `SemanticConcept.Compliance` using fully qualified attribute names:
 
 | Concept classification | Generated attributes |
@@ -27,6 +27,12 @@ The semantic path never emits `[ComplianceDetails]`. GDPR special-category and c
 are carried by ESM v13 but do not change the generated attribute. Reasons are authoring metadata,
 not ESM members. Opt-in details remain a syntax-renderer feature ([Stage #259](https://github.com/Cratis/Stage/issues/259)).
 Unmarked models retain their earlier ESM version and byte-identical artifacts.
+
+The semantic renderer and Host refuse non-text `secret` concepts with `STAGE-ESM-041`:
+`Int`, `Decimal`, `Bool`, `Date`, `DateTime`, and `Uuid`. Chronicle cannot yet safely store
+non-text secrets ([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)). Use text-backed
+secrets without removing their classification. This refusal does not apply to `pii secret`, which
+uses PII protection only.
 
 On the semantic path, each command input that transitively contains any compliance-marked concept
 (`pii`, `secret`, or both) also gets
@@ -55,11 +61,13 @@ In v13 the data subject is the event's event source. Explicit subject lineage is
 ([Stage #28](https://github.com/Cratis/Stage/issues/28)); Screenplay refuses personal or subject-scoped
 secret values together with an explicit event `subject` mark.
 
-**Play/the Stage Host does not encrypt or redact values of personal-data concepts.** Its own event
-store keeps values in plain text; it does not apply the generated application's compliance attributes.
-Operational secrets are not protected there either. Use synthetic data for Play. Host protection is
-tracked in [Stage #346](https://github.com/Cratis/Stage/issues/346). Passing reference or Stage
-specifications proves modeled outcomes, not storage protection.
+The semantic Stage Host registers personal-data and secret concept metadata with Chronicle, which
+encrypts event values at rest and releases them on read, like rendered applications. Protection follows
+concept values through collection elements and composite members. Causation contains only the caller's
+identity, never command input values. Personal-data erasure uses Chronicle's encryption-key deletion
+keyed by the event source; explicit subject lineage remains [Stage #28](https://github.com/Cratis/Stage/issues/28).
+Existing Play stores retain their earlier plaintext events; the new metadata does not retroactively
+encrypt them. Passing reference or Stage specifications proves modeled outcomes, not storage protection.
 
 ## Syntax renderer details
 

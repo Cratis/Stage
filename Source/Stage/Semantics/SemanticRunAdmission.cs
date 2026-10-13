@@ -39,6 +39,7 @@ public static class SemanticRunAdmission
         var events = slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Id);
 
         return SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
+            .Concat(SemanticVersionFeatures.NonTextSecrets(application))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
             .Distinct().Select(Feature);
     }
@@ -91,14 +92,7 @@ public static class SemanticRunAdmission
                 !GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name)));
             if (collidingCommand is not null) return Block(StageExecutionCapability.Command, collidingCommand.Id, "Command property names collide in generated C#.");
             var collidingReadModel = slice.ReadModels.FirstOrDefault(readModel =>
-                !GeneratedPascalCase.ReadModelMembersAreUnique(
-                    readModel.Name,
-                    readModel.Properties.Select(property => property.Name),
-                    slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
-                !GeneratedPascalCase.QueriesAreUnique(slice.Queries.Where(query => query.ReadModel == readModel.Id)
-                    .Select(query => query.Argument is { } argument
-                        ? (query.Name, SemanticRunProjectionAdmission.QueryType(argument.Type, plan), argument.Name)
-                        : (query.Name, string.Empty, string.Empty))));
+                !SemanticRunProjectionAdmission.QueryMembersAreUnique(readModel, slice.Queries, plan));
             if (collidingReadModel is not null) return Block(StageExecutionCapability.Projection, collidingReadModel.Id, "A read-model property name or query collides in generated C#.");
             var collidingConstraint = slice.Constraints.FirstOrDefault(constraint =>
                 !GeneratedPascalCase.ConstraintTypeNameIsSafe(constraint.Name));
@@ -240,6 +234,7 @@ public static class SemanticRunAdmission
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
         var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
+            .Concat(SemanticVersionFeatures.NonTextSecrets(plan.Model.Application))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
             .Concat(RunSpecificationFeatures(specification))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))

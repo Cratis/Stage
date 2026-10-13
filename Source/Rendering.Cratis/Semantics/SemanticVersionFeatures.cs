@@ -93,11 +93,16 @@ internal static class SemanticVersionFeatures
     internal const string ProtectedIdentity = "STAGE-ESM-040";
 
     /// <summary>
+    /// The code for non-text secrets Chronicle cannot safely store yet.
+    /// </summary>
+    internal const string NonTextSecret = "STAGE-ESM-041";
+
+    /// <summary>
     /// Checks the language and semantic version pair Stage has audited.
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV13Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV14Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -117,6 +122,20 @@ internal static class SemanticVersionFeatures
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
         .Concat(RoutesInApplication(application))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
+
+    /// <summary>
+    /// Finds non-text secrets that Chronicle cannot safely store, excluding personal data which uses PII protection.
+    /// </summary>
+    /// <param name="application">The semantic application.</param>
+    /// <returns>The refused concepts.</returns>
+    public static IEnumerable<SemanticVersionFeature> NonTextSecrets(SemanticApplication application) =>
+        application.Concepts.Where(concept => concept.Compliance is { Secret: not null, Personal: null } && concept.Primitive != SemanticPrimitiveType.Text)
+            .Select(concept => new SemanticVersionFeature(
+                NonTextSecret,
+                StageExecutionCapability.Occurrence,
+                concept.Id,
+                "concept",
+                $"Secret concept '{concept.Name}' has primitive '{concept.Primitive}'; Chronicle can't yet store non-text secrets (Cratis/Chronicle#4813)."));
 
     /// <summary>
     /// Finds named event sources and streams the renderer cannot render yet.

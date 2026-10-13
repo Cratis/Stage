@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Frozen;
 using System.Text.Json.Nodes;
 using Cratis.Screenplay.Semantics;
 
@@ -11,6 +12,18 @@ namespace Cratis.Stage.Semantics;
 /// </summary>
 public static class SemanticSchemas
 {
+    static readonly FrozenDictionary<SemanticPrimitiveType, (string Type, string? Format)> _primitiveShapes =
+        new Dictionary<SemanticPrimitiveType, (string Type, string? Format)>
+        {
+            [SemanticPrimitiveType.Uuid] = ("string", "uuid"),
+            [SemanticPrimitiveType.Text] = ("string", null),
+            [SemanticPrimitiveType.WholeNumber] = ("integer", null),
+            [SemanticPrimitiveType.DecimalNumber] = ("number", null),
+            [SemanticPrimitiveType.Boolean] = ("boolean", null),
+            [SemanticPrimitiveType.Date] = ("string", "date"),
+            [SemanticPrimitiveType.DateTime] = ("string", "date-time")
+        }.ToFrozenDictionary();
+
     /// <summary>
     /// Builds a JSON object schema for semantic properties.
     /// </summary>
@@ -35,16 +48,33 @@ public static class SemanticSchemas
 
     static JsonObject TypeSchema(SemanticTypeReference reference, SemanticApplication application)
     {
-        if (reference.IsOptional)
+        var schema = TypeShape(reference, application);
+        if (!reference.IsCollection && reference.Kind == SemanticTypeReferenceKind.Concept)
         {
-            return new JsonObject
+            var compliance = application.Concepts.Single(concept => concept.Id == reference.Target).Compliance;
+            if (compliance?.Personal is not null)
             {
-                ["anyOf"] = new JsonArray(
-                    TypeSchema(reference with { IsOptional = false }, application),
-                    new JsonObject { ["type"] = "null" })
-            };
+                schema["compliance"] = Metadata("PII");
+            }
+            else if (compliance?.Secret is { } secret)
+            {
+                schema["security"] = Metadata(secret.Scope switch
+                {
+                    "namespace" => "EncryptedNamespace",
+                    "global" => "EncryptedGlobal",
+                    _ => "EncryptedSubject"
+                });
+            }
         }
 
+        return schema;
+    }
+
+    static JsonArray Metadata(string type) => new(new JsonObject { ["metadataType"] = type, ["details"] = string.Empty });
+
+    static JsonObject TypeShape(SemanticTypeReference reference, SemanticApplication application)
+    {
+        if (reference.IsOptional) return OptionalShape(reference, application);
         if (reference.IsCollection)
         {
             return new JsonObject { ["type"] = "array", ["items"] = TypeSchema(reference with { IsCollection = false }, application) };
@@ -56,24 +86,37 @@ public static class SemanticSchemas
             return JsonNode.Parse(Schema(type.Properties, application))!.AsObject();
         }
 
-        var primitive = reference.Kind == SemanticTypeReferenceKind.Concept
+        return PrimitiveShape(reference.Kind == SemanticTypeReferenceKind.Concept
             ? application.Concepts.Single(concept => concept.Id == reference.Target).Primitive
-            : reference.Primitive;
-        var (typeName, format) = primitive switch
+            : reference.Primitive);
+    }
+
+    // Keep protection metadata on the primitive node Chronicle inspects, while allowing absent values.
+    static JsonObject OptionalShape(SemanticTypeReference reference, SemanticApplication application)
+    {
+        var required = reference with { IsOptional = false };
+        if (IsProtectedConcept(reference, application))
         {
-            SemanticPrimitiveType.Uuid => ("string", "uuid"),
-            SemanticPrimitiveType.Text => ("string", null),
-            SemanticPrimitiveType.WholeNumber => ("integer", null),
-            SemanticPrimitiveType.DecimalNumber => ("number", null),
-            SemanticPrimitiveType.Boolean => ("boolean", null),
-            SemanticPrimitiveType.Date => ("string", "date"),
-            SemanticPrimitiveType.DateTime => ("string", "date-time"),
-            _ => throw new UnsupportedSemanticSchema()
-        };
-        var schema = new JsonObject { ["type"] = typeName };
-        if (format is not null)
+            var schema = TypeShape(required, application);
+            schema["type"] = new JsonArray(schema["type"]!.GetValue<string>(), "null");
+
+            return schema;
+        }
+
+        return new JsonObject { ["anyOf"] = new JsonArray(TypeShape(required, application), new JsonObject { ["type"] = "null" }) };
+    }
+
+    static bool IsProtectedConcept(SemanticTypeReference reference, SemanticApplication application) =>
+        !reference.IsCollection && reference.Kind == SemanticTypeReferenceKind.Concept &&
+        application.Concepts.Single(concept => concept.Id == reference.Target).Compliance is not null;
+
+    static JsonObject PrimitiveShape(SemanticPrimitiveType primitive)
+    {
+        if (!_primitiveShapes.TryGetValue(primitive, out var shape)) throw new UnsupportedSemanticSchema();
+        var schema = new JsonObject { ["type"] = shape.Type };
+        if (shape.Format is not null)
         {
-            schema["format"] = format;
+            schema["format"] = shape.Format;
         }
 
         return schema;

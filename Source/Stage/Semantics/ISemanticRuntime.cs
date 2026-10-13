@@ -40,6 +40,19 @@ public interface ISemanticRuntime
     Task<SemanticExecutionResult> Query(SemanticKeyedQuery query, SemanticValue key, ClaimsPrincipal principal);
 
     /// <summary>
+    /// Executes one query with equality filters against the committed world.
+    /// </summary>
+    /// <param name="query">The admitted query.</param>
+    /// <param name="key">The typed lookup key.</param>
+    /// <param name="principal">The caller.</param>
+    /// <param name="filters">The supplied equality filters.</param>
+    /// <returns>The semantic outcome.</returns>
+    Task<SemanticExecutionResult> Query(SemanticKeyedQuery query, SemanticValue key, ClaimsPrincipal principal, ImmutableArray<SemanticQueryFilterValue> filters) =>
+        query.Filters.IsDefaultOrEmpty && filters.IsDefaultOrEmpty
+            ? Query(query, key, principal)
+            : Task.FromResult<SemanticExecutionResult>(new SemanticUnsupported(SemanticWorld.Empty, SemanticExecutionCapability.Query, "This runtime does not implement equality query filters."));
+
+    /// <summary>
     /// Reads the committed instances of one read model.
     /// </summary>
     /// <param name="model">The read model identity.</param>

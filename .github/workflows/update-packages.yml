@@ -8,8 +8,11 @@ on:
 
 jobs:
   update:
-    uses: Cratis/Workflows/.github/workflows/update-packages.yml@925a9a9cad3c3d9f2be8b44acf1788adf675af14
+    uses: Cratis/Workflows/.github/workflows/update-packages.yml@64c0c1d405d6bde6fbe705db5edcc8b99aa513c7
     with:
+      # StyleCop.Analyzers stays on 1.2.0-beta.556 like the other Cratis repositories: 1.3.x reports SA1137
+      # on correctly indented multi-line collection expressions. Bump it deliberately, not automatically.
+      nuget-package-exclusions: StyleCop.Analyzers
       post-update-command: python3 Verification/verify-runtime-compatibility.py --self-test --synchronize
       publication-mode: pull-request
       pull-request-label: patch

@@ -61,9 +61,25 @@ public class when_comparing_exact_number_corpus_specifications : Specification
     [Fact] void should_execute_all_eight_stage_cases() => _stage.Count.ShouldEqual(8);
     [Fact] void should_pass_every_reference_case() => _reference.TrueForAll(result => result.Passed && result.Execution.Kind == SemanticExecutionOutcomeKind.Accepted).ShouldBeTrue();
     [Fact] void should_pass_every_stage_case() => _stage.Select(result => result.Outcome).Distinct().ShouldContainOnly(SemanticSpecificationOutcome.Passed);
-    [Fact] void should_refuse_the_multi_command_slice_in_all_four_forms() => _rendering.Count.ShouldEqual(4);
-    [Fact] void should_report_the_existing_slice_capability_refusal() => _rendering.SelectMany(plan => plan.Diagnostics).Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly("STAGE-ESM-004");
-    [Fact] void should_emit_no_partial_artifacts() => _rendering.SelectMany(plan => plan.Artifacts).ShouldBeEmpty();
+    [Fact] void should_render_the_multi_command_slice_in_all_four_forms() => _rendering.Count.ShouldEqual(4);
+    [Fact] void should_admit_every_source_form() => Assert.All(_rendering, plan => Assert.True(plan.Success, string.Join('\n', plan.Diagnostics)));
+    [Fact] void should_emit_artifacts() => _rendering.SelectMany(plan => plan.Artifacts).ShouldNotBeEmpty();
+}
+
+public class when_comparing_canonical_exact_numbers(when_comparing_canonical_exact_numbers.context fixture, ITestOutputHelper output) : IClassFixture<when_comparing_canonical_exact_numbers.context>
+{
+    [Fact] void should_compare_all_eight_cases() => fixture.Outcomes.Length.ShouldEqual(8);
+    [Fact] void should_match_all_three_executions() => ThreeWayOutcomes.Report(fixture, output);
+
+    public class context : a_three_way_application
+    {
+        protected override string ApplicationName => "ExactNumbers";
+        protected override string ProjectFile => "ExactNumbers.csproj";
+        protected override bool RequireStageExecution => true;
+        protected override CanonicalCorpusVector Baseline => NumberLiteralsCorpus.ExactLiteralsV11;
+        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => Baseline.SourceForms.Select(form => (form.Name, Compile(Baseline, form)));
+        Task Because() => Verify();
+    }
 }
 
 public class when_comparing_exact_number_projection_specifications(when_comparing_exact_number_projection_specifications.context fixture, ITestOutputHelper output) : IClassFixture<when_comparing_exact_number_projection_specifications.context>

@@ -121,7 +121,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown RulePredicate CodeValidation");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
-        // State change: one command with unconditional mapped events in declaration order. Tags preserve
+        // State change: one or more commands with mapped events and portable When conditions in declaration order. Tags preserve
         // contract-then-production order; duplicate tags fail admission because Chronicle deduplicates.
         // Requirements use the same catalog-backed message resolution as property and concept validation.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
@@ -138,8 +138,8 @@ internal static class SemanticSurfaceLedger
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
         // admitted through the closed-compilation pure gate; opaque validation still cannot receive RuleContext.Occurred.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
-        Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags");
-        Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition When");
+        Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags When");
+        Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition");
         Add(entries, "SemanticEventContract", rendered, "Id Name StoredName Properties Tags");
         Add(entries, "SemanticEventContract", ignored("Carried revision selects admission: initial events render unchanged; evolved revisions fail STAGE-ESM-026 until event migrations can render."), "Revision");
         Add(entries, "SemanticEventContract", ignored("The initial event revision's stable contract identity is owned by Screenplay, not emitted by the first renderer."), "ContractId");

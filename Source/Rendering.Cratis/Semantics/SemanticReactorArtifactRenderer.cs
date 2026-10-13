@@ -19,8 +19,9 @@ internal static class SemanticReactorArtifactRenderer
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         context.Docs(reaction.Id).Render(builder)
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(reaction.Id.ToString())})")
-            .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute")
-            .OpenBlock($"public class {name} : global::Cratis.Chronicle.Reactors.IReactor");
+            .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute");
+        RenderIdentityAttribute(builder, reaction);
+        builder.OpenBlock($"public class {name} : global::Cratis.Chronicle.Reactors.IReactor");
         foreach (var group in reaction.Triggers.GroupBy(trigger => trigger.Source))
         {
             var source = context.Events[group.Key];
@@ -53,6 +54,15 @@ internal static class SemanticReactorArtifactRenderer
         builder.EndBlock();
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [reaction.Id] };
+    }
+
+    static void RenderIdentityAttribute(CSharpCodeBuilder builder, SemanticReaction reaction)
+    {
+        if (reaction.RunsAs is not { } identity) return;
+        var roles = string.Join(", ", identity.Roles.Select(CSharpCodeBuilder.StringLiteral));
+        builder.Attribute(identity.Roles.IsEmpty
+            ? "global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute"
+            : $"global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute({roles})");
     }
 
     static string Production(SemanticProducedEvent produced, SemanticEventContract source, SemanticTypeSystem types, SemanticApplicationContext context)

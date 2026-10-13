@@ -237,10 +237,9 @@ internal static class SemanticSurfaceLedger
         // ESM v5 keyed read-model absence fails STAGE-ESM-027: the generated ReadModelScenario exposes only a materialized record.
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-027"), "ThenAbsentReadModels");
         Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-027"), "Key ReadModel");
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenAppended");
+        Add(entries, "SemanticSpecification", rendered, "WhenAppended");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
-        Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "EventContract EventSource Values");
-        Add(entries, "SemanticSpecificationAppend", rejected("STAGE-ESM-011"), "Route");
+        Add(entries, "SemanticSpecificationAppend", rendered, "EventContract EventSource Values Route");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");
         Add(entries, "SemanticSpecificationEvent", rendered, "Route Unrouted");
         Add(entries, "SemanticFixtureRoute", rendered, "Source Stream StreamId StreamIdParts");
@@ -380,10 +379,9 @@ internal static class SemanticSurfaceLedger
 
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
         // Admit each construct only on the paths that can preserve it.
-        var identity = rejected(SemanticVersionFeatures.ReactionIdentity);
-        Add(entries, "SemanticReaction", identity, "RunsAs");
-        Add(entries, "SemanticReactionIdentity", identity, "Kind Roles");
-        Add(entries, "SemanticReactionIdentityKind", identity, "System");
+        Add(entries, "SemanticReaction", rendered, "RunsAs");
+        Add(entries, "SemanticReactionIdentity", rendered, "Kind Roles");
+        Add(entries, "SemanticReactionIdentityKind", rendered, "System");
         var filters = rejected(SemanticVersionFeatures.ObserverFilters);
         Add(entries, "SemanticReaction", filters, "From");
 

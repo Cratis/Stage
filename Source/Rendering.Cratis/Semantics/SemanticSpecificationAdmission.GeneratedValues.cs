@@ -10,10 +10,10 @@ internal static partial class SemanticSpecificationAdmission
 {
     static IEnumerable<SemanticSpecification> WithRenderableGeneratedValues(
         SemanticApplicationContext context,
-        SemanticSlice slice,
+        IEnumerable<SemanticSpecification> specifications,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in slice.Specifications)
+        foreach (var specification in specifications)
         {
             if (NeedsPinnedGeneratedValues(context, specification))
             {

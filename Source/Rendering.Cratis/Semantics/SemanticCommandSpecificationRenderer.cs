@@ -18,8 +18,9 @@ internal static partial class SemanticCommandSpecificationRenderer
     /// </summary>
     /// <param name="specification">The semantic specification.</param>
     /// <param name="context">The indexed semantic application.</param>
+    /// <param name="reaction">The optional reactor prelude.</param>
     /// <returns>The generated specification source.</returns>
-    public static RenderedFile Render(SemanticSpecification specification, SemanticApplicationContext context)
+    public static RenderedFile Render(SemanticSpecification specification, SemanticApplicationContext context, SemanticReactionSpecificationPrelude? reaction = null)
     {
         var when = specification.When!;
         var command = context.Commands[when.Command];
@@ -38,16 +39,23 @@ internal static partial class SemanticCommandSpecificationRenderer
 
         var commandName = types.SliceType(command.Id, command.Name);
         var arguments = generated.Arguments();
-        var scope = new SpecificationScope(builder, specification, command, context, types, SeedsEventLog(specification, command, context), commandName, arguments);
+        var scope = new SpecificationScope(builder, specification, command, context, types, SeedsEventLog(specification, command, context), commandName, arguments) { ReactionPrelude = reaction };
 
         RenderHeader(scope, behavior);
         RenderEstablish(scope, generated);
         RenderBecause(scope);
         RenderOutcome(scope, generated);
 
-        builder.BlankLine()
-            .ExpressionMember("public void Dispose()", "_scenario.Dispose()")
-            .EndBlock();
+        builder.BlankLine();
+        if (reaction is null)
+        {
+            builder.ExpressionMember("public void Dispose()", "_scenario.Dispose()");
+        }
+        else
+        {
+            SemanticReactionSpecificationRenderer.RenderDispose(builder);
+        }
+        builder.EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
         // Decided from the rendered content rather than predicted, the same way the non-semantic renderer
@@ -123,6 +131,10 @@ internal static partial class SemanticCommandSpecificationRenderer
             builder.Line("int _givenEventCount = 0;");
         }
 
+        if (scope.ReactionPrelude is { } reaction)
+        {
+            SemanticReactionSpecificationRenderer.RenderHeader(scope.Builder, reaction, scope.Context);
+        }
         builder.BlankLine();
     }
 
@@ -130,13 +142,11 @@ internal static partial class SemanticCommandSpecificationRenderer
     {
         var builder = scope.Builder;
         var specification = scope.Specification;
-        if (generated.RequiresEstablish)
+        var requiresEstablish = RequiresEstablish(scope, generated);
+        if (requiresEstablish)
         {
             builder.OpenBlock(scope.SeedInLog ? "async global::System.Threading.Tasks.Task Establish()" : "void Establish()");
-            if (scope.Command.Authorization is not null)
-            {
-                builder.Line($"global::{scope.Context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
-            }
+            RenderPolicyRegistration(scope);
         }
 
         generated.RenderFixtures(builder);
@@ -146,7 +156,7 @@ internal static partial class SemanticCommandSpecificationRenderer
             RenderGivenEvent(scope, given);
         }
 
-        if (generated.RequiresEstablish)
+        if (requiresEstablish)
         {
             if (scope.CountsGivenEvents)
             {
@@ -154,6 +164,17 @@ internal static partial class SemanticCommandSpecificationRenderer
             }
 
             builder.EndBlock().BlankLine();
+        }
+    }
+
+    static bool RequiresEstablish(SpecificationScope scope, SemanticGeneratedCommandSpecification generated) =>
+        generated.RequiresEstablish || (scope.ReactionPrelude is not null && scope.Command.Authorization is not null);
+
+    static void RenderPolicyRegistration(SpecificationScope scope)
+    {
+        if (scope.Command.Authorization is not null)
+        {
+            scope.Builder.Line($"global::{scope.Context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
         }
     }
 
@@ -189,6 +210,11 @@ internal static partial class SemanticCommandSpecificationRenderer
     {
         var builder = scope.Builder;
         var commandName = scope.CommandName;
+        if (scope.ReactionPrelude is not null)
+        {
+            SemanticReactionSpecificationRenderer.RenderBecause(scope);
+            return;
+        }
         if (scope.Specification.GivenCaller is not { } caller)
         {
             builder.Line($"async global::System.Threading.Tasks.Task Because() => _result = await _scenario.Execute(new {commandName}({string.Join(", ", scope.Arguments)}));")

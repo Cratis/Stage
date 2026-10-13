@@ -39,6 +39,7 @@ internal static partial class SemanticCratisAdmission
             diagnostics.Add(Error("STAGE-ESM-039", $"Reaction '{reaction.Name}' has no event subscription for a Chronicle reactor.", reaction.Id));
             return;
         }
+        ValidateReactionIdentity(context, reaction, diagnostics);
         if (ReactionNamesCollide(context, slice, reaction))
         {
             diagnostics.Add(Error("STAGE-ESM-012", $"Reaction '{reaction.Name}' has event handler names that collide in generated C#.", reaction.Id));

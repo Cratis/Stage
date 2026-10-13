@@ -70,6 +70,19 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
                     await Verify("zero", 0m, false);
                     Assert.Empty(await store.Reactors.GetFailedPartitionsFor<Acknowledge>());
                     Assert.Empty(await store.Reactors.GetFailedPartitionsFor<CompletePositive>());
+                    await VerifyUnmarked();
+
+                    async Task VerifyUnmarked()
+                    {
+                        var append = await store.EventLog.Append("unmarked-trigger", new UntrustedStarted("unmarked-result", 5m));
+                        Assert.True(append.IsSuccess);
+                        var completion = await append.WaitForCompletion(TimeSpan.FromSeconds(90));
+                        Assert.False(completion.TimedOut);
+                        Assert.False(completion.IsSuccess);
+                        Assert.NotEmpty(completion.FailedPartitions);
+                        Assert.NotEmpty(await store.Reactors.GetFailedPartitionsFor<UnmarkedWorker>());
+                        Assert.Empty(await store.EventLog.GetFromSequenceNumber(EventSequenceNumber.First, "unmarked-result"));
+                    }
 
                     async Task Verify(string id, decimal amount, bool completes)
                     {
@@ -117,7 +130,21 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
 
     protected override ArtifactRenderPlan CreatePlan()
     {
-        var model = an_automation.Compile(an_automation.Source);
+        var source = "policy CanComplete\n  require role \"Automation\"\n" + an_automation.Source
+            .Replace("      command CompleteWork", "      command CompleteWork\n        authorize CanComplete", StringComparison.Ordinal)
+            .Replace("      reaction CompletePositive", "      reaction CompletePositive\n        runs as system role \"Automation\"", StringComparison.Ordinal);
+        source += """
+
+                  event UntrustedStarted
+                    id String
+                    amount Decimal
+                  reaction UnmarkedWorker
+                    when UntrustedStarted
+                      invokes CompleteWork
+                        id = id
+                        amount = amount
+            """;
+        var model = an_automation.Compile(source);
 
         return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
     }

@@ -17,5 +17,5 @@ public class when_auditing_routes : Specification
     [Fact] void should_classify_route_assertions_as_rendered() => _entries["SemanticSpecificationEvent.Route"].Kind.ShouldEqual(SemanticSurfaceDispositionKind.Rendered);
     [Fact] void should_classify_unrouted_assertions_as_rendered() => _entries["SemanticSpecificationEvent.Unrouted"].Kind.ShouldEqual(SemanticSurfaceDispositionKind.Rendered);
     [Fact] void should_classify_fixture_parts_as_rendered() => _entries["SemanticFixtureRoutePart.Value"].Kind.ShouldEqual(SemanticSurfaceDispositionKind.Rendered);
-    [Fact] void should_keep_direct_appends_refused() => _entries["SemanticSpecification.WhenAppended"].ShouldEqual(new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-011"));
+    [Fact] void should_classify_reaction_appends_as_rendered() => _entries["SemanticSpecification.WhenAppended"].Kind.ShouldEqual(SemanticSurfaceDispositionKind.Rendered);
 }

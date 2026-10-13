@@ -17,13 +17,16 @@ internal static partial class SemanticCratisAdmission
         SemanticSlice slice,
         List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (slice.Commands.Length != 1)
+        if (slice.Commands.IsEmpty)
         {
-            diagnostics.Add(Error("STAGE-ESM-004", $"State-change slice '{slice.Name}' must contain exactly one command.", slice.Id));
+            diagnostics.Add(Error("STAGE-ESM-004", $"State-change slice '{slice.Name}' must contain at least one command.", slice.Id));
             return;
         }
 
-        ValidateCommand(context, slice, slice.Commands[0], diagnostics);
+        foreach (var command in slice.Commands)
+        {
+            ValidateCommand(context, slice, command, diagnostics);
+        }
     }
 
     static void ValidateCommand(

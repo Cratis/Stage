@@ -126,7 +126,8 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 | --- | --- |
 | `STAGE-ESM-028` | Unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy |
 | `STAGE-ESM-011` | A v15 generated fixture that does not match its strategy shape |
-| `STAGE-ESM-004` / `STAGE-ESM-006` | Multi-command StateChange slices / conditional productions remain refused ([Stage #360](https://github.com/Cratis/Stage/issues/360)) |
+| `STAGE-ESM-004` | StateChange slices without a command |
+| `STAGE-ESM-006` | Conditional productions remain refused ([Stage #360](https://github.com/Cratis/Stage/issues/360)) |
 | `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, generated-concept validation rules, occurrence parameter name collisions; unsupported response sources, composite or collection responses; response/factory name collisions; generated values mapped into unique-property constraints |
 | `STAGE-ESM-038` | Unpinned generation with unordered event, read-model or query expectations |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |

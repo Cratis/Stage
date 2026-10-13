@@ -44,7 +44,7 @@ public class when_refusing_v15_generated_value_corpora : Specification
             var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GeneratedCorpus", "GeneratedCorpus"));
             rendered.Success.ShouldBeFalse();
             rendered.Artifacts.ShouldBeEmpty();
-            rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-004");
+            rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-006");
             rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
         }
     }

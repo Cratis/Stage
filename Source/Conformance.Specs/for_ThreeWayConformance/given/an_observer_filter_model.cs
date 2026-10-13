@@ -29,8 +29,12 @@ internal static class an_observer_filter_model
         {
             Reducers = [],
             Commands = [.. slice.Commands.Where(command => command.Name != "Fold")],
+
+            // This derived fixture covers reaction events only, not the canonical Followups assertion.
             ReadModels = [],
-            Specifications = [example]
+            Projections = [],
+            Queries = [],
+            Specifications = [example with { GivenReadModels = [], ThenReadModels = [], ThenQueries = [] }]
         };
 
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with

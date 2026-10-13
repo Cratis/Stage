@@ -12,7 +12,8 @@ using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
-// The rendered leg remains refused until reaction specification rendering is delivered separately.
+// Executor parity also covers filters and mixed effects that remain outside renderer admission.
+// The unmodified identity corpus has a separate three-way generated-application specification.
 public class when_comparing_reaction_specifications : Specification
 {
     [Theory]

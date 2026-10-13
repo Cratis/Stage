@@ -27,6 +27,7 @@ history. Invoked generated commands remain unsupported without deterministic fix
 | Reaction | A class implementing `Cratis.Chronicle.Reactors.IReactor` in the slice namespace |
 | Reaction identity | `[Reactor("<semantic id>")]`; renaming the declaration does not select a new observer when its semantic identity is retained |
 | Replay policy | Class-level `[OnceOnly]` |
+| `runs as system` | Class-level `[ExecuteCommandsAsSystem]`; declared roles become attribute arguments, in canonical order |
 | Event triggers | One handler per triggering event type; triggers on that event are combined in authored order |
 | `where` | A guard over the triggering event's values |
 | `invokes` | Returned model-bound command records, executed by Arc's reactor result handlers |
@@ -51,6 +52,8 @@ A production without `for` targets the triggering event source. An explicit `for
 
 Within a handler, Stage collects effects in authored trigger and mapping order. Arc executes a returned command collection in order and stops at its first failure. Separate reactors are independent observers: do not rely on the order in which their follow-up events arrive.
 
+`runs as system` supplies Arc's system principal only to returned commands. Role-only and authenticated-only authorization gates render. A claim-reading gate, including a claim under `not` or `or`, or an opaque gate under `runs as` fails with `STAGE-ESM-034`: Screenplay treats system claims as unknown, while Arc supplies `[System]` subject claims. Generated policies are unchanged.
+
 A denied, rejected or throwing invoked command fails the live reactor partition and can be retried. Screenplay's reference execution instead ends the scenario at that failure. A reaction without `runs as` can render while invoking an authorization-gated command, but the live invocation has no principal and can leave a failed partition. Rendering is not proof of successful authorization or settlement.
 
 A newly registered reactor catches up from the existing event log. `[OnceOnly]` prevents replay; it does **not** deduplicate ordinary deliveries or retries after failure. Keep commands and external effects safe for repeated delivery, and inspect failed partitions during operation.
@@ -63,7 +66,11 @@ reaction effects; command then-events include the initiating command's facts and
 Clock fixtures and clock/trigger/capture actions remain unsupported; an `$context.occurred` production
 without a scenario clock is a contract rejection.
 
-Stage does not yet render `when append` reaction specifications. It also refuses a command specification when that command produces an event subscribed to by any event reaction in the application: the generated `CommandScenario` does not settle reactions, whereas the reference does. Both refusals use `STAGE-ESM-011`.
+Stage renders single-hop `when append` reaction specifications through `ReactorScenario`. A production-only scenario checks the exact effect count, payloads, destinations and unrouted stream metadata, with assignment matching for any-order expectations. An invocation scenario executes the one returned command through `CommandScenario`, reading the system identity from the reactor's attribute rather than forwarding `given caller`. Screenplay requires an outcome: a `when append` specification always asserts the reaction's produced events or the invoked command's outcome.
+
+Append fixtures may carry an explicit source and route. A sourceless append uses a fixed scenario placeholder only when no production relies on the trigger destination. Fan-out, deeper cascades, multiple invocations, `$context`, read-model/query/absence expectations and constraint-target appends or products remain refused with `STAGE-ESM-011`. Non-reaction appends also remain refused. The append values must select exactly one active trigger after `where` is evaluated; guarded alternative paths can each be specified with their own outcome.
+
+Stage still refuses a command specification when that command produces an event subscribed to by any event reaction in the application: the generated `CommandScenario` does not settle reactions, whereas the reference does. This uses `STAGE-ESM-011`.
 
 Render admission, generated Debug compilation, generated specifications and live execution are separate results. Build and test the generated project rather than treating a published render as runtime evidence. Live verification requires a Chronicle kernel and the generated Arc host wiring, including its reactor result handlers.
 
@@ -72,13 +79,13 @@ Render admission, generated Debug compilation, generated specifications and live
 | Diagnostic | Refused shape |
 | --- | --- |
 | `STAGE-ESM-024` | Clock, application, startup and shutdown triggers; opaque reaction bodies; captures and Translate slices; clock/trigger/capture specifications |
-| `STAGE-ESM-034` | Reaction `runs as` |
+| `STAGE-ESM-034` | `runs as` invoking a claim-reading or opaque authorization gate; all `runs as` on legacy syntax paths |
 | `STAGE-ESM-035` | Reaction `from` |
 | `STAGE-ESM-037` | Events and commands returned by one handler, whether authored in one trigger or separate triggers on the same event in one reaction |
 | `STAGE-ESM-013` | Reaction mappings of `$context.causedBy.*` or `$context.eventSourceId` |
 | `STAGE-ESM-039` | Conditions, destinations or mappings that cannot retain their modeled meaning; incomplete event mappings or a reaction without an event subscription |
 | `STAGE-ESM-012` | Reactor names or handler names that collide with generated C# declarations or slice files |
-| `STAGE-ESM-011` | Direct-append specifications and command specifications that cascade into reactions |
+| `STAGE-ESM-011` | Append specifications outside the single-hop subset above; command specifications that cascade into reactions |
 | `STAGE-ESM-007` | A query or projection in an Automation slice without a locally declared read model and its single projection or reducer |
 | `STAGE-ESM-009` | A flat projection whose payload key cannot be proven equal to the append destination for every command and reaction producer |
 | `STAGE-ESM-040` | Personal or secret concepts used as reaction production destinations |

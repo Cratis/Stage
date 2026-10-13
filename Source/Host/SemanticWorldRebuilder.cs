@@ -279,15 +279,24 @@ internal static class SemanticWorldRebuilder
 
     static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
     {
-        // Chronicle may omit an absent optional value (it does for protected concepts), so only optional properties may be missing.
-        if (json.ValueKind != JsonValueKind.Object ||
-            json.EnumerateObject().Any(entry => properties.Count(property => property.Name == entry.Name) != 1) ||
-            properties.Any(property => !property.Type.IsOptional && !json.TryGetProperty(property.Name, out _)))
+        if (!MatchesSchema(json, properties))
         {
             throw new SemanticWorldRebuildRefused("Chronicle content does not match its semantic property schema.");
         }
 
         return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
+    }
+
+    // Every stored name is declared exactly once and appears once. Chronicle may omit an absent optional value
+    // (it does for protected concepts), so only optional properties may be missing.
+    static bool MatchesSchema(JsonElement json, ImmutableArray<SemanticProperty> properties)
+    {
+        if (json.ValueKind != JsonValueKind.Object) return false;
+        var names = json.EnumerateObject().Select(entry => entry.Name).ToArray();
+        if (names.Distinct(StringComparer.Ordinal).Count() != names.Length) return false;
+        if (names.Any(name => properties.Count(property => property.Name == name) != 1)) return false;
+
+        return properties.All(property => property.Type.IsOptional || names.Contains(property.Name, StringComparer.Ordinal));
     }
 
     static SemanticValue PropertyValue(JsonElement json, SemanticProperty property, SemanticApplication application) =>

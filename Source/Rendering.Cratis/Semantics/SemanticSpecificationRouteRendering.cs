@@ -25,7 +25,7 @@ internal static class SemanticSpecificationRouteRendering
         var stream = source.Streams.Single(stream => stream.Id == route.Stream);
 
         return $" && {entry}.Event.Context.EventSourceType == {CSharpCodeBuilder.StringLiteral(source.SourceKind)}" +
-            $" && {entry}.Event.Context.EventStreamType == {CSharpCodeBuilder.StringLiteral(stream.StreamKind)}" +
+            $" && {entry}.Event.Context.EventStreamType == {SemanticEventSourceArtifactRenderer.StreamReference(source, stream, context)}" +
             $" && {entry}.Event.Context.EventStreamId == {StreamId(route, context)}";
     }
 
@@ -34,7 +34,7 @@ internal static class SemanticSpecificationRouteRendering
         var source = context.Application.EventSources.Single(source => source.Id == route.Source);
         var stream = source.Streams.Single(stream => stream.Id == route.Stream);
 
-        return $"eventSourceType: {CSharpCodeBuilder.StringLiteral(source.SourceKind)}, eventStreamType: {CSharpCodeBuilder.StringLiteral(stream.StreamKind)}, eventStreamId: {StreamId(route, context)}";
+        return $"eventSourceType: {CSharpCodeBuilder.StringLiteral(source.SourceKind)}, eventStreamType: {SemanticEventSourceArtifactRenderer.StreamReference(source, stream, context)}, eventStreamId: {StreamId(route, context)}";
     }
 
     internal static string Seed(SemanticFixtureRoute? route, SemanticApplicationContext context) =>

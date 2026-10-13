@@ -19,6 +19,9 @@ internal static class SemanticEventSourceArtifactRenderer
 
     internal static string Namespace(SemanticApplicationContext context) => string.Join('.', new[] { context.RootNamespace }.Concat(context.Domain).Append("EventSources"));
 
+    internal static string StreamReference(SemanticEventSource source, SemanticEventStream stream, SemanticApplicationContext context) =>
+        $"global::{Namespace(context)}.{ClassName(source)}.{stream.Name}";
+
     internal static RenderedFile Render(SemanticEventSource source, SemanticApplicationContext context)
     {
         var builder = new CSharpCodeBuilder().Namespace(Namespace(context))
@@ -26,12 +29,30 @@ internal static class SemanticEventSourceArtifactRenderer
             .Attribute($"global::Cratis.Chronicle.EventSources.EventSourceAttribute({CSharpCodeBuilder.StringLiteral(source.SourceKind)})");
         foreach (var stream in source.Streams.OrderBy(stream => stream.StreamKind, StringComparer.Ordinal))
         {
-            builder.Attribute($"global::Cratis.Chronicle.EventSources.EventStreamAttribute({CSharpCodeBuilder.StringLiteral(stream.StreamKind)})");
+            builder.Attribute($"global::Cratis.Chronicle.EventSources.EventStreamAttribute({StreamReference(source, stream, context)})");
         }
-        builder.Line($"public class {ClassName(source)} : global::Cratis.Chronicle.EventSources.IEventSource;");
+        RenderDeclaration(builder, source);
         return new(string.Join('/', context.Domain.Append("EventSources").Append($"{ClassName(source)}.cs")), builder.ToString())
         {
             Sources = [source.Id, .. source.Streams.Select(stream => stream.Id)]
         };
+    }
+
+    static void RenderDeclaration(CSharpCodeBuilder builder, SemanticEventSource source)
+    {
+        var declaration = $"public class {ClassName(source)} : global::Cratis.Chronicle.EventSources.IEventSource";
+        if (source.Streams.IsEmpty)
+        {
+            builder.Line($"{declaration};");
+            return;
+        }
+        builder.OpenBlock(declaration);
+        foreach (var stream in source.Streams.OrderBy(stream => stream.StreamKind, StringComparer.Ordinal))
+        {
+            builder.Summary($"Identifies the {Identifiers.ToWords(stream.Name)} stream.")
+                .Line($"public const string {stream.Name} = {CSharpCodeBuilder.StringLiteral(stream.StreamKind)};")
+                .BlankLine();
+        }
+        builder.EndBlock();
     }
 }

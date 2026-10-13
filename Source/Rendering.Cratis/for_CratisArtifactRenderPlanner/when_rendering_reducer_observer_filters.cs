@@ -39,7 +39,7 @@ public class when_rendering_reducer_observer_filters
         var files = Files(plan);
         var reducer = files.Single(file => file.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal));
         var expected = withStream
-            ? "[global::Cratis.Chronicle.EventSources.FromEventSourceAttribute<global::Projects.EventSources.OrdersSourceEventSource>(\"stored-entries\")]"
+            ? "[global::Cratis.Chronicle.EventSources.FromEventSourceAttribute<global::Projects.EventSources.OrdersSourceEventSource>(global::Projects.EventSources.OrdersSourceEventSource.Entries)]"
             : "[global::Cratis.Chronicle.Events.EventSourceTypeAttribute(\"stored-orders\")]";
         Assert.Contains(expected, reducer.Content, StringComparison.Ordinal);
         Assert.Empty(RenderedOutput.Errors(files));

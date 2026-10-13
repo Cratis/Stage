@@ -32,6 +32,6 @@ public class when_rendering_a_routed_append : given.a_reaction_specification
         };
     }
     void Because() => Render();
-    [Fact] void should_supply_the_modeled_stream_to_the_reactor() => _source.ShouldContain(".OnStream(eventSourceType: \"Work\", eventStreamType: \"Notes\", eventStreamId: \"notes\")");
+    [Fact] void should_supply_the_modeled_stream_to_the_reactor() => _source.ShouldContain(".OnStream(eventSourceType: \"Work\", eventStreamType: global::Reactions.EventSources.WorkSourceEventSource.Notes, eventStreamId: \"notes\")");
     [Fact] void should_keep_the_production_unrouted() => _source.ShouldContain("EventStreamType == global::Cratis.Chronicle.Events.EventStreamType.All");
 }

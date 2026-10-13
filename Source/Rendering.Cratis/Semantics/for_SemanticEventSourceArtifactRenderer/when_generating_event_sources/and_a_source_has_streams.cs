@@ -33,10 +33,27 @@ public class and_a_source_has_streams : a_routed_command
         /// Defines the account event source.
         /// </summary>
         [global::Cratis.Chronicle.EventSources.EventSourceAttribute("Account")]
-        [global::Cratis.Chronicle.EventSources.EventStreamAttribute("Notes")]
-        [global::Cratis.Chronicle.EventSources.EventStreamAttribute("Statements")]
-        [global::Cratis.Chronicle.EventSources.EventStreamAttribute("Transactions")]
-        public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSource;
+        [global::Cratis.Chronicle.EventSources.EventStreamAttribute(global::InvoiceApp.EventSources.AccountEventSource.Notes)]
+        [global::Cratis.Chronicle.EventSources.EventStreamAttribute(global::InvoiceApp.EventSources.AccountEventSource.Statements)]
+        [global::Cratis.Chronicle.EventSources.EventStreamAttribute(global::InvoiceApp.EventSources.AccountEventSource.Transactions)]
+        public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSource
+        {
+            /// <summary>
+            /// Identifies the notes stream.
+            /// </summary>
+            public const string Notes = "Notes";
+
+            /// <summary>
+            /// Identifies the statements stream.
+            /// </summary>
+            public const string Statements = "Statements";
+
+            /// <summary>
+            /// Identifies the transactions stream.
+            /// </summary>
+            public const string Transactions = "Transactions";
+
+        }
 
         """);
     [Fact] void should_not_invent_concurrency() => _definition.Contains("Concurrency", StringComparison.Ordinal).ShouldBeFalse();

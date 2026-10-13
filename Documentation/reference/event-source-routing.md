@@ -13,17 +13,27 @@ An `Account` source with a `Transactions` stream produces `EventSources/AccountE
 namespace Banking.EventSources;
 
 [global::Cratis.Chronicle.EventSources.EventSourceAttribute("Account")]
-[global::Cratis.Chronicle.EventSources.EventStreamAttribute("Transactions")]
-public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSource;
+[global::Cratis.Chronicle.EventSources.EventStreamAttribute(AccountEventSource.Transactions)]
+public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSource
+{
+    /// <summary>
+    /// Identifies the transactions stream.
+    /// </summary>
+    public const string Transactions = "Transactions";
+}
 ```
 
-The attributes use the **stored** source and stream names, including explicitly pinned names that differ from the declaration names. Streams appear in ordinal stored-name order. Stage emits neither descriptions nor concurrency dimensions. Definition class names retain an existing `EventSource` suffix; otherwise Stage adds it. Collisions fail planning with `STAGE-ESM-012`, rather than renaming a definition.
+The source attribute uses the **stored** source name explicitly. Each stream has a public string constant on the source class: its identifier is the model stream name and its value is the stored stream name. Stream attributes, command attributes and generated specification routes reference that constant directly, including when the stored name differs. Streams appear in ordinal stored-name order. Stage emits neither descriptions nor concurrency dimensions.
+
+Definition class names always append `EventSource` to the model name, even if the model name already ends in that suffix. Class-name collisions fail planning with `STAGE-ESM-012`, rather than renaming a definition. Stream constant names must be PascalCase Screenplay identifiers and cannot collide with another member, the class name or a C# keyword; unsupported names also fail with `STAGE-ESM-012`.
+
+Chronicle 19.54.0's bare source attribute removes the trailing `EventSource` from the class name when deriving its stored name. Stage retains explicit source attributes instead of relying on that default.
 
 An application render emits every source. A narrower render emits only sources referenced by selected commands, specification fixtures or observer filters, together with their identifier, stream-id and part-type dependencies. A domain placement such as `Sales/Retail` moves definitions to `Sales/Retail/EventSources/` and `{Root}.Sales.Retail.EventSources`. The shared codec remains at the application root.
 
 ## Generated commands
 
-A routed command carries `Cratis.Arc.Chronicle.Commands.EventSourceAttribute<TSource>` with the stored stream name. An unkeyed stream needs only that attribute; its handler retains the existing return shape.
+A routed command carries `Cratis.Arc.Chronicle.Commands.EventSourceAttribute<TSource>` with a direct reference to the stream constant, such as `AccountEventSource.Transactions`. An unkeyed stream needs only that attribute; its handler retains the existing return shape.
 
 For a keyed stream, the handler returns `EventForEventSourceId` wrappers with `EventStreamId` set. Literal identities are formatted during planning and emitted as escaped C# literals. Property identities are formatted inside `Handle()`. Composite identities use declaration order. Every event the command produces receives the same route, even when a production targets another event-source instance. Existing `Occurred` metadata and tags remain on each wrapper.
 
@@ -34,7 +44,7 @@ An ESM v10 reducer or reaction's `from` clause filters the facts delivered to it
 | Filter | Generated class attribute |
 |---|---|
 | Source only | `Cratis.Chronicle.Events.EventSourceTypeAttribute("<stored source name>")` |
-| Source and stream | `Cratis.Chronicle.EventSources.FromEventSourceAttribute<TSource>("<stored stream name>")` |
+| Source and stream | `Cratis.Chronicle.EventSources.FromEventSourceAttribute<AccountEventSource>(AccountEventSource.Transactions)` |
 
 `TSource` is the generated event-source definition. Filters use stored names, not declaration names or stream identities. Unrouted facts never match a filtered observer. A source-only filter accepts every stream of that source; a source-and-stream filter accepts only that pair. Reserved stored names fail planning with `STAGE-ESM-030`.
 

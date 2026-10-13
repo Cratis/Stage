@@ -66,6 +66,10 @@ parameters; TypeScript proxy argument types are unchanged.
 A composite or collection query argument containing a validated concept fails admission with
 `STAGE-ESM-010`, naming the query and concept.
 
+:::caution[Renaming events]
+Stage renders each event with argument-free `[EventType]`, so its Chronicle event type id is the event's current name. Renaming an event in the model renames its Chronicle type; events already stored under the old name are no longer recognized by the rendered application. Until [Screenplay carries the stored event name in the ESM](https://github.com/Cratis/Screenplay/issues/704), do not rename events in a model whose rendered application already holds data. Add a new event instead.
+:::
+
 ## Generated C# whole numbers
 
 The semantic Cratis renderer maps whole-number primitives and concepts to `long` for ESM v8 and later,

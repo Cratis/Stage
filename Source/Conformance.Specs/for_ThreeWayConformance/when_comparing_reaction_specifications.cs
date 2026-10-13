@@ -33,6 +33,7 @@ public class when_comparing_reaction_specifications : Specification
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
         var admitted = plan.Specifications.Values.Where(specification => SemanticSpecificationAdmission.Check(plan, specification) is null).ToArray();
         admitted.ShouldNotBeEmpty();
+        if (form == "filters") admitted.Select(specification => specification.Name).ShouldContainOnly(["RoutedReaction", "WrongStreamReaction", "UnroutedReaction"]);
         foreach (var specification in admitted)
         {
             await AssertMatchesReference(plan, specification);
@@ -118,7 +119,16 @@ public class when_comparing_reaction_specifications : Specification
         {
             Reducers = [],
             Reactions = [.. slice.Reactions.Where(reaction => reaction.Triggers.All(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.RequirementId is null))],
-            Specifications = [.. slice.Specifications.Where(specification => form == "reactions" ? specification.WhenTrigger is null && specification.WhenClock is null && specification.WhenCapture is null : specification.Name.EndsWith("Reaction", StringComparison.Ordinal))]
+            Specifications = [.. slice.Specifications
+                .Where(specification => form == "reactions" ? specification.WhenTrigger is null && specification.WhenClock is null && specification.WhenCapture is null : specification.Name.EndsWith("Reaction", StringComparison.Ordinal))
+                .Select(specification => form == "filters" ? specification with
+                {
+                    // The refreshed corpus also asserts reducer-built Followups. This subset compares event effects only.
+                    GivenReadModels = [],
+                    ThenReadModels = [],
+                    ThenAbsentReadModels = [],
+                    ThenQueries = []
+                } : specification)]
         });
 
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with

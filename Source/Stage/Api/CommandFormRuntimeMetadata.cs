@@ -20,10 +20,25 @@ static class CommandFormRuntimeMetadata
     const string MetadataStatusProperty = "metadataStatus";
     const string MetadataErrorProperty = "metadataError";
 
+    // What the runtime derives from the command and the form for it, which an authored element does not overrule.
+    static readonly HashSet<string> _runtimeProperties = new(["command", "fields", "layout", "generationMode", "populateSource", "schema", "parameterless", MetadataStatusProperty, MetadataErrorProperty], StringComparer.Ordinal);
+
     internal static SceneApplication Apply(SceneApplication scene, IReadOnlyDictionary<string, CommandFormRuntimeCommand> commands) => scene with
     {
         Screens = [.. scene.Screens.Select(screen => Apply(screen, commands))]
     };
+
+    internal static SceneElements.ExternalComponent PlacedFormElement(SceneElements.ExternalComponent placed, Form form, CommandFormRuntimeCommand? command)
+    {
+        var element = FormElement(placed.Id, placed.Name, form, command);
+        var properties = new Dictionary<string, object?>(element.Properties, StringComparer.Ordinal);
+        foreach (var (name, value) in placed.Properties.Where(property => !_runtimeProperties.Contains(property.Key)))
+        {
+            properties[name] = value;
+        }
+
+        return element with { Properties = properties, Behaviors = placed.Behaviors };
+    }
 
     internal static CommandFormRuntimeCommand FromSchema(string command, string schema) => new(command, schema, FieldsFrom(schema));
 
@@ -35,21 +50,26 @@ static class CommandFormRuntimeMetadata
         var formsByCommand = forms
             .GroupBy(form => form.ForCommand, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var placed = new PlacedForms(formsByCommand);
         var slotContent = screen.SlotContent.ToDictionary(
             slot => slot.Key,
-            slot => (IReadOnlyList<SceneElements.SceneElement>)[.. slot.Value.Select(element => Enrich(element, commands, formsByCommand))],
+            slot => (IReadOnlyList<SceneElements.SceneElement>)[.. slot.Value.Select(element => Enrich(element, commands, formsByCommand, placed))],
             StringComparer.Ordinal);
+        var contributions = screen.Contributions.Select(contribution => Enrich(contribution, commands, formsByCommand, placed)).ToArray();
 
-        if (forms.Length > 0)
+        // A form a command form element placed on the screen already presents is shown there, beside the elements it was authored
+        // among, and is not appended a second time at the end of the screen.
+        var unplaced = forms.Where(form => !placed.Commands.Contains(form.ForCommand)).ToArray();
+        if (unplaced.Length > 0)
         {
-            slotContent[FormsSlot] = [.. slotContent.GetValueOrDefault(FormsSlot) ?? [], .. forms.Select(form => FormElement(screen.Name, form, commands.GetValueOrDefault(form.ForCommand)))];
+            slotContent[FormsSlot] = [.. slotContent.GetValueOrDefault(FormsSlot) ?? [], .. unplaced.Select(form => FormElement(screen.Name, form, commands.GetValueOrDefault(form.ForCommand)))];
         }
 
         return screen with
         {
             Forms = [],
             SlotContent = slotContent,
-            Contributions = [.. screen.Contributions.Select(contribution => Enrich(contribution, commands, formsByCommand))]
+            Contributions = contributions
         };
     }
 
@@ -66,24 +86,31 @@ static class CommandFormRuntimeMetadata
     static SceneContribution Enrich(
         SceneContribution contribution,
         IReadOnlyDictionary<string, CommandFormRuntimeCommand> commands,
-        IReadOnlyDictionary<string, Form> formsByCommand) => contribution with
+        IReadOnlyDictionary<string, Form> formsByCommand,
+        PlacedForms placed) => contribution with
     {
-        Content = Enrich(contribution.Content, commands, formsByCommand)
+        Content = Enrich(contribution.Content, commands, formsByCommand, placed)
     };
 
     static SceneElements.SceneElement Enrich(
         SceneElements.SceneElement element,
         IReadOnlyDictionary<string, CommandFormRuntimeCommand> commands,
-        IReadOnlyDictionary<string, Form> formsByCommand)
+        IReadOnlyDictionary<string, Form> formsByCommand,
+        PlacedForms placed)
     {
         if (element is not SceneElements.ExternalComponent component)
         {
             return element;
         }
 
+        if (IsPlacedCommandForm(component, out var placedCommand))
+        {
+            return placed.Show(component, placedCommand, commands.GetValueOrDefault(placedCommand));
+        }
+
         var slots = component.Slots.ToDictionary(
             slot => slot.Key,
-            slot => (IReadOnlyList<SceneElements.SceneElement>)[.. slot.Value.Select(child => Enrich(child, commands, formsByCommand))],
+            slot => (IReadOnlyList<SceneElements.SceneElement>)[.. slot.Value.Select(child => Enrich(child, commands, formsByCommand, placed))],
             StringComparer.Ordinal);
 
         if (!IsAction(component, out var commandName))
@@ -109,7 +136,10 @@ static class CommandFormRuntimeMetadata
         return component with { Properties = properties, Slots = slots };
     }
 
-    static SceneElements.ExternalComponent FormElement(string screen, Form form, CommandFormRuntimeCommand? command)
+    static SceneElements.ExternalComponent FormElement(string screen, Form form, CommandFormRuntimeCommand? command) =>
+        FormElement($"form-{screen}-{form.Name}", form.Name, form, command);
+
+    static SceneElements.ExternalComponent FormElement(string id, string name, Form form, CommandFormRuntimeCommand? command)
     {
         var properties = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
@@ -124,8 +154,8 @@ static class CommandFormRuntimeMetadata
 
         return new SceneElements.ExternalComponent
         {
-            Id = $"form-{screen}-{form.Name}",
-            Name = form.Name,
+            Id = id,
+            Name = name,
             ComponentName = ComponentName,
             Properties = properties,
             Slots = new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal)
@@ -159,6 +189,23 @@ static class CommandFormRuntimeMetadata
         properties.Remove(MetadataErrorProperty);
     }
 
+    // The names a command form placed on a screen goes by: the Cratis components package's, as Studio stores it and as a Screenplay
+    // component names it, and the runtime's own.
+    static bool IsPlacedCommandForm(SceneElements.ExternalComponent component, out string commandName)
+    {
+        commandName = string.Empty;
+        if (component.ComponentName is not ("Cratis.Components:commandForm" or "Cratis.Components.commandForm" or ComponentName) ||
+            !component.Properties.TryGetValue("command", out var commandValue) ||
+            commandValue is not string { Length: > 0 } command)
+        {
+            return false;
+        }
+
+        commandName = command;
+
+        return true;
+    }
+
     static bool IsAction(SceneElements.ExternalComponent component, out string commandName)
     {
         commandName = string.Empty;
@@ -176,3 +223,33 @@ static class CommandFormRuntimeMetadata
 }
 
 sealed record CommandFormRuntimeCommand(string Command, string Schema, IReadOnlyList<FormField> Fields);
+
+/// <summary>
+/// The command forms the elements placed on a screen present. A placed command form takes the form its screen has for its
+/// command - the form's fields, geometry and generation - or the form that follows the command's own schema, and keeps its
+/// place, its identity and every property it was authored with.
+/// </summary>
+/// <param name="formsByCommand">The forms the screen has, by the command each is for.</param>
+sealed class PlacedForms(IReadOnlyDictionary<string, Form> formsByCommand)
+{
+    readonly HashSet<string> _commands = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Gets the commands whose forms an element placed on the screen presents.
+    /// </summary>
+    public IReadOnlySet<string> Commands => _commands;
+
+    /// <summary>
+    /// Makes a placed command form element the runtime command form for its command.
+    /// </summary>
+    /// <param name="component">The placed element.</param>
+    /// <param name="commandName">The command it presents.</param>
+    /// <param name="command">What the model knows of the command, when it knows it.</param>
+    /// <returns>The runtime command form, where the element was placed.</returns>
+    internal SceneElements.ExternalComponent Show(SceneElements.ExternalComponent component, string commandName, CommandFormRuntimeCommand? command)
+    {
+        _commands.Add(commandName);
+        var form = formsByCommand.GetValueOrDefault(commandName) ?? new Form(commandName, commandName, null, [], FormGenerationMode.Auto);
+        return CommandFormRuntimeMetadata.PlacedFormElement(component, form, command);
+    }
+}

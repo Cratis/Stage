@@ -57,13 +57,18 @@ internal sealed record SemanticReactionSpecification(SemanticReaction Reaction, 
         {
             SemanticComparisonOperator.Equal => Equal(left, right),
             SemanticComparisonOperator.NotEqual => !Equal(left, right),
-            SemanticComparisonOperator.GreaterThan => ((SemanticNumberValue)left).Value > ((SemanticNumberValue)right).Value,
-            SemanticComparisonOperator.GreaterThanOrEqual => ((SemanticNumberValue)left).Value >= ((SemanticNumberValue)right).Value,
-            SemanticComparisonOperator.LessThan => ((SemanticNumberValue)left).Value < ((SemanticNumberValue)right).Value,
-            SemanticComparisonOperator.LessThanOrEqual => ((SemanticNumberValue)left).Value <= ((SemanticNumberValue)right).Value,
-            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison.Operator)
+            _ => CompareNumbers(comparison.Operator, (SemanticNumberValue)left, (SemanticNumberValue)right)
         };
     }
+
+    static bool CompareNumbers(SemanticComparisonOperator operation, SemanticNumberValue left, SemanticNumberValue right) => operation switch
+    {
+        SemanticComparisonOperator.GreaterThan => left.Value > right.Value,
+        SemanticComparisonOperator.GreaterThanOrEqual => left.Value >= right.Value,
+        SemanticComparisonOperator.LessThan => left.Value < right.Value,
+        SemanticComparisonOperator.LessThanOrEqual => left.Value <= right.Value,
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), operation)
+    };
 
     static bool Equal(SemanticValue left, SemanticValue right) => (left, right) switch
     {

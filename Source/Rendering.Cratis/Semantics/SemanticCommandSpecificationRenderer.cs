@@ -142,14 +142,11 @@ internal static partial class SemanticCommandSpecificationRenderer
     {
         var builder = scope.Builder;
         var specification = scope.Specification;
-        var requiresEstablish = generated.RequiresEstablish || (scope.ReactionPrelude is not null && scope.Command.Authorization is not null);
+        var requiresEstablish = RequiresEstablish(scope, generated);
         if (requiresEstablish)
         {
             builder.OpenBlock(scope.SeedInLog ? "async global::System.Threading.Tasks.Task Establish()" : "void Establish()");
-            if (scope.Command.Authorization is not null)
-            {
-                builder.Line($"global::{scope.Context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
-            }
+            RenderPolicyRegistration(scope);
         }
 
         generated.RenderFixtures(builder);
@@ -167,6 +164,17 @@ internal static partial class SemanticCommandSpecificationRenderer
             }
 
             builder.EndBlock().BlankLine();
+        }
+    }
+
+    static bool RequiresEstablish(SpecificationScope scope, SemanticGeneratedCommandSpecification generated) =>
+        generated.RequiresEstablish || (scope.ReactionPrelude is not null && scope.Command.Authorization is not null);
+
+    static void RenderPolicyRegistration(SpecificationScope scope)
+    {
+        if (scope.Command.Authorization is not null)
+        {
+            scope.Builder.Line($"global::{scope.Context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
         }
     }
 

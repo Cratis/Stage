@@ -72,7 +72,7 @@ internal static partial class SemanticSpecificationAdmission
 
     static IEnumerable<SemanticSpecification> WithoutReactionCascades(SemanticApplicationContext context, SemanticSlice slice, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in WithRenderableGeneratedValues(context, slice, diagnostics))
+        foreach (var specification in WithRenderableGeneratedValues(context, slice.Specifications, diagnostics))
         {
             if (CommandTriggersReaction(context, specification))
             {

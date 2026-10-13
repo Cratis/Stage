@@ -11,6 +11,12 @@ internal static partial class SemanticReactionSpecificationRenderer
     static void RenderProductionExpectations(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticReactionSpecificationPrelude prelude, SemanticApplicationContext context, SemanticTypeSystem types)
     {
         var produces = prelude.Selection.Trigger.Produces;
+        foreach (var (expected, index) in specification.ThenEvents.Select((expected, index) => (expected, index)))
+        {
+            var fields = context.Events[expected.EventContract].Properties.Select(property =>
+                (property, expected.Values.Single(value => value.TargetProperty == property.Id).Value));
+            RenderExpectedCollections(builder, fields, ProductionValues(types, index));
+        }
         builder.Line($"[global::Xunit.FactAttribute] void should_produce_exactly_the_expected_events() => _reactor.ProducedEvents.Count.ShouldEqual({specification.ThenEvents.Length});");
         foreach (var (produced, index) in produces.Select((produced, index) => (produced, index)))
         {
@@ -26,14 +32,17 @@ internal static partial class SemanticReactionSpecificationRenderer
         }
         foreach (var (expected, index) in specification.ThenEvents.Select((expected, index) => (expected, index)))
         {
-            builder.Line($"[global::Xunit.FactAttribute] void should_produce_event_at_position_{index + 1}() => ({ProductionPredicate(expected, context, types, $"_reactor.ProducedEvents[{index}]")}).ShouldBeTrue();");
+            builder.Line($"[global::Xunit.FactAttribute] void should_produce_event_at_position_{index + 1}() => ({ProductionPredicate(expected, context, ProductionValues(types, index), $"_reactor.ProducedEvents[{index}]")}).ShouldBeTrue();");
         }
     }
 
-    static string ProductionPredicate(SemanticSpecificationEvent expected, SemanticApplicationContext context, SemanticTypeSystem types, string entry)
+    static ValueScope ProductionValues(SemanticTypeSystem types, int index) => new(types, "@event", $"_expected_reaction_event_{index}");
+
+    static string ProductionPredicate(SemanticSpecificationEvent expected, SemanticApplicationContext context, ValueScope scope, string entry)
     {
+        var types = scope.Types;
         var @event = context.Events[expected.EventContract];
-        var predicates = @event.Properties.Select(property => ValuePredicate(property, expected.Values.Single(value => value.TargetProperty == property.Id).Value, types, "@event"));
+        var predicates = @event.Properties.Select(property => ValuePredicate(property, expected.Values.Single(value => value.TargetProperty == property.Id).Value, scope));
         var source = expected.EventSource is { } identity ? $" && {entry}.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}" : string.Empty;
 
         return $"{entry}.Event is {types.EventType(@event)} @event{string.Concat(predicates.Select(predicate => $" && {predicate}"))}{source}";
@@ -58,7 +67,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             .Line("var entry = actual[fact];").OpenBlock("return expectation switch");
         foreach (var (expected, index) in specification.ThenEvents.Select((expected, index) => (expected, index)))
         {
-            builder.Line($"{index} => {ProductionPredicate(expected, context, types, "entry")},");
+            builder.Line($"{index} => {ProductionPredicate(expected, context, ProductionValues(types, index), "entry")},");
         }
         builder.Line("_ => false").EndBlock().Line(";").EndBlock().EndBlock();
     }

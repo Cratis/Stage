@@ -45,8 +45,11 @@ internal static partial class SemanticReactionSpecificationRenderer
             .Line("using var system = identity is null ? null : new global::Cratis.Arc.Authorization.SystemExecution(accessor).AsSystem([.. identity.Roles]);")
             .Line("_result = await _scenario.Execute(command);")
             .EndBlock().BlankLine();
-        var predicates = scope.Command.Properties.Where(property => !property.IsGenerated).Select(property =>
-            ValuePredicate(property, scope.Specification.When!.Values.Single(value => value.TargetProperty == property.Id).Value, scope.Types, "command"));
+        var values = new ValueScope(scope.Types, "command", "_expected_command");
+        var fields = scope.Command.Properties.Where(property => !property.IsGenerated).Select(property =>
+            (property, scope.Specification.When!.Values.Single(value => value.TargetProperty == property.Id).Value)).ToArray();
+        RenderExpectedCollections(builder, fields, values);
+        var predicates = fields.Select(field => ValuePredicate(field.property, field.Value, values));
         builder.Line($"[global::Xunit.FactAttribute] void should_invoke_the_expected_command() => (_reactor.Produced.Count == 1 && _reactor.Produced.Single() is {scope.CommandName} command{string.Concat(predicates.Select(predicate => $" && {predicate}"))}).ShouldBeTrue();")
             .BlankLine();
     }
@@ -95,13 +98,29 @@ internal static partial class SemanticReactionSpecificationRenderer
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), $"#if DEBUG\n{builder}\n#endif\n");
     }
 
-    static string ValuePredicate(SemanticProperty property, SemanticValue value, SemanticTypeSystem types, string variable)
+    static string ValuePredicate(SemanticProperty property, SemanticValue value, ValueScope scope)
     {
-        var member = $"{variable}.{Identifiers.ToPascalCase(property.Name)}";
+        var name = Identifiers.ToPascalCase(property.Name);
+        var member = $"{scope.Variable}.{name}";
         if (value is SemanticNullValue) return $"{member} is null";
-        var expected = types.Value(value, property.Type);
 
-        return property.Type.IsCollection ? $"{member}.SequenceEqual({expected})" : $"{member} == {expected}";
+        return property.Type.IsCollection
+            ? $"({member} is {{ }} actual{name} && actual{name}.SequenceEqual({scope.CollectionName(property)}))"
+            : $"{member} == {scope.Types.Value(value, property.Type)}";
+    }
+
+    static void RenderExpectedCollections(CSharpCodeBuilder builder, IEnumerable<(SemanticProperty Property, SemanticValue Value)> fields, ValueScope scope)
+    {
+        foreach (var (property, value) in fields.Where(field => field.Property.Type.IsCollection && field.Value is SemanticArrayValue))
+        {
+            var elementType = property.Type with { IsCollection = false, IsOptional = false };
+            builder.Line($"static readonly {scope.Types.Type(elementType)}[] {scope.CollectionName(property)} = {scope.Types.Value(value, property.Type)};");
+        }
+    }
+
+    sealed record ValueScope(SemanticTypeSystem Types, string Variable, string Prefix)
+    {
+        internal string CollectionName(SemanticProperty property) => $"{Prefix}_{Identifiers.ToSnakeCase(property.Name)}";
     }
 }
 

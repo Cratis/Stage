@@ -129,7 +129,7 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static bool AssertsUncontrolledOccurrence(SemanticSpecification specification, SemanticCommand command) =>
-        command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+        !SemanticSpecificationClock.TryGet(specification, out _) && command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
         (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
 

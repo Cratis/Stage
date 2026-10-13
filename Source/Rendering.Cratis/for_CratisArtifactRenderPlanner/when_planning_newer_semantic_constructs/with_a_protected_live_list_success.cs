@@ -20,6 +20,6 @@ public class with_a_protected_live_list_success : Specification
         _plan = invoice_model.Plan(invoice_model.Compile(source));
     }
 
-    [Fact] void should_refuse_the_unsupported_success_scenario() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly("STAGE-ESM-011");
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_admit_the_protected_live_list_success_scenario() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_emit_the_collection_assertion() => _plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("should_return_the_expected_rows", StringComparison.Ordinal)).ShouldBeTrue();
 }

@@ -63,7 +63,7 @@ internal static partial class SemanticSpecificationAdmission
                         !ReducerUsesUnstableContext(context, expected.ReadModel)) &&
                     specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
                         !context.Reducers.Any(reducer => reducer.ReadModel == context.Queries[expected.Query].ReadModel) &&
-                        HasExpectedProjectionEvent(context, specification, expected.Results.Single())) &&
+                        expected.Results.All(result => HasExpectedProjectionEvent(context, specification, result))) &&
                     HasRenderableErrors(context, specification, command) &&
                     HasRenderableEventSources(context, specification, command!) &&
                     ProtectedQuerySourcesMatch(context, specification, command!)));
@@ -102,8 +102,8 @@ internal static partial class SemanticSpecificationAdmission
         foreach (var expected in specification.ThenQueries.Where(result =>
             context.Queries.TryGetValue(result.Query, out var query) && query.Authorization is not null))
         {
-            // Arc's QueryScenario seeds only the stream identified by the query key, unlike the
-            // unprotected ReadModelScenario. Never admit a fixture whose other streams disappear.
+            // Keyed lookups still read only their selected stream; collection scenarios preserve all seeded rows.
+            if (context.Queries[expected.Query].Cardinality == SemanticQueryCardinality.Many) continue;
             if (specification.GivenEvents.Any(given => !Equals(given.EventSource?.Value, expected.Key)) ||
                 command.Produces.Any(produced => !Equals(SemanticDestinations.ForSpecification(specification, command, produced).Value, expected.Key)))
             {

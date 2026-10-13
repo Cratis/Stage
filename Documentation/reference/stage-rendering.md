@@ -76,7 +76,7 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
-Stage uses Screenplay 4.147.1 and admits exact ESM v1–v15 language/semantic pairs, including v11's corrected Double-mode literal lowering and v15's generation strategies with atomic freshness scopes. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
+Stage uses Screenplay 4.151.0 and admits exact ESM v1–v15 language/semantic pairs, including v11's corrected Double-mode literal lowering and v15's generation strategies with atomic freshness scopes. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
 For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
 `9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction
 `0.10000000000000002` renders as `0.10000000000000002m`. Command inputs, event payloads,
@@ -113,9 +113,9 @@ Without `observable`, a list query renders as `Task<IEnumerable<ReadModel>>` usi
 `GetInstances` and in-memory filtering. Optional snapshot lookups retain their existing bytes.
 Live-list companion specifications append fixtures to `EventStoreForTesting` and await
 an emission from the generated query, executing its actual filter expression. Protected
-collection-success specifications are refused with `STAGE-ESM-011`; live queries need
-Arc's testing `Observe` forwarding ([Arc #3221](https://github.com/Cratis/Arc/issues/3221)).
-Protected query denials still run through Arc's authorization pipeline.
+collection-success specifications use Arc's `QueryScenario` with its default Chronicle read models,
+including observable lists and row expectations. Both allowed and denied protected queries run
+through Arc's authorization pipeline with the fixture caller.
 
 ## Generated C# query filters
 

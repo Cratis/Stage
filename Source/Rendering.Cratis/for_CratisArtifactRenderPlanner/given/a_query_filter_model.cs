@@ -106,11 +106,11 @@ public static class a_query_filter_model
                 var nullFlag = matching with { InvoiceId = new InvoiceId("two"), Flag = null };
                 var nullCategory = matching with { InvoiceId = new InvoiceId("three"), Category = null };
                 var differentFlag = matching with { InvoiceId = new InvoiceId("four"), Flag = false };
-                var readModels = Substitute.For<IReadModels>();
-                InvoiceSummary[] rows = [matching, nullFlag, nullCategory, differentFlag];
-                readModels.Release<InvoiceSummary>(Arg.Any<InvoiceSummary>()).Returns(call => Task.FromResult(call.Arg<InvoiceSummary>()));
                 using var scenario = new QueryScenario<InvoiceSummary>();
-                scenario.Services.AddSingleton<IReadModels>(new QueryReadModels(readModels, rows));
+                scenario.Given.ForEventSource("one").ReadModel(matching);
+                scenario.Given.ForEventSource("two").ReadModel(nullFlag);
+                scenario.Given.ForEventSource("three").ReadModel(nullCategory);
+                scenario.Given.ForEventSource("four").ReadModel(differentFlag);
                 var result = await scenario.Perform(nameof(InvoiceSummary.FilteredOptionalProperties), new QueryArguments { ["flag"] = true, ["category"] = "North" });
                 Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                 Assert.Empty(result.ValidationResults);
@@ -155,20 +155,11 @@ public static class a_query_filter_model
     public const string Probe = """
         using Cratis.Arc.Queries;
         using Cratis.Arc.Testing.Queries;
-        using Cratis.Chronicle.ReadModels;
         using Invoices.Billing.Invoicing.Lookup;
         using Invoices.Common;
-        using Microsoft.Extensions.DependencyInjection;
-        using NSubstitute;
         using Xunit;
 
         namespace Invoices.Probes;
-
-        public sealed class QueryReadModels(IReadModels inner, IEnumerable<InvoiceSummary> rows) : Cratis.Chronicle.Testing.ReadModels.ReadModelsForTesting(inner), IReadModels
-        {
-            public new System.Reactive.Subjects.ISubject<IEnumerable<T>> Observe<T>(System.Linq.Expressions.Expression<Func<T, bool>>? filter = null) =>
-                new System.Reactive.Subjects.BehaviorSubject<IEnumerable<T>>(filter is null ? rows.Cast<T>().ToArray() : rows.Cast<T>().Where(filter.Compile()).ToArray());
-        }
 
         public class query_filters
         {
@@ -178,11 +169,10 @@ public static class a_query_filter_model
                 var north = new InvoiceSummary(InvoiceId: new InvoiceId("one"), Status: "open", Category: new Category("North"));
                 var closed = new InvoiceSummary(InvoiceId: new InvoiceId("two"), Status: "closed", Category: new Category("North"));
                 var south = new InvoiceSummary(InvoiceId: new InvoiceId("three"), Status: "open", Category: new Category("South"));
-                var readModels = Substitute.For<IReadModels>();
-                InvoiceSummary[] rows = [north, closed, south];
-                readModels.Release<InvoiceSummary>(Arg.Any<InvoiceSummary>()).Returns(call => Task.FromResult(call.Arg<InvoiceSummary>()));
                 using var scenario = new QueryScenario<InvoiceSummary>();
-                scenario.Services.AddSingleton<IReadModels>(new QueryReadModels(readModels, rows));
+                scenario.Given.ForEventSource("one").ReadModel(north);
+                scenario.Given.ForEventSource("two").ReadModel(closed);
+                scenario.Given.ForEventSource("three").ReadModel(south);
                 var filtered = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open", ["category"] = "North" });
                 var optional = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open" });
                 var keyed = await scenario.Perform(nameof(InvoiceSummary.FilteredById), new QueryArguments { ["invoiceId"] = "three", ["status"] = "open" });

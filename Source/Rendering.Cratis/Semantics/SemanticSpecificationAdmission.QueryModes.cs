@@ -11,8 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static partial class SemanticSpecificationAdmission
 {
     static bool HasRenderableQueryExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>
-        specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) &&
-        !HasProtectedCollectionSuccess(context, specification);
+        specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification);
 
     static bool CanRenderQueryOnly(SemanticApplicationContext context, SemanticSpecification specification) =>
         CanDenyQueryOnly(specification, context) ||
@@ -27,19 +26,8 @@ internal static partial class SemanticSpecificationAdmission
         context.Queries.TryGetValue(expected.Query, out query!) && query.Authorization is null &&
         query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot };
 
-    static bool HasProtectedCollectionSuccess(SemanticApplicationContext context, SemanticSpecification specification) =>
-        !specification.ThenDenied && specification.ThenQueries.Any(expected => context.Queries.TryGetValue(expected.Query, out var query) &&
-            query.Authorization is not null && query.Cardinality == SemanticQueryCardinality.Many);
-
-    static string? AuthorizationRejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
-    {
-        if (HasProtectedCollectionSuccess(context, specification))
-        {
-            return "Protected collection success specifications require a collection-aware query scenario; live queries also require IReadModels.Observe forwarding (Arc#3221).";
-        }
-
-        return DependsOnOpaquePolicy(context, specification)
+    static string? AuthorizationRejectionReason(SemanticApplicationContext context, SemanticSpecification specification) =>
+        DependsOnOpaquePolicy(context, specification)
             ? "The operation's authorization depends on an opaque csharp/file policy, which the reference evaluator cannot decide (Unsupported)."
             : null;
-    }
 }

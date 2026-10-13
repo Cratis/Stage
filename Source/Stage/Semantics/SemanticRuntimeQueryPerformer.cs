@@ -136,10 +136,7 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         var key = context.Arguments?.TryGetValue(argumentName, out var value) == true ? value?.ToString() : null;
         if (_query is not null)
         {
-            var principal = _context.HttpContext?.User ?? new();
-            var result = _query.Filters.IsDefaultOrEmpty
-                ? await _runtime.Query(_query, Key(context), principal)
-                : await _runtime.Query(_query, Key(context), principal, Filters(context));
+            var result = await Query(context, _query);
             return result switch
             {
                 SemanticAccepted accepted when _query.Cardinality == SemanticQueryCardinality.Many => accepted.Queries.Single().Results.Select(Convert).ToArray(),
@@ -182,6 +179,15 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
 
         var text = context.Arguments?.TryGetValue(argument.Name, out var value) == true ? value?.ToString() : null;
         return SemanticQueryKeys.From(text, argument.Type, _runtime.Plan.Model.Application);
+    }
+
+    Task<SemanticExecutionResult> Query(QueryContext context, SemanticKeyedQuery query)
+    {
+        var principal = _context.HttpContext?.User ?? new();
+
+        return query.Filters.IsDefaultOrEmpty
+            ? _runtime.Query(query, Key(context), principal)
+            : _runtime.Query(query, Key(context), principal, Filters(context));
     }
 
     ImmutableArray<SemanticQueryFilterValue> Filters(QueryContext context) =>

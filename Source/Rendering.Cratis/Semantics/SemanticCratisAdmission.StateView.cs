@@ -50,16 +50,7 @@ internal static partial class SemanticCratisAdmission
                 continue;
             }
 
-            if (!GeneratedPascalCase.ReadModelMembersAreUnique(
-                readModel.Name,
-                readModel.Properties.Select(property => property.Name),
-                slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
-                !GeneratedPascalCase.QueriesAreUnique(slice.Queries.Where(query => query.ReadModel == readModel.Id)
-                    .Where(query => query.Argument is null || TypeExists(context, query.Argument.Type))
-                    .Select(query => (query.Name, string.Join(',', (query.Argument is null ? Enumerable.Empty<string>() : [new SemanticTypeSystem(context).QueryArgumentType(query.Argument.Type)])
-                        .Concat(query.Filters.Select(filter => new SemanticTypeSystem(context).QueryArgumentType(filter.Type)))), query.Argument?.Name ?? string.Empty))) ||
-                slice.Queries.Any(query => query.ReadModel == readModel.Id &&
-                    !GeneratedPascalCase.QueryParametersAreUnique((query.Argument is null ? Enumerable.Empty<string>() : [query.Argument.Name]).Concat(query.Filters.Select(filter => filter.Name)))))
+            if (!ReadModelQueryNamesAreUnique(context, slice, readModel))
             {
                 diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' has property or query names that collide in generated C#.", readModel.Id));
                 continue;
@@ -120,31 +111,40 @@ internal static partial class SemanticCratisAdmission
         foreach (var query in slice.Queries.Where(query => ValidateQueryAuthorization(context, query, diagnostics) && !RefusesNestedValidatedKey(context, query, diagnostics)))
         {
             var readModel = slice.ReadModels.SingleOrDefault(_ => _.Id == query.ReadModel);
-            var identifiers = readModel?.Properties.Where(_ => _.IsIdentifier).ToArray() ?? [];
-            var isSnapshotLookup = query.Cardinality == SemanticQueryCardinality.ZeroOrOne &&
-                query.Delivery == SemanticQueryDelivery.Snapshot && identifiers.Length == 1 &&
-                query.Argument is not null && query.KeyProperty == identifiers[0].Id && TypeExists(context, query.Argument.Type) && query.Filters.IsDefaultOrEmpty;
-            var isLiveCollection = query.Cardinality == SemanticQueryCardinality.Many &&
-                query.Delivery == SemanticQueryDelivery.Live && readModel is not null &&
-                (query.Argument is null || (TypeExists(context, query.Argument.Type) && readModel.Properties.Any(_ => _.Id == query.KeyProperty))) &&
-                QueryFiltersAreRenderable(context, query, readModel, diagnostics);
-            if (!isSnapshotLookup && !isLiveCollection)
+            if (!QueryFiltersAreRenderable(context, query, readModel, diagnostics))
             {
                 diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is neither an optional snapshot lookup by identifier nor an observable collection query the renderer can preserve.", query.Id));
             }
         }
     }
 
-    static bool QueryFiltersAreRenderable(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel readModel, List<ArtifactRenderDiagnostic> diagnostics)
+    static bool ReadModelQueryNamesAreUnique(SemanticApplicationContext context, SemanticSlice slice, SemanticReadModel readModel)
     {
+        var queries = slice.Queries.Where(query => query.ReadModel == readModel.Id).ToArray();
+        var types = new SemanticTypeSystem(context);
+
+        return GeneratedPascalCase.ReadModelMembersAreUnique(readModel.Name, readModel.Properties.Select(property => property.Name), queries.Select(query => query.Name)) &&
+            GeneratedPascalCase.QueriesAreUnique(queries.Where(query => query.Argument is null || TypeExists(context, query.Argument.Type))
+                .Select(query => (query.Name, QueryParameterTypes(query, types), query.Argument?.Name ?? string.Empty))) &&
+            queries.All(query => GeneratedPascalCase.QueryParametersAreUnique(QueryParameterNames(query)));
+    }
+
+    static IEnumerable<string> QueryParameterNames(SemanticKeyedQuery query) =>
+        (query.Argument is null ? Enumerable.Empty<string>() : [query.Argument.Name]).Concat(query.Filters.Select(filter => filter.Name));
+
+    static string QueryParameterTypes(SemanticKeyedQuery query, SemanticTypeSystem types) =>
+        string.Join(',', (query.Argument is null ? Enumerable.Empty<string>() : [types.QueryArgumentType(query.Argument.Type)])
+            .Concat(query.Filters.Select(filter => types.QueryArgumentType(filter.Type))));
+
+    static bool QueryFiltersAreRenderable(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (IsSnapshotLookup(context, query, readModel)) return query.Filters.IsDefaultOrEmpty;
+        if (!IsLiveCollection(context, query, readModel)) return false;
+
         var optionalSeen = false;
         foreach (var filter in query.Filters)
         {
-            var property = readModel.Properties.SingleOrDefault(property => property.Id == filter.Property);
-            if (property is null || !TypeExists(context, filter.Type) || IsNested(filter.Type) ||
-                SemanticValidationRendering.UnderlyingPrimitive(filter.Type, context) == SemanticPrimitiveType.DateTime ||
-                property.Type with { IsOptional = false } != filter.Type with { IsOptional = false } ||
-                (optionalSeen && !filter.Type.IsOptional))
+            if (!FilterHasMatchingScalarProperty(context, filter, readModel!) || !FilterPreservesParameterOrder(filter, optionalSeen))
             {
                 diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' cannot preserve equality filter '{filter.Name}' as a scalar parameter in declaration order.", query.Id));
                 return false;
@@ -155,6 +155,27 @@ internal static partial class SemanticCratisAdmission
 
         return true;
     }
+
+    static bool IsSnapshotLookup(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel)
+    {
+        var identifiers = readModel?.Properties.Where(property => property.IsIdentifier).ToArray() ?? [];
+
+        return query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot, Argument: { } argument } &&
+            identifiers is [var identifier] && query.KeyProperty == identifier.Id && TypeExists(context, argument.Type);
+    }
+
+    static bool IsLiveCollection(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel) =>
+        (readModel, query) is ({ } model, { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live }) &&
+        (query.Argument is not { } argument || (TypeExists(context, argument.Type) && model.Properties.Any(property => property.Id == query.KeyProperty)));
+
+    static bool FilterHasMatchingScalarProperty(SemanticApplicationContext context, SemanticQueryFilter filter, SemanticReadModel readModel) =>
+        readModel.Properties.SingleOrDefault(property => property.Id == filter.Property) is { } property &&
+        FilterTypeIsRenderable(context, filter.Type) && property.Type with { IsOptional = false } == filter.Type with { IsOptional = false };
+
+    static bool FilterTypeIsRenderable(SemanticApplicationContext context, SemanticTypeReference type) =>
+        TypeExists(context, type) && !IsNested(type) && SemanticValidationRendering.UnderlyingPrimitive(type, context) != SemanticPrimitiveType.DateTime;
+
+    static bool FilterPreservesParameterOrder(SemanticQueryFilter filter, bool optionalSeen) => !optionalSeen || filter.Type.IsOptional;
 
     static bool RefusesNestedValidatedKey(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics)
     {

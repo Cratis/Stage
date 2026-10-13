@@ -88,12 +88,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "EventContractId", ignored("Stable contract identity is already validated by Screenplay; the generated event uses its name."), "IsSet");
         Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay."), "IsValid");
         Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
-        Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies");
-        Add(entries, "SemanticApplication", rendered, "EventSources");
+        Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
-        Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications");
-        Add(entries, "SemanticSlice", rendered, "Reducers Reactions");
+        Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications Reducers Reactions");
         Add(entries, "SemanticReducer", rendered, "Name ReadModel Transitions Key InitialState Result");
         Add(entries, "SemanticReducerTransition", rendered, "EventContract RequirementId");
         Add(entries, "SemanticReducerKey", rendered, "EventSourceId");
@@ -179,8 +177,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticAffectedInstance", rendered, "Cardinality Key");
         Add(entries, "AffectedInstanceCardinality", rendered, "One");
         Add(entries, "AffectedInstanceCardinality", rejected("STAGE-ESM-009"), "Unknown Many ZeroOrOne");
-        Add(entries, "SemanticKeyedQuery", rendered, "Argument Cardinality Delivery Id KeyProperty Name ReadModel");
-        Add(entries, "SemanticKeyedQuery", rendered, "Authorization Filters"); // Snapshot collection shapes still refuse with STAGE-ESM-010.
+        Add(entries, "SemanticKeyedQuery", rendered, "Argument Cardinality Delivery Id KeyProperty Name ReadModel Authorization Filters"); // Snapshot collection shapes still refuse with STAGE-ESM-010.
         Add(entries, "SemanticQueryFilter", rendered, "Id Name Type Property");
         Add(entries, "SemanticQueryFilterValue", rendered, "Filter Value");
         Add(entries, "SemanticReadModelQueryArgument", rendered, "Id Name Type");

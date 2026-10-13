@@ -75,37 +75,44 @@ public class a_generated_application : a_register_project_render_request
     protected Task<string> Run(string logName, params string[] arguments) => Run(logName, false, arguments);
 
     // A parity vector with an intentionally wrong expectation must still yield a complete TRX result.
-    protected Task<string> Run(string logName, bool allowFailedTests, params string[] arguments) => RunProcess(logName, allowFailedTests, false, arguments);
+    protected Task<string> Run(string logName, bool allowFailedTests, params string[] arguments) =>
+        RunProcess(logName, allowFailedTests, new(CreateStartInfo("dotnet", arguments), TimeSpan.FromMinutes(8), arguments));
 
-    protected Task<string> RunInPhase(string logName, bool allowFailedTests, params string[] arguments) => RunProcess(logName, allowFailedTests, true, arguments);
+    protected Task<string> RunInPhase(string logName, bool allowFailedTests, params string[] arguments) =>
+        RunProcess(logName, allowFailedTests, ManagedProcess(logName, arguments));
 
-    async Task<string> RunProcess(string logName, bool allowFailedTests, bool managed, params string[] arguments)
+    GeneratedProcess ManagedProcess(string logName, string[] arguments)
     {
-        var startInfo = new ProcessStartInfo(managed ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".pi/agent/bin/pi-phase") : "dotnet")
+        var executable = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".pi/agent/bin/pi-phase");
+        var prefix = new[] { "run", "--kind", arguments[0] == "build" ? "build" : "test", "--label", logName, "--timeout", "300", "--queue-timeout", "300", "--", "dotnet" };
+
+        return new(CreateStartInfo(executable, prefix.Concat(arguments)), TimeSpan.FromMinutes(11), arguments);
+    }
+
+    ProcessStartInfo CreateStartInfo(string executable, IEnumerable<string> arguments)
+    {
+        var startInfo = new ProcessStartInfo(executable)
         {
             WorkingDirectory = _application!.FullName,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
         };
-        if (managed)
-        {
-            foreach (var argument in new[] { "run", "--kind", arguments[0] == "build" ? "build" : "test", "--label", logName, "--timeout", "300", "--queue-timeout", "300", "--", "dotnet" })
-            {
-                startInfo.ArgumentList.Add(argument);
-            }
-        }
-
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
         }
 
-        using var process = new Process { StartInfo = startInfo };
+        return startInfo;
+    }
+
+    async Task<string> RunProcess(string logName, bool allowFailedTests, GeneratedProcess invocation)
+    {
+        using var process = new Process { StartInfo = invocation.StartInfo };
         process.Start();
         var standardOutput = ReadOutput(process.StandardOutput);
         var standardError = ReadOutput(process.StandardError);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(managed ? 11 : 8));
+        using var timeout = new CancellationTokenSource(invocation.Timeout);
         var timedOut = false;
         try
         {
@@ -122,7 +129,7 @@ public class a_generated_application : a_register_project_render_request
             await Task.WhenAll(process.WaitForExitAsync(), standardOutput, standardError).WaitAsync(TimeSpan.FromSeconds(30));
         }
 
-        var command = $"dotnet {string.Join(' ', arguments)}";
+        var command = $"dotnet {string.Join(' ', invocation.Arguments)}";
         var stdout = await standardOutput;
         var stderr = await standardError;
         var output = $"{stdout.Text}{stderr.Text}";
@@ -136,13 +143,15 @@ public class a_generated_application : a_register_project_render_request
             actualHash.ShouldEqual(expectedHash);
         }
 
-        if (timedOut || truncated || (process.ExitCode != 0 && !(allowFailedTests && process.ExitCode == 1)))
+        if (timedOut || truncated || !ExitIsAllowed(process, allowFailedTests))
         {
             throw new GeneratedApplicationVerificationFailed(command, logPath, output);
         }
 
         return output;
     }
+
+    static bool ExitIsAllowed(Process process, bool allowFailedTests) => process.ExitCode == 0 || (allowFailedTests && process.ExitCode == 1);
 
     static async Task<(string Text, bool Truncated)> ReadOutput(StreamReader reader)
     {
@@ -180,6 +189,8 @@ public class a_generated_application : a_register_project_render_request
 
         throw new GeneratedApplicationWorkspaceNotFound();
     }
+
+    sealed record GeneratedProcess(ProcessStartInfo StartInfo, TimeSpan Timeout, IEnumerable<string> Arguments);
 
     sealed class GeneratedApplicationVerificationFailed(string command, string logPath, string output) : Exception(
         $"Generated application verification failed: {command}. Evidence: {logPath}\n{output}");

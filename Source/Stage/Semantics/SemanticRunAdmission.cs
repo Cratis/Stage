@@ -91,16 +91,7 @@ public static class SemanticRunAdmission
                 !GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name)));
             if (collidingCommand is not null) return Block(StageExecutionCapability.Command, collidingCommand.Id, "Command property names collide in generated C#.");
             var collidingReadModel = slice.ReadModels.FirstOrDefault(readModel =>
-                !GeneratedPascalCase.ReadModelMembersAreUnique(
-                    readModel.Name,
-                    readModel.Properties.Select(property => property.Name),
-                    slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
-                !GeneratedPascalCase.QueriesAreUnique(slice.Queries.Where(query => query.ReadModel == readModel.Id)
-                    .Select(query => query.Argument is { } argument
-                        ? (query.Name, string.Join(',', new[] { SemanticRunProjectionAdmission.QueryType(argument.Type, plan) }.Concat(query.Filters.Select(filter => SemanticRunProjectionAdmission.QueryType(filter.Type, plan)))), argument.Name)
-                        : (query.Name, string.Join(',', query.Filters.Select(filter => SemanticRunProjectionAdmission.QueryType(filter.Type, plan))), string.Empty))) ||
-                slice.Queries.Any(query => query.ReadModel == readModel.Id &&
-                    !GeneratedPascalCase.QueryParametersAreUnique((query.Argument is null ? Enumerable.Empty<string>() : [query.Argument.Name]).Concat(query.Filters.Select(filter => filter.Name)))));
+                !SemanticRunProjectionAdmission.QueryMembersAreUnique(readModel, slice.Queries, plan));
             if (collidingReadModel is not null) return Block(StageExecutionCapability.Projection, collidingReadModel.Id, "A read-model property name or query collides in generated C#.");
             var collidingConstraint = slice.Constraints.FirstOrDefault(constraint =>
                 !GeneratedPascalCase.ConstraintTypeNameIsSafe(constraint.Name));

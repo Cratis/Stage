@@ -28,7 +28,8 @@ internal static class SemanticProductionConditions
     };
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values) =>
-        SemanticProductionComparison.Compare(comparison, values,
-            (() => new InvalidSemanticContract("Ordering condition requires numeric operands."),
-             () => new InvalidSemanticContract("Unknown comparison operator.")));
+        SemanticProductionComparison.Compare(
+            comparison,
+            values,
+            (() => new InvalidSemanticContract("Ordering condition requires numeric operands."), () => new InvalidSemanticContract("Unknown comparison operator.")));
 }

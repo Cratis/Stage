@@ -37,7 +37,8 @@ internal static class SemanticProductionSelection
     };
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values) =>
-        SemanticProductionComparison.Compare(comparison, values,
-            (() => UnsupportedSemanticRendering.For(nameof(SemanticComparison), comparison.Operator),
-             () => UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison.Operator)));
+        SemanticProductionComparison.Compare(
+            comparison,
+            values,
+            (() => UnsupportedSemanticRendering.For(nameof(SemanticComparison), comparison.Operator), () => UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison.Operator)));
 }

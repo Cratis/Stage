@@ -38,6 +38,7 @@ internal sealed record SemanticReactionSpecification(SemanticReaction Reaction, 
         var command = context.Commands[Trigger.Invokes.Single().Command];
         var conditionProperties = command.Produces.Where(produced => produced.When is not null)
             .SelectMany(produced => SemanticProductionSelection.Properties(produced.When!)).ToHashSet();
+
         // Generated invocation operands have no pins; the lowered specification's generation gate refuses them.
         if (command.Properties.Any(property => property.IsGenerated && conditionProperties.Contains(property.Id))) return command.Produces;
         return SemanticProductionSelection.Taken(command, Lower(specification, context));

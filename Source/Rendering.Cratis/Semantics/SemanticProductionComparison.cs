@@ -10,7 +10,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static class SemanticProductionComparison
 {
-    static readonly IReadOnlyDictionary<SemanticComparisonOperator, Func<decimal, decimal, bool>> Ordering =
+    static readonly Dictionary<SemanticComparisonOperator, Func<decimal, decimal, bool>> _ordering =
         new Dictionary<SemanticComparisonOperator, Func<decimal, decimal, bool>>
         {
             [SemanticComparisonOperator.GreaterThan] = (left, right) => left > right,
@@ -38,7 +38,7 @@ internal static class SemanticProductionComparison
     static bool CompareNumbers(SemanticComparisonOperator comparison, SemanticValue? left, SemanticValue? right, (Func<Exception> Nonnumeric, Func<Exception> Unknown) errors)
     {
         if (left is not SemanticNumberValue a || right is not SemanticNumberValue b) throw errors.Nonnumeric();
-        if (!Ordering.TryGetValue(comparison, out var compare)) throw errors.Unknown();
+        if (!_ordering.TryGetValue(comparison, out var compare)) throw errors.Unknown();
 
         return compare(a.Value, b.Value);
     }

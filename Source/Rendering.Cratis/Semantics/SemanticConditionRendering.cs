@@ -93,6 +93,7 @@ internal static class SemanticConditionRendering
         SemanticTextValue text => CSharpCodeBuilder.StringLiteral(text.Value),
         SemanticBooleanValue boolean => boolean.Value ? "true" : "false",
         SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture) + "m",
-        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValue), value?.GetType().Name ?? "null")
+        null => throw UnsupportedSemanticRendering.For(nameof(SemanticValue), "null"),
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValue), value.GetType().Name)
     };
 }

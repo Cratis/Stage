@@ -17,8 +17,8 @@ internal static class SemanticObserverFilterRendering
         if (filter.Stream is { } stream)
         {
             var sourceType = $"global::{SemanticEventSourceArtifactRenderer.Namespace(context)}.{SemanticEventSourceArtifactRenderer.ClassName(source)}";
-            var streamKind = source.Streams.Single(candidate => candidate.Id == stream).StreamKind;
-            builder.Attribute($"global::Cratis.Chronicle.EventSources.FromEventSourceAttribute<{sourceType}>({CSharpCodeBuilder.StringLiteral(streamKind)})");
+            var selectedStream = source.Streams.Single(candidate => candidate.Id == stream);
+            builder.Attribute($"global::Cratis.Chronicle.EventSources.FromEventSourceAttribute<{sourceType}>({SemanticEventSourceArtifactRenderer.StreamReference(source, selectedStream, context)})");
         }
         else
         {

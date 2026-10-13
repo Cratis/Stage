@@ -96,7 +96,7 @@ internal static class SemanticStateChangeArtifactRenderer
         {
             var source = context.Application.EventSources.Single(source => source.Id == route.Source);
             var stream = source.Streams.Single(stream => stream.Id == route.Stream);
-            builder.Attribute($"global::Cratis.Arc.Chronicle.Commands.EventSourceAttribute<global::{SemanticEventSourceArtifactRenderer.Namespace(context)}.{SemanticEventSourceArtifactRenderer.ClassName(source)}>({CSharpCodeBuilder.StringLiteral(stream.StreamKind)})");
+            builder.Attribute($"global::Cratis.Arc.Chronicle.Commands.EventSourceAttribute<global::{SemanticEventSourceArtifactRenderer.Namespace(context)}.{SemanticEventSourceArtifactRenderer.ClassName(source)}>({SemanticEventSourceArtifactRenderer.StreamReference(source, stream, context)})");
         }
         if (severities.Length > 0)
         {

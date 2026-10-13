@@ -138,7 +138,8 @@ internal static class GeneratedTypeNames
     internal static string EventSourceName(string source)
     {
         var name = GeneratedPascalCase.From(source);
-        return name.EndsWith("EventSource", StringComparison.Ordinal) ? name : $"{name}EventSource";
+
+        return source != name && name.EndsWith("EventSource", StringComparison.Ordinal) ? name : $"{name}EventSource";
     }
 
     internal static bool UsesStreamIds(IEnumerable<SemanticCommand> commands) =>

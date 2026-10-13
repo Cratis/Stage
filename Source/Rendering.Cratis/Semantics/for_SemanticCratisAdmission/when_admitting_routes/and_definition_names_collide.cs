@@ -14,7 +14,7 @@ public class and_definition_names_collide : a_routed_command
     void Establish()
     {
         ReplaceSlice();
-        var second = _source with { Id = SemanticId.Parse($"sem1:{new string('a', 64)}"), Name = "AccountEventSource", SourceKind = "Other", Streams = [] };
+        var second = _source with { Id = SemanticId.Parse($"sem1:{new string('a', 64)}"), Name = "account", SourceKind = "Other", Streams = [] };
         _model = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, _model.Application with { EventSources = [_source, second] });
     }
     void Because() => _plan = invoice_model.Plan(_model);

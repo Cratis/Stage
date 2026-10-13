@@ -15,6 +15,12 @@ public static class an_invite_code_model
           generate nanoid 6 alphabet "ABab"
         module Shop
           feature Invitations
+            slice StateChange ReleaseInvite
+              event InviteReleased
+              command ReleaseInviteCode
+                inviteId String identifier
+                produces InviteReleased
+                  for inviteId
             slice StateChange Invite
               constraint UniqueInviteCode
                 unique code on Invited
@@ -22,7 +28,6 @@ public static class an_invite_code_model
                 message "Invite code is already in use"
               event Invited
                 code InviteCode
-              event InviteReleased
               command InviteCustomer
                 inviteId String identifier
                 inviteCode InviteCode generated

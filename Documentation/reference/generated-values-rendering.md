@@ -93,6 +93,12 @@ concept InviteCode : String
   generate nanoid 6 alphabet "AB"
 module Shop
   feature Invitations
+    slice StateChange ReleaseInvite
+      event InviteReleased
+      command ReleaseInviteCode
+        inviteId String identifier
+        produces InviteReleased
+          for inviteId
     slice StateChange Invite
       constraint UniqueInviteCode
         unique code on Invited
@@ -100,7 +106,6 @@ module Shop
         message "Invite code is already in use"
       event Invited
         code InviteCode
-      event InviteReleased
       command InviteCustomer
         inviteId String identifier
         inviteCode InviteCode generated

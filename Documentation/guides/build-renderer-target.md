@@ -303,7 +303,7 @@ ESM v4 (`4.0` language and semantic versions) is admitted by the version gates, 
 
 Evolution waits for migration modeling and rendering (Screenplay #71 and a Stage migration-rendering follow-up). In both Chronicle 19.8.1 and 19.32.0, registration validation requires migrators for every generation above 1 even on an empty store. Production kernels always validate; the development image can skip validation, permitting unsafe historical replay. Neither path is an admitted realization without migrations, so Stage refuses before emission rather than relying on the kernel configuration. Stage's Host also retains its `EventContract` refusal, "Only the initial event revision can be registered in Chronicle." Its registrar and fact appender remain generation-1-only; an evolved model is not registered or appended.
 
-Stage builds against Screenplay 4.146.0 and admits exact ESM v1 through v14 language/semantic pairs. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
+Stage builds against Screenplay 4.147.1 and admits exact ESM v1 through v15 language/semantic pairs. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
 
 | Construct | Version | Diagnostic |
 |---|---|---|
@@ -336,6 +336,7 @@ Stage builds against Screenplay 4.146.0 and admits exact ESM v1 through v14 lang
 | Explicit enum member numbers | v12 | Rendered as `Member = N`, preserving sparse and negative int32 identities; stored numbers rebuild to the matching member |
 | Concept compliance | v13 | `[PII]` or `[Encrypted]` + `[NotAudited]` on `ConceptAs` records; compliance on identity uses or enums fails `STAGE-ESM-040`; non-text secrets fail `STAGE-ESM-041` ([Chronicle #4813](https://github.com/Cratis/Chronicle/issues/4813)), excluding `pii secret` which uses PII only |
 | Equality query filters | v14 | Rendered on `Many` + `Live` collections; Host uses the reference evaluator; executor refuses filtered assertions with `STAGE-ESM-010`. Snapshot collections retain `010` ([Stage #58](https://github.com/Cratis/Stage/issues/58)) |
+| Generated-value strategies and freshness | v15 | Required scalar Uuid/String concepts render strategy factories and `BeforeFirst` freshness scopes; invalid fixture shapes fail `STAGE-ESM-011`, unknown strategies fail `STAGE-ESM-028`; see [Generated values](../reference/generated-values-rendering.md) |
 
 ESM v11 preserves retained non-route numbers such as `9007199254740991`, `-9007199254740991`,
 `1234567890123456` and `0.10000000000000002` through command, event and read-model rendering.

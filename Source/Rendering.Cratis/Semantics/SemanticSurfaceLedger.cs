@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.146.0; ESM v1–v14 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.147.1; ESM v1–v15 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -101,13 +101,13 @@ internal static class SemanticSurfaceLedger
 
         // Types, declarations and validation. Properties carry type and identifier semantics into
         // generated records, event destinations, projection keys and specification values.
-        Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values Numbers Compliance");
+        Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values Numbers Compliance Generation");
+        Add(entries, "SemanticGeneration", rendered, "Kind Prefix Case Size Alphabet Count Encoding");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");
         Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via opt-in [ComplianceDetails] (#259)."), "Special Criminal");
         Add(entries, "SemanticCompositeType", rendered, "Id Name Properties");
-        Add(entries, "SemanticProperty", rendered, "Id IsIdentifier Name Type");
-        Add(entries, "SemanticProperty", rendered, "IsGenerated");
+        Add(entries, "SemanticProperty", rendered, "Id IsIdentifier Name Type IsGenerated");
         Add(entries, "SemanticTypeReference", rendered, "IsCollection IsOptional Kind Primitive Target");
         Add(entries, "SemanticTypeReferenceKind", rendered, "Primitive Concept CompositeType");
         Add(entries, "SemanticTypeReferenceKind", rejected("STAGE-ESM-003"), "Unknown");

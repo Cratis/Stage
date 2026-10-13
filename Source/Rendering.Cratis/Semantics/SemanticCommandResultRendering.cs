@@ -96,11 +96,19 @@ internal sealed class SemanticCommandResultRendering(SemanticCommand command, Se
         return new($"({response.Type}, {events.Type})", $"({response.Value}, {events.Value})");
     }
 
-    ResultExpression Events(Func<SemanticProducedEvent, string> wrappedEvent) => command.Produces.Length == 1
-        ? new("global::Cratis.Chronicle.EventSequences.EventForEventSourceId", wrappedEvent(command.Produces[0]))
-        : new(
-            "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>",
-            $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(wrappedEvent))} }}");
+    ResultExpression Events(Func<SemanticProducedEvent, string> wrappedEvent)
+    {
+        if (SemanticGeneratedFreshness.Destinations(command, context).Any())
+        {
+            return new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(command, context, wrappedEvent));
+        }
+
+        return command.Produces.Length == 1
+            ? new("global::Cratis.Chronicle.EventSequences.EventForEventSourceId", wrappedEvent(command.Produces[0]))
+            : new(
+                "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>",
+                $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(wrappedEvent))} }}");
+    }
 
     ResultExpression? Response() => command.Response switch
     {

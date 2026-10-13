@@ -18,6 +18,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         new ReactionIdentitySyntaxAdmission().VisitApplication(syntax);
         new EventRouteSyntaxAdmission().VisitApplication(syntax);
         new PublicEventSyntaxAdmission().VisitApplication(syntax);
+        new GenerationSyntaxAdmission().VisitApplication(syntax);
         syntax = SpecificationExpansion.Expand(syntax);
         foreach (var slice in syntax.Modules.SelectMany(module => Slices(module.Features)))
         {

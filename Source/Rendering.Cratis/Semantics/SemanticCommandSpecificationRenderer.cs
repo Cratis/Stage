@@ -26,7 +26,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var command = context.Commands[when.Command];
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
-        var generated = new SemanticGeneratedCommandSpecification(specification, command, types);
+        var generated = new SemanticGeneratedCommandSpecification(specification, command, types, context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
         var ownNamespace = $"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}";
         var builder = new CSharpCodeBuilder()
@@ -112,7 +112,8 @@ internal static partial class SemanticCommandSpecificationRenderer
             .SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy)).ToHashSet();
         return !specification.GivenEvents.IsEmpty &&
             (specification.GivenEvents.Any(given => given.Route is not null || constrainedEvents.Contains(given.EventContract)) ||
-             command.Produces.Any(produced => constrainedEvents.Contains(produced.EventContract)));
+             command.Produces.Any(produced => constrainedEvents.Contains(produced.EventContract)) ||
+             SemanticGeneratedFreshness.Destinations(command, context).Any());
     }
 
     static void RenderHeader(SpecificationScope scope, string behavior)
@@ -275,14 +276,24 @@ internal static partial class SemanticCommandSpecificationRenderer
             .Line("[global::Xunit.FactAttribute] void should_have_validation_errors() => _result.ShouldHaveValidationErrors();");
         if (scope.Specification.ThenErrors[0].Message is { } message)
         {
-            builder.Line(message.StartsWith("$strings.", StringComparison.Ordinal)
-                ? $"[global::Xunit.FactAttribute] void should_report_the_expected_first_error_key() => _result.ValidationResults.First().State.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});"
-                : $"[global::Xunit.FactAttribute] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});");
+            builder.Line(ExpectedErrorAssertion(scope, message));
         }
 
         builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
             .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);");
         RenderConstraintViolation(builder, scope.Specification, scope.Context);
+    }
+
+    static string ExpectedErrorAssertion(SpecificationScope scope, string message)
+    {
+        if (scope.Context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) && message == SemanticGenerationShapes.FreshnessMessage)
+        {
+            return "[global::Xunit.FactAttribute] void should_report_the_freshness_violation() => _result.ValidationResults.First().Reason.ShouldEqual(global::Cratis.Arc.Validation.ValidationResultReason.ConcurrencyViolation);";
+        }
+
+        return message.StartsWith("$strings.", StringComparison.Ordinal)
+            ? $"[global::Xunit.FactAttribute] void should_report_the_expected_first_error_key() => _result.ValidationResults.First().State.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});"
+            : $"[global::Xunit.FactAttribute] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});";
     }
 
     static void RenderConstraintViolation(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context)

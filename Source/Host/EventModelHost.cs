@@ -23,7 +23,7 @@ internal static class EventModelHost
 
             return application.Scene.RuntimeIssues.Count > 0 ? null : application;
         }
-        catch (Exception exception) when (exception is UnsupportedEventSourceRoutes or UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters)
+        catch (Exception exception) when (exception is UnsupportedEventSourceRoutes or UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters or UnsupportedGenerationStrategy)
         {
             issues.Add(new StageUnsupportedIssue("Plan", "model", exception.Message));
 

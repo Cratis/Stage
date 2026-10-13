@@ -16,7 +16,7 @@ notice to standard error. Structural runs refuse named event sources, streams an
 expectations, and matches any-order expectations by assignment at ESM v8 and later. Both engines refuse public-event
 publication (`STAGE-ESM-032`), foreign events and `source events` captures (`STAGE-ESM-033`), and directed
 Translate slices (`STAGE-ESM-024`, naming the direction), and reducer observer filters (`STAGE-ESM-035`).
-The structural engine also refuses reaction execution identity (`STAGE-ESM-034`) and reaction observer filters (`STAGE-ESM-035`). Per-production route overrides fail `STAGE-ESM-036`
+The structural engine still refuses every reaction execution identity (`STAGE-ESM-034`) and reaction observer filter (`STAGE-ESM-035`); renderer support for role-only or authenticated-only `runs as` invocations does not relax these structural refusals. Per-production route overrides fail `STAGE-ESM-036`
 on the semantic engine; the structural engine refuses their stream syntax with `STAGE-ESM-030`.
 The semantic executor settles event-triggered reactions after each command or direct append, including
 `where`, productions, invocations, cascades, `runs as`, `from`, mixed effects and append constraints.
@@ -102,7 +102,7 @@ requires both `--model` and `--output`; the defaults above are supplied by the c
 | Code | Meaning |
 |---|---|
 | `0` | The run completed and `results.json` was written. **A failing specification is still a completed run** — read the outcomes from the file. Semantic runs execute event-source routes; structural runs refuse them. |
-| `1` | The input path is missing, the file extension is unsupported, the folder is empty, model compilation fails, or a structural run refuses event-source routes (`STAGE-ESM-030`), public events (`STAGE-ESM-032`), foreign events or source-events captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`), reaction execution identity (`STAGE-ESM-034`), or observer filters (`STAGE-ESM-035`). Semantic runs refuse production routes with `STAGE-ESM-036` in their report. An actionable error is written to standard error; no results file is written. |
+| `1` | The input path is missing, the file extension is unsupported, the folder is empty, model compilation fails, or a structural run refuses event-source routes (`STAGE-ESM-030`), public events (`STAGE-ESM-032`), foreign events or source-events captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`), any reaction execution identity (`STAGE-ESM-034`, unchanged by renderer admission), or observer filters (`STAGE-ESM-035`). Semantic runs refuse production routes with `STAGE-ESM-036` in their report. An actionable error is written to standard error; no results file is written. |
 | `2` | A required argument (`--model` or `--output`) was missing. A usage line is written to standard error. |
 
 Input failures do not write results or delete or overwrite an existing output file. Compiler errors identify the

@@ -32,7 +32,7 @@ public class with_precise_constructs_on_a_later_reaction : given.an_event_reacti
 
     [Fact] void should_prioritize_every_precise_code_before_generic_reaction_admission() => string.Join(',', _features.Take(5).Select(feature => feature.Code)).ShouldEqual("STAGE-ESM-034,STAGE-ESM-035,STAGE-ESM-037,STAGE-ESM-013,STAGE-ESM-024");
     [Fact] void should_put_identity_first() => _features[0].Code.ShouldEqual("STAGE-ESM-034");
-    [Fact] void should_keep_the_identity_message() => _features[0].Message.ShouldEqual("Reaction 'PaymentImporter' declares an ESM v10 execution identity, which Stage does not support yet.");
+    [Fact] void should_keep_the_identity_message() => _features[0].Message.ShouldEqual("Reaction 'PaymentImporter' declares an ESM v10 execution identity.");
     [Fact] void should_keep_the_filter_message() => _features[1].Message.ShouldEqual("Reaction 'PaymentImporter' declares an ESM v10 observer filter, which Stage does not support yet.");
     [Fact]
     void should_put_the_kind_before_both_generic_reaction_refusals() => _features.Skip(4).Select(feature => feature.Message).ShouldContainOnly([

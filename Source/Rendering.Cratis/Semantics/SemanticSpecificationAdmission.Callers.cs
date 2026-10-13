@@ -11,17 +11,18 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static partial class SemanticSpecificationAdmission
 {
     // The command scenario evaluates the generated Arc policy with the fixture's principal.
-    // An appended-event or query-only action has no command scenario to execute.
+    // A lowered reaction invocation may deliberately have no caller, even for a denial.
     internal static bool HasRenderableCallerAndCommand(
         SemanticApplicationContext context,
         SemanticSpecification specification,
-        out SemanticCommand? command)
+        out SemanticCommand? command,
+        bool reactionInvocation = false)
     {
         command = null;
         return specification.When is not null &&
             context.Commands.TryGetValue(specification.When.Command, out command) &&
             specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true &&
-            (!specification.ThenDenied || (specification.ThenQueries.IsEmpty && command.Authorization is not null && specification.GivenCaller is not null)) &&
+            HasRenderableCommandDenial(specification, command, reactionInvocation) &&
             specification.ThenQueries.All(_ => context.Queries.TryGetValue(_.Query, out var query) &&
                 (query.Authorization is null || specification.GivenCaller is not null));
     }
@@ -56,4 +57,7 @@ internal static partial class SemanticSpecificationAdmission
             readModel.Properties.SingleOrDefault(_ => _.IsIdentifier) is { } identifier &&
             given.Values.Any(_ => _.TargetProperty == identifier.Id && Equals(_.Value, given.Key));
     }
+
+    static bool HasRenderableCommandDenial(SemanticSpecification specification, SemanticCommand command, bool reactionInvocation) =>
+        !specification.ThenDenied || (specification.ThenQueries.IsEmpty && command.Authorization is not null && (specification.GivenCaller is not null || reactionInvocation));
 }

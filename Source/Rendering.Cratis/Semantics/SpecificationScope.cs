@@ -28,6 +28,11 @@ internal sealed record SpecificationScope(
     IEnumerable<string> Arguments)
 {
     /// <summary>
+    /// Gets the optional reactor execution preceding the command scenario.
+    /// </summary>
+    public SemanticReactionSpecificationPrelude? ReactionPrelude { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the number of given events is tracked.
     /// </summary>
     public bool CountsGivenEvents => SeedInLog || Specification.ThenDenied || !Specification.ThenErrors.IsEmpty;

@@ -13,14 +13,12 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_refusing_v10_corpora : Specification
 {
     [Theory]
-    [InlineData("identity", "STAGE-ESM-034")]
     [InlineData("filters", "STAGE-ESM-035")]
     [InlineData("production", "STAGE-ESM-036")]
     public void should_admit_the_version_but_refuse_the_construct_without_artifacts(string form, string code)
     {
         var vector = form switch
         {
-            "identity" => ReactionIdentityCorpus.V10,
             "filters" => EventRoutesCorpus.ObserverFiltersV10,
             _ => EventRoutesCorpus.ProductionRoutesV10
         };
@@ -31,6 +29,5 @@ public class when_refusing_v10_corpora : Specification
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
-        if (form == "identity") plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-034"]);
     }
 }

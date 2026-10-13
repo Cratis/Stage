@@ -205,10 +205,7 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> ReactionsInSlice(SemanticSlice slice)
     {
         var reactions = slice.Reactions.IsDefault ? [] : slice.Reactions;
-        foreach (var reaction in reactions.Where(reaction => reaction.RunsAs is not null))
-        {
-            yield return new(ReactionIdentity, StageExecutionCapability.Authorization, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 execution identity, which Stage does not support yet.");
-        }
+        foreach (var feature in ReactionIdentitiesInSlice(slice)) yield return feature;
 
         foreach (var reaction in reactions.Where(reaction => reaction.From is not null))
         {
@@ -237,6 +234,15 @@ internal static class SemanticVersionFeatures
 
         foreach (var feature in EventReactionsInSlice(slice)) yield return feature;
     }
+
+    /// <summary>
+    /// Finds reaction execution identities that targets must explicitly admit.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The declared execution identities.</returns>
+    public static IEnumerable<SemanticVersionFeature> ReactionIdentitiesInSlice(SemanticSlice slice) =>
+        (slice.Reactions.IsDefault ? [] : slice.Reactions).Where(reaction => reaction.RunsAs is not null)
+            .Select(reaction => new SemanticVersionFeature(ReactionIdentity, StageExecutionCapability.Authorization, reaction.Id, "reaction", $"Reaction '{reaction.Name}' declares an ESM v10 execution identity."));
 
     /// <summary>
     /// Finds Automation slices the specification executor still refuses.

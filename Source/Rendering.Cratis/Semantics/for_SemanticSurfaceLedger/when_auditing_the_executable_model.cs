@@ -57,19 +57,24 @@ public class when_auditing_the_executable_model : Specification
     public void should_classify_v9_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
 
     [Theory]
-    [InlineData("SemanticReaction.RunsAs", "STAGE-ESM-034")]
-    [InlineData("SemanticReactionIdentity.Kind", "STAGE-ESM-034")]
-    [InlineData("SemanticReactionIdentity.Roles", "STAGE-ESM-034")]
-    [InlineData("SemanticReactionIdentityKind.System", "STAGE-ESM-034")]
     [InlineData("SemanticReaction.From", "STAGE-ESM-035")]
     [InlineData("SemanticProducedEvent.Route", "STAGE-ESM-036")]
     public void should_classify_v10_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
 
     [Theory]
+    [InlineData("SemanticSpecification.WhenAppended")]
+    [InlineData("SemanticSpecificationAppend.EventContract")]
+    [InlineData("SemanticSpecificationAppend.EventSource")]
+    [InlineData("SemanticSpecificationAppend.Values")]
+    [InlineData("SemanticSpecificationAppend.Route")]
+    [InlineData("SemanticReaction.RunsAs")]
+    [InlineData("SemanticReactionIdentity.Kind")]
+    [InlineData("SemanticReactionIdentity.Roles")]
+    [InlineData("SemanticReactionIdentityKind.System")]
     [InlineData("SemanticReducer.From")]
     [InlineData("SemanticObserverFilter.Source")]
     [InlineData("SemanticObserverFilter.Stream")]
-    public void should_classify_reducer_filters_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
+    public void should_classify_supported_identities_and_filters_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData("SemanticApplication.Triggers")]

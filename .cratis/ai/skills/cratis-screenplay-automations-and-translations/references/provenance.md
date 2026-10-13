@@ -16,11 +16,10 @@ defaults for missing data) is replaced by "never fabricate a default"; its log-a
 handling is replaced by recorded failure facts. `plugins/trogonstack-eda` was skimmed; nothing
 adopted.
 
-## Adapted closely (Martin Dilger and Nebulit GmbH, with agreement)
+## Adapted closely (Martin Dilger and Nebulit GmbH)
 
 Source: https://github.com/Nebulit-GmbH/agentic-engineer at commit `07b0f30648d663cb588d7e2c7aa031af9dfc21f2`,
-by Martin Dilger and Nebulit GmbH (https://nebulit.de). The repository carries no licence file; this material
-is adapted with the agreement of Martin Dilger and Nebulit GmbH.
+by Martin Dilger and Nebulit GmbH (https://nebulit.de), used with the explicit consent of Martin Dilger and Nebulit GmbH.
 
 | Source file | Used in | How |
 |---|---|---|
@@ -41,5 +40,12 @@ Changes in this version: the examples are complete fenced documents that compile
 example's anonymous-booking spec gained the `given caller` PLAY0389 requires; the todo-list
 example's list query, `reads` and retry sweep moved to marked design-only excerpts so the core
 binds); tool-qualified verdict text; the trusted-actor text now names `[ExecuteCommandsAsSystem]`
-(Arc v20.56.0, available in a rendered app's Arc 22.25.0) and Screenplay#383; Stage renders no
-Automation or Translate slice (Stage#79).
+(Arc v20.56.0). Actor syntax was reverified at Screenplay v4.125.0
+`reactions.md`, `ReactionIdentityParser.cs`, `ReactionRefusalValidator.cs` and the
+binder's v10 selection; the checked scenario passed reference execution. CLI
+3.41.0's older parser and Stage 4.51.3's v7 planner were historical target limits.
+Previous CLI 3.46.1 refused v10 at its version gate. The pinned CLI/Stage pair
+(toolchain `references/versions.md`) renders role/authenticated reaction identity; claim-reading/opaque gates retain
+STAGE-ESM-034 (Stage `v4.89.1:Documentation/reference/reaction-rendering.md:57-59`).
+Public/direction forms and routes/filters follow Screenplay v4.135.0 decisions
+0049–0051 and 0060–0066, not the older inbound-only translation scope.

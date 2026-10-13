@@ -7,17 +7,22 @@ license: MIT
 
 # Projections — the Screenplay PDL
 
+Read [preferred syntax](../cratis-screenplay-toolchain/references/preferred-syntax.md) when writing or reviewing `.play`.
+
 A `projection` folds events into a read model. Its body is the **Projection
 Declaration Language**, an embedded sub-grammar with its own parser — not free
 text. This is half of every event model, and the half most easily got wrong.
 
 ## Locate the model
 
-Look first in `.cratis/screenplay/` at the repository root. This is the
+Look first for the project's existing `.play` files: the folder holding them is the
+model. A new model goes under the repository's `Source/` or `src/` folder, else in a
+`Screenplay/` folder at the repository root; never under `.cratis/`, which holds
+configuration and the shared AI corpus only. This is the
 conventional home for consumer-owned `.play` source; do not invent another
 location or search the whole repository before checking it.
 
-`cratis ai install` manages `.cratis/ai/`, not `.cratis/screenplay/`. Never
+`cratis ai install` manages `.cratis/ai/`, never model files. Never
 hand-copy Screenplay source between repositories. Keep Markdown that explains,
 questions or navigates the model in the repository's documentation; the `.play`
 source is the single flow model.
@@ -28,12 +33,13 @@ source is the single flow model.
 | --- | --- | --- |
 | `Cratis.Screenplay` | `4.31.0` | PDL parser, validator, diagnostics, semantic binder |
 | `Cratis.Screenplay` | main `fd18129` | Inline event extraction and context identity guidance |
-| `Cratis.Screenplay` | `4.64.0` (`7e16162`) | Reducer-body binding (`Semantics/`); no PDL syntax change affects the examples |
+| `Cratis.Screenplay` | `4.66.0` (`c89198b`) | Reducer-body binding (`Semantics/`); no PDL syntax change affects the examples |
 
 The update follows `commands.md`, `events.md` and `mcp/authoring-tools.md` at
 that main commit (after v4.52.0); no PDL example changes in this update.
 
-Checked against the Screenplay repository at tag `v4.31.0` (commit `355dffb`):
+Originally checked against the Screenplay repository at tag `v4.31.0` (commit `355dffb`; the
+projection grammar was re-read at v4.139.0 for headers and dynamic keys):
 `Documentation/screenplay/projections/` (including `semantic-model.md`, `keys.md`
 and `variants.md`), `readmodels.md`, `diagnostics.md` and decisions 0001 and 0002.
 Every example below compiles with that version's compiler. Reverify before
@@ -49,7 +55,7 @@ compiles can still mean something other than it seems: read the warnings.
 Excerpt: the concepts and the three events (each carrying `invoiceId`) are
 declared elsewhere in the model.
 
-```screenplay
+```screenplay excerpt
 readmodel InvoiceDetailsReadModel
   invoiceId     InvoiceId
   invoiceNumber InvoiceNumber
@@ -73,10 +79,24 @@ build a read model** — two builders is error `PLAY0191`: *a projection or a
 reducer builds it, and only one of them*. A slice may still declare several
 projections, each building a **different** read model.
 
+## Public-event targets and observer filters
+
+In an explicitly outbound Translate slice, `projection P => PublicEvent` or
+`reducer P => PublicEvent` targets the slice's one local public event (ESM v9).
+The projection folds one instance per event source id; opaque reducers remain
+Unsupported in reference execution. Read
+[public-event folds](../cratis-screenplay-automations-and-translations/references/public-events-and-direction.md)
+for publication rules and the `when append`/`then PublicEvent` specification.
+A reducer can filter `from Source[.Stream]` (ESM v10); a projection cannot.
+Read [observer filters](../cratis-screenplay-toolchain/references/production-routes-and-filters.md).
+
 ## Projection-level directives
 
-`no automap`, `sequence <name>`, `file <path>`. `sequence` is a realization
-concern and does not bind to the executable model.
+`description "..."` (or a fenced text block) on the projection header (report-only `PLAY0270`; variants
+and nested blocks take none), `no automap`, `sequence <name>`, `file <path>`. `sequence` is a realization
+concern and does not bind to the executable model. A mapping target may end in a dynamic dictionary
+key, `count eventCountByType.$eventContext.eventType.id` (one entry per distinct value); only
+`$eventContext` resolves there, any other `$` text is a literal key with warning `PLAY0299`.
 
 ⚠️ **Do not write `key` on the projection.** It parses, but neither Chronicle nor
 the executable model routes any event by it, and it is not a default for the
@@ -180,7 +200,7 @@ must be numeric.
 Excerpt, inside a `projection` whose read model has `customerId` and
 `customerName`:
 
-```screenplay
+```screenplay excerpt
 join customer on customerId
   with CustomerCreated
     customerName = name
@@ -204,7 +224,7 @@ A join cannot declare its own key or trigger removal — that is
 
 Excerpt, inside a `projection`:
 
-```screenplay
+```screenplay excerpt
 children lineItems identified by lineNumber
   from InvoiceLineItemAdded key lineNumber
     parent invoiceId
@@ -230,7 +250,7 @@ nested billingContact
 
 Excerpt, inside a `projection`:
 
-```screenplay
+```screenplay excerpt
 remove with InvoiceCancelled key invoiceId
 remove via join on CustomerAccountClosed
 ```
@@ -250,7 +270,7 @@ Excerpt: the events and the three read models (each with a keyed query) are
 declared elsewhere. Every event about an issue is appended with the issue's
 identifier as its event source.
 
-```screenplay
+```screenplay excerpt
 projection WorkItem
   from TitleChanged
     title = title
@@ -286,7 +306,7 @@ a single `status` field.
 
 Excerpt: the events and the `AccountBalance` read model are declared elsewhere.
 
-````screenplay
+````screenplay excerpt
 reducer Balance => AccountBalance
   on AmountDeposited
     ```csharp
@@ -315,21 +335,20 @@ What the executable model does with it (ESM v3):
 - The body is an opaque attachment identified by a content hash, never compiled
   or run by Screenplay. The reference runner cannot compute reducer state, so a
   specification that reads a reducer-built read model reports unsupported and
-  never passes. A target must supply the transition. Stage 4.24.0 admits only pure reducer bodies
-(Roslyn allowlist); an impure body is gap-fill code, and the model stays the contract.
+  never passes. A target must supply the transition. Stage (4.73.1) admits only pure reducer bodies
+(Roslyn allowlist, `STAGE-ESM-019`/`-022`); an impure body is gap-fill code, and the model stays the contract.
 
 **Prefer a projection where one will do.** A reducer is code, and code is the part
 of a document a reader cannot check at a glance.
 
-Read [pdl-grammar.md](references/pdl-grammar.md) for the syntax grammar, the
-projection diagnostic codes, and worked examples.
+Read [pdl-grammar.md](references/pdl-grammar.md) when checking exact syntax, interpreting a projection diagnostic code, or needing a worked example.
 
 ## Verify
 
-- [ ] Standalone `screenplay <model> --warnaserror` (4.64.0) reports zero errors and zero
-      warnings; with only the bundled compiler, `cratis screenplay validate
-      --warnings-as-errors` on the model folder (3.27.1 bundles Screenplay 4.60.1, ESM v5 or
-      lower). Name which tool produced the result.
+- [ ] Standalone `screenplay <model> --warnaserror` (4.68.0) reports zero errors and zero
+      warnings; or `cratis screenplay validate --warnings-as-errors` on the model folder
+      (3.28.2 bundles the same Screenplay 4.66.0; before 3.28.2 bundled 4.60.1, ESM v5
+      or lower). Name which tool produced the result. If it reports diagnostics, correct the model and rerun the same command; report unresolved diagnostics as blockers rather than a passing verification.
 - [ ] Each read model has **exactly one** builder.
 - [ ] No projection-level `key`; every `from` that must address the same
       instance is keyed on the same identity.
@@ -349,7 +368,7 @@ projection diagnostic codes, and worked examples.
 - [ ] A reducer is present only because a projection genuinely could not express it,
       and every rule has a body in a tagged fence or a `file`.
 
-Versions, tool capabilities and the executable and renderable subsets: `cratis-screenplay-toolchain` (`references/versions.md`). Where a construct sits in the
+Read `cratis-screenplay-toolchain` (`references/versions.md`) when selecting a tool/version or checking tool capabilities and the executable and renderable subsets. Where a construct sits in the
 method: `cratis-screenplay-modeling-lifecycle` and `cratis-screenplay-slice-design`.
 
 ## Route near misses

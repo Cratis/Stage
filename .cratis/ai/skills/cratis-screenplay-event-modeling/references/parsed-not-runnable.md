@@ -1,51 +1,63 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-event-modeling/references/parsed-not-runnable.md -->
 # Parsed is not runnable: ESM versions and dispositions
 
-Facts read at Screenplay `v4.64.0` (`7e16162`): `Source/DotNET/Screenplay/Semantics/Versions.cs`,
-`SemanticModelBinder.cs` (`ReportTopLevelDispositions`), `SemanticModelBinder.CommandProductions.cs`,
-`Documentation/screenplay/{commands,operations,event-sources}.md`. Tool versions and which tool
-reports what: `cratis-screenplay-toolchain` `references/versions.md`.
+Checked at Screenplay v4.139.0: `SemanticModelBinder.cs`, `Versions.cs`,
+`Documentation/screenplay/{commands,operations,event-sources,reactions,tool,interoperability}.md`.
+The binder selects v8 for event routes, v10 for declared reaction identity, v11 for retained
+exact-lowered Double-mode literals and v12 for non-positional enum numbers.
+Compliance checked against 4.142.0 `SemanticModelBinder.Compliance.cs` and
+`SemanticModelValidator.Compliance.cs`; it selects v13 (first released in 4.141.0).
+Pins and consumer boundaries: toolchain `references/versions.md`.
 
 ## Which ESM version a model needs
 
-- **v1** by default.
-- **v2** for typed event-source facts: `produces ... for <identifier>` when the event does not
-  repeat the identifier, `for` values in specifications, and `$context.occurred` or caller
-  identity in `produces`.
-- **v3** for code the model hands off: bodied reducers, code validation, code policies. Code
-  binds as an opaque requirement; the reference runner reports any specification that needs it
-  as unsupported. A command `handler` (including `implementation` and `hint`) never binds
-  (`PLAY0268`).
-- **v4** for event-contract lineage (multiple event generations) and **v5** for keyed read-model
-  absence assertions (`then no readmodel`).
-- **v6** for reactions, captures, application triggers and the clock (and so `Automation` and
-  `Translate` slices).
+- v1 by default; v2 for typed event-source facts and admitted occurrence/audit mappings.
+- v3 for opaque code requirements. Reference execution cannot execute their bodies.
+- v4 for event-contract lineage; v5 for keyed read-model absence assertions.
+- v6 for admitted reactions, captures, application triggers and clock.
+- v7 for generated command values, responses, fixtures/return assertions and policy negation.
+- v8 for sources/streams and command/specification routes.
+- v9 for public-event contracts; v10 for reaction `runs as system` identity.
+- v11 for exact lowering of qualifying Double-mode number literals; v12 for non-positional
+  enum member numbers (`cratis-screenplay-command-surface` `references/enum-numbers.md`).
+- v13 for concept `pii`/`personal` and `secret`, personal qualifiers and secret scopes.
+  Reasons remain report-only PLAY0270; binding proves neither encryption nor erasure.
+- Operations/systems, the exact numeric **source mode** (`numbers exact`) and refusal/redelivery
+  remain unadmitted (PLAY0268). Version allocation is not inferred from an older planning decision.
 
 ## Dispositions to keep apart
 
-| Construct | Authoring | Binding at 4.64.0 |
-| --- | --- | --- |
-| `persona` | accepted | information `PLAY0270` ("authoring metadata and is not part of ESM v1 behavior"). Never blocks; an unknown policy on a persona is an error |
-| `domain`, `authentication` | accepted | report-only information (`PLAY0270`) |
-| `@pii`, `@sensitive` on a concept | accepted | `PLAY0268`, blocks binding and rendering |
-| `reads`, `concurrency` on a command | accepted | `PLAY0271` |
-| `reads` under a reaction trigger that only `invokes` | accepted | information `PLAY0270`: report-only intent, the model does not consult the view |
-| `reads` under a reaction trigger that `produces` directly | accepted | `PLAY0268` |
-| Generated properties, `returns` responses | authorable, syntax-only | `PLAY0268`; allocated to ESM v8 |
-| `system`, `operation` | authorable, syntax-only | `PLAY0268`; allocated to ESM v9 |
-| `eventsource`, `stream` | authorable, authoring-only | `PLAY0268`; allocated to ESM v10 |
-| UI constructs | accepted | information `PLAY0269` |
+| Construct | Standalone disposition (v4.125.0/v4.139.0 evidence; compliance updated at v4.141.0) |
+| --- | --- |
+| `persona`, domain/authentication metadata | Report-only; unknown named policies remain source defects |
+| Compliance concepts | Bare `pii`/`personal` and `secret`, qualifiers and scope bind as v13 (4.142.0 checked); enum/identity compliance and events combining personal or explicitly subject-scoped secret values with an explicit `subject` mark refuse PLAY0268 at binding only. CLI 3.57.0's 4.147.1 bundle binds markers; Stage 4.89.1 renders v13 protection, not protected identities/enums or subject lineage. Never remove protection |
+| Identity details / processing purposes / event subject | Report-only metadata (4.127.0); executable detail reads refuse PLAY0268, not source declaration errors |
+| Composite stream ids | v8 routing; complete named parts/canonical comparisons, PLAY0515 refuses protected keys/sources; not a legacy text split |
+| Command reads/concurrency | Legacy unprotected decisions, PLAY0271 |
+| Invokes-only trigger reads | Report-only, not protected state; direct production with reads refuses |
+| Generated values/responses | v7 binding/reference execution; v15 strategies/strict fixtures/freshness since Screenplay 4.147.0. Stage 4.89.1 renders supported UUID/String strategies, responses and fixtures; unsupported types/combinations remain -028/-038 |
+| Sources/streams and command/specification routes | v8 binding/reference execution; the pinned CLI (toolchain `references/versions.md`) reaches Stage checks through v15 |
+| Declared reaction invocation actor | v10 binding/reference execution; older CLI parser PLAY0137; Stage 4.89.1 renders role/authenticated reaction identity; claim-reading/opaque gates retain STAGE-ESM-034, not a v10 version refusal |
+| Operations/systems, `numbers exact` source mode, refusal/redelivery | Source accepted; whole binding refuses PLAY0268 |
+| UI | Authoring/deferred metadata; runtime support is a separate consumer contract |
 
-A model that carries one of the blocked constructs is still a valid design model. Never remove
-the construct to make a tool pass; record the gap against its address
-(`cratis-screenplay-modeling-lifecycle`).
+Run standalone `screenplay test` or MCP `run-specifications` for V4. Compile
+success alone is not execution; unbound/unsupported is not passed. Preserve
+source that a narrower renderer cannot realize and report the addressed gap.
+Routing and actor checked examples: toolchain `references/sources-and-streams.md`
+and captures-and-reactions `references/invocation-identity.md`.
 
 ## The Step 7 clock example
 
-The complete example in [nine-steps.md](nine-steps.md) (Step 7) compiled with
-`screenplay <folder> --warnaserror` 4.64.0 (0 errors, 0 warnings) and opened through
-`screenplay mcp <folder>` with `executableReady: true` and five `PLAY0270` information
-diagnostics. It binds as a scheduled invocation; its `reads` is intent only, so the overdue
-decision is not executed by the model. The `cratis` 3.27.1 bundle (Screenplay 4.60.1, ESM v1
-to v5) compiles it but rejects the Automation slice at binding. Report reaction
-specifications as authored, not as run, unless a V4 run says otherwise.
+The complete example in [nine-steps.md](nine-steps.md) (Step 7) had historical
+4.66.0 compile/binding evidence (re-compiled at 4.139.0) (zero errors/warnings, executableReady true).
+Its invokes-only reads still record intent rather than execute the overdue
+selection. Run its admitted specifications with the current reference route
+before claiming a V4 pass; no overdue-selection proof follows from binding.
+
+## Decision 0006 and shipped generations
+
+Trigger reads do not enforce decision consistency. Event generations and typed repairs now ship,
+but historical schemas do not supply deployed migrations.
+Check actual binder, runner and consumer admission instead of equating an
+accepted decision or parsed node with a running application.

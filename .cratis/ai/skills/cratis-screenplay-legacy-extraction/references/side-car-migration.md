@@ -1,6 +1,17 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-legacy-extraction/references/side-car-migration.md -->
 # Side-car migration planning
 
+## Contents
+
+- The pattern
+- Freeze agreement (the gate)
+- Extracting events from legacy data
+- Routing user traffic (Y-valve)
+- Integration patterns
+- Anti-patterns
+- When a side-car is right
+- Quality checklist
+
 Adapted from TrogonStack `eventmodeling-integrating-legacy-systems` (MIT; see `LICENSE`,
 `provenance.md`). Use it only when the goal is **migrate or modernize** and a side-car is on
 the table. Documenting an inherited system needs none of it; stop after the Screenplay model
@@ -121,6 +132,7 @@ verification come first).
 - [ ] Extraction strategy defined for all in-scope legacy data; every table mapped or listed as unmapped
 - [ ] Event capture or load pipeline designed and owned
 - [ ] New behaviour scoped as modeled slices with their own acceptance
+- [ ] Accepted model and the new side-car code compared structurally with `cratis screenplay conform <model-root> --project <path>` (CLI 3.42.0 or later; exit 0 no blocking findings, 1 defects, 2 could not run or incomplete; same MSBuild trust caveat as `generate`, so use a trusted clone; structural address matching only, never a behavior or equivalence verdict)
 - [ ] Traffic routing designed; users can tell which system they are in
 - [ ] Parallel-operation test plan and reconciliation check
 - [ ] Deprecation timeline agreed

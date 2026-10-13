@@ -4,21 +4,33 @@
 The subsets themselves (what binds, what renders) are owned by `cratis-screenplay-toolchain`
 (its executable and renderable subset references); version facts by its `references/versions.md`. This file
 says what that means for writing specs. A form outside the chosen mode is never deleted from a
-design model: keep it and record the gap.
+design model: keep it and record the gap. The detailed Stage 4.24.x rows below
+retain historical admission evidence; current pins are in
+`cratis-screenplay-toolchain/references/versions.md`. Run actual target admission instead of assuming old restrictions carry over.
+Typed example/override forms: `cratis-screenplay-specifications`
+`references/examples-and-routes.md`.
 
 | Form | design | executable | renderable |
 |---|---|---|---|
 | `when <Cmd>` -> `then <Event>` / `then error` / `then denied` | yes | yes | yes |
 | `given <Event>` with `for` | yes | yes (needed for keyed views) | yes |
 | `given readmodel` | yes | yes (complete instance with key) | only as the query-only lookup below |
-| `when append <Event>` | yes | yes | no |
+| `when append <Event>` | yes | yes | supported single-hop reaction effects/invocation only; fan-out, deeper cascades and other refused assertions retain STAGE-ESM-011 |
 | `then readmodel` / `then query` (keyed `ById`, `arguments`, `result`) | yes | yes | yes |
-| `then query` on list, filtered or observable queries | yes | no (query does not bind) | no |
+| `then query` on an unfiltered list or a list narrowed by one `by` key (observable too) | yes | yes since 4.105.0: no `arguments` for an unkeyed list, one `result` per row stating the read-model identifier, no `result` = empty list | observable lists render, a non-observable list is `STAGE-ESM-010` (Stage 4.73.1) |
+| Collection query with caller-supplied equality `filter`, including observable | yes | yes since 4.143.0, ESM v14: same-named scalar property/type, AND with `by`; optional omission allowed, supplied null refused; PLAY0468 checks arguments; row order does not matter | yes on supported observable collections in CLI 3.57.0 / Stage 4.89.1; DateTime/filter parameter order and snapshot lists refuse -010; independent Stage executor still refuses filtered assertions (-010) |
+| Context `from`, single-result filters, `scoped to`, `performer` or composite `by` | yes | PLAY0268: query context, collection-only filtering, opaque scope/implementation or multipart lookup are unadmitted | no |
 | `then no readmodel <RM> for "<key>"` | yes | yes | no |
 | `when query` -> `then result` / `then no result` | yes | yes | same as `then query`: only the query-only cases below |
-| `given clock` / `when clock`, `when trigger`, `given`/`when capture` | yes | current compiler yes; cratis-bundled compiler no (see versions.md) | no |
-| Command spec listing reaction cascade events | yes (v6 semantics) | false PLAY0285 on the cratis-bundled compiler; see SKILL.md "Version skew" | no (no reactions) |
+| `given clock` / `when clock`, `when trigger`, `given`/`when capture` | yes | yes (standalone and any current cratis; history: a cratis before 3.28.2 bundle no, see versions.md) | no |
+| Command spec listing reaction cascade events | yes (v6 semantics) | false PLAY0285 on a cratis before 3.28.2 bundle only; see SKILL.md "Version skew" | no: STAGE-ESM-011; generated CommandScenario does not settle reactions (Stage 4.89.1) |
+| `generated <name> = <value>` under `when`, `then returns` (ESM v7) | yes | yes on standalone Screenplay 4.68.0 or later and the current cratis bundle (history: PLAY0268 on the 4.66.0 bundled in cratis 3.28.x) | yes on Stage 4.89.1 for supported UUID/String strategies and v15 freshness and scalar/named responses; unsupported types/combinations remain -028/-038 |
+| v15 generation strategy fixtures and used-source rejection | yes | strict encoding/size/case/version/variant; Contract for invalid pins, Concurrency for reused source | supported strategies/freshness render; invalid pins refuse -011, unpinned unordered/projected assertions -038; source: command-surface `references/generated-values-and-responses.md` |
 | `then events in any order` | yes | yes | yes |
+| Event `stream` / `no stream`, typed `for` and stream ids | yes | ESM v8 at 4.125.0 | The pinned CLI reaches Stage route checks (toolchain `references/versions.md`); routed read-model/query replay now renders (Stage 4.89.1); reserved names/unformattable fixtures remain STAGE-ESM-030 |
+| Typed examples and overrides | yes | expanded and type-checked before binding; required fields remain required | depends on expanded contract, not fixture reuse |
+| `given operation ... fails`, `then operation`, `then compensated` | yes | unadmitted PLAY0268 | gap-fill |
+| Refusal branches, `when redelivered`, `then no events` | yes | unadmitted PLAY0268 | gap-fill |
 | Composite (JSON) values in specs | yes | yes | no |
 | Rules over dates or `today`, nested paths | spec them in design | rule does not bind: `recorded` | `recorded` |
 | Bodied rules, code policies | spec them | spec reported **unsupported**, never passed | no |
@@ -26,23 +38,26 @@ design model: keep it and record the gap.
 
 ## Design mode
 Write the full intended behaviour, including scenarios the executable subset cannot run
-(list views; clock, trigger and capture scenarios when only the cratis-bundled compiler is
-available). Mark each such spec in the coverage matrix as
+(filtered, scoped and performer-backed views; clock, trigger and capture scenarios when only a
+cratis before 3.28.2 bundle is available). Mark each such spec in the coverage matrix as
 `gap: <reason>` for the narrower modes so the verification and render phases know what will not execute.
 
 ## Executable mode
-- Every gated spec has `given caller`; every production and every given/expected event has `for`.
+- Every gated spec has `given caller`; every given/expected event has `for`, and so does every plain `produces <Name>` (inline `produces event` omits it and defaults to the identifier).
 - Each read model has one key shared by its keyed `=> RM optional` queries; the identifier equals
   the projection's effective key (`cratis-screenplay-slice-design` `references/read-model-design.md`
   decision table). View specs assert through a keyed query.
 - Run V3 (binding-ready, per `cratis-screenplay-toolchain`); binding-only codes (PLAY0273/0350/0352/0388/0389) appear only there.
-- V4 (reference specs run) needs a runner route; otherwise report "V4 not run: no route". Unsupported is not passed.
+- V4 runs through `screenplay test` or MCP `run-specifications`; record expected,
+  discovered/selected and passed/failed/unsupported counts. Unbound/unsupported
+  is not passed. Authoring-only refusal/redelivery/operation specs remain recorded
+  contracts; test them at the owning target after authorized gap-fill.
 
 ## Renderable mode
 - Specs use given events, a command `when`, and then events / readmodel / query / error /
   denied. No `when append` or `then no readmodel`. `given readmodel` appears only in the
   query-only lookup below.
-- Query-only specs (no command `when`) are admitted by Stage v4.24.0 in exactly two cases, and
+- Query-only specs (no command `when`) are admitted by Stage v4.24.0 in exactly two cases (a v4.24.0 reading, not re-probed at 4.73.1), and
   `when query` and `then query` are the same case: Screenplay normalises `when query` to the
   `then query` model, so the spelling never decides admission.
   - Denial: `given caller` (no role claims), no given events or read models, one query under a
@@ -57,7 +72,7 @@ available). Mark each such spec in the coverage matrix as
   executable, not renderable).
 - Prove projections with `given` events + `when <Command>` + `then query` (or `then readmodel`).
   Removal has no admitted form: record it as a gap for renderable scope.
-- A `then error` must name a constraint or rule that is actually rendered. Stage v4.24.0 admits
+- A `then error` must name a constraint or rule that is actually rendered. Stage v4.24.0 (historical reading) admits
   a value constraint only when each target is a single, required, text-typed property (not
   composite, optional, collection or nontext), and rejects a command that produces more than one
   event affected by the same value constraint (claims or releases) in one batch. The number of

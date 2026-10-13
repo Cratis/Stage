@@ -13,9 +13,13 @@ guarantees. Then write it as `Automation` and `Translate` slices that say truthf
 protected, what is only recorded, and who acts. Grammar depth is in
 `cratis-screenplay-captures-and-reactions`; this skill owns the decisions.
 
-**One meaning of Translation:** outside data becomes our facts (a `capture` or a translator
-reaction over an imported event, in a `Translate` slice). Our own event-to-event follow-up is an
+**Translation crosses an application boundary:** inbound turns outside data or foreign
+public events into private local facts; outbound publishes private facts as one local public
+event type. Declare `direction inbound|outbound` when public metadata is used; omission
+preserves historical inbound for legacy translations. Private-to-private follow-up is an
 Automation (`produces` or `invokes`), even when a Chronicle reactor realizes it.
+Read [public events and direction](references/public-events-and-direction.md) for released
+ESM v9 forms, event-target folds, publication specifications and the Unsupported capture limit.
 
 Work in the model first. Code appears only where it is truly needed: the external call, the
 source adapter, the trusted actor, and everything Stage cannot render (below). Session and
@@ -24,24 +28,66 @@ verdict discipline: `cratis-screenplay-modeling-lifecycle`; tools, versions and 
 identity, effect and pending-work contract at that point; do not postpone it to the final review.
 
 ## Tool and realization facts (read before promising anything)
-- Reactions, clocks, triggers, captures and Automation/Translate slices compile (V1) on both tools
-  and bind (V3) only on the standalone compiler 4.61 or later. The cratis 3.27.1 bundled compiler
-  (4.60.1) reports PLAY0268 at binding: report "V3 blocked: PLAY0268 (ESM v6)", never remove them.
-- No MCP tool, `validate` or render runs Automation or Translate specs. V4 is "not run: no route".
-- Stage 4.24.0 renders no Automation or Translate slice (Stage#79): the whole automation is
-  gap-fill or hand-written delivery with the model as contract (`references/realization-and-gap-fill.md`).
-- Invoked commands run with no caller; `.play` cannot name an actor (Screenplay#383).
+- Reactions, clocks, triggers, captures and Automation/Translate slices compile (V1) and bind (V3)
+  on Screenplay 4.61 or later: the standalone tool and the cratis CLI 3.28.2 or later (3.53.1
+  bundles 4.137.0). Probed on 3.28.2: the complete examples are `executableReady`. A cratis bundle before 3.28.2
+  (4.60.1) reported PLAY0268 at binding: report "V3 blocked: PLAY0268 (ESM v6)" and
+  name the tool, never remove them.
+- The pinned standalone tool runs admitted scenarios through `screenplay test` or MCP
+  `run-specifications`; source validation and render publication do not run V4.
+- Stage 4.51.3 refuses Automation/Translate members with STAGE-ESM-024; its direct
+  planner audits through v7. Deliver that scope as authorized gap-fill
+  (`references/realization-and-gap-fill.md`).
+- Reaction `runs as system role "<Role>"` declares an invocation actor (ESM v10).
+  Without it the invoke has no caller. Historical CLI 3.41.0's 4.114.0 compiler
+  rejected the syntax (PLAY0137); previous CLI 3.46.1 refused ESM v10
+  at render admission (CLI-RENDER-004). The pinned CLI/Stage pair (toolchain
+  `references/versions.md`) renders role/authenticated reaction identity; claim-reading/opaque gates retain STAGE-ESM-034. Checked model/diagnostics: captures-and-reactions
+  `references/invocation-identity.md`.
+
+## Effect guarantees and recovery traps
+| Guarantee | What it promises | What can show it |
+|---|---|---|
+| **once-only fact** | `CertificateSent` exists at most once for an enrolment | `constraint … unique event` on the right stream + a violation spec |
+| **idempotent handling** | asking again gives the caller the same outcome, no new effect | target behaviour (map "already has the event" to success where intended); the model shows a rejection |
+| **exactly-once external effect** | the person receives one certificate, the card is charged once | nothing in the model; only the outside system's dedup or a reconciliation can |
+
+A todo list + reaction + unique constraint proves the first. It does **not** prove the third:
+the send can succeed and the append fail (crash, lost reply, constraint race), and the retry
+sends again.
+
+- A reaction cascade is not one transaction: earlier accepted facts stay when a later invoked
+  command rejects (Screenplay `reactions.md`). Design each step to be retried on its own.
+- Replay and recovery redelivery are different. Chronicle `[OnceOnly]` skips replays (rewind,
+  redaction, revision) only, not ordinary catch-up, repeated same-source events or crash
+  redelivery. Recovery runs the handler normally. It is not a per-source run limit or
+  deduplication. A receipt keyed by `ReactorDelivery.Id` identifies the retry. Name both.
+
+## Capture data-protection traps
+A field left out of `map` still passes through the capture's working record: omission is not
+redaction. Check the append mappings and every resulting event property, and record whether
+the target stores raw or last-seen source records and how they are minimized.
+Personal data kept in events needs bare `pii` on its concept and a declared purpose
+(see command-surface `references/compliance.md`); keep the marker
+even when it blocks binding. Never record bearer tokens, magic links or signed URLs as facts
+(a keyed hash or reference at most), and never put PII on the event-source id.
 
 ## Verified product sources
+Current pins: toolchain `references/versions.md`. Language claims were re-read at Screenplay v4.139.0,
+renderer claims at Stage v4.89.1 (`Documentation/reference/reaction-rendering.md:6-98`,
+`Source/Rendering.Cratis/Semantics/SemanticVersionFeatureAdmission.cs:25-46`): supported
+event-triggered Automation renders; Translate/captures and refused reactions stay gap-fill. The
+runtime facts at Arc v22.72.0 and Chronicle v19.50.1. Older reads kept as history:
+
 | Package | Version | Used for |
 | --- | --- | --- |
-| Screenplay | v4.64.0 (`7e16162`) | `Documentation/screenplay/{reactions,captures,triggers,specifications,diagnostics}.md`; examples compiled with the standalone tool |
-| cratis CLI | v3.27.1 | bundled compiler 4.60.1 (PLAY0268 on v6 constructs, false PLAY0285 on cascades, cli#242) |
-| Stage | v4.24.0 | admits ESM v1 to v3; renders no Automation or Translate slice |
-| Arc | v22.50.5 | `ExecuteCommandsAsSystemAttribute` (since v20.56.0) |
-| Chronicle | v19.32.0 | `OnceOnlyAttribute`, `ReactorDelivery` and `Documentation/reactors/delivery-identity.mdx` |
+| Screenplay | v4.66.0 (`c89198b`) | `Documentation/screenplay/{reactions,captures,triggers,specifications,diagnostics}.md`; examples compiled with the standalone tool |
+| cratis CLI | v3.28.3 | bundled Screenplay 4.66.0 and Stage 4.24.2 (before 3.28.2: 4.60.1, which gave PLAY0268 on v6 constructs and a false PLAY0285 on cascades, cli#242) |
+| Stage | v4.24.2 | admitted ESM v1 to v4; rendered no Automation or Translate slice |
+| Arc | v22.72.0 (read; v22.50.5 earlier) | `ExecuteCommandsAsSystemAttribute` (since v20.56.0); mixed events-and-commands reactor returns (since v22.72.0) |
+| Chronicle | v19.50.1 (read; v19.32.0 earlier) | `OnceOnlyAttribute`, `ReactorDelivery`, `Documentation/code-analysis/CHR0022.mdx` and `Documentation/reactors/delivery-identity.mdx` |
 
-Full pin table: `cratis-screenplay-toolchain` `references/versions.md`. Reverify before claiming
+Read `references/versions.md` in `cratis-screenplay-toolchain` when selecting a tool or checking the full version and capability pins. Reverify before claiming
 another version behaves the same.
 
 ## When / when not
@@ -73,7 +119,7 @@ open question, not an invented answer):
 
 **Unattended:** assume visibly. Record each assumption as a labelled open decision in `STATE.md`
 (`.ai-work/screenplay/<model-slug>/STATE.md`), mark the dependent slice open, never write a mapping
-or actor that nobody confirmed. Transcript-shaped worked example: `references/worked-integration.md`.
+or actor that nobody confirmed. Read `references/worked-integration.md` when you need a transcript-shaped example of the integration interview, correlation, translation rules, scenarios, and recovery output.
 
 ## Procedure
 1. **Inventory.** List every reaction, trigger and external source/type in scope; read their
@@ -87,12 +133,20 @@ or actor that nobody confirmed. Transcript-shaped worked example: `references/wo
    supersession), the work-item key and the recovery path. Direct reaction only for an immediate,
    internal, always-possible effect; say why no pending state is needed. A translation is not
    automatically infallible.
-4. **Effect and actor.** `produces <Fact>` when nothing should refuse the fact. `invokes <Command>`
-   when the step is a decision that may reject; it carries **no caller**, so gated commands reject it.
-   Record one actor decision: internal ungated command (only when safe and unreachable), direct
-   `produces`, or gated command with a trusted actor and the capability gap (Screenplay#383). The code
-   realization of the actor is a reactor with `[ExecuteCommandsAsSystem("<role>")]` and a policy
-   requiring that role; never invent `runs as`. Never strip authorization to pass a tool.
+4. **Effect and actor.** `produces <Fact>` records a decided fact; `invokes <Command>`
+   requests a decision. Keep its gate and declare the trusted role with reaction
+   `runs as system role "<Role>"` (ESM v10). An undeclared actor remains caller-less.
+   CLI/Stage realization is a separate gap; a returned-command reactor uses
+   `[ExecuteCommandsAsSystem("<role>")]` and the matching policy. Never strip a
+   gate or supply `given caller` as a fictional reaction identity. Arc supplies a
+   system principal only to reactors marked `[ExecuteCommandsAsSystem]`; without
+   it there is no principal and `[Authorize]`/`[Roles]` deny. `runs as` covers returned
+   or invoked commands, not imperative pipeline calls, reads, productions or causation.
+   On Screenplay 4.127.0 run `--check privilege --warnaserror` (PLAY0652) for
+   confused-deputy paths: every trigger-event producer must require **all** declared
+   system roles. Ungated commands/captures/reaction productions warn; opaque gates
+   are information, not proven safe. An OR alternative does not require a role.
+   Clock/application triggers have no producer and are silent; still review trust.
 5. **Trace inputs.** Every trigger value, command input, event property and destination needs a
    supported source; every filter a business reason. Gaps are questions, not invented mappings.
 6. **Repetition and termination.** Identify one logical work occurrence and what a retry is. Guard the
@@ -107,18 +161,20 @@ or actor that nobody confirmed. Transcript-shaped worked example: `references/wo
    named cases to `cratis-screenplay-scenario-coverage`. Produce the audit in `references/audit-format.md`.
 
 ## Rules
-**Compiler contracts** (diagnostics at 4.64.0)
+**Compiler contracts** (diagnostics at 4.66.0)
 - No inline `produces event` in a reaction (PLAY0474); declare reaction-produced events in the slice.
-- Effects sit under a trigger; only `description` and `where` are reaction-level; one `where` per
+- Effects sit under a trigger; `description`, `where` and current `runs as` are reaction-level; one `where` per
   reaction (PLAY0252); a trigger may not repeat (PLAY0253).
 - Clock triggers take no values (PLAY0450) and no `by` on reads (PLAY0443). `for each <View>` is
   reserved, not available.
 - Capture `when` cannot mix `and` and `or` (PLAY0089). A capture without `key` does not bind.
-- Undeclared events in capture `append` and `remove with` pass V1 and fail only at binding (V3, PLAY0273): run V3.
+- Current V1 warns on undeclared capture/removal events (PLAY0166); V3 remains a
+  separate binder check.
 - A trigger with `reads` that `produces` directly fails binding: decide in a command. `reads` never protects.
 - An authorized command exercised in a spec without `given caller` is PLAY0389 at binding.
-- A list query (`=> Item[]`) and a clock sweep that iterates items do not bind; show them only as marked
-  design-only excerpts (`references/todo-list-example.md`).
+- A list query (`=> Item[]`) binds (Screenplay 4.105.0+; a snapshot list is not rendered, `STAGE-ESM-010`);
+  a clock sweep that iterates items needs a code body the reference does not run
+  (`references/todo-list-example.md`).
 
 **Modeling defaults** (deviate with a recorded reason)
 - A `produces` without `for` lands on the triggering fact's source; clock and trigger occurrences have
@@ -129,7 +185,7 @@ or actor that nobody confirmed. Transcript-shaped worked example: `references/wo
   record. A fan-out records one outcome per item; partial success is failure at an effect boundary
   (`cratis-engineering-effect-boundaries`), never a batch "done" while members failed.
 - Infrastructure (logging, caching, retries, outbox plumbing) is never a Translate slice.
-- Personal data kept in events needs `@pii` on its concept; keep it even when it blocks binding or render.
+- Personal data kept in events needs `pii` on its concept; keep it even when it blocks binding or render.
 - Code bodies (`file`, inline fences) document realization; no local engine runs them.
 
 **Review questions**
@@ -148,13 +204,14 @@ direct effect states "not applicable: no queue" with its reason (per-chain quest
 Never report a verdict without the tool and version that produced it.
 
 ## Verify
-- V1 and V3 per `cratis-screenplay-toolchain`, each with tool and version. On the cratis-bundled
-  compiler report "V3 blocked: PLAY0268 (ESM v6)". V4 is "not run: no route" for these slices.
+- V1 and V3 per `cratis-screenplay-toolchain`, each with tool and version. On a cratis before 3.28.2
+  bundle report "V3 blocked: PLAY0268 (ESM v6)". Current admitted scenarios use
+  standalone `screenplay test`/MCP for V4; unsupported or unbound is not passed.
 - For each external source and type: its translation, or an explicit out-of-scope reason; check
   target-field completeness as well as source-field dispositions.
 - One happy path is not coverage: cite the spec or the missing case for each branch, denial, competing
   claim and closing event.
-- Every complete example compiles: `references/todo-list-example.md`, `references/translate-example.md`.
+- Every complete example compiles. Read `references/todo-list-example.md` when modeling a pending-work automation, and `references/translate-example.md` when modeling capture plus translator reactions.
 
 ## Route near misses
 - Grammar: `cratis-screenplay-captures-and-reactions`; invoked commands: `cratis-screenplay-command-surface`;
@@ -167,4 +224,4 @@ Never report a verdict without the tool and version that produced it.
 - Hand-written reactors and replay semantics: `cratis-chronicle-reactor`.
 
 ## Lineage
-Sources, adaptations and attribution: `references/provenance.md`.
+Read `references/provenance.md` when checking sources, adaptations, attribution, or approaches deliberately not adopted.

@@ -1,6 +1,10 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-scenario-coverage/references/invoicing-dues-example.md -->
 # Invoicing and dues: worked example for the scenario-examples excerpts
 
+## Contents
+
+- Notes
+
 Complete executable model (harbor club dues) holding every declaration the excerpts in
 `scenario-examples.md` and `view-and-story-specs.md` rely on, except the stored-state rules. Each
 of those excerpts is copied verbatim from the fence below (names are the specification names),
@@ -11,11 +15,10 @@ destination-type information; a reaction can also consume events from a capture 
 **Scope.** This document is the runnable demonstration only. It deliberately holds no rule that
 depends on stored state (the invoice must exist, only an open invoice may be voided, a reversal
 needs a received payment, `reads` + `require`): those rules cannot bind or run at Screenplay
-4.64.0 (PLAY0271, PLAY0268) and are stated in the design-mode document `invoicing-dues-design.md`,
+4.66.0 (PLAY0271, PLAY0268) and are stated in the design-mode document `invoicing-dues-design.md`,
 never in prose here. It shows the category shapes; for a coverage example see `berth-reservations.md`.
 
 ```screenplay
-// Needs the standalone screenplay compiler (ESM v6)
 // Scenario coverage worked example: invoicing club dues (complete document).
 // Backs the excerpts in scenario-examples.md and view-and-story-specs.md: issue an invoice,
 // request payment, an external gateway result captured and translated, an open-invoices todo list family and an accumulating credit balance.
@@ -46,13 +49,9 @@ module Invoicing
         amount    Decimal
         validate
           amount > 0 message "An invoice needs an amount above zero"
-        produces InvoiceIssued
-          for invoiceId
-          member = member
-          amount = amount
-      event InvoiceIssued
-        member MemberId
-        amount Decimal
+        produces event InvoiceIssued
+          member MemberId = member
+          amount Decimal = amount
       constraint IssueOnce
         unique event InvoiceIssued
 
@@ -92,17 +91,12 @@ module Invoicing
       description "An invoice ends either settled or voided, never both: SettleOrVoid declares the exclusivity per invoice, enforced at append. Rules about the invoice's stored state are in invoicing-dues-design.md."
       command SettleInvoice
         invoiceId InvoiceId identifier
-        produces InvoiceSettled
-          for invoiceId
+        produces event InvoiceSettled
       command VoidInvoice
         invoiceId InvoiceId identifier
         reason    String
-        produces InvoiceVoided
-          for invoiceId
-          reason = reason
-      event InvoiceSettled
-      event InvoiceVoided
-        reason String
+        produces event InvoiceVoided
+          reason String = reason
       constraint SettleOrVoid
         unique event InvoiceSettled
         unique event InvoiceVoided
@@ -168,9 +162,7 @@ module Invoicing
       description "Starts a payment attempt. PaymentRequested says only that we asked the gateway; it is NOT the outcome. The outcome arrives later as an external fact (slice PaymentGatewayResults). A request may be repeated after a decline, so there is deliberately no once-only constraint here."
       command RequestPayment
         invoiceId InvoiceId identifier
-        produces PaymentRequested
-          for invoiceId
-      event PaymentRequested
+        produces event PaymentRequested
 
       specification RequestingPayment
         given caller
@@ -257,6 +249,7 @@ module Invoicing
         amount    Decimal
       query OpenInvoiceById => OpenInvoice optional
         by invoiceId InvoiceId
+      query ListOpenInvoices => OpenInvoice[]
       projection OpenInvoices => OpenInvoice
         from InvoiceIssued
           invoiceId = $eventSourceId
@@ -336,6 +329,34 @@ module Invoicing
           arguments
             invoiceId = "9c1f0a52-6a4e-4b1c-9f55-0d2c7b8e1a01"
 
+      specification OpenInvoicesListHoldsTheIssuedInvoice
+        description "The unkeyed list query returns one row per open invoice; each row states the read-model identifier."
+        given caller
+          authenticated
+          role "Accounts"
+        given InvoiceIssued
+          for "9c1f0a52-6a4e-4b1c-9f55-0d2c7b8e1a01"
+          member = "6f1c2a8e-0b1d-4d55-9a3e-2f6a7c1d0e11"
+          amount = 130
+        then query ListOpenInvoices
+          result
+            invoiceId = "9c1f0a52-6a4e-4b1c-9f55-0d2c7b8e1a01"
+            member    = "6f1c2a8e-0b1d-4d55-9a3e-2f6a7c1d0e11"
+            amount    = 130
+
+      specification OpenInvoicesListIsEmptyAfterPayment
+        description "A paid invoice leaves the list: a query with no result block is the empty list."
+        given caller
+          authenticated
+          role "Accounts"
+        given InvoiceIssued
+          for "9c1f0a52-6a4e-4b1c-9f55-0d2c7b8e1a01"
+          member = "6f1c2a8e-0b1d-4d55-9a3e-2f6a7c1d0e11"
+          amount = 130
+        when append PaymentReceived
+          for "9c1f0a52-6a4e-4b1c-9f55-0d2c7b8e1a01"
+        then query ListOpenInvoices
+
     slice StateChange TopUpCredit
       description "Adds credit to a member. Why an amount above zero: a zero top-up changes nothing and hides a mistake."
       command TopUpCredit
@@ -343,11 +364,8 @@ module Invoicing
         amount Decimal
         validate
           amount > 0 message "A top-up needs an amount above zero"
-        produces CreditToppedUp
-          for member
-          amount = amount
-      event CreditToppedUp
-        amount Decimal
+        produces event CreditToppedUp
+          amount Decimal = amount
 
       specification ToppingUpCredit
         given caller
@@ -410,6 +428,6 @@ module Invoicing
 - The command that reverses a payment, the refund reaction and their specifications
   (`ReversingAReceivedPayment`, `RequestingARefundAfterAReversal`) are in
   `invoicing-dues-design.md`, because the command needs a stored-state rule.
-- The query answers "absent" with no `result` block; the whole-list query and the `OpenInvoices`
-  list view in the excerpts are design-mode expectations (list queries compile but do not bind at
-  4.64.0, PLAY0268, `cratis-screenplay-toolchain`, so they are retained as design-mode expectations): see `view-and-story-specs.md`.
+- The query answers "absent" with no `result` block. The `ListOpenInvoices` list query and its two
+  specifications bind and run (list queries bind since Screenplay 4.105.0; they compiled but did
+  not bind at 4.66.0); only `filter`, `scoped to` and `performer` queries stay design-mode: see `view-and-story-specs.md`.

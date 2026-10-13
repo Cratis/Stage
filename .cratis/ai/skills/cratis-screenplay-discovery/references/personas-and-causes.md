@@ -1,6 +1,14 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-discovery/references/personas-and-causes.md -->
 # Personas and causes
 
+## Contents
+
+- Role catalogue on `persona`
+- What a Cannot line becomes
+- Cannot resolved to an executable gate
+- Checks while building
+- Non-human causes (STATE.md, until a reaction or translation exists)
+
 ## Role catalogue on `persona`
 
 Every actor the story mentions gets a catalogue entry. Human roles are `persona`
@@ -48,16 +56,16 @@ declares the same policies and persona with the one-line form.
 ## What a Cannot line becomes
 
 The persona block is report-only: Screenplay neither binds nor enforces it, and no rendered
-code contains it (`description` text is never rendered). Cannot text is intent, not
+code contains it (`description` text reaches generated code only as XML doc comments). Cannot text is intent, not
 protection. Discovery lists the candidates; each stays pending until a later phase resolves it
 into exactly one of these:
 
 1. **Executable.** An `authorize` gate with a role, claim or authenticated policy the persona
    does not satisfy, or an ownership policy (`claim "x" matches subject|<command property>`),
-   plus a `then denied` specification whose `given caller` carries the roles and claims that
-   stand for that persona (`cratis-screenplay-scenario-coverage`). Every command and query
+   plus a `then denied` specification using `given caller as <Persona>` for a
+   synthesized witness, or an explicit effective-gate caller (`cratis-screenplay-scenario-coverage`). Every command and query
    under an inherited module or feature `authorize` gets its own denial spec. Ownership
-   against a Uuid-backed identifier is not renderable today (STAGE-ESM-015): note it.
+   against a text, Uuid, Date or DateTime subject renders at Stage 4.73.1; other subjects are STAGE-ESM-015: note it.
 2. **Gap or target requirement.** The check depends on stored state ("only the requester may
    withdraw") or cannot be gated today. Record it as a gap with its target enforcement for
    `cratis-screenplay-streams-and-consistency`; it is not enforcement and not a passed denial.
@@ -67,8 +75,11 @@ into exactly one of these:
 Anything not yet resolved is an open question. Do not write Cannot lines for rules that bind
 everyone (business rules, not authority).
 
-A spec that passes is not a persona check by itself: it proves the gate refuses a caller with
-those roles and claims. Say which fixture stands for which persona.
+A passing spec proves the gate refuses that caller, not every caller fitting a
+persona. `given caller as <Persona>` chooses one authenticated policy witness;
+inspect its `or` choice. Use explicit fixtures for anonymous callers, ownership
+claims, missing gate conjuncts or refused synthesis. Name which witness stands
+for which persona.
 
 ## Cannot resolved to an executable gate
 

@@ -1,6 +1,14 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-slice-design/references/field-lineage.md -->
 # Field lineage
 
+## Contents
+
+- Where values come from, per element
+- The matrix
+- The reason line per contributing event
+- Gap handling
+- Adding or renaming a field along a chain (manual checklist)
+
 Every value in the model has a place it comes from and a place it goes. If you cannot say
 where a field comes from, the model is missing an input, an event field or a decision. If an
 event field goes nowhere, ask why it is recorded (audit and history are valid answers; say so).
@@ -14,7 +22,7 @@ event field goes nowhere, ask why it is recorded (audit and history are valid an
 | the user types or picks it | screen `action`, form or dialog input | default for business decisions |
 | shown before the user acts | form `populate via query` from a read model | the read model must exist and be traced |
 | the instance being acted on | the `identifier` property, carried from the screen row or route | |
-| allocated by the runtime | design mode: `Type generated` on a required `Uuid`-backed concept (syntax-only, PLAY0268 at binding; remove before executable/renderable scope) | never a request input or form field; executable scope needs explicit allocation |
+| allocated by the runtime | `Type generated` on a required scalar generatable Uuid/String concept (implicit UUID is v7; explicit serialized strategy selects v15, Screenplay 4.147.0+ with strict fixtures and whole-source freshness). CLI 3.57.0 / Stage 4.89.1 render supported strategies; types/combinations retain -028/-038; no concept rules. See command-surface `references/generated-values-and-responses.md` | never a request input or form field; no policy, rule or requirement may read it (`PLAY0273`); return it with `returns`; where a tool cannot bind it, executable scope needs explicit allocation |
 | an outside party | capture field `$.x` or a reaction trigger value | `cratis-screenplay-automations-and-translations` |
 | the caller | not an input: `$context.identity.*` in `produces`; who may act in `authorize`; "acting on own X" is a claim policy matched to the identifier or a command property | never trust a caller-supplied "who am I" |
 
@@ -26,7 +34,7 @@ Those are the portable sources. The event-source id is the `for` value, not a pr
 an event field (same-named fields map automatically - AutoMap is on; its matching differs between flat and scoped projections, see `read-model-design.md` "Building it");
 `$eventSourceId` (the instance identity); a literal (status words); a counter or arithmetic;
 a join on another event stream; children for collections. A reducer is opaque: write its
-lineage in the slice `description`. A read model built by a query `performer` (no events)
+lineage in slice `documentation`. A read model built by a query `performer` (no events)
 has lineage outside the model; say where.
 
 **Screen field** - from the query result named in `data ... via query`. A screen showing a
@@ -67,7 +75,7 @@ Filled for `worked-example.md`:
 
 ## The reason line per contributing event
 
-The matrix is the audit; the durable record is the StateView slice `description`: one line per
+The matrix is the audit; the durable record is StateView slice `documentation`: one line per
 contributing event saying which fields it sets and why. Write it as a tagged text block in a
 real model (a bare fence warns with `PLAY0397`). `worked-example.md` uses one-string
 descriptions only so that it stays a single compiling fence.

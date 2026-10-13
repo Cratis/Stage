@@ -1,6 +1,20 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-streams-and-consistency/references/boundaries.md -->
 # Boundaries: modules, teams and contracts
 
+## Contents
+
+- Establish the boundary, not an organizational formula
+- Ownership by design (optional lens)
+- Ownership interview
+- Ownership and interface inventory
+- Cross-boundary walkthrough
+- Internal and public events
+- Crossing a boundary in Screenplay
+- Change data capture is not a domain event
+- Check coupling rather than banning every cycle
+- Boundary checklist
+- Review questions
+
 Read when you split, merge or connect modules, or when a fact crosses between owners. Grammar
 for reactions and translations lives in `cratis-screenplay-automations-and-translations`.
 
@@ -17,11 +31,33 @@ decision visible in the session `STATE.md`; never report independence as establi
 splitting a boundary revisit every invariant that needs information from both sides: an event
 exchange does not make that decision atomic.
 
+## Ownership by design (optional lens)
+Conway's observation is that systems come to mirror the teams that build them. Use it as a
+deliberate lens when you shape boundaries, not as a law: decide the ownership you want and let the
+boundaries follow it, instead of discovering later that the org chart set them.
+
+- When one team will own a boundary end to end, treat the module as that team's system: it owns
+  its commands, the events it produces, the read models it maintains and the systems it calls.
+  Other teams interact only through its public events and its capture contracts, so each side can
+  be built, scaled and released on its own, coordinating through events rather than meetings.
+- A system this process integrates with is, by definition, owned by someone else. Record that
+  owner next to the public fact or capture contract; it is the person you ask before changing it.
+- Treat "team = system" as a hypothesis to test with the interview answers, not as a default. One
+  team may own several modules, a module may be shared during a transition, and a team boundary
+  does not make a decision atomic across it (see above). Write down which the model follows.
+
+**Indirect producers.** When a fact reaches a receiver through an intermediate boundary (the
+booking system's `BerthBooked` drives billing, whose `StayInvoiceDue` then reaches the harbour
+office), attribute each public event to the boundary that decides it, and name the original
+producer in the consumer's description as the indirect source. Ownership of the public contract
+stays with the boundary that decides the fact; the indirect source tells a reader whom a change
+upstream will surprise.
+
 ## Ownership interview
 Run it when ownership, autonomy or integration decisions are missing; skip it when the user or
 the model already states all three. Ask one question at a time, offer the options, and follow
 the trigger. Unattended: assume the most conservative option, mark it `ASSUMED` in the slice or
-module `description` and in `STATE.md`.
+module `description`, give the reason in its `documentation`, and add it to `STATE.md`.
 
 | # | Question (options) | Decides | Follow-up trigger |
 |---|---|---|---|
@@ -76,7 +112,7 @@ Processors: <trigger -> decision/effect -> result; operational owner>
 External: <system -> adapter owner -> contract>
 Open: <unresolved decisions, each also in STATE.md>
 ```
-Keep durable rationale in module, feature and slice descriptions and the record's `Open` lines in
+Keep durable rationale in module, feature and slice `documentation` and the record's `Open` lines in
 `STATE.md`. Do not build a second catalogue that duplicates the model.
 
 ## Cross-boundary walkthrough
@@ -124,21 +160,27 @@ integration support.
   internal step.
 - Treat a public event like a published API: evolution follows `evolution.md` with the
   consumers named, and breaking changes become new events.
-- Screenplay has no public/internal marker. Record the classification in the event's
-  `description`, and keep the list in `STATE.md`.
+- Events are private by default. Mark a public contract with `public event X` (ESM v9, released in
+  Screenplay 4.117.0); declare a foreign public event's shape locally with `event X from "store"`.
+  A command never produces a public event (PLAY0607/0613); crossing the boundary is a `Translate`
+  slice with an explicit direction (`cratis-screenplay-automations-and-translations`
+  `references/public-events-and-direction.md`). Nothing checks that the foreign shape matches the
+  other store, so also name the consumers in the event's `documentation` and keep the list in
+  `STATE.md`. Stage 4.73.1 refuses public events (`STAGE-ESM-032`).
 
 ## Crossing a boundary in Screenplay
 | Situation | Construct |
 |---|---|
 | another module in the same application | reference the event by name (cross-module resolution works within one application) |
-| another bounded context's contract | unquoted `import Context.Event` (foreign contract; does not bind on either compiler, PLAY0268; see `versions.md` in `cratis-screenplay-toolchain`) |
+| another bounded context's contract | `event X from "store"` (shape declared locally, ESM v9); an unquoted `import Context.Event` or `import Q.X from "store"` has no local shape and stays PLAY0268 (see `versions.md` in `cratis-screenplay-toolchain`) |
 | my own files | quoted `import "glob"` |
 | outside data entering | `Translate` slice: `capture`, or a translator `reaction` over an imported event (`cratis-screenplay-automations-and-translations`) |
 | our fact another context needs | a public summary event; the other side translates it into its own language |
 
 Never let an external system's ids, codes or shapes become our domain vocabulary: translate at
 the edge, keep the external reference as a property when it is needed for correlation or dedup.
-Stage renders no Automation or Translate slice today, so the whole translation is gap-fill code
+Stage 4.89.1 renders supported internal event-triggered Automation, but Translate,
+captures and foreign/public event boundaries remain refused. The translation is gap-fill
 with the model as its contract (`cratis-screenplay-render-and-gap-fill`).
 
 ## Change data capture is not a domain event

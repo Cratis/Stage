@@ -1,6 +1,16 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-slice-design/references/slicing.md -->
 # Slicing, state transitions and the next slice
 
+## Contents
+
+- Slices are the authoring unit
+- Slice dependencies
+- State-transition table (per entity)
+- Generic edits
+- Rule coverage
+- Slice audit
+- The next slice
+
 ## Slices are the authoring unit
 
 In Screenplay every construct already lives in a typed slice, so slicing is not a separate
@@ -14,7 +24,7 @@ step at the end: design each behaviour as its slice, then audit the set.
 | `Translate` | captures, translated events | the integration (`CarrierManifests`) | see `cratis-screenplay-automations-and-translations` |
 
 Screenplay allows several commands or read models in one slice; prefer splitting unless the
-behaviour is genuinely one (and say why in the `description`).
+behaviour is genuinely one (and say why in `documentation`).
 
 ## Slice dependencies
 
@@ -52,6 +62,46 @@ For `worked-example.md`:
 | AssignLocker | none (appends `LockerAssigned`) | | views LockerSummary, RequestStatus (intent, not enforced) |
 | LockerBoard | LockerInstalled, LockerAssigned | InstallLocker, AssignLocker | |
 | RequestProgress | LockerRequested, LockerAssigned | RequestLocker, AssignLocker | |
+
+### Declare container dependencies
+
+At Screenplay 4.125.0, modules and features may declare `depends on <Name>`, one
+target per line. Use a bare sibling name or a qualified module/feature address.
+Bare names resolve inside out: siblings, ancestor siblings, then root modules;
+qualified names match an unambiguous trailing address. Ambiguity is `PLAY0198`.
+Self, ancestor, descendant and unresolved targets warn with `PLAY0554`; repeats
+keep the first resolved target and warn with `PLAY0555`.
+
+Declarations accumulate on the same owner in ordinal file-path order, independent
+of board import order. Layout expansion writes them only in the owner's file.
+They are authoring metadata: no execution rule, implementation order, identity
+or executable-model revision change.
+
+Once a container declares dependencies, its own inventory must cover counted
+explicit references leaving it, including descendants. Parent and child lists
+are independent. Module targets cover all their features; feature targets cover
+their descendants. `usesFactsFrom`, `reactsTo`, `decidesFrom`, `asks` and `shows`
+count; specification-only and outside-context edges do not. `PLAY0552` warns on
+uncovered producer modules; `PLAY0553` marks unused declarations and `PLAY0556`
+mutual declarations as information. Ambiguous ownership is provisional, not proof
+of an undeclared dependency. Inspect MCP `dependency-graph`'s `declarations` view.
+
+Example: Payroll declares Timesheets; its Handover feature declares
+Timesheets.Approval and sibling Runs. These are dependency inventories, not
+actual references or execution dependencies:
+
+```screenplay expect PLAY0553
+module Payroll
+  depends on Timesheets
+  feature Handover
+    depends on Timesheets.Approval
+    depends on Runs
+  feature Runs
+module Timesheets
+  feature Approval
+```
+
+Source: Screenplay `v4.125.0:Documentation/screenplay/slices.md` and `folders.md`.
 
 ## State-transition table (per entity)
 
@@ -93,8 +143,8 @@ result in every row and no refusal anywhere, whose event restates most of the en
    relocated).
 4. Apply rule coverage (below) to each new path.
 5. If the business treats a multi-value data-entry correction as one act, keep one correction
-   command named for the correction (never `Update`), with the reason in the slice
-   `description`; rule coverage still applies.
+   command named for the correction (never `Update`), with the reason in slice
+   `documentation`; rule coverage still applies.
 
 A repeated-field event is a review signal; it is major only when business meaning is lost, a
 rule is bypassed or consumers become ambiguous. Historical generations repeat prior shape on

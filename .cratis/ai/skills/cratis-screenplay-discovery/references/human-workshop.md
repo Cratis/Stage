@@ -1,6 +1,19 @@
 <!-- cratis-ai-managed: skills/cratis-screenplay-discovery/references/human-workshop.md -->
 # Supporting a human workshop
 
+## Contents
+
+- The agent's part
+- Before the workshop
+- Run sheet: discovery
+- Techniques
+- Remote adaptations
+- After the workshop
+- Multi-day plan mapped to phases
+- Checklists
+- Success indicators
+- Evidence and privacy
+
 Adapted in part from TrogonStack `eventmodeling-brainstorming-events/references/facilitating-event-modeling-workshops.md`
 (MIT; see `provenance.md`), reshaped for Screenplay and for an agent in a supporting role.
 
@@ -68,7 +81,7 @@ No event modeling experience is needed.
 | Yellow: role | `persona` (with Does / Reads / Cannot) |
 | Blue: command (later session) | `command` (`cratis-screenplay-slice-design`) |
 | Green: view (later session) | `readmodel` and `query` (`cratis-screenplay-slice-design`) |
-| Pink: question or hotspot | an open question or hotspot in STATE.md |
+| Pink: question or hotspot | anchored `question` note (note ID in STATE.md); hotspot in STATE.md |
 
 Use the agreed colours consistently, whatever they are; the mapping is what matters.
 
@@ -130,7 +143,7 @@ lists non-human causes (schedules, outside parties) separately.
 - Ask everywhere: "What happens next instead, including nothing?"
 
 Do not get stuck on exact timing; the point is the logical flow. The agent keeps the feature
-`description` story line and after / caused by / only if in the slices current
+`documentation` story line and after / caused by / only if in the slices current
 (`plotting-and-handoff.md`).
 
 ### 6. Sweep and close (15 to 20 minutes)

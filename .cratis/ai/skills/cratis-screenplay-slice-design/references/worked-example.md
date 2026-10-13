@@ -3,7 +3,7 @@
 
 One complete model for `cratis-screenplay-slice-design`. It is in **design mode**: V1 clean
 (compiles with warnings as errors); V3 is blocked on purpose by the `ListLockers` list query
-(`PLAY0268` at binding); `given clock` also fails binding on the cratis-bundled compiler only
+(`PLAY0268` at binding); `given clock` also failed binding on a cratis before 3.28.2 bundle (3.28.2 binds it)
 (`cratis-screenplay-toolchain` `references/versions.md`). Personas and screens are informational.
 The stored-state rules in `AssignLocker` (`reads` + `require`) are intent, not enforced today,
 and they also fail binding on their own: `PLAY0271` on each `reads`, and `PLAY0268` because the
@@ -14,11 +14,17 @@ complete givens) so they are the right form once binding is possible.
 Lineage matrix: `field-lineage.md`. State-transition table and rule coverage: `slicing.md`.
 Per-command refusal inventory: `command-inventory.md`.
 
-The per-event reason lines in each StateView `description` are the lineage record
-(`field-lineage.md`). Multi-line descriptions use a tagged ` ```text ` fence in a real model;
-they are written as one string here so this document stays a single compiling fence.
+This historical compiled example keeps per-event reasoning in StateView
+`description` strings. For authoring checked at 4.127.0, keep descriptions as summaries
+and record lineage reasoning in fenced Markdown `documentation` (`field-lineage.md`).
+The historical source below stays unchanged; it is not the current placement recipe.
 
-```screenplay
+The excerpt's Stage availability note is historical (Stage 4.24.x, Arc 22.25.0).
+Stage 4.73.1's scaffold pins an Arc/Chronicle set (see the Stage skill's `references/rendered-application.md`), so protected-read APIs are available
+to gap-fill (the compiled description below saying they are "not available in Stage-rendered apps" is superseded); this neither admits these `.play` rules nor proves target protection.
+The original compiled excerpt is retained unchanged.
+
+```screenplay expect PLAY0516 test=unbound
 domain Parcelpoint.Lockers
 
 concept LockerId : Uuid
@@ -57,13 +63,9 @@ module Lockers
         number LockerNumber
         volume   Litres
         authorize IsAttendant
-        produces LockerInstalled
-          for lockerId
-          number = number
-          volume   = volume
-      event LockerInstalled
-        number LockerNumber
-        volume   Litres
+        produces event LockerInstalled
+          number LockerNumber = number
+          volume Litres = volume
       constraint UniqueLockerNumber
         unique number on LockerInstalled
         message "That locker number is already installed"
@@ -136,13 +138,9 @@ module Lockers
       command RequestLocker
         requestId RequestId identifier
         preferredVolume Litres
-        produces LockerRequested
-          for requestId
-          preferredVolume = preferredVolume
-          requestedAt   = $context.occurred
-      event LockerRequested
-        preferredVolume Litres
-        requestedAt   DateTime
+        produces event LockerRequested
+          preferredVolume Litres = preferredVolume
+          requestedAt DateTime = $context.occurred
       specification RequestingALocker
         given caller
           authenticated
@@ -163,7 +161,7 @@ module Lockers
         then denied
 
     slice StateChange AssignLocker
-      description "The attendant gives one waiting request one free locker. Constraints enforce one holder per locker and one locker per request at append time. The state rules (the locker is installed and free, the request exists and is still waiting) are written as reads plus require: stated intent, NOT enforced in the model today (PLAY0268/0271 at binding are expected in design mode; Screenplay#129 and #209). Target enforcement: Arc [ProtectedDecision] with DecisionRead<T> (Arc 22.39.0 or later; not available in Stage-rendered apps, where this stays a capability gap), or a Chronicle DCB concurrency scope on the locker stream; the constraints stay as the backstop."
+      description "The attendant gives one waiting request one free locker. Constraints enforce one holder per locker and one locker per request at append time. The state rules (the locker is installed and free, the request exists and is still waiting) are written as reads plus require: stated intent, NOT enforced in the model today (PLAY0268/0271 at binding are expected in design mode; Screenplay#129). Target enforcement: Arc [ProtectedDecision] with DecisionRead<T> (Arc 22.39.0 or later; not available in Stage-rendered apps, where this stays a capability gap), or a Chronicle DCB concurrency scope on the locker stream; the constraints stay as the backstop."
       command AssignLocker
         lockerId  LockerId identifier
         requestId RequestId
@@ -175,11 +173,8 @@ module Lockers
             message "The locker is not free"
           require request.state == "waiting"
             message "The request is not waiting for a locker"
-        produces LockerAssigned
-          for lockerId
-          requestId = requestId
-      event LockerAssigned
-        requestId RequestId
+        produces event LockerAssigned
+          requestId RequestId = requestId
       constraint OneRequestPerLocker
         unique event LockerAssigned
         message "The locker is already assigned"

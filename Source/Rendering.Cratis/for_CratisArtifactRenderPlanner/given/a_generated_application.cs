@@ -75,23 +75,9 @@ public class a_generated_application : a_register_project_render_request
     protected Task<string> Run(string logName, params string[] arguments) => Run(logName, false, arguments);
 
     // A parity vector with an intentionally wrong expectation must still yield a complete TRX result.
-    protected Task<string> Run(string logName, bool allowFailedTests, params string[] arguments) =>
-        RunProcess(logName, allowFailedTests, new(CreateStartInfo("dotnet", arguments), TimeSpan.FromMinutes(8), arguments));
-
-    protected Task<string> RunInPhase(string logName, bool allowFailedTests, params string[] arguments) =>
-        RunProcess(logName, allowFailedTests, ManagedProcess(logName, arguments));
-
-    GeneratedProcess ManagedProcess(string logName, string[] arguments)
+    protected async Task<string> Run(string logName, bool allowFailedTests, params string[] arguments)
     {
-        var executable = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".pi/agent/bin/pi-phase");
-        var prefix = new[] { "run", "--kind", arguments[0] == "build" ? "build" : "test", "--label", logName, "--timeout", "300", "--queue-timeout", "300", "--", "dotnet" };
-
-        return new(CreateStartInfo(executable, prefix.Concat(arguments)), TimeSpan.FromMinutes(11), arguments);
-    }
-
-    ProcessStartInfo CreateStartInfo(string executable, IEnumerable<string> arguments)
-    {
-        var startInfo = new ProcessStartInfo(executable)
+        var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = _application!.FullName,
             RedirectStandardOutput = true,
@@ -103,16 +89,11 @@ public class a_generated_application : a_register_project_render_request
             startInfo.ArgumentList.Add(argument);
         }
 
-        return startInfo;
-    }
-
-    async Task<string> RunProcess(string logName, bool allowFailedTests, GeneratedProcess invocation)
-    {
-        using var process = new Process { StartInfo = invocation.StartInfo };
+        using var process = new Process { StartInfo = startInfo };
         process.Start();
         var standardOutput = ReadOutput(process.StandardOutput);
         var standardError = ReadOutput(process.StandardError);
-        using var timeout = new CancellationTokenSource(invocation.Timeout);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(8));
         var timedOut = false;
         try
         {
@@ -129,7 +110,7 @@ public class a_generated_application : a_register_project_render_request
             await Task.WhenAll(process.WaitForExitAsync(), standardOutput, standardError).WaitAsync(TimeSpan.FromSeconds(30));
         }
 
-        var command = $"dotnet {string.Join(' ', invocation.Arguments)}";
+        var command = $"dotnet {string.Join(' ', arguments)}";
         var stdout = await standardOutput;
         var stderr = await standardError;
         var output = $"{stdout.Text}{stderr.Text}";
@@ -143,15 +124,13 @@ public class a_generated_application : a_register_project_render_request
             actualHash.ShouldEqual(expectedHash);
         }
 
-        if (timedOut || truncated || !ExitIsAllowed(process, allowFailedTests))
+        if (timedOut || truncated || (process.ExitCode != 0 && !(allowFailedTests && process.ExitCode == 1)))
         {
             throw new GeneratedApplicationVerificationFailed(command, logPath, output);
         }
 
         return output;
     }
-
-    static bool ExitIsAllowed(Process process, bool allowFailedTests) => process.ExitCode == 0 || (allowFailedTests && process.ExitCode == 1);
 
     static async Task<(string Text, bool Truncated)> ReadOutput(StreamReader reader)
     {
@@ -189,8 +168,6 @@ public class a_generated_application : a_register_project_render_request
 
         throw new GeneratedApplicationWorkspaceNotFound();
     }
-
-    sealed record GeneratedProcess(ProcessStartInfo StartInfo, TimeSpan Timeout, IEnumerable<string> Arguments);
 
     sealed class GeneratedApplicationVerificationFailed(string command, string logPath, string output) : Exception(
         $"Generated application verification failed: {command}. Evidence: {logPath}\n{output}");

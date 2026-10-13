@@ -23,6 +23,8 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
     [Fact] void should_pass_the_generated_filtered_query_specification() => fixture.CorrectOutcome.ShouldEqual("Passed");
     [Fact] void should_fail_the_generated_wrong_row_specification() => fixture.WrongOutcome.ShouldEqual("Failed");
     [Fact] void should_pass_the_generated_arc_argument_binding_probe() => fixture.ProbeOutcome.ShouldEqual("Passed");
+    [Fact] void should_exclude_null_properties_in_the_reference() => fixture.OptionalPropertyReferencePassed.ShouldBeTrue();
+    [Fact] void should_exclude_null_properties_in_the_generated_query() => fixture.OptionalPropertyProbeOutcome.ShouldEqual("Passed");
 
     public class context : a_generated_application
     {
@@ -33,17 +35,19 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
         public string CorrectOutcome { get; private set; } = string.Empty;
         public string WrongOutcome { get; private set; } = string.Empty;
         public string ProbeOutcome { get; private set; } = string.Empty;
+        public bool OptionalPropertyReferencePassed { get; private set; }
+        public string OptionalPropertyProbeOutcome { get; private set; } = string.Empty;
 
         protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(Model());
 
         async Task Because()
         {
-            var model = Model();
+            var model = Model(includeOptionalPropertySpecification: true);
             var module = model.Application.Modules.Single();
             var feature = module.Features.Single();
             var slice = feature.Slices.Single(value => !value.Specifications.IsEmpty);
             var readModel = slice.ReadModels.Single();
-            var seeded = slice.Specifications.Select(specification => specification with
+            var seeded = slice.Specifications.Select(specification => specification.GivenEvents.IsEmpty ? specification : specification with
             {
                 GivenEvents = [],
                 GivenReadModels = [.. specification.GivenEvents.Select(fact => new SemanticSpecificationReadModel(
@@ -59,28 +63,60 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
             var plan = SemanticExecutionPlan.Compile(candidate).Plan!;
             ReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[0].Id).Passed;
             WrongReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[1].Id).Passed;
+            OptionalPropertyReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[2].Id).Passed;
             StageResults = [.. (await new SemanticSpecificationExecutor().Run(plan, new([.. seeded.Select(specification => specification.Id)]), new())).Results];
-            AddGeneratedSpecification("QueryFilters.cs", a_query_filter_model.Probe);
-            Warnings = BuildWarnings(await RunInPhase("query-filters-build.log", false, "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
-            await RunInPhase("query-filters-test.log", true, "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=query-filters.trx", "--results-directory", _evidence.FullName);
+            AddGeneratedSpecification("QueryFilters.cs", a_query_filter_model.OptionalPropertyProbe);
+            Warnings = BuildWarnings(await Run("query-filters-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
+            await Run("query-filters-test.log", true, "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=query-filters.trx", "--results-directory", _evidence.FullName);
             var trx = XDocument.Load(Path.Combine(_evidence.FullName, "query-filters.trx"));
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
             var results = trx.Descendants(ns + "UnitTestResult").ToArray();
             CorrectOutcome = Outcome("when_filtering_invoices_is_queried");
             WrongOutcome = Outcome("when_filtering_wrong_invoices_is_queried");
             ProbeOutcome = Outcome("should_apply_required_optional_and_keyed_filters");
+            OptionalPropertyProbeOutcome = Outcome("should_exclude_null_properties_from_required_filters");
 
             string Outcome(string name) => (string)results.Single(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).Attribute("outcome")!;
         }
 
-        static ExecutableSemanticModel Model()
+        static ExecutableSemanticModel Model(bool includeOptionalPropertySpecification = false)
         {
-            const string specification = a_query_filter_model.Specification;
+            const string specification = """
+                      specification FilteringInvoices
+                        given InvoiceIssued
+                          for "one"
+                          invoiceId = "one"
+                          status = "open"
+                          category = "North"
+                          flag = true
+                        given InvoiceIssued
+                          for "two"
+                          invoiceId = "two"
+                          status = "closed"
+                          category = "North"
+                          flag = true
+                        given InvoiceIssued
+                          for "three"
+                          invoiceId = "three"
+                          status = "open"
+                          category = "South"
+                          flag = true
+                        then query FilteredInvoices
+                          arguments
+                            status = "open"
+                            category = "North"
+                          result
+                            invoiceId = "one"
+                            status = "open"
+                            category = "North"
+                            flag = true
+                """;
             var offset = specification.LastIndexOf("status = \"open\"", StringComparison.Ordinal);
             var wrong = (specification[..offset] + "status = \"closed\"" + specification[(offset + "status = \"open\"".Length)..])
                 .Replace("FilteringInvoices", "FilteringWrongInvoices", StringComparison.Ordinal);
 
-            return invoice_model.Compile(a_query_filter_model.Source + "\n" + specification + "\n" + wrong);
+            return invoice_model.Compile(a_query_filter_model.OptionalPropertySource + "\n" + specification + "\n" + wrong +
+                (includeOptionalPropertySpecification ? "\n" + a_query_filter_model.OptionalPropertySpecification : string.Empty));
         }
     }
 }

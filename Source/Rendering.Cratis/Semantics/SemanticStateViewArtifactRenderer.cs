@@ -195,7 +195,7 @@ internal static class SemanticStateViewArtifactRenderer
             : [];
 
     static string EqualityPredicate(SemanticTypeReference type, SemanticProperty property, QueryArgumentExpression argument, SemanticTypeSystem types) =>
-        $"global::System.Collections.Generic.EqualityComparer<{types.Type(type)}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {argument.Comparison})";
+        $"global::System.Collections.Generic.EqualityComparer<{types.Type(type with { IsOptional = type.IsOptional || property.Type.IsOptional })}>.Default.Equals(instance.{Identifiers.ToPascalCase(property.Name)}, {argument.Comparison})";
 
     static RenderedQueryFilter RenderFilter(SemanticQueryFilter filter, SemanticReadModel readModel, SemanticTypeSystem types)
     {

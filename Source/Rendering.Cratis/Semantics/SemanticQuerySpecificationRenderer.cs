@@ -47,13 +47,16 @@ internal static class SemanticQuerySpecificationRenderer
         var builder = new CSharpCodeBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Chronicle.Events")
-            .Using("Cratis.Chronicle.ReadModels")
-            .Using("Cratis.Chronicle.Testing.ReadModels")
             .Using("Cratis.Specifications")
-            .Using("NSubstitute")
             .Using("Xunit")
             .Using(context.CommonNamespace)
             .Using(queryNamespace);
+        if (!IsLiveList(query))
+        {
+            builder.Using("Cratis.Chronicle.ReadModels")
+                .Using("Cratis.Chronicle.Testing.ReadModels")
+                .Using("NSubstitute");
+        }
 
         var collectionPredicate = CollectionPredicate(expected, readModel, types, query);
         var key = query.Argument is null ? string.Empty : types.QueryArgumentValue(expected.Key, query.Argument.Type);
@@ -77,20 +80,9 @@ internal static class SemanticQuerySpecificationRenderer
         }
 
         context.Docs(specification.Id).Render(builder)
-            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
-            .Line(IsLiveList(query)
-                ? "global::Cratis.Chronicle.ReadModels.IReadModels _readModels => _scenario.ReadModels;"
-                : "readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
-            .Line(IsLiveList(query)
-                ? "readonly global::Cratis.Chronicle.Testing.Events.EventStoreForTesting _scenario = new();"
-                : $"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
-
-            // Only the field the query's cardinality assigns: an unused one is a CS0169 warning in the generated build.
-            .Line(query.Cardinality == SemanticQueryCardinality.Many
-                ? $"global::System.Collections.Generic.IEnumerable<{readModelName}> _results = [];"
-                : $"{readModelName}? _result;")
-            .BlankLine()
-            .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
+        RenderScenario(builder, query, readModelName);
+        builder.BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Establish()");
         foreach (var given in specification.GivenEvents)
         {
             var givenEvent = context.Events[given.EventContract];
@@ -111,17 +103,7 @@ internal static class SemanticQuerySpecificationRenderer
 
         if (query.Cardinality == SemanticQueryCardinality.Many)
         {
-            if (!IsLiveList(query))
-            {
-                builder.Line($"_readModels.GetInstances<{readModelName}>().Returns(_scenario.Instances.Values);");
-            }
-            builder.EndBlock()
-                .BlankLine()
-                .Line($"async global::System.Threading.Tasks.Task Because() => _results = await {CollectionExecution(query, readModelName, collectionCall)};")
-                .BlankLine()
-                .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({collectionPredicate}).ShouldBeTrue();")
-                .Line("public void Dispose() => _scenario.Dispose();")
-                .EndBlock();
+            RenderCollectionExpectation(builder, query, new(readModelName, collectionCall, collectionPredicate));
         }
         else
         {
@@ -223,6 +205,36 @@ internal static class SemanticQuerySpecificationRenderer
         return new(path, Conditional(content));
     }
 
+    static void RenderScenario(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName)
+    {
+        builder.Line(IsLiveList(query)
+                ? "global::Cratis.Chronicle.ReadModels.IReadModels _readModels => _scenario.ReadModels;"
+                : "readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
+            .Line(IsLiveList(query)
+                ? "readonly global::Cratis.Chronicle.Testing.Events.EventStoreForTesting _scenario = new();"
+                : $"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
+
+            // Only the field the query's cardinality assigns: an unused one is a CS0169 warning in the generated build.
+            .Line(query.Cardinality == SemanticQueryCardinality.Many
+                ? $"global::System.Collections.Generic.IEnumerable<{readModelName}> _results = [];"
+                : $"{readModelName}? _result;");
+    }
+
+    static void RenderCollectionExpectation(CSharpCodeBuilder builder, SemanticKeyedQuery query, CollectionExpectation expected)
+    {
+        if (!IsLiveList(query))
+        {
+            builder.Line($"_readModels.GetInstances<{expected.ReadModelName}>().Returns(_scenario.Instances.Values);");
+        }
+        builder.EndBlock()
+            .BlankLine()
+            .Line($"async global::System.Threading.Tasks.Task Because() => _results = await {CollectionExecution(query, expected.ReadModelName, expected.Arguments)};")
+            .BlankLine()
+            .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({expected.Predicate}).ShouldBeTrue();")
+            .Line("public void Dispose() => _scenario.Dispose();")
+            .EndBlock();
+    }
+
     static bool IsLiveList(SemanticKeyedQuery query) =>
         query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live };
 
@@ -268,4 +280,6 @@ internal static class SemanticQuerySpecificationRenderer
     }
 
     static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";
+
+    sealed record CollectionExpectation(string ReadModelName, string Arguments, string Predicate);
 }

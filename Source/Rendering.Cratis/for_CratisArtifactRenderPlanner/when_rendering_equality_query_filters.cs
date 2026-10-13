@@ -35,6 +35,9 @@ public class when_rendering_equality_query_filters : Specification
     [Fact] void should_execute_the_real_observation_in_companion_specs() => _specification.ShouldContain("EventStoreForTesting _scenario = new()");
     [Fact] void should_await_the_first_emission_in_companion_specs() => _specification.ShouldContain("Observable.FirstAsync(");
     [Fact] void should_count_filtered_rows_in_companion_specs() => _specification.ShouldContain("Enumerable.Count(_results) == 1");
+    [Fact] void should_omit_the_unused_substitution_namespace() => _specification.ShouldNotContain("using NSubstitute;");
+    [Fact] void should_omit_the_unused_read_model_scenario_namespace() => _specification.ShouldNotContain("using Cratis.Chronicle.Testing.ReadModels;");
+    [Fact] void should_omit_the_unused_read_models_namespace() => _specification.ShouldNotContain("using Cratis.Chronicle.ReadModels;");
 
     string Content(string name) => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith(name, StringComparison.Ordinal)).Bytes.AsSpan());
 }

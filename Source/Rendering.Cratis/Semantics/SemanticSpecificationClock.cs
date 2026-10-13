@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>
 /// Admits authored command clocks that Arc and Chronicle can preserve exactly.
 /// </summary>
-public static class SemanticSpecificationClock
+internal static class SemanticSpecificationClock
 {
     /// <summary>
     /// Reads a canonical UTC command clock with millisecond precision.
@@ -17,7 +17,7 @@ public static class SemanticSpecificationClock
     /// <param name="specification">The specification.</param>
     /// <param name="instant">The admitted occurrence time.</param>
     /// <returns>Whether the command specification supplies an admitted clock.</returns>
-    public static bool TryGet(SemanticSpecification specification, out DateTimeOffset instant)
+    internal static bool TryGet(SemanticSpecification specification, out DateTimeOffset instant)
     {
         instant = default;
 

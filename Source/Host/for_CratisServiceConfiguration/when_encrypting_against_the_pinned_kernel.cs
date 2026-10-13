@@ -36,6 +36,33 @@ public class when_encrypting_against_the_pinned_kernel
         builder.Services.PostConfigure<ChronicleAspNetCoreOptions>(options => options.ConnectionString = address);
         await using var app = builder.Build();
         var client = app.Services.GetRequiredService<IChronicleClient>();
+        var container = await KernelContainer(address);
+        await VerifyRequiredProperties(client, container, name);
+        var failures = new List<Exception>();
+        foreach (var testCase in new ProtectedCase[]
+        {
+            new("pii", "String", true, "optional-personal"),
+            new("secret", "String", true, "optional-secret"),
+            new("pii", "String", true, null),
+            new("secret", "String", true, null)
+        })
+        {
+            try
+            {
+                await VerifySingleProtectedProperty(client, container, testCase);
+            }
+            catch (Exception error)
+            {
+                // Collect diagnostic cases, but never turn a partial probe into a passing result.
+                Console.WriteLine($"FAILED {testCase}: {error}");
+                failures.Add(error);
+            }
+        }
+        Assert.Empty(failures);
+    }
+
+    static async Task VerifyRequiredProperties(IChronicleClient client, string container, string name)
+    {
         var plan = compiled_plan.From(a_compliance_store.Source);
         Assert.Empty(new SemanticRuntimeAdmission(plan).Blocking);
         var nonTextSecret = compiled_plan.From(a_compliance_store.Source.Replace("AccessToken : String secret", "AccessToken : Int secret", StringComparison.Ordinal));
@@ -52,74 +79,60 @@ public class when_encrypting_against_the_pinned_kernel
         };
         var result = await runtime.Execute(plan.Commands.Values.Single(), valuesToAppend, new ClaimsPrincipal(), new(DateTimeOffset.UtcNow, "caller", "Caller", "user"), false);
         Assert.IsType<SemanticAccepted>(result);
-
-        // Read BSON directly inside the development container: Chronicle's sequence APIs release values.
-        // The publish filter matches the container-side port, so locate the kernel by its host-side mapping instead.
-        var hostPort = $":{new Uri(address).Port}->";
-        var container = Assert.Single(
-            (await Docker("ps", "--format", "{{.ID}} {{.Ports}}")).Split('\n', StringSplitOptions.RemoveEmptyEntries),
-            line => line.Contains(hostPort, StringComparison.Ordinal)).Split(' ')[0];
-        var script = $"const e = db.getSiblingDB({JsonSerializer.Serialize($"{name}+es+Default")}).getCollection('event-log').findOne(); if (!e) throw new Error('Missing stored event'); print(JSON.stringify(e.content['1']));";
-        using var raw = JsonDocument.Parse(await Docker("exec", container, "mongosh", "--quiet", "--eval", script));
+        using var raw = await StoredContent(container, name);
         foreach (var property in new[] { "name", "number", "token" })
         {
-            var value = raw.RootElement.GetProperty(property);
-            Assert.Equal(JsonValueKind.String, value.ValueKind);
-            Assert.NotEmpty(value.GetString()!);
+            AssertCiphertext(raw.RootElement.GetProperty(property), valuesToAppend[property]);
         }
-        Assert.NotEqual("Synthetic Name", raw.RootElement.GetProperty("name").GetString());
-        Assert.NotEqual("37", raw.RootElement.GetProperty("number").GetString());
-        Assert.NotEqual("synthetic-secret", raw.RootElement.GetProperty("token").GetString());
-
         var store = await client.GetEventStore(name);
         var accessor = (IChronicleServicesAccessor)store.Connection;
-        var events = (await accessor.Services.Sequences.FromSequenceNumber(new FromSequenceNumberRequest
-        {
-            EventStore = name,
-            Namespace = EventStoreNamespaceName.Default,
-            EventSequenceId = EventSequenceId.Log,
-            FromEventSequenceNumber = 0
-        })).EnsureSuccess();
-        using var released = JsonDocument.Parse(Assert.Single(events).Content);
+        using var released = await ReleasedContent(accessor, name);
         Assert.Equal("Synthetic Name", released.RootElement.GetProperty("name").GetString());
         Assert.Equal(37, released.RootElement.GetProperty("number").GetInt32());
         Assert.Equal("synthetic-secret", released.RootElement.GetProperty("token").GetString());
-
-        var world = await SemanticChronicleRegistration.Rebuild(accessor, name, plan, await appender.Tail());
-        var rebuilt = SemanticRuntimeHosting.Create(plan, appender, world);
-        var queried = Assert.IsType<SemanticAccepted>(await rebuilt.Query(plan.Queries.Values.Single(), SemanticValue.Null, new ClaimsPrincipal()));
-        var values = Assert.Single(Assert.Single(queried.Queries).Results).Values;
-        Assert.Equal("Synthetic Name", Assert.IsType<SemanticTextValue>(values.Single(value => value.TargetProperty == plan.ReadModels.Values.Single().Properties.Single(property => property.Name == "name").Id).Value).Value);
-        Assert.Equal("synthetic-secret", Assert.IsType<SemanticTextValue>(values.Single(value => value.TargetProperty == plan.ReadModels.Values.Single().Properties.Single(property => property.Name == "token").Id).Value).Value);
-        Assert.Equal(SemanticValue.Number(37), values.Single(value => value.TargetProperty == plan.ReadModels.Values.Single().Properties.Single(property => property.Name == "number").Id).Value);
-        Console.WriteLine("Raw name, number and token are nonempty ciphertext strings; released and rebuilt values are Synthetic Name, 37 and synthetic-secret.");
-        var failures = new List<Exception>();
-        foreach (var (classification, primitive, optional, value) in new (string, string, bool, object)[]
+        var values = await RebuiltValues(accessor, name, plan, appender);
+        foreach (var property in new[] { "name", "number", "token" })
         {
-            ("pii", "String", true, "optional-personal"),
-            ("secret", "String", true, "optional-secret")
-        })
-        {
-            try
-            {
-                await VerifySingleProtectedProperty(client, container, classification, primitive, optional, value);
-            }
-            catch (Exception error)
-            {
-                // Collect diagnostic cases, but never turn a partial probe into a passing result.
-                Console.WriteLine($"FAILED {classification} {primitive} optional={optional}: {error}");
-                failures.Add(error);
-            }
+            AssertRebuiltValue(plan, values, property, valuesToAppend[property]);
         }
-        Assert.Empty(failures);
+        Console.WriteLine("Raw name, number and token are nonempty ciphertext strings; released and rebuilt values are Synthetic Name, 37 and synthetic-secret.");
     }
 
-    static async Task VerifySingleProtectedProperty(IChronicleClient client, string container, string classification, string primitive, bool optional, object value)
+    static async Task VerifySingleProtectedProperty(IChronicleClient client, string container, ProtectedCase testCase)
     {
         var name = $"StageProtect{Guid.NewGuid():N}";
-        var propertyType = $"Protected{(optional ? "?" : string.Empty)}";
-        var plan = compiled_plan.From($"""
-            concept Protected : {primitive} {classification}
+        var plan = ProtectedPlan(testCase);
+        Assert.Empty(new SemanticRuntimeAdmission(plan).Blocking);
+        await SemanticChronicleRegistration.Register(client, name, plan);
+        var appender = new SemanticFactAppender(client, new StageEventStoreName(name), plan);
+        var runtime = SemanticRuntimeHosting.Create(plan, appender);
+        var expected = JsonSerializer.SerializeToElement(testCase.Value);
+        var payload = new Dictionary<string, JsonElement> { ["id"] = JsonSerializer.SerializeToElement("record-1"), ["value"] = expected };
+        var result = await runtime.Execute(plan.Commands.Values.Single(), payload, new ClaimsPrincipal(), new(DateTimeOffset.UtcNow, "caller", "Caller", "user"), false);
+        Assert.True(result is SemanticAccepted, result.ToString());
+        using var raw = await StoredContent(container, name);
+        if (testCase.Value is null)
+        {
+            Assert.Equal(JsonValueKind.Null, raw.RootElement.GetProperty("value").ValueKind);
+        }
+        else
+        {
+            AssertCiphertext(raw.RootElement.GetProperty("value"), expected);
+        }
+        var store = await client.GetEventStore(name);
+        var accessor = (IChronicleServicesAccessor)store.Connection;
+        using var released = await ReleasedContent(accessor, name);
+        Assert.Equal(expected.GetRawText(), released.RootElement.GetProperty("value").GetRawText());
+        AssertRebuiltValue(plan, await RebuiltValues(accessor, name, plan, appender), "value", expected);
+        Console.WriteLine($"PASS {testCase}: stored {(testCase.Value is null ? "null" : "ciphertext")}; released and rebuilt {expected.GetRawText()}.");
+    }
+
+    static SemanticExecutionPlan ProtectedPlan(ProtectedCase testCase)
+    {
+        var propertyType = $"Protected{(testCase.Optional ? "?" : string.Empty)}";
+
+        return compiled_plan.From($"""
+            concept Protected : {testCase.Primitive} {testCase.Classification}
             module Records
               feature Registration
                 slice StateChange Register
@@ -141,22 +154,28 @@ public class when_encrypting_against_the_pinned_kernel
                       value = value
                   query All => Summary[]
             """);
-        Assert.Empty(new SemanticRuntimeAdmission(plan).Blocking);
-        await SemanticChronicleRegistration.Register(client, name, plan);
-        var appender = new SemanticFactAppender(client, new StageEventStoreName(name), plan);
-        var runtime = SemanticRuntimeHosting.Create(plan, appender);
-        var expected = JsonSerializer.SerializeToElement(value);
-        var payload = new Dictionary<string, JsonElement> { ["id"] = JsonSerializer.SerializeToElement("record-1"), ["value"] = expected };
-        var result = await runtime.Execute(plan.Commands.Values.Single(), payload, new ClaimsPrincipal(), new(DateTimeOffset.UtcNow, "caller", "Caller", "user"), false);
-        Assert.True(result is SemanticAccepted, result.ToString());
+    }
+
+    static async Task<string> KernelContainer(string address)
+    {
+        // The publish filter matches the container-side port, so locate the kernel by its host-side mapping instead.
+        var hostPort = $":{new Uri(address).Port}->";
+
+        return Assert.Single(
+            (await Docker("ps", "--format", "{{.ID}} {{.Ports}}")).Split('\n', StringSplitOptions.RemoveEmptyEntries),
+            line => line.Contains(hostPort, StringComparison.Ordinal)).Split(' ')[0];
+    }
+
+    static async Task<JsonDocument> StoredContent(string container, string name)
+    {
+        // Read BSON directly inside the development container: Chronicle's sequence APIs release values.
         var script = $"const e = db.getSiblingDB({JsonSerializer.Serialize($"{name}+es+Default")}).getCollection('event-log').findOne(); if (!e) throw new Error('Missing stored event'); print(JSON.stringify(e.content['1']));";
-        using var raw = JsonDocument.Parse(await Docker("exec", container, "mongosh", "--quiet", "--eval", script));
-        var ciphertext = raw.RootElement.GetProperty("value");
-        Assert.Equal(JsonValueKind.String, ciphertext.ValueKind);
-        Assert.NotEmpty(ciphertext.GetString()!);
-        Assert.NotEqual(value.ToString(), ciphertext.GetString());
-        var store = await client.GetEventStore(name);
-        var accessor = (IChronicleServicesAccessor)store.Connection;
+
+        return JsonDocument.Parse(await Docker("exec", container, "mongosh", "--quiet", "--eval", script));
+    }
+
+    static async Task<JsonDocument> ReleasedContent(IChronicleServicesAccessor accessor, string name)
+    {
         var events = (await accessor.Services.Sequences.FromSequenceNumber(new FromSequenceNumberRequest
         {
             EventStore = name,
@@ -164,14 +183,31 @@ public class when_encrypting_against_the_pinned_kernel
             EventSequenceId = EventSequenceId.Log,
             FromEventSequenceNumber = 0
         })).EnsureSuccess();
-        using var released = JsonDocument.Parse(Assert.Single(events).Content);
-        Assert.Equal(expected.GetRawText(), released.RootElement.GetProperty("value").GetRawText());
-        var rebuilt = SemanticRuntimeHosting.Create(plan, appender, await SemanticChronicleRegistration.Rebuild(accessor, name, plan, await appender.Tail()));
+
+        return JsonDocument.Parse(Assert.Single(events).Content);
+    }
+
+    static async Task<IReadOnlyList<SemanticPropertyValue>> RebuiltValues(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, SemanticFactAppender appender)
+    {
+        var world = await SemanticChronicleRegistration.Rebuild(accessor, name, plan, await appender.Tail());
+        var rebuilt = SemanticRuntimeHosting.Create(plan, appender, world);
         var queried = Assert.IsType<SemanticAccepted>(await rebuilt.Query(plan.Queries.Values.Single(), SemanticValue.Null, new ClaimsPrincipal()));
-        var readModel = plan.ReadModels.Values.Single();
-        var actual = Assert.Single(Assert.Single(queried.Queries).Results).Values.Single(entry => entry.TargetProperty == readModel.Properties.Single(property => property.Name == "value").Id).Value;
-        Assert.Equal(SemanticJsonValues.Bind(expected, readModel.Properties.Single(property => property.Name == "value").Type, plan.Model), actual);
-        Console.WriteLine($"PASS {classification} {primitive} optional={optional}: stored ciphertext; released and rebuilt {expected.GetRawText()}.");
+
+        return Assert.Single(Assert.Single(queried.Queries).Results).Values;
+    }
+
+    static void AssertCiphertext(JsonElement actual, JsonElement expected)
+    {
+        Assert.Equal(JsonValueKind.String, actual.ValueKind);
+        Assert.NotEmpty(actual.GetString()!);
+        Assert.NotEqual(expected.ToString(), actual.GetString());
+    }
+
+    static void AssertRebuiltValue(SemanticExecutionPlan plan, IReadOnlyList<SemanticPropertyValue> values, string name, JsonElement expected)
+    {
+        var property = plan.ReadModels.Values.Single().Properties.Single(property => property.Name == name);
+        var actual = values.Single(entry => entry.TargetProperty == property.Id).Value;
+        Assert.Equal(SemanticJsonValues.Bind(expected, property.Type, plan.Model), actual);
     }
 
     static async Task<string> Docker(params string[] arguments)
@@ -194,4 +230,6 @@ public class when_encrypting_against_the_pinned_kernel
             if (!process.HasExited) process.Kill(entireProcessTree: true);
         }
     }
+
+    sealed record ProtectedCase(string Classification, string Primitive, bool Optional, object? Value);
 }

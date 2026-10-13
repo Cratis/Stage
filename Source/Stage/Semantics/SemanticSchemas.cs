@@ -61,24 +61,7 @@ public static class SemanticSchemas
 
     static JsonObject TypeShape(SemanticTypeReference reference, SemanticApplication application)
     {
-        if (reference.IsOptional)
-        {
-            // Chronicle represents nullable protected concepts as their converter-backed primitive,
-            // with metadata on that primitive node, not on an optional-union wrapper.
-            if (!reference.IsCollection && reference.Kind == SemanticTypeReferenceKind.Concept &&
-                application.Concepts.Single(concept => concept.Id == reference.Target).Compliance is not null)
-            {
-                return TypeShape(reference with { IsOptional = false }, application);
-            }
-
-            return new JsonObject
-            {
-                ["anyOf"] = new JsonArray(
-                    TypeShape(reference with { IsOptional = false }, application),
-                    new JsonObject { ["type"] = "null" })
-            };
-        }
-
+        if (reference.IsOptional) return OptionalShape(reference, application);
         if (reference.IsCollection)
         {
             return new JsonObject { ["type"] = "array", ["items"] = TypeSchema(reference with { IsCollection = false }, application) };
@@ -90,9 +73,32 @@ public static class SemanticSchemas
             return JsonNode.Parse(Schema(type.Properties, application))!.AsObject();
         }
 
-        var primitive = reference.Kind == SemanticTypeReferenceKind.Concept
+        return PrimitiveShape(reference.Kind == SemanticTypeReferenceKind.Concept
             ? application.Concepts.Single(concept => concept.Id == reference.Target).Primitive
-            : reference.Primitive;
+            : reference.Primitive);
+    }
+
+    // Keep protection metadata on the primitive node Chronicle inspects, while allowing absent values.
+    static JsonObject OptionalShape(SemanticTypeReference reference, SemanticApplication application)
+    {
+        var required = reference with { IsOptional = false };
+        if (IsProtectedConcept(reference, application))
+        {
+            var schema = TypeShape(required, application);
+            schema["type"] = new JsonArray(schema["type"]!.GetValue<string>(), "null");
+
+            return schema;
+        }
+
+        return new JsonObject { ["anyOf"] = new JsonArray(TypeShape(required, application), new JsonObject { ["type"] = "null" }) };
+    }
+
+    static bool IsProtectedConcept(SemanticTypeReference reference, SemanticApplication application) =>
+        !reference.IsCollection && reference.Kind == SemanticTypeReferenceKind.Concept &&
+        application.Concepts.Single(concept => concept.Id == reference.Target).Compliance is not null;
+
+    static JsonObject PrimitiveShape(SemanticPrimitiveType primitive)
+    {
         var (typeName, format) = primitive switch
         {
             SemanticPrimitiveType.Uuid => ("string", "uuid"),

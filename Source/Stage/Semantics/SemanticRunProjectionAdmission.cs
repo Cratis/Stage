@@ -14,6 +14,8 @@ internal static class SemanticRunProjectionAdmission
 {
     internal static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents)
     {
+        if (FilteredQueryRejection(specification) is { } filtered) return filtered;
+
         var reachable = reachableEvents.ToHashSet();
         var requested = plan.Projections.Values.Where(value =>
             specification.ThenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
@@ -74,6 +76,30 @@ internal static class SemanticRunProjectionAdmission
             _ => type.ToString() ?? string.Empty
         };
 
+    internal static bool QueryMembersAreUnique(SemanticReadModel readModel, IEnumerable<SemanticKeyedQuery> candidates, SemanticExecutionPlan plan)
+    {
+        var queries = candidates.Where(query => query.ReadModel == readModel.Id).ToArray();
+
+        return GeneratedPascalCase.ReadModelMembersAreUnique(readModel.Name, readModel.Properties.Select(property => property.Name), queries.Select(query => query.Name)) &&
+            GeneratedPascalCase.QueriesAreUnique(queries.Select(query => (query.Name, QueryParameterTypes(query, plan), query.Argument?.Name ?? string.Empty))) &&
+            queries.All(QueryParametersAreUnique);
+    }
+
+    static string QueryParameterTypes(SemanticKeyedQuery query, SemanticExecutionPlan plan) =>
+        string.Join(',', (query.Argument is null ? Enumerable.Empty<string>() : [QueryType(query.Argument.Type, plan)])
+            .Concat(query.Filters.Select(filter => QueryType(filter.Type, plan))));
+
+    static bool QueryParametersAreUnique(SemanticKeyedQuery query) =>
+        GeneratedPascalCase.QueryParametersAreUnique((query.Argument is null ? Enumerable.Empty<string>() : [query.Argument.Name])
+            .Concat(query.Filters.Select(filter => filter.Name)));
+
+    static SemanticUnsupportedCapability? FilteredQueryRejection(SemanticSpecification specification)
+    {
+        var filtered = specification.ThenQueries.FirstOrDefault(assertion => !assertion.Filters.IsDefaultOrEmpty);
+
+        return filtered is null ? null : new(StageExecutionCapability.Query, filtered.Query.ToString(), "STAGE-ESM-010: Equality query filter assertions cannot be executed by the per-run projection scenario.");
+    }
+
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {
         if (!ProjectionReferencedEventNamesAreUnique.Check(projection, plan.Events))
@@ -99,14 +125,7 @@ internal static class SemanticRunProjectionAdmission
         {
             return "A read-model property name collides with Chronicle's property paths or another generated property.";
         }
-        if (!GeneratedPascalCase.ReadModelMembersAreUnique(
-            readModel.Name,
-            readModel.Properties.Select(property => property.Name),
-            plan.Queries.Values.Where(query => query.ReadModel == readModel.Id).Select(query => query.Name)) ||
-            !GeneratedPascalCase.QueriesAreUnique(plan.Queries.Values.Where(query => query.ReadModel == readModel.Id)
-                .Select(query => query.Argument is { } argument
-                    ? (query.Name, QueryType(argument.Type, plan), argument.Name)
-                    : (query.Name, string.Empty, string.Empty))))
+        if (!QueryMembersAreUnique(readModel, plan.Queries.Values, plan))
         {
             return "A read-model property or query name collides in generated C#.";
         }

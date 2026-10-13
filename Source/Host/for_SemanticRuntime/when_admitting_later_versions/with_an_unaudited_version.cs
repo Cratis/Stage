@@ -20,8 +20,8 @@ public class with_an_unaudited_version : Specification
         _plan = compiled_plan.From("module Projects\n  feature Registration\n    slice StateChange Register\n      event Registered");
 
         // Simulate a future dependency admitting a version Stage has not audited.
-        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new LanguageVersion(14, 0));
-        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new SemanticVersion(14, 0));
+        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new LanguageVersion(15, 0));
+        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new SemanticVersion(15, 0));
     }
 
     void Because() => _admission = new(_plan);

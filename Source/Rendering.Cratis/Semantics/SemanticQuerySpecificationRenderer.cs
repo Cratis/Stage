@@ -55,8 +55,9 @@ internal static class SemanticQuerySpecificationRenderer
             .Using(context.CommonNamespace)
             .Using(queryNamespace);
 
-        var collectionPredicate = CollectionPredicate(expected, readModel, types);
+        var collectionPredicate = CollectionPredicate(expected, readModel, types, query);
         var key = query.Argument is null ? string.Empty : types.QueryArgumentValue(expected.Key, query.Argument.Type);
+        var collectionCall = CollectionArguments(query, expected, types);
         foreach (var (produced, _) in replay)
         {
             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(produced.EventContract).Path);
@@ -109,9 +110,7 @@ internal static class SemanticQuerySpecificationRenderer
             builder.Line($"_readModels.GetInstances<{readModelName}>().Returns(_scenario.Instances.Values);")
                 .EndBlock()
                 .BlankLine()
-                .Line(query.Argument is null
-                    ? $"async global::System.Threading.Tasks.Task Because() => _results = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels);"
-                    : $"async global::System.Threading.Tasks.Task Because() => _results = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")
+                .Line($"async global::System.Threading.Tasks.Task Because() => _results = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}({collectionCall});")
                 .BlankLine()
                 .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({collectionPredicate}).ShouldBeTrue();")
                 .Line("public void Dispose() => _scenario.Dispose();")
@@ -217,7 +216,21 @@ internal static class SemanticQuerySpecificationRenderer
         return new(path, Conditional(content));
     }
 
-    static string CollectionPredicate(SemanticSpecificationQueryResult expected, SemanticReadModel readModel, SemanticTypeSystem types)
+    static string CollectionArguments(SemanticKeyedQuery query, SemanticSpecificationQueryResult expected, SemanticTypeSystem types) =>
+        string.Join(", ", (query.Argument is null ? Enumerable.Empty<string>() : [types.QueryArgumentValue(expected.Key, query.Argument.Type)])
+            .Concat(query.Filters.Select(filter => FilterArgument(filter, expected, types))).Prepend("_readModels"));
+
+    static string FilterArgument(SemanticQueryFilter filter, SemanticSpecificationQueryResult expected, SemanticTypeSystem types)
+    {
+        var value = expected.Filters.SingleOrDefault(value => value.Filter == filter.Id)?.Value ?? SemanticValue.Null;
+
+        return $"{Identifiers.EscapeKeyword(Identifiers.ToCamelCase(filter.Name))}: {types.QueryArgumentValue(value, filter.Type)}";
+    }
+
+    static IEnumerable<string> CountAssertion(SemanticKeyedQuery query, SemanticSpecificationQueryResult expected) =>
+        query.Filters.IsDefaultOrEmpty ? [] : [$"global::System.Linq.Enumerable.Count(_results) == {expected.Results.Length}"];
+
+    static string CollectionPredicate(SemanticSpecificationQueryResult expected, SemanticReadModel readModel, SemanticTypeSystem types, SemanticKeyedQuery query)
     {
         var resultPredicates = expected.Results.Select(result =>
         {
@@ -228,7 +241,7 @@ internal static class SemanticQuerySpecificationRenderer
             });
             return $"global::System.Linq.Enumerable.Any(_results, result => {string.Join(" && ", predicates)})";
         });
-        return string.Join(" && ", resultPredicates);
+        return string.Join(" && ", CountAssertion(query, expected).Concat(resultPredicates));
     }
 
     static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";

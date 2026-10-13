@@ -3,7 +3,7 @@ title: Generated values and command responses
 description: How Stage renders server-owned UUID concepts, deterministic generation fixtures and command responses.
 ---
 
-A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated UUID concepts as Arc Handle parameters and carries scalar or named responses back to the caller. The generated backend pins Arc **22.68.0**.
+A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated UUID concepts as Arc Handle parameters and carries scalar or named responses back to the caller. The generated backend pins Arc **22.78.0**.
 
 ## Model to C# mapping
 
@@ -69,6 +69,8 @@ A generated UUID concept that is not an identifier derives from `ConceptAs<Guid>
 
 A response block names each field independently of its source property. Each field keeps the source type, including optionality. Generated parameters and ordinary command properties can supply response values. Arc uses the tuple's response element as `CommandResult<T>.Response`; it does not expose the event wrapper as the response.
 
+The generated TypeScript proxy carries the response type too. A UUID-backed scalar response uses `Command<IRegisterProject, Guid>`; a named response uses `Command<IRegisterReceipt, RegisterReceiptResponse>`. The event wrapper is not the client response type.
+
 ## Fixtures and testing
 
 A specification's `when ... for <uuid>` pins a generated identifier. `generated receipt = "<uuid>"` pins a generated non-identifier property. Stage emits `PinGeneratedValue` before executing the scenario, using the concept type rather than a raw `Guid`.
@@ -93,7 +95,7 @@ The live semantic runtime supplies a fresh UUID as a semantic text value for eve
 
 An accepted scalar response becomes the HTTP command result's `response` value. A named response becomes an object with camelCase field names. Rejected or unauthorized results carry no response. The Stage frontend passes the accepted response through Scene's `CommandOutcome.response`.
 
-Form `on submit` response binding and navigation remain blocked on [Scene #53](https://github.com/Cratis/Scene/issues/53). Generated TypeScript proxy response inference is separate, tracked by [Arc #2885](https://github.com/Cratis/Arc/issues/2885).
+Form `on submit` response binding and navigation remain blocked on [Scene #53](https://github.com/Cratis/Scene/issues/53). Generated TypeScript proxies already expose the scalar or named command response; they do not supply Scene's continuation binding.
 
 ## Limits and diagnostics
 

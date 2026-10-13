@@ -71,8 +71,18 @@ internal static partial class SemanticCratisAdmission
                 }
                 foreach (var query in specification.ThenQueries)
                 {
-                    if (context.Queries[query.Query].Argument is { } argument) Check(query.Key, argument.Type, specification.Id);
+                    CheckQueryLiterals(query, specification.Id);
                 }
+            }
+        }
+
+        void CheckQueryLiterals(SemanticSpecificationQueryResult query, SemanticId artifact)
+        {
+            var definition = context.Queries[query.Query];
+            if (definition.Argument is { } argument) Check(query.Key, argument.Type, artifact);
+            foreach (var filter in query.Filters)
+            {
+                Check(filter.Value, definition.Filters.Single(value => value.Id == filter.Filter).Type, artifact);
             }
         }
 

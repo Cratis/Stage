@@ -102,7 +102,7 @@ internal static class SemanticVersionFeatures
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV13Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV14Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -422,11 +422,11 @@ internal static class SemanticVersionFeatures
     {
         foreach (var trigger in reaction.Triggers.Where(trigger => !trigger.Produces.IsDefaultOrEmpty && !trigger.Invokes.IsDefaultOrEmpty))
         {
-            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' both produces events and invokes commands in one '{trigger.Kind}' trigger; Arc cannot return events and commands from one handler (Cratis/Arc#3156).");
+            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' both produces events and invokes commands in one '{trigger.Kind}' trigger; a failed command would make Chronicle redeliver the trigger and append the reaction's events again until reactor appends are idempotent (Cratis/Stage#342).");
         }
         foreach (var group in reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event).GroupBy(trigger => trigger.Source).Where(HasMixedTriggerGroup))
         {
-            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' produces events and invokes commands across triggers on event '{group.Key}'; Arc cannot return events and commands from one handler (Cratis/Arc#3156).");
+            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' produces events and invokes commands across triggers on event '{group.Key}'; a failed command would make Chronicle redeliver the trigger and append the reaction's events again until reactor appends are idempotent (Cratis/Stage#342).");
         }
     }
 

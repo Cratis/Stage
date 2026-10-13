@@ -70,6 +70,12 @@ internal static partial class SemanticCommandSpecificationRenderer
     {
         var builder = scope.Builder;
         var count = scope.Specification.ThenEvents.Length;
+        if (count == 0 && scope.Command.Produces.Any(produced => produced.When is not null))
+        {
+            builder.Line(scope.SeedInLog
+                ? "[global::Xunit.FactAttribute] void should_append_no_new_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(0);"
+                : "[global::Xunit.FactAttribute] void should_append_no_new_events() => _scenario.AppendedEvents.Count.ShouldEqual(0);");
+        }
         if (count > 1)
         {
             builder.Line(scope.SeedInLog
@@ -89,7 +95,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var context = scope.Context;
         var types = scope.Types;
         var @event = context.Events[expected.EventContract];
-        var produced = scope.Command.Produces[index];
+        var produced = SemanticProductionSelection.Taken(scope.Command, scope.Specification)[index];
         if (generated.DestinationNeedsCommon(produced) ||
             PropertyValuesNeedCommon(@event.Properties, expected.Values))
         {
@@ -160,7 +166,7 @@ internal static partial class SemanticCommandSpecificationRenderer
 
             return EventPropertyPredicate(property, value, types, index);
         });
-        var produced = scope.Command.Produces.First(_ => _.EventContract == expected.EventContract);
+        var produced = SemanticProductionSelection.Taken(scope.Command, scope.Specification).First(_ => _.EventContract == expected.EventContract);
         var identity = SemanticDestinations.ForSpecification(scope.Specification, scope.Command, produced);
         var source = $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}";
         if (SemanticTypeSystem.ValueNeedsCommon(identity.Value, identity.Type))

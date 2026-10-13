@@ -24,10 +24,10 @@ internal static class SemanticConditionRendering
         _ => false
     };
 
-    internal static string Render(SemanticCondition condition, IReadOnlyList<SemanticProperty> properties, string receiver, SemanticApplicationContext context) => condition switch
+    internal static string Render(SemanticCondition condition, IReadOnlyList<SemanticProperty> properties, string receiver, SemanticApplicationContext context, Func<SemanticProperty, string>? accessor = null) => condition switch
     {
-        SemanticLogicalCondition logical => $"({Render(logical.Left, properties, receiver, context)} {(logical.Operator == SemanticLogicalOperator.And ? "&&" : "||")} {Render(logical.Right, properties, receiver, context)})",
-        SemanticComparison comparison => Comparison(comparison, properties, receiver, context),
+        SemanticLogicalCondition logical => $"({Render(logical.Left, properties, receiver, context, accessor)} {(logical.Operator == SemanticLogicalOperator.And ? "&&" : "||")} {Render(logical.Right, properties, receiver, context, accessor)})",
+        SemanticComparison comparison => Comparison(comparison, properties, receiver, context, accessor),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticCondition), condition.GetType().Name)
     };
 
@@ -45,10 +45,10 @@ internal static class SemanticConditionRendering
              (context.Concepts.TryGetValue(type.Target, out var concept) && concept.Values.IsEmpty));
     }
 
-    static string Comparison(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, string receiver, SemanticApplicationContext context)
+    static string Comparison(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, string receiver, SemanticApplicationContext context, Func<SemanticProperty, string>? accessor)
     {
-        var left = Operand(comparison.Left, properties, receiver, context);
-        var right = Operand(comparison.Right, properties, receiver, context);
+        var left = Operand(comparison.Left, properties, receiver, context, accessor);
+        var right = Operand(comparison.Right, properties, receiver, context, accessor);
         var symbol = comparison.Operator switch
         {
             SemanticComparisonOperator.Equal => "==",
@@ -77,12 +77,12 @@ internal static class SemanticConditionRendering
                 _ => SemanticPrimitiveType.DecimalNumber
             };
 
-    static string Operand(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, string receiver, SemanticApplicationContext context)
+    static string Operand(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, string receiver, SemanticApplicationContext context, Func<SemanticProperty, string>? accessor)
     {
         if (operand.Property.IsSet)
         {
             var property = properties.Single(_ => _.Id == operand.Property);
-            var value = $"{receiver}.{Identifiers.ToPascalCase(property.Name)}";
+            var value = accessor is null ? $"{receiver}.{Identifiers.ToPascalCase(property.Name)}" : accessor(property);
             return property.Type.Kind == SemanticTypeReferenceKind.Concept ? $"{value}.Value" : value;
         }
 

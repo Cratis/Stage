@@ -489,12 +489,18 @@ internal static class SemanticVersionFeatures
     {
         var generated = command.Properties.Where(property => property.IsGenerated).ToArray();
         if (HasRoutedResults(command, generated.Length)) return true;
+        if (ConditionalLocalCollides(command, generated)) return true;
         if (generated.Length == 0) return false;
         if (generated.Any(property => property.IsIdentifier) && command.Produces.Any(produced => produced.Destination is null)) return true;
         if (OccurrenceParameterCollides(command, generated)) return true;
 
         return !command.Requirements.IsEmpty || command.Validations.Any(rule => generated.Any(property => property.Id == rule.Property));
     }
+
+    static bool ConditionalLocalCollides(SemanticCommand command, IEnumerable<SemanticProperty> generated) =>
+        command.Produces.Any(produced => produced.When is not null) && generated.Any(property =>
+            string.Equals(GeneratedPascalCase.From(property.Name), "StageEvents", StringComparison.Ordinal) ||
+            Enumerable.Range(0, command.Produces.Length).Any(index => string.Equals(GeneratedPascalCase.From(property.Name), $"StageProduces{index}", StringComparison.Ordinal)));
 
     static bool HasRoutedResults(SemanticCommand command, int generatedCount) =>
         command.Route is not null && (command.Response is not null || generatedCount > 0);

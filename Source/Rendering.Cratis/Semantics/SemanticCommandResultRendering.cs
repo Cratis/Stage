@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 /// <param name="command">The command whose result is rendered.</param>
 /// <param name="context">The indexed semantic application.</param>
-internal sealed class SemanticCommandResultRendering(SemanticCommand command, SemanticApplicationContext context)
+internal sealed partial class SemanticCommandResultRendering(SemanticCommand command, SemanticApplicationContext context)
 {
     readonly SemanticTypeSystem _types = new(context);
     readonly SemanticCommandCompliance _compliance = new(context);
@@ -54,6 +54,11 @@ internal sealed class SemanticCommandResultRendering(SemanticCommand command, Se
 
     internal void RenderHandle(CSharpCodeBuilder builder, Func<SemanticProducedEvent, string> wrappedEvent, Action renderEventOnly)
     {
+        if (command.Produces.Any(produced => produced.When is not null))
+        {
+            RenderConditionalHandle(builder, wrappedEvent);
+            return;
+        }
         if (command.Response is null && command.Properties.All(property => !property.IsGenerated))
         {
             renderEventOnly();

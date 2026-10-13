@@ -70,10 +70,10 @@ internal static partial class SemanticSpecificationAdmission
             return "A produced event is an append-time constraint target; the scenario only records reactor effects.";
         if (LosesReactionDestination(specification, trigger))
             return "A sourceless append cannot preserve a production that omits 'for'.";
-        if (HasDeeperReactionCascade(context, trigger))
+        if (HasDeeperReactionCascade(context, specification, selected))
             return "Generated reactor scenarios do not settle deeper reaction cascades.";
 
-        return InvokedProductions(context, trigger).Any(produced => IsReactionConstraintTarget(context, produced.EventContract))
+        return selected.InvokedProductions(specification, context).Any(produced => IsReactionConstraintTarget(context, produced.EventContract))
             ? "An invoked command produces an append-time constraint target." : null;
     }
 
@@ -83,12 +83,9 @@ internal static partial class SemanticSpecificationAdmission
     static bool LosesReactionDestination(SemanticSpecification specification, SemanticReactionTrigger trigger) =>
         specification.WhenAppended!.EventSource is null && trigger.Produces.Any(produced => produced.Destination is null);
 
-    static IEnumerable<SemanticProducedEvent> InvokedProductions(SemanticApplicationContext context, SemanticReactionTrigger trigger) =>
-        trigger.Invokes.SelectMany(invocation => context.Commands[invocation.Command].Produces);
-
-    static bool HasDeeperReactionCascade(SemanticApplicationContext context, SemanticReactionTrigger trigger)
+    static bool HasDeeperReactionCascade(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected)
     {
-        var products = trigger.Produces.Concat(InvokedProductions(context, trigger)).Select(produced => produced.EventContract).ToHashSet();
+        var products = selected.Trigger.Produces.Concat(selected.InvokedProductions(specification, context)).Select(produced => produced.EventContract).ToHashSet();
 
         return EventReactionTriggers(context).Any(next => products.Contains(next.Source));
     }

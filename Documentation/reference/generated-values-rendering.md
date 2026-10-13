@@ -82,6 +82,16 @@ At v15, a command that produces facts on a generated destination returns `Events
 
 The Host and specification executor use the reference freshness message: "A generated event source already has facts; retry the command with a fresh generated value." Earlier facts without a destination never make the generated source stale. Below v15, handlers remain unguarded. These explicit scopes will be replaced when [Arc #3129](https://github.com/Cratis/Arc/issues/3129) supplies its generated-identifier freshness contract.
 
+## Conditional productions and shared slices
+
+A StateChange slice can declare several commands. Each command keeps its own validator, response and specifications, while sharing the slice's event contracts and source file.
+
+Portable `produces when` conditions read command inputs and generated values. Stage evaluates each condition once and returns a typed collection of `EventForEventSourceId` values containing only the taken productions. At v15, freshness scopes cover only sources targeted by those productions. If every production is skipped, the command is accepted, appends nothing and still returns its response, even if the generated source already has facts.
+
+Conditions support text and Boolean equality, numeric equality and ordering, and `and`/`or`. Enum operands and expression-valued `Condition` nodes remain refused with `STAGE-ESM-006`; production route overrides remain refused with `STAGE-ESM-036`. A specification that reads a generated property in a production condition must pin it, so the expected production sequence can be determined before rendering.
+
+Commands without production conditions retain their existing generated Handle shape.
+
 ## Responses
 
 | Screenplay contract | C# Handle response |
@@ -127,9 +137,9 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 | `STAGE-ESM-028` | Unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy |
 | `STAGE-ESM-011` | A v15 generated fixture that does not match its strategy shape |
 | `STAGE-ESM-004` | StateChange slices without a command |
-| `STAGE-ESM-006` | Conditional productions remain refused ([Stage #360](https://github.com/Cratis/Stage/issues/360)) |
-| `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, generated-concept validation rules, occurrence parameter name collisions; unsupported response sources, composite or collection responses; response/factory name collisions; generated values mapped into unique-property constraints |
-| `STAGE-ESM-038` | Unpinned generation with unordered event, read-model or query expectations |
+| `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
+| `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, generated-concept validation rules, occurrence or conditional Handle local-name collisions; unsupported response sources, composite or collection responses; response/factory name collisions; generated values mapped into unique-property constraints |
+| `STAGE-ESM-038` | Unpinned generation read by a production condition, or with unordered event, read-model or query expectations |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 
 Generated-concept validation is refused because Arc treats an invalid generated value as a server exception, whereas the evaluator treats it as a rejection. Stage does not translate one outcome into the other.

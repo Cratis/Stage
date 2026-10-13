@@ -19,7 +19,7 @@ public class when_reading_back_generated_definitions : a_routed_command
         Plan();
         var assembly = Load();
         _declared = assembly.GetType("InvoiceApp.EventSources.AccountEventSource")!;
-        _definition = (EventSourceDefinition)typeof(global::Cratis.Chronicle.EventSources.EventSources).GetMethod("Describe", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [_declared])!;
+        _definition = (EventSourceDefinition)typeof(global::Cratis.Chronicle.EventSources.EventSources).GetMethod("Describe", BindingFlags.Static | BindingFlags.NonPublic, [typeof(Type)])!.Invoke(null, [_declared])!;
     }
 
     [Fact] void should_be_a_chronicle_source_definition() => typeof(IEventSource).IsAssignableFrom(_declared).ShouldBeTrue();

@@ -4,8 +4,8 @@
 #if DEBUG
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
-using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;

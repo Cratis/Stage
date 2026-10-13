@@ -3,7 +3,7 @@ title: Generated values and command responses
 description: Generation strategies, freshness guards, deterministic fixtures and command responses in rendered applications.
 ---
 
-A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards. The generated backend pins Arc **22.83.0**, which brings Fundamentals **7.24.0**.
+A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards. The generated backend pins Arc **22.87.0**, which brings Fundamentals **7.24.0**.
 
 ## Model to C# mapping
 

@@ -3,7 +3,7 @@ title: Event-source routing
 description: Look up how the Cratis semantic planner renders named sources, streams and portable stream identities.
 ---
 
-The Cratis semantic planner admits Screenplay ESM v8 event-source routes. A generated command appends to the declared source type, stream type and stream identity, rather than Chronicle's defaults. The generated application profile pins Chronicle 19.54.0 and Arc 22.83.0; Chronicle registers the event-source definitions used by Arc's hosted command pipeline.
+The Cratis semantic planner admits Screenplay ESM v8 event-source routes. A generated command appends to the declared source type, stream type and stream identity, rather than Chronicle's defaults. The generated application profile pins Chronicle 19.55.2 and Arc 22.87.0; Chronicle registers the event-source definitions used by Arc's hosted command pipeline.
 
 ## Generated definitions
 
@@ -30,7 +30,7 @@ The source attribute uses the **stored** source name explicitly. Recoverability 
 
 Other names retain the existing normalized class names and stored stream-name literals. For example, source `account` becomes `AccountEventSource`, and stream `Account_Name` uses its stored name as a literal without declaring a misleading `AccountName` constant. Such names do not round-trip through the recoverable shape; readers fall back to treating them as code. Class-name collisions fail planning with `STAGE-ESM-012`, rather than renaming a definition. Identity-named stream constants that collide with another member or the class name also fail with `STAGE-ESM-012`.
 
-Chronicle 19.54.0's bare source attribute removes the trailing `EventSource` from the class name when deriving its stored name. Stage retains explicit source attributes instead of relying on that default.
+Chronicle 19.55.2's bare source attribute removes the trailing `EventSource` from the class name when deriving its stored name. Stage retains explicit source attributes instead of relying on that default.
 
 An application render emits every source. A narrower render emits only sources referenced by selected commands, specification fixtures or observer filters, together with their identifier, stream-id and part-type dependencies. A domain placement such as `Sales/Retail` moves definitions to `Sales/Retail/EventSources/` and `{Root}.Sales.Retail.EventSources`. The shared codec remains at the application root.
 

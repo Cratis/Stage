@@ -121,7 +121,6 @@ internal static class SemanticVersionFeatures
         (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
         .Concat(RoutesInApplication(application))
-        .Concat(NonTextSecrets(application))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
 
     /// <summary>

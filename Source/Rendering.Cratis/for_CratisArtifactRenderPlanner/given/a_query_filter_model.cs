@@ -71,7 +71,7 @@ public static class a_query_filter_model
                 flag Bool
             slice StateView Lookup
               readmodel InvoiceSummary
-                invoiceId InvoiceId
+                id InvoiceId key
                 status String
                 category Category optional
                 flag Bool optional
@@ -80,7 +80,7 @@ public static class a_query_filter_model
                 filter status String
                 filter category Category optional
               query FilteredById => observable InvoiceSummary[]
-                by invoiceId InvoiceId
+                by id InvoiceId
                 filter status String
                 filter category Category optional
               query FilteredOptionalProperties => observable InvoiceSummary[]
@@ -88,13 +88,15 @@ public static class a_query_filter_model
                 filter category Category
               projection InvoiceSummaryProjection => InvoiceSummary
                 from InvoiceIssued key invoiceId
-                  invoiceId = invoiceId
+                  id = invoiceId
                   status = status
                   category = category
                   flag = flag
         """;
 
     public static string OptionalPropertyProbe => Probe
+        .Replace("new InvoiceSummary(InvoiceId:", "new InvoiceSummary(Id:", StringComparison.Ordinal)
+        .Replace("[\"invoiceId\"]", "[\"id\"]", StringComparison.Ordinal)
         .Replace("Category: new Category(\"North\"))", "Category: new Category(\"North\"), Flag: true)", StringComparison.Ordinal)
         .Replace("Category: new Category(\"South\"))", "Category: new Category(\"South\"), Flag: true)", StringComparison.Ordinal) + "\n" + """
         public class optional_property_filters
@@ -102,10 +104,10 @@ public static class a_query_filter_model
             [Fact]
             public async Task should_exclude_null_properties_from_required_filters()
             {
-                var matching = new InvoiceSummary(InvoiceId: new InvoiceId("one"), Status: "open", Category: new Category("North"), Flag: true);
-                var nullFlag = matching with { InvoiceId = new InvoiceId("two"), Flag = null };
-                var nullCategory = matching with { InvoiceId = new InvoiceId("three"), Category = null };
-                var differentFlag = matching with { InvoiceId = new InvoiceId("four"), Flag = false };
+                var matching = new InvoiceSummary(Id: new InvoiceId("one"), Status: "open", Category: new Category("North"), Flag: true);
+                var nullFlag = matching with { Id = new InvoiceId("two"), Flag = null };
+                var nullCategory = matching with { Id = new InvoiceId("three"), Category = null };
+                var differentFlag = matching with { Id = new InvoiceId("four"), Flag = false };
                 using var scenario = new QueryScenario<InvoiceSummary>();
                 scenario.Given.ForEventSource("one").ReadModel(matching);
                 scenario.Given.ForEventSource("two").ReadModel(nullFlag);
@@ -122,22 +124,22 @@ public static class a_query_filter_model
     public const string OptionalPropertySpecification = """
               specification FilteringOptionalProperties
                 given readmodel InvoiceSummary
-                  invoiceId = "one"
+                  id = "one"
                   status = "open"
                   category = "North"
                   flag = true
                 given readmodel InvoiceSummary
-                  invoiceId = "two"
+                  id = "two"
                   status = "open"
                   category = "North"
                   flag = null
                 given readmodel InvoiceSummary
-                  invoiceId = "three"
+                  id = "three"
                   status = "open"
                   category = null
                   flag = true
                 given readmodel InvoiceSummary
-                  invoiceId = "four"
+                  id = "four"
                   status = "open"
                   category = "North"
                   flag = false
@@ -146,15 +148,17 @@ public static class a_query_filter_model
                     flag = true
                     category = "North"
                   result
-                    invoiceId = "one"
+                    id = "one"
                     status = "open"
                     category = "North"
                     flag = true
         """;
 
     public const string Probe = """
+        using Cratis.Arc.Chronicle.Testing.Queries;
         using Cratis.Arc.Queries;
         using Cratis.Arc.Testing.Queries;
+        using Invoices.Billing.Invoicing.Issue;
         using Invoices.Billing.Invoicing.Lookup;
         using Invoices.Common;
         using Xunit;
@@ -167,12 +171,11 @@ public static class a_query_filter_model
             public async Task should_apply_required_optional_and_keyed_filters()
             {
                 var north = new InvoiceSummary(InvoiceId: new InvoiceId("one"), Status: "open", Category: new Category("North"));
-                var closed = new InvoiceSummary(InvoiceId: new InvoiceId("two"), Status: "closed", Category: new Category("North"));
                 var south = new InvoiceSummary(InvoiceId: new InvoiceId("three"), Status: "open", Category: new Category("South"));
                 using var scenario = new QueryScenario<InvoiceSummary>();
-                scenario.Given.ForEventSource("one").ReadModel(north);
-                scenario.Given.ForEventSource("two").ReadModel(closed);
-                scenario.Given.ForEventSource("three").ReadModel(south);
+                scenario.Given.ForEventSource("one").Events(new InvoiceIssued(InvoiceId: new InvoiceId("one"), Status: "open", Category: new Category("North")));
+                scenario.Given.ForEventSource("two").Events(new InvoiceIssued(InvoiceId: new InvoiceId("two"), Status: "closed", Category: new Category("North")));
+                scenario.Given.ForEventSource("three").Events(new InvoiceIssued(InvoiceId: new InvoiceId("three"), Status: "open", Category: new Category("South")));
                 var filtered = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open", ["category"] = "North" });
                 var optional = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open" });
                 var keyed = await scenario.Perform(nameof(InvoiceSummary.FilteredById), new QueryArguments { ["invoiceId"] = "three", ["status"] = "open" });
@@ -182,9 +185,9 @@ public static class a_query_filter_model
                     Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                     Assert.Empty(result.ValidationResults);
                 });
-                Assert.Same(north, Assert.Single(Assert.IsType<IEnumerable<object>>(filtered.Data, exactMatch: false)));
+                Assert.Equal(north, Assert.Single(Assert.IsType<IEnumerable<object>>(filtered.Data, exactMatch: false)));
                 Assert.Equal(2, Assert.IsType<IEnumerable<object>>(optional.Data, exactMatch: false).Count());
-                Assert.Same(south, Assert.Single(Assert.IsType<IEnumerable<object>>(keyed.Data, exactMatch: false)));
+                Assert.Equal(south, Assert.Single(Assert.IsType<IEnumerable<object>>(keyed.Data, exactMatch: false)));
                 Assert.Empty(Assert.IsType<IEnumerable<object>>(invalid.Data, exactMatch: false));
                 var missing = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), QueryArguments.Empty);
                 Assert.NotEmpty(missing.ValidationResults);

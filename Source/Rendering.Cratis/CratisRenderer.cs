@@ -204,12 +204,13 @@ public class CratisRenderer : IRenderer
                 new ReactionIdentitySyntaxAdmission().VisitApplication(application);
                 new SyntaxRouteAdmission().VisitApplication(application);
                 new PublicEventSyntaxAdmission().VisitApplication(application);
+                new GenerationSyntaxAdmission().VisitApplication(application);
             }
 
             EventSourceIdentityComplianceAdmission.EnsureAccepted(slices, context);
         }
         catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes or
-            UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters)
+            UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters or UnsupportedGenerationStrategy)
         {
             await error.WriteLineAsync(exception.Message);
             throw new RenderingFailed([exception]);

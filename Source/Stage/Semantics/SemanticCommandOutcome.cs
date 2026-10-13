@@ -21,6 +21,7 @@ internal static class SemanticCommandOutcome
         {
             ValidationResults = [ValidationResult.Error(rejected.Details, reason: ValidationResultReason.ConstraintViolation, reasonDetail: rejected.Code)]
         },
+        SemanticRejected { Category: SemanticRejectionCategory.Concurrency } rejected => Concurrency(rejected),
         SemanticRejected rejected => new CommandResult
         {
             ValidationResults = rejected.ValidationFailures.IsEmpty
@@ -34,6 +35,11 @@ internal static class SemanticCommandOutcome
     internal static object? CommittedResponse(SemanticAccepted accepted, object fallback) => accepted.Response is { } response
         ? Response(response)
         : fallback;
+
+    static CommandResult Concurrency(SemanticRejected rejected) => new()
+    {
+        ValidationResults = [ValidationResult.Error(rejected.Details, reason: ValidationResultReason.ConcurrencyViolation)]
+    };
 
     static CommandResult Accepted(SemanticAccepted accepted, CorrelationId correlationId) => accepted.Response is { } response
         ? new CommandResult<object?>(correlationId, Response(response))

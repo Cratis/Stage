@@ -7,12 +7,10 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_set
 
 public class with_an_authored_clock : given.a_reaction_plan
 {
-    void Establish() => Compile("""
-        reaction Finish
-          on Started
-            produces Completed
-              for $eventSourceId
-        """, "then Completed", new(Action: "given clock \"2027-03-04T10:00:00.123Z\"\nwhen Begin\n  item = \"one\"\n  amount = 1"));
+    void Establish() => Compile(
+        "reaction Worker\n  when Started\n    item\n    produces Followed\n      item = item",
+        "then Followed\n  for \"one\"\n  item = \"one\"",
+        new(Action: "given clock \"2027-03-04T10:00:00.123Z\"\nwhen Begin\n  item = \"one\"\n  amount = 1"));
 
     async Task Because() => await Execute();
 

@@ -74,7 +74,7 @@ public static class SemanticRunAdmission
         if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
         if (specification.GivenClock is not null && slices.Any(slice => !slice.Reactions.IsDefaultOrEmpty))
         {
-            return Block(StageExecutionCapability.Time, specification.Id, "Authored clocks with reactions are not admitted.");
+            return Block(StageExecutionCapability.Time, specification.Id, $"{SemanticVersionFeatures.Automation}: Authored clocks with reactions are not admitted.");
         }
 
         // A per-run result must not pass an application whose selected slice cannot be rendered.

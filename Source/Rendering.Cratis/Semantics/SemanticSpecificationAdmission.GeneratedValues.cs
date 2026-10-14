@@ -19,6 +19,10 @@ internal static partial class SemanticSpecificationAdmission
             {
                 diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, message, specification.Id));
             }
+            else if (MissingConstrainedGeneratedFixture(context, specification) is { } constraintMessage)
+            {
+                diagnostics.Add(new(SemanticVersionFeatures.CommandResults, ArtifactRenderDiagnosticSeverity.Error, constraintMessage, specification.Id));
+            }
             else if (NeedsPinnedGeneratedValues(context, specification))
             {
                 diagnostics.Add(new(

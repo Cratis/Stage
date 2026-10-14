@@ -376,6 +376,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             {
                 return Rejected(slice, specification, SemanticRejection.Unauthorized);
             }
+            if (SemanticQueryValidation.Failures(plan, plan.Queries[assertion.Query], assertion).FirstOrDefault() is { } validation)
+            {
+                return Rejected(slice, specification, new SemanticRejection(validation.Message) { Category = SemanticRejectionCategory.Validation });
+            }
         }
         var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts)).ToList();
         failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));

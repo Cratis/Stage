@@ -68,7 +68,8 @@ public static class a_validated_query_key_model
                 var instance = new InvoiceSummary(InvoiceId: id, Description: "North");
                 var readModels = Substitute.For<IReadModels>();
                 readModels.GetInstanceById<InvoiceSummary>((EventSourceId)id).Returns(instance);
-                readModels.GetInstanceById<InvoiceSummary>((EventSourceId)invalidId).Returns(Task.FromResult<InvoiceSummary>(null!));
+                var unmatchedId = new InvoiceId("invoice-missing");
+                readModels.GetInstanceById<InvoiceSummary>((EventSourceId)unmatchedId).Returns(Task.FromResult<InvoiceSummary>(null!));
                 InvoiceSummary[] rows = [instance];
 
                 // Arc's Chronicle interceptor releases each returned instance before assigning Data.
@@ -81,11 +82,21 @@ public static class a_validated_query_key_model
                 var valid = new QueryArguments { ["invoiceId"] = "invoice-one" };
                 var invalid = new QueryArguments { ["invoiceId"] = "x" };
                 var lookup = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), valid);
-                var missing = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), invalid);
+                var rejected = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), invalid);
+                var missing = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = "invoice-missing" });
                 await readModels.Received(1).GetInstanceById<InvoiceSummary>((EventSourceId)id);
-                await readModels.Received(1).GetInstanceById<InvoiceSummary>((EventSourceId)invalidId);
+                await readModels.DidNotReceive().GetInstanceById<InvoiceSummary>((EventSourceId)invalidId);
+                await readModels.Received(1).GetInstanceById<InvoiceSummary>((EventSourceId)unmatchedId);
                 var filtered = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), valid);
-                var empty = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), invalid);
+                var rejectedFilter = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), invalid);
+                var empty = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), new QueryArguments { ["invoiceId"] = "invoice-missing" });
+                Assert.All(new[] { rejected, rejectedFilter }, result =>
+                {
+                    Assert.False(result.IsValid);
+                    Assert.NotEmpty(result.ValidationResults);
+                    Assert.False(result.HasExceptions);
+                    Assert.Null(result.Data);
+                });
                 Assert.All(new[] { lookup, missing, filtered, empty }, result =>
                 {
                     Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
@@ -98,7 +109,7 @@ public static class a_validated_query_key_model
                 // The query pipeline's interception stage materializes collections as object[].
                 Assert.Same(instance, Assert.IsType<InvoiceSummary>(Assert.Single(Assert.IsType<IEnumerable<object>>(filtered.Data, exactMatch: false))));
                 Assert.Empty(Assert.IsType<IEnumerable<object>>(empty.Data, exactMatch: false));
-                return [lookup, missing, filtered, empty];
+                return [lookup, rejected, filtered, rejectedFilter];
             }
         }
         """;

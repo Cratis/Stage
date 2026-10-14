@@ -108,7 +108,7 @@ internal static partial class SemanticCratisAdmission
             }
         }
 
-        foreach (var query in slice.Queries.Where(query => ValidateQueryAuthorization(context, query, diagnostics) && !RefusesNestedValidatedKey(context, query, diagnostics)))
+        foreach (var query in slice.Queries.Where(query => ValidateQueryAuthorization(context, query, diagnostics)))
         {
             var readModel = slice.ReadModels.SingleOrDefault(_ => _.Id == query.ReadModel);
             if (!QueryFiltersAreRenderable(context, query, readModel, diagnostics))
@@ -133,11 +133,17 @@ internal static partial class SemanticCratisAdmission
         (query.Argument is null ? Enumerable.Empty<string>() : [query.Argument.Name]).Concat(query.Filters.Select(filter => filter.Name));
 
     static string QueryParameterTypes(SemanticKeyedQuery query, SemanticTypeSystem types) =>
-        string.Join(',', (query.Argument is null ? Enumerable.Empty<string>() : [types.QueryArgumentType(query.Argument.Type)])
-            .Concat(query.Filters.Select(filter => types.QueryArgumentType(filter.Type))));
+        string.Join(',', (query.Argument is null ? Enumerable.Empty<string>() : [types.Type(query.Argument.Type)])
+            .Concat(query.Filters.Select(filter => types.Type(filter.Type))));
 
     static bool QueryFiltersAreRenderable(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel, List<ArtifactRenderDiagnostic> diagnostics)
     {
+        if ((query.Argument is not null && IsOptionalNotEmptyConcept(context, query.Argument.Type)) || query.Filters.Any(filter => IsOptionalNotEmptyConcept(context, filter.Type)))
+        {
+            diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' cannot preserve nullable keys or optional concept filters with not-empty rules: Arc skips validation for null arguments while the reference validates supplied null concepts.", query.Id));
+            return false;
+        }
+
         if (IsSnapshotLookup(context, query, readModel)) return query.Filters.IsDefaultOrEmpty;
         if (!IsCollection(context, query, readModel)) return false;
 
@@ -155,6 +161,10 @@ internal static partial class SemanticCratisAdmission
 
         return true;
     }
+
+    static bool IsOptionalNotEmptyConcept(SemanticApplicationContext context, SemanticTypeReference type) =>
+        type is { IsOptional: true, Kind: SemanticTypeReferenceKind.Concept } &&
+        context.Concepts[type.Target].Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.NotEmpty);
 
     static bool IsSnapshotLookup(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel)
     {
@@ -176,15 +186,6 @@ internal static partial class SemanticCratisAdmission
         TypeExists(context, type) && !IsNested(type) && SemanticValidationRendering.UnderlyingPrimitive(type, context) != SemanticPrimitiveType.DateTime;
 
     static bool FilterPreservesParameterOrder(SemanticQueryFilter filter, bool optionalSeen) => !optionalSeen || filter.Type.IsOptional;
-
-    static bool RefusesNestedValidatedKey(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics)
-    {
-        if (query.Argument is not { } argument || !IsNested(argument.Type)) return false;
-        if (new SemanticTypeSystem(context).ValidatedQueryConcept(argument.Type) is not { } concept) return false;
-
-        diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' cannot preserve reference lookup semantics for validated concept '{concept.Name}' inside a composite or collection argument.", query.Id));
-        return true;
-    }
 
     static bool IsNested(SemanticTypeReference type) => type.IsCollection || type.Kind == SemanticTypeReferenceKind.CompositeType;
 }

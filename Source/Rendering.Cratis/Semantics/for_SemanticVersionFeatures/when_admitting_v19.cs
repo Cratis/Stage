@@ -14,7 +14,8 @@ public class when_admitting_v19 : Specification
 {
     [Theory]
     [InlineData(19, 0, 19, 0, true)]
-    [InlineData(18, 0, 18, 0, false)]
+    [InlineData(18, 0, 18, 0, true)]
+    [InlineData(20, 0, 20, 0, false)]
     [InlineData(17, 0, 19, 0, false)]
     [InlineData(19, 0, 17, 0, false)]
     [InlineData(19, 1, 19, 1, false)]
@@ -30,7 +31,7 @@ public class when_admitting_v19 : Specification
     [Fact]
     public void should_preserve_all_older_canonical_bytes()
     {
-        foreach (var version in Enumerable.Range(1, 17))
+        foreach (var version in Enumerable.Range(1, 18))
         {
             var vector = EsmGoldenVectors.Get(version);
             var model = SemanticModelSerializer.Deserialize(vector.Bytes.AsSpan());

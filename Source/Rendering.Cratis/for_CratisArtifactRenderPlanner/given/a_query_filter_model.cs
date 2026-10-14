@@ -183,12 +183,14 @@ public static class a_query_filter_model
                 Assert.All(new[] { filtered, optional, keyed, invalid }, result =>
                 {
                     Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
-                    Assert.Empty(result.ValidationResults);
                 });
+                Assert.All(new[] { filtered, optional, keyed }, result => Assert.Empty(result.ValidationResults));
+                Assert.False(invalid.IsValid);
+                Assert.NotEmpty(invalid.ValidationResults);
                 Assert.Equal(north, Assert.Single(Assert.IsType<IEnumerable<object>>(filtered.Data, exactMatch: false)));
                 Assert.Equal(2, Assert.IsType<IEnumerable<object>>(optional.Data, exactMatch: false).Count());
                 Assert.Equal(south, Assert.Single(Assert.IsType<IEnumerable<object>>(keyed.Data, exactMatch: false)));
-                Assert.Empty(Assert.IsType<IEnumerable<object>>(invalid.Data, exactMatch: false));
+                Assert.Null(invalid.Data);
                 var missing = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), QueryArguments.Empty);
                 Assert.NotEmpty(missing.ValidationResults);
                 Assert.Null(missing.Data);

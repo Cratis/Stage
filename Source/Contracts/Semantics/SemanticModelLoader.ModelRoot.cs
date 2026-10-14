@@ -41,7 +41,7 @@ public static partial class SemanticModelLoader
         Path.Combine(root, ".screenplay", PersistedIdentityStateSerializer.FileName),
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
-    static SemanticModelLoadResult LoadModelRoot(string root, string[] files, string name, CancellationToken cancellationToken)
+    static SemanticModelLoadResult LoadModelRoot(string root, string[] files, IEnumerable<string> namedFiles, string name, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var outcome = ScreenplayModelRoot.OpenForReleaseBaselineCheck(root);
@@ -54,10 +54,14 @@ public static partial class SemanticModelLoader
         var workspace = outcome.Workspace;
         var selectedPaths = files.Select(file => Path.GetRelativePath(root, file).Replace('\\', '/')).ToHashSet(StringComparer.Ordinal);
         var documentPaths = workspace.Documents.Select(document => document.Path.Value).ToHashSet(StringComparer.Ordinal);
+
+        // Screenplay's model root skips folders such as .git, .ai-work, bin, obj and node_modules. Files found by walking a folder
+        // there are not part of the model, exactly as for `screenplay baseline check`; a file the caller named explicitly is refused.
+        var named = namedFiles.Select(file => Path.GetRelativePath(root, file).Replace('\\', '/')).ToHashSet(StringComparer.Ordinal);
+        selectedPaths.RemoveWhere(path => !documentPaths.Contains(path) && !named.Contains(path));
         var unread = selectedPaths.Where(path => !documentPaths.Contains(path)).Order(StringComparer.Ordinal).ToArray();
         if (unread.Length > 0)
         {
-            // Screenplay's model root skips folders such as .git, .ai-work, bin, obj and node_modules. Never drop a selected source silently.
             return new(null, [.. unread.Select(path => new SemanticModelLoadDiagnostic("STAGE-PLAN-001", "The selected source is not part of the Screenplay model root (it is in a folder Screenplay does not read), so it cannot be planned with the root's persisted identities.", path))]);
         }
 

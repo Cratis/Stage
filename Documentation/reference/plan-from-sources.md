@@ -121,6 +121,11 @@ from another revision. Screenplay 4.159.0 rejects stale catalog assignments duri
 compilation, including removed declarations and subsets that omit assigned documents;
 Stage forwards that compilation failure without migrating identities.
 
+The model root contains the sources Screenplay reads, which excludes `.git`, `.ai-work`, `bin`, `obj` and
+`node_modules`. `.play` files found inside those folders while Stage walks a selected folder are left out,
+the same way `screenplay baseline check` leaves them out. A file you name explicitly that the model root does not
+read is refused with `STAGE-PLAN-001` and is never silently dropped.
+
 A pending recovery operation, conflicting document mappings, or unreadable root
 refuses loading with `STAGE-BASELINE-004`; an identity-state conflict reported by
 Screenplay's root opener uses `STAGE-BASELINE-003`. Invalid catalog bytes detected

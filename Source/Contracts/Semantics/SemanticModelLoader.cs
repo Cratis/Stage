@@ -112,7 +112,7 @@ public static partial class SemanticModelLoader
             DeserializeCatalog(await File.ReadAllBytesAsync(catalogPath), out state);
         if (state is not null && IsRootIdentityPath(Path.GetFullPath(root), Path.GetFullPath(catalogPath!)))
         {
-            var opened = LoadModelRoot(Path.GetFullPath(root), [.. files.Select(Path.GetFullPath)], applicationName ?? state.ApplicationName, default);
+            var opened = LoadModelRoot(Path.GetFullPath(root), [.. files.Select(Path.GetFullPath)], isFolder ? [] : [Path.GetFullPath(path)], applicationName ?? state.ApplicationName, default);
             if (!opened.Success) throw new InvalidSemanticModel([.. opened.Diagnostics.Select(diagnostic => diagnostic.Message)]);
             return opened.Loaded!;
         }
@@ -173,7 +173,7 @@ public static partial class SemanticModelLoader
             catalog = catalogResult.Catalog;
             if (catalogResult.State is not null && IsRootIdentityPath(root, catalogPath!))
             {
-                return LoadModelRoot(root, files, applicationName, cancellationToken);
+                return LoadModelRoot(root, files, NamedFiles(root, paths), applicationName, cancellationToken);
             }
             foreach (var file in files)
             {
@@ -350,6 +350,9 @@ public static partial class SemanticModelLoader
 
         return new(loaded, diagnostics);
     }
+
+    static IEnumerable<string> NamedFiles(string root, ImmutableArray<string> paths) =>
+        paths.IsDefaultOrEmpty ? [] : paths.Select(path => Path.GetFullPath(path, root)).Where(File.Exists);
 
     static SemanticModelLoadResult Failure(string code, string message, string? source = null) => new(null, [new(code, message, source)]);
 }

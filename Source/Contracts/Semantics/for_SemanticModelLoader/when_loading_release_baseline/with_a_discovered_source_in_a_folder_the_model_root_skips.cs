@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Cratis.Stage.Contracts.Semantics.for_SemanticModelLoader.when_loading_release_baseline;
 
-public class with_a_source_in_a_folder_the_model_root_skips : given.a_release_baseline_tree
+public class with_a_discovered_source_in_a_folder_the_model_root_skips : given.a_release_baseline_tree
 {
     void Establish()
     {
@@ -16,8 +16,8 @@ public class with_a_source_in_a_folder_the_model_root_skips : given.a_release_ba
     }
 
     async Task Because() => _loaded = await SemanticModelLoader.LoadAsync(_root, [], ".screenplay/identities.json", "RecordsApp");
-    [Fact] void should_not_load_the_model() => _loaded.Success.ShouldBeFalse();
-    [Fact] void should_refuse_the_unread_source() => _loaded.Diagnostics.Single().Code.ShouldEqual("STAGE-PLAN-001");
-    [Fact] void should_name_the_unread_source() => _loaded.Diagnostics.Single().Source.ShouldEqual("bin/extra.play");
+    [Fact] void should_load_the_model() => _loaded.Success.ShouldBeTrue();
+    [Fact] void should_leave_the_skipped_source_out() => _loaded.Loaded!.Model.Application.Concepts.Any(concept => concept.Name == "Extra").ShouldBeFalse();
+    [Fact] void should_check_the_baseline() => _loaded.Loaded!.ReleaseBaseline.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Checked);
 }
 #endif

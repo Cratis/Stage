@@ -66,7 +66,10 @@ internal static partial class SemanticSpecificationAdmission
         if (specification.WhenRedelivered is not null && specification.GivenEvents.Any(given =>
             !HasRenderableReactionSource(context, given.EventSource) ||
             (given.Route is not null && !SemanticSpecificationRouteRendering.CanFormat(given.Route, context))))
+        {
             return "Redelivery history requires losslessly representable event sources and portable stream identities.";
+        }
+
         if (HasReactionReadExpectations(specification))
             return "Reaction append scenarios do not materialize read-model, query or absence expectations.";
         if (!HasRenderableReactionFixtures(context, specification))

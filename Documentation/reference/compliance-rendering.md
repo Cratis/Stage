@@ -29,7 +29,7 @@ not ESM members. Opt-in details remain a syntax-renderer feature ([Stage #259](h
 Unmarked models retain their earlier ESM version and byte-identical artifacts.
 
 The semantic renderer and Host admit text and non-text `secret` concepts: `Int`, `Decimal`,
-`Bool`, `Date`, `DateTime`, and `Uuid` retain their primitive types. Chronicle 19.55.2 encrypts
+`Bool`, `Date`, `DateTime`, and `Uuid` retain their primitive types. Chronicle 19.59.6 encrypts
 these values at rest and releases them in their original shape. `pii secret` still uses PII
 protection only.
 
@@ -105,7 +105,7 @@ Personal-data text joins these parts with one space, in order:
 
 Reasons are escaped as C# string literals, including quotes, backslashes, line breaks and Unicode line separators. These notes do not establish lawful processing, retention or a processing purpose.
 
-`ComplianceDetailsAttribute(string details)` lives in `Cratis.Chronicle.Compliance`; `[PII]` remains in `Cratis.Chronicle.Compliance.GDPR`. In the pinned Chronicle client (19.55.2), `EncryptedAttribute` takes optional `EncryptionScope scope` and `string details`. Scope members are `Subject`, `Namespace` and `Global`. With details disabled, namespace/global secrets pass only the scope argument, using the constructor's default empty details string. With details enabled, a reason without a scope emits `EncryptionScope.Subject` explicitly because there is no reason-only positional overload; this preserves Chronicle's default. A scope without a reason emits an empty details string.
+`ComplianceDetailsAttribute(string details)` lives in `Cratis.Chronicle.Compliance`; `[PII]` remains in `Cratis.Chronicle.Compliance.GDPR`. In the pinned Chronicle client (19.59.6), `EncryptedAttribute` takes optional `EncryptionScope scope` and `string details`. Scope members are `Subject`, `Namespace` and `Global`. With details disabled, namespace/global secrets pass only the scope argument, using the constructor's default empty details string. With details enabled, a reason without a scope emits `EncryptionScope.Subject` explicitly because there is no reason-only positional overload; this preserves Chronicle's default. A scope without a reason emits an empty details string.
 
 ## Existing event generations
 

@@ -59,6 +59,11 @@ public partial class Program
 `ConfigureServices` runs after `AddCratis` and before `Build`. `ConfigureApplication` runs after `UseCratis` and
 the generated endpoints, and before `RunAsync`. When you do not implement a hook, the compiler removes the call.
 
+The generated `/healthz` endpoint runs all health checks. With Chronicle **19.59.6 or later**, it reports healthy
+only after the client is connected and Chronicle has successfully registered the application's artifacts,
+including its read models. Wait for a healthy response before querying the generated application. Earlier
+Chronicle versions can report healthy before registration completes.
+
 ## Register an adapter and its options
 
 The repository also contains a catalog adapter and stylesheet in `Samples/Customization/Customizations/`, ready

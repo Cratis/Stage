@@ -8,14 +8,14 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Renders one append through a reactor, optionally executing its returned command under its declared identity.
+/// Renders one append or located redelivery through a reactor, optionally executing its returned command under its declared identity.
 /// </summary>
 internal static partial class SemanticReactionSpecificationRenderer
 {
     internal static RenderedFile Render(SemanticSpecification specification, SemanticApplicationContext context)
     {
         var selected = SemanticSpecificationAdmission.SelectReaction(context, specification);
-        var prelude = new SemanticReactionSpecificationPrelude(selected, specification.WhenAppended!);
+        var prelude = new SemanticReactionSpecificationPrelude(selected, SemanticReactionSpecification.Input(specification), specification.WhenRedelivered is null ? null : specification);
         if (selected.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
         {
             return RenderRefusals(specification, context, prelude);
@@ -71,6 +71,11 @@ internal static partial class SemanticReactionSpecificationRenderer
 
     static void RenderAppend(CSharpCodeBuilder builder, SemanticReactionSpecificationPrelude prelude, SemanticApplicationContext context, SemanticTypeSystem types)
     {
+        if (prelude.Redelivery is { } specification)
+        {
+            RenderRedelivery(builder, specification, context, types);
+            return;
+        }
         var append = prelude.Append;
         var @event = context.Events[append.EventContract];
         var arguments = @event.Properties.Select(property => types.Value(append.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
@@ -82,6 +87,20 @@ internal static partial class SemanticReactionSpecificationRenderer
         }
         builder.Line("// Given facts establish history; reactions only observe the append.")
             .Line($"await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(append.Route, context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+    }
+
+    static void RenderRedelivery(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types)
+    {
+        builder.Line("// History allocates original contexts without invoking any reactor or appending the inputs again.");
+        foreach (var (given, index) in specification.GivenEvents.Select((given, index) => (given, index)))
+        {
+            var contract = context.Events[given.EventContract];
+            var arguments = contract.Properties.Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
+            var identity = given.EventSource!;
+            var source = types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type);
+            builder.Line($"var occurrence{index} = await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(given.Route, context)}.History(new {types.EventType(contract)}({string.Join(", ", arguments)}));");
+        }
+        builder.Line($"await _reactor.Redeliver(occurrence{specification.WhenRedelivered!.Given});");
     }
 
     static RenderedFile RenderProductions(SemanticSpecification specification, SemanticApplicationContext context, SemanticReactionSpecificationPrelude prelude)
@@ -133,5 +152,6 @@ internal static partial class SemanticReactionSpecificationRenderer
 /// The append fixture and selected reactor that precede a command scenario.
 /// </summary>
 /// <param name="Selection">The statically selected reaction.</param>
-/// <param name="Append">The modeled append fixture.</param>
-internal sealed record SemanticReactionSpecificationPrelude(SemanticReactionSpecification Selection, SemanticSpecificationAppend Append);
+/// <param name="Append">The modeled input fixture.</param>
+/// <param name="Redelivery">The original specification when delivering recorded history.</param>
+internal sealed record SemanticReactionSpecificationPrelude(SemanticReactionSpecification Selection, SemanticSpecificationAppend Append, SemanticSpecification? Redelivery = null);

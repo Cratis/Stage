@@ -58,7 +58,7 @@ public class when_comparing_recovery_corpus_specifications : Specification
             rendered.Success.ShouldBeFalse();
             rendered.Artifacts.ShouldBeEmpty();
             var refusal = rendered.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == specification.Id);
-            refusal.Message.ShouldContain(specification.WhenRedelivered is not null ? "https://github.com/Cratis/Chronicle/issues/4873" : "no-observer");
+            refusal.Message.ShouldContain(specification.WhenRedelivered is not null ? "given events cannot be represented faithfully" : "no-observer");
         }
     }
 

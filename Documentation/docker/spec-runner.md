@@ -81,13 +81,18 @@ initiating append and counts every following effect. It may accompany response, 
 expectations, but not event, event-order, error or denial expectations. A nonempty result fails the specification;
 omitting event expectations in an older model does not acquire this assertion.
 
-This execution support is broader than generated specifications. Rendering redelivery fails with
-`STAGE-ESM-011`: the released `ReactorScenario` cannot redeliver a located occurrence with its original
-context and sequence identity ([Chronicle #4873](https://github.com/Cratis/Chronicle/issues/4873)).
+This execution support is broader than generated specifications. Rendered redelivery supports one event
+trigger on the named reaction: either direct productions or one command invocation supported by the existing
+command harness. Stage pins Chronicle 19.64.1 and records every given through `ReactorScenario.History`,
+then calls `Redeliver` on the selected occurrence. Its original sequence identity, context and stream route
+are reused; history is not delivered to sibling reactions and the input is not appended again.
+
 Generated empty-effect specifications support admitted commands and single-hop production-only reactions,
-including excluded `where` or observer filters. Reaction-triggering commands, fan-out, deeper cascades,
-invoked-command empty-effect cases and no-observer appends still require a settlement/log-delta harness
-and are refused. See the [renderer support matrix](../guides/build-renderer-target.md#admit-target-semantics-before-emission).
+including excluded `where` or observer filters on appends and redeliveries. Redelivery requires explicit given
+sources and portable stream identities. Fan-out on the named reaction, deeper cascades, constraints,
+read-model/query expectations and redelivery with invocation refusal branches retain `STAGE-ESM-011`.
+Reaction-triggering commands, invoked-command empty-effect cases and no-observer appends also require
+a settlement/log-delta harness and are refused. See the [renderer support matrix](../guides/build-renderer-target.md#admit-target-semantics-before-emission).
 
 ## Invocation refusal branches
 

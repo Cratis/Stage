@@ -33,7 +33,7 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.152.0, admits exact ESM v1–v16
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.157.0, admits exact ESM v1–v17
 version pairs and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
 At v11 it executes retained exact Double-mode integer and fractional values without a second rounding
 step, including the safe whole-number bounds ±9007199254740991 and `0.10000000000000002`.
@@ -64,6 +64,30 @@ docker run --rm \
 ```text
 Ran 3 specification(s) for event model 'Invoicing'. Results written to /output/results.json.
 ```
+
+## Recovery and empty-effect specifications
+
+At ESM v17, `when redelivered` selects an existing given occurrence and delivers it only to the named
+reaction. The semantic executor applies that reaction's observer filter and `where`, without appending the
+input again or delivering givens to sibling reactions. It then settles all observers of newly produced facts,
+including invoked commands and downstream cascades. A nonzero given position selects that occurrence,
+not the first event of the same contract. An unhandled invocation refusal can be asserted with `then error`.
+Existing context, clock, generated-value and projection capability limits still apply; redelivery is not replay
+or a guarantee of exactly-once external effects.
+
+`then no events` asserts an empty new-fact set on a successful run. For commands it counts all command and
+cascade facts. For redelivery it counts only new effects, not givens. For `when append` it excludes exactly the
+initiating append and counts every following effect. It may accompany response, read-model or query
+expectations, but not event, event-order, error or denial expectations. A nonempty result fails the specification;
+omitting event expectations in an older model does not acquire this assertion.
+
+This execution support is broader than generated specifications. Rendering redelivery fails with
+`STAGE-ESM-011`: the released `ReactorScenario` cannot redeliver a located occurrence with its original
+context and sequence identity ([Chronicle #4873](https://github.com/Cratis/Chronicle/issues/4873)).
+Generated empty-effect specifications support admitted commands and single-hop production-only reactions,
+including excluded `where` or observer filters. Reaction-triggering commands, fan-out, deeper cascades,
+invoked-command empty-effect cases and no-observer appends still require a settlement/log-delta harness
+and are refused. See the [renderer support matrix](../guides/build-renderer-target.md#admit-target-semantics-before-emission).
 
 ## Mount points and arguments
 

@@ -312,7 +312,7 @@ ESM v4 (`4.0` language and semantic versions) is admitted by the version gates, 
 
 Evolution waits for migration modeling and rendering (Screenplay #71 and a Stage migration-rendering follow-up). In both Chronicle 19.8.1 and 19.32.0, registration validation requires migrators for every generation above 1 even on an empty store. Production kernels always validate; the development image can skip validation, permitting unsafe historical replay. Neither path is an admitted realization without migrations, so Stage refuses before emission rather than relying on the kernel configuration. Stage's Host also retains its `EventContract` refusal, "Only the initial event revision can be registered in Chronicle." Its registrar and fact appender remain generation-1-only; an evolved model is not registered or appended.
 
-Stage builds against Screenplay 4.152.0 and admits exact ESM v1 through v16 language/semantic pairs. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
+Stage builds against Screenplay 4.157.0 and admits exact ESM v1 through v17 language/semantic pairs. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
 
 | Construct | Version | Diagnostic |
 |---|---|---|
@@ -347,6 +347,18 @@ Stage builds against Screenplay 4.152.0 and admits exact ESM v1 through v16 lang
 | Equality query filters | v14 | Rendered on `Many` + `Live` collections; Host uses the reference evaluator; executor refuses filtered assertions with `STAGE-ESM-010`. Snapshot collections retain `010` ([Stage #58](https://github.com/Cratis/Stage/issues/58)) |
 | Generated-value strategies and freshness | v15 | Required scalar Uuid/String concepts render strategy factories and `BeforeFirst` freshness scopes; invalid fixture shapes fail `STAGE-ESM-011`, unknown strategies fail `STAGE-ESM-028`; see [Generated values](../reference/generated-values-rendering.md) |
 | Stored event names | v16 | A differing `storedName` renders as `[EventType("storedName")]`; the class follows the current name. Publishers that refuse every non-`Compatible` publication check result reject changed or unreadable destination ids with `STAGE-EVENT-002` |
+| Explicit `then no events` | v17 | Rendered for otherwise admitted commands and one production-only append observer, including a false `where` or excluded observer filter; fan-out, deeper cascades, invoked-command empty-effect cases and no-observer appends retain `STAGE-ESM-011` |
+| Located `when redelivered` | v17 | Renderer: `STAGE-ESM-011`; the released `ReactorScenario` lacks delivery of an existing occurrence with its original context/sequence identity ([Chronicle #4873](https://github.com/Cratis/Chronicle/issues/4873)); the independent specification executor runs named-only redelivery and settles new effects |
+
+`then no events` is a positive success assertion, not an omitted expectation. Generated command
+specifications assert zero successful appends after subtracting seeded history, alongside any response or
+admitted read assertions. Generated production-only reaction specifications actually deliver the input
+through `ReactorScenario` and assert zero produced events; they do not manufacture a pass by evaluating
+an excluded predicate in the planner. A deliberately nonempty case is admitted and fails the count assertion.
+Reaction-triggering commands remain refused because generated command scenarios do not settle observers.
+Redelivery remains executor-only: repeated calls to `Given.Events` allocate fresh delivery identities, not
+recovery of the same occurrence. A redelivery render refusal emits no partial artifacts. See the
+[specification runner's recovery semantics](../docker/spec-runner.md#recovery-and-empty-effect-specifications).
 
 In every ESM version, `not empty` on text rejects null, empty and whitespace-only values using Unicode White_Space (`char.IsWhiteSpace`). This applies to both concept and command rules. Collections require at least one element; identity text retains exact-empty semantics.
 

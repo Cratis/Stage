@@ -109,6 +109,12 @@ code-to-model extraction because their source `.play` model is authoritative. Th
 uses the same Arc era with Components 4.14.0, Scene 4.2.0, and Fundamentals 7.19.8. It emits no repository
 marker, floating version, random identifier, or destination-specific value.
 
+`CratisRendering.PlanScaffold(...)` produces a buildable first-run application without a model render.
+Run `npm install` and `npm run build` to type-check and build its frontend. Until an application render emits
+`src/stage.ts`, the frontend shows “Nothing to show yet”. It discovers that module with an eager Vite import,
+so subsequent builds use the rendered Scene, proxy routes, bindings, and strings without changing the entry point.
+The scaffold does not claim ownership of `src/stage.ts` or `src/stage-scene.json`.
+
 The scaffold leaves an unmanaged `Customizations/` seam for hand-written code. `Program.cs` calls optional
 `ConfigureServices` and `ConfigureApplication` partial methods, the project imports
 `Customizations/Dependencies.props` when it exists, and the frontend loads `Customizations/styles.css` after the

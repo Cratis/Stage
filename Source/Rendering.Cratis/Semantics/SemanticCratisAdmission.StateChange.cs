@@ -46,36 +46,8 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
-        if (!command.CodeValidations.IsEmpty || command.Validations.Any(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))
+        if (!ValidateCommandCapabilities(context, slice, command, diagnostics))
         {
-            var ids = command.CodeValidations.Select(validation => validation.RequirementId)
-                .Concat(command.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation)
-                    .Select(rule => rule.RequirementId));
-            diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' contains validation implementation bodies ({string.Join(", ", ids)}): Arc does not supply RuleContext.Occurred (received-at) to a generated validator, and Stage does not yet enforce the pure capability.", command.Id));
-            return;
-        }
-
-        if (slice.Events.Any(@event =>
-                @event.Properties.Any(property => !TypeExists(context, property.Type) || property.Type.IsOptional)) ||
-            command.Properties.Any(_ => !TypeExists(context, _.Type)) ||
-            !command.Validations.All(rule => SemanticValidationRendering.CanRender(rule, context)) ||
-            command.Validations.Any(rule => command.Properties.Single(property => property.Id == rule.Property).Type is
-            { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } type &&
-                context.Concepts[type.Target].Primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean) ||
-            !command.Requirements.All(_ => SemanticRequirementRendering.CanRender(_, command, context)) ||
-            (!command.Requirements.IsEmpty && command.Properties.Any(_ => HasValidatedConcept(context, _.Type, []))) ||
-            command.Validations.Any(_ =>
-            {
-                var property = command.Properties.Single(p => p.Id == _.Property);
-                return property.Type.Kind == SemanticTypeReferenceKind.Concept && !context.Concepts[property.Type.Target].Values.IsEmpty;
-            }) ||
-            command.Properties.Any(_ =>
-                (_.Type.Kind == SemanticTypeReferenceKind.Concept && _.Type.IsOptional &&
-                 !context.Concepts[_.Type.Target].Validations.IsEmpty) ||
-                (_.Type.Kind == SemanticTypeReferenceKind.CompositeType && HasOptionalRequiredConcept(context, _.Type, []))) ||
-            !HasCommandOutcome(command))
-        {
-            diagnostics.Add(Error("STAGE-ESM-005", $"Command '{command.Name}' exceeds the first Cratis command capability.", command.Id));
             return;
         }
 

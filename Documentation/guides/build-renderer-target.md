@@ -319,6 +319,30 @@ Create one target-owned admission phase. Evaluate the selected artifacts and all
 
 Collect independent target diagnostics so an author can fix several issues in one pass. When a required semantic fails admission, do not emit its dependent artifacts. Never substitute thinner code, an unfinished implementation, an empty handler, a placeholder value, or a guessed default.
 
+### Resolve command capability refusals
+
+| Code | Meaning | Action |
+| --- | --- | --- |
+| `STAGE-ESM-005` | A command shape or validation implementation cannot be rendered faithfully. Each unsupported command capability reports its own reason, with the command identity retained for source navigation. | Read every reported reason, not just the first. Use the corresponding model fix below. |
+
+These reasons do not widen or narrow admission. Requirements have no authored name in the ESM, so diagnostics identify their one-based position and referenced command properties. Several reasons can share the same code and command identity.
+
+| Reason | Why it is refused | Model fix |
+| --- | --- | --- |
+| Unresolved event or command property type | Stage cannot emit a C# type for the named property. | Declare a supported primitive, concept, or composite type. |
+| Optional event property | Cratis events have no optional properties. | Make it required (in Studio's model board, tick **Required** on the property) or remove it. |
+| Unrenderable validation | The named rule has an unsupported kind, severity, null-equality operand, unsafe text, or message. | Use a supported declarative rule and severity; avoid control/surrogate characters and message-formatting braces. Supply companion `.strings` files and a default locale for `$strings` messages. |
+| Command rule on an optional numeric or Boolean concept | Stage does not yet support faithful underlying-value predicates for this nullable concept shape. | Make the property non-optional only if absence is not part of its contract; otherwise this shape remains unsupported. |
+| Unrenderable requirement | Its message, severity, condition, or operands have no faithful generated guard. | Supply the strings catalog or a safe literal message, use a supported severity, and use supported comparisons over non-optional scalar properties without named concept values. |
+| Requirement combined with validated concepts | Arc graph validation and command guards cannot reproduce the reference evaluator's failure order. | Model equivalent rules at one validation level; otherwise this combination remains unsupported. |
+| Command rule on a concept with named values | Stage renders the concept as an enum, not the underlying value the predicate expects. | Remove the command rule if the named values already express it; otherwise this combination remains unsupported. |
+| Optional validated concept | Arc graph validation skips null concepts, unlike the reference evaluator's concept-rule evaluation. | Make the property non-optional only if absence is not part of its contract; otherwise this shape remains unsupported. |
+| Composite containing an optional validated concept | The same null-validation mismatch occurs at the named nested property path. | Make that nested property non-optional only if absence is not part of its contract; otherwise this shape remains unsupported. |
+| No command outcome | Stage cannot emit a handler without a produced event or response. | Add a `produces` or `returns` clause. |
+| Validation implementation body | Arc does not supply received-at `RuleContext.Occurred` to generated validators, and Stage does not enforce the required pure capability. | Use equivalent declarative validation; implementation bodies remain unsupported. |
+
+Renderer-gap follow-up work is tracked in [Stage #409](https://github.com/Cratis/Stage/issues/409). Optional event properties are a Cratis contract violation, not an admission candidate.
+
 The Cratis renderer applies the same rule when emission reaches a semantic kind or value combination it has no rendering for, such as an unhandled slice kind, type-reference kind, or primitive, or a semantic value whose kind does not match its primitive type. Planning stops with a `STAGE-ESM-012` error attached to the application identity. The plan is unsuccessful and contains no artifacts, including scaffold files. The renderer does not fall back to `object` or `default!`, and it does not drop the slice. Admission also raises `STAGE-ESM-012` for concept, event, command, composite-type, and read-model members whose generated PascalCase names collide with another property, the enclosing record name, record-synthesized or inherited members, or generated command/query methods. Record members named `Clone` are forbidden by C#; `Finalize` is allowed as a positional property. Enum values may share their enclosing enum's name, but two values that normalize to the same name are rejected. Query method overloads such as `ToString(IReadModels, …)` are allowed unless they collide with a property, the record name, or a non-overloadable member. That diagnostic is attached to the offending record; a projection referencing an event in any child or nested scope receives it on the projection, even when the event belongs to another slice. These admissions also stop the plan without artifacts. The admission checks prevent uncompilable output; an emission-time `STAGE-ESM-012` reports a renderer gap. Neither adds executable semantic model capability, and Cratis admission remains narrower than the executable semantic model.
 
 A model that uses an ESM v2 construct arrives as language and semantic version `2.0`. Admit it construct by construct rather than treating it as v1. The Cratis renderer handles the v2 constructs this way:

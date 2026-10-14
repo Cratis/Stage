@@ -49,7 +49,7 @@ internal static class SemanticExpectationComparer
             return failures;
         }
 
-        if (expected.WhenAppended is null || expected.ThenEvents.Length > 0)
+        if (expected.ThenNoEvents || expected.WhenAppended is null || expected.ThenEvents.Length > 0)
         {
             // A direct append's then-events describe only its reaction effects; commands include action facts.
             CompareFacts(expected, Following(expected, run), failures, plan!);

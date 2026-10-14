@@ -51,9 +51,9 @@ internal static partial class SemanticSpecificationAdmission
                     !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
                     ValuesMatch(specification.When!.Values, [.. command!.Properties.Where(property => !property.IsGenerated)]) &&
                     HasOneOutcome(specification) && HasSupportedCounts(specification) &&
-                    (specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == SemanticProductionSelection.Taken(command!, specification).Length) &&
+                    (specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == SemanticProductionSelection.Taken(command!, specification).Length) &&
                     specification.ThenEvents.All(expected => EventMatches(context, expected)) &&
-                    (specification.ThenDenied || !specification.ThenErrors.IsEmpty ||
+                    (specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty ||
                         (specification.ThenEventsInAnyOrder
                             ? specification.ThenEvents.GroupBy(_ => _.EventContract).All(group =>
                                 SemanticProductionSelection.Taken(command!, specification).Count(_ => _.EventContract == group.Key) == group.Count())

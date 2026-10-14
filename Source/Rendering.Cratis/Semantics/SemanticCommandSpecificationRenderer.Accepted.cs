@@ -86,6 +86,14 @@ internal static partial class SemanticCommandSpecificationRenderer
 
     static void RenderNoAppendedEvents(SpecificationScope scope)
     {
+        if (scope.Specification.ThenNoEvents)
+        {
+            scope.Builder.Line(scope.SeedInLog
+                ? "[global::Xunit.FactAttribute] void should_append_no_new_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(0);"
+                : "[global::Xunit.FactAttribute] void should_append_no_new_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(0);");
+            return;
+        }
+
         if (scope.Command.Produces.Any(produced => produced.When is not null))
         {
             scope.Builder.Line(scope.SeedInLog

@@ -33,6 +33,19 @@ internal sealed class SemanticRunReactions(
         return null;
     }
 
+    internal async Task<SemanticRunReactionFailure?> Redeliver(SemanticId reaction, int givenIndex, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var fact = context.Facts[givenIndex];
+        var cause = new SemanticReactionCause(fact, context.Destinations[givenIndex], fact.Values.ToDictionary(value => value.TargetProperty, value => value.Value));
+        foreach (var (selected, trigger) in Triggered(fact).Where(candidate => candidate.Reaction.Id == reaction))
+        {
+            if (await Fire(selected, trigger, cause, cancellationToken) is { } failure) return failure;
+        }
+
+        return await Settle(cancellationToken);
+    }
+
     async Task<SemanticRunReactionFailure?> React(int index, CancellationToken cancellationToken)
     {
         var fact = context.Facts[index];

@@ -28,11 +28,17 @@ internal static partial class SemanticSpecificationAdmission
         var candidates = SemanticReactionSpecification.Candidates(context, append);
         var active = (specification.ThenNoEvents ? candidates : candidates.Where(candidate => candidate.Fires)).ToArray();
         if (active.Length != 1)
+        {
             return specification.ThenNoEvents
                 ? "A no-events append must have exactly one observer trigger; fan-out and no-observer appends require an event-log delta and settlement harness."
                 : "The append must select one reaction trigger, not fan-out or a non-reaction append.";
+        }
+
         if (specification.ThenNoEvents && !active[0].Trigger.Invokes.IsEmpty)
+        {
             return "No-events append specifications support production-only reactions; invoked commands require a settlement harness.";
+        }
+
         var selected = active[0];
         if (UsesReactionContext(selected.Reaction, append.EventContract))
             return "Reaction specifications cannot supply deterministic $context values.";

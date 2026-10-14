@@ -149,6 +149,12 @@ public sealed record SemanticExecutionTrace(
     /// Gets the stable rejection code (the constraint name for append-time violations).
     /// </summary>
     public string? RejectionCode { get; init; }
+
+    /// <summary>
+    /// Gets the query rejection category, when the query was rejected.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RejectionCategory { get; init; }
 }
 
 /// <summary>

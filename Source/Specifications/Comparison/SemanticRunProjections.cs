@@ -35,6 +35,7 @@ internal static class SemanticRunProjections
         foreach (var id in requested)
         {
             var model = plan.ReadModels[id];
+            if (context.Facts.Count == 0 && plan.Projections.Values.All(value => value.ReadModel != id)) continue;
             var projection = plan.Projections.Values.Single(value => value.ReadModel == id);
             var method = typeof(SemanticRunProjections).GetMethod(nameof(Define), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(types.ForReadModel(model));

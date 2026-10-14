@@ -14,7 +14,7 @@ internal sealed class SemanticRunReactions(
     SemanticExecutionPlan plan,
     SemanticRunContext context,
     int historyCount,
-    Func<SemanticSpecification, Task<SemanticSpecificationRunRecord?>> invoke)
+    Func<SemanticSpecification, bool, Task<SemanticInvocationOutcome>> invoke)
 {
     internal const int MaximumFacts = 1_000;
 
@@ -97,27 +97,35 @@ internal sealed class SemanticRunReactions(
         }
         foreach (var invocation in trigger.Invokes)
         {
-            if (await invoke(Invocation(reaction, invocation, cause.Values)) is { } result) return SemanticRunReactionFailure.Complete(result);
+            var outcome = await invoke(Invocation(reaction, invocation, cause.Values), !invocation.OnRefused.IsEmpty);
+            if (outcome.Failure is null) continue;
+            var branch = outcome.Refusal is { } refusal ? invocation.OnRefused.FirstOrDefault(refusal.Matches) : null;
+            if (branch is null) return SemanticRunReactionFailure.Complete(outcome.Failure);
+            foreach (var produced in branch.Produces)
+            {
+                if (await Produce(reaction, produced, cause, cancellationToken, outcome.Refusal) is { } failure) return failure;
+            }
+            break;
         }
 
         return null;
     }
 
-    async Task<SemanticRunReactionFailure?> Produce(SemanticReaction reaction, SemanticProducedEvent produced, SemanticReactionCause cause, CancellationToken cancellationToken)
+    async Task<SemanticRunReactionFailure?> Produce(SemanticReaction reaction, SemanticProducedEvent produced, SemanticReactionCause cause, CancellationToken cancellationToken, SemanticInvocationRefusalOutcome? refusal = null)
     {
         if (produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression))
         {
             return SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.");
         }
-        var (fact, destination) = Build(produced, cause);
+        var (fact, destination) = Build(produced, cause, refusal);
 
         return await Append(fact, destination, cancellationToken);
     }
 
-    (SemanticSpecificationEvent Fact, SemanticValue Destination) Build(SemanticProducedEvent produced, SemanticReactionCause cause)
+    (SemanticSpecificationEvent Fact, SemanticValue Destination) Build(SemanticProducedEvent produced, SemanticReactionCause cause, SemanticInvocationRefusalOutcome? refusal)
     {
         var contract = plan.Events[produced.EventContract];
-        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values))).ToArray();
+        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, refusal))).ToArray();
         foreach (var value in mapped)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);

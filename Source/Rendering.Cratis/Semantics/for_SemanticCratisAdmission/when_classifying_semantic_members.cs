@@ -49,10 +49,11 @@ public class when_classifying_semantic_members
             SemanticEventContextValueKind.CausedByName, SemanticEventContextValueKind.CausedByUserName]);
 
     // Mapping expressions only support resolved properties; specification values are rendered separately.
+    // Refusal values exist only in reaction refusal-branch mappings, which the reactor renderer realizes.
     [Fact]
     public void should_classify_every_mapping_expression_kind() => AssertCoverage(
         [SemanticExpressionKind.Resolved],
-        [SemanticExpressionKind.Unknown, SemanticExpressionKind.Value, SemanticExpressionKind.EventContext]);
+        [SemanticExpressionKind.Unknown, SemanticExpressionKind.Value, SemanticExpressionKind.EventContext, SemanticExpressionKind.Refusal]);
 
     // Admission accepts null only for optional values and arrays only for collections of scalars.
     // The type emitter can construct composites, but specification admission still rejects them.

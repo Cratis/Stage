@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Comparison;
 
@@ -12,13 +13,16 @@ namespace Cratis.Stage.Specifications.Commands;
 internal static class SemanticRuleEvaluation
 {
     internal static string? FirstFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
+        => Failures(command, specification, concepts).FirstOrDefault()?.Message;
+
+    internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
     {
         var values = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
         foreach (var rule in command.Validations)
         {
             if (!Satisfies(rule, values[rule.Property]))
             {
-                return rule.Message ?? Message(rule, values[rule.Property], "A required value is empty.");
+                yield return new(rule.Message ?? Message(rule, values[rule.Property], "A required value is empty."), rule.Severity);
             }
         }
 
@@ -29,7 +33,7 @@ internal static class SemanticRuleEvaluation
             {
                 if (!Satisfies(rule, values[property.Id]))
                 {
-                    return rule.Message ?? Message(rule, values[property.Id], "A required concept value is empty.");
+                    yield return new(rule.Message ?? Message(rule, values[property.Id], "A required concept value is empty."), rule.Severity);
                 }
             }
         }
@@ -38,11 +42,9 @@ internal static class SemanticRuleEvaluation
         {
             if (!Condition(requirement.Condition, values))
             {
-                return requirement.Message ?? "Command requirement was not met.";
+                yield return new(requirement.Message ?? "Command requirement was not met.", requirement.Severity);
             }
         }
-
-        return null;
     }
 
     internal static string? GeneratedFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)

@@ -59,7 +59,8 @@ internal static class SemanticRunReactionAdmission
             .SelectMany(trigger => Effects(plan, trigger));
 
     static IEnumerable<SemanticId> Effects(SemanticExecutionPlan plan, SemanticReactionTrigger trigger) =>
-        trigger.Produces.Select(produced => produced.EventContract)
+        trigger.Produces.Concat(trigger.Invokes.SelectMany(invocation => invocation.OnRefused.SelectMany(branch => branch.Produces)))
+            .Select(produced => produced.EventContract)
             .Concat(trigger.Invokes.Where(invocation => plan.Commands.ContainsKey(invocation.Command))
                 .SelectMany(invocation => plan.Commands[invocation.Command].Produces.Select(produced => produced.EventContract)));
 

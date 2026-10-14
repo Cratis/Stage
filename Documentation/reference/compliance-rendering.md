@@ -38,7 +38,10 @@ On the semantic path, each command input that transitively contains any complian
 `[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]`. This uniform rule includes
 scalar inputs, optional inputs, collections, and nested composites. Arc omits the entire input from
 causation, including its unprotected members; unrelated inputs remain auditable. The concept-level
-attributes remain in place for event-payload protection.
+attributes remain in place, and they protect different things: `[Encrypted]` protects the value in stored
+event payloads. `[NotAudited]` keeps a command input out of Arc's command causation chain and does nothing
+else; it does not protect event payloads or logs. `[PII]` encrypts event values and also withholds command
+inputs from causation.
 
 Arc 22.87.0 withholds scalar `[PII]` concept inputs through Chronicle's `PIIMetadataProvider`.
 That check examines the command property, its declaring type, its direct property type, and its
@@ -62,8 +65,9 @@ secret values together with an explicit event `subject` mark.
 
 The semantic Stage Host registers personal-data and secret concept metadata with Chronicle, which
 encrypts event values at rest and releases them on read, like rendered applications. Protection follows
-concept values through collection elements and composite members. Causation contains only the caller's
-identity, never command input values. Personal-data erasure uses Chronicle's encryption-key deletion
+concept values through collection elements and composite members. The Host appends through
+`IChronicleClient` (`ProducedEventAppender`), not through Arc's command pipeline, so Arc's `[NotAudited]`
+plays no part there. Personal-data erasure uses Chronicle's encryption-key deletion
 keyed by the event source; explicit subject lineage remains [Stage #28](https://github.com/Cratis/Stage/issues/28).
 Existing Play stores retain their earlier plaintext events; the new metadata does not retroactively
 encrypt them. Passing reference or Stage specifications proves modeled outcomes, not storage protection.

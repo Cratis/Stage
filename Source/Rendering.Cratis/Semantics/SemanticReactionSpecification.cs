@@ -13,6 +13,14 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="Fires">Whether the fixture satisfies the modeled condition.</param>
 internal sealed record SemanticReactionSpecification(SemanticReaction Reaction, SemanticReactionTrigger Trigger, bool Fires)
 {
+    internal static SemanticSpecificationAppend Input(SemanticSpecification specification)
+    {
+        if (specification.WhenRedelivered is not { } redelivery) return specification.WhenAppended!;
+        var given = specification.GivenEvents[redelivery.Given];
+
+        return new(given.EventContract, given.Values) { EventSource = given.EventSource, Route = given.Route };
+    }
+
     internal static IEnumerable<SemanticReactionSpecification> Candidates(SemanticApplicationContext context, SemanticSpecificationAppend append) =>
         SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions)
             .SelectMany(reaction => reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == append.EventContract)
@@ -25,11 +33,11 @@ internal sealed record SemanticReactionSpecification(SemanticReaction Reaction, 
         var values = command.Properties.Where(property => !property.IsGenerated).Select(property => new SemanticPropertyValue(
             property.Id,
             invocation.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == property.Id) is { } mapping
-                ? Evaluate(mapping.Source, specification.WhenAppended!) : SemanticValue.Null));
+                ? Evaluate(mapping.Source, Input(specification)) : SemanticValue.Null));
 
         // A reaction never forwards the fixture caller. The generated scenario establishes identity
         // from the reactor attribute, not from this lowered command fixture.
-        return specification with { When = new(command.Id, [.. values]), WhenAppended = null, GivenCaller = null };
+        return specification with { When = new(command.Id, [.. values]), WhenAppended = null, WhenRedelivered = null, GivenCaller = null };
     }
 
     internal IEnumerable<SemanticProducedEvent> InvokedProductions(SemanticSpecification specification, SemanticApplicationContext context)

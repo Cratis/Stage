@@ -241,8 +241,10 @@ internal static class SemanticSurfaceLedger
 
         Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-027"), "Key ReadModel");
         Add(entries, "SemanticSpecification", rendered, "WhenAppended ThenNoEvents");
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenRedelivered");
-        Add(entries, "SemanticSpecificationRedelivery", rejected("STAGE-ESM-011"), "Reaction Given");
+
+        // Redelivery admits one named trigger with portable history; cascades and refusal branches fail STAGE-ESM-011.
+        Add(entries, "SemanticSpecification", rendered, "WhenRedelivered");
+        Add(entries, "SemanticSpecificationRedelivery", rendered, "Reaction Given");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");
         Add(entries, "SemanticSpecificationAppend", rendered, "EventContract EventSource Values Route");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");

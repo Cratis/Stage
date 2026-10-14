@@ -20,7 +20,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "f2df5e220edbd88c77e0417a52412d2d644114683e3f52e72da47b65171bd223";
+    const string Digest = "4b2a72a9bf2c5482b7d75148d65387eabda362182e5e2c4a9790a3c7fd8b6052";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
@@ -60,7 +60,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Directory.Packages.props af799a176bf7be0de5e660924f4bde3444170788e9633399a1f65f0b72c9602f 133
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
-        Workspaces.csproj 3f6adfa60fb5a8ea9e7aada8307bef0ef1ddaee7bbf1a86c375dbb9ebcaf9c04 2379
+        Workspaces.csproj 28c6c2d40630ce9b5df2e16fef2499153eb4f1028ef0bf466f4d148ebb176f2f 2379
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
         Workspaces/Tracking/AddComment/when_adding_acomment.cs 317e90a82f631bd47dd13a15aaba8c2dae99c23e0459631c7274be2101570c95 1884
@@ -77,7 +77,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/WorkItemList.cs 75aca71a66d0cec11f78c95dba6d241af52ea49576a4e51826cb03c40242676e 3209
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs f646a742678761c49e10be6d010dfe8f52bb2d0f615348dd724e202e122ed70d 2502
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
-        docker-compose.yml b966cfef616a0f032ded80ef8980cfadaaee9f299baba6c3b47d9e827ec1f350 259
+        docker-compose.yml 1f0511d24712482ee230fc08e9f22bfe7765197b23ad2473ae9736a3f16ac248 259
         package.json 03d8badc0648dffd0e9466a4efe32129fb1049b0cd27b3047917fa0dee52bd89 1431
         scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
@@ -132,11 +132,11 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Fact] void should_cover_every_source_form() => Forms.Count.ShouldEqual(4);
 
-    // The previous frozen plan predates the Chronicle 19.59.6 and backend Arc 22.88.0 scaffold pins. Only the backend
+    // The previous frozen plan predates the Chronicle 19.64.1 and backend Arc 22.88.0 scaffold pins. Only the backend
     // Workspaces project carries the scaffold Arc pin; other files may already name 22.88.0 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = text.Replace("19.59.6", "19.55.2", StringComparison.Ordinal);
+        var previous = text.Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Workspaces.csproj", StringComparison.Ordinal)
             ? previous.Replace("22.88.0", "22.87.0", StringComparison.Ordinal)

@@ -10,10 +10,14 @@ internal static partial class SemanticSpecificationAdmission
 {
     internal static SemanticReactionSpecification SelectReaction(SemanticApplicationContext context, SemanticSpecification specification)
     {
-        var candidates = SemanticReactionSpecification.Candidates(context, specification.WhenAppended!).ToArray();
+        var candidates = ReactionCandidates(context, specification).ToArray();
 
-        return specification.ThenNoEvents ? candidates.Single() : candidates.Single(candidate => candidate.Fires);
+        return specification.ThenNoEvents || specification.WhenRedelivered is not null ? candidates.Single() : candidates.Single(candidate => candidate.Fires);
     }
+
+    static IEnumerable<SemanticReactionSpecification> ReactionCandidates(SemanticApplicationContext context, SemanticSpecification specification) =>
+        SemanticReactionSpecification.Candidates(context, SemanticReactionSpecification.Input(specification))
+            .Where(candidate => specification.WhenRedelivered is not { } redelivery || candidate.Reaction.Id == redelivery.Reaction);
 
     static void ValidateReactionAppend(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -24,11 +28,14 @@ internal static partial class SemanticSpecificationAdmission
     static string? ReactionAppendRejection(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
         if (ReactionFixtureRejection(context, specification) is { } reason) return reason;
-        var append = specification.WhenAppended!;
-        var candidates = SemanticReactionSpecification.Candidates(context, append);
-        var active = (specification.ThenNoEvents ? candidates : candidates.Where(candidate => candidate.Fires)).ToArray();
+        var append = SemanticReactionSpecification.Input(specification);
+        var candidates = ReactionCandidates(context, specification);
+        var active = (specification.ThenNoEvents || specification.WhenRedelivered is not null ? candidates : candidates.Where(candidate => candidate.Fires)).ToArray();
         if (active.Length != 1)
         {
+            if (specification.WhenRedelivered is not null)
+                return "A redelivery must select exactly one event trigger on its named reaction; fan-out requires a settlement harness.";
+
             return specification.ThenNoEvents
                 ? "A no-events append must have exactly one observer trigger; fan-out and no-observer appends require an event-log delta and settlement harness."
                 : "The append must select one reaction trigger, not fan-out or a non-reaction append.";
@@ -36,7 +43,9 @@ internal static partial class SemanticSpecificationAdmission
 
         if (active[0].Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
         {
-            return RefusalScenarioRejection(context, specification, active[0]);
+            return specification.WhenRedelivered is not null
+                ? "Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness."
+                : RefusalScenarioRejection(context, specification, active[0]);
         }
 
         if (specification.ThenNoEvents && !active[0].Trigger.Invokes.IsEmpty)
@@ -53,7 +62,14 @@ internal static partial class SemanticSpecificationAdmission
 
     static string? ReactionFixtureRejection(SemanticApplicationContext context, SemanticSpecification specification)
     {
-        var append = specification.WhenAppended!;
+        var append = SemanticReactionSpecification.Input(specification);
+        if (specification.WhenRedelivered is not null && specification.GivenEvents.Any(given =>
+            !HasRenderableReactionSource(context, given.EventSource) ||
+            (given.Route is not null && !SemanticSpecificationRouteRendering.CanFormat(given.Route, context))))
+        {
+            return "Redelivery history requires losslessly representable event sources and portable stream identities.";
+        }
+
         if (HasReactionReadExpectations(specification))
             return "Reaction append scenarios do not materialize read-model, query or absence expectations.";
         if (!HasRenderableReactionFixtures(context, specification))
@@ -124,7 +140,7 @@ internal static partial class SemanticSpecificationAdmission
         !specification.GivenReadModels.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty;
 
     static bool HasRenderableReactionFixtures(SemanticApplicationContext context, SemanticSpecification specification) =>
-        HasRenderableGivenEvents(context, specification) && EventMatches(context, new(specification.WhenAppended!.EventContract, specification.WhenAppended.Values));
+        HasRenderableGivenEvents(context, specification) && EventMatches(context, new(SemanticReactionSpecification.Input(specification).EventContract, SemanticReactionSpecification.Input(specification).Values));
 
     static bool HasRenderableReactionSource(SemanticApplicationContext context, SemanticEventSourceIdentity? source) =>
         source is null || (IsScalar(source.Value) && IsLosslessEventSource(context, source.Type));
@@ -152,7 +168,7 @@ internal static partial class SemanticSpecificationAdmission
         trigger.Invokes.Length > 1 || (!trigger.Invokes.IsEmpty && !trigger.Produces.IsEmpty);
 
     static bool LosesReactionDestination(SemanticSpecification specification, SemanticReactionTrigger trigger) =>
-        specification.WhenAppended!.EventSource is null && trigger.Produces.Any(produced => produced.Destination is null);
+        SemanticReactionSpecification.Input(specification).EventSource is null && trigger.Produces.Any(produced => produced.Destination is null);
 
     static bool HasDeeperReactionCascade(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected)
     {

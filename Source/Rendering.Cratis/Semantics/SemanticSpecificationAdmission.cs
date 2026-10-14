@@ -24,7 +24,7 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in WithoutReactionCascades(context, slice, diagnostics))
         {
-            if (specification.WhenAppended is not null)
+            if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
             {
                 ValidateReactionAppend(context, specification, diagnostics);
                 continue;

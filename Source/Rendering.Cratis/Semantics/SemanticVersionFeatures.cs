@@ -351,17 +351,11 @@ internal static class SemanticVersionFeatures
     }
 
     /// <summary>
-    /// Finds recovery specifications the generated scenario cannot preserve.
+    /// Retains the recovery feature query; shape-specific redelivery admission belongs to the scenario harness.
     /// </summary>
     /// <param name="specification">The specification.</param>
-    /// <returns>The context-preserving redelivery refusal.</returns>
-    public static IEnumerable<SemanticVersionFeature> RedeliveryInSpecification(SemanticSpecification specification)
-    {
-        if (specification.WhenRedelivered is not null)
-        {
-            yield return new("STAGE-ESM-011", StageExecutionCapability.Reaction, specification.Id, "specification", $"Specification '{specification.Name}' requires redelivery: the released ReactorScenario cannot deliver a located existing occurrence with its original context/sequence identity; generated recovery specifications require a context-preserving delivery adapter (https://github.com/Cratis/Chronicle/issues/4873).");
-        }
-    }
+    /// <returns>No blanket redelivery refusal; the released scenario preserves recorded contexts.</returns>
+    public static IEnumerable<SemanticVersionFeature> RedeliveryInSpecification(SemanticSpecification specification) => [];
 
     /// <summary>
     /// Finds a command route the renderer cannot render yet.

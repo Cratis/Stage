@@ -41,7 +41,7 @@ public class when_comparing_invocation_refusals_corpus : Specification
             rendered.Success.ShouldBeFalse();
             rendered.Artifacts.ShouldBeEmpty();
             rendered.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == specification.Id)
-                .Message.ShouldContain("https://github.com/Cratis/Chronicle/issues/4873");
+                .Message.ShouldContain("Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness.");
         }
     }
 

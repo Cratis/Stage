@@ -21,7 +21,7 @@ internal static class SemanticSpecificationArtifactRenderer
         SemanticSpecification specification,
         SemanticApplicationContext context)
     {
-        if (specification.WhenAppended is not null)
+        if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
         {
             return [SemanticReactionSpecificationRenderer.Render(specification, context) with { Sources = [specification.Id] }];
         }

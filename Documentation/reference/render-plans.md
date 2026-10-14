@@ -172,7 +172,41 @@ not.
 
 `ArtifactRenderPlan` is the separate, destination-independent code-rendering contract (not the Scene `RenderPlan` above). Its `Artifacts` are ordered by normalized relative path. Each `PlannedArtifact` carries exact `Bytes`, their lowercase `Sha256`, and `Sources`: sorted, distinct `SemanticId`s of the model elements that file realizes. Scaffold files have empty `Sources` because they realize no semantic element; a Scene composition carried as a profile input is the exception and names the application identity. The plan carries the model's `SemanticRevision`; SHA-256 hashes only artifact bytes, not sources or plan metadata. Use path, sources, and hash together when recording a mapping from model elements to generated files.
 
-Screenplay ESM v1 gives constraints and named policies no individual semantic identities. Cratis maps constraint files to their owning slice and target event identities, and generated policy registrations to the protected command/query identities.
+### Source ownership inventory
+
+The Cratis renderer records the following identities in `Sources`. The plan normalizes every list by removing duplicates and sorting identities ordinally; list order does not imply ownership priority.
+
+| Artifact | Sources |
+| --- | --- |
+| Combined StateChange slice file | Declaring slice, its commands and event declarations. |
+| Combined StateView slice file | Declaring slice, its read models, projections and queries. |
+| Combined Automation slice file | Declaring slice, its commands, events, read models, projections and queries. |
+| Separate reducer | Target read model, observed event declarations and declaring slice. An input event's declaring slice is not added. |
+| Generated specification files | Specification and its declaring slice, for command, read-model, query and reaction scenarios, including case-table artifacts. |
+| Separate reactor | Reaction identity; its declaring slice is not explicitly included. |
+| Common concept or composite type | Declaration identity. |
+| Constraint | Declaring slice and target event declarations. |
+| Event-source registration | Event-source identity and its stream identities. |
+| Typed-context wrapper | Operation identity, when present; otherwise empty. |
+| Operation policy and policy-context wrapper/body | Protected command or query identity. |
+| Shared policy registrations and policy-context runtime/bodies | Application identity. |
+| `<slice-folder>/Screens.scene.json` | Declaring slice identity only, when the profile carries screen partitions. Bound commands or queries do not change the owner. |
+| `scene.json`, `src/bindings.ts`, `src/stage-scene.json`, `src/stage.ts` | Application identity only, for both authored and default Scene composition; emitted only at application scope. |
+| Scaffold | Empty, except application locale inputs, which name the application. |
+
+`Sources` preserves provenance, not exclusive folder ownership. A reducer observes event declarations from other slices without becoming those slices' reducer. Consumers selecting slice-owned business files should use the explicit declaring slice where provided and model mapping for artifacts such as reactors. App-scope Scene files remain application-sourced: select the declaring slice's `Screens.scene.json` for its screen code instead of presenting the whole application UI.
+
+Screenplay ESM v1 gives constraints and named policies no individual semantic identities. Cratis maps constraint files to their owning slice and target event identities, and generated policy registrations to the protected command/query identities. Source-only enrichment changes the plan digest and manifest metadata, but not artifact bytes or their `Sha256` hashes.
+
+## Slice-owned screen fragments
+
+Call `CratisRendering.WithScreenPartitions(profile, compilation)` with the compilation that owns the profile's translated Scene before planning. When no screens are authored, the input carries an empty partition without requiring a Scene payload. The optional `cratis-authoring:screen-partitions` input is versioned and hashed. It retains the compilation's sources and identity catalog because the executable model contains no screen declarations. Planning recompiles that authority in memory to verify each declaring slice and the canonical translated screen payload. The input records real slice identities, screen records and app-scoped inherited contributions; it invents no screen or component semantic identities. Legacy profiles without this input retain their existing artifacts and receive no inferred ownership.
+
+Each declaring slice gets `<slice-folder>/Screens.scene.json` containing a `screens` array. Screen keys, component IDs, forms and bindings remain in the records. Templates, shared shell data and inherited module/feature contributions remain app-scoped; fragments are Scene code, not standalone applications or React components. The application Scene is assembled from those same partitioned records, with inherited contributions restored, and retains its canonical bytes.
+
+`CratisRendering.PlanFrom(loaded, selection, options)` emits the selected slices' fragments with the same bytes as an application-scope plan. A feature selection produces the union, including nested features. Scoped plans omit all four Scene aggregates rather than publish a partial application; `STAGE-SCREEN-006` explains that application scope is required to publish shared UI. A slice without an authored screen receives `STAGE-SCREEN-005` when partitions are carried: Stage emits no slice-owned default fragment and never attributes synthetic application UI to that slice.
+
+Admission refuses unsupported-version, stale, malformed, duplicate or unresolved partitions, missing screen coverage and disagreements with either the carried Scene or the compilation's translated screen records, without partial artifacts. Naming another existing slice as owner is refused even when it belongs to the same feature. Screen partitions add managed paths and therefore change artifact lists and output digests; rename/removal uses the normal publication ownership and drift checks.
 
 ## Authored code documentation
 

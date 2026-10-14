@@ -211,6 +211,20 @@ public static partial class CratisRendering
     }
 
     /// <summary>
+    /// Adds declaring-slice screen partitions from the compilation that owns the profile's translated Scene.
+    /// </summary>
+    /// <param name="profile">The resolved profile carrying the translated Scene when screens are authored.</param>
+    /// <param name="compilation">The compilation whose syntax and slice identities own the screens.</param>
+    /// <returns>The profile with versioned, hashed screen partitions.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The Scene and compilation disagree or ownership cannot be resolved uniquely.</exception>
+    public static ArtifactRenderProfile WithScreenPartitions(ArtifactRenderProfile profile, SemanticCompilation compilation)
+    {
+        var input = ScreenPartitionsInput.Create(profile, compilation);
+
+        return ArtifactRenderProfile.Create(profile.Target, profile.TargetVersion, profile.Renderer, profile.RendererVersion, [.. profile.Inputs.Where(existing => existing.Name != ScreenPartitionsInput.Name), input]);
+    }
+
+    /// <summary>
     /// Adds syntax-only documentation from the same compilation as a versioned, hashed renderer input.
     /// </summary>
     /// <param name="profile">The resolved profile, including any Scene or strings inputs.</param>

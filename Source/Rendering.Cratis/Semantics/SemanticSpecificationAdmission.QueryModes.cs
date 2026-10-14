@@ -21,8 +21,7 @@ internal static partial class SemanticSpecificationAdmission
         context.Queries.TryGetValue(expected.Query, out var query) &&
         (query.Authorization is null || specification.GivenCaller is not null) &&
         !context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel) &&
-        specification.GivenCaller is not { Authenticated: false, Roles.IsEmpty: false } &&
-        specification.GivenCaller is not { Authenticated: false, Claims.IsEmpty: false } &&
+        specification.GivenCaller is not ({ Authenticated: false, Roles.IsEmpty: false } or { Authenticated: false, Claims.IsEmpty: false }) &&
         specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true;
 
     static bool HasRenderableQueryExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>

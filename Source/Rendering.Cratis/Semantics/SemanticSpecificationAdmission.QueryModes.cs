@@ -27,7 +27,29 @@ internal static partial class SemanticSpecificationAdmission
 
     static bool HasRenderableQueryExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>
         specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) &&
-        ProtectedCollectionRejectionReason(context, specification) is null;
+        ProtectedCollectionRejectionReason(context, specification) is null && QueryArgumentsHaveCompleteValues(context, specification);
+
+    static bool QueryArgumentsHaveCompleteValues(SemanticApplicationContext context, SemanticSpecification specification) =>
+        specification.ThenQueries.All(expected => !context.Queries.TryGetValue(expected.Query, out var query) ||
+            ((query.Argument is null || HasCompleteValue(context, query.Argument.Type, expected.Key)) &&
+                query.Filters.All(filter => expected.Filters.Where(value => value.Filter == filter.Id)
+                    .All(value => HasCompleteValue(context, filter.Type, value.Value)))));
+
+    static bool HasCompleteValue(SemanticApplicationContext context, SemanticTypeReference type, SemanticValue value)
+    {
+        if (type.IsCollection && value is SemanticArrayValue array)
+        {
+            return array.Values.All(element => HasCompleteValue(context, type with { IsCollection = false }, element));
+        }
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
+        {
+            return context.Types[type.Target].Properties.All(property =>
+                composite.Properties.SingleOrDefault(member => member.TargetProperty == property.Id) is { } member &&
+                HasCompleteValue(context, property.Type, member.Value));
+        }
+
+        return true;
+    }
 
     static bool CanRenderQueryOnly(SemanticApplicationContext context, SemanticSpecification specification) =>
         CanEmptyQueryOnly(specification, context) || CanDenyQueryOnly(specification, context) ||

@@ -228,7 +228,7 @@ internal static class SemanticSurfaceLedger
         // Scoped read-model/query expectations replay every produced event in production order;
         // incomplete or ambiguous unordered duplicate replay fails STAGE-ESM-011. Unordered event
         // assertions compare the produced stream even when the expected fact omits its source.
-        // ESM v18 query-only validation errors and empty results execute through Arc QueryScenario; empty fixture views need no projection.
+        // ESM v18 query-only validation errors and empty results execute through Arc QueryScenario; application views still require a projection or reducer.
         // Protected query results and query-only denials execute through Arc QueryScenario with fixture principals;
         // live collections render as Observe subjects and snapshots as Task collection reads; protected collection success
         // specifications use QueryScenario's default Chronicle observations. Live single-result queries remain rejected by STAGE-ESM-010. Given events that violate an admitted constraint

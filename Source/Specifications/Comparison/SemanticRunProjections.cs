@@ -26,6 +26,9 @@ internal static class SemanticRunProjections
         SemanticRuntimeTypes types,
         Defaults defaults)
     {
+        // No facts can populate any projection in the empty world, including a query-only model.
+        if (context.Facts.Count == 0) return [];
+
         var requested = specification.ThenReadModels.Select(state => state.ReadModel)
             .Concat(specification.ThenAbsentReadModels.Select(state => state.ReadModel))
             .Concat(specification.ThenQueries.Select(query => plan.Queries[query.Query].ReadModel))
@@ -35,7 +38,6 @@ internal static class SemanticRunProjections
         foreach (var id in requested)
         {
             var model = plan.ReadModels[id];
-            if (context.Facts.Count == 0 && plan.Projections.Values.All(value => value.ReadModel != id)) continue;
             var projection = plan.Projections.Values.Single(value => value.ReadModel == id);
             var method = typeof(SemanticRunProjections).GetMethod(nameof(Define), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(types.ForReadModel(model));

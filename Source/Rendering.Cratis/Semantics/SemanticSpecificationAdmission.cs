@@ -169,6 +169,11 @@ internal static partial class SemanticSpecificationAdmission
             return "Query validation rejection specifications with given events or read-model state require a seeded Arc query scenario; only empty fixtures are supported.";
         }
 
+        if (!QueryArgumentsHaveCompleteValues(context, specification))
+        {
+            return "Sparse composite query arguments cannot render: every member, including optional members, must be supplied explicitly to preserve concept validation without inventing CLR defaults.";
+        }
+
         if (AuthorizationRejectionReason(context, specification) is { } authorizationReason)
         {
             return authorizationReason;

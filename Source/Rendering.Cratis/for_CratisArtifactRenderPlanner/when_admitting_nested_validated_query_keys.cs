@@ -14,6 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_admitting_nested_validated_query_keys : Specification
 {
     ArtifactRenderDiagnostic[][] _diagnostics = [];
+    readonly List<string> _sources = [];
 
     void Because()
     {
@@ -28,8 +29,10 @@ public class when_admitting_nested_validated_query_keys : Specification
     }
 
     [Fact] void should_admit_each_validated_argument_shape() => Assert.All(_diagnostics, diagnostics => diagnostics.ShouldBeEmpty());
+    [Fact] void should_preserve_the_concept_collection_parameter() => _sources[0].ShouldContain("global::Invoices.Common.InvoiceId[] invoiceId");
+    [Fact] void should_preserve_the_composite_parameter() => _sources[1].ShouldContain("global::Invoices.Common.InvoiceKey invoiceId");
 
-    static ArtifactRenderDiagnostic[] Evaluate(SemanticApplicationContext context, LocatedSemanticSlice located, Func<SemanticTypeReference, SemanticTypeReference> change)
+    ArtifactRenderDiagnostic[] Evaluate(SemanticApplicationContext context, LocatedSemanticSlice located, Func<SemanticTypeReference, SemanticTypeReference> change)
     {
         // Check the renderer boundary independently of the compiler's argument-shape admission.
         var slice = located.Slice with
@@ -37,6 +40,8 @@ public class when_admitting_nested_validated_query_keys : Specification
             Queries = [.. located.Slice.Queries.Select(query => query.Name == "InvoicesById"
                 ? query with { Argument = query.Argument! with { Type = change(query.Argument!.Type) } } : query)]
         };
-        return [.. SemanticCratisAdmission.Evaluate(context, [located with { Slice = slice }])];
+        var candidate = located with { Slice = slice };
+        _sources.Add(SemanticStateViewArtifactRenderer.Render(candidate, context).Content);
+        return [.. SemanticCratisAdmission.Evaluate(context, [candidate])];
     }
 }

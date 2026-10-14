@@ -61,13 +61,20 @@ values before invoking the generated method. An out-of-rule value returns HTTP 4
 results; an in-rule key that matches nothing still returns `null` or an empty collection.
 Validation also reaches concept members inside composite arguments and collection elements.
 Authorization runs before validation. TypeScript proxy argument types are unchanged.
+Nullable keys and optional concept filters with `not empty` rules receive `STAGE-ESM-010`:
+Arc skips null concept values, while the reference validates nullable concept keys and rejects
+explicitly null filters. An omitted optional filter remains distinct from a supplied null.
 
 ESM v18 adds query-only `then error` specifications. For empty fixtures, Stage generates an Arc
 `QueryScenario` call that asserts validation failure and the expected message, when supplied.
-These empty-world specifications also support `then no result`; a view used only by these
-specifications need not declare a projection. Query rejection specifications with given events
-or read-model state are refused with `STAGE-ESM-011`; the generated rejection scenario supports
-only empty fixtures.
+These empty-world specifications also support `then no result`, but do not relax application
+admission: every read model still needs a projection or reducer (`STAGE-ESM-007`). The
+projection-less `QueryValidation/v18` corpus runs in the reference and Stage executors but is
+refused as a rendered application; generated conformance specifications use a projected view.
+Query rejection specifications with given events or read-model state are refused with
+`STAGE-ESM-011`; the generated rejection scenario supports only empty fixtures. Sparse composite
+query arguments also receive `STAGE-ESM-011`: supply every member, including optional members,
+so generated literals do not invent values that change validation.
 
 :::caution[Renaming events]
 An event's Chronicle id is its stored name: the `id` pin, otherwise the name. Its generated class follows the current name. ESM v16 carries a differing pin as `storedName`, rendered as `[EventType("Original")]`; unpinned events retain argument-free `[EventType]`.

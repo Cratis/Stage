@@ -22,7 +22,7 @@ internal static partial class SemanticCratisAdmission
             slice.Projections.Any(projection => !slice.ReadModels.Any(model => model.Id == projection.ReadModel)) ||
             slice.Reducers.Any(reducer => !slice.ReadModels.Any(model => model.Id == reducer.ReadModel)) ||
             slice.ReadModels.Any(model => slice.Projections.Count(_ => _.ReadModel == model.Id) +
-                slice.Reducers.Count(_ => _.ReadModel == model.Id) != 1 && !IsEmptyQueryView(slice, model, context)))
+                slice.Reducers.Count(_ => _.ReadModel == model.Id) != 1))
         {
             diagnostics.Add(Error("STAGE-ESM-007", $"State-view slice '{slice.Name}' needs exactly one projection for each read model.", slice.Id));
             return;
@@ -118,11 +118,6 @@ internal static partial class SemanticCratisAdmission
         }
     }
 
-    static bool IsEmptyQueryView(SemanticSlice slice, SemanticReadModel model, SemanticApplicationContext context) =>
-        slice.Projections.All(projection => projection.ReadModel != model.Id) && slice.Reducers.All(reducer => reducer.ReadModel != model.Id) &&
-        slice.Queries.Any(query => query.ReadModel == model.Id) && !slice.Specifications.IsEmpty &&
-        slice.Specifications.All(specification => SemanticSpecificationAdmission.CanEmptyQueryOnly(specification, context));
-
     static bool ReadModelQueryNamesAreUnique(SemanticApplicationContext context, SemanticSlice slice, SemanticReadModel readModel)
     {
         var queries = slice.Queries.Where(query => query.ReadModel == readModel.Id).ToArray();
@@ -143,6 +138,14 @@ internal static partial class SemanticCratisAdmission
 
     static bool QueryFiltersAreRenderable(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel, List<ArtifactRenderDiagnostic> diagnostics)
     {
+        if (query.Argument?.Type is { IsOptional: true } || query.Filters.Any(filter =>
+            filter.Type is { IsOptional: true, Kind: SemanticTypeReferenceKind.Concept } &&
+            context.Concepts[filter.Type.Target].Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.NotEmpty)))
+        {
+            diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' cannot preserve nullable keys or optional concept filters with not-empty rules: Arc skips validation for null arguments while the reference validates supplied null concepts.", query.Id));
+            return false;
+        }
+
         if (IsSnapshotLookup(context, query, readModel)) return query.Filters.IsDefaultOrEmpty;
         if (!IsCollection(context, query, readModel)) return false;
 

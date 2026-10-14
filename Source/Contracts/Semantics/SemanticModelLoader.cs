@@ -76,13 +76,13 @@ public sealed record SemanticModelLoadResult(LoadedSemanticModel? Loaded, Immuta
 /// <summary>
 /// Loads portable Screenplay semantic execution from files and folders of source documents.
 /// </summary>
-public static class SemanticModelLoader
+public static partial class SemanticModelLoader
 {
     /// <summary>
     /// Compiles a Screenplay source set and optional authoritative identity catalog.
     /// </summary>
     /// <param name="path">A .play file or a folder searched recursively for .play sources. For a single file, its parent directory is the attachment root.</param>
-    /// <param name="catalogPath">An optional canonical Screenplay identity catalog JSON file whose document keys match the UTF-8 hex encoding of relative .play paths.</param>
+    /// <param name="catalogPath">An optional canonical Screenplay identity catalog or persisted MCP identity-state JSON file. Bare catalog document keys match the UTF-8 hex encoding of relative .play paths.</param>
     /// <remarks>Preserve the application name, root-relative source paths, and catalog to retain semantic identities.</remarks>
     /// <returns>The executable model and plan.</returns>
     /// <exception cref="InvalidSemanticModel">Input is absent, malformed, or not executable.</exception>
@@ -107,14 +107,22 @@ public static class SemanticModelLoader
         if (files.Length == 0) throw new InvalidSemanticModel(["No .play files were found."]);
         var root = isFolder ? path : Path.GetDirectoryName(Path.GetFullPath(path))!;
         var name = applicationName ?? (isFolder ? new DirectoryInfo(path).Name : Path.GetFileNameWithoutExtension(path));
+        PersistedIdentityState? state = null;
         var catalog = catalogPath is null ? SemanticIdentityCatalog.Empty(ApplicationIdentity.Create(name)) :
-            SemanticIdentityCatalogSerializer.Deserialize(await File.ReadAllBytesAsync(catalogPath));
+            DeserializeCatalog(await File.ReadAllBytesAsync(catalogPath), out state);
+        if (state is not null && IsRootIdentityPath(Path.GetFullPath(root), Path.GetFullPath(catalogPath!)))
+        {
+            var opened = LoadModelRoot(Path.GetFullPath(root), [.. files.Select(Path.GetFullPath)], applicationName ?? state.ApplicationName, default);
+            if (!opened.Success) throw new InvalidSemanticModel([.. opened.Diagnostics.Select(diagnostic => diagnostic.Message)]);
+            return opened.Loaded!;
+        }
         var documents = new List<SemanticSourceDocument>();
         foreach (var file in files.Order(StringComparer.Ordinal))
         {
             var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
-            var key = Convert.ToHexString(Encoding.UTF8.GetBytes(relative));
-            documents.Add(SemanticSourceDocument.Create(catalog.ResolveDocument(key), key, relative, await File.ReadAllTextAsync(file)));
+            var mapping = state?.Documents.SingleOrDefault(document => document.Path.Value == relative);
+            var key = mapping?.StableKey ?? Convert.ToHexString(Encoding.UTF8.GetBytes(relative));
+            documents.Add(SemanticSourceDocument.Create(mapping?.Id ?? catalog.ResolveDocument(key), key, relative, await File.ReadAllTextAsync(file)));
         }
         var result = Compile(root, name, catalog, [.. documents], default);
         if (!result.Success)
@@ -163,13 +171,18 @@ public static class SemanticModelLoader
             var catalogResult = await ReadCatalog(root, catalogPath, applicationName, cancellationToken);
             if (catalogResult.Catalog is null) return new(null, [catalogResult.Error!]);
             catalog = catalogResult.Catalog;
+            if (catalogResult.State is not null && IsRootIdentityPath(root, catalogPath!))
+            {
+                return LoadModelRoot(root, files, applicationName, cancellationToken);
+            }
             foreach (var file in files)
             {
                 var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
-                var key = Convert.ToHexString(Encoding.UTF8.GetBytes(relative));
+                var mapping = catalogResult.State?.Documents.SingleOrDefault(document => document.Path.Value == relative);
+                var key = mapping?.StableKey ?? Convert.ToHexString(Encoding.UTF8.GetBytes(relative));
                 try
                 {
-                    documents.Add(SemanticSourceDocument.Create(catalog.ResolveDocument(key), key, relative, await File.ReadAllTextAsync(file, cancellationToken)));
+                    documents.Add(SemanticSourceDocument.Create(mapping?.Id ?? catalog.ResolveDocument(key), key, relative, await File.ReadAllTextAsync(file, cancellationToken)));
                 }
                 catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
                 {
@@ -276,23 +289,24 @@ public static class SemanticModelLoader
         return false;
     }
 
-    static async Task<(SemanticIdentityCatalog? Catalog, SemanticModelLoadDiagnostic? Error)> ReadCatalog(string root, string? path, string name, CancellationToken cancellationToken)
+    static async Task<(SemanticIdentityCatalog? Catalog, PersistedIdentityState? State, SemanticModelLoadDiagnostic? Error)> ReadCatalog(string root, string? path, string name, CancellationToken cancellationToken)
     {
-        if (path is null) return (SemanticIdentityCatalog.Empty(ApplicationIdentity.Create(name)), null);
+        if (path is null) return (SemanticIdentityCatalog.Empty(ApplicationIdentity.Create(name)), null, null);
         var relative = path.Replace('\\', '/');
         try
         {
             var fullPath = Path.GetFullPath(path, root);
             relative = Path.GetRelativePath(root, fullPath).Replace('\\', '/');
-            return (SemanticIdentityCatalogSerializer.Deserialize(await File.ReadAllBytesAsync(fullPath, cancellationToken)), null);
+            var catalog = DeserializeCatalog(await File.ReadAllBytesAsync(fullPath, cancellationToken), out var state);
+            return (catalog, state, null);
         }
-        catch (Exception exception) when (exception is JsonException or InvalidSemanticContract or FormatException or ArgumentException or NotSupportedException)
+        catch (Exception exception) when (exception is JsonException or InvalidSemanticContract or InvalidPersistedIdentityState or FormatException or ArgumentException or NotSupportedException)
         {
-            return (null, new("STAGE-PLAN-006", exception.Message, relative));
+            return (null, null, new("STAGE-PLAN-006", exception.Message, relative));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return (null, new("STAGE-PLAN-005", exception.Message, relative));
+            return (null, null, new("STAGE-PLAN-005", exception.Message, relative));
         }
     }
 
@@ -302,6 +316,15 @@ public static class SemanticModelLoader
         var attachments = AttachmentFiles.Load(root, documents);
         var documentSet = SemanticDocumentSet.Create(documents, catalog, attachments.Contents);
         var compiled = new SemanticModelCompiler().Compile(name, documentSet);
+        return FinishCompilation(
+            compiled,
+            attachments.Diagnostics,
+            compiled.Success ? StageReleaseBaseline.Check(compiled.Value!, ReleaseBaselineStore.Read(root, catalog.Application)) : ReleaseBaselineAssessment.NotSupplied,
+            cancellationToken);
+    }
+
+    static SemanticModelLoadResult FinishCompilation(CompilationResult<SemanticCompilation> compiled, ImmutableArray<Diagnostic> attachmentDiagnostics, ReleaseBaselineAssessment baseline, CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = compiled.Diagnostics.Select(diagnostic => new SemanticModelLoadDiagnostic(diagnostic.Code, diagnostic.Message, $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column})") { Severity = diagnostic.Severity }).ToImmutableArray();
         if (!compiled.Success)
@@ -320,9 +343,9 @@ public static class SemanticModelLoader
             SpecificationOrigins = compiled.Value!.SpecificationOrigins,
             ImplementationRequirements = compiled.ImplementationRequirements,
             TypedContextDescriptors = compiled.TypedContextDescriptors,
-            ImplementationContents = SemanticImplementationBodies.Resolve(documentSet, compiled.ImplementationRequirements),
-            AttachmentDiagnostics = attachments.Diagnostics,
-            ReleaseBaseline = StageReleaseBaseline.Check(compiled.Value!, ReleaseBaselineStore.Read(root, catalog.Application))
+            ImplementationContents = SemanticImplementationBodies.Resolve(compiled.Value!.Documents, compiled.ImplementationRequirements),
+            AttachmentDiagnostics = attachmentDiagnostics,
+            ReleaseBaseline = baseline
         };
 
         return new(loaded, diagnostics);

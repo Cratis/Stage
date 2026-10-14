@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public class when_rejecting_nested_validated_query_keys : Specification
+public class when_admitting_nested_validated_query_keys : Specification
 {
     ArtifactRenderDiagnostic[][] _diagnostics = [];
 
@@ -27,13 +27,11 @@ public class when_rejecting_nested_validated_query_keys : Specification
             Evaluate(context, slice, argument => argument with { Kind = SemanticTypeReferenceKind.CompositeType, Primitive = SemanticPrimitiveType.Unknown, Target = type.Id })];
     }
 
-    [Fact] void should_refuse_each_unsupported_argument_shape() => Assert.All(_diagnostics, diagnostics => diagnostics.ShouldNotBeEmpty());
-    [Fact] void should_name_the_query_and_validated_concept() => Assert.All(_diagnostics, diagnostics => Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-010" && diagnostic.Message.Contains("InvoicesById", StringComparison.Ordinal) && diagnostic.Message.Contains("InvoiceId", StringComparison.Ordinal)));
+    [Fact] void should_admit_each_validated_argument_shape() => Assert.All(_diagnostics, diagnostics => diagnostics.ShouldBeEmpty());
 
     static ArtifactRenderDiagnostic[] Evaluate(SemanticApplicationContext context, LocatedSemanticSlice located, Func<SemanticTypeReference, SemanticTypeReference> change)
     {
-        // Current ESM contracts only admit scalar query keys. Check the renderer's own boundary
-        // independently so future composite/collection keys cannot silently gain Arc validation.
+        // Check the renderer boundary independently of the compiler's argument-shape admission.
         var slice = located.Slice with
         {
             Queries = [.. located.Slice.Queries.Select(query => query.Name == "InvoicesById"

@@ -11,12 +11,26 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
+    internal static bool CanEmptyQueryOnly(SemanticSpecification specification, SemanticApplicationContext context) =>
+        specification.When is null && specification.WhenAppended is null && specification.WhenCapture is null &&
+        specification.WhenTrigger is null && specification.WhenClock is null && specification.WhenRedelivered is null &&
+        specification.GivenEvents.IsEmpty && specification.GivenReadModels.IsEmpty && specification.ThenEvents.IsEmpty &&
+        specification.ThenReadModels.IsEmpty && specification.ThenQueries is [{ Results.IsEmpty: true } expected] &&
+        specification.ThenErrors.Length <= 1 && !specification.ThenDenied &&
+        specification.ThenErrors.All(error => error.Code is null && SemanticValidationRendering.CanResolve(error.Message, context)) &&
+        context.Queries.TryGetValue(expected.Query, out var query) &&
+        (query.Authorization is null || specification.GivenCaller is not null) &&
+        !context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel) &&
+        specification.GivenCaller is not { Authenticated: false, Roles.IsEmpty: false } &&
+        specification.GivenCaller is not { Authenticated: false, Claims.IsEmpty: false } &&
+        specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true;
+
     static bool HasRenderableQueryExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>
         specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) &&
         ProtectedCollectionRejectionReason(context, specification) is null;
 
     static bool CanRenderQueryOnly(SemanticApplicationContext context, SemanticSpecification specification) =>
-        CanDenyQueryOnly(specification, context) ||
+        CanEmptyQueryOnly(specification, context) || CanDenyQueryOnly(specification, context) ||
         (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
         (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0]));
 

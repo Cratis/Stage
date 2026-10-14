@@ -25,6 +25,10 @@ internal static class SemanticSpecificationArtifactRenderer
         {
             return [SemanticReactionSpecificationRenderer.Render(specification, context) with { Sources = [specification.Id] }];
         }
+        if (SemanticSpecificationAdmission.CanEmptyQueryOnly(specification, context))
+        {
+            return [SemanticEmptyQuerySpecificationRenderer.Render(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];
+        }
         if (SemanticSpecificationAdmission.CanSeedQueryOnly(specification, context))
         {
             return [SemanticQuerySpecificationRenderer.RenderSeededQuery(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];

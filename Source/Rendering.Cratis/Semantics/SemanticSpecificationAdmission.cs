@@ -163,6 +163,12 @@ internal static partial class SemanticSpecificationAdmission
 
     static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {
+        if (specification.When is null && !specification.ThenQueries.IsEmpty && !specification.ThenErrors.IsEmpty &&
+            (!specification.GivenEvents.IsEmpty || !specification.GivenReadModels.IsEmpty))
+        {
+            return "Query validation rejection specifications with given events or read-model state require a seeded Arc query scenario; only empty fixtures are supported.";
+        }
+
         if (AuthorizationRejectionReason(context, specification) is { } authorizationReason)
         {
             return authorizationReason;

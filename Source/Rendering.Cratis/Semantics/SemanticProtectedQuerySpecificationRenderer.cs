@@ -100,7 +100,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
     static string Key(SemanticSpecificationQueryResult expected, SemanticApplicationContext context)
     {
         var query = context.Queries[expected.Query];
-        return query.Argument is { } argument ? new SemanticTypeSystem(context).QueryArgumentValue(expected.Key, argument.Type) : string.Empty;
+        return query.Argument is { } argument ? new SemanticTypeSystem(context).Value(expected.Key, argument.Type) : string.Empty;
     }
 
     static string Arguments(SemanticSpecificationQueryResult expected, SemanticApplicationContext context)
@@ -111,7 +111,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             ? new[] { $"[{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(argument.Name))}] = {Key(expected, context)}" }
             : [];
         return string.Join(", ", key.Concat(query.Filters.Select(filter =>
-            $"[{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(filter.Name))}] = {types.QueryArgumentValue(expected.Filters.SingleOrDefault(value => value.Filter == filter.Id)?.Value ?? SemanticValue.Null, filter.Type)}")));
+            $"[{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(filter.Name))}] = {types.Value(expected.Filters.SingleOrDefault(value => value.Filter == filter.Id)?.Value ?? SemanticValue.Null, filter.Type)}")));
     }
 
     static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> Replay(SemanticSpecification specification, SemanticReadModel readModel, SemanticApplicationContext context) =>

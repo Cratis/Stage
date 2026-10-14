@@ -22,7 +22,7 @@ internal static partial class SemanticCratisAdmission
             slice.Projections.Any(projection => !slice.ReadModels.Any(model => model.Id == projection.ReadModel)) ||
             slice.Reducers.Any(reducer => !slice.ReadModels.Any(model => model.Id == reducer.ReadModel)) ||
             slice.ReadModels.Any(model => slice.Projections.Count(_ => _.ReadModel == model.Id) +
-                slice.Reducers.Count(_ => _.ReadModel == model.Id) != 1))
+                slice.Reducers.Count(_ => _.ReadModel == model.Id) != 1 && !IsEmptyQueryView(slice, model, context)))
         {
             diagnostics.Add(Error("STAGE-ESM-007", $"State-view slice '{slice.Name}' needs exactly one projection for each read model.", slice.Id));
             return;
@@ -108,7 +108,7 @@ internal static partial class SemanticCratisAdmission
             }
         }
 
-        foreach (var query in slice.Queries.Where(query => ValidateQueryAuthorization(context, query, diagnostics) && !RefusesNestedValidatedKey(context, query, diagnostics)))
+        foreach (var query in slice.Queries.Where(query => ValidateQueryAuthorization(context, query, diagnostics)))
         {
             var readModel = slice.ReadModels.SingleOrDefault(_ => _.Id == query.ReadModel);
             if (!QueryFiltersAreRenderable(context, query, readModel, diagnostics))
@@ -117,6 +117,11 @@ internal static partial class SemanticCratisAdmission
             }
         }
     }
+
+    static bool IsEmptyQueryView(SemanticSlice slice, SemanticReadModel model, SemanticApplicationContext context) =>
+        slice.Projections.All(projection => projection.ReadModel != model.Id) && slice.Reducers.All(reducer => reducer.ReadModel != model.Id) &&
+        slice.Queries.Any(query => query.ReadModel == model.Id) && !slice.Specifications.IsEmpty &&
+        slice.Specifications.All(specification => SemanticSpecificationAdmission.CanEmptyQueryOnly(specification, context));
 
     static bool ReadModelQueryNamesAreUnique(SemanticApplicationContext context, SemanticSlice slice, SemanticReadModel readModel)
     {
@@ -133,8 +138,8 @@ internal static partial class SemanticCratisAdmission
         (query.Argument is null ? Enumerable.Empty<string>() : [query.Argument.Name]).Concat(query.Filters.Select(filter => filter.Name));
 
     static string QueryParameterTypes(SemanticKeyedQuery query, SemanticTypeSystem types) =>
-        string.Join(',', (query.Argument is null ? Enumerable.Empty<string>() : [types.QueryArgumentType(query.Argument.Type)])
-            .Concat(query.Filters.Select(filter => types.QueryArgumentType(filter.Type))));
+        string.Join(',', (query.Argument is null ? Enumerable.Empty<string>() : [types.Type(query.Argument.Type)])
+            .Concat(query.Filters.Select(filter => types.Type(filter.Type))));
 
     static bool QueryFiltersAreRenderable(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel, List<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -176,15 +181,6 @@ internal static partial class SemanticCratisAdmission
         TypeExists(context, type) && !IsNested(type) && SemanticValidationRendering.UnderlyingPrimitive(type, context) != SemanticPrimitiveType.DateTime;
 
     static bool FilterPreservesParameterOrder(SemanticQueryFilter filter, bool optionalSeen) => !optionalSeen || filter.Type.IsOptional;
-
-    static bool RefusesNestedValidatedKey(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics)
-    {
-        if (query.Argument is not { } argument || !IsNested(argument.Type)) return false;
-        if (new SemanticTypeSystem(context).ValidatedQueryConcept(argument.Type) is not { } concept) return false;
-
-        diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' cannot preserve reference lookup semantics for validated concept '{concept.Name}' inside a composite or collection argument.", query.Id));
-        return true;
-    }
 
     static bool IsNested(SemanticTypeReference type) => type.IsCollection || type.Kind == SemanticTypeReferenceKind.CompositeType;
 }

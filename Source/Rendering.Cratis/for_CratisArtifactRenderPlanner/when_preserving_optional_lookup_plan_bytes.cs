@@ -36,7 +36,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         _plan.Renderer,
         _plan.RendererVersion,
         _plan.ApplicationName,
-        [.. _plan.Artifacts.Select(artifact => artifact.Kind == PlannedArtifactKind.Text
+        [.. _plan.Artifacts.Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
             ? PlannedArtifact.CreateText(
                 artifact.RelativePath,
                 PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),

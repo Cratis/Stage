@@ -18,6 +18,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             RenderExpectedCollections(builder, fields, ProductionValues(types, index));
         }
         builder.Line($"[global::Xunit.FactAttribute] void should_produce_exactly_the_expected_events() => _reactor.ProducedEvents.Count.ShouldEqual({specification.ThenEvents.Length});");
+        if (specification.ThenNoEvents) return;
         foreach (var (produced, index) in produces.Select((produced, index) => (produced, index)))
         {
             var identity = produced.Destination is { } destination

@@ -97,7 +97,7 @@ internal static class SemanticVersionFeatures
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV16Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV17Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -335,9 +335,24 @@ internal static class SemanticVersionFeatures
             yield return new(Automation, capability, specification.Id, "specification", $"Specification '{specification.Name}' uses an ESM v6 clock, trigger or capture, which Stage does not support yet.");
         }
 
+        foreach (var feature in RedeliveryInSpecification(specification)) yield return feature;
+
         if (!specification.ThenAbsentReadModels.IsDefaultOrEmpty)
         {
             yield return new(Absence, StageExecutionCapability.Projection, specification.Id, "specification", $"Specification '{specification.Name}' asserts a read model is absent (ESM v5); the generated ReadModelScenario exposes only a materialized record, so Stage does not support absence yet.");
+        }
+    }
+
+    /// <summary>
+    /// Finds recovery specifications the generated scenario cannot preserve.
+    /// </summary>
+    /// <param name="specification">The specification.</param>
+    /// <returns>The context-preserving redelivery refusal.</returns>
+    public static IEnumerable<SemanticVersionFeature> RedeliveryInSpecification(SemanticSpecification specification)
+    {
+        if (specification.WhenRedelivered is not null)
+        {
+            yield return new("STAGE-ESM-011", StageExecutionCapability.Reaction, specification.Id, "specification", $"Specification '{specification.Name}' requires redelivery: the released ReactorScenario cannot deliver a located existing occurrence with its original context/sequence identity; generated recovery specifications require a context-preserving delivery adapter (https://github.com/Cratis/Chronicle/issues/4873).");
         }
     }
 

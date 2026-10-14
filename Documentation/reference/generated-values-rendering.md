@@ -5,14 +5,16 @@ description: Generation strategies, freshness guards, deterministic fixtures and
 
 A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards. The generated backend pins Arc **22.87.0**, which brings Fundamentals **7.24.0**.
 
+This page is the terse reference. To follow one model from `.play` to rendered C# and its runtime behavior, read [Generate identifiers and values from a model](../guides/generated-values.md).
+
 ## Model to C# mapping
 
-This state-change slice generates an event-source identifier and returns it:
+This state-change slice generates an event-source identifier and returns it. It declares no strategy, so the model stays below ESM v15:
 
-```screenplay
+```screenplay title="project.play"
 concept ProjectId : Uuid
-module Projects
-  feature Registration
+module Storefront
+  feature Projects
     slice StateChange Register
       command RegisterProject
         projectId ProjectId generated identifier
@@ -29,39 +31,38 @@ module Projects
         then returns "11111111-1111-1111-1111-111111111111"
 ```
 
-Equivalent types in the generated backend are:
+Stage renders the identifier concept and the command with its event. These are excerpts: license headers, usings and doc comments are omitted.
 
-```csharp
-using System;
-using Cratis.Arc.Commands.ModelBound;
-using Cratis.Chronicle.Events;
-using Cratis.Chronicle.EventSequences;
-using Cratis.Concepts;
-
-public record ProjectId(Guid Value) : EventSourceId<Guid>(Value), IGeneratable<ProjectId>
+```csharp title="Common/ProjectId.cs (excerpt)"
+public record ProjectId(global::System.Guid Value) : global::Cratis.Chronicle.Events.EventSourceId<global::System.Guid>(Value), global::Cratis.Concepts.IGeneratable<ProjectId>
 {
-    public static ProjectId New() => new(GenerateValue.Uuid());
-}
+    public static readonly ProjectId NotSet = new(global::System.Guid.Empty);
 
-[Command]
+    public static ProjectId New() => new(global::Cratis.Concepts.GenerateValue.Uuid());
+
+    public static implicit operator ProjectId(global::System.Guid value) => new(value);
+}
+```
+
+```csharp title="Storefront/Projects/Register/Register.cs (excerpt)"
+[global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
+[global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
 public record RegisterProject(string Name)
 {
-    public (ProjectId, EventForEventSourceId) Handle(
-        [GeneratedValue("projectId")] ProjectId projectId) =>
-        (projectId, new EventForEventSourceId(projectId, new ProjectRegistered(Name)));
+    public (global::Acme.Shop.Common.ProjectId, global::Cratis.Chronicle.EventSequences.EventForEventSourceId) Handle([global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute("projectId")] global::Acme.Shop.Common.ProjectId projectId)
+    {
+        return (projectId, new global::Cratis.Chronicle.EventSequences.EventForEventSourceId(projectId, new global::Acme.Shop.Storefront.Projects.Register.ProjectRegistered(Name)));
+    }
 }
-
-[EventType]
-public record ProjectRegistered(string Name);
 ```
 
 The generated property is absent from the command constructor and request inputs. Its modeled name becomes the case-sensitive generated-value name. Mappings read the Handle parameter. An event targeting that identifier uses an explicit `EventForEventSourceId`; `GetEventSourceId()` never references a removed request property.
 
-A generated concept that is not an identifier derives from `ConceptAs<T>`. It implements `IGeneratable<T>` with `New()` for non-time-ordered strategies, or `IGeneratableInContext<T>` with `New(GenerationContext context)` for time-ordered strategies. The example above uses implicit UUID generation and stays below ESM v15; its handler remains unguarded.
+A generated concept that is not an identifier derives from `ConceptAs<T>`. It implements `IGeneratable<T>` with `New()` for non-time-ordered strategies, or `IGeneratableInContext<T>` with `New(GenerationContext context)` for time-ordered strategies. The example above uses implicit UUID generation and stays below ESM v15; its handler remains unguarded and returns one `EventForEventSourceId`.
 
 ## ESM v15 strategies
 
-Declare a strategy on the concept, for example `generate uuidv7` under a Uuid concept or `generate bytes 16 hex case upper` under a String concept. The command property still says `generated`.
+Declare a strategy on the concept, for example `generate uuidv7` under a Uuid concept or `generate bytes 16 hex case upper` under a String concept. The command property still says `generated`. To pick one, see [Choosing a strategy](../guides/generated-values.md#choosing-a-strategy).
 
 | Strategy | Backing type | Factory and default shape |
 | --- | --- | --- |
@@ -74,15 +75,15 @@ Declare a strategy on the concept, for example `generate uuidv7` under a Uuid co
 | `bytes n hex` | String | `GenerateValue.Bytes(n, ValueEncoding.Hex)`; lowercase hexadecimal |
 | `bytes n base32` | String | `GenerateValue.Bytes(n, ValueEncoding.Base32)`; uppercase base32 without padding |
 
-String-backed strategies accept the modifiers admitted by Screenplay: `prefix` adds printable ASCII text before the generated portion, and `case upper` or `case lower` selects its casing without changing the prefix. Bytes accept counts 1–512; unused trailing encoding bits must be zero. Screenplay refuses unsupported strategies and identifiers below 64 random bits before rendering.
+String-backed strategies accept the modifiers admitted by Screenplay: `prefix` adds printable ASCII text before the generated portion, and `case upper` or `case lower` selects its casing without changing the prefix. Bytes accept counts 1–512; unused trailing encoding bits must be zero. Screenplay refuses unsupported strategies and identifiers below 64 random bits before rendering. It also refuses a compliance marker (`pii`, `secret`) or a validation rule on a generated concept with `PLAY0268`, so a secret cannot be generated yet. See [Keep the secret out of the identity](../guides/generated-values.md#keep-the-secret-out-of-the-identity).
 
-Time-ordered concepts implement `IGeneratableInContext<T>` instead of `IGeneratable<T>`. Arc supplies a `GenerationContext` whose `Now` is the command's `ReceivedAt`. The value's time component and `$context.occurred` agree to the millisecond. Hand-written calls to these concepts must now pass a context to `New(context)`; the parameterless `New()` is no longer emitted. `uuid`, `nanoid` and `bytes` retain `New()`.
+Time-ordered concepts implement `IGeneratableInContext<T>` instead of `IGeneratable<T>`. Arc supplies a `GenerationContext` whose `Now` is the command's `ReceivedAt`, and its tenant. `Ulid`, `TypeId` and `UuidV7` read only `Now`. An event that maps `$context.occurred` takes the same receipt time, truncated to a millisecond, for its payload and its `Occurred` metadata, so the value's time component and that mapping agree to the millisecond. An event that does not map it carries no occurrence time from Arc, and Chronicle stamps the append time. Hand-written calls to these concepts must now pass a context to `New(context)`; the parameterless `New()` is no longer emitted. `uuid`, `nanoid` and `bytes` retain `New()`.
 
 ### Fresh event sources
 
-At v15, a command that produces facts on a generated destination returns `EventsWithConcurrencyScopes`, with one `ConcurrencyScope(EventSequenceNumber.BeforeFirst, EventSourceId: id)` per generated source. Chronicle checks the source is empty atomically when appending; several initial facts in the same invocation are allowed. A previously used source rejects the entire command with `ValidationResultReason.ConcurrencyViolation`. Generated rejection specifications assert that reason rather than Arc's message text.
+At v15, a command that produces facts on a generated destination returns `EventsWithConcurrencyScopes`, with one `ConcurrencyScope(EventSequenceNumber.BeforeFirst, EventSourceId: id)` per generated source. Chronicle checks every scope in a batch once, against the state before the batch, so several initial facts in the same invocation are allowed. One violated scope rejects the entire batch and appends nothing; Arc reports it as `ValidationResultReason.ConcurrencyViolation`. When a storage append loses a sequence-number race, Chronicle renumbers the batch and validates the scopes again before retrying. It does so from Chronicle 19.40.1 (verified in the 19.55.2 kernel). See [Chronicle concurrency](/chronicle/events/concurrency/). Generated rejection specifications assert that reason rather than Arc's message text.
 
-The Host and specification executor use the reference freshness message: "A generated event source already has facts; retry the command with a fresh generated value." Earlier facts without a destination never make the generated source stale. Below v15, handlers remain unguarded. These explicit scopes will be replaced when [Arc #3129](https://github.com/Cratis/Arc/issues/3129) supplies its generated-identifier freshness contract.
+The Host and specification executor use the reference freshness message: "A generated event source already has facts; retry the command with a fresh generated value." Earlier facts without a destination never make the generated source stale. A generated value that is not the destination, such as an invite code appended to a customer stream, adds a scope only when its text equals the destination's, so it makes no freshness claim about that stream. Below v15, handlers remain unguarded. These explicit scopes will be replaced when [Arc #3129](https://github.com/Cratis/Arc/issues/3129) supplies its generated-identifier freshness contract.
 
 ## Conditional productions and shared slices
 
@@ -110,10 +111,10 @@ The generated TypeScript proxy carries the response type too. A UUID-backed scal
 
 A specification's `when ... for <uuid>` pins a generated identifier. `generated receipt = "<uuid>"` pins a generated non-identifier property. Stage emits `PinGeneratedValue` before executing the scenario, using the concept type rather than a raw `Guid`.
 
-For the model above, the generated setup contains this fragment:
+For the model above, the generated setup contains this line, taken from `when_registering_with_apin.cs`:
 
 ```csharp
-_scenario.PinGeneratedValue("projectId", new ProjectId(Guid.Parse("11111111-1111-1111-1111-111111111111")));
+_scenario.PinGeneratedValue("projectId", new global::Acme.Shop.Common.ProjectId(global::System.Guid.Parse("11111111-1111-1111-1111-111111111111")));
 ```
 
 Pinned event and `then returns` assertions compare the authored values. A named return expectation can assert a subset of the response fields.
@@ -140,6 +141,7 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 
 | Diagnostic | Refused shape |
 | --- | --- |
+| `PLAY0268` (Screenplay) | Compliance markers or validation rules on a generated concept; `pattern`, `random` and `rule` strategies |
 | `STAGE-ESM-028` | Unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy |
 | `STAGE-ESM-011` | A v15 generated fixture that does not match its strategy shape |
 | `STAGE-ESM-004` | StateChange slices without a command |

@@ -19,8 +19,9 @@ internal static class SemanticRunReactionExpressions
         [SemanticComparisonOperator.LessThanOrEqual] = (left, right) => left <= right
     };
 
-    internal static SemanticValue Evaluate(SemanticExpression expression, IReadOnlyDictionary<SemanticId, SemanticValue> values) => expression switch
+    internal static SemanticValue Evaluate(SemanticExpression expression, IReadOnlyDictionary<SemanticId, SemanticValue> values, SemanticInvocationRefusalOutcome? refusal = null) => expression switch
     {
+        SemanticRefusalExpression member when refusal is not null => refusal.ValueOf(member.Member),
         SemanticValueExpression literal => literal.Value,
         SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } property when values.TryGetValue(property.Target, out var value) => value,
         _ => throw new InvalidSemanticContract("An execution expression is unresolved in its declared root scope.")

@@ -34,6 +34,11 @@ internal static partial class SemanticSpecificationAdmission
                 : "The append must select one reaction trigger, not fan-out or a non-reaction append.";
         }
 
+        if (active[0].Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
+        {
+            return RefusalScenarioRejection(context, specification, active[0]);
+        }
+
         if (specification.ThenNoEvents && !active[0].Trigger.Invokes.IsEmpty)
         {
             return "No-events append specifications support production-only reactions; invoked commands require a settlement harness.";
@@ -61,6 +66,59 @@ internal static partial class SemanticSpecificationAdmission
         return IsReactionConstraintTarget(context, append.EventContract)
             ? "The appended event is an append-time constraint target; a reactor scenario does not enforce that append." : null;
     }
+
+    static string? RefusalScenarioRejection(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected)
+    {
+        if (specification.ThenErrors.Length > 1 || !HasRenderableErrors(context, specification, null))
+        {
+            return "Refusal scenarios cannot faithfully assert coded, multiple or localized rejection expectations; only one uncoded portable error message is supported.";
+        }
+
+        var trigger = selected.Trigger;
+        if (!trigger.Produces.IsEmpty)
+        {
+            return "Refusal scenarios do not support mixed direct productions and invocations.";
+        }
+
+        if (specification.WhenAppended!.EventSource is null || specification.WhenAppended.Route is not null || specification.GivenEvents.Any(given => given.Route is not null))
+        {
+            return "Refusal scenarios require an explicit append source and unrouted fixtures.";
+        }
+
+        if (UsesReactionContext(selected.Reaction, trigger.Source))
+        {
+            return "Refusal scenarios cannot supply deterministic $context values.";
+        }
+
+        var commands = trigger.Invokes.Select(invocation => context.Commands[invocation.Command]).ToArray();
+        if (commands.Any(command => command.Properties.Any(property => property.IsGenerated || !IsRefusalScalarType(property.Type))))
+        {
+            return "Refusal scenarios require scalar commands without generated fixtures.";
+        }
+
+        var products = SemanticReactionProductions.For(trigger).Concat(commands.SelectMany(command => command.Produces)).ToArray();
+        if (products.Any(produced => IsReactionConstraintTarget(context, produced.EventContract)))
+        {
+            return "Refusal scenarios do not yet reproduce constraint-target command or branch outputs.";
+        }
+
+        if (EventReactionTriggers(context).Any(next => products.Any(produced => produced.EventContract == next.Source)))
+        {
+            return "Generated refusal scenarios do not settle deeper reaction cascades.";
+        }
+
+        if (specification.ThenEventsInAnyOrder || specification.ThenReturns is not null ||
+            specification.ThenEvents.Any(expected => !HasRenderableProductionExpectation(context, expected)) ||
+            products.Any(produced => context.Events[produced.EventContract].Properties.Any(property => !IsRefusalScalarType(property.Type))))
+        {
+            return "Refusal scenarios require ordered scalar event expectations without a response.";
+        }
+
+        return null;
+    }
+
+    static bool IsRefusalScalarType(SemanticTypeReference type) =>
+        !type.IsCollection && !type.IsOptional && type.Kind is SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept;
 
     static bool HasReactionReadExpectations(SemanticSpecification specification) =>
         !specification.GivenReadModels.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty;
@@ -119,7 +177,7 @@ internal static partial class SemanticSpecificationAdmission
         context.Constraints.Any(selected => selected.Constraint.Targets.Any(target => target.EventContract == @event) || selected.Constraint.ReleasedBy.Contains(@event));
 
     static bool UsesReactionContext(SemanticReaction reaction, SemanticId source) => reaction.Triggers.Any(trigger => trigger.Source == source &&
-        (trigger.Produces.Any(produced => produced.Destination is SemanticEventContextExpression || produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)) ||
+        (SemanticReactionProductions.For(trigger).Any(produced => produced.Destination is SemanticEventContextExpression || produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)) ||
         trigger.Invokes.Any(invocation => invocation.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression))));
 
     static bool ProductionExpectationsMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected) =>

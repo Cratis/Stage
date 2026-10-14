@@ -155,7 +155,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticStateChangeDestination", rendered, "Type Value");
         Add(entries, "SemanticResolvedExpression", rendered, "Root Source Target");
         Add(entries, "SemanticExpression", rendered, "Kind");
-        Add(entries, "SemanticExpressionKind", rendered, "Resolved");
+        Add(entries, "SemanticExpressionKind", rendered, "Resolved Refusal");
+        Add(entries, "SemanticRefusalExpression", rendered, "Member Type");
         Add(entries, "SemanticExpressionKind", rejected("STAGE-ESM-006"), "Unknown Value EventContext");
         Add(entries, "SemanticExpressionRootKind", rendered, "Command Event");
         Add(entries, "SemanticExpressionRootKind", rejected("STAGE-ESM-006"), "Unknown");
@@ -323,7 +324,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSliceKind", v6, "Translate");
         Add(entries, "SemanticExpressionRootKind", v6, "Trigger");
         Add(entries, "SemanticProducedEvent", rendered, "DestinationType");
-        Add(entries, "SemanticInvocation", rendered, "Command Mappings");
+        Add(entries, "SemanticInvocation", rendered, "Command Mappings OnRefused");
+        Add(entries, "SemanticInvocationRefusal", rendered, "Selector Constraint Produces");
         Add(entries, "SemanticReaction", rendered, "Id Name Triggers");
         Add(entries, "SemanticReactionTrigger", rendered, "Invokes Kind Produces Source Where");
         Add(entries, "SemanticReactionTrigger", v6, "At Every OnDayOfMonth OnDayOfWeek RequirementId");

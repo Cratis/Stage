@@ -22,11 +22,12 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("d7e1e2eefd47eb57decda700256f06e1996cdb248e714363a8bcab6a21c7708a");
-    [Fact] void should_change_only_the_arc_pins_from_the_previous_frozen_plan() => PreviousPinDigest().ShouldEqual("67a02695501fa30e4615301481d1cbb27e1ee6d3dd5475185eaccbc50374ac09");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("aa6a9fcc5cc6b5f418491276a27a9e25d3a717fb4e3b83f3d546197dacc200ff");
+    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_plan() => PreviousPinDigest().ShouldEqual("405e4e73c50c892994769e5bc5aac6c803cbe4e9052225baa9a8c45a06a0f3d9");
 
     string PreviousPinDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
+        // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
         _plan.TargetVersion.Replace("22.95.0", "22.87.0", StringComparison.Ordinal),
         _plan.Renderer,
         _plan.RendererVersion,
@@ -34,8 +35,18 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         [.. _plan.Artifacts.Select(artifact => artifact.Kind == PlannedArtifactKind.Text
             ? PlannedArtifact.CreateText(
                 artifact.RelativePath,
-                Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("22.95.0", "22.87.0", StringComparison.Ordinal),
+                PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
                 artifact.Sources)
             : artifact)],
         _plan.Diagnostics);
+
+    // Only the generated backend project carries the scaffold's Arc pin; other files may name 22.95.0 for unrelated packages.
+    static string PreviousPins(string relativePath, string text)
+    {
+        var previous = text.Replace("19.59.6", "19.55.2", StringComparison.Ordinal);
+
+        return relativePath.EndsWith(".csproj", StringComparison.Ordinal)
+            ? previous.Replace("22.95.0", "22.87.0", StringComparison.Ordinal)
+            : previous;
+    }
 }

@@ -145,11 +145,11 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         }
         else if (command is not null)
         {
-            if (await ExecuteCommand(new(context, instance!, slice, specification, plan), cancellationToken) is { } outcome) return outcome;
+            if ((await ExecuteCommand(new(context, instance!, slice, specification, plan), cancellationToken)).Failure is { } outcome) return outcome;
         }
 
         var actionFacts = context.Facts.Count - specification.GivenEvents.Length;
-        var reactions = new SemanticRunReactions(plan, context, specification.GivenEvents.Length, async fixture =>
+        var reactions = new SemanticRunReactions(plan, context, specification.GivenEvents.Length, async (fixture, collectRefusalDetails) =>
         {
             var invoked = plan.Commands[fixture.When!.Command];
             var invokedType = runtimeTypes.ForCommand(invoked);
@@ -157,7 +157,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             var invokedInstance = Materialize(invokedType, invoked, fixture.When);
             var principal = fixture.GivenCaller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.SystemPrincipal(fixture.GivenCaller);
 
-            return await ExecuteCommand(new(invokedContext, invokedInstance, slice, specification, plan, principal), cancellationToken);
+            return await ExecuteCommand(new(invokedContext, invokedInstance, slice, specification, plan, principal), cancellationToken, collectRefusalDetails);
         });
         var reactionFailure = specification.WhenRedelivered is { } redelivery
             ? await reactions.Redeliver(redelivery.Reaction, redelivery.Given, cancellationToken)
@@ -179,7 +179,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         return instance;
     }
 
-    static async Task<SemanticSpecificationRunRecord?> ExecuteCommand(SemanticCommandRun run, CancellationToken cancellationToken)
+    static async Task<SemanticInvocationOutcome> ExecuteCommand(SemanticCommandRun run, CancellationToken cancellationToken, bool collectRefusalDetails = false)
     {
         var context = run.Context;
         var specification = context.Specification;
@@ -188,7 +188,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var caller = specification.GivenCaller;
         var principal = run.ReactionPrincipal ?? (caller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.Principal(caller));
         var allowed = SemanticPolicyEvaluator.Allows(command.Authorization, run.Plan, caller, principal, command, specification);
-        if (allowed && PrepareCommand(run) is { } preparation) return preparation;
+        if (allowed && PrepareCommand(run, collectRefusalDetails) is { } preparation) return preparation;
 
         await using var scenario = new CommandScenario<object>();
         var principalOverride = ConfigureScenario(scenario, run, principal);
@@ -196,7 +196,11 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var result = await scenario.Execute(run.Instance, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        return CommandOutcome(run, result, allowed, priorFacts);
+        var failure = CommandOutcome(run, result, allowed, priorFacts);
+        var refusal = collectRefusalDetails && !allowed && !result.HasExceptions && !result.IsAuthorized && context.Facts.Count == priorFacts
+            ? new SemanticInvocationRefusalOutcome("authorization", [], SemanticRejection.Unauthorized.Message) : null;
+
+        return new(failure, refusal, result);
     }
 
     static CurrentPrincipalAccessor ConfigureScenario(CommandScenario<object> scenario, SemanticCommandRun run, ClaimsPrincipal principal)
@@ -228,24 +232,33 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         return result.ValidationResults.FirstOrDefault()?.Message is { } rejection ? Rejected(slice, expected, rejection) : null;
     }
 
-    static SemanticSpecificationRunRecord? PrepareCommand(SemanticCommandRun run)
+    static SemanticInvocationOutcome? PrepareCommand(SemanticCommandRun run, bool collectRefusalDetails)
     {
         var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
-        if (run.IsInvocation && InvocationContractFailure(context, run.Plan) is { } contractFailure) return Rejected(slice, expected, contractFailure);
-        if (CommandInputOutcome(context, slice, run.Plan.Model.Application.Concepts, true) is { } inputOutcome) return Reframe(inputOutcome, slice, expected);
-        if (run.IsInvocation && SemanticSpecificationAdmission.Check(run.Plan, context.Specification) is { } blocker) return Unsupported(slice, expected, blocker);
+        if (run.IsInvocation && InvocationContractFailure(context, run.Plan) is { } contractFailure) return new(Rejected(slice, expected, contractFailure));
+        if (collectRefusalDetails)
+        {
+            var failures = SemanticRuleEvaluation.Failures(context.Command, context.Specification, run.Plan.Model.Application.Concepts).ToArray();
+            if (failures.Length > 0)
+            {
+                var errors = failures.Where(failure => failure.Severity == SemanticValidationSeverity.Error).ToArray();
+                return new(Rejected(slice, expected, failures[0].Message), errors.Length == 0 ? null : new("validation", [], string.Join('\n', errors.Select(failure => failure.Message))));
+            }
+        }
+        if (CommandInputOutcome(context, slice, run.Plan.Model.Application.Concepts, true) is { } inputOutcome) return new(Reframe(inputOutcome, slice, expected));
+        if (run.IsInvocation && SemanticSpecificationAdmission.Check(run.Plan, context.Specification) is { } blocker) return new(Unsupported(slice, expected, blocker));
         if (NeedsExplicitDestination(context))
         {
-            return Unsupported(slice, expected, new(StageExecutionCapability.IdentityAllocation, context.Command.Id.ToString(), "An accepted command requires an explicit destination."));
+            return new(Unsupported(slice, expected, new(StageExecutionCapability.IdentityAllocation, context.Command.Id.ToString(), "An accepted command requires an explicit destination.")));
         }
 
-        return CommandAppendOutcome(run);
+        return CommandAppendOutcome(run, collectRefusalDetails);
     }
 
     static bool NeedsExplicitDestination(SemanticRunContext context) =>
         context.Specification.When!.EventSource is null && context.Command.Destination?.Value is null && context.Command.Produces.Where(context.Holds).Any(produced => produced.Destination is null);
 
-    static SemanticSpecificationRunRecord? CommandAppendOutcome(SemanticCommandRun run)
+    static SemanticInvocationOutcome? CommandAppendOutcome(SemanticCommandRun run, bool collectRefusalDetails)
     {
         var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
         var history = context.Facts.Select((fact, index) => new SemanticConstraintEvaluator.Fact(fact.EventContract, context.Destinations[index], fact.Values)).ToArray();
@@ -253,15 +266,22 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             .Select(item => new SemanticConstraintEvaluator.Fact(item.Fact.EventContract, item.Destination, item.Fact.Values)).ToArray();
         if (ReusesGeneratedSource(context, candidates.Select(candidate => candidate.Destination)))
         {
-            return Rejected(slice, expected, SemanticGenerationShapes.FreshnessMessage);
+            return new(Rejected(slice, expected, SemanticGenerationShapes.FreshnessMessage));
         }
-        if (SemanticConstraintEvaluator.FindViolation(run.Plan, history, candidates) is { } constraint)
+        var violations = SemanticConstraintEvaluator.FindViolations(run.Plan, history, candidates);
+        var constraints = (collectRefusalDetails ? violations : violations.Take(1)).ToArray();
+        if (constraints.Length > 0)
         {
-            return Rejected(slice, expected, new SemanticRejection(SemanticConstraintEvaluator.Message(constraint), constraint.Name));
+            var first = constraints[0];
+            var refusal = collectRefusalDetails ? new SemanticInvocationRefusalOutcome(
+                "constraint",
+                [.. constraints.Select(constraint => new SemanticConstraintFailure(constraint.Name, SemanticConstraintEvaluator.Message(constraint)))],
+                string.Join('\n', constraints.Select(SemanticConstraintEvaluator.Message))) : null;
+            return new(Rejected(slice, expected, new SemanticRejection(SemanticConstraintEvaluator.Message(first), first.Name)), refusal);
         }
 
         return context.Facts.Count - expected.GivenEvents.Length + candidates.Length > SemanticRunReactions.MaximumFacts
-            ? SemanticRunReactions.FactLimit().ToRecord(slice, expected) : null;
+            ? new(SemanticRunReactions.FactLimit().ToRecord(slice, expected)) : null;
     }
 
     static string? InvocationContractFailure(SemanticRunContext context, SemanticExecutionPlan plan)

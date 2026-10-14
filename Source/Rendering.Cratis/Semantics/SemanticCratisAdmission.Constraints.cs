@@ -17,7 +17,10 @@ internal static partial class SemanticCratisAdmission
         IReadOnlyList<LocatedSemanticSlice> slices)
     {
         var selected = slices.Select(_ => _.Slice.Id).ToHashSet();
-        var produced = slices.SelectMany(_ => _.Slice.Commands).SelectMany(_ => _.Produces).Select(_ => _.EventContract).ToHashSet();
+        var produced = slices.SelectMany(located => located.Slice.Commands).SelectMany(command => command.Produces)
+            .Concat(slices.SelectMany(located => located.Slice.Reactions.IsDefault ? [] : located.Slice.Reactions)
+                .SelectMany(reaction => reaction.Triggers).SelectMany(SemanticReactionProductions.For))
+            .Select(production => production.EventContract).ToHashSet();
         return [.. context.Constraints.Where(_ => selected.Contains(_.Slice.Id) ||
             _.Constraint.Targets.Any(target => produced.Contains(target.EventContract)))];
     }

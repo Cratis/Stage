@@ -33,8 +33,8 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.159.0, admits exact ESM v1–v17
-version pairs and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.160.0, admits exact ESM v1–v17 and v19
+version pairs (not v18 or mixed/noncanonical pairs) and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
 At v11 it executes retained exact Double-mode integer and fractional values without a second rounding
 step, including the safe whole-number bounds ±9007199254740991 and `0.10000000000000002`.
 This does not enable `numbers exact` or extend the source integer range.
@@ -88,6 +88,38 @@ Generated empty-effect specifications support admitted commands and single-hop p
 including excluded `where` or observer filters. Reaction-triggering commands, fan-out, deeper cascades,
 invoked-command empty-effect cases and no-observer appends still require a settlement/log-delta harness
 and are refused. See the [renderer support matrix](../guides/build-renderer-target.md#admit-target-semantics-before-emission).
+
+## Invocation refusal branches
+
+At ESM v19, event-reaction invocations can handle business refusals with ordered `on refused` branches.
+The first matching branch wins. Bare `on refused` matches validation or constraint refusals, never
+an authorization denial; `by authorization` must be explicit. A named constraint selector matches any
+violated name, while `$refusal.constraint` exposes the first violation name. `$refusal.reason` is
+`validation`, `constraint` or `authorization`; `$refusal.message` joins error validation or constraint
+messages in reference order with newlines, preserving whitespace and unresolved localization keys.
+Warning-only rejections, contract defects, unsupported capabilities and infrastructure/concurrency failures
+are not catchable business refusals.
+
+A branch either acknowledges without new facts or appends its declared productions through ordinary
+constraint and projection checks. It then skips the remaining invocations of that trigger, not sibling
+triggers, other reactions or queued cascades. Earlier committed facts remain. A rejected branch append
+ends the scenario; it is not offered to a later refusal branch. Invocations still use the reaction's own
+system identity or no caller, never the fixture caller. Cancellation and the 1000-new-fact limit remain
+non-passing outcomes.
+
+The independent executor runs refusal branches, including named redelivery and downstream cascades.
+Generated specifications have a narrower append-only, single-hop subset: scalar invocations without
+unavailable generated fixtures, ordered terminal unconstrained productions or acknowledgement, explicit
+append source, no routing/context/read assertions, and exactly one selected trigger. They execute the
+returned Arc wrappers with the context-aware command side-effect executor and compare persisted log
+deltas after settlement. Redelivery, fan-out, deeper cascades and constrained output scenarios still fail
+rendering with `STAGE-ESM-011`; this includes the unmodified v19 invocation-refusal corpus. Same-source
+multi-trigger refusal groups fail rendering with `STAGE-ESM-039`, because Arc stops a returned command
+list rather than one Screenplay trigger subgroup. Generated refusal scenarios also refuse coded or
+multiple error expectations with `STAGE-ESM-011`. Mapping `$refusal.message` from a command with
+localized validation or constraint messages, or `$refusal.constraint` with several potentially violated
+constraints, fails rendering with `STAGE-ESM-039`: Arc 22.88.0 cannot preserve unresolved keys or
+Screenplay's first-violation ordering. These rendering limits do not narrow the independent executor.
 
 ## Mount points and arguments
 

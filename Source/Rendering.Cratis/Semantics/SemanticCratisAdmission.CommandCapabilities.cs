@@ -171,9 +171,19 @@ internal static partial class SemanticCratisAdmission
     {
         foreach (var property in command.Properties)
         {
-            if (property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } && !context.Concepts[property.Type.Target].Validations.IsEmpty)
+            if (property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } &&
+                !context.Concepts[property.Type.Target].Validations.IsEmpty &&
+                !HasNullPassingScalarConcept(context, property.Type))
             {
-                diagnostics.Add(CommandCapability(command, $"optional property '{property.Name}' uses validated concept '{context.Concepts[property.Type.Target].Name}'; Arc graph validation skips null concepts and cannot preserve the reference evaluator's concept rules. Make the property non-optional only if absence is not part of the contract, or keep this shape unsupported (Cratis/Stage#409)."));
+                var reason = property.Type.IsCollection || !context.Concepts[property.Type.Target].Values.IsEmpty
+                    ? "only scalar concepts without named values are supported for optional validated properties. Collections and named-value concepts remain unsupported"
+                    : "Arc graph validation skips null concepts and cannot preserve absence-rejecting concept rules. Only absence-rejecting rules block optional scalar concepts without named values";
+                diagnostics.Add(CommandCapability(command, $"optional property '{property.Name}' uses validated concept '{context.Concepts[property.Type.Target].Name}'; {reason}. Make the property non-optional only if absence is not part of the contract, or keep this shape unsupported (Cratis/Stage#409)."));
+            }
+
+            if (property.Type is { Kind: SemanticTypeReferenceKind.CompositeType, IsOptional: true } && HasValidatedConcept(context, property.Type, []))
+            {
+                diagnostics.Add(CommandCapability(command, $"optional composite property '{property.Name}' contains validated concepts; optional composites remain unsupported until nested concept validation parity is verified (Cratis/Stage#409)."));
             }
 
             if (property.Type.Kind == SemanticTypeReferenceKind.CompositeType && HasOptionalRequiredConcept(context, property.Type, []))
@@ -183,6 +193,15 @@ internal static partial class SemanticCratisAdmission
             }
         }
     }
+
+    static bool HasNullPassingScalarConcept(SemanticApplicationContext context, SemanticTypeReference type) =>
+        !type.IsCollection && context.Concepts[type.Target].Values.IsEmpty &&
+        context.Concepts[type.Target].Validations.All(rule => rule.Kind is
+            SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
+            SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or
+            SemanticValidationRuleKind.GreaterThan or SemanticValidationRuleKind.GreaterThanOrEqual or
+            SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
+            SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches);
 
     static IEnumerable<string> OptionalValidatedConceptProperties(SemanticApplicationContext context, SemanticTypeReference type, string path, HashSet<SemanticId> visited)
     {

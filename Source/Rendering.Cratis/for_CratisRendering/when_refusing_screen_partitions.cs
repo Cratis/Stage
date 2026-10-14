@@ -43,7 +43,7 @@ public class when_refusing_screen_partitions : given.a_partitioned_screen_plan
         var profile = WithInput(input);
         if (reason == "duplicate input")
         {
-            profile = ArtifactRenderProfile.Create(profile.Target, profile.TargetVersion, profile.Renderer, profile.RendererVersion, [.. profile.Inputs, ArtifactRenderInput.Create(input.Name, "2", input.Bytes)]);
+            profile = ArtifactRenderProfile.Create(profile.Target, profile.TargetVersion, profile.Renderer, profile.RendererVersion, [.. profile.Inputs, ArtifactRenderInput.Create(input.Name, "999", input.Bytes)]);
         }
 
         var result = CratisRendering.PlanFrom(_loaded, new([PlanSelectionEntry.Feature("Projects", "Registration")]), _options with { Profile = profile });

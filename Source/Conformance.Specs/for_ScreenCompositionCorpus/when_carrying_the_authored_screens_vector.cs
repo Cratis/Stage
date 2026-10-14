@@ -44,9 +44,9 @@ public class when_carrying_the_authored_screens_vector : given.the_planned_scree
     [Fact] void should_name_enumerations_as_the_scene_runtime_declares_them() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"trigger\":{\"kind\":\"DoubleClick\"}");
     [Fact] void should_not_camel_case_an_enumeration_name() => Encoding.UTF8.GetString(_bytes).ShouldNotContain("\"kind\":\"doubleClick\"");
     [Fact] void should_plan_the_authored_scene_with_its_guards() => _refusal.ShouldBeNull();
-    [Fact] void should_plan_without_errors() => _plan!.Success.ShouldBeTrue();
+    [Fact] void should_plan_without_warnings_or_errors() => _plan!.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_reassemble_the_canonical_scene_byte_identically() => _plan!.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(_bytes);
-    [Fact] void should_pin_the_partitioned_artifact_digest() => _plan!.Digest.ShouldEqual("8ac0858964ca4e09f56b2bf202321232994c82f2afc57830fad8f07374e397f9");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => _plan!.Digest.ShouldEqual("72e69f02f05f84081c0010cb705e29072c20f690aeaa8d2caca7a5b9b96f0290");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json 24fb27aa838c752d1032fbe31fc49502ff2b444cc2453741bb8efb08506858be 2223
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json 6748a60904bb7a192d0adcd630c4788ac299907c24400bf7e4a86a2e3b68f84d 9719
@@ -57,13 +57,16 @@ public class when_carrying_the_authored_screens_vector : given.the_planned_scree
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_carry_identical_partitioned_plans_for_each_source_form(string name)
+    public void should_carry_identical_fragments_and_preserve_each_source_forms_scene(string name)
     {
         var form = ScreenCompositionCorpus.V1.SourceForms.Single(form => form.Name == name);
         var plan = Plan(form.Documents, form.IdentityCatalogBytes.AsSpan(), carryScene: true).Plan;
-        plan.Digest.ShouldEqual(_plan!.Digest);
-        plan.Artifacts.Select(artifact => artifact.Sha256).ShouldEqual(_plan.Artifacts.Select(artifact => artifact.Sha256));
+        Fragments(plan).ShouldEqual(Fragments(_plan!));
+        plan.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(Encoding.UTF8.GetBytes(CanonicalSceneJson.Serialize(SceneOf(form.Documents))));
     }
+
+    static IEnumerable<string> Fragments(ArtifactRenderPlan plan) => plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal))
+        .Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {string.Join(',', artifact.Sources)}");
 
     IEnumerable<string> Guards() => Regex.Matches(Encoding.UTF8.GetString(_bytes), "\\{\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}|\\{\"[^{}]*\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}").Select(_ => _.Value);
 }

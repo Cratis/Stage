@@ -5,8 +5,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cratis.Screenplay.Semantics;
-using Cratis.Screenplay.Syntax;
-using Cratis.Screenplay.Workspaces;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
@@ -19,7 +17,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scene;
 internal static class ScreenPartitionsInput
 {
     internal const string Name = "cratis-authoring:screen-partitions";
-    const string Version = "1";
+    const string Version = "2";
 
     internal static ArtifactRenderInput Create(ArtifactRenderProfile profile, SemanticCompilation compilation)
     {
@@ -29,25 +27,10 @@ internal static class ScreenPartitionsInput
             throw new InvalidArtifactRenderContract(mismatch);
         }
 
-        var documents = compilation.Documents;
-        var workspace = ScreenplayWorkspace.Create(
-            documents.IdentityCatalog.Application,
-            compilation.Model.Application.Name,
-            [.. documents.Documents.Select(document => WorkspaceDocument.Create(document.Id, document.StableKey, PortablePlayPath.Parse(document.DisplayPath), Encoding.UTF8.GetBytes(document.Text)))],
-            documents.IdentityCatalog);
-        var index = WorkspaceSyntaxIndex.Create(workspace);
-        if (index.Diagnostics.Any(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error) ||
-            workspace.Compilation.Value?.Model.Revision != compilation.Model.Revision)
-        {
-            throw new InvalidArtifactRenderContract("Screen partitions require the syntax and identity catalog from the same compilation.");
-        }
-
-        var request = new ArtifactRenderRequest(compilation.Model, Screenplay.Semantics.Execution.SemanticExecutionPlan.Compile(compilation.Model).Plan!, profile, new(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id));
-        var context = new SemanticApplicationContext(request, new("Screens", "Screens"));
-        var declarations = index.Entries.Where(entry => entry.Node is SliceSyntax && entry.SemanticId is not null)
-            .SelectMany(entry => ((SliceSyntax)entry.Node).Screens.Select(screen =>
-                (Owner: entry.SemanticId!.Value, Screen: screen, Path: Hierarchy(context.Slice(entry.SemanticId.Value)))))
-            .ToList();
+        var authority = ScreenCompilationAuthority.Capture(compilation);
+        var workspace = ScreenCompilationAuthority.Open(authority, compilation.Model.Revision.ToString());
+        var declarations = ScreenCompilationAuthority.Declarations(workspace);
+        var compiledScreens = ScreenCompilationAuthority.Screens(workspace);
         if (scene is null)
         {
             if (declarations.Count > 0)
@@ -55,7 +38,7 @@ internal static class ScreenPartitionsInput
                 throw new InvalidArtifactRenderContract("Screen partitions require the translated Scene covering the authored screens.");
             }
 
-            return ArtifactRenderInput.Create(Name, Version, [.. Serialize(new(compilation.Model.Revision.ToString(), string.Empty, []))]);
+            return ArtifactRenderInput.Create(Name, Version, [.. Serialize(new(compilation.Model.Revision.ToString(), string.Empty, [], authority))]);
         }
 
         var root = JsonNode.Parse(scene.Bytes.AsSpan())!.AsObject();
@@ -64,26 +47,27 @@ internal static class ScreenPartitionsInput
         for (var position = 0; position < screens.Count; position++)
         {
             var screen = screens[position]!.AsObject();
-            var matches = declarations.Where(declaration => declaration.Screen.Name == screen["name"]!.GetValue<string>() &&
-                declaration.Path.SequenceEqual(screen["path"]!.AsArray().Select(segment => segment!.GetValue<string>()))).ToArray();
+            var key = ScreenCompilationAuthority.Key(screen);
+            var matches = declarations.Where(declaration => declaration.Key == key).ToArray();
             if (matches.Length != 1)
             {
                 throw new InvalidArtifactRenderContract($"Screen '{screen["name"]}' has duplicate or unresolved declaring-slice ownership.");
             }
 
+            RequirePayloadAgreement(screen, compiledScreens);
             var match = matches[0];
             declarations.Remove(match);
             var own = screen.DeepClone().AsObject();
             var contributions = own["contributions"]!.AsArray();
-            var inheritedCount = contributions.Count - (match.Screen.Contributions?.Count() ?? 0);
+            var inheritedCount = contributions.Count - match.OwnContributions;
             if (inheritedCount < 0)
             {
-                throw new InvalidArtifactRenderContract($"Screen '{match.Screen.Name}' contributions disagree with the compilation.");
+                throw new InvalidArtifactRenderContract($"Screen '{screen["name"]}' contributions disagree with the compilation.");
             }
 
             var inherited = new JsonArray([.. contributions.Take(inheritedCount).Select(value => value?.DeepClone())]);
             own["contributions"] = new JsonArray([.. contributions.Skip(inheritedCount).Select(value => value?.DeepClone())]);
-            entries.Add(new(match.Owner.ToString(), position, own, inherited));
+            entries.Add(new(match.Owner, position, own, inherited));
         }
 
         if (declarations.Count > 0)
@@ -91,7 +75,7 @@ internal static class ScreenPartitionsInput
             throw new InvalidArtifactRenderContract("The translated Scene does not cover every authored screen in the compilation.");
         }
 
-        return ArtifactRenderInput.Create(Name, Version, [.. Serialize(new(compilation.Model.Revision.ToString(), scene.Sha256, entries))]);
+        return ArtifactRenderInput.Create(Name, Version, [.. Serialize(new(compilation.Model.Revision.ToString(), scene.Sha256, entries, authority))]);
     }
 
     internal static bool TryRead(ArtifactRenderProfile profile, ExecutableSemanticModel? model, out Catalog? catalog, out string mismatch)
@@ -121,16 +105,19 @@ internal static class ScreenPartitionsInput
 
             var candidate = JsonSerializer.Deserialize<Catalog>(inputs[0].Bytes.AsSpan());
             var scene = profile.Inputs.SingleOrDefault(input => input.Name == $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}");
-            if (candidate?.Entries is null || candidate.SceneSha256 != (scene?.Sha256 ?? string.Empty) ||
+            if (candidate?.Entries is null || candidate.Authority is null || candidate.SceneSha256 != (scene?.Sha256 ?? string.Empty) ||
                 (model is not null && candidate.ModelRevision != model.Revision.ToString()))
             {
                 mismatch = "Screen partitions are stale or do not match the composed Scene payload and model revision.";
                 return false;
             }
 
+            var workspace = ScreenCompilationAuthority.Open(candidate.Authority, candidate.ModelRevision);
+            var declarations = ScreenCompilationAuthority.Declarations(workspace);
+            var compiledScreens = ScreenCompilationAuthority.Screens(workspace);
             if (scene is null)
             {
-                if (candidate.Entries.Count != 0 || !inputs[0].Bytes.SequenceEqual(Serialize(candidate)))
+                if (candidate.Entries.Count != 0 || declarations.Count != 0 || !inputs[0].Bytes.SequenceEqual(Serialize(candidate)))
                 {
                     mismatch = "Screen partitions without an authored Scene must contain no screen records.";
                     return false;
@@ -162,7 +149,20 @@ internal static class ScreenPartitionsInput
                 return false;
             }
 
-            if (candidate.Entries.Select(entry => ScreenKey(entry.Screen)).Distinct(StringComparer.Ordinal).Count() != screens.Count ||
+            foreach (var entry in candidate.Entries)
+            {
+                var key = ScreenCompilationAuthority.Key(entry.Screen);
+                if (!declarations.Exists(declaration => declaration.Owner == entry.Owner && declaration.Key == key))
+                {
+                    mismatch = $"Screen partitions name slice '{entry.Owner}' as owner of screen '{entry.Screen["name"]}', but that slice does not declare the screen in the compilation.";
+                    return false;
+                }
+
+                RequirePayloadAgreement(Reassemble(entry), compiledScreens);
+            }
+
+            if (candidate.Entries.Count != declarations.Count ||
+                candidate.Entries.Select(entry => ScreenCompilationAuthority.Key(entry.Screen)).Distinct(StringComparer.Ordinal).Count() != screens.Count ||
                 candidate.Entries.Exists(entry => CanonicalSceneJson.Write(Reassemble(entry)) != CanonicalSceneJson.Write(screens[entry.Index])) ||
                 !inputs[0].Bytes.SequenceEqual(Serialize(candidate)))
             {
@@ -173,7 +173,12 @@ internal static class ScreenPartitionsInput
             catalog = candidate;
             return true;
         }
-        catch (Exception exception) when (exception is JsonException or InvalidOperationException or NullReferenceException)
+        catch (InvalidArtifactRenderContract exception)
+        {
+            mismatch = exception.Message;
+            return false;
+        }
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException or NullReferenceException or InvalidSemanticContract or Screenplay.Workspaces.InvalidScreenplayWorkspace)
         {
             mismatch = "Screen partitions are malformed JSON or contain malformed screen records.";
             return false;
@@ -209,11 +214,19 @@ internal static class ScreenPartitionsInput
         return screen;
     }
 
-    static string ScreenKey(JsonObject screen) => CanonicalSceneJson.Write(new JsonArray(screen["path"]?.DeepClone(), screen["name"]?.DeepClone()));
-    static string[] Hierarchy(LocatedSemanticSlice slice) => [slice.Module.Name, .. slice.FeaturePath.Select(feature => feature.Name)];
+    static void RequirePayloadAgreement(JsonObject screen, JsonArray compiledScreens)
+    {
+        var key = ScreenCompilationAuthority.Key(screen);
+        var matches = compiledScreens.OfType<JsonObject>().Where(compiled => ScreenCompilationAuthority.Key(compiled) == key).ToArray();
+        if (matches.Length != 1 || CanonicalSceneJson.Write(screen) != CanonicalSceneJson.Write(matches[0]))
+        {
+            throw new InvalidArtifactRenderContract($"Screen partitions carry a stale or mismatched payload for screen '{screen["name"]}' compared with the compiled Scene.");
+        }
+    }
+
     static byte[] Serialize(Catalog catalog) => Encoding.UTF8.GetBytes(CanonicalSceneJson.Write(JsonSerializer.SerializeToNode(catalog)));
     static IEnumerable<SemanticSlice> Slices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(Slices));
 
     internal sealed record Entry(string Owner, int Index, JsonObject Screen, JsonArray InheritedContributions);
-    internal sealed record Catalog(string ModelRevision, string SceneSha256, List<Entry> Entries);
+    internal sealed record Catalog(string ModelRevision, string SceneSha256, List<Entry> Entries, ScreenCompilationAuthority.Source Authority);
 }

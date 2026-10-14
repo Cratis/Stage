@@ -21,5 +21,5 @@ public class with_a_static_screen : given.a_partitioned_screen_plan
     [Fact] void should_emit_the_business_file() => _result.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("/RegisterProject.cs", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_match_the_application_fragment_bytes() => Fragments(_result.Artifacts).Single().Sha256.ShouldEqual(Fragments(_application.Artifacts).Single(artifact => artifact.Sources.Contains(Slice("RegisterProject").Id)).Sha256);
     [Fact] void should_omit_every_shared_scene_aggregate() => _result.Artifacts.Any(artifact => artifact.RelativePath == "scene.json" || artifact.RelativePath == "src/bindings.ts" || artifact.RelativePath == "src/stage-scene.json" || artifact.RelativePath == "src/stage.ts").ShouldBeFalse();
-    [Fact] void should_explain_why_shared_ui_is_not_published() => _result.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-SCREEN-006").ShouldBeTrue();
+    [Fact] void should_explain_why_shared_scene_aggregates_are_omitted() => _result.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-SCREEN-006").ShouldBeTrue();
 }

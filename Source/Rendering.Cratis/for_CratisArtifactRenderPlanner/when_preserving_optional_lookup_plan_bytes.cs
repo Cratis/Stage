@@ -26,13 +26,13 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("1def3ef0de51391d6fa01ec983b6c40ea112f21c91536514599cf8a67baa3a45");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("2f3c3867a6280d08af401390276fe322d354bf95e8ef918cff53de5750e0a08c");
     [Fact] void should_change_only_the_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousPinDigest().ShouldEqual("405e4e73c50c892994769e5bc5aac6c803cbe4e9052225baa9a8c45a06a0f3d9");
 
     string PreviousPinDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
         // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-        _plan.TargetVersion.Replace("22.95.0", "22.87.0", StringComparison.Ordinal),
+        _plan.TargetVersion.Replace("22.100.1", "22.87.0", StringComparison.Ordinal),
         _plan.Renderer,
         _plan.RendererVersion,
         _plan.ApplicationName,
@@ -44,13 +44,13 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
             : artifact)],
         _plan.Diagnostics);
 
-    // Only the generated backend project carries the scaffold's Arc pin; other files may name 22.95.0 for unrelated packages.
+    // Only the generated backend project carries the scaffold's Arc pin; other files may name 22.100.1 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal);
 
         return relativePath.EndsWith(".csproj", StringComparison.Ordinal)
-            ? previous.Replace("22.95.0", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.100.1", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 }

@@ -22,7 +22,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "56fa9ff898a5337bad17be2c47b2e97ff3c9b156c408e54f08d8e289668b9e90";
+    const string Digest = "b0728c476d3379c7b6e1e2d44bc67c3a49128db00566ac6a9eed50dd9701f6a3";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436

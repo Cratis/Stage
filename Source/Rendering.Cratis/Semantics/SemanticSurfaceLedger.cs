@@ -238,10 +238,6 @@ internal static class SemanticSurfaceLedger
         // ESM v5 keyed read-model absence fails STAGE-ESM-027: the generated ReadModelScenario exposes only a materialized record.
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-027"), "ThenAbsentReadModels");
 
-        // ESM v17 (Screenplay decision 0074) adds explicit no-event assertions and recovery redelivery. Screenplay
-        // admits them only in v17 models, which fail version admission (STAGE-ESM-016) until Stage renders them (#371).
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenNoEvents WhenRedelivered");
-        Add(entries, "SemanticSpecificationRedelivery", rejected("STAGE-ESM-016"), "Given Reaction");
         Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-027"), "Key ReadModel");
         Add(entries, "SemanticSpecification", rendered, "WhenAppended ThenNoEvents");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-011"), "WhenRedelivered");

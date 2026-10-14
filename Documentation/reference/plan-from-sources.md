@@ -135,7 +135,7 @@ Bare catalogs and identity wrappers outside the root's metadata path keep the
 compilation-based assessment with `ReleaseBaselineStore.Read`. Source loading never
 admits a release or writes sidecars. An absent baseline adds no warnings. A present
 baseline without authoritative identities reports an unavailable check, not guessed
-changed or missing revisions. See [Screenplay's public model-root readers](/screenplay/screenplay/tool/#call-these-from-your-own-tooling).
+changed or missing revisions. See [Screenplay's public model-root readers](/screenplay/tool/#call-these-from-your-own-tooling).
 
 `LoadedSemanticModel.ReleaseBaseline` carries the assessment of the whole compiled
 application. Both `PlanFrom` overloads forward it, including violations in sibling
@@ -157,7 +157,7 @@ to the plan digest because diagnostics are part of that digest. Blocking rendere
 errors still refuse the plan. Use `screenplay baseline check <root>` as your CI gate:
 Stage warnings do not enforce frozen revisions or Chronicle schema compatibility.
 The baseline comes from an explicit `screenplay baseline admit` release step, not
-rendering. See [Screenplay's baseline commands](/screenplay/screenplay/tool/).
+rendering. See [Screenplay's baseline commands](/screenplay/tool/#admit-and-check-released-event-revisions).
 
 Baseline checking is independent of `CheckPublication`: warnings do not make a
 compatible destination incompatible, and they never waive `STAGE-EVENT-002`.

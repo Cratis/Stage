@@ -70,22 +70,44 @@ internal static partial class SemanticSpecificationAdmission
     static string? RefusalScenarioRejection(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected)
     {
         var trigger = selected.Trigger;
-        if (!trigger.Produces.IsEmpty) return "Refusal scenarios do not support mixed direct productions and invocations.";
+        if (!trigger.Produces.IsEmpty)
+        {
+            return "Refusal scenarios do not support mixed direct productions and invocations.";
+        }
+
         if (specification.WhenAppended!.EventSource is null || specification.WhenAppended.Route is not null || specification.GivenEvents.Any(given => given.Route is not null))
+        {
             return "Refusal scenarios require an explicit append source and unrouted fixtures.";
-        if (UsesReactionContext(selected.Reaction, trigger.Source)) return "Refusal scenarios cannot supply deterministic $context values.";
+        }
+
+        if (UsesReactionContext(selected.Reaction, trigger.Source))
+        {
+            return "Refusal scenarios cannot supply deterministic $context values.";
+        }
+
         var commands = trigger.Invokes.Select(invocation => context.Commands[invocation.Command]).ToArray();
         if (commands.Any(command => command.Properties.Any(property => property.IsGenerated || !IsRefusalScalarType(property.Type))))
+        {
             return "Refusal scenarios require scalar commands without generated fixtures.";
+        }
+
         var products = SemanticReactionProductions.For(trigger).Concat(commands.SelectMany(command => command.Produces)).ToArray();
         if (products.Any(produced => IsReactionConstraintTarget(context, produced.EventContract)))
+        {
             return "Refusal scenarios do not yet reproduce constraint-target command or branch outputs.";
+        }
+
         if (EventReactionTriggers(context).Any(next => products.Any(produced => produced.EventContract == next.Source)))
+        {
             return "Generated refusal scenarios do not settle deeper reaction cascades.";
+        }
+
         if (specification.ThenEventsInAnyOrder || specification.ThenReturns is not null ||
             specification.ThenEvents.Any(expected => !HasRenderableProductionExpectation(context, expected)) ||
             products.Any(produced => context.Events[produced.EventContract].Properties.Any(property => !IsRefusalScalarType(property.Type))))
+        {
             return "Refusal scenarios require ordered scalar event expectations without a response.";
+        }
 
         return null;
     }

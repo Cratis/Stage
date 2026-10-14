@@ -121,7 +121,9 @@ internal static class SemanticReactorArtifactRenderer
         property.Type.IsCollection && mapping.Source is SemanticResolvedExpression &&
         context.Reducers.Any(reducer => reducer.Transitions.Any(transition => transition.EventContract == target.Id));
 
-    static string Selector(SemanticInvocationRefusal branch) => "global::Cratis.Arc.Chronicle.Reactors.Refused." + (branch.Selector switch
+    static string Selector(SemanticInvocationRefusal branch) => $"global::Cratis.Arc.Chronicle.Reactors.Refused.{SelectorMember(branch)}";
+
+    static string SelectorMember(SemanticInvocationRefusal branch) => branch.Selector switch
     {
         "any" => "Any",
         "validation" => "ByValidation",
@@ -129,7 +131,7 @@ internal static class SemanticReactorArtifactRenderer
         "constraint" when branch.Constraint is { } name => $"ByConstraint({CSharpCodeBuilder.StringLiteral(name)})",
         "constraint" => "ByAnyConstraint",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticInvocationRefusal), branch.Selector)
-    });
+    };
 
     static string RefusalMember(string member, string refusalException) => member switch
     {

@@ -69,6 +69,11 @@ internal static partial class SemanticSpecificationAdmission
 
     static string? RefusalScenarioRejection(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected)
     {
+        if (specification.ThenErrors.Length > 1 || !HasRenderableErrors(context, specification, null))
+        {
+            return "Refusal scenarios cannot faithfully assert coded, multiple or localized rejection expectations; only one uncoded portable error message is supported.";
+        }
+
         var trigger = selected.Trigger;
         if (!trigger.Produces.IsEmpty)
         {

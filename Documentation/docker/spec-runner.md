@@ -115,7 +115,11 @@ returned Arc wrappers with the context-aware command side-effect executor and co
 deltas after settlement. Redelivery, fan-out, deeper cascades and constrained output scenarios still fail
 rendering with `STAGE-ESM-011`; this includes the unmodified v19 invocation-refusal corpus. Same-source
 multi-trigger refusal groups fail rendering with `STAGE-ESM-039`, because Arc stops a returned command
-list rather than one Screenplay trigger subgroup.
+list rather than one Screenplay trigger subgroup. Generated refusal scenarios also refuse coded or
+multiple error expectations with `STAGE-ESM-011`. Mapping `$refusal.message` from a command with
+localized validation or constraint messages, or `$refusal.constraint` with several potentially violated
+constraints, fails rendering with `STAGE-ESM-039`: Arc 22.88.0 cannot preserve unresolved keys or
+Screenplay's first-violation ordering. These rendering limits do not narrow the independent executor.
 
 ## Mount points and arguments
 

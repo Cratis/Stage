@@ -400,7 +400,13 @@ violated name, even when a later name selected the branch; `message` preserves o
 messages. A handled branch skips only the current trigger's remaining invocations. Its productions
 retain event destinations and tags, use ordinary append constraints, and can fail without matching a
 fallback branch. Exceptions, contract/unsupported outcomes, concurrency and warning-only rejections
-are not acknowledged. Commands without branches keep their original bare-command output. The independent
+are not acknowledged. Mapping `$refusal.message` from a command that can reject with a localized
+`$strings.*` validation or constraint message fails `STAGE-ESM-039`: Arc exposes translated prose,
+not the reference's unresolved key. Mapping `$refusal.constraint` when several constraints could be
+violated also fails `STAGE-ESM-039`, because Arc's returned violation order is not Screenplay's
+candidate/sorted-name order. Single-constraint names and non-localized messages remain supported.
+Generated refusal scenarios refuse coded or multiple rejection expectations with `STAGE-ESM-011`
+rather than discarding an expected code. Commands without branches keep their original bare-command output. The independent
 executor also settles branch cascades and redelivery; the unmodified `InvocationRefusalsCorpus.V19`
 therefore runs reference-versus-executor but retains the precise `STAGE-ESM-011` rendered redelivery refusal.
 

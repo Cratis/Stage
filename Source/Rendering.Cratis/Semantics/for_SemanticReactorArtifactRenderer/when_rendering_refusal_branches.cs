@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticReactorArtifactRenderer;
@@ -93,6 +95,56 @@ public class when_rendering_refusal_branches : for_SemanticAutomationArtifactRen
         source.ShouldContain("EventForEventSourceId(context.EventSourceId, new");
         source.ShouldContain("EventForEventSourceId(\"other\", new");
         source.IndexOf("Tags = [\"first\"]", StringComparison.Ordinal).ShouldBeLessThan(source.IndexOf("Tags = [\"second\"]", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("command", true)]
+    [InlineData("requirement", true)]
+    [InlineData("concept", true)]
+    [InlineData("constraint", true)]
+    [InlineData("command", false)]
+    [InlineData("requirement", false)]
+    [InlineData("concept", false)]
+    [InlineData("constraint", false)]
+    public void should_preserve_verbatim_messages_or_refuse_localized_refusal_payloads(string origin, bool localized)
+    {
+        var message = localized ? "$strings.failure" : "\"exact\"";
+        if (localized && origin == "constraint") message = "\"$strings.failure\"";
+        var input = origin switch
+        {
+            "command" => RefusalSource.Replace("      constraint OneCompletion", $"        validate\n          id not empty message {message}\n      constraint OneCompletion", StringComparison.Ordinal),
+            "requirement" => RefusalSource.Replace("      constraint OneCompletion", $"        validate\n          require id != \"\"\n            message {message}\n      constraint OneCompletion", StringComparison.Ordinal),
+            "concept" => $"concept Note : String\n  validate\n    not empty message {message}\n" + RefusalSource
+                .Replace("      command Complete\n        id String identifier", "      command Complete\n        id String identifier\n        note Note", StringComparison.Ordinal)
+                .Replace("            id = id\n            on refused", "            id = id\n            note = \"\"\n            on refused", StringComparison.Ordinal),
+            _ => RefusalSource.Replace("        unique event Completed", $"        unique event Completed\n        message {message}", StringComparison.Ordinal)
+        };
+        var model = Compile(input);
+        var profile = CratisRendering.CreateProfile(
+            "Reactions",
+            new("Reactions", "Reactions"),
+            null,
+            new Dictionary<string, string> { ["reactions.en.strings"] = "failure = \"Localized prose\"\n" },
+            "en");
+        var plan = new CratisArtifactRenderPlanner().Plan(new(model, SemanticExecutionPlan.Compile(model).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        if (localized)
+        {
+            plan.Artifacts.ShouldBeEmpty();
+            plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-039" && diagnostic.Message.Contains("unresolved key", StringComparison.Ordinal));
+        }
+        else
+        {
+            Assert.True(plan.Success, string.Join(';', plan.Diagnostics));
+        }
+    }
+
+    [Fact]
+    public void should_refuse_ambiguous_first_constraint_names_before_emission()
+    {
+        SetContext(Compile(RefusalSource.Replace("      reaction Worker", "      constraint AnotherCompletion\n        unique event Completed\n      reaction Worker", StringComparison.Ordinal)));
+        Plan();
+        _plan.Artifacts.ShouldBeEmpty();
+        _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-039" && diagnostic.Message.Contains("candidate/sorted-name order", StringComparison.Ordinal));
     }
 
     [Fact]

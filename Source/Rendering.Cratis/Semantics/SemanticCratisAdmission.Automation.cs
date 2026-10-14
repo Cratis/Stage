@@ -40,6 +40,7 @@ internal static partial class SemanticCratisAdmission
             return;
         }
         ValidateReactionIdentity(context, reaction, diagnostics);
+        ValidateRefusalValues(context, reaction, diagnostics);
         if (reaction.Triggers.GroupBy(trigger => trigger.Source).Any(group => group.Count() > 1 &&
             group.Any(trigger => trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))))
         {

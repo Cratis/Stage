@@ -136,7 +136,7 @@ internal static class SemanticWorldRebuilder
         plan.Commands.Values.SelectMany(command => command.Produces
             .Where(produced => produced.EventContract == eventContract)
             .Select(produced => (produced, produced.Route ?? command.Route)))
-            .Concat(plan.Reactions.SelectMany(reaction => reaction.Triggers).SelectMany(trigger => trigger.Produces)
+            .Concat(plan.Reactions.SelectMany(reaction => reaction.Triggers).SelectMany(ReactionProductions)
                 .Where(produced => produced.EventContract == eventContract)
                 .Select(produced => (produced, (SemanticCommandRoute?)null)));
 
@@ -155,13 +155,16 @@ internal static class SemanticWorldRebuilder
                 : command.Destination?.Type ?? command.Properties.SingleOrDefault(property => property.IsIdentifier)?.Type));
         var reactions = plan.Reactions.SelectMany(reaction => reaction.Triggers)
             .Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event)
-            .SelectMany(trigger => trigger.Produces.Where(produced => produced.EventContract == eventContract)
+            .SelectMany(trigger => ReactionProductions(trigger).Where(produced => produced.EventContract == eventContract)
                 .SelectMany(produced => produced.DestinationType is { } type
                     ? [type]
                     : DestinationTypes(plan, trigger.Source, path)));
 
         return commands.Concat(reactions);
     }
+
+    static IEnumerable<SemanticProducedEvent> ReactionProductions(SemanticReactionTrigger trigger) =>
+        trigger.Produces.Concat(trigger.Invokes.SelectMany(invocation => invocation.OnRefused.SelectMany(branch => branch.Produces)));
 
     static bool RouteMatches(SemanticExecutionPlan plan, SemanticCommandRoute? productionRoute, SemanticEventRoute? route)
     {

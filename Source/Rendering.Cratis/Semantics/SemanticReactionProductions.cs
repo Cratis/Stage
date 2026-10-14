@@ -13,6 +13,9 @@ internal static class SemanticReactionProductions
     internal static IEnumerable<(SemanticReaction Reaction, SemanticProducedEvent Produced)> In(SemanticApplication application) =>
         SemanticVersionFeatures.Slices(application)
             .SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions)
-            .SelectMany(reaction => reaction.Triggers.SelectMany(trigger => trigger.Produces)
+            .SelectMany(reaction => reaction.Triggers.SelectMany(For)
                 .Select(produced => (reaction, produced)));
+
+    internal static IEnumerable<SemanticProducedEvent> For(SemanticReactionTrigger trigger) =>
+        trigger.Produces.Concat(trigger.Invokes.SelectMany(invocation => invocation.OnRefused.SelectMany(branch => branch.Produces)));
 }

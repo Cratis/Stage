@@ -40,6 +40,11 @@ internal static partial class SemanticCratisAdmission
             return;
         }
         ValidateReactionIdentity(context, reaction, diagnostics);
+        if (reaction.Triggers.GroupBy(trigger => trigger.Source).Any(group => group.Count() > 1 &&
+            group.Any(trigger => trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))))
+        {
+            diagnostics.Add(Error("STAGE-ESM-039", $"Reaction '{reaction.Name}' has refusal branches across same-source triggers; Arc stops a returned invocation list, not one trigger subgroup.", reaction.Id));
+        }
         if (ReactionNamesCollide(context, slice, reaction))
         {
             diagnostics.Add(Error("STAGE-ESM-012", $"Reaction '{reaction.Name}' has event handler names that collide in generated C#.", reaction.Id));
@@ -74,13 +79,13 @@ internal static partial class SemanticCratisAdmission
     static bool ReactionConditionIsRenderable(SemanticApplicationContext context, SemanticEventContract source, SemanticCondition? condition) =>
         condition is null || SemanticConditionRendering.CanRender(condition, source.Properties, context, numericOrderingOnly: true);
 
-    static bool CanRenderProduction(SemanticApplicationContext context, SemanticEventContract source, SemanticProducedEvent produced)
+    static bool CanRenderProduction(SemanticApplicationContext context, SemanticEventContract source, SemanticProducedEvent produced, SemanticInvocationRefusal? refusal = null)
     {
         if (!context.Events.TryGetValue(produced.EventContract, out var target)) return false;
 
         return HasPortableReactionProduction(produced) && ReactionEventIsRenderable(context, target) &&
             ReactionMappingCountMatches(target, produced) && ReactionTagsAreDistinct(target, produced) &&
-            ReactionMappingsMatch(context, source, target, produced) && ReactionDestinationMatches(context, source, produced);
+            ReactionMappingsMatch(context, source, target, produced, refusal) && ReactionDestinationMatches(context, source, produced);
     }
 
     static bool HasPortableReactionProduction(SemanticProducedEvent produced) =>
@@ -95,9 +100,14 @@ internal static partial class SemanticCratisAdmission
     static bool ReactionTagsAreDistinct(SemanticEventContract target, SemanticProducedEvent produced) =>
         target.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() == target.Tags.Length + produced.Tags.Length;
 
-    static bool ReactionMappingsMatch(SemanticApplicationContext context, SemanticEventContract source, SemanticEventContract target, SemanticProducedEvent produced) =>
+    static bool ReactionMappingsMatch(SemanticApplicationContext context, SemanticEventContract source, SemanticEventContract target, SemanticProducedEvent produced, SemanticInvocationRefusal? refusal) =>
         target.Properties.All(property => produced.Mappings.Any(mapping => mapping.TargetProperty == property.Id &&
-            ReactionExpressionMatches(context, source, mapping.Source, property.Type)));
+            (ReactionExpressionMatches(context, source, mapping.Source, property.Type) || RefusalExpressionMatches(mapping.Source, property.Type, refusal))));
+
+    static bool RefusalExpressionMatches(SemanticExpression expression, SemanticTypeReference target, SemanticInvocationRefusal? refusal) =>
+        refusal is not null && expression is SemanticRefusalExpression value && value.Type == target &&
+        target is { Kind: SemanticTypeReferenceKind.Primitive, Primitive: SemanticPrimitiveType.Text, IsCollection: false, IsOptional: false } &&
+        (value.Member == "reason" || value.Member == "message" || (value.Member == "constraint" && refusal.Selector == "constraint"));
 
     static bool ReactionDestinationMatches(SemanticApplicationContext context, SemanticEventContract source, SemanticProducedEvent produced) =>
         produced.Destination is null || (produced.DestinationType is { IsCollection: false, IsOptional: false } type &&
@@ -107,7 +117,11 @@ internal static partial class SemanticCratisAdmission
     {
         if (!context.Commands.TryGetValue(invocation.Command, out var command)) return false;
 
-        return command.Properties.Where(property => !property.IsGenerated).All(property =>
+        return invocation.OnRefused.All(branch =>
+            (branch.Selector == "any" || branch.Selector == "validation" || branch.Selector == "authorization" || branch.Selector == "constraint") &&
+            (branch.Constraint is null || branch.Selector == "constraint") &&
+            branch.Produces.All(produced => CanRenderProduction(context, source, produced, branch))) &&
+            command.Properties.Where(property => !property.IsGenerated).All(property =>
             invocation.Mappings.FirstOrDefault(mapping => mapping.TargetProperty == property.Id) is { } mapping
                 ? ReactionExpressionMatches(context, source, mapping.Source, property.Type)
                 : property.Type.IsOptional);

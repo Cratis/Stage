@@ -353,7 +353,7 @@ ESM v4 (`4.0` language and semantic versions) is admitted by the version gates, 
 
 Evolution waits for migration modeling and rendering (Screenplay #71 and a Stage migration-rendering follow-up). In both Chronicle 19.8.1 and 19.32.0, registration validation requires migrators for every generation above 1 even on an empty store. Production kernels always validate; the development image can skip validation, permitting unsafe historical replay. Neither path is an admitted realization without migrations, so Stage refuses before emission rather than relying on the kernel configuration. Stage's Host also retains its `EventContract` refusal, "Only the initial event revision can be registered in Chronicle." Its registrar and fact appender remain generation-1-only; an evolved model is not registered or appended.
 
-Stage builds against Screenplay 4.159.0 and admits exact ESM v1 through v17 language/semantic pairs. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
+Stage builds against Screenplay 4.160.0 and admits exact ESM v1 through v17 and v19 language/semantic pairs. ESM v18, mixed pairs and noncanonical minors remain refused; v19 is not implicit admission of v18. Unaudited language/semantic version pairs fail with `STAGE-ESM-016` in the renderer, Host semantic runtime and specification executor. Admitting a version does not admit its constructs: each construct Stage does not render refuses the plan with its own diagnostic before any artifact is planned, so nothing is dropped from the generated application. A model that uses none of them renders exactly as it would at an earlier version.
 
 | Construct | Version | Diagnostic |
 |---|---|---|
@@ -389,7 +389,20 @@ Stage builds against Screenplay 4.159.0 and admits exact ESM v1 through v17 lang
 | Generated-value strategies and freshness | v15 | Required scalar Uuid/String concepts render strategy factories and `BeforeFirst` freshness scopes; invalid fixture shapes fail `STAGE-ESM-011`, unknown strategies fail `STAGE-ESM-028`; see [Generated values](../reference/generated-values-rendering.md) |
 | Stored event names | v16 | A differing `storedName` renders as `[EventType("storedName")]`; the class follows the current name. Publishers that refuse every non-`Compatible` publication check result reject changed or unreadable destination ids with `STAGE-EVENT-002` |
 | Explicit `then no events` | v17 | Rendered for otherwise admitted commands and one production-only append observer, including a false `where` or excluded observer filter; fan-out, deeper cascades, invoked-command empty-effect cases and no-observer appends retain `STAGE-ESM-011` |
+| Invocation `on refused` branches and `$refusal` mappings | v19 | Rendered as ordered Arc `Invoke.Command(...).OnRefused(...)` or `.Acknowledge(...)`; unsupported branch conditions/routes/mappings and same-source multi-trigger refusal groups fail `STAGE-ESM-039` |
+| Single-hop append specifications for refusal-bearing invocations | v19 | Execute real returned wrappers through Arc's context-aware side-effect path and compare persisted log deltas; scalar commands, explicit source, ordered unconstrained terminal outputs or acknowledgement only; fan-out, redelivery, cascades, routing/context/read assertions and generated fixtures retain `STAGE-ESM-011` |
 | Located `when redelivered` | v17 | Renderer: `STAGE-ESM-011`; the released `ReactorScenario` lacks delivery of an existing occurrence with its original context/sequence identity ([Chronicle #4873](https://github.com/Cratis/Chronicle/issues/4873)); the independent specification executor runs named-only redelivery and settles new effects |
+
+Refusal branches retain authored order. The selectors map to Arc 22.88.0's `Refused.Any`,
+`ByValidation`, `ByAnyConstraint`, `ByConstraint(name)` and `ByAuthorization`. Bare refusal does not
+catch authorization. `$refusal.reason` uses an explicit lowercase mapping; `constraint` is the first
+violated name, even when a later name selected the branch; `message` preserves ordered newline-joined
+messages. A handled branch skips only the current trigger's remaining invocations. Its productions
+retain event destinations and tags, use ordinary append constraints, and can fail without matching a
+fallback branch. Exceptions, contract/unsupported outcomes, concurrency and warning-only rejections
+are not acknowledged. Commands without branches keep their original bare-command output. The independent
+executor also settles branch cascades and redelivery; the unmodified `InvocationRefusalsCorpus.V19`
+therefore runs reference-versus-executor but retains the precise `STAGE-ESM-011` rendered redelivery refusal.
 
 `then no events` is a positive success assertion, not an omitted expectation. Generated command
 specifications assert zero successful appends after subtracting seeded history, alongside any response or

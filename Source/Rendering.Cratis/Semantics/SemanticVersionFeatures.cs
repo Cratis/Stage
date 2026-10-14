@@ -97,7 +97,7 @@ internal static class SemanticVersionFeatures
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV17Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV19Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -194,6 +194,13 @@ internal static class SemanticVersionFeatures
 
         foreach (var feature in reactions.SelectMany(UnsupportedReactionContexts)) yield return feature;
 
+        foreach (var reaction in reactions.Where(reaction => reaction.Triggers.SelectMany(trigger => trigger.Invokes)
+            .SelectMany(invocation => invocation.OnRefused).SelectMany(branch => branch.Produces)
+            .Any(produced => produced.Condition is not null || produced.When is not null || produced.Route is not null)))
+        {
+            yield return new("STAGE-ESM-039", StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has a refusal production with a condition or route override, which Stage cannot preserve.");
+        }
+
         foreach (var reaction in reactions)
         {
             foreach (var trigger in reaction.Triggers)
@@ -268,7 +275,7 @@ internal static class SemanticVersionFeatures
             .Concat(slice.Commands.SelectMany(command => command.Produces.Select(produced => produced.EventContract)))
             .Concat(ConstraintEvents(slice.Constraints))
             .Concat((slice.Reactions.IsDefault ? [] : slice.Reactions).SelectMany(reaction => reaction.Triggers)
-                .SelectMany(trigger => trigger.Produces.Select(produced => produced.EventContract)
+                .SelectMany(trigger => trigger.Produces.Concat(trigger.Invokes.SelectMany(invocation => invocation.OnRefused.SelectMany(branch => branch.Produces))).Select(produced => produced.EventContract)
                     .Concat(trigger.Kind == SemanticReactionTriggerKind.Event ? [trigger.Source] : [])))
             .Concat((slice.Captures.IsDefault ? [] : slice.Captures).SelectMany(capture =>
                 (capture.EventsSource?.Events ?? []).Concat(capture.Appends.Select(append => append.EventContract))
@@ -456,7 +463,7 @@ internal static class SemanticVersionFeatures
     }
 
     static IEnumerable<SemanticEventContextExpression> ReactionContextExpressions(SemanticReaction reaction) =>
-        reaction.Triggers.SelectMany(trigger => trigger.Produces.SelectMany(produced =>
+        reaction.Triggers.SelectMany(trigger => trigger.Produces.Concat(trigger.Invokes.SelectMany(invocation => invocation.OnRefused.SelectMany(branch => branch.Produces))).SelectMany(produced =>
                 produced.Mappings.Select(mapping => mapping.Source).Concat(produced.Destination is { } destination ? [destination] : []))
             .Concat(trigger.Invokes.SelectMany(invocation => invocation.Mappings.Select(mapping => mapping.Source))))
             .OfType<SemanticEventContextExpression>();

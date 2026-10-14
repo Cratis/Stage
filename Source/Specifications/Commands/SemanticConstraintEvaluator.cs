@@ -11,7 +11,10 @@ namespace Cratis.Stage.Specifications.Commands;
 // replacement per owner, releasing events and invariant casing all matter for atomic batches.
 internal static class SemanticConstraintEvaluator
 {
-    internal static SemanticConstraint? FindViolation(SemanticExecutionPlan plan, IReadOnlyList<Fact> history, IReadOnlyList<Fact> candidates)
+    internal static SemanticConstraint? FindViolation(SemanticExecutionPlan plan, IReadOnlyList<Fact> history, IReadOnlyList<Fact> candidates) =>
+        FindViolations(plan, history, candidates).FirstOrDefault();
+
+    internal static IEnumerable<SemanticConstraint> FindViolations(SemanticExecutionPlan plan, IReadOnlyList<Fact> history, IReadOnlyList<Fact> candidates)
     {
         var constraints = plan.Constraints.Values.OrderBy(value => value.Name, StringComparer.Ordinal).ToArray();
         for (var index = 0; index < candidates.Count; index++)
@@ -27,12 +30,10 @@ internal static class SemanticConstraintEvaluator
                     _ => throw new UnsupportedSemanticMapping()
                 })
                 {
-                    return constraint;
+                    yield return constraint;
                 }
             }
         }
-
-        return null;
     }
 
     internal static string Message(SemanticConstraint constraint) => constraint.Message ?? (constraint.Kind == SemanticConstraintKind.UniquePropertyValue

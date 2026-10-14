@@ -16,6 +16,10 @@ internal static partial class SemanticReactionSpecificationRenderer
     {
         var selected = SemanticSpecificationAdmission.SelectReaction(context, specification);
         var prelude = new SemanticReactionSpecificationPrelude(selected, specification.WhenAppended!);
+        if (selected.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
+        {
+            return RenderRefusals(specification, context, prelude);
+        }
         if (!selected.Trigger.Invokes.IsEmpty)
         {
             return SemanticCommandSpecificationRenderer.Render(selected.Lower(specification, context), context, prelude);

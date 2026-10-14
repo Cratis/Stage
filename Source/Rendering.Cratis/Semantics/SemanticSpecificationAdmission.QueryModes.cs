@@ -11,12 +11,47 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
+    internal static bool CanEmptyQueryOnly(SemanticSpecification specification, SemanticApplicationContext context) =>
+        specification.When is null && specification.WhenAppended is null && specification.WhenCapture is null &&
+        specification.WhenTrigger is null && specification.WhenClock is null && specification.WhenRedelivered is null &&
+        specification.GivenEvents.IsEmpty && specification.GivenReadModels.IsEmpty && specification.ThenEvents.IsEmpty &&
+        specification.ThenReadModels.IsEmpty && specification.ThenQueries is [{ Results.IsEmpty: true } expected] &&
+        specification.ThenErrors.Length <= 1 && !specification.ThenDenied &&
+        specification.ThenErrors.All(error => error.Code is null && SemanticValidationRendering.CanResolve(error.Message, context)) &&
+        context.Queries.TryGetValue(expected.Query, out var query) &&
+        (query.Authorization is null || specification.GivenCaller is not null) &&
+        !context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel) &&
+        (specification.GivenCaller is null or { Authenticated: true } or { Roles.IsEmpty: true, Claims.IsEmpty: true }) &&
+        specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true;
+
     static bool HasRenderableQueryExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>
         specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) &&
-        ProtectedCollectionRejectionReason(context, specification) is null;
+        ProtectedCollectionRejectionReason(context, specification) is null && QueryArgumentsHaveCompleteValues(context, specification);
+
+    static bool QueryArgumentsHaveCompleteValues(SemanticApplicationContext context, SemanticSpecification specification) =>
+        specification.ThenQueries.All(expected => !context.Queries.TryGetValue(expected.Query, out var query) ||
+            ((query.Argument is null || HasCompleteValue(context, query.Argument.Type, expected.Key)) &&
+                query.Filters.All(filter => expected.Filters.Where(value => value.Filter == filter.Id)
+                    .All(value => HasCompleteValue(context, filter.Type, value.Value)))));
+
+    static bool HasCompleteValue(SemanticApplicationContext context, SemanticTypeReference type, SemanticValue value)
+    {
+        if (type.IsCollection && value is SemanticArrayValue array)
+        {
+            return array.Values.All(element => HasCompleteValue(context, type with { IsCollection = false }, element));
+        }
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
+        {
+            return context.Types[type.Target].Properties.All(property =>
+                composite.Properties.SingleOrDefault(member => member.TargetProperty == property.Id) is { } member &&
+                HasCompleteValue(context, property.Type, member.Value));
+        }
+
+        return true;
+    }
 
     static bool CanRenderQueryOnly(SemanticApplicationContext context, SemanticSpecification specification) =>
-        CanDenyQueryOnly(specification, context) ||
+        CanEmptyQueryOnly(specification, context) || CanDenyQueryOnly(specification, context) ||
         (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
         (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0]));
 

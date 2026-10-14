@@ -19,7 +19,7 @@ public class when_rendering_required_filters_on_optional_properties : Specificat
         _query = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Lookup.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
-    [Fact] void should_keep_required_filter_parameters_non_nullable() => _query.ShouldContain("FilteredOptionalProperties(global::Cratis.Chronicle.ReadModels.IReadModels readModels, bool flag, string category)");
+    [Fact] void should_keep_required_filter_parameters_non_nullable() => _query.ShouldContain("FilteredOptionalProperties(global::Cratis.Chronicle.ReadModels.IReadModels readModels, bool flag, global::Invoices.Common.Category category)");
     [Fact] void should_lift_the_value_type_comparer() => _query.ShouldContain("EqualityComparer<bool?>.Default.Equals(instance.Flag, flag)");
-    [Fact] void should_lift_the_concept_comparer() => _query.ShouldContain("EqualityComparer<global::Invoices.Common.Category?>.Default.Equals(instance.Category, new global::Invoices.Common.Category(category))");
+    [Fact] void should_lift_the_concept_comparer() => _query.ShouldContain("EqualityComparer<global::Invoices.Common.Category?>.Default.Equals(instance.Category, category)");
 }

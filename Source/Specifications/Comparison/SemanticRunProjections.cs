@@ -26,6 +26,9 @@ internal static class SemanticRunProjections
         SemanticRuntimeTypes types,
         Defaults defaults)
     {
+        // No facts can populate any projection in the empty world, including a query-only model.
+        if (context.Facts.Count == 0) return [];
+
         var requested = specification.ThenReadModels.Select(state => state.ReadModel)
             .Concat(specification.ThenAbsentReadModels.Select(state => state.ReadModel))
             .Concat(specification.ThenQueries.Select(query => plan.Queries[query.Query].ReadModel))

@@ -15,7 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_comparing_validated_query_keys(when_comparing_validated_query_keys.context fixture) : IClassFixture<when_comparing_validated_query_keys.context>
 {
-    [Fact] void should_accept_valid_and_out_of_rule_keys_in_the_reference() => Assert.All(fixture.ReferenceResults, passed => passed.ShouldBeTrue());
+    [Fact] void should_accept_valid_keys_and_reject_out_of_rule_keys_in_the_reference() => Assert.All(fixture.ReferenceResults, passed => passed.ShouldBeTrue());
     [Fact] void should_report_the_stage_executor_given_read_model_gap() => Assert.All(fixture.StageResults, result => result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported));
     [Fact] void should_name_the_unsupported_stage_capability() => Assert.All(fixture.StageResults, result => result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.GivenReadModel));
     [Fact] void should_explain_the_stage_seeding_limit() => Assert.All(fixture.StageResults, result => result.Unsupported!.Details.ShouldEqual("Given read-model state cannot be seeded into the per-run projection scenario."));
@@ -61,20 +61,23 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
                 {
                     var specification = original with
                     {
-                        ThenQueries = [expected with { Query = query.Id, Key = SemanticValue.Text(key), Results = key == "x" ? [] : expected.Results }]
+                        ThenQueries = [expected with { Query = query.Id, Key = SemanticValue.Text(key), Results = key == "x" ? [] : expected.Results }],
+                        ThenErrors = key == "x" ? [new(null, null)] : []
                     };
                     var application = model.Application with
                     {
                         Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(value => value.Id == slice.Id ? value with { Specifications = [specification] } : value)] }] }]
                     };
-                    var candidate = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
+                    var languageVersion = key == "x" ? LanguageVersion.V18 : model.LanguageVersion;
+                    var semanticVersion = key == "x" ? SemanticVersion.V18 : model.SemanticVersion;
+                    var candidate = ExecutableSemanticModel.Create(languageVersion, semanticVersion, application);
                     var plan = SemanticExecutionPlan.Compile(candidate).Plan!;
                     references.Add(new SemanticSpecificationRunner().Run(plan, specification.Id).Passed);
 
                     // Stage cannot seed Given read-model state into its per-run projection scenario,
                     // regardless of concept validation rules; retain the typed refusal for this leg.
                     stages.Add((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single());
-                    var withoutValidation = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application with
+                    var withoutValidation = ExecutableSemanticModel.Create(languageVersion, semanticVersion, application with
                     {
                         Concepts = [.. application.Concepts.Select(concept => concept with { Validations = [] })]
                     });
@@ -87,8 +90,7 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
             StageResults = [.. stages];
             StageResultsWithoutValidation = [.. stagesWithoutValidation];
 
-            // Empty query expectations are outside companion-spec admission today. Exercise those
-            // vectors through the real generated Arc pipeline without widening that admission here.
+            // Keep coverage of projected and pre-seeded reads alongside the empty-world v18 corpus.
             AddGeneratedSpecification("QueryKeys.cs", a_validated_query_key_model.Probe + "\n" + """
                 public class validated_keys
                 {
@@ -96,7 +98,10 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
                     public async Task should_preserve_all_four_query_answers()
                     {
                         var results = await QueryKeys.Execute();
-                        Assert.All(results, result => Assert.Empty(result.ValidationResults));
+                        Assert.False(results[1].IsValid);
+                        Assert.False(results[3].IsValid);
+                        Assert.NotEmpty(results[1].ValidationResults);
+                        Assert.NotEmpty(results[3].ValidationResults);
                         Assert.All(results, result => Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages)));
                     }
                 }

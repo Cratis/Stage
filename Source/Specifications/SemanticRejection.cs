@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Semantics.Execution;
+
 namespace Cratis.Stage.Specifications;
 
 /// <summary>
@@ -12,7 +14,12 @@ namespace Cratis.Stage.Specifications;
 internal sealed record SemanticRejection(string Message, string? Code = null, bool Denied = false)
 {
     /// <summary>
+    /// Gets the rejection category used to compare query validation outcomes.
+    /// </summary>
+    internal SemanticRejectionCategory Category { get; init; } = SemanticRejectionCategory.Contract;
+
+    /// <summary>
     /// Gets the rejection for a caller that is not authorized.
     /// </summary>
-    internal static SemanticRejection Unauthorized { get; } = new("Caller is not authorized.", Denied: true);
+    internal static SemanticRejection Unauthorized { get; } = new("Caller is not authorized.", Denied: true) { Category = SemanticRejectionCategory.Unauthorized };
 }

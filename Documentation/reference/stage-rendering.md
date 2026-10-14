@@ -56,15 +56,25 @@ action is shown disabled with the diagnostic and never executes.
 
 ## Generated C# query arguments
 
-Optional snapshot lookups by identifier and snapshot or observable collections accept scalar concepts
-with validation rules. Stage renders these query arguments as their underlying primitive and
-constructs the concept inside the method. An out-of-rule key returns `null` or an empty collection,
-not an Arc validation failure, matching the Screenplay reference semantics. Command properties
-remain concept-typed and still validate. Concepts without rules retain their concept-typed query
-parameters; TypeScript proxy argument types are unchanged.
+Query arguments retain their concept types so Arc validates the `by` key and supplied filter
+values before invoking the generated method. An out-of-rule value returns HTTP 400 with validation
+results; an in-rule key that matches nothing still returns `null` or an empty collection.
+Validation also reaches concept members inside composite arguments and collection elements.
+Authorization runs before validation. TypeScript proxy argument types are unchanged.
+Nullable keys and optional concept filters with `not empty` rules receive `STAGE-ESM-010`:
+Arc skips null concept values, while the reference validates nullable concept keys and rejects
+explicitly null filters. An omitted optional filter remains distinct from a supplied null.
 
-A composite or collection query argument containing a validated concept fails admission with
-`STAGE-ESM-010`, naming the query and concept.
+ESM v18 adds query-only `then error` specifications. For empty fixtures, Stage generates an Arc
+`QueryScenario` call that asserts validation failure and the expected message, when supplied.
+These empty-world specifications also support `then no result`, but do not relax application
+admission: every read model still needs a projection or reducer (`STAGE-ESM-007`). The
+projection-less `QueryValidation/v18` corpus runs in the reference and Stage executors but is
+refused as a rendered application; generated conformance specifications use a projected view.
+Query rejection specifications with given events or read-model state are refused with
+`STAGE-ESM-011`; the generated rejection scenario supports only empty fixtures. Sparse composite
+query arguments also receive `STAGE-ESM-011`: supply every member, including optional members,
+so generated literals do not invent values that change validation.
 
 :::caution[Renaming events]
 An event's Chronicle id is its stored name: the `id` pin, otherwise the name. Its generated class follows the current name. ESM v16 carries a differing pin as `storedName`, rendered as `[EventType("Original")]`; unpinned events retain argument-free `[EventType]`.
@@ -102,7 +112,7 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
-Stage uses Screenplay 4.154.0 and admits exact ESM v1–v16 language/semantic pairs, including v11's corrected Double-mode literal lowering and v15's generation strategies with atomic freshness scopes. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
+Stage uses Screenplay 4.161.0 and admits exact ESM v1–v19 language/semantic pairs, including v11's corrected Double-mode literal lowering and v15's generation strategies with atomic freshness scopes. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
 For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
 `9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction
 `0.10000000000000002` renders as `0.10000000000000002m`. Command inputs, event payloads,
@@ -136,7 +146,7 @@ They still fetch one result and refresh after commands; browser SSE push and Hos
 are not implemented. The Host continues to serve one-shot arrays, even for `observable` queries.
 
 Without `observable`, a list query renders as `Task<IEnumerable<ReadModel>>` using
-`GetInstances` and in-memory filtering. Optional snapshot lookups retain their existing bytes.
+`GetInstances` and in-memory filtering. Snapshot lookup arguments retain their concept types.
 Live-list companion specifications append fixtures to `EventStoreForTesting` and await
 an emission from the generated query, executing its actual filter expression. Protected
 observable collection-success specifications use Arc's `QueryScenario` with its default Chronicle
@@ -152,8 +162,8 @@ or without a `by` argument. Parameters follow the key in declaration order; all 
 filters and the key combine with AND. Optional filters render as `T? name = null`.
 Observable expressions use `name == null ||` predicates because expression trees cannot
 contain `is` patterns; snapshot predicates retain `name is null ||`.
-Validated concepts accept primitive arguments and are constructed inside the query,
-without applying command validation rules.
+Concept-typed filters run their concept validation rules through Arc, just like concept-typed
+query keys. An omitted optional filter is not validated.
 
 A required filter renders as a non-nullable parameter. Arc rejects missing value-type
 and concept arguments with `MissingArgumentForQuery`. Arc treats plain reference

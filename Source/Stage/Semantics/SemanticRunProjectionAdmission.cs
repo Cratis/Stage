@@ -14,7 +14,9 @@ internal static class SemanticRunProjectionAdmission
 {
     internal static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents)
     {
-        if (FilteredQueryRejection(specification) is { } filtered) return filtered;
+        var emptyQuery = specification.When is null && specification.WhenAppended is null && specification.GivenEvents.IsEmpty &&
+            specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
+        if (!emptyQuery && FilteredQueryRejection(specification) is { } filtered) return filtered;
 
         var reachable = reachableEvents.ToHashSet();
         var requested = plan.Projections.Values.Where(value =>
@@ -47,6 +49,7 @@ internal static class SemanticRunProjectionAdmission
         }
         foreach (var assertion in specification.ThenQueries)
         {
+            if (emptyQuery && plan.Queries.ContainsKey(assertion.Query)) continue;
             if (!plan.Queries.TryGetValue(assertion.Query, out var query) ||
                 query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
                 !plan.ReadModels.TryGetValue(query.ReadModel, out var model) ||

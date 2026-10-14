@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    const string FrozenDigest = "5f8e1f764ba1d579c0b44908daaf1151861716d1a19c32cc18c967a94d77527a";
+    const string FrozenDigest = "c1ccc3786c35065b3987e703361b8c0c0be447e6d9932ef85420bf8d7cce184b";
 
     string _digest = null!;
 
@@ -36,14 +36,14 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    // The previous frozen backend predates the Chronicle 19.64.1 and Arc 22.88.0 pins; only the generated backend project
+    // The previous frozen backend predates the Chronicle 19.64.1 and Arc 22.95.0 pins; only the generated backend project
     // carries the scaffold's Arc pin.
     static string PreviousPins(string name, string text)
     {
         var previous = text.Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
 
         return name.EndsWith(".csproj", StringComparison.Ordinal)
-            ? previous.Replace("22.88.0", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.95.0", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 }

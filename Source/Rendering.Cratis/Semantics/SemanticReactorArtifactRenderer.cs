@@ -55,7 +55,7 @@ internal static class SemanticReactorArtifactRenderer
                             var selector = Selector(branch);
                             effect += branch.Produces.IsEmpty
                                 ? $".Acknowledge({selector})"
-                                : $".OnRefused({selector}, refusal => new object[] {{ {string.Join(", ", branch.Produces.Select(produced => Production(produced, source, types, context, true)))} }})";
+                                : $".OnRefused({selector}, refusal => new object[] {{ {string.Join(", ", branch.Produces.Select(produced => Production(produced, source, types, context, $"{name}RefusalKindIsUnknown")))} }})";
                         }
                     }
                     builder.Line($"effects.Add({effect});");
@@ -63,6 +63,16 @@ internal static class SemanticReactorArtifactRenderer
                 if (trigger.Where is not null) builder.EndBlock();
             }
             builder.Line("return effects;").EndBlock();
+        }
+        if (reaction.Triggers.SelectMany(trigger => trigger.Invokes).SelectMany(invocation => invocation.OnRefused)
+            .SelectMany(branch => branch.Produces).SelectMany(produced => produced.Mappings)
+            .Any(mapping => mapping.Source is SemanticRefusalExpression refusal && refusal.Member == "reason"))
+        {
+            builder.BlankLine()
+                .Line("/// <summary>")
+                .Line("/// The exception that is thrown when an invocation returns an unknown refusal kind.")
+                .Line("/// </summary>")
+                .Line($"public sealed class {name}RefusalKindIsUnknown() : global::System.Exception(\"Unknown command refusal kind.\");");
         }
         builder.EndBlock();
 
@@ -78,13 +88,13 @@ internal static class SemanticReactorArtifactRenderer
             : $"global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute({roles})");
     }
 
-    static string Production(SemanticProducedEvent produced, SemanticEventContract source, SemanticTypeSystem types, SemanticApplicationContext context, bool refusalScope = false)
+    static string Production(SemanticProducedEvent produced, SemanticEventContract source, SemanticTypeSystem types, SemanticApplicationContext context, string? refusalException = null)
     {
         var target = context.Events[produced.EventContract];
         var arguments = target.Properties.Select(property =>
         {
             var mapping = produced.Mappings.Single(mapping => mapping.TargetProperty == property.Id);
-            var expression = Expression(mapping.Source, property.Type, source, types, refusalScope);
+            var expression = Expression(mapping.Source, property.Type, source, types, refusalException);
             if (RequiresImmutableReactionPayload(context, target, property, mapping))
             {
                 expression = $"global::System.Collections.Immutable.ImmutableArray.ToImmutableArray({expression})";
@@ -121,17 +131,17 @@ internal static class SemanticReactorArtifactRenderer
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticInvocationRefusal), branch.Selector)
     });
 
-    static string RefusalMember(string member) => member switch
+    static string RefusalMember(string member, string refusalException) => member switch
     {
-        "reason" => "(refusal.Kind switch { global::Cratis.Arc.Commands.CommandRefusalKind.Validation => \"validation\", global::Cratis.Arc.Commands.CommandRefusalKind.Constraint => \"constraint\", global::Cratis.Arc.Commands.CommandRefusalKind.Authorization => \"authorization\", _ => throw new global::System.InvalidOperationException(\"Unknown command refusal kind.\") })",
+        "reason" => $"(refusal.Kind switch {{ global::Cratis.Arc.Commands.CommandRefusalKind.Validation => \"validation\", global::Cratis.Arc.Commands.CommandRefusalKind.Constraint => \"constraint\", global::Cratis.Arc.Commands.CommandRefusalKind.Authorization => \"authorization\", _ => throw new {refusalException}() }})",
         "constraint" => "refusal.ConstraintName",
         "message" => "refusal.Message",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticRefusalExpression), member)
     };
 
-    static string Expression(SemanticExpression expression, SemanticTypeReference target, SemanticEventContract source, SemanticTypeSystem types, bool refusalScope = false) => expression switch
+    static string Expression(SemanticExpression expression, SemanticTypeReference target, SemanticEventContract source, SemanticTypeSystem types, string? refusalException = null) => expression switch
     {
-        SemanticRefusalExpression refusal when refusalScope => RefusalMember(refusal.Member),
+        SemanticRefusalExpression refusal when refusalException is not null => RefusalMember(refusal.Member, refusalException),
         SemanticResolvedExpression resolved => $"@event.{Identifiers.ToPascalCase(source.Properties.Single(property => property.Id == resolved.Target).Name)}",
         SemanticValueExpression value => types.Value(value.Value, target),
         SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } => "context.Occurred",

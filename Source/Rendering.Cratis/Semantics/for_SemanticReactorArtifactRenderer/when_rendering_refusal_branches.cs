@@ -68,6 +68,9 @@ public class when_rendering_refusal_branches : for_SemanticAutomationArtifactRen
         source.ShouldContain("CommandRefusalKind.Authorization => \"authorization\"");
         source.ShouldContain("refusal.Message");
         source.ShouldNotContain("ToString()");
+        source.ShouldContain("throw new WorkerRefusalKindIsUnknown()");
+        source.ShouldContain("class WorkerRefusalKindIsUnknown() : global::System.Exception");
+        source.ShouldNotContain("System.InvalidOperationException");
         source.ShouldContain("ExecuteCommandsAsSystemAttribute(\"Automation\")");
         if (selector.Contains("constraint", StringComparison.Ordinal)) source.ShouldContain("refusal.ConstraintName");
         source.ShouldNotContain("ConstraintName ??");

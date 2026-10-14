@@ -29,7 +29,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
         // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-        _plan.TargetVersion.Replace("22.88.0", "22.87.0", StringComparison.Ordinal),
+        _plan.TargetVersion.Replace("22.95.0", "22.87.0", StringComparison.Ordinal),
         _plan.Renderer,
         _plan.RendererVersion,
         _plan.ApplicationName,
@@ -41,7 +41,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
             : artifact)],
         _plan.Diagnostics);
 
-    // Only the generated backend project carries the scaffold's Arc pin; other files may name 22.88.0 for unrelated packages.
+    // Only the generated backend project carries the scaffold's Arc pin; other files may name 22.95.0 for unrelated packages.
     static string PreviousRealization(string relativePath, string text)
     {
         var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
@@ -53,7 +53,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         }
 
         return relativePath.EndsWith(".csproj", StringComparison.Ordinal)
-            ? previous.Replace("22.88.0", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.95.0", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 }

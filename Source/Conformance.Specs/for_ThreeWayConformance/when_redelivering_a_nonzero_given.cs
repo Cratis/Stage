@@ -4,10 +4,10 @@
 #if DEBUG
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
-using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Xunit;
 
-namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_redelivering_a_nonzero_given : a_recovery_plan
 {

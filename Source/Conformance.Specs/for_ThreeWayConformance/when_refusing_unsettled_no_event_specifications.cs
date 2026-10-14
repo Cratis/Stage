@@ -4,11 +4,12 @@
 #if DEBUG
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
+using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Cratis.Stage.Contracts.Rendering;
-using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis;
 using Xunit;
 
-namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_refusing_unsettled_no_event_specifications : Specification
 {

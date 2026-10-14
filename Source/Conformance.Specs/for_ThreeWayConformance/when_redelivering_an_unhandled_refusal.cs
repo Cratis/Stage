@@ -4,12 +4,12 @@
 #if DEBUG
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
+using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Cratis.Stage.Contracts.Specifications.Semantic;
-using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Specifications;
 using Xunit;
 
-namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_redelivering_an_unhandled_refusal : Specification
 {
@@ -21,6 +21,13 @@ public class when_redelivering_an_unhandled_refusal : Specification
         module Work
           feature Items
             slice Automation Recovery
+              command Begin
+                id String identifier
+                amount Decimal
+                produces Started
+                  for id
+                  id = id
+                  amount = amount
               command Complete
                 id String identifier
                 amount Decimal

@@ -3,12 +3,12 @@
 
 #if DEBUG
 using Cratis.Specifications;
+using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Cratis.Stage.Contracts.Specifications.Semantic;
-using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Specifications;
 using Xunit;
 
-namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_cancelling_redelivery : a_recovery_plan
 {

@@ -4,11 +4,13 @@
 #if DEBUG
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_comparing_no_event_specifications(when_comparing_no_event_specifications.context fixture, ITestOutputHelper output) : IClassFixture<when_comparing_no_event_specifications.context>
 {
@@ -45,6 +47,11 @@ public class when_comparing_no_event_specifications(when_comparing_no_event_spec
                   command Echo
                     id String identifier
                     returns id
+                  command SeedPrior
+                    id String identifier
+                    produces Prior
+                      for id
+                      id = id
                   event Prior
                     id String
                   specification EmptyResponse
@@ -80,6 +87,13 @@ public class when_comparing_no_event_specifications(when_comparing_no_event_spec
                       id = "one"
                     then no events
                 slice Automation FollowUp
+                  command Begin
+                    id String identifier
+                    amount Decimal
+                    produces Started
+                      for id
+                      id = id
+                      amount = amount
                   event Started
                     id String
                     amount Decimal
@@ -128,7 +142,6 @@ public class when_comparing_no_event_specifications(when_comparing_no_event_spec
                   specification Unrouted
                     when append Started
                       for "one"
-                      no stream
                       id = "one"
                       amount = 1
                     then no events

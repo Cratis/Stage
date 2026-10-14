@@ -4,19 +4,19 @@
 #if DEBUG
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
+using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Cratis.Stage.Contracts.Specifications.Semantic;
-using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Specifications;
 using Xunit;
 
-namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_redelivering_a_filtered_occurrence : Specification
 {
     [Theory]
     [InlineData("stream Account.Archive")]
     [InlineData("stream Other.Notes")]
-    [InlineData("no stream")]
+    [InlineData("")]
     public async Task should_produce_no_new_events_without_delivering_to_a_sibling(string route)
     {
         var model = a_recovery_plan.Compile($"""
@@ -35,6 +35,11 @@ public class when_redelivering_a_filtered_occurrence : Specification
             module Work
               feature Items
                 slice Automation Recovery
+                  command Begin
+                    id String identifier
+                    produces Started
+                      for id
+                      id = id
                   event Started
                     id String
                   event Followed

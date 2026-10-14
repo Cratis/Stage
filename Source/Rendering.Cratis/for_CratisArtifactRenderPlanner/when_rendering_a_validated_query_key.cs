@@ -23,9 +23,9 @@ public class when_rendering_a_validated_query_key : Specification
     }
 
     [Fact] void should_admit_the_query() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_emit_primitive_query_parameters() => _query.ShouldContain("IReadModels readModels, string invoiceId)");
-    [Fact] void should_convert_the_lookup_key_inside_the_method() => _query.ShouldContain("GetInstanceById<InvoiceSummary>((global::Cratis.Chronicle.Events.EventSourceId)new global::Invoices.Common.InvoiceId(invoiceId))");
-    [Fact] void should_compare_concepts_inside_the_collection_filter() => _query.ShouldContain("EqualityComparer<global::Invoices.Common.InvoiceId>.Default.Equals(instance.InvoiceId, new global::Invoices.Common.InvoiceId(invoiceId))");
+    [Fact] void should_emit_concept_typed_query_parameters() => _query.ShouldContain("IReadModels readModels, global::Invoices.Common.InvoiceId invoiceId)");
+    [Fact] void should_use_the_validated_lookup_key() => _query.ShouldContain("GetInstanceById<InvoiceSummary>((global::Cratis.Chronicle.Events.EventSourceId)invoiceId)");
+    [Fact] void should_compare_concepts_inside_the_collection_filter() => _query.ShouldContain("EqualityComparer<global::Invoices.Common.InvoiceId>.Default.Equals(instance.InvoiceId, invoiceId)");
     [Fact] void should_still_render_the_concept_validator() => _common.ShouldContain("ConceptValidator<InvoiceId>");
     [Fact] void should_keep_commands_concept_typed() => Content("Issue.cs").ShouldContain("global::Invoices.Common.InvoiceId InvoiceId");
 

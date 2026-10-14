@@ -30,6 +30,11 @@ internal static class SemanticExpectationComparer
             }
             else
             {
+                if (expected.When is null && expected.WhenAppended is null && expected.ThenQueries.Length == 1 &&
+                    rejected!.Category != SemanticRejectionCategory.Validation)
+                {
+                    failures.Add($"Expected query Validation rejection, got {rejected.Category}.");
+                }
                 if (expected.ThenErrors[0].Code is { } code && code != rejectionCode)
                 {
                     failures.Add($"Expected rejection code '{code}', got '{rejectionCode}'.");

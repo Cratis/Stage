@@ -69,6 +69,45 @@ internal static class SemanticRuleEvaluation
         _ => throw new UnsupportedSemanticMapping()
     };
 
+    internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => rule.Kind switch
+    {
+        SemanticValidationRuleKind.NotEmpty => !SemanticRunContext.Empty(value),
+        _ when value is SemanticNullValue => true,
+        SemanticValidationRuleKind.Maximum => Measure(value) <= Number(rule.Operand),
+        SemanticValidationRuleKind.Minimum => Measure(value) >= Number(rule.Operand),
+        SemanticValidationRuleKind.Equal => SemanticExpectationComparer.AreEqual(value, rule.Operand!),
+        SemanticValidationRuleKind.NotEqual => !SemanticExpectationComparer.AreEqual(value, rule.Operand!),
+        SemanticValidationRuleKind.GreaterThan => Measure(value) > Number(rule.Operand),
+        SemanticValidationRuleKind.GreaterThanOrEqual => Measure(value) >= Number(rule.Operand),
+        SemanticValidationRuleKind.LessThan => Measure(value) < Number(rule.Operand),
+        SemanticValidationRuleKind.LessThanOrEqual => Measure(value) <= Number(rule.Operand),
+        SemanticValidationRuleKind.Length => value is SemanticTextValue text && text.Value.Length == Number(rule.Operand),
+        SemanticValidationRuleKind.Matches => Matches(value, rule.Operand),
+        SemanticValidationRuleKind.AllGreaterThan => value is SemanticArrayValue array && array.Values.All(element => Measure(element) > Number(rule.Operand)),
+        SemanticValidationRuleKind.AllGreaterThanOrEqual => value is SemanticArrayValue array && array.Values.All(element => Measure(element) >= Number(rule.Operand)),
+        _ => throw new UnsupportedSemanticMapping()
+    };
+
+    internal static string Message(SemanticValidationRule rule, SemanticValue value, string empty) => rule.Kind switch
+    {
+        SemanticValidationRuleKind.NotEmpty => empty,
+        SemanticValidationRuleKind.Maximum when value is SemanticTextValue => $"A value must be at most {Format(rule.Operand)} characters long.",
+        SemanticValidationRuleKind.Minimum when value is SemanticTextValue => $"A value must be at least {Format(rule.Operand)} characters long.",
+        SemanticValidationRuleKind.Maximum => $"A value must be at most {Format(rule.Operand)}.",
+        SemanticValidationRuleKind.Minimum => $"A value must be at least {Format(rule.Operand)}.",
+        SemanticValidationRuleKind.Equal => $"A value must equal {Format(rule.Operand)}.",
+        SemanticValidationRuleKind.NotEqual => $"A value must not equal {Format(rule.Operand)}.",
+        SemanticValidationRuleKind.GreaterThan => $"A value must be greater than {Format(rule.Operand)}.",
+        SemanticValidationRuleKind.GreaterThanOrEqual => $"A value must be at least {Format(rule.Operand)}.",
+        SemanticValidationRuleKind.LessThan => $"A value must be less than {Format(rule.Operand)}.",
+        SemanticValidationRuleKind.LessThanOrEqual => $"A value must be at most {Format(rule.Operand)}.",
+        SemanticValidationRuleKind.Length => $"A value must be exactly {Format(rule.Operand)} characters long.",
+        SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
+        SemanticValidationRuleKind.AllGreaterThan => $"Every value must be greater than {Format(rule.Operand)}.",
+        SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {Format(rule.Operand)}.",
+        _ => throw new UnsupportedSemanticMapping()
+    };
+
     static bool IsInputConcept(SemanticProperty property) => !property.IsGenerated && property.Type.Kind == SemanticTypeReferenceKind.Concept;
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values)
@@ -87,23 +126,6 @@ internal static class SemanticRuleEvaluation
             _ => throw new UnsupportedSemanticMapping()
         };
     }
-
-    static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => rule.Kind switch
-    {
-        SemanticValidationRuleKind.NotEmpty => !SemanticRunContext.Empty(value),
-        _ when value is SemanticNullValue => true,
-        SemanticValidationRuleKind.Maximum => Measure(value) <= Number(rule.Operand),
-        SemanticValidationRuleKind.Minimum => Measure(value) >= Number(rule.Operand),
-        SemanticValidationRuleKind.Equal => SemanticExpectationComparer.AreEqual(value, rule.Operand!),
-        SemanticValidationRuleKind.NotEqual => !SemanticExpectationComparer.AreEqual(value, rule.Operand!),
-        SemanticValidationRuleKind.GreaterThan => Measure(value) > Number(rule.Operand),
-        SemanticValidationRuleKind.GreaterThanOrEqual => Measure(value) >= Number(rule.Operand),
-        SemanticValidationRuleKind.LessThan => Measure(value) < Number(rule.Operand),
-        SemanticValidationRuleKind.LessThanOrEqual => Measure(value) <= Number(rule.Operand),
-        SemanticValidationRuleKind.Length => value is SemanticTextValue text && text.Value.Length == Number(rule.Operand),
-        SemanticValidationRuleKind.Matches => Matches(value, rule.Operand),
-        _ => throw new UnsupportedSemanticMapping()
-    };
 
     static bool Matches(SemanticValue value, SemanticValue? operand)
     {
@@ -133,23 +155,5 @@ internal static class SemanticRuleEvaluation
         SemanticTextValue text => $"'{text.Value}'",
         SemanticBooleanValue boolean => boolean.Value ? "true" : "false",
         _ => "null"
-    };
-
-    static string Message(SemanticValidationRule rule, SemanticValue value, string empty) => rule.Kind switch
-    {
-        SemanticValidationRuleKind.NotEmpty => empty,
-        SemanticValidationRuleKind.Maximum when value is SemanticTextValue => $"A value must be at most {Format(rule.Operand)} characters long.",
-        SemanticValidationRuleKind.Minimum when value is SemanticTextValue => $"A value must be at least {Format(rule.Operand)} characters long.",
-        SemanticValidationRuleKind.Maximum => $"A value must be at most {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.Minimum => $"A value must be at least {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.Equal => $"A value must equal {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.NotEqual => $"A value must not equal {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.GreaterThan => $"A value must be greater than {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.GreaterThanOrEqual => $"A value must be at least {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.LessThan => $"A value must be less than {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.LessThanOrEqual => $"A value must be at most {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.Length => $"A value must be exactly {Format(rule.Operand)} characters long.",
-        SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
-        _ => throw new UnsupportedSemanticMapping()
     };
 }

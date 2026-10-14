@@ -15,7 +15,11 @@ public sealed partial class SemanticSpecificationExecutor
     internal static SemanticSpecificationRunRecord Rejected(SemanticSlice slice, SemanticSpecification specification, SemanticRejection rejection)
     {
         var failures = SemanticExpectationComparer.Compare(specification, new([], []), rejection);
-        var trace = new SemanticExecutionTrace([], new Dictionary<string, string>(), new Dictionary<string, string>(), rejection.Message) { RejectionCode = rejection.Code };
+        var trace = new SemanticExecutionTrace([], new Dictionary<string, string>(), new Dictionary<string, string>(), rejection.Message)
+        {
+            RejectionCode = rejection.Code,
+            RejectionCategory = specification.When is null && !specification.ThenQueries.IsEmpty ? rejection.Category.ToString() : null
+        };
 
         return Settled(slice, specification, failures, trace);
     }

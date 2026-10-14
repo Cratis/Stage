@@ -59,6 +59,7 @@ public static partial class SemanticModelLoader
         // there are not part of the model, exactly as for `screenplay baseline check`; a file the caller named explicitly is refused.
         var named = namedFiles.Select(file => Path.GetRelativePath(root, file).Replace('\\', '/')).ToHashSet(StringComparer.Ordinal);
         selectedPaths.RemoveWhere(path => !documentPaths.Contains(path) && !named.Contains(path));
+        if (selectedPaths.Count == 0) return Failure("STAGE-PLAN-002", "No .play files that the Screenplay model root reads were found.");
         var unread = selectedPaths.Where(path => !documentPaths.Contains(path)).Order(StringComparer.Ordinal).ToArray();
         if (unread.Length > 0)
         {

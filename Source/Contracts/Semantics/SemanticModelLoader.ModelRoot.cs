@@ -53,6 +53,14 @@ public static partial class SemanticModelLoader
 
         var workspace = outcome.Workspace;
         var selectedPaths = files.Select(file => Path.GetRelativePath(root, file).Replace('\\', '/')).ToHashSet(StringComparer.Ordinal);
+        var documentPaths = workspace.Documents.Select(document => document.Path.Value).ToHashSet(StringComparer.Ordinal);
+        var unread = selectedPaths.Where(path => !documentPaths.Contains(path)).Order(StringComparer.Ordinal).ToArray();
+        if (unread.Length > 0)
+        {
+            // Screenplay's model root skips folders such as .git, .ai-work, bin, obj and node_modules. Never drop a selected source silently.
+            return new(null, [.. unread.Select(path => new SemanticModelLoadDiagnostic("STAGE-PLAN-001", "The selected source is not part of the Screenplay model root (it is in a folder Screenplay does not read), so it cannot be planned with the root's persisted identities.", path))]);
+        }
+
         var documents = workspace.Documents.Where(document => selectedPaths.Contains(document.Path.Value)).ToImmutableArray();
         var wholeRoot = documents.Length == workspace.Documents.Length && name == workspace.ApplicationName;
         var compiled = wholeRoot ? workspace.Compilation : CompileSelection(workspace, documents, name);

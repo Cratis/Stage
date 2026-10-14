@@ -15,7 +15,7 @@ set -uo pipefail
 application=${1:?usage: run.sh <application directory> <result json path>}
 result=${2:?usage: run.sh <application directory> <result json path>}
 harness=$(cd "$(dirname "$0")" && pwd)
-chronicle_image=${STAGE_GENERATED_REACT_CHRONICLE_IMAGE:-cratis/chronicle:19.55.2-development}
+chronicle_image=${STAGE_GENERATED_REACT_CHRONICLE_IMAGE:-cratis/chronicle:19.59.6-development}
 container="stage-generated-react-$$"
 port=${STAGE_GENERATED_REACT_PORT:-19371}
 host_pid=""

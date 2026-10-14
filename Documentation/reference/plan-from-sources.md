@@ -83,7 +83,7 @@ is checked against the model by `PlanFrom`; scaffold planning does not consume i
 | --- | --- |
 | `Root` | Required identity and attachment root, normally the repository's Screenplay directory. |
 | `Paths` | Files and/or folders, absolute or relative to `Root`. Folders are searched recursively. Empty selects all of `Root`. |
-| `CatalogPath` | Optional authoritative identity catalog, absolute or root-relative. |
+| `CatalogPath` | Optional canonical bare identity catalog or MCP persisted identity state (`cratis.screenplay.mcp-identities`, version 1), absolute or root-relative. |
 
 Files must exist, have a `.play` extension, and remain under `Root`. Symbolic links
 and reparse points below `Root` are refused, even when their targets are inside it.
@@ -98,17 +98,44 @@ identity and attachment resolution. Changing the root can change semantic identi
 even when source text is unchanged. Setting it to a single file's parent matches the
 existing single-file loader's identity behavior.
 
+For a Screenplay MCP model root, set `CatalogPath` to `.screenplay/identities.json`.
+Stage reads the wrapper through Screenplay's `PersistedIdentityStateSerializer`, not
+as a bare catalog. Both formats require canonical bytes. Persisted document mappings
+retain identities after a document moves; bare catalogs use path-derived document keys.
+Omitting `CatalogPath` keeps the existing provisional-identity behavior: Stage does not
+automatically discover the identity file.
+
 Context-only sources need no flag: supply concepts, types, sibling features, and other
 compile dependencies in `Paths`, but omit their scopes from `PlanSelection`. Referenced
 shared declarations and required constraints can still appear in the output.
 
 ## Admitted release revisions
 
-Source loading reads `.screenplay/release-baseline.json` under `PlaySources.Root`
-with Screenplay's `ReleaseBaselineStore.Read`; it never admits a release or writes
-sidecars. Supply `CatalogPath` for authoritative document and event identities.
-An absent baseline adds no warnings. A present baseline without authoritative
-identities reports an unavailable check, not guessed changed or missing revisions.
+When `CatalogPath` names the root's MCP `.screenplay/identities.json`, Stage opens
+that root through Screenplay's `ScreenplayModelRoot.OpenForReleaseBaselineCheck`.
+Whole-root loading uses the returned workspace compilation and assesses that same
+workspace with `StageReleaseBaseline.Check(workspace, baselineRead)`. Supply the
+persisted application name and all root sources to obtain a whole-root assessment.
+If a partial source set compiles, its assessment is unavailable rather than borrowed
+from another revision. Screenplay 4.159.0 rejects stale catalog assignments during
+compilation, including removed declarations and subsets that omit assigned documents;
+Stage forwards that compilation failure without migrating identities.
+
+The model root contains the sources Screenplay reads, which excludes `.git`, `.ai-work`, `bin`, `obj` and
+`node_modules`. `.play` files found inside those folders while Stage walks a selected folder are left out,
+the same way `screenplay baseline check` leaves them out. A file you name explicitly that the model root does not
+read is refused with `STAGE-PLAN-001` and is never silently dropped.
+
+A pending recovery operation, conflicting document mappings, or unreadable root
+refuses loading with `STAGE-BASELINE-004`; an identity-state conflict reported by
+Screenplay's root opener uses `STAGE-BASELINE-003`. Invalid catalog bytes detected
+before opening use `STAGE-PLAN-006`. These refusals never recover or rewrite the root.
+
+Bare catalogs and identity wrappers outside the root's metadata path keep the
+compilation-based assessment with `ReleaseBaselineStore.Read`. Source loading never
+admits a release or writes sidecars. An absent baseline adds no warnings. A present
+baseline without authoritative identities reports an unavailable check, not guessed
+changed or missing revisions. See [Screenplay's public model-root readers](/screenplay/screenplay/tool/#call-these-from-your-own-tooling).
 
 `LoadedSemanticModel.ReleaseBaseline` carries the assessment of the whole compiled
 application. Both `PlanFrom` overloads forward it, including violations in sibling
@@ -290,7 +317,7 @@ is exposed separately: equal output digests do not promise equal input revisions
 | `STAGE-PLAN-003` | Compilation failed; original `PLAY` diagnostics and locations accompany it. |
 | `STAGE-PLAN-004` | Execution-plan admission refused. |
 | `STAGE-PLAN-005` | Source or catalog could not be read. |
-| `STAGE-PLAN-006` | Identity catalog invalid. |
+| `STAGE-PLAN-006` | Identity catalog or persisted MCP identity state invalid. |
 | `STAGE-PLAN-010` | Selection empty. |
 | `STAGE-PLAN-011` | Unknown module. |
 | `STAGE-PLAN-012` | Unknown feature or invalid feature path. |

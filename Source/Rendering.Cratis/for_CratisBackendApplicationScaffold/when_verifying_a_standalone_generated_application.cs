@@ -21,6 +21,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     bool _dockerAvailable;
     string _dockerEvidence = null!;
     string _healthEvidence = null!;
+    HttpStatusCode _firstQueryStatus;
 
     void Establish()
     {
@@ -84,6 +85,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     [Fact] void should_build_the_release_host_without_warnings() => FailureOutput(_releaseBuild).ShouldEqual(string.Empty);
     [Fact] void should_record_docker_availability_explicitly() => _dockerEvidence.ShouldNotBeEmpty();
     [Fact] void should_pass_health_when_docker_is_available() => (_dockerAvailable ? _healthEvidence : _dockerEvidence).ShouldEqual(_dockerAvailable ? "GET /healthz returned 200." : _dockerEvidence);
+    [Fact] void should_serve_a_read_model_query_immediately_after_the_first_healthy_response_when_docker_is_available() => (_dockerAvailable ? _firstQueryStatus : HttpStatusCode.OK).ShouldEqual(HttpStatusCode.OK);
 
     async Task<string> VerifyHealth()
     {
@@ -169,6 +171,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         {
             using var client = new HttpClient();
             using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            var healthy = false;
             while (!timeout.IsCancellationRequested && !host.HasExited)
             {
                 try
@@ -176,7 +179,8 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
                     using var response = await client.GetAsync(new Uri($"http://127.0.0.1:{port}/healthz"), timeout.Token);
                     if (response.StatusCode == HttpStatusCode.OK)
                     {
-                        return "GET /healthz returned 200.";
+                        healthy = true;
+                        break;
                     }
                 }
                 catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
@@ -185,6 +189,16 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
                 }
 
                 await Task.Delay(TimeSpan.FromMilliseconds(500), timeout.Token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            }
+
+            if (healthy)
+            {
+                // A single request outside the readiness retry loop must succeed on the first attempt.
+                using var query = await client.GetAsync(
+                    new Uri($"http://127.0.0.1:{port}/api/projects/registration/project-lookup/project-by-id?projectId=4fa85f64-5717-4562-b3fc-2c963f66afa7"),
+                    timeout.Token);
+                _firstQueryStatus = query.StatusCode;
+                return "GET /healthz returned 200.";
             }
 
             if (!host.HasExited)

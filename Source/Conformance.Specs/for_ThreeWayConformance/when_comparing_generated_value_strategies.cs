@@ -12,13 +12,14 @@ using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission.given;
 using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_comparing_generated_value_strategies(when_comparing_generated_value_strategies.context fixture) : IClassFixture<when_comparing_generated_value_strategies.context>
 {
-    [Fact] void should_agree_on_several_initial_facts_and_reused_source() => fixture.Outcomes.Count(outcome => outcome.Contains("Reference=Passed, Stage=Passed, Rendered=Passed", StringComparison.Ordinal)).ShouldEqual(2);
+    [Fact] void should_agree_on_several_initial_facts_and_reused_source() => fixture.Outcomes.Count(outcome => outcome.Contains("Reference=Passed, Stage=Passed, Rendered=Passed", StringComparison.Ordinal)).ShouldEqual(7);
     [Fact] void should_have_no_three_way_differences() => Assert.Empty(fixture.Differences);
 
     public class context : a_three_way_application
@@ -26,7 +27,18 @@ public class when_comparing_generated_value_strategies(when_comparing_generated_
         protected override string ApplicationName => "GenerationApp";
         protected override string ProjectFile => "GenerationApp.csproj";
         protected override bool RequireStageExecution => true;
-        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("stage-authored-v15", a_generation_model.Model())];
+        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("stage-authored-v15", CombinedModel())];
+
+        static ExecutableSemanticModel CombinedModel()
+        {
+            var strategies = a_generation_model.Model();
+            var invites = an_invite_code_model.Model();
+            return ExecutableSemanticModel.Create(strategies.LanguageVersion, strategies.SemanticVersion, strategies.Application with
+            {
+                Concepts = [.. strategies.Application.Concepts, .. invites.Application.Concepts],
+                Modules = [.. strategies.Application.Modules, .. invites.Application.Modules]
+            });
+        }
 
         Task Because()
         {

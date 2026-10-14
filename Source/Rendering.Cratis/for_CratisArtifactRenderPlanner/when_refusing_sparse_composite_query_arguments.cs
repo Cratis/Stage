@@ -28,9 +28,10 @@ public class when_refusing_sparse_composite_query_arguments : Specification
               feature Invoicing
                 slice StateView Lookup
                   readmodel InvoiceSummary
-                    key InvoiceKey
+                    invoiceId InvoiceId
+                    invoiceKey InvoiceKey
                   query InvoicesByKey => InvoiceSummary[]
-                    by key InvoiceKey
+                    by invoiceKey InvoiceKey
             """);
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
         var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));

@@ -25,7 +25,7 @@ public static class a_projected_query_validation_model
                 number InvoiceNumber
                 customer CustomerCode
             slice StateView Lookup
-        """;
+            """;
         const string projection = """
                   projection InvoiceProjection => Invoice
                     from InvoiceIssued key number

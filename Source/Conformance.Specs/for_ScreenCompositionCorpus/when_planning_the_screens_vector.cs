@@ -118,7 +118,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
             [.. plan.Artifacts.Select(artifact => artifact.Kind == PlannedArtifactKind.Text
                 ? PlannedArtifact.CreateText(
                     artifact.RelativePath,
-                    Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("19.59.6", "19.55.2", StringComparison.Ordinal).Replace("22.88.0", "22.87.0", StringComparison.Ordinal),
+                    PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
                     artifact.Sources)
                 : artifact)],
             plan.Diagnostics).ShouldEqual("02f47c1ce8913a5c529588ae18fed2a8f7062d9b4deede1733086e6049035a6a");
@@ -130,6 +130,17 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         PlanOf(form).Artifacts.Select(artifact => Convert.ToHexString(artifact.Bytes.AsSpan())).ShouldEqual(PlanOf("folder").Artifacts.Select(artifact => Convert.ToHexString(artifact.Bytes.AsSpan())));
 
     [Fact] void should_cover_every_source_form() => Forms.Count.ShouldEqual(4);
+
+    // The previous frozen plan predates the Chronicle 19.59.6 and backend Arc 22.88.0 scaffold pins. Only the backend
+    // Workspaces project carries the scaffold Arc pin; other files may already name 22.88.0 for unrelated packages.
+    static string PreviousPins(string relativePath, string text)
+    {
+        var previous = text.Replace("19.59.6", "19.55.2", StringComparison.Ordinal);
+
+        return relativePath.EndsWith("Workspaces.csproj", StringComparison.Ordinal)
+            ? previous.Replace("22.88.0", "22.87.0", StringComparison.Ordinal)
+            : previous;
+    }
 
     static string[] Pinned() => [.. Manifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim())];
 

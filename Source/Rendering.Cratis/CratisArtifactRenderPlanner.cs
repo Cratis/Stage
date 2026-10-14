@@ -141,10 +141,25 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             artifacts.Add(Artifact(TenantTranslationSource.Render(context.RootNamespace)));
         }
 
-        AddScaffold(request, context, artifacts, diagnostics);
+        ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
+        AddScaffold(request, context, artifacts, diagnostics, partitions);
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {
             return CreatePlan(request, [], diagnostics);
+        }
+
+        if (partitions is not null)
+        {
+            artifacts.AddRange(ScreenPartitionsInput.Render(partitions, slices));
+            foreach (var slice in slices.Where(slice => !partitions.Entries.Exists(entry => entry.Owner == slice.Slice.Id.ToString())))
+            {
+                diagnostics.Add(new("STAGE-SCREEN-005", ArtifactRenderDiagnosticSeverity.Information, "This slice declares no authored screen; no slice-owned default UI fragment is emitted.", slice.Slice.Id));
+            }
+
+            if (request.Scope.Kind != ArtifactRenderScopeKind.Application)
+            {
+                diagnostics.Add(new("STAGE-SCREEN-006", ArtifactRenderDiagnosticSeverity.Information, "Application Scene aggregates are omitted from scoped plans; use application scope to publish shared UI.", context.Application.Id));
+            }
         }
 
         if (request.Scope.Kind == ArtifactRenderScopeKind.Application)
@@ -214,7 +229,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         ArtifactRenderRequest request,
         SemanticApplicationContext context,
         List<PlannedArtifact> artifacts,
-        List<ArtifactRenderDiagnostic> diagnostics)
+        List<ArtifactRenderDiagnostic> diagnostics,
+        ScreenPartitionsInput.Catalog? partitions)
     {
         if (request.Scope.Kind != ArtifactRenderScopeKind.Application)
         {
@@ -228,7 +244,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return;
         }
 
-        var sceneJson = System.Text.Encoding.UTF8.GetString(scene.Bytes.AsSpan());
+        var sceneJson = partitions is null
+            ? System.Text.Encoding.UTF8.GetString(scene.Bytes.AsSpan())
+            : ScreenPartitionsInput.Compose(scene, partitions);
 
         // Keep guarded Scene admission at the application boundary, where Scene artifacts are actually emitted.
         if (Contracts.Scene.SceneGuards.HasUnevaluableGuard(sceneJson))

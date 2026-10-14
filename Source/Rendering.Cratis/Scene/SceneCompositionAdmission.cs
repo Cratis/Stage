@@ -50,18 +50,18 @@ internal static class SceneCompositionAdmission
         return true;
     }
 
-    static bool IsScreen(JsonElement screen) =>
-        screen.ValueKind == JsonValueKind.Object &&
-        screen.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String &&
-        screen.TryGetProperty("slotContent", out var slots) && slots.ValueKind == JsonValueKind.Object &&
-        slots.EnumerateObject().All(slot => slot.Value.ValueKind == JsonValueKind.Array &&
-            slot.Value.EnumerateArray().All(element => element.ValueKind == JsonValueKind.Object));
-
-    static bool HasDuplicateMembers(JsonElement value) => value.ValueKind switch
+    internal static bool HasDuplicateMembers(JsonElement value) => value.ValueKind switch
     {
         JsonValueKind.Object => value.EnumerateObject().GroupBy(property => property.Name, StringComparer.Ordinal).Any(group => group.Count() > 1) ||
             value.EnumerateObject().Any(property => HasDuplicateMembers(property.Value)),
         JsonValueKind.Array => value.EnumerateArray().Any(HasDuplicateMembers),
         _ => false
     };
+
+    static bool IsScreen(JsonElement screen) =>
+        screen.ValueKind == JsonValueKind.Object &&
+        screen.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String &&
+        screen.TryGetProperty("slotContent", out var slots) && slots.ValueKind == JsonValueKind.Object &&
+        slots.EnumerateObject().All(slot => slot.Value.ValueKind == JsonValueKind.Array &&
+            slot.Value.EnumerateArray().All(element => element.ValueKind == JsonValueKind.Object));
 }

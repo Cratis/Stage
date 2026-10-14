@@ -120,7 +120,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
             plan.Renderer,
             plan.RendererVersion,
             plan.ApplicationName,
-            [.. plan.Artifacts.Select(artifact => artifact.Kind == PlannedArtifactKind.Text
+            [.. plan.Artifacts.Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
                 ? PlannedArtifact.CreateText(
                     artifact.RelativePath,
                     PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),

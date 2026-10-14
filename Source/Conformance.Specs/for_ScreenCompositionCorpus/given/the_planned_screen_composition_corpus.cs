@@ -44,10 +44,16 @@ public class the_planned_screen_composition_corpus : Specification
 
         var scene = SceneFor(sources);
         var options = new CratisRenderingOptions(ApplicationName, ApplicationName);
+        var profile = CratisRendering.CreateProfile(model.Application.Name, options, carryScene ? scene : null);
+        if (carryScene)
+        {
+            profile = CratisRendering.WithScreenPartitions(profile, compilation.Value!);
+        }
+
         var request = new ArtifactRenderRequest(
             model,
             execution.Plan!,
-            CratisRendering.CreateProfile(model.Application.Name, options, carryScene ? scene : null),
+            profile,
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
 
         return (new CratisArtifactRenderPlanner().Plan(request), scene, model);

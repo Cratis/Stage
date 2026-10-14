@@ -7,6 +7,8 @@ The Cratis application artifact planner uses an authored Scene unchanged when th
 Otherwise it emits `scene.json` with command forms and eligible editable keyed lookups, plus `src/bindings.ts`.
 It does not mutate the profile or generate per-screen TypeScript components.
 
+Authored profiles can carry [slice-owned screen partitions](render-plans.md#slice-owned-screen-fragments) from the same compilation. Stage assembles the canonical app Scene from those records and emits each declaring slice's `Screens.scene.json`, including in scoped plans. Shared Scene aggregates are application-scope only. The synthetic default screen remains application-owned: it is not copied into every slice as that slice's UI.
+
 ## Lookup eligibility
 
 Backend semantic admission runs before composition. A default lookup requires all of the following:

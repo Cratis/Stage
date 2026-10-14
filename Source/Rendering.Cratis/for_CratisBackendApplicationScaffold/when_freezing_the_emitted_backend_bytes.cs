@@ -36,13 +36,13 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    // The previous frozen backend predates the Chronicle 19.59.6 and Arc 22.88.0 pins; only the Workspaces project
+    // The previous frozen backend predates the Chronicle 19.59.6 and Arc 22.88.0 pins; only the generated backend project
     // carries the scaffold's Arc pin.
     static string PreviousPins(string name, string text)
     {
         var previous = text.Replace("19.59.6", "19.55.2", StringComparison.Ordinal);
 
-        return name.EndsWith("Workspaces.csproj", StringComparison.Ordinal)
+        return name.EndsWith(".csproj", StringComparison.Ordinal)
             ? previous.Replace("22.88.0", "22.87.0", StringComparison.Ordinal)
             : previous;
     }

@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.given;
 using Xunit;
 
@@ -25,8 +26,8 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("6684a07d609442bf8a52faedf786ebb1710f3d92cffa73d569f51da051e3902a");
-    [Fact] void should_change_only_the_runtime_pins_and_slice_sources_from_the_previous_frozen_plan() => PreviousPinDigest().ShouldEqual("405e4e73c50c892994769e5bc5aac6c803cbe4e9052225baa9a8c45a06a0f3d9");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("9485e5f31f64fa20dae606a17c0600c3811a7621eb9cb564aeba61225bd6abe6");
+    [Fact] void should_change_only_the_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousPinDigest().ShouldEqual("405e4e73c50c892994769e5bc5aac6c803cbe4e9052225baa9a8c45a06a0f3d9");
 
     string PreviousPinDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
@@ -46,7 +47,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Only the generated backend project carries the scaffold's Arc pin; other files may name 22.88.0 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = text.Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
 
         return relativePath.EndsWith(".csproj", StringComparison.Ordinal)
             ? previous.Replace("22.88.0", "22.87.0", StringComparison.Ordinal)

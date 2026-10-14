@@ -178,7 +178,7 @@ public static class SemanticRunAdmission
 
         // The reference projects given events while establishing the world, and produced facts only when the command
         // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
-        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? command.Produces.Select(produce => produce.EventContract) : [];
+        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? SemanticProductionConditions.Taken(command, when).Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
         if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
@@ -193,10 +193,10 @@ public static class SemanticRunAdmission
             return Block(StageExecutionCapability.Command, command.Id, "A command validation rule is not admitted.");
         }
 
-        if (command.Produces.Any(produced => produced.Condition is not null || produced.When is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }) &&
+        if (command.Produces.Any(produced => produced.Condition is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }) &&
                 !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } && SemanticSpecificationClock.TryGet(specification, out _)))))
         {
-            return Block(StageExecutionCapability.Command, command.Id, "Conditional or non-command mappings are not admitted.");
+            return Block(StageExecutionCapability.Command, command.Id, "Expression conditions or non-command mappings are not admitted.");
         }
 
         if (command.Produces.Any(produced => produced.Destination is not null and not (SemanticValueExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command })))
@@ -205,7 +205,7 @@ public static class SemanticRunAdmission
         }
 
         // A routed command can reject its route before reaching identity allocation; defer that decision to execution.
-        if (specification.ThenErrors.IsEmpty && command.Route is null && when.EventSource is null && command.Destination?.Value is null && command.Produces.Any(produced => produced.Destination is null))
+        if (specification.ThenErrors.IsEmpty && command.Route is null && when.EventSource is null && command.Destination?.Value is null && SemanticProductionConditions.Taken(command, when).Any(produced => produced.Destination is null))
         {
             return Block(StageExecutionCapability.IdentityAllocation, command.Id, "An accepted command requires an explicit destination.");
         }

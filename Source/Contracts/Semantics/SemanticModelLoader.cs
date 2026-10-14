@@ -11,6 +11,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Screenplay.Syntax.Specifications;
+using Cratis.Screenplay.Workspaces;
 
 namespace Cratis.Stage.Contracts.Semantics;
 
@@ -38,6 +39,11 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
 
     /// <summary>Warnings from the attachment loader, including PLAY043x reasons for refused files.</summary>
     public ImmutableArray<Diagnostic> AttachmentDiagnostics { get; init; } = [];
+
+    /// <summary>
+    /// Gets the whole-application assessment of the model root's admitted release revisions.
+    /// </summary>
+    public ReleaseBaselineAssessment ReleaseBaseline { get; init; } = ReleaseBaselineAssessment.NotSupplied;
 }
 
 /// <summary>
@@ -315,7 +321,8 @@ public static class SemanticModelLoader
             ImplementationRequirements = compiled.ImplementationRequirements,
             TypedContextDescriptors = compiled.TypedContextDescriptors,
             ImplementationContents = SemanticImplementationBodies.Resolve(documentSet, compiled.ImplementationRequirements),
-            AttachmentDiagnostics = attachments.Diagnostics
+            AttachmentDiagnostics = attachments.Diagnostics,
+            ReleaseBaseline = StageReleaseBaseline.Check(compiled.Value!, ReleaseBaselineStore.Read(root, catalog.Application))
         };
 
         return new(loaded, diagnostics);

@@ -19,22 +19,26 @@ internal static class SemanticGeneratedFreshness
             .Select(destination => command.Properties.Single(property => property.Id == destination.Target))
             .Where(property => Primitive(property, context) is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text).DistinctBy(property => property.Id);
 
-    internal static string Events(SemanticCommand command, SemanticApplicationContext context, Func<SemanticProducedEvent, string> wrappedEvent)
+    internal static string Events(SemanticGeneratedFreshnessContext selection)
     {
+        var (command, context, wrappedEvent, selectedEvents, inclusion) = selection;
         var types = new SemanticTypeSystem(context);
         const string sourceType = "global::Cratis.Chronicle.Events.EventSourceId";
         var sources = Destinations(command, context).Select((property, index) =>
         {
             var source = types.EventSourceExpression(SemanticCommandResultRendering.PropertyValue(property), property.Type);
 
-            return property.IsGenerated ? source : $".. ({MatchesGenerated(property, index, command, context)} ? new {sourceType}[] {{ {source} }} : [])";
+            if (inclusion is null) return property.IsGenerated ? source : $".. ({MatchesGenerated(property, index, command, context)} ? new {sourceType}[] {{ {source} }} : [])";
+            var guard = inclusion(property);
+            var predicate = property.IsGenerated ? guard : $"({guard}) && ({MatchesGenerated(property, index, command, context)})";
+            return $".. ({predicate} ? new {sourceType}[] {{ {source} }} : [])";
         });
 
         // Replace these explicit scopes when Arc's generated-identifier freshness contract ships (Arc#3129).
         var distinct = $"global::System.Linq.Enumerable.Distinct<{sourceType}>([{string.Join(", ", sources)}])";
         var scopes = $"global::System.Linq.Enumerable.Select({distinct}, source => new global::System.Collections.Generic.KeyValuePair<{sourceType}, {Sequences}.Concurrency.ConcurrencyScope>(source, new(global::Cratis.Chronicle.Events.EventSequenceNumber.BeforeFirst, EventSourceId: source)))";
 
-        return $"new {ResultType}([{string.Join(", ", command.Produces.Select(wrappedEvent))}], {scopes})";
+        return $"new {ResultType}({selectedEvents ?? $"[{string.Join(", ", command.Produces.Select(wrappedEvent))}]"}, {scopes})";
     }
 
     static string MatchesGenerated(SemanticProperty destination, int index, SemanticCommand command, SemanticApplicationContext context) =>

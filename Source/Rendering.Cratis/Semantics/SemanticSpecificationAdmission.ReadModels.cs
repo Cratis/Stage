@@ -58,10 +58,10 @@ internal static partial class SemanticSpecificationAdmission
             // the reducer's event-source state without guessing which payload came first.
             if (specification.ThenEventsInAnyOrder && specification.ThenEvents.GroupBy(_ => _.EventContract).Any(group => group.Count() > 1))
                 return false;
-            return specification.ThenEvents.Length == command.Produces.Length &&
+            return specification.ThenEvents.Length == SemanticProductionSelection.Taken(command, specification).Length &&
                 (specification.GivenEvents.Any(given => reducer.Transitions.Any(_ => _.EventContract == given.EventContract) &&
                     Equals(given.EventSource?.Value, expected.Key)) ||
-                command.Produces.Any(produced => reducer.Transitions.Any(_ => _.EventContract == produced.EventContract) &&
+                SemanticProductionSelection.Taken(command, specification).Any(produced => reducer.Transitions.Any(_ => _.EventContract == produced.EventContract) &&
                     Equals(SemanticDestinations.ForSpecification(specification, command, produced).Value, expected.Key)));
         }
 
@@ -71,11 +71,11 @@ internal static partial class SemanticSpecificationAdmission
             // A scoped projection observes every produced fact, not just the root-from fact. Unordered
             // duplicate contracts cannot be paired with their production occurrences unambiguously.
             var command = context.Commands[specification.When!.Command];
-            return specification.ThenEvents.Length == command.Produces.Length &&
+            return specification.ThenEvents.Length == SemanticProductionSelection.Taken(command, specification).Length &&
                 scope.From.Any(from => specification.ThenEvents.Any(@event => @event.EventContract == from.EventContract)) &&
                 (!specification.ThenEventsInAnyOrder ||
                     specification.ThenEvents.Select(@event => @event.EventContract).Distinct().Count() == specification.ThenEvents.Length) &&
-                command.Produces.All(produced => SemanticDestinations.Of(command, produced) is SemanticResolvedExpression destination &&
+                SemanticProductionSelection.Taken(command, specification).All(produced => SemanticDestinations.Of(command, produced) is SemanticResolvedExpression destination &&
                     Equals(
                         SemanticDestinations.ForSpecification(specification, command, produced).Value,
                         specification.When.Values.Single(_ => _.TargetProperty == destination.Target).Value));

@@ -24,7 +24,7 @@ internal static partial class SemanticSpecificationAdmission
                 diagnostics.Add(new(
                     SemanticVersionFeatures.CommandResults,
                     ArtifactRenderDiagnosticSeverity.Error,
-                    $"Specification '{specification.Name}' needs pinned generated values for unordered or projected expectations.",
+                    $"Specification '{specification.Name}' needs pinned generated values for {PinReason(context.Commands[specification.When!.Command])}.",
                     specification.Id));
             }
             else
@@ -33,6 +33,10 @@ internal static partial class SemanticSpecificationAdmission
             }
         }
     }
+
+    static string PinReason(SemanticCommand command) => command.Produces.Any(produced => produced.When is not null)
+        ? "production conditions, unordered or projected expectations"
+        : "unordered or projected expectations";
 
     static string? InvalidStrategyFixture(SemanticApplicationContext context, SemanticSpecification specification)
     {
@@ -57,11 +61,17 @@ internal static partial class SemanticSpecificationAdmission
     {
         if (specification.When is not { } action) return false;
         if (!context.Commands.TryGetValue(action.Command, out var command)) return false;
-        if (!HasProjectedOrUnorderedExpectations(specification)) return false;
+        var conditionProperties = command.Produces.Where(produced => produced.When is not null)
+            .SelectMany(produced => SemanticProductionSelection.Properties(produced.When!)).ToHashSet();
+        var unpinned = UnpinnedGeneratedProperties(command, action).ToArray();
+        if (unpinned.Any(property => conditionProperties.Contains(property.Id))) return true;
 
-        return command.Properties.Any(property =>
-            property.IsGenerated && !action.GeneratedValues.Any(value => value.TargetProperty == property.Id));
+        return HasProjectedOrUnorderedExpectations(specification) && unpinned.Length > 0;
     }
+
+    static IEnumerable<SemanticProperty> UnpinnedGeneratedProperties(SemanticCommand command, SemanticSpecificationCommand action) =>
+        command.Properties.Where(property => property.IsGenerated)
+            .Where(property => !action.GeneratedValues.Any(value => value.TargetProperty == property.Id));
 
     static bool HasProjectedOrUnorderedExpectations(SemanticSpecification specification) =>
         specification.ThenEventsInAnyOrder || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty;

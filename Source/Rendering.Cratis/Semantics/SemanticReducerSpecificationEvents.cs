@@ -20,7 +20,7 @@ internal static class SemanticReducerSpecificationEvents
         SemanticSpecificationReadModel expected,
         SemanticReducer reducer,
         SemanticCommand command) =>
-        [.. command.Produces.Select((produced, index) => (Produced: produced,
+        [.. SemanticProductionSelection.Taken(command, specification).Select((produced, index) => (Produced: produced,
                 Expected: specification.ThenEventsInAnyOrder
                     ? specification.ThenEvents.Single(_ => _.EventContract == produced.EventContract)
                     : specification.ThenEvents[index]))

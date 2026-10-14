@@ -68,24 +68,47 @@ internal static partial class SemanticCommandSpecificationRenderer
 
     static void RenderAppendedCount(SpecificationScope scope)
     {
-        var builder = scope.Builder;
         var count = scope.Specification.ThenEvents.Length;
-        if (scope.Specification.ThenNoEvents)
+        if (count == 0)
         {
-            builder.Line(scope.SeedInLog
-                ? "[global::Xunit.FactAttribute] void should_append_no_new_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(0);"
-                : "[global::Xunit.FactAttribute] void should_append_no_new_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(0);");
-        }
-        if (count > 1)
-        {
-            builder.Line(scope.SeedInLog
-                ? $"[global::Xunit.FactAttribute] void should_append_exactly_{count}_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual({count});"
-                : $"[global::Xunit.FactAttribute] void should_append_exactly_{count}_events() => _scenario.AppendedEvents.Count.ShouldEqual({count});");
+            RenderNoAppendedEvents(scope);
+            return;
         }
 
         if (scope.SeedInLog && count == 1)
         {
-            builder.Line("[global::Xunit.FactAttribute] void should_append_exactly_one_new_event() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(1);");
+            scope.Builder.Line("[global::Xunit.FactAttribute] void should_append_exactly_one_new_event() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(1);");
+            return;
+        }
+
+        RenderExactAppendedCount(scope, count);
+    }
+
+    static void RenderNoAppendedEvents(SpecificationScope scope)
+    {
+        if (scope.Specification.ThenNoEvents)
+        {
+            scope.Builder.Line(scope.SeedInLog
+                ? "[global::Xunit.FactAttribute] void should_append_no_new_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(0);"
+                : "[global::Xunit.FactAttribute] void should_append_no_new_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(0);");
+            return;
+        }
+
+        if (scope.Command.Produces.Any(produced => produced.When is not null))
+        {
+            scope.Builder.Line(scope.SeedInLog
+                ? "[global::Xunit.FactAttribute] void should_append_no_new_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(0);"
+                : "[global::Xunit.FactAttribute] void should_append_no_new_events() => _scenario.AppendedEvents.Count.ShouldEqual(0);");
+        }
+    }
+
+    static void RenderExactAppendedCount(SpecificationScope scope, int count)
+    {
+        if (count > 1 || scope.Command.Produces.Any(produced => produced.When is not null))
+        {
+            scope.Builder.Line(scope.SeedInLog
+                ? $"[global::Xunit.FactAttribute] void should_append_exactly_{count}_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual({count});"
+                : $"[global::Xunit.FactAttribute] void should_append_exactly_{count}_events() => _scenario.AppendedEvents.Count.ShouldEqual({count});");
         }
     }
 
@@ -95,7 +118,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var context = scope.Context;
         var types = scope.Types;
         var @event = context.Events[expected.EventContract];
-        var produced = scope.Command.Produces[index];
+        var produced = SemanticProductionSelection.Taken(scope.Command, scope.Specification)[index];
         if (generated.DestinationNeedsCommon(produced) ||
             PropertyValuesNeedCommon(@event.Properties, expected.Values))
         {
@@ -166,7 +189,7 @@ internal static partial class SemanticCommandSpecificationRenderer
 
             return EventPropertyPredicate(property, value, types, index);
         });
-        var produced = scope.Command.Produces.First(_ => _.EventContract == expected.EventContract);
+        var produced = SemanticProductionSelection.Taken(scope.Command, scope.Specification).First(_ => _.EventContract == expected.EventContract);
         var identity = SemanticDestinations.ForSpecification(scope.Specification, scope.Command, produced);
         var source = $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}";
         if (SemanticTypeSystem.ValueNeedsCommon(identity.Value, identity.Type))

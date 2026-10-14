@@ -24,10 +24,10 @@ internal static class SemanticConditionRendering
         _ => false
     };
 
-    internal static string Render(SemanticCondition condition, IReadOnlyList<SemanticProperty> properties, string receiver, SemanticApplicationContext context) => condition switch
+    internal static string Render(SemanticCondition condition, SemanticConditionRenderingContext context) => condition switch
     {
-        SemanticLogicalCondition logical => $"({Render(logical.Left, properties, receiver, context)} {(logical.Operator == SemanticLogicalOperator.And ? "&&" : "||")} {Render(logical.Right, properties, receiver, context)})",
-        SemanticComparison comparison => Comparison(comparison, properties, receiver, context),
+        SemanticLogicalCondition logical => $"({Render(logical.Left, context)} {(logical.Operator == SemanticLogicalOperator.And ? "&&" : "||")} {Render(logical.Right, context)})",
+        SemanticComparison comparison => Comparison(comparison, context),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticCondition), condition.GetType().Name)
     };
 
@@ -45,10 +45,10 @@ internal static class SemanticConditionRendering
              (context.Concepts.TryGetValue(type.Target, out var concept) && concept.Values.IsEmpty));
     }
 
-    static string Comparison(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, string receiver, SemanticApplicationContext context)
+    static string Comparison(SemanticComparison comparison, SemanticConditionRenderingContext context)
     {
-        var left = Operand(comparison.Left, properties, receiver, context);
-        var right = Operand(comparison.Right, properties, receiver, context);
+        var left = Operand(comparison.Left, context);
+        var right = Operand(comparison.Right, context);
         var symbol = comparison.Operator switch
         {
             SemanticComparisonOperator.Equal => "==",
@@ -60,7 +60,7 @@ internal static class SemanticConditionRendering
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison.Operator)
         };
 
-        return IsNumeric(comparison.Left, properties, context) ? $"({left} {symbol} {right})" :
+        return IsNumeric(comparison.Left, context.Properties, context.Application) ? $"({left} {symbol} {right})" :
             $"({(comparison.Operator == SemanticComparisonOperator.NotEqual ? "!" : string.Empty)}global::System.Object.Equals({left}, {right}))";
     }
 
@@ -77,21 +77,23 @@ internal static class SemanticConditionRendering
                 _ => SemanticPrimitiveType.DecimalNumber
             };
 
-    static string Operand(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, string receiver, SemanticApplicationContext context)
-    {
-        if (operand.Property.IsSet)
-        {
-            var property = properties.Single(_ => _.Id == operand.Property);
-            var value = $"{receiver}.{Identifiers.ToPascalCase(property.Name)}";
-            return property.Type.Kind == SemanticTypeReferenceKind.Concept ? $"{value}.Value" : value;
-        }
+    static string Operand(SemanticConditionOperand operand, SemanticConditionRenderingContext context) => operand.Property.IsSet
+        ? PropertyOperand(context.Properties.Single(_ => _.Id == operand.Property), context)
+        : LiteralOperand(operand.Value);
 
-        return operand.Value switch
-        {
-            SemanticTextValue text => CSharpCodeBuilder.StringLiteral(text.Value),
-            SemanticBooleanValue boolean => boolean.Value ? "true" : "false",
-            SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture) + "m",
-            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValue), operand.Value?.GetType().Name ?? "null")
-        };
+    static string PropertyOperand(SemanticProperty property, SemanticConditionRenderingContext context)
+    {
+        var value = context.Accessor is null ? $"{context.Receiver}.{Identifiers.ToPascalCase(property.Name)}" : context.Accessor(property);
+
+        return property.Type.Kind == SemanticTypeReferenceKind.Concept ? $"{value}.Value" : value;
     }
+
+    static string LiteralOperand(SemanticValue? value) => value switch
+    {
+        SemanticTextValue text => CSharpCodeBuilder.StringLiteral(text.Value),
+        SemanticBooleanValue boolean => boolean.Value ? "true" : "false",
+        SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture) + "m",
+        null => throw UnsupportedSemanticRendering.For(nameof(SemanticValue), "null"),
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValue), value.GetType().Name)
+    };
 }

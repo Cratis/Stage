@@ -69,10 +69,32 @@ A composite or collection query argument containing a validated concept fails ad
 :::caution[Renaming events]
 An event's Chronicle id is its stored name: the `id` pin, otherwise the name. Its generated class follows the current name. ESM v16 carries a differing pin as `storedName`, rendered as `[EventType("Original")]`; unpinned events retain argument-free `[EventType]`.
 
-Before writing, publishers must call `CratisRendering.CheckPublication` at every scope and refuse every non-`Compatible` result. Only these publishers enforce `STAGE-EVENT-002` for changed ids. Existing `cratis render` versions check only scoped plans and refuse only `RequiresApplicationScope`; they do not enforce this diagnostic. The CLI integration is tracked in [Cratis/cli#354](https://github.com/Cratis/cli/issues/354). Pin the existing id in the model, add a new event instead of renaming, or write an event type migration. If the release baseline records the wrong name, correct it per [Screenplay decision 0070](https://github.com/Cratis/Screenplay/blob/v4.152.0/decisions/0070-derive-event-mutability-from-an-admitted-release-baseline.md).
+Before writing, publishers must call `CratisRendering.CheckPublication` at every scope and refuse every non-`Compatible` result. Only these publishers enforce `STAGE-EVENT-002` for changed ids. Existing `cratis render` versions check only scoped plans and refuse only `RequiresApplicationScope`; they do not enforce this diagnostic. The CLI integration is tracked in [Cratis/cli#354](https://github.com/Cratis/cli/issues/354). Pin the existing id in the model, add a new event instead of renaming, or write an event type migration. If the release baseline records the wrong name, correct it per [Screenplay decision 0070](https://github.com/Cratis/Screenplay/blob/v4.154.0/decisions/0070-derive-event-mutability-from-an-admitted-release-baseline.md).
 
 A rename without a pin still orphans stored events: a renderer cannot distinguish it from deleting one type and adding another. Use the Screenplay workspace/MCP rename, which pins by default.
 :::
+
+## Release-baseline warnings in artifact plans
+
+An admitted release baseline freezes stored event revisions, including the resolved
+concepts and types they use. The Cratis artifact planner reports changed and missing
+admitted revisions as warnings when its caller supplies
+`ArtifactRenderRequest.ReleaseBaseline`. It also warns when that baseline is
+unreadable or the check is unavailable or stale. Warnings do not refuse rendering
+or change generated artifacts; ordinary blocking diagnostics still refuse.
+
+Source-based `PlanFrom` reads the model root's `.screenplay/release-baseline.json`
+without writing it. In-memory callers can use `StageReleaseBaseline.Check` with an
+authoritative workspace or compilation and Screenplay's baseline read. The assessment
+covers the whole application, even for a scoped plan. Bare-ESM callers that omit it
+remain unchecked; the live Host does not enforce these artifact-plan warnings.
+See [Planning admitted release revisions](plan-from-sources.md#admitted-release-revisions)
+for status and diagnostic codes.
+
+A release step explicitly admits the baseline; rendering never does. Run
+`screenplay baseline check <root>` in CI to gate edits. Its resolved-schema equality
+is not Chronicle's schema compatibility relation. The destination check remains
+separate: baseline warnings do not bypass `CheckPublication` or `STAGE-EVENT-002`.
 
 ## Generated C# whole numbers
 
@@ -80,7 +102,7 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
-Stage uses Screenplay 4.152.0 and admits exact ESM v1–v16 language/semantic pairs, including v11's corrected Double-mode literal lowering and v15's generation strategies with atomic freshness scopes. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
+Stage uses Screenplay 4.154.0 and admits exact ESM v1–v16 language/semantic pairs, including v11's corrected Double-mode literal lowering and v15's generation strategies with atomic freshness scopes. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
 For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
 `9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction
 `0.10000000000000002` renders as `0.10000000000000002m`. Command inputs, event payloads,

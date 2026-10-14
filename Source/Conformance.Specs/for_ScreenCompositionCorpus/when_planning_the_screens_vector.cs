@@ -5,6 +5,7 @@ using System.Text;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.given;
 using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
@@ -106,9 +107,11 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_change_only_the_runtime_pins_from_the_previous_frozen_plan(string form)
+    public void should_change_only_the_runtime_pins_and_slice_sources_from_the_previous_frozen_plan(string form)
     {
-        var plan = PlanOf(form);
+        var sourceForm = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
+        var planned = Plan(sourceForm.Documents, sourceForm.IdentityCatalogBytes.AsSpan(), carryScene: false);
+        var plan = planned.Plan;
         ArtifactRenderPlan.ComputeDigest(
             plan.Target,
             // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
@@ -120,7 +123,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                 ? PlannedArtifact.CreateText(
                     artifact.RelativePath,
                     PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
-                    artifact.Sources)
+                    previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
             plan.Diagnostics).ShouldEqual("02f47c1ce8913a5c529588ae18fed2a8f7062d9b4deede1733086e6049035a6a");
     }

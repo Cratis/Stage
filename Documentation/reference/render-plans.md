@@ -172,7 +172,30 @@ not.
 
 `ArtifactRenderPlan` is the separate, destination-independent code-rendering contract (not the Scene `RenderPlan` above). Its `Artifacts` are ordered by normalized relative path. Each `PlannedArtifact` carries exact `Bytes`, their lowercase `Sha256`, and `Sources`: sorted, distinct `SemanticId`s of the model elements that file realizes. Scaffold files have empty `Sources` because they realize no semantic element; a Scene composition carried as a profile input is the exception and names the application identity. The plan carries the model's `SemanticRevision`; SHA-256 hashes only artifact bytes, not sources or plan metadata. Use path, sources, and hash together when recording a mapping from model elements to generated files.
 
-Screenplay ESM v1 gives constraints and named policies no individual semantic identities. Cratis maps constraint files to their owning slice and target event identities, and generated policy registrations to the protected command/query identities.
+### Source ownership inventory
+
+The Cratis renderer records the following identities in `Sources`. The plan normalizes every list by removing duplicates and sorting identities ordinally; list order does not imply ownership priority.
+
+| Artifact | Sources |
+| --- | --- |
+| Combined StateChange slice file | Declaring slice, its commands and event declarations. |
+| Combined StateView slice file | Declaring slice, its read models, projections and queries. |
+| Combined Automation slice file | Declaring slice, its commands, events, read models, projections and queries. |
+| Separate reducer | Target read model, observed event declarations and declaring slice. An input event's declaring slice is not added. |
+| Generated specification files | Specification and its declaring slice, for command, read-model, query and reaction scenarios, including case-table artifacts. |
+| Separate reactor | Reaction identity; its declaring slice is not explicitly included. |
+| Common concept or composite type | Declaration identity. |
+| Constraint | Declaring slice and target event declarations. |
+| Event-source registration | Event-source identity and its stream identities. |
+| Typed-context wrapper | Operation identity, when present; otherwise empty. |
+| Operation policy and policy-context wrapper/body | Protected command or query identity. |
+| Shared policy registrations and policy-context runtime/bodies | Application identity. |
+| `scene.json`, `src/bindings.ts`, `src/stage-scene.json`, `src/stage.ts` | Application identity only, for both authored and default Scene composition. |
+| Scaffold | Empty, except application locale inputs, which name the application. |
+
+`Sources` preserves provenance, not exclusive folder ownership. A reducer observes event declarations from other slices without becoming those slices' reducer. Consumers selecting slice-owned business files should use the explicit declaring slice where provided and model mapping for artifacts such as reactors. App-scope Scene files remain application-sourced for now: they do not identify per-slice screen ownership.
+
+Screenplay ESM v1 gives constraints and named policies no individual semantic identities. Cratis maps constraint files to their owning slice and target event identities, and generated policy registrations to the protected command/query identities. Source-only enrichment changes the plan digest and manifest metadata, but not artifact bytes or their `Sha256` hashes.
 
 ## Authored code documentation
 

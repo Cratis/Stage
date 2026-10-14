@@ -128,6 +128,16 @@ This is current-claim uniqueness, not all-time uniqueness. The same source may r
 
 Generated constraints retain the ordinary admission limits: one required scalar text property, event-sequence scope, and only one affected claim or release event per command batch. String-backed UUID, UUID-v7, ULID, TypeID, NanoID (sizes 1–256) and bytes (counts 1–512) can supply that property. UUID-backed payloads remain refused under `STAGE-ESM-014`. Short non-identifier codes are admitted; Screenplay's 64-bit minimum for generated identifiers still applies. Only ordinary constrained request inputs receive the not-null validator; generated values remain Handle parameters.
 
+## Conditional productions and shared slices
+
+A StateChange slice can declare several commands. Each command keeps its own validator, response and specifications, while sharing the slice's event contracts and source file.
+
+Portable `produces when` conditions read command inputs and generated values. Stage evaluates each condition once and returns a typed collection of `EventForEventSourceId` values containing only the taken productions. At v15, freshness scopes cover only sources targeted by those productions. If every production is skipped, the command is accepted, appends nothing and still returns its response, even if the generated source already has facts.
+
+Conditions support text and Boolean equality, numeric equality and ordering, and `and`/`or`. Enum operands and expression-valued `Condition` nodes remain refused with `STAGE-ESM-006`; production route overrides remain refused with `STAGE-ESM-036`. A specification that reads a generated property in a production condition must pin it, so the expected production sequence can be determined before rendering.
+
+Commands without production conditions retain their existing generated Handle shape.
+
 ## Responses
 
 | Screenplay contract | C# Handle response |
@@ -176,9 +186,10 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 | --- | --- |
 | `STAGE-ESM-028` | Unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy |
 | `STAGE-ESM-011` | A v15 generated fixture that does not match its strategy shape |
-| `STAGE-ESM-004` / `STAGE-ESM-006` | Multi-command StateChange slices / conditional productions remain refused ([Stage #360](https://github.com/Cratis/Stage/issues/360)) |
-| `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, generated-concept validation rules, occurrence parameter name collisions; unsupported response sources, composite or collection responses; response/factory name collisions |
-| `STAGE-ESM-038` | Unpinned generation with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
+| `STAGE-ESM-004` | StateChange slices without a command |
+| `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
+| `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, generated-concept validation rules, occurrence or conditional Handle local-name collisions; unsupported response sources, composite or collection responses; response/factory name collisions |
+| `STAGE-ESM-038` | Unpinned generation read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 
 Generated-concept validation is refused because Arc treats an invalid generated value as a server exception, whereas the evaluator treats it as a rejection. Stage does not translate one outcome into the other.

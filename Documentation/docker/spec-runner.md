@@ -232,7 +232,7 @@ otherwise it returns `Unsupported(Projection)`. More than one projection for a r
 returns `Unsupported(Projection)`. They also apply the renderer's scoped-projection admission predicate, so
 composite keys and Chronicle#4125 shapes remain rejected. The per-run executor runs identity-only `every` mappings for the declared `from` event types and identity-only `all` (`FromAll`) mappings for all facts, creating an instance per event source. Every fact observed by `all` must have the identifier's value type and enumeration values. Literal `every` mappings, literal or empty `all` blocks, and `every` including children remain unsupported. Queries other than optional snapshots
 by identifier return `Unsupported(Query)`. Other unimplemented
-behavior (conditional production, implicit event-source identity allocation, external effects and
+behavior (implicit event-source identity allocation, external effects and
 unsupported expression or value shapes) is also blocked rather than reported as a pass. The semantic
 executor can run alongside a host without replacing its process-wide Arc service provider. This is not
 a live Chronicle integration check. Keep the structural engine for existing Studio jobs until consumers

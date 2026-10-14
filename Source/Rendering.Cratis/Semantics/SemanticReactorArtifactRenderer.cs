@@ -33,7 +33,7 @@ internal static class SemanticReactorArtifactRenderer
             {
                 if (trigger.Where is { } condition)
                 {
-                    builder.OpenBlock($"if ({SemanticConditionRendering.Render(condition, source.Properties, "@event", context)})");
+                    builder.OpenBlock($"if ({SemanticConditionRendering.Render(condition, new(source.Properties, "@event", context))})");
                 }
                 foreach (var produced in trigger.Produces)
                 {

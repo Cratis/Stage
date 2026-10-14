@@ -24,16 +24,11 @@ public class when_rendering_numbered_enumerations : Specification
         var form = corpus.SourceForms.Single(source => source.Name == "single");
         var catalog = SemanticIdentityCatalogSerializer.Deserialize(form.IdentityCatalogBytes.AsSpan());
 
-        // Stage renders one command per state-change slice; keep all three named member cases.
-        var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, SingleCommandSource(document.Text)));
+        var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         compilation.Success.ShouldBeTrue();
         _model = SemanticModelSerializer.Deserialize(SemanticModelSerializer.Serialize(compilation.Value!.Model));
     }
-
-    static string SingleCommandSource(string source) => source
-        .Replace("      command Issue\n        id InvoiceId identifier\n        produces StatusRecorded\n          for id\n          status = \"issued\"\n", string.Empty, StringComparison.Ordinal)
-        .Replace("        when Issue\n", "        when RecordStatus\n          status = \"issued\"\n", StringComparison.Ordinal);
 
     void Because() => _plan = invoice_model.Plan(_model);
 

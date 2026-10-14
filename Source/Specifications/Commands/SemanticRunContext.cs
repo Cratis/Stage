@@ -104,6 +104,8 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         return SemanticRunRoutes.TryFormat(plan.Model.Application, _commandRoute, out _, out failure);
     }
 
+    internal bool Holds(SemanticProducedEvent produced) => produced.When is null || SemanticRuleEvaluation.Condition(produced.When, Inputs());
+
     internal (SemanticSpecificationEvent Fact, SemanticValue Destination) Produce(SemanticProducedEvent produced)
     {
         var inputs = Inputs();

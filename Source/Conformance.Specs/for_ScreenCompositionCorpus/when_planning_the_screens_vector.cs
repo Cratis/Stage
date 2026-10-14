@@ -113,7 +113,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         ArtifactRenderPlan.ComputeDigest(
             plan.Target,
             // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-            plan.TargetVersion.Replace("22.97.0", "22.87.0", StringComparison.Ordinal),
+            plan.TargetVersion.Replace("22.95.0", "22.87.0", StringComparison.Ordinal),
             plan.Renderer,
             plan.RendererVersion,
             plan.ApplicationName,
@@ -133,14 +133,14 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Fact] void should_cover_every_source_form() => Forms.Count.ShouldEqual(4);
 
-    // The previous frozen plan predates the Chronicle 19.64.1 and backend Arc 22.97.0 scaffold pins. Only the backend
-    // Workspaces project carries the scaffold Arc pin; other files may already name 22.97.0 for unrelated packages.
+    // The previous frozen plan predates the Chronicle 19.64.1 and backend Arc 22.95.0 scaffold pins. Only the backend
+    // Workspaces project carries the scaffold Arc pin; other files may already name 22.95.0 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
         var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Workspaces.csproj", StringComparison.Ordinal)
-            ? previous.Replace("22.97.0", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.95.0", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 

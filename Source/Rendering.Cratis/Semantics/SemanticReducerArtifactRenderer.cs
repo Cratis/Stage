@@ -86,7 +86,7 @@ internal static class SemanticReducerArtifactRenderer
         builder.EndBlock();
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString())
         {
-            Sources = [reducer.ReadModel, .. reducer.Transitions.Select(_ => _.EventContract)]
+            Sources = [reducer.ReadModel, .. reducer.Transitions.Select(_ => _.EventContract), located.Slice.Id]
         };
     }
 }

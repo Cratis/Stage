@@ -2,10 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
+using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
+using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -13,18 +15,19 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_preserving_optional_lookup_plan_bytes : Specification
 {
     ArtifactRenderPlan _plan = null!;
+    ExecutableSemanticModel _model = null!;
 
     void Because()
     {
         var source = a_validated_query_key_model.Source.Replace("      query InvoicesById => observable InvoiceSummary[]\n        by invoiceId InvoiceId\n", string.Empty, StringComparison.Ordinal);
-        var model = invoice_model.Compile(source);
-        model.Application.EventSources.ShouldBeEmpty();
-        _plan = invoice_model.Plan(model);
+        _model = invoice_model.Compile(source);
+        _model.Application.EventSources.ShouldBeEmpty();
+        _plan = invoice_model.Plan(_model);
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
     [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("1def3ef0de51391d6fa01ec983b6c40ea112f21c91536514599cf8a67baa3a45");
-    [Fact] void should_change_only_the_runtime_pins_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousPinDigest().ShouldEqual("405e4e73c50c892994769e5bc5aac6c803cbe4e9052225baa9a8c45a06a0f3d9");
+    [Fact] void should_change_only_the_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousPinDigest().ShouldEqual("405e4e73c50c892994769e5bc5aac6c803cbe4e9052225baa9a8c45a06a0f3d9");
 
     string PreviousPinDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
@@ -37,7 +40,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
             ? PlannedArtifact.CreateText(
                 artifact.RelativePath,
                 PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
-                artifact.Sources)
+                previous_slice_sources.Of(artifact, _model))
             : artifact)],
         _plan.Diagnostics);
 

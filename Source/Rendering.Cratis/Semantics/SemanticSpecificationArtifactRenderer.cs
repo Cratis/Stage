@@ -21,19 +21,20 @@ internal static class SemanticSpecificationArtifactRenderer
         SemanticSpecification specification,
         SemanticApplicationContext context)
     {
+        var sources = new[] { specification.Id, context.DeclaringSlice(specification.Id).Slice.Id };
         if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
         {
-            return [SemanticReactionSpecificationRenderer.Render(specification, context) with { Sources = [specification.Id] }];
+            return [SemanticReactionSpecificationRenderer.Render(specification, context) with { Sources = [.. sources] }];
         }
         if (SemanticSpecificationAdmission.CanSeedQueryOnly(specification, context))
         {
-            return [SemanticQuerySpecificationRenderer.RenderSeededQuery(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];
+            return [SemanticQuerySpecificationRenderer.RenderSeededQuery(specification, specification.ThenQueries[0], context) with { Sources = [.. sources] }];
         }
 
         if (SemanticSpecificationAdmission.CanDenyQueryOnly(specification, context) ||
             SemanticSpecificationAdmission.CanProjectQueryOnly(specification, context))
         {
-            return [SemanticQuerySpecificationRenderer.Render(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];
+            return [SemanticQuerySpecificationRenderer.Render(specification, specification.ThenQueries[0], context) with { Sources = [.. sources] }];
         }
 
         var files = new List<RenderedFile>
@@ -45,6 +46,6 @@ internal static class SemanticSpecificationArtifactRenderer
             SemanticReadModelSpecificationRenderer.Render(specification, _, context)));
         files.AddRange(specification.ThenQueries.Select(_ =>
             SemanticQuerySpecificationRenderer.Render(specification, _, context)));
-        return [.. files.Select(file => file with { Sources = [specification.Id] })];
+        return [.. files.Select(file => file with { Sources = [.. sources] })];
     }
 }

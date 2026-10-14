@@ -6,6 +6,7 @@ using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
+using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.given;
 using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
@@ -21,7 +22,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "56fa9ff898a5337bad17be2c47b2e97ff3c9b156c408e54f08d8e289668b9e90";
+    const string Digest = "b0728c476d3379c7b6e1e2d44bc67c3a49128db00566ac6a9eed50dd9701f6a3";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
@@ -107,9 +108,11 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_change_only_the_runtime_pins_and_optional_stage_import_from_the_previous_frozen_plan(string form)
+    public void should_change_only_the_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan(string form)
     {
-        var plan = PlanOf(form);
+        var sourceForm = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
+        var planned = Plan(sourceForm.Documents, sourceForm.IdentityCatalogBytes.AsSpan(), carryScene: false);
+        var plan = planned.Plan;
         ArtifactRenderPlan.ComputeDigest(
             plan.Target,
             // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
@@ -121,7 +124,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                 ? PlannedArtifact.CreateText(
                     artifact.RelativePath,
                     PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
-                    artifact.Sources)
+                    previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
             plan.Diagnostics).ShouldEqual("02f47c1ce8913a5c529588ae18fed2a8f7062d9b4deede1733086e6049035a6a");
     }

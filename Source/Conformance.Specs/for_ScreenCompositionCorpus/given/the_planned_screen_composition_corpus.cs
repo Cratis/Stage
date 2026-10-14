@@ -29,7 +29,7 @@ public class the_planned_screen_composition_corpus : Specification
     /// <param name="catalogBytes">The source form's identity catalog, or empty to derive identities from the paths.</param>
     /// <returns>The plan and the Scene it carried.</returns>
     /// <param name="carryScene">Whether the translated Scene is carried in the profile, as a caller that authored screens does.</param>
-    protected static (ArtifactRenderPlan Plan, SceneApplication Scene) Plan(IEnumerable<CanonicalCorpusDocument> documents, ReadOnlySpan<byte> catalogBytes, bool carryScene)
+    protected static (ArtifactRenderPlan Plan, SceneApplication Scene, ExecutableSemanticModel Model) Plan(IEnumerable<CanonicalCorpusDocument> documents, ReadOnlySpan<byte> catalogBytes, bool carryScene)
     {
         var sources = documents.ToArray();
         var catalog = catalogBytes.IsEmpty ? SemanticIdentityCatalog.Empty(ApplicationIdentity.Create(ApplicationName)) : SemanticIdentityCatalogSerializer.Deserialize(catalogBytes);
@@ -50,7 +50,7 @@ public class the_planned_screen_composition_corpus : Specification
             CratisRendering.CreateProfile(model.Application.Name, options, carryScene ? scene : null),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
 
-        return (new CratisArtifactRenderPlanner().Plan(request), scene);
+        return (new CratisArtifactRenderPlanner().Plan(request), scene, model);
     }
 
     /// <summary>

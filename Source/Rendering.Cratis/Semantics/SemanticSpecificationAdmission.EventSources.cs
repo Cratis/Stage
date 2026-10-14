@@ -25,6 +25,7 @@ internal static partial class SemanticSpecificationAdmission
             return true;
         }
 
+        var taken = SemanticProductionSelection.Taken(command, specification);
         if (context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8) && specification.ThenEventsInAnyOrder)
         {
             // An omitted source is a wildcard. Explicit sources must be losslessly representable, but their
@@ -34,34 +35,25 @@ internal static partial class SemanticSpecificationAdmission
                 command.Properties.Any(property => property.Id == destination.Target && property.Type == type);
 
             return (specification.When!.EventSource is not { } actionSource ||
-                    (IsScalar(actionSource.Value) && IsLosslessEventSource(context, actionSource.Type) && command.Produces.All(produced => HasType(produced, actionSource.Type)))) &&
+                    (IsScalar(actionSource.Value) && IsLosslessEventSource(context, actionSource.Type) && taken.All(produced => HasType(produced, actionSource.Type)))) &&
                 specification.ThenEvents.All(expected => expected.EventSource is not { } source ||
                     (IsScalar(source.Value) && IsLosslessEventSource(context, source.Type) &&
-                    command.Produces.Where(produced => produced.EventContract == expected.EventContract).All(produced => HasType(produced, source.Type))));
+                    taken.Where(produced => produced.EventContract == expected.EventContract).All(produced => HasType(produced, source.Type))));
         }
 
-        if (command.Produces.Length == 1)
+        if (taken.Length == 1 && command.Produces.Length == 1)
         {
-            var sources = SemanticDestinations.Explicit(specification).Distinct().ToArray();
-            if (sources.Length == 0)
-            {
-                return true;
-            }
-
-            var destination = SemanticDestinations.Of(command, command.Produces[0]) as SemanticResolvedExpression;
-            var property = command.Properties.SingleOrDefault(_ => _.Id == destination?.Target);
-            return sources.Length == 1 && !specification.ThenEvents.IsEmpty && property is not null &&
-                sources[0].Type == property.Type && IsScalar(sources[0].Value) && IsLosslessEventSource(context, property.Type);
+            return HasRenderableSingleEventSource(context, specification, command, taken[0]);
         }
 
-        if (specification.ThenEventsInAnyOrder && command.Produces.GroupBy(_ => _.EventContract)
+        if (specification.ThenEventsInAnyOrder && taken.GroupBy(_ => _.EventContract)
             .Any(group => group.Count() > 1 && group.Select(produced =>
                 SemanticDestinations.ForSpecification(specification, command, produced)).Distinct().Count() != 1))
         {
             return false;
         }
 
-        return command.Produces.Select((produced, index) => (produced, index)).All(item =>
+        return taken.Select((produced, index) => (produced, index)).All(item =>
         {
             var destination = SemanticDestinations.Of(command, item.produced) as SemanticResolvedExpression;
             var property = command.Properties.SingleOrDefault(_ => _.Id == destination?.Target);
@@ -74,6 +66,24 @@ internal static partial class SemanticSpecificationAdmission
                 (source is null || (source.Type == property.Type && Equals(source.Value, value))) &&
                 expected.All(_ => _.EventSource is null || (_.EventSource.Type == property.Type && Equals(_.EventSource.Value, value)));
         });
+    }
+
+    static bool HasRenderableSingleEventSource(
+        SemanticApplicationContext context,
+        SemanticSpecification specification,
+        SemanticCommand command,
+        SemanticProducedEvent produced)
+    {
+        var sources = SemanticDestinations.Explicit(specification).Distinct().ToArray();
+        if (sources.Length == 0)
+        {
+            return true;
+        }
+
+        var destination = SemanticDestinations.Of(command, produced) as SemanticResolvedExpression;
+        var property = command.Properties.SingleOrDefault(_ => _.Id == destination?.Target);
+        return sources.Length == 1 && !specification.ThenEvents.IsEmpty && property is not null &&
+            sources[0].Type == property.Type && IsScalar(sources[0].Value) && IsLosslessEventSource(context, property.Type);
     }
 
     static bool IsLosslessEventSource(SemanticApplicationContext context, SemanticTypeReference type)

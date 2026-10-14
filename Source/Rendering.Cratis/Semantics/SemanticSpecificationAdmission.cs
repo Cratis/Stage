@@ -51,13 +51,13 @@ internal static partial class SemanticSpecificationAdmission
                     !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
                     ValuesMatch(specification.When!.Values, [.. command!.Properties.Where(property => !property.IsGenerated)]) &&
                     HasOneOutcome(specification) && HasSupportedCounts(specification) &&
-                    (specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == command!.Produces.Length) &&
+                    (specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == SemanticProductionSelection.Taken(command!, specification).Length) &&
                     specification.ThenEvents.All(expected => EventMatches(context, expected)) &&
                     (specification.ThenDenied || !specification.ThenErrors.IsEmpty ||
                         (specification.ThenEventsInAnyOrder
                             ? specification.ThenEvents.GroupBy(_ => _.EventContract).All(group =>
-                                command!.Produces.Count(_ => _.EventContract == group.Key) == group.Count())
-                            : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(command!.Produces.Select(_ => _.EventContract)))) &&
+                                SemanticProductionSelection.Taken(command!, specification).Count(_ => _.EventContract == group.Key) == group.Count())
+                            : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(SemanticProductionSelection.Taken(command!, specification).Select(_ => _.EventContract)))) &&
                     specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
                         HasExpectedProjectionEvent(context, specification, expected) &&
                         !ReducerUsesUnstableContext(context, expected.ReadModel)) &&
@@ -90,7 +90,7 @@ internal static partial class SemanticSpecificationAdmission
         if (specification.When is not { } action) return false;
         if (!context.Commands.TryGetValue(action.Command, out var command)) return false;
 
-        return EventReactionTriggers(context).Any(trigger => command.Produces.Any(produced => produced.EventContract == trigger.Source));
+        return EventReactionTriggers(context).Any(trigger => SemanticProductionSelection.Taken(command, specification).Any(produced => produced.EventContract == trigger.Source));
     }
 
     static IEnumerable<SemanticReactionTrigger> EventReactionTriggers(SemanticApplicationContext context) =>
@@ -105,7 +105,7 @@ internal static partial class SemanticSpecificationAdmission
             // Keyed lookups still read only their selected stream; collection scenarios preserve all seeded rows.
             if (context.Queries[expected.Query].Cardinality == SemanticQueryCardinality.Many) continue;
             if (specification.GivenEvents.Any(given => !Equals(given.EventSource?.Value, expected.Key)) ||
-                command.Produces.Any(produced => !Equals(SemanticDestinations.ForSpecification(specification, command, produced).Value, expected.Key)))
+                SemanticProductionSelection.Taken(command, specification).Any(produced => !Equals(SemanticDestinations.ForSpecification(specification, command, produced).Value, expected.Key)))
             {
                 return false;
             }
@@ -129,7 +129,7 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static bool AssertsUncontrolledOccurrence(SemanticSpecification specification, SemanticCommand command) =>
-        !SemanticSpecificationClock.TryGet(specification, out _) && command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+        !SemanticSpecificationClock.TryGet(specification, out _) && SemanticProductionSelection.Taken(command, specification).Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
         (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
 

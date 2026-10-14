@@ -24,12 +24,12 @@ internal static class SemanticProjectionSpecificationEvents
     {
         if (projection.Scope is null)
         {
-            var produced = command.Produces.Single(_ => _.EventContract == projection.Transitions.Single().EventContract);
+            var produced = SemanticProductionSelection.Taken(command, specification).Single(_ => _.EventContract == projection.Transitions.Single().EventContract);
             var expected = specification.ThenEvents.Single(_ => _.EventContract == produced.EventContract);
             return [(produced, expected)];
         }
 
-        return [.. command.Produces.Select((produced, index) => (produced,
+        return [.. SemanticProductionSelection.Taken(command, specification).Select((produced, index) => (produced,
             specification.ThenEventsInAnyOrder
                 ? specification.ThenEvents.Single(_ => _.EventContract == produced.EventContract)
                 : specification.ThenEvents[index]))];

@@ -260,7 +260,8 @@ internal static class SemanticStateChangeArtifactRenderer
             .SelectMany(target => command.Produces.Where(produced => produced.EventContract == target.EventContract)
                 .SelectMany(produced => produced.Mappings.Where(mapping => target.Properties.Contains(mapping.TargetProperty))))
             .Select(mapping => ((SemanticResolvedExpression)mapping.Source).Target).Distinct()
-            .Where(id => !command.Validations.Any(rule => rule.Property == id && rule.Kind == SemanticValidationRuleKind.NotEmpty))
+            .Where(id => !command.Properties.Any(property => property.Id == id && property.IsGenerated) &&
+                !command.Validations.Any(rule => rule.Property == id && rule.Kind == SemanticValidationRuleKind.NotEmpty))
             .ToArray();
         if (command.Validations.IsEmpty && command.Requirements.IsEmpty && constrained.Length == 0)
         {

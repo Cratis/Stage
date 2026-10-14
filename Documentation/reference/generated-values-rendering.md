@@ -85,6 +85,50 @@ At v15, a command that produces facts on a generated destination returns `Events
 
 The Host and specification executor use the reference freshness message: "A generated event source already has facts; retry the command with a fresh generated value." Earlier facts without a destination never make the generated source stale. A generated value that is not the destination, such as an invite code appended to a customer stream, adds a scope only when its text equals the destination's, so it makes no freshness claim about that stream. Below v15, handlers remain unguarded. These explicit scopes will be replaced when [Arc #3129](https://github.com/Cratis/Arc/issues/3129) supplies its generated-identifier freshness contract.
 
+### Unique generated payloads
+
+The shop's `InviteCode` can be a short NanoID without becoming the event-source identifier:
+
+```screenplay
+concept InviteCode : String
+  generate nanoid 6 alphabet "AB"
+module Shop
+  feature Invitations
+    slice StateChange ReleaseInvite
+      event InviteReleased
+      command ReleaseInviteCode
+        inviteId String identifier
+        produces InviteReleased
+          for inviteId
+    slice StateChange Invite
+      constraint UniqueInviteCode
+        unique code on Invited
+        released by InviteReleased
+        message "Invite code is already in use"
+      event Invited
+        code InviteCode
+      command InviteCustomer
+        inviteId String identifier
+        inviteCode InviteCode generated
+        produces Invited
+          for inviteId
+          code = inviteCode
+      specification Collision
+        given Invited
+          for "A"
+          code = "AAAAAA"
+        when InviteCustomer
+          inviteId = "B"
+          generated inviteCode = "AAAAAA"
+        then error "Invite code is already in use"
+```
+
+Chronicle checks uniqueness at append, not with a preflight query. If another event source holds the generated code, the command is rejected with `ValidationResultReason.ConstraintViolation`, the authored constraint name and its message; no event is appended. The caller retries the rejected command and gets a fresh generated value. Stage does not automatically retry, regenerate or rerun the handler, and a new draw is not guaranteed to succeed in a small or exhausted code space. Retry only a known rejection, not an unknown commit outcome.
+
+This is current-claim uniqueness, not all-time uniqueness. The same source may reclaim its own code, replacing a claim frees the previous code, and `InviteReleased` frees the owner's claim for reuse. `ignore casing` compares codes without case, so distinct generated spellings can still collide. High entropy lowers collision probability; it does not prove uniqueness. A returned candidate on a failed command is not a committed code.
+
+Generated constraints retain the ordinary admission limits: one required scalar text property, event-sequence scope, and only one affected claim or release event per command batch. String-backed UUID, UUID-v7, ULID, TypeID, NanoID (sizes 1–256) and bytes (counts 1–512) can supply that property. UUID-backed payloads remain refused under `STAGE-ESM-014`. Short non-identifier codes are admitted; Screenplay's 64-bit minimum for generated identifiers still applies. Only ordinary constrained request inputs receive the not-null validator; generated values remain Handle parameters.
+
 ## Conditional productions and shared slices
 
 A StateChange slice can declare several commands. Each command keeps its own validator, response and specifications, while sharing the slice's event contracts and source file.
@@ -119,7 +163,7 @@ _scenario.PinGeneratedValue("projectId", new global::Acme.Shop.Common.ProjectId(
 
 Pinned event and `then returns` assertions compare the authored values. A named return expectation can assert a subset of the response fields.
 
-When a rendered specification omits a fixture, Stage calls `_scenario.AllowGeneration()`. Ordered event destinations and payload mappings that depend on that unpinned property compare against `_scenario.GeneratedValues.Last<T>(name)`, and response assertions compare against the same capture. Below v15, the UUID must be nonempty. At v15, every unpinned capture must also match its strategy's derived encoding shape. These are relational assertions, not assertions that random generation equals an authored UUID literal. Unordered or projected expectations require pins.
+When a rendered specification omits a fixture, Stage calls `_scenario.AllowGeneration()`. Ordered event destinations and payload mappings that depend on that unpinned property compare against `_scenario.GeneratedValues.Last<T>(name)`, and response assertions compare against the same capture. Below v15, the UUID must be nonempty. At v15, every unpinned capture must also match its strategy's derived encoding shape. These are relational assertions, not assertions that random generation equals an authored UUID literal. Unordered or projected expectations require pins. A generated value involved in an asserted constraint collision also requires a deterministic pin. Stage requires a pin when prior claims on other sources could make an unpinned draw change success into rejection; unrelated unpinned relational specifications still render.
 
 For an unpinned time-ordered value, Stage emits `_scenario.Clock(new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero))` as the first setup statement, before policy registration and givens. A `should_generate_<name>_at_the_receipt_time` fact checks the capture's encoded millisecond prefix as well as its shape. The random portion remains unpinned. If a command specification states `given clock`, Stage uses that authored instant instead, normalized to UTC, for both the scenario clock and the receipt-time prefix assertion. Authored clocks also produce clock setup for fully pinned commands and commands without time-ordered generation. Without an authored clock, those specifications get no clock setup. Clocks must be millisecond-aligned and at or after the Unix epoch; `when clock`, query-only, append and reaction clocks remain refused.
 
@@ -146,8 +190,8 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 | `STAGE-ESM-011` | A v15 generated fixture that does not match its strategy shape |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
-| `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, generated-concept validation rules, occurrence or conditional Handle local-name collisions; unsupported response sources, composite or collection responses; response/factory name collisions; generated values mapped into unique-property constraints |
-| `STAGE-ESM-038` | Unpinned generation read by a production condition, or with unordered event, read-model or query expectations |
+| `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, generated-concept validation rules, occurrence or conditional Handle local-name collisions; unsupported response sources, composite or collection responses; response/factory name collisions |
+| `STAGE-ESM-038` | Unpinned generation read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 
 Generated-concept validation is refused because Arc treats an invalid generated value as a server exception, whereas the evaluator treats it as a rejection. Stage does not translate one outcome into the other.

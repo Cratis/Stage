@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    const string FrozenDigest = "cf6c17a20cbc78c9cafd9554a63d38fdda0ebcb11310f2c2ed5323dbf66d473c";
+    const string FrozenDigest = "6a04e2f9dc125b233d74d1d19610cfbd278c4c8b1aecdbc557fb76d31cbb232e";
 
     string _digest = null!;
 
@@ -29,7 +29,7 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
         {
             hash.AppendData(Encoding.UTF8.GetBytes(input.Name));
             hash.AppendData(previousPins
-                ? Encoding.UTF8.GetBytes(Text(input).Replace("22.91.1", "22.87.0", StringComparison.Ordinal))
+                ? Encoding.UTF8.GetBytes(Text(input).Replace("22.95.0", "22.87.0", StringComparison.Ordinal))
                 : input.Bytes.AsSpan());
         }
 

@@ -59,9 +59,9 @@ public sealed class CratisBackendApplicationScaffoldProfile
     public static CratisBackendApplicationScaffoldProfile Current { get; } = Create(
         CurrentVersion,
         "net10.0",
-        "22.95.0",
-        "22.95.0",
-        "22.95.0",
+        "22.97.0",
+        "22.97.0",
+        "22.97.0",
         "4.1.1",
         "4.1.1",
         "18.10.1",

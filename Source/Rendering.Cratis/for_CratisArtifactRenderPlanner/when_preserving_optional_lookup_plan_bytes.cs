@@ -22,7 +22,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("d7e1e2eefd47eb57decda700256f06e1996cdb248e714363a8bcab6a21c7708a");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("6684a07d609442bf8a52faedf786ebb1710f3d92cffa73d569f51da051e3902a");
     [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_plan() => PreviousPinDigest().ShouldEqual("405e4e73c50c892994769e5bc5aac6c803cbe4e9052225baa9a8c45a06a0f3d9");
 
     string PreviousPinDigest() => ArtifactRenderPlan.ComputeDigest(
@@ -43,7 +43,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Only the generated backend project carries the scaffold's Arc pin; other files may name 22.95.0 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = text.Replace("19.59.6", "19.55.2", StringComparison.Ordinal);
+        var previous = text.Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
 
         return relativePath.EndsWith(".csproj", StringComparison.Ordinal)
             ? previous.Replace("22.95.0", "22.87.0", StringComparison.Ordinal)

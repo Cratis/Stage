@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.154.0; ESM v1–v16 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.159.0; ESM v1–v16 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -237,6 +237,11 @@ internal static class SemanticSurfaceLedger
 
         // ESM v5 keyed read-model absence fails STAGE-ESM-027: the generated ReadModelScenario exposes only a materialized record.
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-027"), "ThenAbsentReadModels");
+
+        // ESM v17 (Screenplay decision 0074) adds explicit no-event assertions and recovery redelivery. Screenplay
+        // admits them only in v17 models, which fail version admission (STAGE-ESM-016) until Stage renders them (#371).
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenNoEvents WhenRedelivered");
+        Add(entries, "SemanticSpecificationRedelivery", rejected("STAGE-ESM-016"), "Given Reaction");
         Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-027"), "Key ReadModel");
         Add(entries, "SemanticSpecification", rendered, "WhenAppended");
         Add(entries, "SemanticSpecificationCommand", rendered, "Command Values EventSource");

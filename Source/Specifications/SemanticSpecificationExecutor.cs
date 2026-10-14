@@ -159,7 +159,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
             return await ExecuteCommand(new(invokedContext, invokedInstance, slice, specification, plan, principal), cancellationToken);
         });
-        if (await reactions.Settle(cancellationToken) is { } failure) return failure.ToRecord(slice, specification);
+        var reactionFailure = specification.WhenRedelivered is { } redelivery
+            ? await reactions.Redeliver(redelivery.Reaction, redelivery.Given, cancellationToken)
+            : await reactions.Settle(cancellationToken);
+        if (reactionFailure is { } failure) return failure.ToRecord(slice, specification);
 
         return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts);
     }

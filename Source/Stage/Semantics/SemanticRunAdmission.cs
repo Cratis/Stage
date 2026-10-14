@@ -249,6 +249,7 @@ public static class SemanticRunAdmission
     static IEnumerable<SemanticVersionFeature> RunSpecificationFeatures(SemanticSpecification specification) =>
         SemanticVersionFeatures.InSpecification(specification)
             .Except(SemanticVersionFeatures.RoutesInSpecification(specification))
+            .Except(SemanticVersionFeatures.RedeliveryInSpecification(specification))
             .Where(feature => feature.Code != SemanticVersionFeatures.Absence);
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>

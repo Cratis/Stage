@@ -10,7 +10,9 @@ internal static partial class SemanticSpecificationAdmission
 {
     internal static SemanticReactionSpecification SelectReaction(SemanticApplicationContext context, SemanticSpecification specification)
     {
-        return SemanticReactionSpecification.Candidates(context, specification.WhenAppended!).Single(candidate => candidate.Fires);
+        var candidates = SemanticReactionSpecification.Candidates(context, specification.WhenAppended!).ToArray();
+
+        return specification.ThenNoEvents ? candidates.Single() : candidates.Single(candidate => candidate.Fires);
     }
 
     static void ValidateReactionAppend(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
@@ -23,9 +25,14 @@ internal static partial class SemanticSpecificationAdmission
     {
         if (ReactionFixtureRejection(context, specification) is { } reason) return reason;
         var append = specification.WhenAppended!;
-        var active = SemanticReactionSpecification.Candidates(context, append).Where(candidate => candidate.Fires).ToArray();
+        var candidates = SemanticReactionSpecification.Candidates(context, append);
+        var active = (specification.ThenNoEvents ? candidates : candidates.Where(candidate => candidate.Fires)).ToArray();
         if (active.Length != 1)
-            return "The append must select one reaction trigger, not fan-out or a non-reaction append.";
+            return specification.ThenNoEvents
+                ? "A no-events append must have exactly one observer trigger; fan-out and no-observer appends require an event-log delta and settlement harness."
+                : "The append must select one reaction trigger, not fan-out or a non-reaction append.";
+        if (specification.ThenNoEvents && !active[0].Trigger.Invokes.IsEmpty)
+            return "No-events append specifications support production-only reactions; invoked commands require a settlement harness.";
         var selected = active[0];
         if (UsesReactionContext(selected.Reaction, append.EventContract))
             return "Reaction specifications cannot supply deterministic $context values.";
@@ -113,9 +120,9 @@ internal static partial class SemanticSpecificationAdmission
         trigger.Invokes.Any(invocation => invocation.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression))));
 
     static bool ProductionExpectationsMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected) =>
-        HasOnlyProductionOutcomes(specification) && specification.ThenEvents.Length == selected.Trigger.Produces.Length &&
+        HasOnlyProductionOutcomes(specification) && (specification.ThenNoEvents || specification.ThenEvents.Length == selected.Trigger.Produces.Length) &&
         specification.ThenEvents.All(expected => HasRenderableProductionExpectation(context, expected)) &&
-        ProductionContractsMatch(specification, selected.Trigger);
+        (specification.ThenNoEvents || ProductionContractsMatch(specification, selected.Trigger));
 
     static bool HasOnlyProductionOutcomes(SemanticSpecification specification) =>
         !specification.ThenDenied && specification.ThenErrors.IsEmpty && specification.ThenReturns is null;

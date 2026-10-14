@@ -20,6 +20,16 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSpecification specification,
         SemanticCommand command)
     {
+        if (specification.ThenNoEvents)
+        {
+            // A zero-fact expectation has no event position to inspect. Preserve fixture types,
+            // but let an admitted nonempty production run and fail its generated count assertion.
+            return specification.When!.EventSource is not { } source ||
+                (IsScalar(source.Value) && IsLosslessEventSource(context, source.Type) &&
+                 command.Produces.All(produced => SemanticDestinations.Of(command, produced) is SemanticResolvedExpression destination &&
+                     command.Properties.Any(property => property.Id == destination.Target && property.Type == source.Type)));
+        }
+
         if (!specification.ThenErrors.IsEmpty || specification.ThenDenied)
         {
             return true;

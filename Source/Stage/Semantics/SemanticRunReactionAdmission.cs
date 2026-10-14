@@ -40,6 +40,13 @@ internal static class SemanticRunReactionAdmission
 
     static IEnumerable<SemanticId> ActionEvents(SemanticExecutionPlan plan, SemanticSpecification specification)
     {
+        if (specification.WhenRedelivered is { } redelivery)
+        {
+            var given = specification.GivenEvents[redelivery.Given];
+            return plan.Reactions.Where(reaction => reaction.Id == redelivery.Reaction && MatchesFilter(plan, reaction.From, given.Route))
+                .SelectMany(reaction => reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == given.EventContract))
+                .SelectMany(trigger => Effects(plan, trigger));
+        }
         if (specification.WhenAppended is { } appended) return [appended.EventContract];
 
         return specification.When is { } when && specification.ThenErrors.IsEmpty && !specification.ThenDenied && plan.Commands.TryGetValue(when.Command, out var command)
@@ -49,7 +56,21 @@ internal static class SemanticRunReactionAdmission
     static IEnumerable<SemanticId> Products(SemanticExecutionPlan plan, SemanticId cause) =>
         plan.Reactions.SelectMany(reaction => reaction.Triggers)
             .Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == cause)
-            .SelectMany(trigger => trigger.Produces.Select(produced => produced.EventContract)
-                .Concat(trigger.Invokes.Where(invocation => plan.Commands.ContainsKey(invocation.Command))
-                    .SelectMany(invocation => plan.Commands[invocation.Command].Produces.Select(produced => produced.EventContract))));
+            .SelectMany(trigger => Effects(plan, trigger));
+
+    static IEnumerable<SemanticId> Effects(SemanticExecutionPlan plan, SemanticReactionTrigger trigger) =>
+        trigger.Produces.Select(produced => produced.EventContract)
+            .Concat(trigger.Invokes.Where(invocation => plan.Commands.ContainsKey(invocation.Command))
+                .SelectMany(invocation => plan.Commands[invocation.Command].Produces.Select(produced => produced.EventContract)));
+
+    static bool MatchesFilter(SemanticExecutionPlan plan, SemanticObserverFilter? filter, SemanticFixtureRoute? route)
+    {
+        if (filter is null) return true;
+        if (route is null) return false;
+        var source = plan.Model.Application.EventSources.Single(source => source.Id == filter.Source);
+        var routed = plan.Model.Application.EventSources.Single(source => source.Id == route.Source);
+
+        return source.SourceKind == routed.SourceKind &&
+            (filter.Stream is null || source.Streams.Single(stream => stream.Id == filter.Stream).StreamKind == routed.Streams.Single(stream => stream.Id == route.Stream).StreamKind);
+    }
 }

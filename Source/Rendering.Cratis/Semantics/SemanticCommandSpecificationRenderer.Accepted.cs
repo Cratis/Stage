@@ -70,6 +70,12 @@ internal static partial class SemanticCommandSpecificationRenderer
     {
         var builder = scope.Builder;
         var count = scope.Specification.ThenEvents.Length;
+        if (scope.Specification.ThenNoEvents)
+        {
+            builder.Line(scope.SeedInLog
+                ? "[global::Xunit.FactAttribute] void should_append_no_new_events() => (_scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess) - _givenEventCount).ShouldEqual(0);"
+                : "[global::Xunit.FactAttribute] void should_append_no_new_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(0);");
+        }
         if (count > 1)
         {
             builder.Line(scope.SeedInLog

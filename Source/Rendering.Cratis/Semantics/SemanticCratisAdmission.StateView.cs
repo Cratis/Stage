@@ -138,9 +138,7 @@ internal static partial class SemanticCratisAdmission
 
     static bool QueryFiltersAreRenderable(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (query.Argument?.Type is { IsOptional: true } || query.Filters.Any(filter =>
-            filter.Type is { IsOptional: true, Kind: SemanticTypeReferenceKind.Concept } &&
-            context.Concepts[filter.Type.Target].Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.NotEmpty)))
+        if ((query.Argument is not null && IsOptionalNotEmptyConcept(context, query.Argument.Type)) || query.Filters.Any(filter => IsOptionalNotEmptyConcept(context, filter.Type)))
         {
             diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' cannot preserve nullable keys or optional concept filters with not-empty rules: Arc skips validation for null arguments while the reference validates supplied null concepts.", query.Id));
             return false;
@@ -163,6 +161,10 @@ internal static partial class SemanticCratisAdmission
 
         return true;
     }
+
+    static bool IsOptionalNotEmptyConcept(SemanticApplicationContext context, SemanticTypeReference type) =>
+        type is { IsOptional: true, Kind: SemanticTypeReferenceKind.Concept } &&
+        context.Concepts[type.Target].Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.NotEmpty);
 
     static bool IsSnapshotLookup(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel)
     {

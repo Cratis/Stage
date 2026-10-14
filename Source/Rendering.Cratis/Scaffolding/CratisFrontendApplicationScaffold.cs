@@ -236,14 +236,21 @@ public sealed class CratisFrontendApplicationScaffold
         // editors and design-time actions a running application never loads.
         import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
         import { App } from './stage/App';
-        import { StageSourceProvider, staticStageSource } from './stage/stageSource';
+        import { StageSourceProvider, staticStageSource, type StageStaticContent } from './stage/stageSource';
         import { stageTheme } from './stage/stageTheme';
-        import { stage } from '../src/stage';
 
         // The screens are composed, not written here: `src/stage` holds the Scene this application was rendered
         // with, the routes its generated proxies registered and its strings, and `./stage` is the same runtime a
         // live Stage renders that Scene with. Editing this file to add a screen would put it outside the
         // composition the backend was generated from.
+        // A first-run scaffold has no Scene module yet. An eager glob keeps that frontend buildable and loads
+        // the real module, including its bindings and proxy routes, as soon as an application render emits it.
+        const stages = import.meta.glob<StageStaticContent>('../src/stage.ts', { eager: true, import: 'stage' });
+        const stage = stages['../src/stage.ts'] ?? {
+            scene: { layouts: [], screenTemplates: [], screens: [] },
+            routes: { commands: {}, queries: {} },
+            strings: {},
+        };
         const source = staticStageSource(stage);
 
         // PrimeReact 11 verifies a license key at runtime and otherwise shows its unlicensed presentation. The key

@@ -5,6 +5,7 @@ using System.Text;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
 using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
@@ -20,12 +21,12 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "4b2a72a9bf2c5482b7d75148d65387eabda362182e5e2c4a9790a3c7fd8b6052";
+    const string Digest = "a3833dc380a72eb2bb5f2dc9274c917db266cc3da02ef9375b9d04fbc43c3211";
 
     const string Manifest = """
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
-        .frontend/main.tsx f1be33ab4c4b17540e101e671276f76ac33b0b9f79f1cd536f2f1cf5eb235d65 2253
+        .frontend/main.tsx e4dc56b56e3e3855a1fdeedf2c14c131db52853c73f87b3b28d51b30a0e361b7 2723
         .frontend/stage/App.tsx 9876e89da7ff2540967f4d3c62bc3cebf7ab3b15efff5fa4e3e23d6f47f4f1f9 20657
         .frontend/stage/FlowArrangementView.tsx 828b0518dd9d98a23605452355cb9a8a4e070bf98f61b6c014b0f705585cec93 2792
         .frontend/stage/StageChrome.tsx e13793cf12a2dbdbce7b59b0e3525d33fc6b8c102ca55ff38ef70c2f073c5993 9465
@@ -106,7 +107,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_change_only_the_runtime_pins_from_the_previous_frozen_plan(string form)
+    public void should_change_only_the_runtime_pins_and_optional_stage_import_from_the_previous_frozen_plan(string form)
     {
         var plan = PlanOf(form);
         ArtifactRenderPlan.ComputeDigest(
@@ -136,7 +137,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Workspaces project carries the scaffold Arc pin; other files may already name 22.88.0 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = text.Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Workspaces.csproj", StringComparison.Ordinal)
             ? previous.Replace("22.88.0", "22.87.0", StringComparison.Ordinal)

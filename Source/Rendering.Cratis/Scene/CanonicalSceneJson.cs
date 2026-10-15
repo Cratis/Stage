@@ -95,12 +95,23 @@ public static class CanonicalSceneJson
             return;
         }
 
-        foreach (var name in (string[])[CompositionNames.Exposures, CompositionNames.InstanceContributions])
+        foreach (var name in (string[])[CompositionNames.Exposures, CompositionNames.InstanceContributions, CompositionNames.TemplateReferences])
         {
             if (application[name] is JsonArray { Count: 0 })
             {
                 application.Remove(name);
             }
+        }
+
+        // The same holds for navigation: an application that declares no region and no module navigation serializes as it did
+        // before navigation regions existed.
+        if (application[CompositionNames.Navigation] is JsonObject navigation &&
+            navigation["application"] is JsonObject { } applicationNavigation &&
+            applicationNavigation["regions"] is JsonArray { Count: 0 } &&
+            applicationNavigation["logo"] is null &&
+            navigation["modules"] is JsonArray { Count: 0 })
+        {
+            application.Remove(CompositionNames.Navigation);
         }
     }
 
@@ -168,5 +179,7 @@ public static class CanonicalSceneJson
     {
         public const string Exposures = "exposures";
         public const string InstanceContributions = "instanceContributions";
+        public const string TemplateReferences = "templateReferences";
+        public const string Navigation = "navigation";
     }
 }

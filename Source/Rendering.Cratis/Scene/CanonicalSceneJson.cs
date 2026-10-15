@@ -85,6 +85,13 @@ public static class CanonicalSceneJson
         return System.Text.Encoding.UTF8.GetString(stream.ToArray());
     }
 
+    /// <summary>
+    /// Gets whether a document's toolbar buttons name a slice.
+    /// </summary>
+    /// <param name="document">The scene document.</param>
+    /// <returns>True when one does.</returns>
+    internal static bool NamesSlices(JsonNode document) => UsesSlices(document);
+
     // An application that declares no exposures and no instance values serializes exactly as it did before the
     // composition ABI existed. Otherwise every released plan digest would move for an application that uses none of
     // it, and a digest that moves without a change to the application means nothing.
@@ -122,17 +129,10 @@ public static class CanonicalSceneJson
         }
     }
 
-    /// <summary>
-    /// Gets whether a document's toolbar buttons name a slice.
-    /// </summary>
-    /// <param name="document">The scene document.</param>
-    /// <returns>True when one does.</returns>
-    internal static bool NamesSlices(JsonNode document) => UsesSlices(document);
-
     static bool UsesSlices(JsonNode? node) => node switch
     {
-        JsonObject o => o.Any(property => property.Key == "slice" && property.Value is JsonValue value && value.TryGetValue<string>(out _))
-            || o.Where(property => property.Key != CompositionNames.Structure).Any(property => UsesSlices(property.Value)),
+        JsonObject o => o.Any(property => (property.Key == "slice" && property.Value is JsonValue value && value.TryGetValue<string>(out _))
+            || (property.Key != CompositionNames.Structure && UsesSlices(property.Value))),
         JsonArray a => a.Any(UsesSlices),
         _ => false
     };

@@ -18,7 +18,7 @@ internal static class SemanticRuleValues
         SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
         SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
         SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.AllGreaterThan or
-        SemanticValidationRuleKind.AllGreaterThanOrEqual;
+        SemanticValidationRuleKind.AllGreaterThanOrEqual or SemanticValidationRuleKind.Checksum;
 
     internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value, Func<Exception> unsupported) => rule.Kind switch
     {
@@ -34,6 +34,7 @@ internal static class SemanticRuleValues
         SemanticValidationRuleKind.LessThanOrEqual => Measure(value, unsupported) <= Number(rule.Operand, unsupported),
         SemanticValidationRuleKind.Length => value is SemanticTextValue text && text.Value.Length == Number(rule.Operand, unsupported),
         SemanticValidationRuleKind.Matches => Matches(value, rule.Operand, unsupported),
+        SemanticValidationRuleKind.Checksum => SemanticChecksumRules.Satisfies(value, rule.Operand, unsupported),
         SemanticValidationRuleKind.AllGreaterThan => value is SemanticArrayValue array && array.Values.All(element => Measure(element, unsupported) > Number(rule.Operand, unsupported)),
         SemanticValidationRuleKind.AllGreaterThanOrEqual => value is SemanticArrayValue array && array.Values.All(element => Measure(element, unsupported) >= Number(rule.Operand, unsupported)),
         _ => throw unsupported()

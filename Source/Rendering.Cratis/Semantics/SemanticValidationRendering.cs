@@ -14,12 +14,12 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticValidationRendering
 {
     internal static bool CanRender(SemanticValidationRule rule) =>
-        SafeMessage(rule.Message) && SafeOperand(rule) && !(rule.Operand is SemanticNullValue && rule.Kind is SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) && Enum.IsDefined(rule.Severity) && rule.Kind is
+        SafeMessage(rule.Message) && SafeOperand(rule) && (rule.Kind != SemanticValidationRuleKind.Checksum || SemanticChecksumRules.Algorithm(rule.Operand) is not null) && !(rule.Operand is SemanticNullValue && rule.Kind is SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) && Enum.IsDefined(rule.Severity) && rule.Kind is
             SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
             SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
             SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
             SemanticValidationRuleKind.Length or SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual or
-            SemanticValidationRuleKind.Matches;
+            SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.Checksum;
 
     internal static bool SafeMessage(string? message) => message is null ||
         (!message.StartsWith("$strings.", StringComparison.Ordinal) && !message.Any(_ => char.IsControl(_) || char.IsSurrogate(_) || (_ is '{' or '}')));
@@ -112,6 +112,7 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.NotEqual => $"{absentPasses}!global::System.Object.Equals({scalar}, {equality})",
             SemanticValidationRuleKind.Length => $"{absentPasses}{scalar}.Length == {number}",
             SemanticValidationRuleKind.Matches => $"{absentPasses}MatchesPattern({scalar}, {CSharpCodeBuilder.StringLiteral(SemanticMatchAnchors.Portable(((SemanticTextValue)operand!).Value))})",
+            SemanticValidationRuleKind.Checksum => $"{absentPasses}global::Cratis.Concepts.GenerateValue.HasValidChecksum({scalar}, global::Cratis.Concepts.Checksum.{SemanticChecksumRules.Algorithm(operand)})",
             SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual => $"{absentPasses}value.All(element => {element} {comparison} {number})",
             _ => $"{absentPasses}{measured} {comparison} {number}"
         };
@@ -139,6 +140,7 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.LessThan => $"A value must be less than {operand}.",
             SemanticValidationRuleKind.Length => $"A value must be exactly {operand} characters long.",
             SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
+            SemanticValidationRuleKind.Checksum => $"A value must end in the exact {operand} check digits.",
             SemanticValidationRuleKind.AllGreaterThan => $"Every value must be greater than {operand}.",
             SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {operand}.",
             _ => string.Empty

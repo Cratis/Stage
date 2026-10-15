@@ -3,7 +3,7 @@ title: Generated values and command responses
 description: Generation strategies, freshness guards, deterministic fixtures and command responses in rendered applications.
 ---
 
-A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards; v20 admits rules on generated concepts. The generated backend pins Arc **22.100.1**, which brings Fundamentals **7.24.0**.
+A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards; v20 admits rules on generated concepts. The generated backend pins Arc **22.104.0**, which brings Fundamentals **7.25.0**.
 
 This page is the terse reference. To follow one model from `.play` to rendered C# and its runtime behavior, read [Generate identifiers and values from a model](../guides/generated-values.md).
 
@@ -99,7 +99,7 @@ The reference and independent specification executor report `Rejected(Contract)`
 
 Rendered specifications may leave a generated property unpinned when every concept rule is proven. Stage derives each rule's proof status with Screenplay's `RuleConsistency.Check` rather than reading it from ESM. Any unproven or refuted rule requires a pin (`STAGE-ESM-038`); this check applies to explicit strategies and implicit UUID generation. A pin failing its shape or rules fails `STAGE-ESM-011`; Stage does not render it as an input-validation assertion or an exception assertion. The command and concept can still render without that specification. Opaque or unsupported rules are refused before any pin is evaluated: `STAGE-ESM-005` identifies the pinned specification, generated concept and rule rather than throwing during planning.
 
-Warning- and information-severity rules on generated concepts fail `STAGE-ESM-038`. Arc only logs their failures while the reference rejects them. This is separate from Screenplay's proof diagnostics: `PLAY0688` refuses a refuted rule and `PLAY0689` warns that a rule is unproven.
+Warning- and information-severity rules on generated concepts render alongside error-severity rules. Arc rejects generated values failing a rule of any severity as server generation defects. Rule severity is separate from Screenplay's proof diagnostics: `PLAY0688` refuses a refuted rule and `PLAY0689` warns that a rule is unproven.
 
 ### Fresh event sources
 
@@ -213,7 +213,7 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
-| `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, non-error-severity rules on generated concepts, occurrence or conditional Handle local-name collisions; unsupported response sources, composite or collection responses; response/factory name collisions |
+| `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, occurrence or conditional Handle local-name collisions; unsupported response sources, composite or collection responses; response/factory name collisions |
 | `STAGE-ESM-038` | Unpinned generation on a concept with any unproven rule, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 

@@ -44,6 +44,11 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
     /// Gets the whole-application assessment of the model root's admitted release revisions.
     /// </summary>
     public ReleaseBaselineAssessment ReleaseBaseline { get; init; } = ReleaseBaselineAssessment.NotSupplied;
+
+    /// <summary>
+    /// Gets non-blocking compiler diagnostics, including information and warnings.
+    /// </summary>
+    public ImmutableArray<SemanticModelLoadDiagnostic> Notes { get; init; } = [];
 }
 
 /// <summary>
@@ -71,6 +76,11 @@ public sealed record SemanticModelLoadResult(LoadedSemanticModel? Loaded, Immuta
     /// Gets whether loading and execution-plan admission succeeded.
     /// </summary>
     public bool Success => Loaded is not null;
+
+    /// <summary>
+    /// Gets non-blocking compiler diagnostics, whether loading succeeded or failed.
+    /// </summary>
+    public ImmutableArray<SemanticModelLoadDiagnostic> Notes { get; init; } = [];
 }
 
 /// <summary>
@@ -113,7 +123,7 @@ public static partial class SemanticModelLoader
         if (state is not null && IsRootIdentityPath(Path.GetFullPath(root), Path.GetFullPath(catalogPath!)))
         {
             var opened = LoadModelRoot(Path.GetFullPath(root), [.. files.Select(Path.GetFullPath)], isFolder ? [] : [Path.GetFullPath(path)], applicationName ?? state.ApplicationName, default);
-            if (!opened.Success) throw new InvalidSemanticModel([.. opened.Diagnostics.Select(diagnostic => diagnostic.Message)]);
+            if (!opened.Success) throw new InvalidSemanticModel([.. opened.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.Message)]) { Notes = opened.Notes };
             return opened.Loaded!;
         }
         var documents = new List<SemanticSourceDocument>();
@@ -127,8 +137,8 @@ public static partial class SemanticModelLoader
         var result = Compile(root, name, catalog, [.. documents], default);
         if (!result.Success)
         {
-            throw new InvalidSemanticModel([.. result.Diagnostics.Where(diagnostic => diagnostic.Code != "STAGE-PLAN-003")
-                .Select(diagnostic => diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}")]);
+            throw new InvalidSemanticModel([.. result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Code != "STAGE-PLAN-003")
+                .Select(diagnostic => diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}")]) { Notes = result.Notes };
         }
 
         return result.Loaded!;
@@ -327,15 +337,17 @@ public static partial class SemanticModelLoader
     {
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = compiled.Diagnostics.Select(diagnostic => new SemanticModelLoadDiagnostic(diagnostic.Code, diagnostic.Message, $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column})") { Severity = diagnostic.Severity }).ToImmutableArray();
+        var errors = diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToImmutableArray();
+        var notes = diagnostics.Where(diagnostic => diagnostic.Severity != DiagnosticSeverity.Error).ToImmutableArray();
         if (!compiled.Success)
         {
-            return new(null, [new("STAGE-PLAN-003", "Screenplay compilation failed."), .. diagnostics]);
+            return new(null, [new("STAGE-PLAN-003", "Screenplay compilation failed."), .. errors]) { Notes = notes };
         }
         var model = compiled.Value!.Model;
         var plan = SemanticExecutionPlan.Compile(model);
         if (!plan.Success)
         {
-            return new(null, [.. diagnostics, .. plan.Issues.Select(issue => new SemanticModelLoadDiagnostic("STAGE-PLAN-004", $"{issue.Artifact}: {issue.Details}"))]);
+            return new(null, [.. errors, .. plan.Issues.Select(issue => new SemanticModelLoadDiagnostic("STAGE-PLAN-004", $"{issue.Artifact}: {issue.Details}"))]) { Notes = notes };
         }
 
         var loaded = new LoadedSemanticModel(model, plan.Plan!)
@@ -345,10 +357,11 @@ public static partial class SemanticModelLoader
             TypedContextDescriptors = compiled.TypedContextDescriptors,
             ImplementationContents = SemanticImplementationBodies.Resolve(compiled.Value!.Documents, compiled.ImplementationRequirements),
             AttachmentDiagnostics = attachmentDiagnostics,
-            ReleaseBaseline = baseline
+            ReleaseBaseline = baseline,
+            Notes = notes
         };
 
-        return new(loaded, diagnostics);
+        return new(loaded, errors) { Notes = notes };
     }
 
     static IEnumerable<string> NamedFiles(string root, ImmutableArray<string> paths) =>

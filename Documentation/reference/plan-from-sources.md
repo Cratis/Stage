@@ -351,11 +351,17 @@ is exposed separately: equal output digests do not promise equal input revisions
 
 ## Diagnostics
 
+Semantic source loads expose non-blocking Information and Warning diagnostics in
+`SemanticModelLoadResult.Notes`. Successful loads also retain them on
+`LoadedSemanticModel.Notes`; throwing loads retain them on `InvalidSemanticModel.Notes`
+without including them in the exception's blocking diagnostics or message. Each note
+carries `Code`, `Message`, `Source` (root-relative path, line and column) and `Severity`.
+
 | Code | Outcome |
 | --- | --- |
 | `STAGE-PLAN-001` | Source missing, not a `.play` file, invalid path, outside root, or containing a link or reparse point below root. |
 | `STAGE-PLAN-002` | No `.play` files found. |
-| `STAGE-PLAN-003` | Compilation failed; original `PLAY` diagnostics and locations accompany it. |
+| `STAGE-PLAN-003` | Compilation failed; original Error-severity `PLAY` diagnostics and locations accompany it. |
 | `STAGE-PLAN-004` | Execution-plan admission refused. |
 | `STAGE-PLAN-005` | Source or catalog could not be read. |
 | `STAGE-PLAN-006` | Identity catalog or persisted MCP identity state invalid. |

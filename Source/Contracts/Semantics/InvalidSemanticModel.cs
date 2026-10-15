@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+
 namespace Cratis.Stage.Contracts.Semantics;
 
 /// <summary>
@@ -13,4 +15,9 @@ public sealed class InvalidSemanticModel(IReadOnlyList<string> diagnostics) : Ex
     /// The diagnostics in compiler order.
     /// </summary>
     public IReadOnlyList<string> Diagnostics { get; } = diagnostics;
+
+    /// <summary>
+    /// Gets non-blocking compiler diagnostics accompanying the failure.
+    /// </summary>
+    public ImmutableArray<SemanticModelLoadDiagnostic> Notes { get; init; } = [];
 }

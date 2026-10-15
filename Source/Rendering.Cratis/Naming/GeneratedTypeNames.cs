@@ -11,6 +11,19 @@ namespace Cratis.Stage.Rendering.Cratis.Naming;
 /// </summary>
 internal static class GeneratedTypeNames
 {
+    /// <summary>
+    /// Finds generated declarations that collide with each other or with a generated namespace.
+    /// </summary>
+    /// <param name="application">The application being rendered.</param>
+    /// <param name="slices">The selected slices with their module and feature paths.</param>
+    /// <param name="constraints">The selected constraints, or every constraint of the selected slices.</param>
+    /// <param name="rendersStringsCatalog">Whether the strings catalog is rendered.</param>
+    /// <param name="opaquePolicyTypes">Policy runtime types declared outside the modeled namespaces.</param>
+    /// <param name="commonNamespace">The namespace, relative to the root, of concepts and composite types.</param>
+    /// <param name="eventSources">The event sources to render, or every event source of the application.</param>
+    /// <param name="eventSourcesNamespace">The namespace, relative to the root, of event sources.</param>
+    /// <param name="policiesNamespace">The namespace, relative to the root, of generated policies.</param>
+    /// <returns>Each colliding artifact, the kind of declaration and the colliding name.</returns>
     internal static IEnumerable<(SemanticId Artifact, string Kind, string Name)> Collisions(
         SemanticApplication application,
         IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> slices,
@@ -22,9 +35,9 @@ internal static class GeneratedTypeNames
         string eventSourcesNamespace = "EventSources",
         string policiesNamespace = "GeneratedPolicies")
     {
-        var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
+        var located = slices.Select(selected => (Path: selected.Path.ToArray(), selected.Slice)).ToArray();
         var namespaces = new HashSet<(string Namespace, string Name)>();
-        foreach (var (path, _) in selectedSlices)
+        foreach (var path in located.Select(selected => selected.Path.Select(GeneratedPascalCase.From).ToArray()))
         {
             for (var index = 0; index < path.Length; index++)
             {
@@ -32,6 +45,48 @@ internal static class GeneratedTypeNames
             }
         }
         var seen = new HashSet<(string Namespace, string Name)>();
+        foreach (var declaration in Declarations(
+            application,
+            located.Select(selected => ((IEnumerable<string>)selected.Path, selected.Slice)),
+            constraints,
+            rendersStringsCatalog,
+            opaquePolicyTypes,
+            commonNamespace,
+            eventSources,
+            eventSourcesNamespace,
+            policiesNamespace))
+        {
+            if (!seen.Add((declaration.Namespace, declaration.Name))) yield return (declaration.Artifact, declaration.Kind, declaration.Name);
+            if (namespaces.Contains((declaration.Namespace, declaration.Name))) yield return (declaration.Artifact, "Namespace", declaration.Name);
+        }
+    }
+
+    /// <summary>
+    /// Enumerates every top-level type the rendered application declares, in declaration order, with its namespace
+    /// relative to the root namespace. Duplicates are kept: a collision is a property of the inventory, not of a name.
+    /// </summary>
+    /// <param name="application">The application being rendered.</param>
+    /// <param name="slices">The selected slices with their module and feature paths.</param>
+    /// <param name="constraints">The selected constraints, or every constraint of the selected slices.</param>
+    /// <param name="rendersStringsCatalog">Whether the strings catalog is rendered.</param>
+    /// <param name="opaquePolicyTypes">Policy runtime types declared outside the modeled namespaces.</param>
+    /// <param name="commonNamespace">The namespace, relative to the root, of concepts and composite types.</param>
+    /// <param name="eventSources">The event sources to render, or every event source of the application.</param>
+    /// <param name="eventSourcesNamespace">The namespace, relative to the root, of event sources.</param>
+    /// <param name="policiesNamespace">The namespace, relative to the root, of generated policies.</param>
+    /// <returns>The generated declarations.</returns>
+    internal static IEnumerable<GeneratedTypeDeclaration> Declarations(
+        SemanticApplication application,
+        IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> slices,
+        IEnumerable<(IEnumerable<string> Path, SemanticId Owner, SemanticConstraint Constraint)>? constraints = null,
+        bool rendersStringsCatalog = false,
+        IEnumerable<(string Namespace, string Name)>? opaquePolicyTypes = null,
+        string commonNamespace = "Common",
+        IEnumerable<SemanticEventSource>? eventSources = null,
+        string eventSourcesNamespace = "EventSources",
+        string policiesNamespace = "GeneratedPolicies")
+    {
+        var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         foreach (var source in eventSources ?? application.EventSources)
         {
             foreach (var name in Names(eventSourcesNamespace, EventSourceName(source.Name), source.Id, "EventSource", generated: true)) yield return name;
@@ -127,11 +182,9 @@ internal static class GeneratedTypeNames
             foreach (var name in Names("GeneratedTenancy", "AmbiguousTenant", application.Id, "Generated")) yield return name;
         }
 
-        IEnumerable<(SemanticId Artifact, string Kind, string Name)> Names(string ns, string source, SemanticId id, string kind, bool generated = false)
+        static IEnumerable<GeneratedTypeDeclaration> Names(string ns, string source, SemanticId id, string kind, bool generated = false)
         {
-            var name = generated ? source : GeneratedPascalCase.From(source);
-            if (!seen.Add((ns, name))) yield return (id, kind, name);
-            if (namespaces.Contains((ns, name))) yield return (id, "Namespace", name);
+            yield return new(id, kind, ns, generated ? source : GeneratedPascalCase.From(source));
         }
     }
 

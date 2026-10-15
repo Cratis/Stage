@@ -36,8 +36,32 @@ internal static class GeneratedTypeNames
         string policiesNamespace = "GeneratedPolicies")
     {
         var located = slices.Select(selected => (Path: selected.Path.ToArray(), selected.Slice)).ToArray();
+        return Collisions(
+            located.Select(selected => (IEnumerable<string>)selected.Path),
+            Declarations(
+                application,
+                located.Select(selected => ((IEnumerable<string>)selected.Path, selected.Slice)),
+                constraints,
+                rendersStringsCatalog,
+                opaquePolicyTypes,
+                commonNamespace,
+                eventSources,
+                eventSourcesNamespace,
+                policiesNamespace));
+    }
+
+    /// <summary>
+    /// Finds declarations that collide with each other or with a namespace a selected slice path declares.
+    /// </summary>
+    /// <param name="slicePaths">The module, feature and slice paths of the selected slices.</param>
+    /// <param name="declarations">The generated declarations, in declaration order.</param>
+    /// <returns>Each colliding artifact, the kind of declaration and the colliding name.</returns>
+    internal static IEnumerable<(SemanticId Artifact, string Kind, string Name)> Collisions(
+        IEnumerable<IEnumerable<string>> slicePaths,
+        IEnumerable<GeneratedTypeDeclaration> declarations)
+    {
         var namespaces = new HashSet<(string Namespace, string Name)>();
-        foreach (var path in located.Select(selected => selected.Path.Select(GeneratedPascalCase.From).ToArray()))
+        foreach (var path in slicePaths.Select(path => path.Select(GeneratedPascalCase.From).ToArray()))
         {
             for (var index = 0; index < path.Length; index++)
             {
@@ -45,16 +69,7 @@ internal static class GeneratedTypeNames
             }
         }
         var seen = new HashSet<(string Namespace, string Name)>();
-        foreach (var declaration in Declarations(
-            application,
-            located.Select(selected => ((IEnumerable<string>)selected.Path, selected.Slice)),
-            constraints,
-            rendersStringsCatalog,
-            opaquePolicyTypes,
-            commonNamespace,
-            eventSources,
-            eventSourcesNamespace,
-            policiesNamespace))
+        foreach (var declaration in declarations)
         {
             if (!seen.Add((declaration.Namespace, declaration.Name))) yield return (declaration.Artifact, declaration.Kind, declaration.Name);
             if (namespaces.Contains((declaration.Namespace, declaration.Name))) yield return (declaration.Artifact, "Namespace", declaration.Name);

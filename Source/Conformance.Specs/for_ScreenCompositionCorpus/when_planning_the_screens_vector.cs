@@ -22,7 +22,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "3617a1d682b8141901e94faae775d40fe35aa4d406bbb009df92b02429840e59";
+    const string Digest = "9acf44daff8b536cd865751c1122f74ff68511147a1312c9f05e000b2433bd15";
 
     const string Manifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -65,7 +65,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
         README.md 2bed375a9bda95aa35cf3d523c58d79efd60f865ccf42ba3abb5a1117b928288 1732
         Workspaces.Specs/Workspaces.Specs.csproj b88f81e8d9f2f47b00113df7ec92e37919c703083d9b767a24451a5104d8f617 1105
-        Workspaces.csproj e94bfd67b1774db9be7ed12bf68c930cf5793f49154b8321b8e148618c3cd684 1172
+        Workspaces.csproj b684abdda8f2c797e1725992283941a71cb92e51783c1bce75e0419b97758fff 1226
         Workspaces.slnx 650516e95954eebf4339f821450c06276740585167423ff70481565a1a03dda5 124
         Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
         Workspaces/Tracking/AddComment/when_adding_acomment.cs 317e90a82f631bd47dd13a15aaba8c2dae99c23e0459631c7274be2101570c95 1884
@@ -129,7 +129,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("d18575047d51d892b391f914f7f9196233a9dcd579b0bde3254dbf4460b9df39");
+            plan.Diagnostics).ShouldEqual("29d5d1cf69424c8587b286a6e9106a094bc7315995e4908bbf855379b57b412c");
     }
 
     [Theory]

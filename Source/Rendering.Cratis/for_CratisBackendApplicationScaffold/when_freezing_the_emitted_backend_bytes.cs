@@ -13,14 +13,14 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    const string FrozenDigest = "939b12c84953c2628590ce0f50b7858d4253ca34ce9981e5650d36e97074da27";
+    const string FrozenDigest = "21a883d4f7e43fb6139dcfbf3a3f7aea44d4575354ca657b6b7c286f0493cfae";
 
     string _digest = null!;
 
     void Because() => _digest = Digest(_first);
 
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
-    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("0abeed8c90c55f73ad53b3819d1c9d5576684f4350169960ae75a762c92ed3fd");
+    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("8be112259fe445493964fed0fe105fd88f36111c8bc25ed99a940ba63ec13515");
 
     static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false)
     {

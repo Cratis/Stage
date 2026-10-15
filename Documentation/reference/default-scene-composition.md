@@ -9,6 +9,20 @@ It does not mutate the profile or generate per-screen TypeScript components.
 
 Authored profiles can carry [slice-owned screen partitions](render-plans.md#slice-owned-screen-fragments) from the same compilation. Stage assembles the canonical app Scene from those records and emits each declaring slice's `Screens.scene.json`, including in scoped plans. Shared Scene aggregates are application-scope only. The synthetic default screen remains application-owned: it is not copied into every slice as that slice's UI.
 
+## Navigation, toolbar buttons and template references
+
+Three Screenplay constructs reach the Scene model through `ScreenplaySceneVisitor`. None of them is dropped, and the rules that judge them are Scene's, not Stage's.
+
+**Navigation regions.** `navigation topbar|sidebar` in the first declared `layout` becomes the application's `NavigationRegion`s and its `ApplicationLogo`; a `module` block becomes a `ModuleNavigation` whose region carries the `NavigationRegionMode` (`inherits`, `extends`, `overrides`). A module without a block has no entry - Scene treats a missing region as inheriting, and its `EffectiveNavigation` computes the items, so Stage does not. An item keeps its id, title (a `$strings.<key>` token as written), icon, `slot`, nested items, and a `target` as a `DestinationReference` naming the module and the dotted feature path. `contribute to` is a separate mechanism and converts as before. An application that declares no region serializes without a `navigation` member, so its plan digest does not move.
+
+**Toolbar buttons.** `button <id> title "..." slice <Slice> emphasis <e> icon <i>` becomes a `core:toolbarItem` of kind `Action` carrying `slice`, `emphasis` and `icon`, the shape Scene's `ToolbarButtons.FromItem` reads. The slice is written as the qualified id (`Module.Feature.Slice`) the structure knows, so a suffix such as `Orders.PlaceOrder` resolves the same way in the engine as in the compiler.
+
+**Template references.** `template <Name>` and `template blueprint <Blueprint> <Name> [version "<range>"]` become `SceneApplication.TemplateReferences`, each a Scene `TemplateReference` (source, id, blueprint, version range) with the scope it was assigned at. The template's category and the slice kinds of a `scopes slice` template travel in its `TemplateMetadata`. An application with no assignment serializes without a `templateReferences` member.
+
+**Sample data.** A top level `sample data <Name>` pack becomes a Scene `SampleDataPack` owned by `user`: its id is the lower-case, hyphenated form of the name (`NordicDemo` becomes `nordic-demo`), its title defaults to the name and its locale to Scene's default. Row fields keep their authored literal - text, whole number, decimal, Boolean or null - in authored order. The `sample data` block of a `ui profile` becomes the profile's `SampleDataSelection`: the active pack chosen once, shape mappings and read model bindings, every pack reference using the same derived id. `active blueprint <id>` keeps the blueprint's id as written and is resolved by the build against the packages the profile activates. Sample data is design and preview time only: it is never part of a production build and never reaches the semantic model. Whether the rows fit the read model is the Screenplay compiler's check; whether the pack and selection are well formed as Scene models them is Scene's, and a problem is reported as a `SampleDataInvalid` finding.
+
+**Structure and findings.** The planner builds Scene's `ApplicationStructure` - modules, features and slices, each slice with its kind (a Translate slice is an automation: it has no user input) - from the compiled model and runs Scene's structure, navigation and toolbar validation over it. What they find is reported as `StructureInvalid`, `NavigationInvalid` and `ToolbarButtonInvalid` [findings](render-plans.md#findings), never thrown. The structure is a reference input; it is never written into the Scene document.
+
 ## Lookup eligibility
 
 Backend semantic admission runs before composition. A default lookup requires all of the following:

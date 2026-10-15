@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.174.0; ESM v1–v21 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.180.1; ESM v1–v21 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -103,6 +103,8 @@ internal static class SemanticSurfaceLedger
         // generated records, event destinations, projection keys and specification values.
         Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values Numbers Compliance Generation");
         Add(entries, "SemanticGeneration", rendered, "Kind Prefix Case Size Alphabet Count Encoding");
+
+        // ESM v21 is admitted by version; pattern, random and rule generation remain refused per strategy.
         Add(entries, "SemanticGeneration", rejected("STAGE-ESM-028"), "Pattern Checksum Minimum Maximum RequirementId");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");

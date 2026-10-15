@@ -26,7 +26,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("b4f7134a641f50ada25f1fbba2d8ba9062a392309850470ef402559bce8e4ce4");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("96b91002dcfc4270cd52d3aa8fb47c837a536c37ebe6d8f245586cf682d0e8d5");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("c15dc41dbf79c1f851002faf0d750041886bd7aad83ba27d4c898616339e4790");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
@@ -47,7 +47,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // CPM keeps the backend Arc pins in Directory.Packages.props; frontend files may use the same version independently.
     static string PreviousRealization(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal).Replace("4.30.0", "4.22.1", StringComparison.Ordinal);
         if (relativePath.EndsWith("Lookup.cs", StringComparison.Ordinal))
         {
             // Restore the frozen #350 primitive query signature and conversion, not the read-model property.

@@ -1,12 +1,17 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Scene.Engine.Navigation;
 using Cratis.Scene.Engine.Packages;
 using Cratis.Scene.Engine.Profiles;
 using Cratis.Scene.Engine.Screens;
+using Cratis.Scene.Engine.Structure;
+using Cratis.Scene.Engine.Toolbar;
+using SceneElements = Cratis.Scene.Model.Elements;
 using ScenePackagesModel = Cratis.Scene.Model.Packages;
 using SceneProfilesModel = Cratis.Scene.Model.Profiles;
 using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
+using SceneToolbar = Cratis.Scene.Model.Toolbar;
 
 namespace Cratis.Stage.Contracts.Scene;
 
@@ -33,6 +38,47 @@ public static class RenderFindings
                 RenderFindingKind.NoTargetDeclared,
                 string.Empty,
                 "The application declares no ui profile, so there is no deployment target to render for.")];
+
+    /// <summary>
+    /// States what Scene's structure, navigation and toolbar validation found in the application as a whole.
+    /// </summary>
+    /// <param name="application">The translated <see cref="SceneApplication"/>.</param>
+    /// <returns>The findings, if any.</returns>
+    /// <remarks>
+    /// The rules are Scene's: <c language="csharp">NavigationRegionDiagnostics</c> and <c language="csharp">ToolbarButtonValidation</c> run unmodified over the
+    /// <see cref="SceneApplication.Structure"/> built from the compiled model, so a finding here is the one the designer reports.
+    /// The slot names a navigation item may render into are the slots of the layouts the document declares.
+    /// </remarks>
+    public static IEnumerable<RenderFinding> ForStructure(SceneApplication application)
+    {
+        var index = new ApplicationStructureIndex(application.Structure);
+        foreach (var diagnostic in index.Diagnostics)
+        {
+            yield return new RenderFinding(RenderFindingKind.StructureInvalid, string.Empty, $"{diagnostic.Code}: {diagnostic.Message}");
+        }
+
+        var slots = application.Layouts.SelectMany(layout => layout.Slots.Select(slot => slot.Name)).Distinct(StringComparer.Ordinal).ToList();
+        foreach (var diagnostic in NavigationRegionDiagnostics.Diagnose(index, application.Navigation, slots))
+        {
+            yield return new RenderFinding(RenderFindingKind.NavigationInvalid, diagnostic.Entry ?? string.Empty, $"{diagnostic.Code}: {diagnostic.Message}");
+        }
+
+        foreach (var finding in SampleDataConverter.Validate(application))
+        {
+            yield return finding;
+        }
+
+        var buttons = ComponentReferences.Elements(application)
+            .OfType<SceneElements.ExternalComponent>()
+            .Where(component => component.ComponentName == "core:toolbarItem")
+            .Select(component => ToolbarButtons.FromItem(component.Id, component.Properties))
+            .OfType<SceneToolbar.ToolbarButton>()
+            .ToList();
+        foreach (var diagnostic in ToolbarButtonValidation.Validate(index, new SceneToolbar.Toolbar(buttons)))
+        {
+            yield return new RenderFinding(RenderFindingKind.ToolbarButtonInvalid, diagnostic.Button, $"{diagnostic.Code}: {diagnostic.Message}");
+        }
+    }
 
     /// <summary>
     /// States what a target's package list could not settle.

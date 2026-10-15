@@ -9,9 +9,8 @@ using Xunit;
 namespace Cratis.Stage.Contracts.Screenplay.for_ValidationRuleConverter.when_converting_the_validation_of_a_command;
 
 /// <summary>
-/// The baseline the dropping specs are read against: every rule kind that takes an operand, each stating a fixed
-/// value, is carried. Without it, a converter that dropped everything would satisfy the specs that assert what is
-/// dropped, and nothing would notice.
+/// The baseline the dropping specs are read against: supported scalar rules stating fixed values are carried.
+/// Without it, a converter that dropped everything would satisfy the dropping specs unnoticed.
 /// </summary>
 public class and_every_operand_is_a_literal : given.a_validation_block
 {
@@ -19,8 +18,8 @@ public class and_every_operand_is_a_literal : given.a_validation_block
 
     void Because() => _converted = ValidationRuleConverter.Convert([Block(Literal)]);
 
-    [Fact] void should_carry_every_kind_that_takes_an_operand() =>
-        _converted.Select(rules => rules.PropertyName).ShouldContainOnly(KindsTakingAnOperand.Select(kind => kind.ToString()));
+    [Fact] void should_carry_every_supported_scalar_kind() =>
+        _converted.Select(rules => rules.PropertyName).ShouldContainOnly(KindsTakingAnOperand.Where(kind => kind is not (ValidationRuleKind.AllGreaterThan or ValidationRuleKind.AllGreaterThanOrEqual)).Select(kind => kind.ToString()));
 
     [Fact] void should_carry_the_stated_threshold() =>
         _converted.Single(rules => rules.PropertyName == nameof(ValidationRuleKind.GreaterThan))

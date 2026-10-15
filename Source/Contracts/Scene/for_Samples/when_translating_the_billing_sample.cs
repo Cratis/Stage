@@ -59,6 +59,21 @@ public class when_translating_the_billing_sample : Specification
     [Fact] void should_translate_both_templates() =>
         (_compilation.Result.Value!.ScreenTemplates.Count + _compilation.Result.Value!.DialogTemplates.Count).ShouldEqual(2);
 
+    [Fact] void should_translate_the_navigation_regions() => _compilation.Result.Value!.Navigation.Application.Regions.Count.ShouldEqual(2);
+
+    [Fact] void should_translate_the_module_navigation() => _compilation.Result.Value!.Navigation.Modules.Single().Module.ShouldEqual("Ledger");
+
+    [Fact] void should_build_the_structure_the_navigation_resolves_against() =>
+        _compilation.Result.Value!.Structure.Modules.Select(module => module.Id).ShouldContainOnly("Invoicing", "Ledger");
+
+    [Fact] void should_translate_the_sample_data_pack() => _compilation.Result.Value!.SampleDataPacks.Single().Id.ShouldEqual("nordic-demo");
+
+    [Fact] void should_select_the_pack_once_in_the_desktop_profile() =>
+        _compilation.Result.Value!.UiProfiles.Where(profile => profile.SampleData is not null).Select(profile => $"{profile.Name}:{profile.SampleData!.ActivePack}").ShouldContainOnly("Desktop:nordic-demo");
+
+    [Fact] void should_resolve_every_navigation_target_and_toolbar_button() =>
+        RenderFindings.ForStructure(_compilation.Result.Value!).ShouldBeEmpty();
+
     // The interaction is the part with the furthest to travel: declared in one file, attached in another,
     // through a template slot, and it still arrives.
     [Fact] void should_attach_the_behaviors_the_screens_use() =>

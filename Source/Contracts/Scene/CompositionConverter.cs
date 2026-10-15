@@ -6,6 +6,7 @@ using SceneCommon = Cratis.Scene.Model.Common;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneExposure = Cratis.Scene.Model.Exposure;
 using SceneScreens = Cratis.Scene.Model.Screens;
+using SceneStructure = Cratis.Scene.Model.Structure;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
@@ -51,13 +52,20 @@ public static class CompositionConverter
     /// <param name="category">The authored category.</param>
     /// <param name="restrictsScopes">Whether the template declares <c language="csharp">scopes</c> at all.</param>
     /// <param name="scopes">The declared scopes; <c language="csharp">none</c> restricts the template to no scope.</param>
+    /// <param name="sliceKinds">The slice kinds a <c language="csharp">scopes slice</c> template is restricted to - <c language="csharp">StateChange</c> or <c language="csharp">StateView</c>; none restricts nothing.</param>
     /// <returns>The Scene template metadata.</returns>
     /// <remarks>
     /// A template that declares no <c language="csharp">scopes</c> may be used anywhere, which Scene expresses with no scope list
     /// at all. <c language="csharp">scopes none</c> is a restriction to nothing, an empty list, and is kept distinct from that.
     /// </remarks>
-    public static SceneScreens.TemplateMetadata Metadata(string? templateType, string? category, bool restrictsScopes, IEnumerable<string> scopes) =>
-        new(templateType, category, restrictsScopes ? [.. scopes.Where(scope => !string.Equals(scope, NoScope, StringComparison.Ordinal)).Select(Scope)] : null);
+    public static SceneScreens.TemplateMetadata Metadata(string? templateType, string? category, bool restrictsScopes, IEnumerable<string> scopes, IEnumerable<string>? sliceKinds = null)
+    {
+        var kinds = (sliceKinds ?? []).Select(SliceKind).ToList();
+        return new(templateType, category, restrictsScopes ? [.. scopes.Where(scope => !string.Equals(scope, NoScope, StringComparison.Ordinal)).Select(Scope)] : null)
+        {
+            SliceKinds = kinds.Count == 0 ? null : kinds
+        };
+    }
 
     /// <summary>
     /// Converts the content a template provides for its own slots.
@@ -142,4 +150,7 @@ public static class CompositionConverter
         "slice" => SceneScreens.TemplateScope.Slice,
         _ => throw new UnknownCompositionValue("template scope", scope),
     };
+
+    static SceneStructure.SliceKind SliceKind(string kind) =>
+        string.Equals(kind, "StateView", StringComparison.OrdinalIgnoreCase) ? SceneStructure.SliceKind.StateView : SceneStructure.SliceKind.StateChange;
 }

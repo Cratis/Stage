@@ -26,6 +26,11 @@ public sealed record BehaviorScope(
     public string? Subject { get; init; }
 
     /// <summary>
+    /// Gets the modules, features and slices of the application, which a toolbar button's slice reference resolves against.
+    /// </summary>
+    public Cratis.Scene.Model.Structure.ApplicationStructure? Structure { get; init; }
+
+    /// <summary>
     /// A scope for a document that declares nothing, used where behaviors are not being translated.
     /// </summary>
     public static BehaviorScope None => new(new Dictionary<string, ScreenplaySyntax.BehaviorSyntax>(StringComparer.Ordinal), []);
@@ -37,7 +42,7 @@ public sealed record BehaviorScope(
     /// <param name="findings">Where to report an unresolved <c language="csharp">uses</c>.</param>
     /// <returns>The <see cref="BehaviorScope"/>.</returns>
     public static BehaviorScope For(ScreenplaySyntax.ApplicationSyntax syntax, ICollection<RenderFinding> findings) =>
-        new(BehaviorAttachments.Declared(syntax.Behaviors), findings) { Enumerations = EnumerationsIn(syntax) };
+        new(BehaviorAttachments.Declared(syntax.Behaviors), findings) { Enumerations = EnumerationsIn(syntax), Structure = StructureConverter.Convert(syntax) };
 
     /// <summary>
     /// Gets the members of the enumeration a guard's subject field has, in declared order, which is the order the

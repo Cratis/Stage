@@ -11,30 +11,7 @@ internal static class named_value_command_cases
 {
     internal static ExecutableSemanticModel Compile()
     {
-        var slices = new List<string>();
-        foreach (var kind in new[] { "Equal", "NotEqual" })
-        {
-            foreach (var optional in new[] { false, true })
-            {
-                foreach (var message in new[] { "Default", "Error", "Warning", "Information" })
-                {
-                    var name = $"{kind}{(optional ? "Optional" : "Required")}{message}";
-                    var severity = message == "Default" ? string.Empty : $" severity {message.ToLowerInvariant()} message \"Authored {name}\"";
-                    var expected = message == "Default" ? $"A value must {(kind == "Equal" ? "equal" : "not equal")} 'inReview'." : $"Authored {name}";
-                    var valid = kind == "Equal" ? "inReview" : "draft";
-                    var invalid = kind == "Equal" ? "draft" : "inReview";
-                    var rule = $"value {(kind == "Equal" ? "==" : "!=")} \"inReview\"{severity}";
-                    slices.Add(Slice(name, optional ? "NumberedStatus optional" : "Status", $"validate\n          {rule}", valid, invalid, expected, optional));
-                }
-            }
-        }
-
-        slices.Add(Slice("RequirementEqual", "Status", "validate\n          require value == inReview", "inReview", "draft", "Command requirement was not met."));
-        slices.Add(Slice("RequirementNotEqual", "NumberedStatus", "validate\n          require value != \"draft\"\n            severity warning\n            message \"Not draft\"", "inReview", "draft", "Not draft"));
-        slices.Add(Slice("RequirementSameConcept", "Status", "validate\n          require value == other\n            severity information\n            message \"Same status\"", "inReview", "draft", "Same status"));
-        slices.Add(Slice("RequirementDifferentMember", "Status", "validate\n          require value != other\n            message \"Different status\"", "draft", "inReview", "Different status"));
-        slices.Add(Slice("RequirementAnd", "Status", "validate\n          require value == inReview and value != draft", "inReview", "draft", "Command requirement was not met."));
-        slices.Add(Slice("RequirementOr", "Status", "validate\n          require value == inReview or value != draft", "inReview", "draft", "Command requirement was not met."));
+        var slices = ValidationCases().Concat(RequirementCases()).Select(Slice);
         var source = "concept Status : Enum\n  draft\n  inReview\nconcept NumberedStatus : Enum\n  draft = -7\n  inReview = 42\nmodule Inputs\n  feature NamedValues\n" + string.Join('\n', slices);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("NamedValues"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("named-values"), "named-values", "NamedValues.play", source);
@@ -60,26 +37,67 @@ internal static class named_value_command_cases
         });
     }
 
-    static string Slice(string name, string type, string rules, string valid, string invalid, string message, bool optional = false)
+    static IEnumerable<CommandCase> ValidationCases() =>
+        from kind in new[] { "Equal", "NotEqual" }
+        from optional in new[] { false, true }
+        from message in new[] { "Default", "Error", "Warning", "Information" }
+        select ValidationCase(kind, optional, message);
+
+    static CommandCase ValidationCase(string kind, bool optional, string message)
     {
-        var specifications = new[] { "Valid", "Invalid" }.Concat(optional ? ["Absent"] : Array.Empty<string>()).Select(outcome => $$"""
-                  specification {{name}}{{outcome}}
-                    when Check{{name}}
+        var name = $"{kind}{(optional ? "Optional" : "Required")}{message}";
+        var severity = message == "Default" ? string.Empty : $" severity {message.ToLowerInvariant()} message \"Authored {name}\"";
+        var expected = message == "Default" ? $"A value must {(kind == "Equal" ? "equal" : "not equal")} 'inReview'." : $"Authored {name}";
+        var valid = kind == "Equal" ? "inReview" : "draft";
+        var invalid = kind == "Equal" ? "draft" : "inReview";
+        var rule = $"value {(kind == "Equal" ? "==" : "!=")} \"inReview\"{severity}";
+        return new(name, optional ? "NumberedStatus optional" : "Status", $"validate\n          {rule}")
+        {
+            Valid = valid,
+            Invalid = invalid,
+            Message = expected,
+            Optional = optional
+        };
+    }
+
+    static IEnumerable<CommandCase> RequirementCases() =>
+    [
+        new("RequirementEqual", "Status", "validate\n          require value == inReview"),
+        new("RequirementNotEqual", "NumberedStatus", "validate\n          require value != \"draft\"\n            severity warning\n            message \"Not draft\"") { Message = "Not draft" },
+        new("RequirementSameConcept", "Status", "validate\n          require value == other\n            severity information\n            message \"Same status\"") { Message = "Same status" },
+        new("RequirementDifferentMember", "Status", "validate\n          require value != other\n            message \"Different status\"") { Valid = "draft", Invalid = "inReview", Message = "Different status" },
+        new("RequirementAnd", "Status", "validate\n          require value == inReview and value != draft"),
+        new("RequirementOr", "Status", "validate\n          require value == inReview or value != draft")
+    ];
+
+    static string Slice(CommandCase vector)
+    {
+        var specifications = new[] { "Valid", "Invalid" }.Concat(vector.Optional ? ["Absent"] : Array.Empty<string>()).Select(outcome => $$"""
+                  specification {{vector.Name}}{{outcome}}
+                    when Check{{vector.Name}}
                       id = "one"
-                      value = "{{(outcome == "Invalid" ? invalid : valid)}}"
+                      value = "{{(outcome == "Invalid" ? vector.Invalid : vector.Valid)}}"
                       other = "inReview"
-                    {{(outcome == "Invalid" ? $"then error \"{message}\"" : "then returns \"one\"")}}
+                    {{(outcome == "Invalid" ? $"then error \"{vector.Message}\"" : "then returns \"one\"")}}
             """);
         return $$"""
-                slice StateChange {{name}}Input
-                  command Check{{name}}
+                slice StateChange {{vector.Name}}Input
+                  command Check{{vector.Name}}
                     id String
-                    value {{type}}
-                    other {{type.Replace(" optional", string.Empty, StringComparison.Ordinal)}}
-                    {{rules}}
+                    value {{vector.Type}}
+                    other {{vector.Type.Replace(" optional", string.Empty, StringComparison.Ordinal)}}
+                    {{vector.Rules}}
                     returns id
             {{string.Join('\n', specifications)}}
             """;
+    }
+
+    sealed record CommandCase(string Name, string Type, string Rules)
+    {
+        internal string Valid { get; init; } = "inReview";
+        internal string Invalid { get; init; } = "draft";
+        internal string Message { get; init; } = "Command requirement was not met.";
+        internal bool Optional { get; init; }
     }
 }
 #endif

@@ -97,7 +97,7 @@ internal static class SemanticVersionFeatures
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV19Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV20Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -419,9 +419,9 @@ internal static class SemanticVersionFeatures
                 {
                     yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' collides with its New factory.");
                 }
-                if (!concept.Validations.IsEmpty)
+                if (concept.Validations.Any(rule => rule.Severity != SemanticValidationSeverity.Error))
                 {
-                    yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' has validation rules; Arc reports a generation defect as an exception, not the evaluator's rejection.");
+                    yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' has a non-error severity rule; Arc logs warnings and information while the reference rejects every failing generated rule.");
                 }
             }
         }

@@ -282,7 +282,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 return new SemanticRejected(_world, SemanticRejectionCategory.Contract, null, $"Unknown command property '{unknown}'.");
             }
 
-            return result;
+            return SemanticGeneratedValues.ReportDefect(command, Plan.Model.Application, result);
         }
         catch (UnsupportedSemanticValue exception)
         {
@@ -315,7 +315,7 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 request = request with { GeneratedValues = SemanticGeneratedValues.For(command, plan.Model, request.Occurrence?.Occurred ?? occurrence.Occurred) };
             }
 
-            return evaluator.Execute(plan, world, request);
+            return SemanticGeneratedValues.ReportDefect(command, plan.Model.Application, evaluator.Execute(plan, world, request));
         }
     }
 }

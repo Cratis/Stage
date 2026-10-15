@@ -4,6 +4,8 @@
 using System.Collections.Immutable;
 using Cratis.Concepts;
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Semantics;
 
@@ -13,12 +15,11 @@ namespace Cratis.Stage.Semantics;
 internal static class SemanticGeneratedValues
 {
     internal static ImmutableArray<SemanticPropertyValue> For(SemanticCommand command, ExecutableSemanticModel model, DateTimeOffset now) =>
-        [.. command.Properties.Where(property => property.IsGenerated).Select(property => new SemanticPropertyValue(
-            property.Id, SemanticValue.Text(New(model.Application.Concepts.Single(concept => concept.Id == property.Type.Target), model.SemanticVersion, new GenerationContext(now, GenerationContext.DefaultTenant)))))];
+        [.. command.Properties.Where(property => property.IsGenerated).Select(property => Generate(property, model.Application, now))];
 
-    internal static string New(SemanticConcept concept, SemanticVersion version, GenerationContext context)
+    internal static string New(SemanticConcept concept, bool usesConceptGeneration, GenerationContext context)
     {
-        if (!version.IsAtLeast(SemanticVersion.V15)) return Guid.NewGuid().ToString();
+        if (!usesConceptGeneration) return Guid.NewGuid().ToString();
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
         var value = generation.Kind switch
         {
@@ -39,6 +40,30 @@ internal static class SemanticGeneratedValues
 
         return generation.Kind == "typeid" ? value : $"{generation.Prefix}{value}";
     }
+
+    internal static SemanticExecutionResult ReportDefect(SemanticCommand? command, SemanticApplication application, SemanticExecutionResult result)
+    {
+        // Only the evaluator can decide that execution reached generation, after authorization and input checks.
+        if (result is SemanticRejected { Category: SemanticRejectionCategory.Contract } rejected &&
+            command?.Properties.Any(property => property.IsGenerated && IsGeneratedFailure(property, application, rejected.Details)) == true)
+        {
+            throw new SemanticCommandExecutionFailed(rejected.Details);
+        }
+
+        return result;
+    }
+
+    static SemanticPropertyValue Generate(SemanticProperty property, SemanticApplication application, DateTimeOffset now)
+    {
+        var concept = application.Concepts.Single(concept => concept.Id == property.Type.Target);
+        var usesGeneration = SemanticGenerationShapes.UsesConceptGeneration(application);
+
+        return new(property.Id, SemanticValue.Text(New(concept, usesGeneration, new(now, GenerationContext.DefaultTenant))));
+    }
+
+    static bool IsGeneratedFailure(SemanticProperty property, SemanticApplication application, string message) =>
+        string.Equals(message, SemanticGenerationShapes.FixtureMessage(property.Name), StringComparison.Ordinal) ||
+        string.Equals(message, SemanticGenerationShapes.RuleMessage(property.Name, application.Concepts.Single(concept => concept.Id == property.Type.Target).Name), StringComparison.Ordinal);
 
     static ValueEncoding Encoding(string? encoding) => encoding switch
     {

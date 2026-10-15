@@ -33,8 +33,15 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.161.0, admits exact ESM v1–v19
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.170.0, admits exact ESM v1–v20
 version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
+At v20 it executes rules on generated concepts. A failing fixture is a contract rejection with
+`Generated fixture '<property>' fails concept '<Concept>' rules`, not the rule's authored input-validation message.
+Each supplied fixture is checked for shape and rules before the next fixture or a missing fixture.
+Non-error-severity generated rules retain `STAGE-ESM-038` because Arc logs those failures instead of rejecting them.
+Explicit concept generation, not the schema version, activates strategy shape checks and generated-source freshness;
+implicit-UUID-only models remain unguarded at later versions. A generated concept with rules still requires its fixture's canonical strategy shape.
+See [Generated values](../reference/generated-values-rendering.md#rules-on-generated-concepts) for rendering refusals and Host exception behavior.
 At v11 it executes retained exact Double-mode integer and fractional values without a second rounding
 step, including the safe whole-number bounds ±9007199254740991 and `0.10000000000000002`.
 This does not enable `numbers exact` or extend the source integer range.

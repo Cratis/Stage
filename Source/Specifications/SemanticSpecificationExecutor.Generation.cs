@@ -20,7 +20,12 @@ public sealed partial class SemanticSpecificationExecutor
                 return $"Command '{context.Command.Name}' generated values do not match its generated property shape.";
             }
             var concept = context.Plan.Model.Application.Concepts.Single(concept => concept.Id == property.Type.Target);
-            if (!SemanticGenerationShapes.Matches(concept, fixture.Value)) return SemanticGenerationShapes.FixtureMessage(property.Name);
+            if ((SemanticGenerationShapes.UsesConceptGeneration(context.Plan.Model.Application) || !concept.Validations.IsEmpty) &&
+                !SemanticGenerationShapes.Matches(concept, fixture.Value))
+            {
+                return SemanticGenerationShapes.FixtureMessage(property.Name);
+            }
+            if (SemanticRuleValues.GeneratedFailure(concept, property.Name, fixture.Value) is { } failure) return failure;
         }
 
         return null;
@@ -28,7 +33,7 @@ public sealed partial class SemanticSpecificationExecutor
 
     static bool ReusesGeneratedSource(SemanticRunContext context, IEnumerable<SemanticValue> destinations)
     {
-        if (!context.Plan.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15)) return false;
+        if (!SemanticGenerationShapes.UsesConceptGeneration(context.Plan.Model.Application)) return false;
         foreach (var fixture in context.Specification.When!.GeneratedValues)
         {
             var property = context.Command.Properties.Single(property => property.Id == fixture.TargetProperty);

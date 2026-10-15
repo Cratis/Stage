@@ -2,10 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
-using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Comparison;
 
 namespace Cratis.Stage.Specifications.Commands;
@@ -47,20 +45,6 @@ internal static class SemanticRuleEvaluation
         }
     }
 
-    internal static string? GeneratedFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
-    {
-        var values = specification.When!.GeneratedValues.ToDictionary(value => value.TargetProperty, value => value.Value);
-        var byId = concepts.ToDictionary(concept => concept.Id);
-        foreach (var property in command.Properties.Where(property => property.IsGenerated && values.ContainsKey(property.Id)))
-        {
-            foreach (var rule in byId[property.Type.Target].Validations)
-            {
-                if (!Satisfies(rule, values[property.Id])) return rule.Message ?? Message(rule, values[property.Id], "A required concept value is empty.");
-            }
-        }
-        return null;
-    }
-
     internal static bool Condition(SemanticCondition condition, IReadOnlyDictionary<SemanticId, SemanticValue> values) => condition switch
     {
         SemanticLogicalCondition { Operator: SemanticLogicalOperator.And } logical => Condition(logical.Left, values) && Condition(logical.Right, values),
@@ -69,24 +53,7 @@ internal static class SemanticRuleEvaluation
         _ => throw new UnsupportedSemanticMapping()
     };
 
-    internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => rule.Kind switch
-    {
-        SemanticValidationRuleKind.NotEmpty => !SemanticRunContext.Empty(value),
-        _ when value is SemanticNullValue => true,
-        SemanticValidationRuleKind.Maximum => Measure(value) <= Number(rule.Operand),
-        SemanticValidationRuleKind.Minimum => Measure(value) >= Number(rule.Operand),
-        SemanticValidationRuleKind.Equal => SemanticExpectationComparer.AreEqual(value, rule.Operand!),
-        SemanticValidationRuleKind.NotEqual => !SemanticExpectationComparer.AreEqual(value, rule.Operand!),
-        SemanticValidationRuleKind.GreaterThan => Measure(value) > Number(rule.Operand),
-        SemanticValidationRuleKind.GreaterThanOrEqual => Measure(value) >= Number(rule.Operand),
-        SemanticValidationRuleKind.LessThan => Measure(value) < Number(rule.Operand),
-        SemanticValidationRuleKind.LessThanOrEqual => Measure(value) <= Number(rule.Operand),
-        SemanticValidationRuleKind.Length => value is SemanticTextValue text && text.Value.Length == Number(rule.Operand),
-        SemanticValidationRuleKind.Matches => Matches(value, rule.Operand),
-        SemanticValidationRuleKind.AllGreaterThan => value is SemanticArrayValue array && array.Values.All(element => Measure(element) > Number(rule.Operand)),
-        SemanticValidationRuleKind.AllGreaterThanOrEqual => value is SemanticArrayValue array && array.Values.All(element => Measure(element) >= Number(rule.Operand)),
-        _ => throw new UnsupportedSemanticMapping()
-    };
+    internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => SemanticRuleValues.Satisfies(rule, value, () => new UnsupportedSemanticMapping());
 
     internal static string Message(SemanticValidationRule rule, SemanticValue value, string empty) => rule.Kind switch
     {
@@ -126,28 +93,6 @@ internal static class SemanticRuleEvaluation
             _ => throw new UnsupportedSemanticMapping()
         };
     }
-
-    static bool Matches(SemanticValue value, SemanticValue? operand)
-    {
-        if (value is not SemanticTextValue text || operand is not SemanticTextValue pattern) throw new UnsupportedSemanticMapping();
-        try
-        {
-            return Regex.IsMatch(text.Value, SemanticMatchAnchors.Portable(pattern.Value), RegexOptions.ECMAScript | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
-        }
-        catch (RegexMatchTimeoutException)
-        {
-            return false;
-        }
-    }
-
-    static decimal Measure(SemanticValue value) => value switch
-    {
-        SemanticTextValue text => text.Value.Length,
-        SemanticNumberValue number => number.Value,
-        _ => throw new UnsupportedSemanticMapping()
-    };
-
-    static decimal Number(SemanticValue? value) => value is SemanticNumberValue number ? number.Value : throw new UnsupportedSemanticMapping();
 
     static string Format(SemanticValue? value) => value switch
     {

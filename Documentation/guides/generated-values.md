@@ -262,7 +262,7 @@ The proxy comes from the build, not from the plan: Arc's proxy generator writes 
 When a client sends `RegisterCustomer`, this is what the rendered application does, in order. Each step names the code that decides it. Arc draws a fresh value on every execution of the command. Screenplay's contract is that generation follows authorization and validation, so a generated value cannot appear in either.
 
 1. **Arc captures the receipt time.** At the dispatch boundary Arc reads the configured `TimeProvider` (UTC now) and keeps it for that dispatch.
-2. **Arc resolves the generated parameter.** For a time-ordered concept it builds a `GenerationContext` from the receipt time and the current tenant and calls `New(context)`. For other concepts it calls `New()`. With no receipt time, generation fails with `MissingGenerationTime`; there is no wall-clock fallback in the rendered application.
+2. **Arc resolves and validates the generated parameter.** For a time-ordered concept it builds a `GenerationContext` from the receipt time and the current tenant and calls `New(context)`. For other concepts it calls `New()`. It validates the result or pin through the concept's validator before calling `Handle`. With no receipt time, generation fails with `MissingGenerationTime`; there is no wall-clock fallback in the rendered application.
 3. **`Handle` runs** and returns the response with the events and scopes.
 4. **Chronicle checks the scopes, then appends.** A `BeforeFirst` scope on a source means the source must hold no events. Chronicle checks every scope in a batch once, against the state before the batch, so a command may append several first facts to one fresh source. One violated scope rejects the whole batch and appends nothing.
 5. **A renumbered retry is checked again.** When a storage append loses a sequence-number race, Chronicle renumbers the batch and validates the scopes again before retrying. It has done so since Chronicle 19.40.1; the pinned client is 19.59.6.
@@ -426,6 +426,25 @@ The last fact checks the receipt-time prefix:
 
 `cus_01kdyak3se` is the ULID time prefix for `2026-01-02T03:04:05.678Z`. The random remainder stays unpinned.
 
+## Add rules to a generated concept
+
+You can put ordinary validation rules on a generated concept from ESM v20. For example, the canonical generated-concept rules corpus adds this rule to the same customer-id strategy:
+
+```screenplay
+concept CustomerId : String
+  generate ulid prefix "cus_" case lower
+  validate
+    matches "^cus_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+```
+
+Stage emits both the factory and a `ConceptValidator<CustomerId>`. Arc checks a factory result or pinned value against that validator before `Handle` runs. A failing rule means generation is defective: it produces a server exception with no input validation results and no appended events. The semantic Host does the same, but only when execution reaches generation after authorization and ordinary input validation. Screenplay's reference and the independent specification executor express the defect as `Rejected(Contract)`.
+
+Pin every rule-bearing generated value in a rendered specification, even for this provable rule. Stage cannot see the compiler's proof status in ESM, so it refuses an unpinned specification with `STAGE-ESM-038` instead of allowing a random failure. A pin failing the strategy shape or rules fails `STAGE-ESM-011`; it is not rendered as a normal validation-error assertion. The command and concept remain renderable without that specification.
+
+Use error severity on generated concept rules. Stage refuses warning and information severity with `STAGE-ESM-038`, since Arc logs those failures while the reference rejects them. A compiler warning that a rule is *unproven* (`PLAY0689`) is different: pin a valid value to make its rendered specification deterministic. A refuted rule (`PLAY0688`) must be corrected before rendering.
+
+Freshness follows feature use, not the schema version. Adding rules to an implicit UUID concept selects v20 but does not enable freshness by itself. A model with no explicit concept strategy remains unguarded, even when another feature selects v16 or later.
+
 ## Keep the secret out of the identity
 
 `ApiKey` is a `secret` concept, and the model treats it differently from everything above. The identity is a separate `ApiKeyId`, and the key itself is a value on the event:
@@ -509,7 +528,7 @@ module Storefront
 ```
 
 ```text title="Output"
-Error PLAY0268: Generated concepts with compliance markers or validation rules are not admitted in #616 phase 2b-1. [refused.play(3,3)]
+Error PLAY0268: Generated concepts with compliance markers are not admitted until #616 phase 4. [refused.play(3,3)]
 Error STAGE-PLAN-003: Screenplay compilation failed. []
 Success=False artifacts=0 scaffold=40
 ```

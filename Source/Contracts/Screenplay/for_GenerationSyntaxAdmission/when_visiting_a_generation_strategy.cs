@@ -27,6 +27,18 @@ public class when_visiting_a_generation_strategy : Specification
         Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(parsed.Value!)).ShouldBeOfExactType<UnsupportedGenerationStrategy>();
     }
 
+    [Theory]
+    [InlineData("generated", true)]
+    [InlineData("", false)]
+    public void should_refuse_rules_only_for_a_generated_property(string modifier, bool refused)
+    {
+        var parsed = new ScreenplayCompiler().Parse($"concept Identity : Uuid\n  validate\n    not empty\nmodule Work\n  feature Creation\n    slice StateChange Start\n      command Create\n        id Identity {modifier}\n        returns id");
+        parsed.Success.ShouldBeTrue();
+        var error = Catch.Exception(() => new GenerationSyntaxAdmission().VisitApplication(parsed.Value!));
+        if (refused) error.ShouldBeOfExactType<UnsupportedGenerationStrategy>();
+        else error.ShouldBeNull();
+    }
+
     [Fact]
     public void should_keep_implicit_uuid_legacy_behavior()
     {

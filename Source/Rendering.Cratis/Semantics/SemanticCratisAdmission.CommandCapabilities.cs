@@ -181,11 +181,6 @@ internal static partial class SemanticCratisAdmission
                 diagnostics.Add(CommandCapability(command, $"optional property '{property.Name}' uses validated concept '{context.Concepts[property.Type.Target].Name}'; {reason}. Make the property non-optional only if absence is not part of the contract, or keep this shape unsupported (Cratis/Stage#409)."));
             }
 
-            if (property.Type is { Kind: SemanticTypeReferenceKind.CompositeType, IsOptional: true } && HasValidatedConcept(context, property.Type, []))
-            {
-                diagnostics.Add(CommandCapability(command, $"optional composite property '{property.Name}' contains validated concepts; optional composites remain unsupported until nested concept validation parity is verified (Cratis/Stage#409)."));
-            }
-
             if (property.Type.Kind == SemanticTypeReferenceKind.CompositeType && HasOptionalRequiredConcept(context, property.Type, []))
             {
                 var nested = string.Join(", ", OptionalValidatedConceptProperties(context, property.Type, property.Name, []));

@@ -11,6 +11,5 @@ public class with_an_optional_composite_with_null_passing_concepts : given.a_com
     void Establish() => SetModel(("concept Display : String\n  validate\n    length == 3\ntype Details\n  display Display\n" + Source).Replace("        produces InvoiceIssued", "        details Details optional\n        produces InvoiceIssued", StringComparison.Ordinal));
     void Because() => Evaluate();
 
-    [Fact] void should_refuse_optional_composites_until_nested_parity_is_verified() => Messages.ShouldContainOnly(["Command 'IssueInvoice' optional composite property 'details' contains validated concepts; optional composites remain unsupported until nested concept validation parity is verified (Cratis/Stage#409)."]);
-    [Fact] void should_keep_the_code() => _diagnostics.Single().Code.ShouldEqual("STAGE-ESM-005");
+    [Fact] void should_keep_admitting_optional_composites_with_required_validated_concepts() => _diagnostics.ShouldBeEmpty();
 }

@@ -8,5 +8,6 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 /// </summary>
 /// <param name="line">The one-based line number.</param>
 /// <param name="reason">Why the line cannot be read.</param>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "Only the internal import resolver reads the catalog; it is not a public API.")]
 internal sealed class MalformedFrameworkNameCatalog(int line, string reason)
     : Exception($"The framework name catalog is malformed at line {line}: {reason}");

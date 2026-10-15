@@ -18,6 +18,9 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     ProcessResult _debugBuild = null!;
     ProcessResult _debugTest = null!;
     ProcessResult _releaseBuild = null!;
+    ProcessResult _specCompile = null!;
+    ProcessResult _webCompile = null!;
+    string[] _specSources = null!;
     bool _dockerAvailable;
     string _dockerEvidence = null!;
     string _healthEvidence = null!;
@@ -32,6 +35,8 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
             throw new InvalidOperationException(string.Join(Environment.NewLine, plan.Diagnostics.Select(_ => $"{_.Code}: {_.Message}")));
         }
 
+        _specSources = [.. plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) &&
+            Text(artifact).StartsWith("#if DEBUG", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath)];
         foreach (var artifact in plan.Artifacts)
         {
             var path = Path.Combine(_application.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -42,11 +47,13 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
 
     async Task Because()
     {
-        _debugBuild = await Run("dotnet", "build", "Projects.csproj", "-c", "Debug", "--nologo");
+        _debugBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Debug", "--nologo");
         _debugTest = _debugBuild.ExitCode == 0
-            ? await Run("dotnet", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--nologo")
+            ? await Run("dotnet", "test", "Projects.Specs/Projects.Specs.csproj", "-c", "Debug", "--no-build", "--nologo", "--logger", "trx;LogFileName=generated.trx", "--results-directory", _application.FullName)
             : new(-1, "Debug tests were not run because the Debug build failed.");
-        _releaseBuild = await Run("dotnet", "build", "Projects.csproj", "-c", "Release", "--nologo");
+        _specCompile = await Run("dotnet", "msbuild", "Projects.Specs/Projects.Specs.csproj", "-getItem:Compile");
+        _webCompile = await Run("dotnet", "msbuild", "Projects.csproj", "-getItem:Compile");
+        _releaseBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Release", "--nologo");
 
         var docker = await Run("docker", "version", "--format", "{{.Server.Version}}");
         _dockerAvailable = docker.ExitCode == 0;
@@ -80,12 +87,35 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         }
     }
 
-    [Fact] void should_build_the_debug_host_and_inline_generated_specifications_without_warnings() => FailureOutput(_debugBuild).ShouldEqual(string.Empty);
-    [Fact] void should_run_the_inline_generated_specifications() => _debugTest.ExitCode.ShouldEqual(0);
+    [Fact] void should_build_the_debug_host_and_separate_generated_specifications_without_warnings() => FailureOutput(_debugBuild).ShouldEqual(string.Empty);
+    [Fact] void should_run_the_generated_specifications_from_the_specs_project() => _debugTest.ExitCode.ShouldEqual(0);
+    [Fact] void should_execute_a_nonempty_set_of_generated_specifications() => ExecutedSpecifications().ShouldBeGreaterThan(0);
+    [Fact] void should_compile_every_generated_specification_in_the_specs_project() => CompileSources(_specCompile).Where(source => !IsPackageGlobalUsings(source)).ShouldContainOnly(_specSources);
+    [Fact] void should_compile_no_generated_specifications_in_the_web_host() => CompileSources(_webCompile).Intersect(_specSources).ShouldBeEmpty();
+    [Fact] void should_cover_a_nonempty_set_of_emitted_specification_files() => _specSources.ShouldNotBeEmpty();
     [Fact] void should_build_the_release_host_without_warnings() => FailureOutput(_releaseBuild).ShouldEqual(string.Empty);
     [Fact] void should_record_docker_availability_explicitly() => _dockerEvidence.ShouldNotBeEmpty();
     [Fact] void should_pass_health_when_docker_is_available() => (_dockerAvailable ? _healthEvidence : _dockerEvidence).ShouldEqual(_dockerAvailable ? "GET /healthz returned 200." : _dockerEvidence);
     [Fact] void should_serve_a_read_model_query_immediately_after_the_first_healthy_response_when_docker_is_available() => (_dockerAvailable ? _firstQueryStatus : HttpStatusCode.OK).ShouldEqual(HttpStatusCode.OK);
+
+    // The Cratis package also contributes its own GlobalUsings.cs outside the application root.
+    static bool IsPackageGlobalUsings(string source) => source.StartsWith("../", StringComparison.Ordinal) &&
+        source.EndsWith($"/cratis/{CratisRendering.Dependencies.CratisPackageVersion}/contentFiles/cs/any/GlobalUsings.cs", StringComparison.Ordinal);
+
+    string[] CompileSources(ProcessResult result)
+    {
+        result.ExitCode.ShouldEqual(0);
+        using var document = System.Text.Json.JsonDocument.Parse(result.Output);
+        return [.. document.RootElement.GetProperty("Items").GetProperty("Compile").EnumerateArray()
+            .Select(item => Path.GetRelativePath(_application.FullName, item.GetProperty("FullPath").GetString()!).Replace('\\', '/'))];
+    }
+
+    int ExecutedSpecifications()
+    {
+        var results = System.Xml.Linq.XDocument.Load(Path.Combine(_application.FullName, "generated.trx"));
+        var counters = results.Descendants().Single(element => element.Name.LocalName == "Counters");
+        return int.Parse(counters.Attribute("executed")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
 
     async Task<string> VerifyHealth()
     {

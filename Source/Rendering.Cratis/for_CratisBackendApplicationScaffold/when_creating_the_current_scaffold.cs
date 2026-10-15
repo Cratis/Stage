@@ -16,13 +16,16 @@ public class when_creating_the_current_scaffold : a_current_scaffold
 {
     static readonly string[] _expectedPaths =
     [
+        ".editorconfig",
         "Directory.Build.props",
         "Directory.Build.targets",
         "Directory.Packages.props",
         "GeneratedPolicyRegistration.cs",
+        "MyApp.Specs/MyApp.Specs.csproj",
         "MyApp.csproj",
         "MyApp.slnx",
         "Program.cs",
+        "README.md",
         "appsettings.json",
         "docker-compose.yml"
     ];
@@ -35,17 +38,25 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_encode_every_input_as_strict_utf8_without_a_byte_order_mark() => _first.All(IsUtf8WithoutByteOrderMark).ShouldBeTrue();
     [Fact] void should_normalize_every_input_to_line_feeds() => _first.All(input => !input.Bytes.Contains((byte)'\r')).ShouldBeTrue();
     [Fact] void should_end_every_input_with_exactly_one_line_feed_byte() => _first.All(EndsWithExactlyOneLineFeed).ShouldBeTrue();
-    [Fact] void should_stop_inheriting_parent_build_properties() => Content("Directory.Build.props").ShouldEqual("<Project />\n");
+    [Fact] void should_stop_inheriting_parent_build_properties() => Content("Directory.Build.props").ShouldNotContain("<Import");
+    [Fact] void should_configure_the_shared_build_policy() => BuildProperties().ShouldEqual("net10.0|latest|enable|enable|true|true");
     [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");
-    [Fact] void should_disable_inherited_central_package_management() => DirectoryPackagesPropsDisablesCentralPackageManagement().ShouldBeTrue();
+    [Fact] void should_enable_isolated_central_package_management_and_transitive_pins() => CentralPackageManagement().ShouldBeTrue();
+    [Fact] void should_leave_all_package_references_unversioned() => UnversionedReferences().ShouldBeTrue();
     [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("2|net10.0|22.95.0|22.95.0|22.95.0|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.64.1");
     [Fact] void should_expose_only_the_verified_current_profile_as_public_static_surface() => PublicStaticProfileMethods().ShouldContainOnly("get_Current");
-    [Fact] void should_emit_the_solution_without_a_guid() => SolutionSemantics().ShouldEqual("MyApp.csproj|False");
+    [Fact] void should_emit_the_solution_without_a_guid() => SolutionSemantics().ShouldEqual("MyApp.csproj|MyApp.Specs/MyApp.Specs.csproj|False");
     [Fact] void should_emit_only_the_exact_package_versions() => PackageVersions().ShouldEqual(ExpectedPackageVersions());
-    [Fact] void should_keep_all_specification_packages_in_the_debug_item_group() => TestingPackagesAreDebugOnly().ShouldBeTrue();
+    [Fact] void should_move_all_specification_packages_into_the_specs_project() => TestingPackagesAreSeparate().ShouldBeTrue();
     [Fact] void should_keep_the_host_active_in_debug() => Content("Program.cs").ShouldNotContain("#if");
-    [Fact] void should_disable_reverse_extraction_of_the_authoritative_source_model() => XDocument.Parse(Content("MyApp.csproj")).Root!.Element("PropertyGroup")!.Element("CratisEmbeddedScreenplayEnabled")!.Value.ShouldEqual("false");
-    [Fact] void should_suppress_the_debug_test_entry_point_warning_locally() => Content("MyApp.csproj").ShouldContain("<NoWarn Condition=\"'$(Configuration)' == 'Debug'\">$(NoWarn);CS7022</NoWarn>");
+    [Fact] void should_disable_reverse_extraction_of_the_authoritative_source_model_in_every_project() => XDocument.Parse(Content("Directory.Build.props")).Root!.Element("PropertyGroup")!.Element("CratisEmbeddedScreenplayEnabled")!.Value.ShouldEqual("false");
+    [Fact] void should_not_duplicate_the_shared_extraction_setting_in_the_host() => Content("MyApp.csproj").ShouldNotContain("CratisEmbeddedScreenplayEnabled");
+    [Fact] void should_not_suppress_the_test_entry_point_warning() => Content("MyApp.csproj").ShouldNotContain("NoWarn");
+    [Fact] void should_not_mark_the_web_host_as_a_test_project() => Content("MyApp.csproj").ShouldNotContain("IsTestProject");
+    [Fact] void should_isolate_editor_configuration_from_parent_rules() => Content(".editorconfig").ShouldContain("root = true");
+    [Fact] void should_describe_running_the_specs_project() => Content("README.md").ShouldContain("dotnet test MyApp.Specs -c Debug");
+    [Fact] void should_describe_the_actual_frontend_dev_script() => Content("README.md").ShouldContain("yarn dev");
+    [Fact] void should_document_scaffold_ownership() => Content("README.md").ShouldContain("Scaffold files belong to you after first run");
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");
     [Fact] void should_activate_cratis_and_the_health_endpoint_before_running() => ProgramSemantics().ShouldEqual("True|True|True");
     [Fact] void should_emit_the_exact_arc_chronicle_and_mongodb_settings() => AppSettingsSemantics().ShouldEqual("api|False|1|MyApp|chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000|mongodb://localhost:27017|MyApp");
@@ -75,25 +86,37 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         _profile.XunitRunnerVisualStudioPackageVersion,
         _profile.ChronicleImageVersion);
 
-    bool DirectoryPackagesPropsDisablesCentralPackageManagement()
+    string BuildProperties()
+    {
+        var props = XDocument.Parse(Content("Directory.Build.props")).Root!.Element("PropertyGroup")!;
+        return string.Join('|', new[] { "TargetFramework", "LangVersion", "Nullable", "ImplicitUsings", "TreatWarningsAsErrors", "EnforceCodeStyleInBuild" }.Select(name => props.Element(name)!.Value));
+    }
+
+    bool CentralPackageManagement()
     {
         var props = XDocument.Parse(Content("Directory.Packages.props"));
-        return props.Root!.Element("PropertyGroup")!.Element("ManagePackageVersionsCentrally")!.Value == "false";
+        return props.Descendants("ManagePackageVersionsCentrally").Single().Value == "true" &&
+               props.Descendants("CentralPackageTransitivePinningEnabled").Single().Value == "true" &&
+               !props.Descendants("Import").Any();
     }
+
+    bool UnversionedReferences() => _first.Where(input => PathOf(input).EndsWith(".csproj", StringComparison.Ordinal))
+        .SelectMany(input => XDocument.Parse(Text(input)).Descendants("PackageReference"))
+        .All(reference => reference.Attribute("Version") is null && reference.Element("Version") is null);
 
     string SolutionSemantics()
     {
         var solution = XDocument.Parse(Content("MyApp.slnx"));
-        var project = solution.Root!.Element("Project")!;
-        return $"{project.Attribute("Path")!.Value}|{solution.ToString().Contains("Guid", StringComparison.OrdinalIgnoreCase)}";
+        var paths = string.Join('|', solution.Root!.Elements("Project").Select(project => project.Attribute("Path")!.Value));
+        return $"{paths}|{solution.ToString().Contains("Guid", StringComparison.OrdinalIgnoreCase)}";
     }
 
     string PackageVersions()
     {
-        var project = XDocument.Parse(Content("MyApp.csproj"));
+        var project = XDocument.Parse(Content("Directory.Packages.props"));
         return string.Join(
             '|',
-            project.Descendants("PackageReference")
+            project.Descendants("PackageVersion")
                 .Select(reference => $"{reference.Attribute("Include")!.Value}={reference.Attribute("Version")!.Value}")
                 .Order(StringComparer.Ordinal));
     }
@@ -116,12 +139,12 @@ public class when_creating_the_current_scaffold : a_current_scaffold
             "xunit.runner.visualstudio=4.0.0"
         }.Order(StringComparer.Ordinal));
 
-    bool TestingPackagesAreDebugOnly()
+    bool TestingPackagesAreSeparate()
     {
-        var project = XDocument.Parse(Content("MyApp.csproj"));
-        var testing = project.Descendants("ItemGroup").Single(group => group.Attribute("Condition") is not null);
-        return testing.Attribute("Condition")!.Value == "'$(Configuration)' == 'Debug'" &&
-               testing.Elements("PackageReference").Select(reference => reference.Attribute("Include")!.Value).Order(StringComparer.Ordinal).SequenceEqual(
+        var project = XDocument.Parse(Content("MyApp.Specs/MyApp.Specs.csproj"));
+        return project.Descendants("IsTestProject").Single().Value == "true" &&
+               !project.Descendants("ItemGroup").Any(group => group.Attribute("Condition") is not null) &&
+               project.Descendants("PackageReference").Select(reference => reference.Attribute("Include")!.Value).Order(StringComparer.Ordinal).SequenceEqual(
                    new[]
                    {
                        "Cratis.Arc.Chronicle.Testing",
@@ -174,8 +197,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     {
         var content = string.Join('\n', _first.Select(Text));
         var tokens = content.Split([' ', '\t', '\r', '\n', '"', '\'', '<', '>', '=', '/', ':', ';', '(', ')'], StringSplitOptions.RemoveEmptyEntries);
-        return content.Contains('*') ||
-               content.Contains("latest", StringComparison.OrdinalIgnoreCase) ||
+        return content.Contains("Version=\"*", StringComparison.Ordinal) ||
+               content.Contains("Version=\"latest", StringComparison.OrdinalIgnoreCase) ||
                content.Contains("Version=\"[", StringComparison.Ordinal) ||
                tokens.Any(token => Guid.TryParse(token, out _));
     }

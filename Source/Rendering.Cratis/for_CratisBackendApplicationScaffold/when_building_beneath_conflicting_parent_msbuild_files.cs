@@ -49,16 +49,16 @@ public class when_building_beneath_conflicting_parent_msbuild_files : Specificat
 
         foreach (var input in new CratisBackendApplicationScaffold().Create(CratisBackendApplicationScaffoldRequest.Create("SmokeApp")))
         {
-            File.WriteAllBytes(
-                Path.Combine(_application.FullName, input.Name["cratis-scaffold:text:".Length..]),
-                [.. input.Bytes]);
+            var path = Path.Combine(_application.FullName, input.Name["cratis-scaffold:text:".Length..]);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, [.. input.Bytes]);
         }
     }
 
     async Task Because()
     {
-        _debug = await Run("test", "SmokeApp.csproj", "-c", "Debug", "--nologo");
-        _release = await Run("build", "SmokeApp.csproj", "-c", "Release", "--nologo");
+        _debug = await Run("test", "SmokeApp.Specs/SmokeApp.Specs.csproj", "-c", "Debug", "--nologo");
+        _release = await Run("build", "SmokeApp.slnx", "-c", "Release", "--nologo");
     }
 
     void Destroy()

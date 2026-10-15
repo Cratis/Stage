@@ -9,13 +9,13 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// <summary>
 /// Creates the deterministic in-memory inputs for a first-run Cratis backend application.
 /// </summary>
-public sealed class CratisBackendApplicationScaffold
+public sealed partial class CratisBackendApplicationScaffold
 {
     /// <summary>
     /// Creates the complete backend application scaffold without writing to a file system.
     /// </summary>
     /// <param name="request">The validated scaffold request.</param>
-    /// <returns>Nine normalized UTF-8 text inputs in ordinal relative-path order.</returns>
+    /// <returns>Normalized UTF-8 text inputs in ordinal relative-path order.</returns>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the request is missing.</exception>
     public ImmutableArray<ArtifactRenderInput> Create(CratisBackendApplicationScaffoldRequest request)
     {
@@ -27,10 +27,13 @@ public sealed class CratisBackendApplicationScaffold
         var profile = request.Profile;
         var artifacts = new (string RelativePath, string Content)[]
         {
-            ("Directory.Build.props", DirectoryBuildProps()),
+            (".editorconfig", EditorConfig()),
+            ("Directory.Build.props", DirectoryBuildProps(profile)),
             ("Directory.Build.targets", DirectoryBuildTargets()),
-            ("Directory.Packages.props", DirectoryPackagesProps()),
+            ("Directory.Packages.props", DirectoryPackagesProps(profile)),
             ($"{request.ProjectName}.csproj", Project(request)),
+            ($"{request.ProjectName}.Specs/{request.ProjectName}.Specs.csproj", SpecificationsProject(request)),
+            ("README.md", Readme(request)),
             ($"{request.ProjectName}.slnx", Solution(request)),
             ("Program.cs", Program(request)),
             ("GeneratedPolicyRegistration.cs", PolicyRegistration(request)),
@@ -50,81 +53,6 @@ public sealed class CratisBackendApplicationScaffold
     {
         var withSingleTrailingLineFeed = $"{content.TrimEnd('\r', '\n')}\n";
         return CratisArtifactRenderInput.CreateText(relativePath, version, withSingleTrailingLineFeed);
-    }
-
-    static string DirectoryBuildProps() =>
-        """
-        <Project />
-        """;
-
-    static string DirectoryBuildTargets() =>
-        """
-        <Project />
-        """;
-
-    static string DirectoryPackagesProps() =>
-        """
-        <Project>
-          <PropertyGroup>
-            <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-          </PropertyGroup>
-        </Project>
-        """;
-
-    static string Solution(CratisBackendApplicationScaffoldRequest request) =>
-        $$"""
-        <Solution>
-          <Project Path="{{request.ProjectName}}.csproj" />
-        </Solution>
-        """;
-
-    static string Project(CratisBackendApplicationScaffoldRequest request)
-    {
-        var profile = request.Profile;
-        return $$"""
-        <Project Sdk="Microsoft.NET.Sdk.Web">
-          <PropertyGroup>
-            <TargetFramework>{{profile.TargetFramework}}</TargetFramework>
-            <RootNamespace>{{request.RootNamespace}}</RootNamespace>
-            <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>
-            <IsPackable>false</IsPackable>
-            <!-- The source .play model is authoritative, so reverse code-to-model extraction is redundant. -->
-            <CratisEmbeddedScreenplayEnabled>false</CratisEmbeddedScreenplayEnabled>
-            <IsTestProject Condition="'$(Configuration)' == 'Debug'">true</IsTestProject>
-            <NoWarn Condition="'$(Configuration)' == 'Debug'">$(NoWarn);CS7022</NoWarn>
-            <CratisProxiesOutputPath>$(MSBuildThisFileDirectory)</CratisProxiesOutputPath>
-            <CratisProxiesSegmentsToSkip>1</CratisProxiesSegmentsToSkip>
-            <CratisProxiesSkipOutputDeletion>true</CratisProxiesSkipOutputDeletion>
-            <CratisProxiesSkipCommandNameInRoute>true</CratisProxiesSkipCommandNameInRoute>
-            <CratisProxiesUseSourceFileAsOutputFile>true</CratisProxiesUseSourceFileAsOutputFile>
-          </PropertyGroup>
-          <ItemGroup>
-            <Content Remove="package.json" />
-            <None Remove="package.json" />
-          </ItemGroup>
-          <ItemGroup>
-            <PackageReference Include="Cratis" Version="{{profile.CratisPackageVersion}}" />
-            <PackageReference Include="Cratis.Arc.MongoDB" Version="{{profile.CratisArcMongoDBPackageVersion}}" />
-            <PackageReference Include="Cratis.Chronicle" Version="{{profile.CratisChroniclePackageVersion}}" />
-            <PackageReference Include="Cratis.Chronicle.AspNetCore" Version="{{profile.CratisChroniclePackageVersion}}" />
-          </ItemGroup>
-          <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-            <PackageReference Include="Cratis.Arc.Chronicle.Testing" Version="{{profile.CratisArcChronicleTestingPackageVersion}}" />
-            <PackageReference Include="Cratis.Chronicle.Testing" Version="{{profile.CratisChroniclePackageVersion}}" />
-            <PackageReference Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
-            <PackageReference Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
-            <PackageReference Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />
-            <PackageReference Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />
-            <PackageReference Include="xunit" Version="{{profile.XunitPackageVersion}}" />
-            <PackageReference Include="xunit.runner.visualstudio" Version="{{profile.XunitRunnerVisualStudioPackageVersion}}">
-              <PrivateAssets>all</PrivateAssets>
-              <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            </PackageReference>
-          </ItemGroup>
-          <Import Project="Customizations/Dependencies.props" Condition="Exists('Customizations/Dependencies.props')" />
-        </Project>
-        """;
     }
 
     static string Program(CratisBackendApplicationScaffoldRequest request) =>

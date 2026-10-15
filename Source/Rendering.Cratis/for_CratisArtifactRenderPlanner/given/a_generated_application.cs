@@ -69,14 +69,20 @@ public class a_generated_application : a_register_project_render_request
 
     protected string ReadGeneratedFile(string relativePath) => File.ReadAllText(Path.Combine(_application!.FullName, relativePath));
 
-    protected void AddGeneratedSpecification(string name, string content) =>
-        File.WriteAllText(Path.Combine(_application!.FullName, name), content);
+    protected void AddGeneratedSpecification(string name, string content)
+    {
+        var project = Directory.GetFiles(_application!.FullName, "*.csproj").Single();
+        var path = Path.Combine(_application.FullName, $"{Path.GetFileNameWithoutExtension(project)}.Specs", name);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, content);
+    }
 
     protected Task<string> Run(string logName, params string[] arguments) => Run(logName, false, arguments);
 
     // A parity vector with an intentionally wrong expectation must still yield a complete TRX result.
     protected async Task<string> Run(string logName, bool allowFailedTests, params string[] arguments)
     {
+        arguments = SpecificationsArguments(arguments);
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = _application!.FullName,
@@ -130,6 +136,23 @@ public class a_generated_application : a_register_project_render_request
         }
 
         return output;
+    }
+
+    // Callers name the host they rendered; scaffold verification now builds both projects and tests only specs.
+    static string[] SpecificationsArguments(string[] arguments)
+    {
+        if (arguments.Length < 2 || !arguments[1].EndsWith(".csproj", StringComparison.Ordinal))
+        {
+            return arguments;
+        }
+
+        var project = arguments[1][..^".csproj".Length];
+        return arguments[0] switch
+        {
+            "build" => [arguments[0], $"{project}.slnx", .. arguments.Skip(2)],
+            "test" => [arguments[0], $"{project}.Specs/{project}.Specs.csproj", .. arguments.Skip(2)],
+            _ => arguments
+        };
     }
 
     static async Task<(string Text, bool Truncated)> ReadOutput(StreamReader reader)

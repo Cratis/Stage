@@ -80,6 +80,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <CratisProxiesUseSourceFileAsOutputFile>true</CratisProxiesUseSourceFileAsOutputFile>
           </PropertyGroup>
           <ItemGroup>
+            <InternalsVisibleTo Include="{{request.ProjectName}}.Specs" />
             <Compile Remove="{{SpecificationGlob}};{{request.ProjectName}}.Specs/**" />
             <Content Remove="package.json;{{request.ProjectName}}.Specs/**" />
             <None Remove="package.json;{{request.ProjectName}}.Specs/**" />

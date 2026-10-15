@@ -21,6 +21,7 @@ public class when_separating_generated_specifications : a_current_scaffold
 
     [Fact] void should_use_the_plain_sdk_for_specifications() => _specs.Root!.Attribute("Sdk")!.Value.ShouldEqual("Microsoft.NET.Sdk");
     [Fact] void should_reference_the_host() => _specs.Descendants("ProjectReference").Single().Attribute("Include")!.Value.ShouldEqual("../MyApp.csproj");
+    [Fact] void should_let_the_specifications_assembly_reach_internal_host_types() => _web.Descendants("InternalsVisibleTo").Single().Attribute("Include")!.Value.ShouldEqual("MyApp.Specs");
     [Fact] void should_link_all_emitted_specification_file_shapes_without_moving_them() => _specs.Descendants("Compile").Single().Attribute("Include")!.Value.ShouldEqual("../**/when_*.cs");
     [Fact] void should_keep_linked_paths_readable() => _specs.Descendants("Compile").Single().Attribute("Link")!.Value.ShouldEqual("%(RecursiveDir)%(Filename)%(Extension)");
     [Fact] void should_not_link_nested_project_or_build_outputs_twice() => _specs.Descendants("Compile").Single().Attribute("Exclude")!.Value.ShouldEqual("../MyApp.Specs/**;../**/bin/**;../**/obj/**;../node_modules/**");

@@ -68,9 +68,17 @@ Stage admits exact ESM v1–v21 language/semantic pairs. Version admission does 
 | --- | --- |
 | v15 | UUID, UUID-v7, ULID, TypeID, NanoID and bytes factories |
 | v20 | Rules on generated concepts; unpinned rendered specifications require every rule to be proven |
-| v21 | Version admitted; `generate pattern`, `generate random` and `generate rule` are refused with strategy-specific `STAGE-ESM-028` diagnostics; `validate checksum` is refused with `STAGE-ESM-042` |
+| v21 | `validate checksum luhn`, `mod11` and `mod97` render and execute; `generate pattern`, `generate random` and `generate rule` remain refused with strategy-specific `STAGE-ESM-028` diagnostics |
 
-These v21 constructs are also refused by the Host and independent specification executor. The legacy syntax renderer refuses checksum and other unknown validation rules rather than emitting a TODO and omitting the check. No artifacts are published for a refused semantic render plan.
+The Host and independent specification executor enforce the same checksum rules. The three generation strategies remain refused on those paths too. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
+
+### Checksum rules
+
+Declare `validate checksum luhn`, `validate checksum mod11` or `validate checksum mod97` on a String concept. The rendered validator calls `global::Cratis.Concepts.GenerateValue.HasValidChecksum(value, global::Cratis.Concepts.Checksum.Luhn)` (or `Mod11` / `Mod97`), retaining the authored message and severity.
+
+The final one digit (Luhn/Mod11) or two digits (Mod97) must exactly match the checksum of the preceding ASCII digits. Printable non-digits in the payload, including lowercase letters and spaces, are ignored; they are not converted to numbers. Control characters and non-ASCII characters anywhere in the value fail validation. Empty values and non-digit suffixes fail too. Mod11 payloads whose check digit would be 10 have no valid one-digit suffix. For example, `79927398713` passes Luhn, `abc98` passes Mod97, and `79927398714` fails Luhn. A checksum is not a length or format constraint; declare those separately.
+
+Pinned generated fixtures must satisfy the checksum as well as the generation shape. A bad pin blocks rendering with `STAGE-ESM-011`; it is not treated as invalid caller input. Checksum validation does not enable pattern or random generation.
 
 ## ESM v15 strategies
 
@@ -209,7 +217,7 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 | --- | --- |
 | `PLAY0268` (Screenplay) | Compliance markers on a generated concept |
 | `STAGE-ESM-028` | `pattern`, `random`, `rule` and unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy and generated properties whose concepts have rules |
-| `STAGE-ESM-042` | Unsupported `validate checksum`; the legacy syntax renderer also refuses other unknown validation rule kinds |
+| `STAGE-ESM-042` | Unsupported validation rule kinds in the legacy syntax renderer, including checksum; semantic checksum rules are supported |
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |

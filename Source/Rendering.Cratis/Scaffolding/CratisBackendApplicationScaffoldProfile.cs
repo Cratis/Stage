@@ -59,16 +59,16 @@ public sealed class CratisBackendApplicationScaffoldProfile
     public static CratisBackendApplicationScaffoldProfile Current { get; } = Create(
         CurrentVersion,
         "net10.0",
-        "22.95.0",
-        "22.95.0",
-        "22.95.0",
+        "22.100.1",
+        "22.100.1",
+        "22.100.1",
         "4.1.1",
         "4.1.1",
         "18.10.1",
         "6.2.0",
         "2.9.3",
         "4.0.0",
-        "19.64.1");
+        "19.66.0");
 
     /// <summary>
     /// Gets the scaffold contract version carried by every generated input.

@@ -281,7 +281,10 @@ internal static class SemanticStateChangeArtifactRenderer
                 primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean
                     ? types.Type(property.Type)
                     : null;
-            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional, context.RootNamespace, optionalConceptType);
+            var enumOperand = property.Type.Kind == SemanticTypeReferenceKind.Concept && !context.Concepts[property.Type.Target].Values.IsEmpty
+                ? types.Value(rule.Operand!, property.Type)
+                : null;
+            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional, context.RootNamespace, optionalConceptType, enumOperand);
         }
 
         foreach (var id in constrained)

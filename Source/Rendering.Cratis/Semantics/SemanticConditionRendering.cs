@@ -19,6 +19,7 @@ internal static class SemanticConditionRendering
             CanRender(logical.Left, properties, context, numericOrderingOnly) && CanRender(logical.Right, properties, context, numericOrderingOnly),
         SemanticComparison comparison => Enum.IsDefined(comparison.Operator) &&
             CanRender(comparison.Left, properties, context) && CanRender(comparison.Right, properties, context) &&
+            CanCompareNamedValues(comparison, properties, context, numericOrderingOnly) &&
             (!numericOrderingOnly || comparison.Operator is SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual ||
                 (IsNumeric(comparison.Left, properties, context) && IsNumeric(comparison.Right, properties, context))),
         _ => false
@@ -42,13 +43,32 @@ internal static class SemanticConditionRendering
         var property = properties.FirstOrDefault(_ => _.Id == operand.Property);
         return property?.Type is { IsCollection: false, IsOptional: false, Kind: not SemanticTypeReferenceKind.CompositeType } type &&
             (type.Kind != SemanticTypeReferenceKind.Concept ||
-             (context.Concepts.TryGetValue(type.Target, out var concept) && concept.Values.IsEmpty));
+             context.Concepts.ContainsKey(type.Target));
+    }
+
+    static SemanticConcept? NamedConcept(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    {
+        var type = properties.FirstOrDefault(property => property.Id == operand.Property)?.Type;
+        return type?.Kind == SemanticTypeReferenceKind.Concept && context.Concepts.TryGetValue(type.Target, out var concept) && !concept.Values.IsEmpty ? concept : null;
+    }
+
+    static bool CanCompareNamedValues(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, bool numericOrderingOnly)
+    {
+        var left = NamedConcept(comparison.Left, properties, context);
+        var right = NamedConcept(comparison.Right, properties, context);
+        if (left is null && right is null) return true;
+        if (numericOrderingOnly || comparison.Operator is not (SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual)) return false;
+        if (left is not null && right is not null) return left.Id == right.Id;
+        var literal = left is null ? comparison.Left : comparison.Right;
+        var concept = left ?? right!;
+        return !literal.Property.IsSet && literal.Value is SemanticTextValue text && concept.Values.Contains(text.Value, StringComparer.Ordinal);
     }
 
     static string Comparison(SemanticComparison comparison, SemanticConditionRenderingContext context)
     {
-        var left = Operand(comparison.Left, context);
-        var right = Operand(comparison.Right, context);
+        var concept = NamedConcept(comparison.Left, context.Properties, context.Application) ?? NamedConcept(comparison.Right, context.Properties, context.Application);
+        var left = ComparisonOperand(comparison.Left, concept, context);
+        var right = ComparisonOperand(comparison.Right, concept, context);
         var symbol = comparison.Operator switch
         {
             SemanticComparisonOperator.Equal => "==",
@@ -63,6 +83,11 @@ internal static class SemanticConditionRendering
         return IsNumeric(comparison.Left, context.Properties, context.Application) ? $"({left} {symbol} {right})" :
             $"({(comparison.Operator == SemanticComparisonOperator.NotEqual ? "!" : string.Empty)}global::System.Object.Equals({left}, {right}))";
     }
+
+    static string ComparisonOperand(SemanticConditionOperand operand, SemanticConcept? concept, SemanticConditionRenderingContext context) =>
+        concept is not null && !operand.Property.IsSet
+            ? new SemanticTypeSystem(context.Application).Value(operand.Value!, SemanticTypeReference.ForConcept(concept.Id))
+            : Operand(operand, context);
 
     static bool IsNumeric(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context) =>
         Primitive(operand, properties, context) is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;
@@ -85,7 +110,7 @@ internal static class SemanticConditionRendering
     {
         var value = context.Accessor is null ? $"{context.Receiver}.{Identifiers.ToPascalCase(property.Name)}" : context.Accessor(property);
 
-        return property.Type.Kind == SemanticTypeReferenceKind.Concept ? $"{value}.Value" : value;
+        return property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Application.Concepts[property.Type.Target].Values.IsEmpty ? $"{value}.Value" : value;
     }
 
     static string LiteralOperand(SemanticValue? value) => value switch

@@ -11,6 +11,5 @@ public class with_an_optional_named_concept_command_rule : given.a_command_model
     void Establish() => SetModel(("concept Status : Enum\n  draft\n  issued\n" + Source).Replace("        produces InvoiceIssued", "        status Status optional\n        validate\n          status != \"draft\"\n        produces InvoiceIssued", StringComparison.Ordinal));
     void Because() => Evaluate();
 
-    [Fact] void should_preserve_the_named_value_refusal() => Messages.ShouldContainOnly(["Command 'IssueInvoice' validation 'NotEqual' on property 'status' uses concept 'Status' with named values; Stage renders these values as an enum and cannot apply the underlying-value predicate faithfully. Remove the command validation if the named values already express the rule; otherwise keep this combination unsupported (Cratis/Stage#409)."]);
-    [Fact] void should_keep_the_specific_command_diagnostic() => _diagnostics.Single().Code.ShouldEqual("STAGE-ESM-005");
+    [Fact] void should_admit_the_optional_named_member_comparison() => _diagnostics.ShouldBeEmpty();
 }

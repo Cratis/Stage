@@ -86,7 +86,7 @@ omitting event expectations in an older model does not acquire this assertion.
 
 This execution support is broader than generated specifications. Rendered redelivery supports one event
 trigger on the named reaction: either direct productions or one command invocation supported by the existing
-command harness. Stage pins Chronicle 19.64.1 and records every given through `ReactorScenario.History`,
+command harness. Stage pins Chronicle 19.66.0 and records every given through `ReactorScenario.History`,
 then calls `Redeliver` on the selected occurrence. Its original sequence identity, context and stream route
 are reused; history is not delivered to sibling reactions and the input is not appended again.
 

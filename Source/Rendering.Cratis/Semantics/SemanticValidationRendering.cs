@@ -35,14 +35,12 @@ internal static class SemanticValidationRendering
         (!text.Value.Any(_ => char.IsControl(_) || char.IsSurrogate(_)) && (rule.Message is not null || rule.Kind is not (SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) ||
         !text.Value.Any(_ => _ is '{' or '}')));
 
-    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, string? optionalConceptType = null)
+    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, ConceptRendering? conceptRendering = null)
     {
         var value = concept ? "_.Value" : $"_.{Identifiers.ToPascalCase(property)}";
-        var unwrap = (wrapped && collection) || optionalConceptType is not null;
-
-        // Select FluentValidation's property overload: Arc's concept overload replaces absence with default(T).
-        var ruleFor = optionalConceptType is null ? "RuleFor" : $"RuleFor<{optionalConceptType}>";
-        var predicate = Predicate(rule, primitive, collection, unwrap, optional);
+        conceptRendering ??= new();
+        var ruleFor = conceptRendering.RuleFor;
+        var predicate = conceptRendering.Predicate(rule, primitive, collection, wrapped, optional);
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
         var severity = rule.Severity switch
         {
@@ -143,5 +141,24 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {operand}.",
             _ => string.Empty
         };
+    }
+
+    /// <summary>
+    /// Carries concept-specific property selection and enum operands for validation rendering.
+    /// </summary>
+    /// <param name="OptionalType">The optional concept type requiring explicit property selection.</param>
+    /// <param name="EnumOperand">The rendered named-value member, when applicable.</param>
+    internal sealed record ConceptRendering(string? OptionalType = null, string? EnumOperand = null)
+    {
+        // Select FluentValidation's property overload: Arc's concept overload replaces absence with default(T).
+        internal string RuleFor => OptionalType is null ? "RuleFor" : $"RuleFor<{OptionalType}>";
+
+        internal string Predicate(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool collection, bool wrapped, bool optional) =>
+            EnumOperand is null
+                ? SemanticValidationRendering.Predicate(rule, primitive, collection, (wrapped && collection) || OptionalType is not null, optional)
+                : EnumPredicate(rule, optional);
+
+        string EnumPredicate(SemanticValidationRule rule, bool optional) =>
+            $"{(optional ? "value is null || " : string.Empty)}value {(rule.Kind == SemanticValidationRuleKind.Equal ? "==" : "!=")} {EnumOperand}";
     }
 }

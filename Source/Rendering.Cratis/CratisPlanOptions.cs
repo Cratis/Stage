@@ -19,7 +19,7 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     public string Domain { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gets the requested gap policy. Refuse preserves existing behavior; stub rendering requires target support.
+    /// Gets the requested gap policy. Refuse is the default. This option has no effect until the target supports gap rendering.
     /// </summary>
     public ImplementationGapMode ImplementationGaps { get; init; } = ImplementationGapMode.Refuse;
 

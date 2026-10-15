@@ -10,6 +10,7 @@ public class a_gap : for_ArtifactRenderPlan.given.an_artifact_render_request
 {
     protected ArtifactImplementationGap _gap = null!;
     protected ArtifactImplementationStub _stub = null!;
+    protected ImmutableArray<PlannedArtifact> _artifacts;
 
     void Establish()
     {
@@ -30,7 +31,8 @@ public class a_gap : for_ArtifactRenderPlan.given.an_artifact_render_request
             1,
             1,
             [_stub]);
+        _artifacts = [PlannedArtifact.CreateText(_stub.RelativePath, new string(' ', 256)), PlannedArtifact.CreateText("other.cs", new string(' ', 256))];
     }
 
-    protected string Digest(ImmutableArray<ArtifactImplementationGap> gaps) => ArtifactRenderPlan.Create(_request, [], [], gaps).Digest;
+    protected string Digest(ImmutableArray<ArtifactImplementationGap> gaps) => ArtifactRenderPlan.Create(_request, _artifacts, [], gaps).Digest;
 }

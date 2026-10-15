@@ -51,7 +51,7 @@ static class ArtifactImplementationGapDigest
             writer.Write((int)gap.Origin);
             writer.Write(gap.RequirementId);
             writer.Write(gap.Owner);
-            writer.Write((int)gap.Role);
+            writer.Write(gap.Role.ToString());
             WriteStrings(writer, gap.Hints);
             writer.Write(gap.ContextVersion);
             writer.Write(gap.ResultVersion);

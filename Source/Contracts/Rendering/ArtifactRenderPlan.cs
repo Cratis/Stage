@@ -358,6 +358,8 @@ public sealed class ArtifactRenderPlan
             throw new InvalidArtifactRenderContract("An artifact render plan contains paths that collide on a case-insensitive file system.");
         }
 
+        var normalizedGaps = ValidateImplementationGaps(implementationGaps, normalized);
+
         return new(
             request.Profile.Target,
             request.Profile.TargetVersion,
@@ -373,7 +375,7 @@ public sealed class ArtifactRenderPlan
                     .ThenBy(_ => _.Artifact.ToString(), StringComparer.Ordinal)
                     .ThenBy(_ => _.Message, StringComparer.Ordinal)
             ],
-            ArtifactImplementationGapDigest.Normalize(implementationGaps))
+            normalizedGaps)
         {
             Scope = request.Scope,
             AdditionalScopes = request.AdditionalScopes
@@ -456,6 +458,22 @@ public sealed class ArtifactRenderPlan
         writer.Flush();
 
         return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();
+    }
+
+    static ImmutableArray<ArtifactImplementationGap> ValidateImplementationGaps(
+        ImmutableArray<ArtifactImplementationGap> gaps,
+        ImmutableArray<PlannedArtifact> artifacts)
+    {
+        var normalized = ArtifactImplementationGapDigest.Normalize(gaps);
+        if (normalized.IsEmpty)
+        {
+            return normalized;
+        }
+
+        var byPath = artifacts.ToDictionary(artifact => artifact.RelativePath, StringComparer.Ordinal);
+        foreach (var stub in normalized.SelectMany(gap => gap.Stubs)) stub.ValidateArtifact(byPath);
+
+        return normalized;
     }
 
     static bool ScopeMatches(ArtifactRenderRequest request) =>

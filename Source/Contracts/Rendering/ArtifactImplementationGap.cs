@@ -10,9 +10,10 @@ namespace Cratis.Stage.Contracts.Rendering;
 /// Describes one unimplemented requirement and its generated payload-body extension points.
 /// This v1 contract grants no permission to edit or publish artifacts.
 /// </summary>
+/// <remarks>Fields added after v1 must be init properties, not additional positional parameters.</remarks>
 /// <param name="Origin">The reason implementation is required.</param>
 /// <param name="RequirementId">The stable compiler requirement identity.</param>
-/// <param name="Owner">The canonical semantic identity of the owning declaration.</param>
+/// <param name="Owner">Exactly the owning declaration's <see cref="SemanticId.ToString()"/> value. Treat it as opaque; do not parse it.</param>
 /// <param name="Role">The compiler implementation role.</param>
 /// <param name="Hints">Ordered implementation hints from the requirements sidecar.</param>
 /// <param name="ContextVersion">The typed-context contract version.</param>
@@ -35,10 +36,7 @@ public sealed record ArtifactImplementationGap(
 
     internal ArtifactImplementationGap Normalize()
     {
-        if (Origin != ArtifactImplementationGapOrigin.Described || string.IsNullOrWhiteSpace(RequirementId) ||
-            string.IsNullOrWhiteSpace(Owner) || !Enum.IsDefined(Role) ||
-            Hints.IsDefault || Hints.Any(string.IsNullOrWhiteSpace) || ContextVersion != 1 || ResultVersion != 1 ||
-            Stubs.IsDefaultOrEmpty || Stubs.Any(stub => stub is null))
+        if (!HasValidMetadata() || !HasValidCollections())
         {
             throw new InvalidArtifactRenderContract("An implementation gap requires an origin, requirement identity, owner, role, hints, v1 contracts, and stubs.");
         }
@@ -53,4 +51,12 @@ public sealed record ArtifactImplementationGap(
 
         return this with { Stubs = stubs };
     }
+
+    bool HasValidMetadata() => HasKnownRoleAndOrigin() && HasIdentity() && HasV1Contracts();
+    bool HasKnownRoleAndOrigin() => Origin == ArtifactImplementationGapOrigin.Described && Enum.IsDefined(Role);
+    bool HasIdentity() => !string.IsNullOrWhiteSpace(RequirementId) && !string.IsNullOrWhiteSpace(Owner);
+    bool HasV1Contracts() => ContextVersion == 1 && ResultVersion == 1;
+    bool HasValidCollections() => HasValidHints() && HasValidStubs();
+    bool HasValidHints() => !Hints.IsDefault && !Hints.Any(string.IsNullOrWhiteSpace);
+    bool HasValidStubs() => !Stubs.IsDefaultOrEmpty && Stubs.All(stub => stub is not null);
 }

@@ -13,9 +13,13 @@ public sealed record ArtifactImplementationBodyLocator(int Start, int Length)
 {
     internal void Validate()
     {
-        if (Start < 0 || Length <= 0 || (long)Start + Length > int.MaxValue)
+        if (!HasValidRange())
         {
             throw new InvalidArtifactRenderContract("An implementation body locator requires a nonnegative start and a positive, non-overflowing length.");
         }
     }
+
+    bool HasValidRange() => HasPositiveBounds() && FitsOffsetRange();
+    bool HasPositiveBounds() => Start >= 0 && Length > 0;
+    bool FitsOffsetRange() => (long)Start + Length <= int.MaxValue;
 }

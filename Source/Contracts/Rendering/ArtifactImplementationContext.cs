@@ -14,17 +14,22 @@ public sealed record ArtifactImplementationContext(string TypeName, ImmutableArr
 {
     internal void Validate()
     {
-        if (string.IsNullOrWhiteSpace(TypeName) || Members.IsDefault ||
-            Members.Any(member => member is null || string.IsNullOrWhiteSpace(member.Name) || string.IsNullOrWhiteSpace(member.TypeName)) ||
-            Members.Select(member => member.Name).Distinct(StringComparer.Ordinal).Count() != Members.Length)
+        if (!HasTypedMembers() || !HasUniqueMemberNames())
         {
             throw new InvalidArtifactRenderContract("An implementation context requires a type and uniquely named, typed members.");
         }
     }
+
+    bool HasTypedMembers() => !string.IsNullOrWhiteSpace(TypeName) && HasValidMembers();
+    bool HasValidMembers() => !Members.IsDefault && Members.All(IsValidMember);
+    bool HasUniqueMemberNames() => Members.Select(member => member.Name).Distinct(StringComparer.Ordinal).Count() == Members.Length;
+    static bool IsValidMember(ArtifactImplementationContextMember member) => member is not null && HasMemberIdentity(member);
+    static bool HasMemberIdentity(ArtifactImplementationContextMember member) => !string.IsNullOrWhiteSpace(member.Name) && !string.IsNullOrWhiteSpace(member.TypeName);
 }
 
 /// <summary>
 /// Describes a typed-context member without claiming unavailable runtime plumbing exists.
+/// Validated through its parent <see cref="ArtifactImplementationContext"/>.
 /// </summary>
 /// <param name="Name">The context member name.</param>
 /// <param name="TypeName">The exact C# type, including nullable and collection syntax.</param>

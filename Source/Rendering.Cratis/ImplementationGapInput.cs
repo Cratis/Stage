@@ -47,7 +47,7 @@ public static class ImplementationGapInput
     public static bool TryRead(ArtifactRenderInput input, out ImplementationGapMode mode)
     {
         mode = ImplementationGapMode.Refuse;
-        if (input is null || input.Name != Name || input.Version != Version)
+        if (!IsV1Input(input))
         {
             return false;
         }
@@ -64,4 +64,7 @@ public static class ImplementationGapInput
 
         return false;
     }
+
+    static bool IsV1Input(ArtifactRenderInput input) => input is not null && HasExpectedIdentity(input);
+    static bool HasExpectedIdentity(ArtifactRenderInput input) => input.Name == Name && input.Version == Version;
 }

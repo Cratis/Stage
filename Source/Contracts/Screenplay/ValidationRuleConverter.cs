@@ -12,6 +12,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// <see cref="CommandPropertyRules"/>. Only <see cref="DeclarativeValidateSyntax"/> blocks are translated; inline
 /// <c language="csharp">validate csharp</c> blocks have no Stage rule equivalent and are skipped, as is any rule whose operand is not a
 /// literal — a Stage rule holds a fixed value, and there is none to hold for one stated against a runtime value.
+/// Collection quantifiers, equality, checksums and named rules have no Stage rule equivalent and are skipped.
 /// </summary>
 public static class ValidationRuleConverter
 {
@@ -57,8 +58,10 @@ public static class ValidationRuleConverter
         rule.Rule switch
         {
             ValidationRuleKind.NotEmpty => new NotEmpty(rule.Message),
-            ValidationRuleKind.Max when IntOperand(rule) is { } max => new MaxLength(max, rule.Message),
-            ValidationRuleKind.Min when IntOperand(rule) is { } min => new MinLength(min, rule.Message),
+
+            // Bounds measure numeric values or text length at runtime; length-only rules lose numeric semantics.
+            ValidationRuleKind.Max when DoubleOperand(rule) is { } max => new LessThanOrEqual(max, rule.Message),
+            ValidationRuleKind.Min when DoubleOperand(rule) is { } min => new GreaterThanOrEqual(min, rule.Message),
             ValidationRuleKind.Length when IntOperand(rule) is { } length => new Length(length, length, rule.Message),
             ValidationRuleKind.Matches when StringOperand(rule) is { } pattern => new Matches(pattern, rule.Message),
             ValidationRuleKind.GreaterThan when DoubleOperand(rule) is { } threshold => new GreaterThan(threshold, rule.Message),
@@ -66,16 +69,13 @@ public static class ValidationRuleConverter
             ValidationRuleKind.LessThan when DoubleOperand(rule) is { } threshold => new LessThan(threshold, rule.Message),
             ValidationRuleKind.LessThanOrEqual when DoubleOperand(rule) is { } threshold => new LessThanOrEqual(threshold, rule.Message),
 
-            // "all >" / "all >=" over a collection have no dedicated Stage rule; the property path names the element
-            // ('lines.quantity'), so the scalar comparison carries the same intent applied per element.
-            ValidationRuleKind.AllGreaterThan when DoubleOperand(rule) is { } threshold => new GreaterThan(threshold, rule.Message),
-            ValidationRuleKind.AllGreaterThanOrEqual when DoubleOperand(rule) is { } threshold => new GreaterThanOrEqual(threshold, rule.Message),
-
-            // Equality has no Stage rule vocabulary equivalent — skip it.
+            // A scalar comparison cannot represent "all", even when the element path is known.
+            // Drop quantifiers, equality, checksums and named rules rather than partially enforcing them.
             _ => null
         };
 
-    static int? IntOperand(ValidationRuleSyntax rule) => DoubleOperand(rule) is { } number ? (int)number : null;
+    static int? IntOperand(ValidationRuleSyntax rule) =>
+        DoubleOperand(rule) is { } number && number is >= 0 and <= int.MaxValue && Math.Truncate(number) == number ? (int)number : null;
 
     static double? DoubleOperand(ValidationRuleSyntax rule) =>
         StringOperand(rule) is { } text && double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var number)

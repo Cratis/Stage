@@ -1,75 +1,51 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { SceneElement, Screen, ScreenTemplate, UiProfile } from '@cratis/scene.model';
-import { authoredNavigationEntries, navigationPathTo, navigationTree, unlistedNavigationEntries } from './navigationTree';
+import type { SceneElement, Screen, UiProfile } from '@cratis/scene.model';
 import type { PackageCatalog } from '@cratis/scene.engine';
 import { coreComponents, type ComponentRegistry } from '@cratis/scene.react';
+import { authoredNavigationEntries, navigationPathTo, navigationTree, unlistedNavigationEntries } from './navigationTree';
 import { primeReactComponents, primeReactPackageManifest } from '@cratis/scene.primereact';
 import {
     ComponentName,
     SlotName,
+    blueprintPackageCatalog,
     defaultBlueprintComponents,
     defaultBlueprintName,
     defaultBlueprintThemes,
     externalComponent,
-    galleryScreenTemplates,
     navigationElement,
-    resolveElementComponentNames,
+    previewComponents,
+    previewProfile,
 } from '@cratis/scene.blueprint.default';
-
-/** The package every Stage application resolves bare component names against, in ascending priority. */
-const stagePackages = ['core', 'PrimeReact', defaultBlueprintName];
 
 /** The qualified name Stage registers its locale picker under. */
 export const stageLocaleComponent = 'Stage:locale';
 
-/** The qualified name Stage registers its navigation tree under. */
-export const stageNavigationTreeComponent = 'Stage:navigationTree';
-
 /**
- * The profile a scene renders against.
- *
- * The model's own `ui profile` decides which packages it draws from, but Stage always renders through the
- * default blueprint, so that package - and the PrimeReact widgets it is built from - are admitted even when a
- * model never named them. Without that, a template written against the blueprint's vocabulary would come out
- * as a column of dashed placeholders.
+ * The profile a scene renders against: the shared one - the model's own `ui profile` with the packages every host renders with
+ * admitted - with the PrimeReact widgets the default blueprint is built from between Scene's core and the blueprint, so the
+ * blueprint's component still wins a name both declare.
  *
  * @param profiles The profiles the scene declares.
  * @returns The profile to resolve component names with.
  */
 export function stageProfile(profiles: UiProfile[] | undefined): UiProfile {
-    const declared = profiles?.find(profile => profile.targetPlatform === 'web') ?? profiles?.[0];
-    const packages = [...(declared?.packages ?? [])];
-    for (const required of stagePackages) {
-        if (!packages.includes(required)) packages.push(required);
-    }
-
-    return { name: declared?.name ?? 'Stage', targetPlatform: declared?.targetPlatform ?? 'web', packages, defaultSizeClass: declared?.defaultSizeClass, layout: declared?.layout, theme: declared?.theme };
+    const profile = previewProfile(profiles);
+    const packages = profile.packages.filter(name => name !== 'PrimeReact');
+    packages.splice(Math.max(packages.indexOf(defaultBlueprintName), 0), 0, 'PrimeReact');
+    return { ...profile, name: profiles?.length ? profile.name : 'Stage', packages };
 }
 
 /** What each package declares, so a bare name resolves to the package that provides it. */
 export const stageCatalog: PackageCatalog = {
-    core: Object.keys(coreComponents).map(key => key.slice(key.indexOf(':') + 1)),
+    ...blueprintPackageCatalog,
     PrimeReact: primeReactPackageManifest.components,
-    [defaultBlueprintName]: Object.values(ComponentName),
 };
 
-/** Every component the Stage can render: Scene's core, PrimeReact, and the default blueprint's shell. */
+/** Every component the Stage can render: Scene's core, PrimeReact, the default blueprint's shell, and the template wrapper the shared composition places screens in. */
 export function stageRegistry(overrides: ComponentRegistry): ComponentRegistry {
-    return { ...coreComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...overrides };
-}
-
-/**
- * The template a screen fills: the model's own, or one of the blueprint's.
- *
- * A model that writes `template CrudList` without declaring it is naming one of the blueprint's templates, so
- * its arrangement and slots come from there. A model's own declaration always wins the name.
- */
-export function templateFor(templates: ScreenTemplate[], screen: Screen): ScreenTemplate | undefined {
-    if (!screen.screenTemplate) return undefined;
-    return templates.find(candidate => candidate.name === screen.screenTemplate)
-        ?? galleryScreenTemplates.find(candidate => candidate.name === screen.screenTemplate);
+    return { ...coreComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...previewComponents, ...overrides };
 }
 
 /**
@@ -85,36 +61,27 @@ export function stageCatalogWith(approved: PackageCatalog | undefined): PackageC
     return approved ? { ...approved, ...stageCatalog } : stageCatalog;
 }
 
-/**
- * Rewrites an element tree's bare component names into the keys the registry is keyed by.
- *
- * A name that is already qualified, or that no package declares, is left exactly as written; the renderer then
- * shows a placeholder naming what is missing rather than failing.
- *
- * @param element The tree to rewrite.
- * @param profile The profile whose package priority decides which package wins a bare name.
- * @param catalog What each package declares; defaults to the Stage's own packages.
- * @returns The rewritten tree.
- */
-export function resolveNames(element: SceneElement, profile: UiProfile, catalog: PackageCatalog = stageCatalog): SceneElement {
-    return resolveElementComponentNames(element, profile, catalog);
-}
+/** The qualified name Stage registers its navigation tree under. */
+export const stageNavigationTreeComponent = 'Stage:navigationTree';
 
-/** The name the application shows in its topbar and sidebar. */
+/** The name the application shows in its topbar and sidebar when the model gives it no logo. */
 export const stageApplicationName = 'Cratis Stage';
 
-function logo(id: string): SceneElement {
-    return externalComponent(id, ComponentName.Logo, { label: stageApplicationName, initials: 'S', targetScreen: '' });
+function logo(id: string, title: string, image?: string): SceneElement {
+    return externalComponent(id, ComponentName.Logo, { label: title, initials: title.slice(0, 1).toUpperCase() || 'S', targetScreen: '', ...(image ? { lightImageUrl: image } : {}) });
 }
 
 /**
- * The chrome the blueprint's application shell wraps every screen in.
+ * The chrome the blueprint's application shell wraps every screen in, besides the screen itself.
  *
- * Built from the screens the scene declares, because that is what an application's navigation is: one entry
- * per screen, the current one marked, and a breadcrumb back to the first.
+ * When the model declares navigation regions, the topbar and sidebar draw the *effective* navigation of the module the user is in
+ * (Scene's regions: inherit, extend, override) and nothing here lists items. A model that declares none keeps what it always had:
+ * the entries its screens authored as `Navigation` contributions - or one flat list of its screens - as the menu, and the topbar and
+ * sidebar draw no region of their own.
  */
-export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string): Record<string, SceneElement[]> {
+export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: { title: string; image?: string }, regions = false): Record<string, SceneElement[]> {
     const first = screens[0]?.name ?? '';
+    const title = application?.title ?? stageApplicationName;
     const authored = authoredNavigationEntries(screens);
     // A screen the model gave no navigation entry stays reachable - under its own name, in the module and feature it was
     // declared in, after the authored entries - so adding one entry never hides the rest of the application.
@@ -132,16 +99,17 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
     const end: SceneElement[] = [];
     if (locales.length > 1) end.push(externalComponent('topbar-locale', stageLocaleComponent, { locales, locale }));
     end.push(externalComponent('topbar-theme', ComponentName.ThemeSwitcher, { label: 'Theme' }));
+    const regionNavigation = { regionNavigation: regions };
 
     return {
-        [SlotName.Topbar]: [externalComponent('topbar', ComponentName.Topbar, {}, { logo: [logo('topbar-logo')], end })],
-        [SlotName.Sidebar]: [externalComponent('sidebar', ComponentName.Sidebar, {}, { logo: [logo('sidebar-logo')] })],
-        [SlotName.Menu]: [menu],
+        [SlotName.Topbar]: [externalComponent('topbar', ComponentName.Topbar, regionNavigation, { logo: [logo('topbar-logo', title, application?.image)], end })],
+        [SlotName.Sidebar]: [externalComponent('sidebar', ComponentName.Sidebar, regionNavigation, { logo: [logo('sidebar-logo', title, application?.image)] })],
+        ...(regions ? {} : { [SlotName.Menu]: [menu] }),
         [SlotName.Breadcrumb]: [externalComponent('breadcrumb', ComponentName.Breadcrumb, {
             homeTargetScreen: first,
             items: (trail.length > 0 ? trail : [activeScreen]).map(label => ({ label })),
         })],
-        [SlotName.Footer]: [externalComponent('footer', ComponentName.Footer, { text: `${stageApplicationName} · rendered from your model` })],
+        [SlotName.Footer]: [externalComponent('footer', ComponentName.Footer, { text: `${title} · rendered from your model` })],
         [SlotName.ConfigPanel]: [externalComponent(ComponentName.ConfigPanel, ComponentName.ConfigPanel, {
             title: 'Settings',
             themes: defaultBlueprintThemes.map(theme => ({ name: theme.name, label: theme.name, isDark: theme.isDark ?? false })),
@@ -149,7 +117,7 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
     };
 }
 
-/** The hash a screen is addressed by - what the blueprint's menu and breadcrumb links point at. */
+/** The hash a screen is addressed by - what the blueprint's breadcrumb links point at. */
 export function screenHash(name: string): string {
     return `#/${encodeURIComponent(name)}`;
 }

@@ -238,7 +238,38 @@ A scaffold profile carrying a Scene emits no Scene artifacts and reports the
 Plan the scaffold once per application. Every subsequent source or loaded-model scoped
 plan excludes it, regardless of selection size. Studio can scaffold in one session,
 then request feature plans in later sessions using the same application names and
-Screenplay root.
+Screenplay root. Scaffold files belong to the user after first run; an application-scope
+plan includes them again, so publishers must preserve that ownership before overwriting.
+
+The backend scaffold contains:
+
+| Artifact | Purpose |
+| --- | --- |
+| `{Project}.csproj` | Web host, production dependencies, proxy-generation settings, and the optional `Customizations/Dependencies.props` import. |
+| `{Project}.Specs/{Project}.Specs.csproj` | Separate plain-SDK test project referencing the host and linking slice-local `**/when_*.cs` files. |
+| `{Project}.slnx` | Solution containing both projects. |
+| `Directory.Build.props` | Target framework from the profile, latest C# language version, nullable references, implicit usings, warnings as errors, and build-time code style. |
+| `Directory.Build.targets` | Local boundary preventing parent build targets from leaking into the application. |
+| `Directory.Packages.props` | Central NuGet package versions with transitive pinning enabled. |
+| `.editorconfig` | Root C# formatting and style conventions, isolated from parent editor settings. |
+| `README.md` | Prerequisites, local backend/frontend commands, specification execution, and customization guidance. |
+| `Program.cs`, `GeneratedPolicyRegistration.cs` | Application startup and generated policy registration. |
+| `appsettings.json`, `docker-compose.yml` | Development connection settings and pinned Chronicle image with named data volumes. |
+
+Generated specification paths do not change: command, projection, query, and reaction
+specifications remain beside their slices. The web host excludes them and the nested specs
+folder in both configurations. The specs project links them without moving them; their
+existing `#if DEBUG` wrappers remain, so run `dotnet test {Project}.Specs -c Debug`.
+Build `{Project}.slnx` to compile both projects. Frontend scaffold files remain at their
+existing paths, including `package.json` and `.frontend/`.
+
+All scaffold `PackageReference` entries are unversioned. After first run, bump NuGet
+versions in the user-owned `Directory.Packages.props`, not individual project references.
+Keep Chronicle client, ASP.NET Core integration, and testing versions aligned with the
+Chronicle development image in `docker-compose.yml`. Update frontend versions in
+`package.json`. Additional dependencies can use a central `PackageVersion` or
+`VersionOverride` through the [customization import](../guides/customize-rendered-application.md#add-project-and-package-references).
+No third-party analyzer packages, CI workflow, devcontainer, or Aspire project is emitted.
 
 ## Publication check
 

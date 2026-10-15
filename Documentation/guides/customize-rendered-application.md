@@ -3,9 +3,12 @@ title: Customize a rendered application
 description: Register services, add dependencies, and restyle a rendered Cratis application from unmanaged files that re-rendering does not replace.
 ---
 
-A rendered Cratis application owns its `Program.cs`, project file, `appsettings.json`, and frontend shell. Every
-application render plans those files again, so an edit to them is lost or conflicts on the next render. Put your own code in a
-`Customizations/` folder at the application root instead. The generated files already look for it.
+Keep your adapters and styling separate from generated slice code by putting them in
+`Customizations/` at the application root. The scaffold already looks for these files.
+
+Scaffold files, including `Program.cs`, the project files, `Directory.Packages.props`, and the frontend shell,
+belong to you after first run. Subsequent scoped plans exclude them. An application-scope plan includes them
+again, so check your publisher's overwrite policy before applying one to an existing application.
 
 | File                                | What it is for                                                    | Picked up when                     |
 | ----------------------------------- | ----------------------------------------------------------------- | ---------------------------------- |
@@ -179,9 +182,25 @@ their own project or to add a package the shared framework does not provide:
 Replace the path with your own project. `$(MSBuildThisFileDirectory)` anchors the path to the `Customizations/`
 folder, so this example points at an `Adapters` folder next to the rendered application.
 
-The rendered application disables central package management, so a `PackageReference` here needs an explicit
-`Version`. The import is the last element of the project body: a property you set in this file replaces the
-generated value, so set only what you mean to change.
+New scaffolds enable central package management and transitive pinning in `Directory.Packages.props`.
+Add a `PackageVersion` there and use an unversioned `PackageReference` in your import. To keep an adapter's pin
+entirely inside `Customizations/Dependencies.props`, use `VersionOverride` instead of `Version`:
+
+```xml title="Customizations/Dependencies.props (package reference shape)"
+<Project>
+  <ItemGroup>
+    <PackageReference Include="Your.Package" VersionOverride="1.2.3" />
+  </ItemGroup>
+</Project>
+```
+
+Replace the illustrative package name and version with your dependency. `Version` on a `PackageReference`
+fails restore under central package management. Older inline-spec scaffolds that disable central package
+management still require `Version` instead; check your existing `Directory.Packages.props` before adding a package.
+
+The import is the last element of the web project body: a property you set in this file replaces the generated
+value, so set only what you mean to change. The separate specs project references the host and inherits its
+additional dependencies transitively; the import is not applied to the specs project a second time.
 
 ## Restyle the frontend
 

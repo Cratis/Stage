@@ -18,6 +18,9 @@ internal static class SemanticGenerationShapes
     const string Base32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     const string NanoIdAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
 
+    // Match Screenplay's UsesConceptGeneration: later schema versions alone do not enable freshness or strategy checks.
+    internal static bool UsesConceptGeneration(SemanticApplication application) => application.Concepts.Any(concept => concept.Generation is not null);
+
     internal static bool Supported(SemanticConcept concept) => concept.Primitive switch
     {
         SemanticPrimitiveType.Uuid => concept.Generation is null || IsUuid(concept.Generation.Kind),
@@ -29,6 +32,8 @@ internal static class SemanticGenerationShapes
         Regex.IsMatch(text.Value, Pattern(concept), RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
     internal static string FixtureMessage(string property) => $"Generated fixture for '{property}' does not match its generation strategy shape.";
+
+    internal static string RuleMessage(string property, string concept) => $"Generated fixture '{property}' fails concept '{concept}' rules";
 
     internal static string Pattern(SemanticConcept concept)
     {

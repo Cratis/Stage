@@ -25,7 +25,7 @@ public class when_admitting_generated_values : Specification
     [Fact] void should_refuse_optional_generation() => Refusals(_command.Properties.Single().Type with { IsOptional = true }).ShouldContainOnly(SemanticVersionFeatures.Generated);
     [Fact] void should_refuse_collection_generation() => Refusals(_command.Properties.Single().Type with { IsCollection = true }).ShouldContainOnly(SemanticVersionFeatures.Generated);
     [Fact] void should_refuse_non_uuid_concepts() => SemanticVersionFeatures.UnsupportedGenerated(_command, [_concept with { Primitive = SemanticPrimitiveType.Text }]).Select(feature => feature.Code).ShouldContainOnly(SemanticVersionFeatures.Generated);
-    [Fact] void should_refuse_generated_concept_validation_outcome_mismatches() => SemanticVersionFeatures.UnsupportedGenerated(_command, [_concept with { Validations = [new(_concept.Id, SemanticValidationRuleKind.NotEmpty, null, null)] }]).Select(feature => feature.Code).ShouldContainOnly(SemanticVersionFeatures.CommandResults);
+    [Fact] void should_admit_error_rules_on_generated_concepts() => SemanticVersionFeatures.UnsupportedGenerated(_command, [_concept with { Validations = [new(_concept.Id, SemanticValidationRuleKind.NotEmpty, null, null)] }]).ShouldBeEmpty();
     [Fact] void should_refuse_a_factory_type_name_collision() => SemanticVersionFeatures.UnsupportedGenerated(_command, [_concept with { Name = "New" }]).Select(feature => feature.Code).ShouldContainOnly(SemanticVersionFeatures.CommandResults);
 
     [Fact]

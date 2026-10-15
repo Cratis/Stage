@@ -15,7 +15,7 @@ public class when_admitting_v19 : Specification
     [Theory]
     [InlineData(19, 0, 19, 0, true)]
     [InlineData(18, 0, 18, 0, true)]
-    [InlineData(20, 0, 20, 0, false)]
+    [InlineData(20, 0, 20, 0, true)]
     [InlineData(17, 0, 19, 0, false)]
     [InlineData(19, 0, 17, 0, false)]
     [InlineData(19, 1, 19, 1, false)]

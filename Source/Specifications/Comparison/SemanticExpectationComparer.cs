@@ -104,17 +104,7 @@ internal static class SemanticExpectationComparer
     }
 
     // Match Screenplay v4.24.0 SemanticValueRules.AreEqual, including numeric scale and nested values.
-    internal static bool AreEqual(SemanticValue left, SemanticValue right) => (left, right) switch
-    {
-        (SemanticNullValue, SemanticNullValue) => true,
-        (SemanticTextValue a, SemanticTextValue b) => string.Equals(a.Value, b.Value, StringComparison.Ordinal),
-        (SemanticNumberValue a, SemanticNumberValue b) => a.Value == b.Value,
-        (SemanticBooleanValue a, SemanticBooleanValue b) => a.Value == b.Value,
-        (SemanticArrayValue a, SemanticArrayValue b) => a.Values.Length == b.Values.Length && a.Values.Zip(b.Values).All(pair => AreEqual(pair.First, pair.Second)),
-        (SemanticCompositeValue a, SemanticCompositeValue b) => a.Properties.Length == b.Properties.Length &&
-            a.Properties.All(property => b.Properties.Any(candidate => candidate.TargetProperty == property.TargetProperty && AreEqual(property.Value, candidate.Value))),
-        _ => false
-    };
+    internal static bool AreEqual(SemanticValue left, SemanticValue right) => SemanticRuleValues.AreEqual(left, right);
 
     static IReadOnlyList<string> CompareScalarResponse(SemanticScalarSpecificationResponse expected, SemanticExecutionResponse? actual) =>
         actual is SemanticScalarExecutionResponse response && AreEqual(expected.Value, response.Value) ? [] : ["Command response does not match the expected value."];

@@ -10,9 +10,22 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// </summary>
 public sealed class GenerationSyntaxAdmission : ScreenplaySyntaxWalker
 {
+    HashSet<string> _ruleBearingConcepts = [];
+
+    /// <inheritdoc/>
+    public override void VisitApplication(ApplicationSyntax syntax)
+    {
+        _ruleBearingConcepts = syntax.Concepts.Where(concept => concept.Validations?.Any() == true).Select(concept => concept.Name).ToHashSet(StringComparer.Ordinal);
+        base.VisitApplication(syntax);
+    }
+
     /// <inheritdoc/>
     public override void VisitNode(SyntaxNode node)
     {
-        if (node is ConceptSyntax { Generation: not null }) throw new UnsupportedGenerationStrategy(node.Location);
+        if (node is ConceptSyntax { Generation: not null } ||
+            (node is PropertySyntax { IsGenerated: true } property && _ruleBearingConcepts.Contains(property.Type.Name)))
+        {
+            throw new UnsupportedGenerationStrategy(node.Location);
+        }
     }
 }

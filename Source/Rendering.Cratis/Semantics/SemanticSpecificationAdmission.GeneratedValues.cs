@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -18,6 +19,10 @@ internal static partial class SemanticSpecificationAdmission
             if (InvalidStrategyFixture(context, specification) is { } message)
             {
                 diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, message, specification.Id));
+            }
+            else if (UnpinnedRuleBearingConcept(context, specification) is { } ruleMessage)
+            {
+                diagnostics.Add(new(SemanticVersionFeatures.CommandResults, ArtifactRenderDiagnosticSeverity.Error, ruleMessage, specification.Id));
             }
             else if (MissingConstrainedGeneratedFixture(context, specification) is { } constraintMessage)
             {
@@ -44,7 +49,7 @@ internal static partial class SemanticSpecificationAdmission
 
     static string? InvalidStrategyFixture(SemanticApplicationContext context, SemanticSpecification specification)
     {
-        if (!context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) || specification.When is not { } action ||
+        if (specification.When is not { } action ||
             !context.Commands.TryGetValue(action.Command, out var command))
         {
             return null;
@@ -52,13 +57,28 @@ internal static partial class SemanticSpecificationAdmission
         foreach (var fixture in action.GeneratedValues)
         {
             var property = command.Properties.SingleOrDefault(property => property.Id == fixture.TargetProperty && property.IsGenerated);
-            if (property is not null && !SemanticGenerationShapes.Matches(context.Concepts[property.Type.Target], fixture.Value))
+            if (property is null) continue;
+            var concept = context.Concepts[property.Type.Target];
+            if ((SemanticGenerationShapes.UsesConceptGeneration(context.Request.Model.Application) || !concept.Validations.IsEmpty) &&
+                !SemanticGenerationShapes.Matches(concept, fixture.Value))
             {
                 return $"Specification '{specification.Name}' cannot render: {SemanticGenerationShapes.FixtureMessage(property.Name)}";
+            }
+            if (SemanticRuleValues.GeneratedFailure(concept, property.Name, fixture.Value) is { } failure)
+            {
+                return $"Specification '{specification.Name}' cannot render: {failure}.";
             }
         }
 
         return null;
+    }
+
+    static string? UnpinnedRuleBearingConcept(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (specification.When is not { } action || !context.Commands.TryGetValue(action.Command, out var command)) return null;
+        var property = UnpinnedGeneratedProperties(command, action).FirstOrDefault(property => !context.Concepts[property.Type.Target].Validations.IsEmpty);
+
+        return property is null ? null : $"Specification '{specification.Name}' needs a pinned generated value for '{property.Name}': concept rules may reject an unpinned draw.";
     }
 
     static bool NeedsPinnedGeneratedValues(SemanticApplicationContext context, SemanticSpecification specification)

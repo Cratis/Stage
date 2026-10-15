@@ -22,7 +22,7 @@ public class when_generating_strategy_values : Specification
     {
         var instant = new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero);
         var plan = compiled_plan.From($"concept Identity : {primitive}\n  generate {strategy}\nmodule Work\n  feature Creation\n    slice StateChange Start\n      event Started");
-        var value = SemanticGeneratedValues.New(plan.Model.Application.Concepts.Single(), SemanticVersion.V15, new(instant, GenerationContext.DefaultTenant));
+        var value = SemanticGeneratedValues.New(plan.Model.Application.Concepts.Single(), true, new(instant, GenerationContext.DefaultTenant));
         var milliseconds = strategy == "uuidv7"
             ? long.Parse(value[..8] + value[9..13], NumberStyles.HexNumber, CultureInfo.InvariantCulture)
             : (strategy.StartsWith("typeid", StringComparison.Ordinal) ? value[5..15] : value[..10]).Aggregate(0L, (time, symbol) => (time << 5) + "0123456789ABCDEFGHJKMNPQRSTVWXYZ".IndexOf(char.ToUpperInvariant(symbol)));
@@ -47,7 +47,7 @@ public class when_generating_strategy_values : Specification
     {
         var plan = compiled_plan.From($"concept Identity : {primitive}\n  generate {strategy}\nmodule Work\n  feature Creation\n    slice StateChange Start\n      event Started");
         var concept = plan.Model.Application.Concepts.Single();
-        Enumerable.Range(0, 256).Select(_ => SemanticGeneratedValues.New(concept, SemanticVersion.V15, new(new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero), GenerationContext.DefaultTenant)))
+        Enumerable.Range(0, 256).Select(_ => SemanticGeneratedValues.New(concept, true, new(new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero), GenerationContext.DefaultTenant)))
             .All(value => SemanticGenerationShapes.Matches(concept, SemanticValue.Text(value))).ShouldBeTrue();
     }
 }

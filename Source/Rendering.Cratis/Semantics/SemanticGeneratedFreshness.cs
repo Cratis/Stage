@@ -6,7 +6,7 @@ using Cratis.Screenplay.Semantics;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Renders atomic freshness scopes for generated event destinations at ESM v15.
+/// Renders atomic freshness scopes for generated event destinations for applications using concept generation.
 /// </summary>
 internal static class SemanticGeneratedFreshness
 {
@@ -14,7 +14,7 @@ internal static class SemanticGeneratedFreshness
     const string Sequences = "global::Cratis.Chronicle.EventSequences";
 
     internal static IEnumerable<SemanticProperty> Destinations(SemanticCommand command, SemanticApplicationContext context) =>
-        !context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) || command.Properties.All(property => !property.IsGenerated) ? [] : command.Produces
+        !SemanticGenerationShapes.UsesConceptGeneration(context.Request.Model.Application) || command.Properties.All(property => !property.IsGenerated) ? [] : command.Produces
             .Select(produced => SemanticDestinations.Of(command, produced)).OfType<SemanticResolvedExpression>()
             .Select(destination => command.Properties.Single(property => property.Id == destination.Target))
             .Where(property => Primitive(property, context) is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text).DistinctBy(property => property.Id);

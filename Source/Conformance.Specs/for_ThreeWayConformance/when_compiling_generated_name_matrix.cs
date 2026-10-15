@@ -2,19 +2,23 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Text.Json;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
 using Cratis.Stage.Specifications;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -22,7 +26,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// <summary>
 /// Crosses the declarations emitted by the semantic renderers with record-synthesized and
 /// inherited members, authored siblings and the namespaces in which the declarations live.
-/// Every case compiles the real renderer output, even when admission returns no artifacts.
+/// Every case compiles the real renderer output, even when admission returns no artifacts, and then proves that the
+/// C# import resolver's short-name output binds every name, attribute and invocation exactly like today's qualified output.
 /// </summary>
 public class when_compiling_generated_name_matrix
 {
@@ -232,6 +237,15 @@ public class when_compiling_generated_name_matrix
                 results[entry.Row] = $"{entry.Row}: {exception}";
             }
         }
+
+        // The rows live in separate root namespaces, so one rewrite of the whole batch proves each of them.
+        var proof = QualifiedOutputProof.Verify(files, rows.SelectMany(Inventory));
+        foreach (var (entry, index) in rows.Select((entry, index) => (entry, index)))
+        {
+            var failures = proof.Failures.Where(failure => !failure.Contains('/', StringComparison.Ordinal) ||
+                failure.StartsWith($"{index}/", StringComparison.Ordinal) || failure.Contains($"~/{index}/", StringComparison.Ordinal)).ToArray();
+            if (failures.Length > 0) results[entry.Row] = $"{results.GetValueOrDefault(entry.Row)}{entry.Row}: {string.Join(Environment.NewLine, failures)}";
+        }
     }
 
     [Theory]
@@ -267,6 +281,88 @@ public class when_compiling_generated_name_matrix
         Verify(Mutate(kind, name, typeName: true), $"crossnamespace/framework/{kind}/{name}");
 
     [Theory]
+    [InlineData("event", "guid")]
+    [InlineData("event", "enumerable")]
+    [InlineData("command", "guid")]
+    [InlineData("command", "string")]
+    [InlineData("readmodel", "guid")]
+    [InlineData("readmodel", "math")]
+    [InlineData("type", "dateTimeOffset")]
+    [InlineData("type", "enumerable")]
+    public Task record_members_named_like_framework_types_match_the_emitted_compilation(string kind, string name) =>
+        Verify(Mutate(kind, name, typeName: false), $"shadow/{kind}/{name}");
+
+    [Fact]
+    public void the_resolver_spells_the_base_model_by_short_names()
+    {
+        var entry = Prepare(Original, "crossnamespace/base");
+        var proof = QualifiedOutputProof.Verify(entry.Files, Inventory(entry));
+        Assert.True(proof.Failures.Count == 0, string.Join(Environment.NewLine, proof.Failures));
+        Assert.True(proof.ShortSpellings > 20, $"Only {proof.ShortSpellings} references were spelled short.");
+    }
+
+    [Fact]
+    public void the_binding_comparison_rejects_a_short_name_a_member_hides()
+    {
+        const string content = """
+            namespace Projects.Shadows;
+
+            public record Shadow(string Guid)
+            {
+                public global::System.Guid Parsed => global::System.Guid.Parse(Guid);
+            }
+            """;
+        var qualifier = content.LastIndexOf("global::System.", StringComparison.Ordinal);
+        var failures = QualifiedOutputProof.Compare(
+            [new("Projects/Shadow.cs", content)],
+            new Dictionary<string, ImmutableArray<TextChange>>
+            {
+                ["Projects/Shadow.cs"] = [new(new(qualifier, "global::System.".Length), string.Empty)]
+            });
+        Assert.Contains(failures, failure => failure.Contains("'Guid' bound to NamedType global::System.Guid", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [MemberData(nameof(FrameworkAmbiguityRows))]
+    public void framework_ambiguities_bind_like_the_qualified_output(string row, string content, string qualified)
+    {
+        var proof = QualifiedOutputProof.Verify([new($"Projects/{row}.cs", content)]);
+        Assert.True(proof.Failures.Count == 0, string.Join(Environment.NewLine, proof.Failures));
+        Assert.Contains(qualified, proof.Rewritten.Single().Content, StringComparison.Ordinal);
+    }
+
+    // Cases that are not model shapes: Cratis.Arc.Identity is a global using and also declares IIdentityProvider, and a
+    // record member hides a framework type in an expression but not in a type position.
+    public static TheoryData<string, string, string> FrameworkAmbiguityRows => new()
+    {
+        {
+            "identities",
+            """
+            namespace Projects.Identities;
+
+            public record Reader(global::Cratis.Chronicle.Identities.IIdentityProvider Identities, global::Cratis.Arc.Identity.IIdentityProvider Users)
+            {
+                public global::Cratis.Chronicle.Identities.Identity Current() => Identities.GetCurrent();
+            }
+            """,
+            "global::Cratis.Chronicle.Identities.IIdentityProvider Identities"
+        },
+        {
+            "member-shadow",
+            """
+            namespace Projects.Shadows;
+
+            public record Shadow(string Guid, string Enumerable)
+            {
+                public global::System.Guid Parsed => global::System.Guid.Parse(Guid);
+                public int Count => global::System.Linq.Enumerable.Count(Enumerable);
+            }
+            """,
+            "global::System.Guid.Parse(Guid)"
+        }
+    };
+
+    [Theory]
     [InlineData("iReadModels")]
     [InlineData("readModelAttribute")]
     [InlineData("keyAttribute")]
@@ -279,8 +375,11 @@ public class when_compiling_generated_name_matrix
         var plan = when_rendering_a_pure_reducer.Plan(loaded);
         Assert.True(plan.Success, string.Join("; ", plan.Diagnostics));
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
-            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
         Assert.Empty(RenderedOutput.Errors(files));
+
+        // The reducer body is authored and rendered verbatim: imports may not change what it binds to.
+        Assert.Empty(QualifiedOutputProof.Verify(files).Failures);
     }
 
     [Theory]
@@ -824,6 +923,20 @@ public class when_compiling_generated_name_matrix
         {
             Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" || diagnostic.Code == "STAGE-ESM-017");
         }
+
+        // Batched rows are proven once per batch by VerifyBatch.
+        if (compiledErrors is null)
+        {
+            var proof = QualifiedOutputProof.Verify(files, Inventory(entry));
+            Assert.True(proof.Failures.Count == 0, $"{row}: {string.Join(Environment.NewLine, proof.Failures)}");
+        }
+    }
+
+    static IEnumerable<GeneratedTypeName> Inventory(MatrixRow entry)
+    {
+        var context = new SemanticApplicationContext(entry.Request, entry.Options);
+        return SemanticCratisAdmission.GeneratedDeclarations(context, context.SelectedSlices())
+            .Select(declaration => new GeneratedTypeName(CatalogNames.Qualify(context.RootNamespace, declaration.Namespace), declaration.Name));
     }
 
     sealed record MatrixRow(

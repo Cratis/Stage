@@ -83,6 +83,11 @@
         <EmbeddedResource Include="../Frontend/styledPrimeReact.ts" LogicalName="StageFrontend/styledPrimeReact.ts" />
     </ItemGroup>
     <ItemGroup>
+        <!-- The framework names in scope in a generated project, read by the C# import resolver. Generated from the
+             scaffold's restored compile assets by for_FrameworkNameCatalog; checked in so its changes show in review. -->
+        <EmbeddedResource Include="Naming/Imports/FrameworkNames.catalog" LogicalName="Cratis.Stage.Rendering.Cratis.Naming.Imports.FrameworkNames.catalog" />
+    </ItemGroup>
+    <ItemGroup>
         <!-- One tenant translation implementation serves the Stage runtime and generated providers. -->
         <EmbeddedResource Include="../Stage/Runtime/PortableTenantValues.cs" LogicalName="PortableTenantValues.cs" />
         <EmbeddedResource Include="../Stage/Runtime/AmbiguousTenant.cs" LogicalName="AmbiguousTenant.cs" />

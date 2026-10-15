@@ -19,6 +19,11 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     public string Domain { get; init; } = string.Empty;
 
     /// <summary>
+    /// Gets the requested gap policy. Refuse preserves existing behavior; stub rendering requires target support.
+    /// </summary>
+    public ImplementationGapMode ImplementationGaps { get; init; } = ImplementationGapMode.Refuse;
+
+    /// <summary>
     /// Gets the caller's complete Cratis profile for source and scaffold planning, or null to use the default profile.
     /// The profile must match the application names and omit domain placement, which is owned by <see cref="Domain"/>.
     /// Scaffold-only planning includes its strings catalog but reports Scene output as application-scope only.

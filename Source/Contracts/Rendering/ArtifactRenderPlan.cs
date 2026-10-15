@@ -223,7 +223,8 @@ public sealed class ArtifactRenderPlan
         string applicationName,
         SemanticRevision semanticRevision,
         ImmutableArray<PlannedArtifact> artifacts,
-        ImmutableArray<ArtifactRenderDiagnostic> diagnostics)
+        ImmutableArray<ArtifactRenderDiagnostic> diagnostics,
+        ImmutableArray<ArtifactImplementationGap> implementationGaps)
     {
         Target = target;
         TargetVersion = targetVersion;
@@ -233,6 +234,7 @@ public sealed class ArtifactRenderPlan
         SemanticRevision = semanticRevision;
         Artifacts = artifacts;
         Diagnostics = diagnostics;
+        ImplementationGaps = implementationGaps;
     }
 
     /// <summary>
@@ -291,9 +293,14 @@ public sealed class ArtifactRenderPlan
     public ImmutableArray<ArtifactRenderDiagnostic> Diagnostics { get; }
 
     /// <summary>
+    /// Gets implementation gaps in ordinal requirement-identity order. Empty preserves the original digest format.
+    /// </summary>
+    public ImmutableArray<ArtifactImplementationGap> ImplementationGaps { get; }
+
+    /// <summary>
     /// Gets the output-only SHA-256 digest, excluding the semantic revision.
     /// </summary>
-    public string Digest => ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics);
+    public string Digest => ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics, ImplementationGaps);
 
     /// <summary>
     /// Gets a value indicating whether the plan is complete and publishable.
@@ -311,7 +318,22 @@ public sealed class ArtifactRenderPlan
     public static ArtifactRenderPlan Create(
         ArtifactRenderRequest request,
         ImmutableArray<PlannedArtifact> artifacts,
-        ImmutableArray<ArtifactRenderDiagnostic> diagnostics)
+        ImmutableArray<ArtifactRenderDiagnostic> diagnostics) => Create(request, artifacts, diagnostics, []);
+
+    /// <summary>
+    /// Creates a destination-independent plan carrying validated implementation-gap metadata.
+    /// </summary>
+    /// <param name="request">The fully resolved render request.</param>
+    /// <param name="artifacts">The target artifacts.</param>
+    /// <param name="diagnostics">The typed diagnostics.</param>
+    /// <param name="implementationGaps">The implementation gaps; empty preserves the original digest.</param>
+    /// <returns>The complete deterministic plan.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The plan or gap metadata is malformed.</exception>
+    public static ArtifactRenderPlan Create(
+        ArtifactRenderRequest request,
+        ImmutableArray<PlannedArtifact> artifacts,
+        ImmutableArray<ArtifactRenderDiagnostic> diagnostics,
+        ImmutableArray<ArtifactImplementationGap> implementationGaps)
     {
         if (request is null || request.Model is null || request.ExecutionPlan is null || request.Profile is null || request.Scope is null ||
             request.ExecutionPlan.Revision != request.Model.Revision || !ScopeMatches(request) ||
@@ -350,7 +372,8 @@ public sealed class ArtifactRenderPlan
                     .ThenBy(_ => _.Code, StringComparer.Ordinal)
                     .ThenBy(_ => _.Artifact.ToString(), StringComparer.Ordinal)
                     .ThenBy(_ => _.Message, StringComparer.Ordinal)
-            ])
+            ],
+            ArtifactImplementationGapDigest.Normalize(implementationGaps))
         {
             Scope = request.Scope,
             AdditionalScopes = request.AdditionalScopes
@@ -375,7 +398,31 @@ public sealed class ArtifactRenderPlan
         string rendererVersion,
         string applicationName,
         ImmutableArray<PlannedArtifact> artifacts,
-        ImmutableArray<ArtifactRenderDiagnostic> diagnostics)
+        ImmutableArray<ArtifactRenderDiagnostic> diagnostics) =>
+        ComputeDigest(target, targetVersion, renderer, rendererVersion, applicationName, artifacts, diagnostics, []);
+
+    /// <summary>
+    /// Computes the output digest, appending the implementation-gaps-v1 segment only for nonempty gaps.
+    /// </summary>
+    /// <param name="target">The target identity.</param>
+    /// <param name="targetVersion">The target version.</param>
+    /// <param name="renderer">The renderer identity.</param>
+    /// <param name="rendererVersion">The renderer version.</param>
+    /// <param name="applicationName">The application name.</param>
+    /// <param name="artifacts">The output artifacts.</param>
+    /// <param name="diagnostics">The output diagnostics.</param>
+    /// <param name="implementationGaps">The output implementation gaps.</param>
+    /// <returns>The lowercase SHA-256 digest.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The gap metadata is malformed.</exception>
+    public static string ComputeDigest(
+        string target,
+        string targetVersion,
+        string renderer,
+        string rendererVersion,
+        string applicationName,
+        ImmutableArray<PlannedArtifact> artifacts,
+        ImmutableArray<ArtifactRenderDiagnostic> diagnostics,
+        ImmutableArray<ArtifactImplementationGap> implementationGaps)
     {
         // Length-prefixed fields keep arbitrary diagnostic text and artifact names unambiguous.
         using var stream = new MemoryStream();
@@ -405,6 +452,7 @@ public sealed class ArtifactRenderPlan
             writer.Write(diagnostic.Artifact.ToString());
             writer.Write(diagnostic.Message);
         }
+        ArtifactImplementationGapDigest.Write(writer, implementationGaps);
         writer.Flush();
 
         return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();

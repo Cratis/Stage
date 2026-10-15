@@ -20,7 +20,13 @@ namespace Cratis.Stage.Rendering.Cratis;
 /// </summary>
 /// <param name="ProjectName">The generated project and solution file name.</param>
 /// <param name="RootNamespace">The generated C# root namespace.</param>
-public sealed record CratisRenderingOptions(string ProjectName, string RootNamespace);
+public sealed record CratisRenderingOptions(string ProjectName, string RootNamespace)
+{
+    /// <summary>
+    /// Gets the requested gap policy. Refuse preserves existing behavior; stub rendering requires target support.
+    /// </summary>
+    public ImplementationGapMode ImplementationGaps { get; init; } = ImplementationGapMode.Refuse;
+}
 
 /// <summary>
 /// Provides the complete package-owned Cratis v1 target policy used by every planning caller.

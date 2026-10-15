@@ -22,7 +22,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "501d6ca6e98961a0fe8fd1390aff90aa3d90db4fd2db294998c37d89963ccaf8";
+    const string Digest = "0f8dc52e3c77d034e0ce0f4c317bd699cf121a8484c0b17f911e87206ef05c3e";
 
     const string Manifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -60,7 +60,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307
         Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props 1a6fdbd806aeb743e2930c016cd0978fd716cb46a8684e23124678c7e6f974d1 1098
+        Directory.Packages.props 3466b52e44e1e7dba425a78889ac7310cf4f3130d9fb4451f0ae1513ab1dff5c 1098
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
         README.md 2bed375a9bda95aa35cf3d523c58d79efd60f865ccf42ba3abb5a1117b928288 1732
@@ -119,7 +119,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         ArtifactRenderPlan.ComputeDigest(
             plan.Target,
             // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-            plan.TargetVersion.Replace("22.100.1", "22.87.0", StringComparison.Ordinal),
+            plan.TargetVersion.Replace("22.104.0", "22.87.0", StringComparison.Ordinal),
             plan.Renderer,
             plan.RendererVersion,
             plan.ApplicationName,
@@ -139,14 +139,14 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Fact] void should_cover_every_source_form() => Forms.Count.ShouldEqual(4);
 
-    // The previous frozen plan predates the Chronicle 19.66.0 and backend Arc 22.100.1 scaffold pins. CPM now keeps
+    // The previous frozen plan predates the Chronicle 19.66.0 and backend Arc 22.104.0 scaffold pins. CPM now keeps
     // those pins in Directory.Packages.props; frontend files may already name 22.100.1 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
         var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal).Replace("4.38.0", "4.22.1", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.100.1", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.104.0", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 

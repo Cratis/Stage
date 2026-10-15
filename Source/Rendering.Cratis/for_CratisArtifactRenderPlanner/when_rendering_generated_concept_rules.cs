@@ -30,7 +30,7 @@ public class when_rendering_generated_concept_rules : Specification
     [Theory]
     [InlineData("warning")]
     [InlineData("information")]
-    void should_refuse_non_error_severity_rules(string severity)
+    void should_render_non_error_severity_rules(string severity)
     {
         var model = Model(Pin);
         var concept = model.Application.Concepts.Single();
@@ -40,9 +40,8 @@ public class when_rendering_generated_concept_rules : Specification
             Concepts = [concept with { Validations = [.. concept.Validations.Select(rule => rule with { Severity = ruleSeverity })] }]
         });
         var plan = Render(model);
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-038" && diagnostic.Message.Contains("severity", StringComparison.OrdinalIgnoreCase));
+        Assert.True(plan.Success, string.Join(';', plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Text(plan, "Common/CustomerId.cs").ShouldContain("ConceptValidator<CustomerId>");
     }
 
     [Fact]

@@ -26,13 +26,13 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("9337e1f67867424a562a972555f7333c2677269096d4b1b88ca672bcdfca11ef");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("df59dec578a26db71571a0f93dafed1e575c88b138b4eaead43bd76fc6332cde");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("3d3cdbafcd57d2a6cca5b501b4503cacd3f149fc564706a94bc5ae008d136033");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
         // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-        _plan.TargetVersion.Replace("22.100.1", "22.87.0", StringComparison.Ordinal),
+        _plan.TargetVersion.Replace("22.104.0", "22.87.0", StringComparison.Ordinal),
         _plan.Renderer,
         _plan.RendererVersion,
         _plan.ApplicationName,
@@ -56,7 +56,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         }
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.100.1", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.104.0", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 }

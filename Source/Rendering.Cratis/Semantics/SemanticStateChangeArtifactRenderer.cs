@@ -269,7 +269,6 @@ internal static class SemanticStateChangeArtifactRenderer
         }
 
         var commandName = Identifiers.ToPascalCase(command.Name);
-        var types = new SemanticTypeSystem(context);
         builder.Summary($"Validates {Identifiers.ToWords(command.Name)}.")
             .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>")
             .OpenBlock($"public {commandName}Validator()");
@@ -277,11 +276,7 @@ internal static class SemanticStateChangeArtifactRenderer
         {
             var property = command.Properties.Single(_ => _.Id == rule.Property);
             var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
-            var optionalConceptType = property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true, IsCollection: false } &&
-                primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean
-                    ? types.Type(property.Type)
-                    : null;
-            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional, context.RootNamespace, optionalConceptType);
+            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context));
         }
 
         foreach (var id in constrained)
@@ -302,5 +297,19 @@ internal static class SemanticStateChangeArtifactRenderer
         }
 
         builder.EndBlock();
+    }
+
+    static SemanticValidationRendering.ConceptRendering CommandConceptRendering(SemanticValidationRule rule, SemanticProperty property, SemanticApplicationContext context)
+    {
+        var types = new SemanticTypeSystem(context);
+        var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
+        var optionalType = property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true, IsCollection: false } &&
+            primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean
+                ? types.Type(property.Type)
+                : null;
+        var enumOperand = property.Type.Kind == SemanticTypeReferenceKind.Concept && !context.Concepts[property.Type.Target].Values.IsEmpty
+            ? types.Value(rule.Operand!, property.Type)
+            : null;
+        return new(optionalType, enumOperand);
     }
 }

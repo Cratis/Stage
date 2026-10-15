@@ -20,7 +20,7 @@ public class with_a_mismatching_read_model_expectation : Specification
             StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         plan.Success.ShouldBeTrue();
-        _projection = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_aproject_is_projected.cs", StringComparison.Ordinal)).Bytes.AsSpan());
+        _projection = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_a_project_is_projected.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
     [Fact] void should_assert_the_wrong_value_rather_than_silently_accepting_it() => _projection.ShouldContain(".Name.ShouldEqual(new global::Invoices.Common.ProjectName(\"Wrong project name\"))");

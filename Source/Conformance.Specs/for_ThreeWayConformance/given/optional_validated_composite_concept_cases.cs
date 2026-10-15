@@ -51,6 +51,25 @@ internal static class optional_validated_composite_concept_cases
         return WithSlices(model, Slices(model).Select(slice => WithOptionalValues(model, slice)));
     }
 
+    internal static ExecutableSemanticModel Admitted()
+    {
+        var model = Compile();
+        return WithSlices(model, Slices(model).Select(slice => slice with
+        {
+            Specifications = [.. slice.Specifications.Where(specification => !specification.Name.EndsWith("NestedNull", StringComparison.Ordinal))]
+        }));
+    }
+
+    internal static ExecutableSemanticModel ExplicitNull(string shape)
+    {
+        var model = Compile();
+        var slice = Slices(model).Single(slice => string.Equals(slice.Name, $"{shape}Input", StringComparison.Ordinal));
+        return WithSlices(model, [slice with
+        {
+            Specifications = [slice.Specifications.Single(specification => specification.Name.EndsWith("NestedNull", StringComparison.Ordinal))]
+        }]);
+    }
+
     internal static ExecutableSemanticModel Reordered()
     {
         var model = Compile();

@@ -21,9 +21,28 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_comparing_optional_validated_composite_concepts(when_comparing_optional_validated_composite_concepts.context fixture, ITestOutputHelper output) : IClassFixture<when_comparing_optional_validated_composite_concepts.context>
 {
-    [Fact] void should_cover_absent_parents_members_valid_invalid_collections_and_recursion() => fixture.Outcomes.Length.ShouldEqual(18);
+    [Fact] void should_cover_absent_parents_members_valid_invalid_collections_and_recursion() => fixture.Outcomes.Length.ShouldEqual(16);
     [Fact] void should_match_every_executed_path() => ThreeWayOutcomes.Report(fixture, output);
     [Fact] void should_pin_the_stage_executor_gap_tracked_in_441() => Assert.All(fixture.Outcomes, outcome => Assert.Contains("Reference=Passed, Stage=Unsupported(Command), Rendered=Passed", outcome, StringComparison.Ordinal));
+
+    [Theory]
+    [InlineData("RequiredDetails")]
+    [InlineData("OptionalDetails")]
+    public void should_refuse_explicit_null_members_that_pass_the_reference(string shape)
+    {
+        var model = optional_validated_composite_concept_cases.ExplicitNull(shape);
+        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Values.Single().Id);
+        Assert.True(reference.Passed, string.Join(';', reference.Failures));
+        var rendered = CratisRendering.Plan(
+            model,
+            plan,
+            new(ArtifactRenderScopeKind.Application, model.Application.Id),
+            new("OptionalComposites", "OptionalComposites"));
+        Assert.False(rendered.Success);
+        Assert.Empty(rendered.Artifacts);
+        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics).Code);
+    }
 
     [Fact]
     async Task should_refuse_reordered_rejection_inputs_that_pass_the_reference()
@@ -55,13 +74,13 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
 
         // Let Verify read failing probe facts from the TRX and mark their individual Rendered outcomes Failed.
         protected override bool ExpectFailedGeneratedTest => true;
-        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("typed", optional_validated_composite_concept_cases.Compile())];
+        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("typed", optional_validated_composite_concept_cases.Admitted())];
 
         async Task Because()
         {
             var rendered = CreatePlan();
             Assert.True(rendered.Success, string.Join(Environment.NewLine, rendered.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
-            var model = optional_validated_composite_concept_cases.Compile();
+            var model = optional_validated_composite_concept_cases.Admitted();
             var plan = SemanticExecutionPlan.Compile(model).Plan!;
             var options = new CratisRenderingOptions(ApplicationName, ApplicationName);
             var request = new ArtifactRenderRequest(model, plan, CratisRendering.CreateProfile(ApplicationName, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));

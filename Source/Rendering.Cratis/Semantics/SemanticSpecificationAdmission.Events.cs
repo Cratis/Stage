@@ -57,7 +57,7 @@ internal static partial class SemanticSpecificationAdmission
     static bool IsComparableCompositeValue(SemanticCompositeValue value, SemanticTypeReference type, SemanticApplicationContext? context)
     {
         // The reference compares composites structurally, including omitted members; C# record equality does not
-        // distinguish omission from explicit null. This is latent while authored fixtures reject null literals.
+        // distinguish omission from explicit null, so refuse explicit null members even in typed fixtures.
         // Record equality also compares collection-valued members by reference, so keep those unsupported.
         return value.Properties.All(property => HasComparableValue(property.Value)) &&
             (context is null || CompositeMembersFollowDeclarationOrder(value, context.Types[type.Target], context));
@@ -74,7 +74,6 @@ internal static partial class SemanticSpecificationAdmission
     static bool HasComparableValue(SemanticValue value) => value switch
     {
         SemanticCompositeValue composite => composite.Properties.All(property => HasComparableValue(property.Value)),
-        SemanticNullValue => true,
         _ => IsScalar(value)
     };
 

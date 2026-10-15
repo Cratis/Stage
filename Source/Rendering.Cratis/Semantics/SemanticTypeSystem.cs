@@ -173,7 +173,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         {
             var semanticType = context.Types[type.Target];
             var values = semanticType.Properties.Select(property =>
-                Value(composite.Properties.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+                Value(composite.Properties.SingleOrDefault(_ => _.TargetProperty == property.Id)?.Value ?? SemanticValue.Null, property.Type));
             return $"new {CommonType(semanticType.Name)}({string.Join(", ", values)})";
         }
 

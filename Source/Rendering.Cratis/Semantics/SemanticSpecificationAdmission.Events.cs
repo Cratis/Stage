@@ -45,11 +45,22 @@ internal static partial class SemanticSpecificationAdmission
 
         if (type.IsCollection)
         {
-            return value is SemanticArrayValue array && array.Values.All(IsScalar);
+            return value is SemanticArrayValue array && array.Values.All(element => IsCompatible(element, type with { IsCollection = false, IsOptional = false }));
         }
 
-        return IsScalar(value);
+        return IsScalar(value) || (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite &&
+            composite.Properties.All(property => IsComparableCompositeValue(property.Value)));
     }
+
+    // This predicate also protects expected-event and read-model equality assertions. Record equality compares
+    // nested records by value, but collection-valued members by reference. Keep those shapes unsupported.
+    // The admitted ESM has already checked required members and the types of supplied composite members.
+    static bool IsComparableCompositeValue(SemanticValue value) => value switch
+    {
+        SemanticCompositeValue composite => composite.Properties.All(property => IsComparableCompositeValue(property.Value)),
+        SemanticNullValue => true,
+        _ => IsScalar(value)
+    };
 
     static bool IsScalar(SemanticValue value) => value is SemanticTextValue or SemanticNumberValue or SemanticBooleanValue;
 }

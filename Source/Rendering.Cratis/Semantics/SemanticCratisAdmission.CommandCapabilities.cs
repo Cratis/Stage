@@ -209,7 +209,8 @@ internal static partial class SemanticCratisAdmission
         foreach (var property in context.Types[type.Target].Properties)
         {
             var nestedPath = $"{path}.{property.Name}";
-            if (property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } && !context.Concepts[property.Type.Target].Validations.IsEmpty)
+            if (property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } &&
+                !context.Concepts[property.Type.Target].Validations.IsEmpty && !HasNullPassingScalarConcept(context, property.Type))
             {
                 yield return $"{nestedPath} ({context.Concepts[property.Type.Target].Name})";
             }

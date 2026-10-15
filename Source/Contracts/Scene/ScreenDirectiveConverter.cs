@@ -151,7 +151,7 @@ public static class ScreenDirectiveConverter
             new Dictionary<string, object?>
             {
                 ["name"] = button.Id,
-                ["kind"] = ScreenplaySyntax.ToolbarItemKind.Action.ToString(),
+                ["kind"] = nameof(ScreenplaySyntax.ToolbarItemKind.Action),
                 ["label"] = button.Title,
                 ["slice"] = button.Slice is null ? null : StructureConverter.QualifiedSlice(scope.Structure, button.Slice),
                 ["emphasis"] = button.Emphasis?.ToString().ToLowerInvariant(),

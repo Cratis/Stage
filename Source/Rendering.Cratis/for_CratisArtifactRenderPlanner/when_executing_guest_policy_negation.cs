@@ -175,7 +175,7 @@ public class when_executing_guest_policy_negation(context fixture) : IClassFixtu
                             ("File4", true), ("File5", true), ("File6", true), ("File7", false),
                             ("GuestReport", true), ("NoGuestReport", false), ("EitherReport", true)
                         ];
-                        var types = typeof(GuestRegistrations).Assembly.GetTypes();
+                        var types = typeof(Invoices.GeneratedPolicies.Registration).Assembly.GetTypes();
                         foreach (var (operation, anonymous) in expected)
                         {
                             MemberInfo target = operation.StartsWith("File", StringComparison.Ordinal)

@@ -91,9 +91,9 @@ public class when_building_the_generated_screen_composition_application(when_bui
 
         async Task Because()
         {
-            DebugBuild = await ApplicationProcess.Run(_application, _stepTimeout, "dotnet", "build", "Workspaces.csproj", "-c", "Debug", "--nologo");
+            DebugBuild = await ApplicationProcess.Run(_application, _stepTimeout, "dotnet", "build", "Workspaces.slnx", "-c", "Debug", "--nologo");
             DebugTest = DebugBuild.ExitCode == 0
-                ? await ApplicationProcess.Run(_application, _stepTimeout, "dotnet", "test", "Workspaces.csproj", "-c", "Debug", "--no-build", "--nologo")
+                ? await ApplicationProcess.Run(_application, _stepTimeout, "dotnet", "test", "Workspaces.Specs/Workspaces.Specs.csproj", "-c", "Debug", "--no-build", "--nologo")
                 : new(-1, "The generated specifications were not run because the Debug build failed.");
             Install = DebugBuild.ExitCode == 0
                 ? await ApplicationProcess.Run(_application, _stepTimeout, "npm", "install", "--no-audit", "--no-fund")

@@ -35,6 +35,22 @@ layout AppShell
         topbar height 56
         content grow
 
+// Design and preview time only: the rows a table shows before a backend feeds it. The profile chooses the active pack once.
+sample data NordicDemo
+  title "Billing - Nordic demo"
+  locale nb-NO
+  shape InvoiceSummary
+    row
+      invoiceNumber = "INV-1001"
+      customerName = "Fjordline AS"
+      status = "issued"
+      canCancel = true
+    row
+      invoiceNumber = "INV-1002"
+      customerName = "Nordlys Kraft"
+      status = "paid"
+      canCancel = false
+
 ui profile Desktop
   target platform web
   target size expanded
@@ -43,6 +59,8 @@ ui profile Desktop
     primereact
   layout AppShell
   theme Corporate
+  sample data
+    active NordicDemo
 
 ui profile Phone
   target platform web, ios, android

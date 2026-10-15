@@ -146,6 +146,7 @@ of text, which is why it lives on the plan.
 | `StructureInvalid` | Scene's structure index could not index the application's modules, features and slices, for example because two siblings share an id. Navigation targets and toolbar buttons resolve against that index, so they are not trustworthy until it is. |
 | `NavigationInvalid` | Scene's navigation diagnostics found a problem in a `navigation` region: a target that does not exist or is out of a module's scope, a slot no layout declares, a duplicate item id, or a module with no feature to go to. The message carries Scene's code, such as `NavTargetMissing`. |
 | `ToolbarButtonInvalid` | Scene's toolbar validation found a problem in a `button`: a slice that does not exist, a slice that is not a State Change slice, or a button that names no slice. The message carries Scene's code, such as `ToolbarButtonSliceNotStateChange`. |
+| `SampleDataInvalid` | Scene's sample data validation found a problem with a pack or a profile's selection: two pack names that derive the same id, an invalid locale, a repeated shape, or an active, mapped or bound pack that is not available. Design and preview time only; a production build is unaffected. |
 | `SizeClassVariantMissing` | A freeform arrangement declares no variant for the size class this target renders at. Freeform has no fallback variant by design, so those slots have nowhere to go. |
 
 ## One invocation, one plan per target

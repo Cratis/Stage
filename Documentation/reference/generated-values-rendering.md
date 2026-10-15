@@ -68,7 +68,7 @@ Stage admits exact ESM v1–v21 language/semantic pairs. Version admission does 
 | --- | --- |
 | v15 | UUID, UUID-v7, ULID, TypeID, NanoID and bytes factories |
 | v20 | Rules on generated concepts; unpinned rendered specifications require every rule to be proven |
-| v21 | Version admitted; `generate pattern`, `generate random` and `generate rule` are refused with strategy-specific `STAGE-ESM-028` diagnostics; `validate checksum` is refused with `STAGE-ESM-041` |
+| v21 | Version admitted; `generate pattern`, `generate random` and `generate rule` are refused with strategy-specific `STAGE-ESM-028` diagnostics; `validate checksum` is refused with `STAGE-ESM-042` |
 
 These v21 constructs are also refused by the Host and independent specification executor. The legacy syntax renderer refuses checksum and other unknown validation rules rather than emitting a TODO and omitting the check. No artifacts are published for a refused semantic render plan.
 
@@ -209,7 +209,7 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 | --- | --- |
 | `PLAY0268` (Screenplay) | Compliance markers on a generated concept |
 | `STAGE-ESM-028` | `pattern`, `random`, `rule` and unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy and generated properties whose concepts have rules |
-| `STAGE-ESM-041` | Unsupported `validate checksum`; the legacy syntax renderer also refuses other unknown validation rule kinds |
+| `STAGE-ESM-042` | Unsupported `validate checksum`; the legacy syntax renderer also refuses other unknown validation rule kinds |
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |

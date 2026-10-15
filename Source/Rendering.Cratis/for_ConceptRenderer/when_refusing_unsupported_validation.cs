@@ -20,6 +20,6 @@ public class when_refusing_unsupported_validation : given.concepts
             Validations = [new DeclarativeValidateSyntax([new(ValidationRuleSyntax.ConceptValue, kind, new LiteralExpressionSyntax("luhn", SourceLocation.Start), null, SourceLocation.Start)], SourceLocation.Start)]
         };
         var error = Assert.Throws<UnsupportedValidationRule>(() => ConceptRenderer.Render(concept, _applicationSet, "Shop"));
-        Assert.StartsWith("STAGE-ESM-041:", error.Message, StringComparison.Ordinal);
+        Assert.StartsWith("STAGE-ESM-042:", error.Message, StringComparison.Ordinal);
     }
 }

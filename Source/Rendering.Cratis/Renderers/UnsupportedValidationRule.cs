@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
@@ -16,7 +17,7 @@ public sealed class UnsupportedValidationRule(ValidationRuleSyntax rule) : Excep
     /// <summary>
     /// The stable diagnostic code for unsupported validation rules.
     /// </summary>
-    public const string DiagnosticCode = "STAGE-ESM-041";
+    public const string DiagnosticCode = SemanticVersionFeatures.UnsupportedValidation;
 
     /// <summary>
     /// Gets the authored source location.

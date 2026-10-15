@@ -27,6 +27,6 @@ public class when_refusing_unsupported_validation : Specification
             null,
             location);
         var error = Assert.Throws<UnsupportedValidationRule>(() => CommandValidatorRenderer.Render(new CSharpCodeBuilder(), command, "Register", new ApplicationSet([]), []));
-        Assert.StartsWith("STAGE-ESM-041:", error.Message, StringComparison.Ordinal);
+        Assert.StartsWith("STAGE-ESM-042:", error.Message, StringComparison.Ordinal);
     }
 }

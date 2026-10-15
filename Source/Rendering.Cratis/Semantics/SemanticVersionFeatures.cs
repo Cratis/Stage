@@ -93,6 +93,11 @@ internal static class SemanticVersionFeatures
     internal const string ProtectedIdentity = "STAGE-ESM-040";
 
     /// <summary>
+    /// The code for checksum validation and other validation rules the legacy renderer cannot preserve.
+    /// </summary>
+    internal const string UnsupportedValidation = "STAGE-ESM-042";
+
+    /// <summary>
     /// Checks the language and semantic version pair Stage has audited.
     /// </summary>
     /// <param name="model">The executable model.</param>
@@ -423,7 +428,7 @@ internal static class SemanticVersionFeatures
             }
             if (concept.Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.Checksum))
             {
-                yield return new("STAGE-ESM-041", StageExecutionCapability.Command, concept.Id, "concept", $"Concept '{concept.Name}' uses 'validate checksum', which Stage does not support yet.");
+                yield return new(UnsupportedValidation, StageExecutionCapability.Command, concept.Id, "concept", $"Concept '{concept.Name}' uses 'validate checksum', which Stage does not support yet.");
             }
         }
     }

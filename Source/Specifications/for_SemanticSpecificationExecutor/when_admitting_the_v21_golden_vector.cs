@@ -20,5 +20,34 @@ public class when_admitting_the_v21_golden_vector : Specification
     [Fact] void should_read_the_full_v21_vector() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V21);
     [Fact] void should_run_a_nonempty_specification_set() => _report.Results.ShouldNotBeEmpty();
     [Fact] void should_not_refuse_the_audited_version() => _report.Results.Any(result => result.Unsupported?.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal) == true).ShouldBeFalse();
-    [Fact] void should_keep_construct_refusals() => _report.Results.Any(result => result.Outcome == SemanticSpecificationOutcome.Unsupported).ShouldBeTrue();
+    [Theory]
+    [InlineData("PatternReference", false, "STAGE-ESM-028: Concept 'PatternReference' uses 'generate pattern', which Stage does not support yet.")]
+    [InlineData("TicketNumber", false, "STAGE-ESM-028: Concept 'TicketNumber' uses 'generate random', which Stage does not support yet.")]
+    [InlineData("TenantOrderId", false, "STAGE-ESM-028: Concept 'TenantOrderId' uses 'generate rule', which Stage does not support yet.")]
+    [InlineData("PatternReference", true, "STAGE-ESM-042: Concept 'PatternReference' uses 'validate checksum', which Stage does not support yet.")]
+    async Task should_keep_construct_refusals(string conceptName, bool checksumOnly, string expectedDetails)
+    {
+        var concept = _plan.Model.Application.Concepts.Single(concept => concept.Name == conceptName);
+
+        // Execution reports the first blocker; isolate each v21 concept in the admitted billing specification fixture.
+        const string source = conformance.when_running_inline_billing_validation.Source;
+        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("V21Refusals"));
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("refusals"), "refusals", "Refusals.play", source);
+        var compilation = new SemanticModelCompiler().Compile("V21Refusals", SemanticDocumentSet.Create([document], catalog));
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        var application = compilation.Value!.Model.Application;
+        var model = ExecutableSemanticModel.Create(_plan.Model.LanguageVersion, _plan.Model.SemanticVersion, application with
+        {
+            Concepts = application.Concepts.Add(concept with { Generation = checksumOnly ? null : concept.Generation })
+        });
+        var plan = SemanticExecutionPlan.Compile(model, []).Plan!;
+        var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
+        report.Results.ShouldNotBeEmpty();
+        Assert.All(report.Results, result =>
+        {
+            result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
+            result.Unsupported!.Details.ShouldEqual(expectedDetails);
+            result.Unsupported.Construct.ShouldEqual(concept.Id.ToString());
+        });
+    }
 }

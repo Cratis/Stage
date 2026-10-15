@@ -77,6 +77,7 @@ internal static partial class SemanticSpecificationAdmission
     static string? UnpinnedRuleBearingConcept(SemanticApplicationContext context, SemanticSpecification specification)
     {
         if (specification.When is not { } action || !context.Commands.TryGetValue(action.Command, out var command)) return null;
+        // Date-segment pattern generation is refused, so the current UTC year cannot affect admitted output.
         var property = UnpinnedGeneratedProperties(command, action).FirstOrDefault(property =>
             RuleConsistency.Check(context.Concepts[property.Type.Target]).Any(result => result.Status != RuleConsistencyStatus.Proven));
 

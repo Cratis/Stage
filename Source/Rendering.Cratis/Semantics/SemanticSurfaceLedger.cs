@@ -120,7 +120,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationRule", rejected("STAGE-ESM-005"), "Name RequirementId");
         Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches");
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown RulePredicate CodeValidation");
-        Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-041"), "Checksum");
+        Add(entries, "SemanticValidationRuleKind", rejected(SemanticVersionFeatures.UnsupportedValidation), "Checksum");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
         // State change: one or more commands with mapped events and portable When conditions in declaration order. Tags preserve

@@ -49,7 +49,7 @@ internal static partial class SemanticSpecificationAdmission
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
                     !AssertsUncontrolledOccurrence(specification, command!) &&
                     !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
-                    ValuesMatch(specification.When!.Values, [.. command!.Properties.Where(property => !property.IsGenerated)]) &&
+                    CommandValuesMatch(context, specification, command!) &&
                     HasOneOutcome(specification) && HasSupportedCounts(specification) &&
                     (specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == SemanticProductionSelection.Taken(command!, specification).Length) &&
                     specification.ThenEvents.All(expected => EventMatches(context, expected)) &&

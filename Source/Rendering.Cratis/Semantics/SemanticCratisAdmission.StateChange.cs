@@ -93,8 +93,7 @@ internal static partial class SemanticCratisAdmission
         }
 
         return context.Types[type.Target].Properties.Any(property =>
-            (property.Type.Kind == SemanticTypeReferenceKind.Concept && property.Type.IsOptional &&
-             !context.Concepts[property.Type.Target].Validations.IsEmpty) ||
+            HasUnsupportedOptionalConcept(context, property.Type) ||
             HasOptionalRequiredConcept(context, property.Type, visited));
     }
 }

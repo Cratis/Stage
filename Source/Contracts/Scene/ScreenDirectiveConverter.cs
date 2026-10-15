@@ -116,7 +116,7 @@ public static class ScreenDirectiveConverter
             ScreenplaySyntax.ScreenTitleSyntax title => SceneElementFactory.Component(id, "core:title", new Dictionary<string, object?> { ["text"] = title.Text }),
             ScreenplaySyntax.ScreenTableSyntax table => ConvertTable(table, id, scope),
             ScreenplaySyntax.ScreenSummarySyntax summary => ConvertSummary(summary, id),
-            ScreenplaySyntax.ScreenToolbarSyntax toolbar => ConvertToolbar(toolbar, id),
+            ScreenplaySyntax.ScreenToolbarSyntax toolbar => ConvertToolbar(toolbar, id, scope),
             ScreenplaySyntax.ScreenComponentSyntax component => ConvertComponent(component, id, scope),
             ScreenplaySyntax.ScreenCodeSyntax code => SceneElementFactory.Component(id, "core:code", new Dictionary<string, object?>
             {
@@ -126,7 +126,7 @@ public static class ScreenDirectiveConverter
             _ => throw new UnknownScreenDirective(directive.GetType().Name),
         };
 
-    static SceneElements.ExternalComponent ConvertToolbar(ScreenplaySyntax.ScreenToolbarSyntax toolbar, string id)
+    static SceneElements.ExternalComponent ConvertToolbar(ScreenplaySyntax.ScreenToolbarSyntax toolbar, string id, BehaviorScope scope)
     {
         var items = toolbar.Items.Select((item, index) => (SceneElements.SceneElement)SceneElementFactory.Component(
             $"{id}.{index}-item",
@@ -142,6 +142,21 @@ public static class ScreenDirectiveConverter
                 [SceneElementProperties.Destination] = ToolbarDestination(item),
                 ["presentation"] = item.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
             })).ToList();
+
+        // A button invokes a State Change slice: Scene's toolbar button is a core:toolbarItem of kind Action with a slice and an
+        // emphasis, read back by the engine's ToolbarButtons.FromItem. The slice is written as the qualified id the structure knows.
+        items.AddRange(toolbar.Buttons.Select((button, index) => (SceneElements.SceneElement)SceneElementFactory.Component(
+            $"{id}.{index}-button",
+            "core:toolbarItem",
+            new Dictionary<string, object?>
+            {
+                ["name"] = button.Id,
+                ["kind"] = nameof(ScreenplaySyntax.ToolbarItemKind.Action),
+                ["label"] = button.Title,
+                ["slice"] = button.Slice is null ? null : StructureConverter.QualifiedSlice(scope.Structure, button.Slice),
+                ["emphasis"] = button.Emphasis?.ToString().ToLowerInvariant(),
+                ["icon"] = button.Icon,
+            })));
 
         return SceneElementFactory.Component(id, "core:toolbar", new Dictionary<string, object?> { ["name"] = toolbar.Name }, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["items"] = items });
     }

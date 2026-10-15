@@ -43,6 +43,6 @@ public static class DialogTemplateConverter
             template.DisplayName,
             template.Description)
         {
-            Metadata = CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes)
+            Metadata = CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes, template.SliceKinds)
         };
 }

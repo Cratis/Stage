@@ -42,6 +42,9 @@ module Invoicing
         template InvoiceWorkspace
           header
             title $strings.invoice.listTitle
+            toolbar invoiceActions
+              button register title "Register invoice" slice Invoicing.Invoices.RegisterInvoice emphasis primary icon add
+              button cancel title "Cancel invoice" slice CancelInvoice emphasis quiet
           body
             data InvoiceSummary[] via query Invoices
             table InvoiceSummary

@@ -95,5 +95,28 @@ public enum RenderFindingKind
     /// <summary>
     /// A <c>uses</c> clause names a behavior the document does not declare.
     /// </summary>
-    BehaviorNotFound = 13
+    BehaviorNotFound = 13,
+
+    /// <summary>
+    /// Scene's navigation diagnostics found a problem with a navigation region: a missing, unknown or out-of-scope target, an unknown
+    /// slot or a duplicate id.
+    /// </summary>
+    NavigationInvalid = 14,
+
+    /// <summary>
+    /// Scene's toolbar validation found a problem with a button: a slice that does not exist, a slice that is not a State Change slice,
+    /// or a button without a slice.
+    /// </summary>
+    ToolbarButtonInvalid = 15,
+
+    /// <summary>
+    /// Scene's structure index found a problem with the application's modules, features and slices, such as an ambiguous name.
+    /// </summary>
+    StructureInvalid = 16,
+
+    /// <summary>
+    /// Scene's sample data validation found a problem with a pack or with a profile's selection: an id or locale that is not valid,
+    /// a repeated shape, or an active, mapped or bound pack that is not available.
+    /// </summary>
+    SampleDataInvalid = 17
 }

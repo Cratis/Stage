@@ -35,10 +35,14 @@ internal static class SemanticValidationRendering
         (!text.Value.Any(_ => char.IsControl(_) || char.IsSurrogate(_)) && (rule.Message is not null || rule.Kind is not (SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) ||
         !text.Value.Any(_ => _ is '{' or '}')));
 
-    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null)
+    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, string? optionalConceptType = null)
     {
         var value = concept ? "_.Value" : $"_.{Identifiers.ToPascalCase(property)}";
-        var predicate = Predicate(rule, primitive, collection, wrapped && collection, optional);
+        var unwrap = (wrapped && collection) || optionalConceptType is not null;
+
+        // Select FluentValidation's property overload: Arc's concept overload replaces absence with default(T).
+        var ruleFor = optionalConceptType is null ? "RuleFor" : $"RuleFor<{optionalConceptType}>";
+        var predicate = Predicate(rule, primitive, collection, unwrap, optional);
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
         var severity = rule.Severity switch
         {
@@ -50,11 +54,11 @@ internal static class SemanticValidationRendering
         var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity(global::Cratis.Arc.Validation.ValidationResultSeverity.{severity})";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
-            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage(_ => global::{rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
+            builder.Line($"{ruleFor}(_ => {value}).Must(value => {predicate}).WithMessage(_ => global::{rootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
         else
         {
-            builder.Line($"RuleFor(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
+            builder.Line($"{ruleFor}(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
     }
 

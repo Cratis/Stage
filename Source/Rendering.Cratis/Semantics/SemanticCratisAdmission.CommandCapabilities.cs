@@ -85,9 +85,10 @@ internal static partial class SemanticCratisAdmission
                 continue;
             }
 
-            if (property.Type.IsOptional && concept.Primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean)
+            if (property.Type.IsOptional && concept.Primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean &&
+                (property.Type.IsCollection || rule.Kind == SemanticValidationRuleKind.NotEmpty))
             {
-                diagnostics.Add(CommandCapability(command, $"validation '{label}' on optional property '{property.Name}' requires nullable {concept.Primitive} concept '{concept.Name}' comparisons; Stage does not yet support faithful underlying-value predicates for this shape. Make the property non-optional only if absence is not part of the contract, or keep this shape unsupported (Cratis/Stage#409)."));
+                diagnostics.Add(CommandCapability(command, $"validation '{label}' on optional property '{property.Name}' uses {concept.Primitive} concept '{concept.Name}'; only absence-passing scalar comparisons are supported. Collection rules and 'not empty' remain unsupported. Make the property non-optional only if absence is not part of the contract, or keep this shape unsupported (Cratis/Stage#419)."));
             }
 
             if (!concept.Values.IsEmpty)

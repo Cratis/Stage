@@ -41,7 +41,7 @@ public class when_comparing_v2_corpus_specifications(when_comparing_v2_corpus_sp
         protected override string ProjectFile => "BackendHost.csproj";
         protected override CanonicalCorpusVector Baseline => RegisterProjectCorpus.V2;
         protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => RegisterProjectCorpus.V2.SourceForms.Select(form => (form.Name, CreateV2(form)));
-        public string TypedDestinationAssertion => System.Text.Encoding.UTF8.GetString(CreatePlan().Artifacts.Single(artifact => artifact.RelativePath.EndsWith("when_registering_aproject.cs", StringComparison.Ordinal)).Bytes.AsSpan());
+        public string TypedDestinationAssertion => System.Text.Encoding.UTF8.GetString(CreatePlan().Artifacts.Single(artifact => artifact.RelativePath.EndsWith("when_registering_a_project.cs", StringComparison.Ordinal)).Bytes.AsSpan());
         Task Because() => Verify();
     }
 }

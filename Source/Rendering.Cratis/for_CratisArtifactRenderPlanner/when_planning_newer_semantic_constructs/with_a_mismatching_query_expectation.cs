@@ -20,7 +20,7 @@ public class with_a_mismatching_query_expectation : Specification
             StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         plan.Success.ShouldBeTrue();
-        _query = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_aproject_is_queried.cs", StringComparison.Ordinal)).Bytes.AsSpan());
+        _query = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_a_project_is_queried.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
     [Fact] void should_assert_the_wrong_value_rather_than_seeding_it() => _query.ShouldContain("_result.Name == new global::Invoices.Common.ProjectName(\"Wrong query result\")");

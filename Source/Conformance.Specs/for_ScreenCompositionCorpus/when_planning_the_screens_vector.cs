@@ -70,13 +70,13 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
         Workspaces/Tracking/AddComment/when_adding_acomment.cs 317e90a82f631bd47dd13a15aaba8c2dae99c23e0459631c7274be2101570c95 1884
         Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 336c9b53311c6bddde7371b4e2e3018e70aa2b60acf87e614aa9867362d4afd8 1082
-        Workspaces/Tracking/CloseWorkItem/when_closing_awork_item.cs ec6f758f35f6e44f595b20f44aed5d1a9d39866acd56c272f1e8cfb1db1aa416 2064
+        Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs ec6f758f35f6e44f595b20f44aed5d1a9d39866acd56c272f1e8cfb1db1aa416 2064
         Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs 17c6b0173d5bb17eb3c5c084ec802f8df5206def555e1e584f629f8b473a58e1 1121
-        Workspaces/Tracking/CreateWorkItem/when_creating_awork_item.cs d2bcb0b9a25bd35a5f1c24ba3a9c991301c02d8f7de467cef0ec32ca6d5223f9 1755
+        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs d2bcb0b9a25bd35a5f1c24ba3a9c991301c02d8f7de467cef0ec32ca6d5223f9 1755
         Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 2bbf45806cd32a070025b607f825f01fa2c60d3ffb70c66baf3313e5602f100b 1033
-        Workspaces/Tracking/RenameWorkItem/when_renaming_awork_item.cs 4173f200623020b72a3025e1b96f48e482e5087a7845fd659a73c20a4f70bceb 2084
+        Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 4173f200623020b72a3025e1b96f48e482e5087a7845fd659a73c20a4f70bceb 2084
         Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 65ca5ed242aea42e3c4a06697e4695e414534b1f1e7ae8c6fe544720efb8fa2f 2179
-        Workspaces/Tracking/WorkItemComments/when_showing_comments_for_awork_item_is_queried.cs 3b9ba9e0fd0629540f2d3af23d947f76957d80a8e86aba4f7ba1e276a1b8a44e 2302
+        Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs 3b9ba9e0fd0629540f2d3af23d947f76957d80a8e86aba4f7ba1e276a1b8a44e 2302
         Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs b20d80c6e2c6ecd7f1ca5fe79745386c2608bddb1acb47ea5c7399bb4905268d 2920
         Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs 7348d49d01490ecb86f5b8489b95721c792d565c24b46b3304b851c1d0e91107 2833
         Workspaces/Tracking/WorkItemList/WorkItemList.cs 75aca71a66d0cec11f78c95dba6d241af52ea49576a4e51826cb03c40242676e 3209

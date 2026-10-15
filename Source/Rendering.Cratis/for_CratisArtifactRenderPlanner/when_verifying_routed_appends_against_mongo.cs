@@ -72,21 +72,16 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
                   for accountId
         """;
 
-    const string Probe = """
+    const string HostSupport = """
         // Copyright (c) Cratis. All rights reserved.
         // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-        using System.Reflection;
         using Cratis.Arc.MongoDB;
-        using Cratis.Chronicle.EventSources;
-        using Cratis.Chronicle.Registrations;
-        using Routes.Common;
-        using Xunit;
 
         public partial class Program
         {
-            internal static readonly TaskCompletionSource<WebApplication> Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            internal static WebApplication? ProbeApplication;
+            public static readonly TaskCompletionSource<WebApplication> Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            public static WebApplication? ProbeApplication;
 
             static partial void ConfigureServices(WebApplicationBuilder builder)
             {
@@ -102,7 +97,7 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
                 app.Lifetime.ApplicationStarted.Register(() => Started.TrySetResult(app));
             }
 
-            internal static WebApplication BuildProbe()
+            public static WebApplication BuildProbe()
             {
                 // This is copied from the emitted Program.cs, not a separately maintained hosting recipe.
                 __GENERATED_BOOTSTRAP__
@@ -110,12 +105,26 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
             }
         }
 
+        """;
+
+    const string Probe = """
+        // Copyright (c) Cratis. All rights reserved.
+        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+        using System.Reflection;
+        using Cratis.Chronicle.EventSources;
+        using Cratis.Chronicle.Registrations;
+        using Microsoft.AspNetCore.Builder;
+        using Microsoft.Extensions.DependencyInjection;
+        using Routes.Common;
+        using Xunit;
+
         namespace Routes.HostProbe
         {
         public class RouteProbe
         {
             [Fact]
-            public async Task should_wire_the_generated_host()
+            async Task should_wire_the_generated_host()
             {
                 await using var app = Program.BuildProbe();
                 var sources = app.Services.GetRequiredService<IEventSources>();
@@ -128,7 +137,7 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
             }
 
             [Fact]
-            public async Task should_append_each_route_through_the_generated_host()
+            async Task should_append_each_route_through_the_generated_host()
             {
                 // Run the actual generated entry point, including AddCratis and UseCratis.
                 var entry = typeof(Program).GetMethod("<Main>$", BindingFlags.Static | BindingFlags.NonPublic)!;
@@ -223,7 +232,8 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
             var end = program.IndexOf("var app = builder.Build();", StringComparison.Ordinal);
             Assert.True(start >= 0 && end > start);
             var bootstrap = program[start..end].Replace("CreateBuilder(args)", "CreateBuilder(Array.Empty<string>())", StringComparison.Ordinal);
-            AddGeneratedSpecification("RouteProbe.cs", Probe.Replace("__GENERATED_BOOTSTRAP__", bootstrap, StringComparison.Ordinal));
+            AddGeneratedHostSupport("RouteHost.cs", HostSupport.Replace("__GENERATED_BOOTSTRAP__", bootstrap, StringComparison.Ordinal));
+            AddGeneratedSpecification("RouteProbe.cs", Probe);
             var build = await Run("routes-build.log", "build", "Routes.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var output = await Run("routes-probe.log", "test", "Routes.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", $"FullyQualifiedName~RouteProbe.{fact}", "--nologo");

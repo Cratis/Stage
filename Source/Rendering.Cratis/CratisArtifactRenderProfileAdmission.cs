@@ -153,7 +153,9 @@ static class CratisArtifactRenderProfileAdmission
         options = null;
         var projectInputs = profile.Inputs
             .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
-                            input.Name.EndsWith(".csproj", StringComparison.Ordinal))
+                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
             .ToArray();
         if (projectInputs.Length != 1)
         {

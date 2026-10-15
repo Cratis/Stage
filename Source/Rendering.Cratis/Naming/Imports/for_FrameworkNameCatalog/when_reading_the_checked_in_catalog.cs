@@ -16,7 +16,7 @@ public class when_reading_the_checked_in_catalog : Specification
     [Fact] void should_be_generated_for_the_current_scaffold_version() => _catalog.Content.ScaffoldVersion.ShouldEqual(CratisBackendApplicationScaffoldProfile.Current.Version);
     [Fact] void should_record_the_current_scaffold_pins() => Pins(_catalog.Content.Pins).ShouldEqual(Pins(ScaffoldPins.Of(CratisBackendApplicationScaffoldProfile.Current)));
     [Fact] void should_restore_every_pinned_package_at_its_pinned_version() =>
-        _catalog.Content.Pins.Where(pin => pin.Key != "TargetFramework" &&
+        _catalog.Content.Pins.Where(pin => pin.Key is not ("TargetFramework" or "TargetingPackVersion") &&
             !_catalog.Content.Packages.Any(package => package.Id == pin.Key && package.Version == pin.Value)).ShouldBeEmpty();
     [Fact] void should_import_the_cratis_package_global_usings_in_both_projects() =>
         _catalog.GlobalUsings(GeneratedProjects.Specifications).ShouldContain("Cratis.Chronicle.Events");

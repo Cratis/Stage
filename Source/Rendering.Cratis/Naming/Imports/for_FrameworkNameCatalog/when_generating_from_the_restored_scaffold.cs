@@ -23,6 +23,12 @@ public class when_generating_from_the_restored_scaffold : given.a_restored_scaff
         _checkedIn = reader.ReadToEnd();
     }
 
+    [Fact] void should_resolve_both_framework_reference_packs() => Assert.Equal(
+        ["Microsoft.AspNetCore.App", "Microsoft.NETCore.App"],
+        References.Where(reference => reference.Framework.Length > 0).Select(reference => reference.Framework).Distinct().Order(StringComparer.Ordinal));
+    [Fact] void should_use_only_the_audited_framework_reference_pack_version() => Assert.All(
+        References.Where(reference => reference.Framework.Length > 0),
+        reference => Assert.Contains(CatalogScaffold.ReferencePackVersion, reference.Path.Split(Path.DirectorySeparatorChar)));
     [Fact] void should_record_the_restored_package_versions_and_pins() => Assert.True(Same("pin", "package", "framework", "scaffold"), Difference("pin", "package", "framework", "scaffold"));
     [Fact] void should_record_the_global_usings_of_each_project() => Assert.True(Same("using"), Difference("using"));
     [Fact] void should_record_the_names_in_the_compile_assets() => Assert.True(Same("scope", "namespace", "type", "extensions", "base"), Difference("scope", "namespace", "type", "extensions", "base"));

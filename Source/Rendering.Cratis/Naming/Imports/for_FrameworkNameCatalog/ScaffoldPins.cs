@@ -20,6 +20,7 @@ static class ScaffoldPins
         new Dictionary<string, string>
         {
             ["TargetFramework"] = profile.TargetFramework,
+            ["TargetingPackVersion"] = CatalogScaffold.ReferencePackVersion,
             ["Cratis"] = profile.CratisPackageVersion,
             ["Cratis.Arc.Chronicle.Testing"] = profile.CratisArcChronicleTestingPackageVersion,
             ["Cratis.Arc.MongoDB"] = profile.CratisArcMongoDBPackageVersion,

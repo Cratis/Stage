@@ -68,7 +68,9 @@ static class FrameworkNameCatalogGenerator
     static IReadOnlyList<CatalogUsing> Usings(ScaffoldedProject[] projects) =>
     [
         .. Merge(
-            projects.SelectMany(project => project.Usings.Concat(project.PackageSources.SelectMany(source => CatalogSources.Usings(project.Project, source.Package, source.Path))))
+            projects.SelectMany(project => project.Usings
+                .Concat(project.PackageSources.SelectMany(source => CatalogSources.Usings(project.Project, source.Package, source.Path)))
+                .Concat(project.GeneratedSources.SelectMany(path => CatalogSources.Usings(project.Project, $"generator:{Path.GetFileName(path)}", path))))
                 .Select(@using => (@using.Projects, @using)),
             @using => (@using.Kind, @using.Target, @using.Alias, @using.Source),
             (tags, @using) => @using with { Projects = tags })

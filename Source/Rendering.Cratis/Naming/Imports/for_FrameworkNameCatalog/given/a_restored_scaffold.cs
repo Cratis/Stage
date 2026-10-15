@@ -10,18 +10,19 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports.for_FrameworkNameCatalog.
 /// </summary>
 public class a_restored_scaffold : Specification
 {
-    static readonly Lazy<Task<string>> _generated = new(Generate);
+    static readonly Lazy<Task<(string Text, IReadOnlyList<ScaffoldedReference> References)>> _generated = new(Generate);
 
     protected string _generatedText = null!;
+    internal IReadOnlyList<ScaffoldedReference> References { get; set; } = null!;
 
-    async Task Establish() => _generatedText = await _generated.Value;
+    async Task Establish() => (_generatedText, References) = await _generated.Value;
 
     /// <summary>
     /// Gets the repository root.
     /// </summary>
     /// <returns>The directory containing <c language="csharp">.git</c>.</returns>
     /// <exception cref="DirectoryNotFoundException">The specifications do not run inside a repository.</exception>
-    protected static DirectoryInfo RepositoryRoot()
+    internal static DirectoryInfo RepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
@@ -31,14 +32,15 @@ public class a_restored_scaffold : Specification
         throw new DirectoryNotFoundException("The repository root containing .git was not found.");
     }
 
-    static async Task<string> Generate()
+    static async Task<(string Text, IReadOnlyList<ScaffoldedReference> References)> Generate()
     {
         var workspace = Environment.GetEnvironmentVariable("AI_WORK_OUTPUT") ?? Path.Combine(RepositoryRoot().FullName, ".ai-work", "stage-namespace");
         var directory = Directory.CreateDirectory(Path.Combine(workspace, $"name-catalog-{Guid.NewGuid():N}"));
         try
         {
             var (application, specifications) = await CatalogScaffold.Restore(directory);
-            return FrameworkNameCatalogText.Write(FrameworkNameCatalogGenerator.Generate(application, specifications));
+            return (FrameworkNameCatalogText.Write(FrameworkNameCatalogGenerator.Generate(application, specifications)),
+                [.. application.References, .. specifications.References]);
         }
         finally
         {

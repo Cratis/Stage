@@ -13,6 +13,7 @@ pin	Cratis.Specifications.XUnit	4.1.1
 pin	Microsoft.NET.Test.Sdk	18.10.1
 pin	NSubstitute	6.2.0
 pin	TargetFramework	net10.0
+pin	TargetingPackVersion	10.0.12
 pin	xunit	2.9.3
 pin	xunit.runner.visualstudio	4.0.0
 package	A	Polly.Core	8.4.2

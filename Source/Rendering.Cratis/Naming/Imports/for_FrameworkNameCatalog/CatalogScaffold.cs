@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Naming.Imports.for_FrameworkNameCatalog;
 
@@ -17,6 +18,11 @@ static class CatalogScaffold
     /// The project name the catalog scaffold is written with. Names derived from it are not recorded.
     /// </summary>
     public const string ProjectName = "NameCatalogApp";
+
+    /// <summary>
+    /// The audited framework reference pack version used by catalog generation, independent of the installed SDK.
+    /// </summary>
+    public const string ReferencePackVersion = PureTransitionAdmission.ReferencePackVersion;
 
     const string GeneratedSources = "obj/name-catalog-generated";
 
@@ -35,6 +41,19 @@ static class CatalogScaffold
             await File.WriteAllBytesAsync(path, [.. input.Bytes]);
         }
 
+        // A newer SDK can substitute framework ref assemblies for package lib assemblies of the same version.
+        // Their public APIs agree, but implementation-only namespaces still participate in C# namespace lookup.
+        // Pin both framework packs before restore so the compiler and the catalog resolve the same assets everywhere.
+        await File.WriteAllTextAsync(Path.Combine(directory.FullName, "Directory.Build.targets"),
+            $"""
+            <Project>
+              <ItemGroup>
+                <KnownFrameworkReference Update="Microsoft.NETCore.App;Microsoft.AspNetCore.App">
+                  <TargetingPackVersion Condition="'%(KnownFrameworkReference.TargetFramework)' == '{request.Profile.TargetFramework}'">{ReferencePackVersion}</TargetingPackVersion>
+                </KnownFrameworkReference>
+              </ItemGroup>
+            </Project>
+            """);
         await Run(directory.FullName, "restore", $"{ProjectName}.slnx");
         await Run(directory.FullName, "build", $"{ProjectName}.slnx", "--no-restore", "-p:EmitCompilerGeneratedFiles=true", $"-p:CompilerGeneratedFilesOutputPath={GeneratedSources}");
         var specifications = Path.Combine(directory.FullName, $"{ProjectName}.Specs");

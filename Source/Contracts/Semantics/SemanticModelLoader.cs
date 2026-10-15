@@ -44,6 +44,16 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
     /// Gets the whole-application assessment of the model root's admitted release revisions.
     /// </summary>
     public ReleaseBaselineAssessment ReleaseBaseline { get; init; } = ReleaseBaselineAssessment.NotSupplied;
+
+    /// <summary>
+    /// Gets the compiler diagnostics in their original order and severity.
+    /// </summary>
+    public ImmutableArray<SemanticModelLoadDiagnostic> Diagnostics { get; init; } = [];
+
+    /// <summary>
+    /// Gets non-blocking compiler diagnostics, including information and warnings.
+    /// </summary>
+    public ImmutableArray<SemanticModelLoadDiagnostic> Notes => [.. Diagnostics.Where(diagnostic => diagnostic.Severity != DiagnosticSeverity.Error)];
 }
 
 /// <summary>
@@ -71,6 +81,16 @@ public sealed record SemanticModelLoadResult(LoadedSemanticModel? Loaded, Immuta
     /// Gets whether loading and execution-plan admission succeeded.
     /// </summary>
     public bool Success => Loaded is not null;
+
+    /// <summary>
+    /// Gets non-blocking compiler diagnostics, whether loading succeeded or failed.
+    /// </summary>
+    public ImmutableArray<SemanticModelLoadDiagnostic> Notes => [.. Diagnostics.Where(diagnostic => diagnostic.Severity != DiagnosticSeverity.Error)];
+
+    /// <summary>
+    /// Gets blocking loading and compiler diagnostics in their original order.
+    /// </summary>
+    public ImmutableArray<SemanticModelLoadDiagnostic> Errors => [.. Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)];
 }
 
 /// <summary>
@@ -113,7 +133,7 @@ public static partial class SemanticModelLoader
         if (state is not null && IsRootIdentityPath(Path.GetFullPath(root), Path.GetFullPath(catalogPath!)))
         {
             var opened = LoadModelRoot(Path.GetFullPath(root), [.. files.Select(Path.GetFullPath)], isFolder ? [] : [Path.GetFullPath(path)], applicationName ?? state.ApplicationName, default);
-            if (!opened.Success) throw new InvalidSemanticModel([.. opened.Diagnostics.Select(diagnostic => diagnostic.Message)]);
+            if (!opened.Success) throw new InvalidSemanticModel([.. opened.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.Message)]) { Notes = opened.Notes };
             return opened.Loaded!;
         }
         var documents = new List<SemanticSourceDocument>();
@@ -127,8 +147,8 @@ public static partial class SemanticModelLoader
         var result = Compile(root, name, catalog, [.. documents], default);
         if (!result.Success)
         {
-            throw new InvalidSemanticModel([.. result.Diagnostics.Where(diagnostic => diagnostic.Code != "STAGE-PLAN-003")
-                .Select(diagnostic => diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}")]);
+            throw new InvalidSemanticModel([.. result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Code != "STAGE-PLAN-003")
+                .Select(diagnostic => diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}")]) { Notes = result.Notes };
         }
 
         return result.Loaded!;
@@ -345,7 +365,8 @@ public static partial class SemanticModelLoader
             TypedContextDescriptors = compiled.TypedContextDescriptors,
             ImplementationContents = SemanticImplementationBodies.Resolve(compiled.Value!.Documents, compiled.ImplementationRequirements),
             AttachmentDiagnostics = attachmentDiagnostics,
-            ReleaseBaseline = baseline
+            ReleaseBaseline = baseline,
+            Diagnostics = diagnostics
         };
 
         return new(loaded, diagnostics);

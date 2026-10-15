@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Stage.Contracts.Semantics;
+
 namespace Cratis.Stage.Host;
 
 public enum StageHandoffResult
@@ -26,6 +28,12 @@ public sealed record StageStatus(string State, StageStatusModel? Model, Guid? Ha
 
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<StageUnsupportedIssue>? Issues { get; init; }
+
+    /// <summary>
+    /// Gets non-blocking semantic compiler diagnostics with their original severity and location.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<SemanticModelLoadDiagnostic>? Notes { get; init; }
 }
 
 public sealed record StageStatusModel(string Name);

@@ -13,6 +13,13 @@ internal static class SemanticRuleValues
         concept.Validations.Any(rule => !Satisfies(rule, value, () => new InvalidSemanticContract("A generated concept rule escaped admission.")))
             ? SemanticGenerationShapes.RuleMessage(property, concept.Name) : null;
 
+    internal static bool CanEvaluate(SemanticValidationRuleKind kind) => kind is
+        SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
+        SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
+        SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
+        SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.AllGreaterThan or
+        SemanticValidationRuleKind.AllGreaterThanOrEqual;
+
     internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value, Func<Exception> unsupported) => rule.Kind switch
     {
         SemanticValidationRuleKind.NotEmpty => !Empty(value),

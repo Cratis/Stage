@@ -4,8 +4,8 @@
 using System.Collections.Immutable;
 using Cratis.Concepts;
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics;
-using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Semantics;
 
@@ -41,22 +41,29 @@ internal static class SemanticGeneratedValues
         return generation.Kind == "typeid" ? value : $"{generation.Prefix}{value}";
     }
 
+    internal static SemanticExecutionResult ReportDefect(SemanticCommand? command, SemanticApplication application, SemanticExecutionResult result)
+    {
+        // Only the evaluator can decide that execution reached generation, after authorization and input checks.
+        if (result is SemanticRejected { Category: SemanticRejectionCategory.Contract } rejected &&
+            command?.Properties.Any(property => property.IsGenerated && IsGeneratedFailure(property, application, rejected.Details)) == true)
+        {
+            throw new SemanticCommandExecutionFailed(rejected.Details);
+        }
+
+        return result;
+    }
+
     static SemanticPropertyValue Generate(SemanticProperty property, SemanticApplication application, DateTimeOffset now)
     {
         var concept = application.Concepts.Single(concept => concept.Id == property.Type.Target);
         var usesGeneration = SemanticGenerationShapes.UsesConceptGeneration(application);
-        var value = SemanticValue.Text(New(concept, usesGeneration, new(now, GenerationContext.DefaultTenant)));
-        if ((usesGeneration || !concept.Validations.IsEmpty) && !SemanticGenerationShapes.Matches(concept, value))
-        {
-            throw new SemanticCommandExecutionFailed(SemanticGenerationShapes.FixtureMessage(property.Name));
-        }
-        if (SemanticRuleValues.GeneratedFailure(concept, property.Name, value) is { } failure)
-        {
-            throw new SemanticCommandExecutionFailed(failure);
-        }
 
-        return new(property.Id, value);
+        return new(property.Id, SemanticValue.Text(New(concept, usesGeneration, new(now, GenerationContext.DefaultTenant))));
     }
+
+    static bool IsGeneratedFailure(SemanticProperty property, SemanticApplication application, string message) =>
+        string.Equals(message, SemanticGenerationShapes.FixtureMessage(property.Name), StringComparison.Ordinal) ||
+        string.Equals(message, SemanticGenerationShapes.RuleMessage(property.Name, application.Concepts.Single(concept => concept.Id == property.Type.Target).Name), StringComparison.Ordinal);
 
     static ValueEncoding Encoding(string? encoding) => encoding switch
     {

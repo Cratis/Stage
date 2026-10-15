@@ -11,7 +11,7 @@ internal static class SemanticRuleValues
 {
     internal static string? GeneratedFailure(SemanticConcept concept, string property, SemanticValue value) =>
         concept.Validations.Any(rule => !Satisfies(rule, value, () => new InvalidSemanticContract("A generated concept rule escaped admission.")))
-            ? $"Generated fixture '{property}' fails concept '{concept.Name}' rules" : null;
+            ? SemanticGenerationShapes.RuleMessage(property, concept.Name) : null;
 
     internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value, Func<Exception> unsupported) => rule.Kind switch
     {

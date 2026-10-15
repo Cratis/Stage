@@ -45,17 +45,6 @@ internal static class SemanticRuleEvaluation
         }
     }
 
-    internal static string? GeneratedFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
-    {
-        var byId = concepts.ToDictionary(concept => concept.Id);
-        foreach (var fixture in specification.When!.GeneratedValues)
-        {
-            var property = command.Properties.Single(property => property.IsGenerated && property.Id == fixture.TargetProperty);
-            if (SemanticRuleValues.GeneratedFailure(byId[property.Type.Target], property.Name, fixture.Value) is { } failure) return failure;
-        }
-        return null;
-    }
-
     internal static bool Condition(SemanticCondition condition, IReadOnlyDictionary<SemanticId, SemanticValue> values) => condition switch
     {
         SemanticLogicalCondition { Operator: SemanticLogicalOperator.And } logical => Condition(logical.Left, values) && Condition(logical.Right, values),

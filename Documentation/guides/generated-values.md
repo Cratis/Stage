@@ -437,7 +437,7 @@ concept CustomerId : String
     matches "^cus_[0-7][0-9a-hjkmnp-tv-z]{25}$"
 ```
 
-Stage emits both the factory and a `ConceptValidator<CustomerId>`. Arc checks a factory result or pinned value against that validator before `Handle` runs. A failing rule means generation is defective: it produces a server exception with no input validation results and no appended events. The semantic Host does the same; Screenplay's reference and the independent specification executor express the defect as `Rejected(Contract)`.
+Stage emits both the factory and a `ConceptValidator<CustomerId>`. Arc checks a factory result or pinned value against that validator before `Handle` runs. A failing rule means generation is defective: it produces a server exception with no input validation results and no appended events. The semantic Host does the same, but only when execution reaches generation after authorization and ordinary input validation. Screenplay's reference and the independent specification executor express the defect as `Rejected(Contract)`.
 
 Pin every rule-bearing generated value in a rendered specification, even for this provable rule. Stage cannot see the compiler's proof status in ESM, so it refuses an unpinned specification with `STAGE-ESM-038` instead of allowing a random failure. A pin failing the strategy shape or rules fails `STAGE-ESM-011`; it is not rendered as a normal validation-error assertion. The command and concept remain renderable without that specification.
 

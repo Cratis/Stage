@@ -81,7 +81,7 @@ Time-ordered concepts implement `IGeneratableInContext<T>` instead of `IGenerata
 
 ### Rules on generated concepts
 
-At ESM v20, Stage renders a generated concept's factory together with its `ConceptValidator<T>`. Arc validates the factory output or pinned value before calling `Handle`. A failing rule is a server generation defect: the command result carries an exception, no input `ValidationResults`, and no appended events. The Host likewise checks its generated output's strategy shape and rules and throws on failure, including reaction-invoked commands.
+At ESM v20, Stage renders a generated concept's factory together with its `ConceptValidator<T>`. Arc validates the factory output or pinned value before calling `Handle`. A failing rule is a server generation defect: the command result carries an exception, no input `ValidationResults`, and no appended events. The Host's evaluator checks the generated output's strategy shape and rules only after authorization and ordinary input checks. A generated-fixture contract rejection then becomes a server exception, including for reaction-invoked commands; denial and input validation keep their ordinary results.
 
 The reference and independent specification executor report `Rejected(Contract)` with `Generated fixture '<property>' fails concept '<Concept>' rules`, not the rule's authored validation message. They check each supplied fixture's shape and then rules in fixture order, before reporting missing fixtures. This represents the same generation defect, not a caller-correctable validation failure.
 

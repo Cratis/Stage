@@ -33,6 +33,8 @@ internal static class SemanticGenerationShapes
 
     internal static string FixtureMessage(string property) => $"Generated fixture for '{property}' does not match its generation strategy shape.";
 
+    internal static string RuleMessage(string property, string concept) => $"Generated fixture '{property}' fails concept '{concept}' rules";
+
     internal static string Pattern(SemanticConcept concept)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");

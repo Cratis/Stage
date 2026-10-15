@@ -199,6 +199,10 @@ internal static partial class SemanticCratisAdmission
             SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
             SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches);
 
+    static bool HasUnsupportedOptionalConcept(SemanticApplicationContext context, SemanticTypeReference type) =>
+        type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } &&
+        !context.Concepts[type.Target].Validations.IsEmpty && !HasNullPassingScalarConcept(context, type);
+
     static IEnumerable<string> OptionalValidatedConceptProperties(SemanticApplicationContext context, SemanticTypeReference type, string path, HashSet<SemanticId> visited)
     {
         if (type.Kind != SemanticTypeReferenceKind.CompositeType || !visited.Add(type.Target))
@@ -209,8 +213,7 @@ internal static partial class SemanticCratisAdmission
         foreach (var property in context.Types[type.Target].Properties)
         {
             var nestedPath = $"{path}.{property.Name}";
-            if (property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } &&
-                !context.Concepts[property.Type.Target].Validations.IsEmpty && !HasNullPassingScalarConcept(context, property.Type))
+            if (HasUnsupportedOptionalConcept(context, property.Type))
             {
                 yield return $"{nestedPath} ({context.Concepts[property.Type.Target].Name})";
             }

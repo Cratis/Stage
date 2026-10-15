@@ -17,6 +17,11 @@ public class when_validating_composite_fixture_values : Specification
     ArtifactRenderDiagnostic[] _empty = [];
     ArtifactRenderDiagnostic[] _nestedCollection = [];
     ArtifactRenderDiagnostic[] _nestedCollectionInElement = [];
+    ArtifactRenderDiagnostic[] _reorderedAcceptance = [];
+    ArtifactRenderDiagnostic[] _reorderedRejection = [];
+    ArtifactRenderDiagnostic[] _reorderedNestedRejection = [];
+    ArtifactRenderDiagnostic[] _reorderedCollectionRejection = [];
+    ArtifactRenderDiagnostic[] _orderedSparseRejection = [];
 
     void Because()
     {
@@ -26,6 +31,11 @@ public class when_validating_composite_fixture_values : Specification
         _empty = Validate("Details[]", "[]");
         _nestedCollection = Validate("Details", "{\"items\":[\"one\"]}");
         _nestedCollectionInElement = Validate("Details[]", "[{\"items\":[\"one\"]}]");
+        _reorderedAcceptance = Validate("Details", "{\"next\":{},\"title\":\"Title\"}");
+        _reorderedRejection = Validate("Details", "{\"next\":{},\"title\":\"Title\"}", rejection: true);
+        _reorderedNestedRejection = Validate("Details", "{\"title\":\"Root\",\"next\":{\"next\":{},\"title\":\"Nested\"}}", rejection: true);
+        _reorderedCollectionRejection = Validate("Details[]", "[{\"next\":{},\"title\":\"Title\"}]", rejection: true);
+        _orderedSparseRejection = Validate("Details", "{\"next\":{}}", rejection: true);
     }
 
     [Fact] void should_admit_nested_scalar_composites() => _composite.ShouldBeEmpty();
@@ -35,7 +45,13 @@ public class when_validating_composite_fixture_values : Specification
     [Fact] void should_refuse_collection_members_that_record_equality_cannot_compare() => _nestedCollection.Single().Code.ShouldEqual("STAGE-ESM-011");
     [Fact] void should_refuse_collection_members_inside_collection_elements() => _nestedCollectionInElement.Single().Code.ShouldEqual("STAGE-ESM-011");
 
-    static ArtifactRenderDiagnostic[] Validate(string type, string value)
+    [Fact] void should_preserve_reordered_acceptance_fixtures() => _reorderedAcceptance.ShouldBeEmpty();
+    [Fact] void should_refuse_reordered_rejection_inputs() => _reorderedRejection.Single().Code.ShouldEqual("STAGE-ESM-011");
+    [Fact] void should_refuse_reordered_nested_rejection_inputs() => _reorderedNestedRejection.Single().Code.ShouldEqual("STAGE-ESM-011");
+    [Fact] void should_refuse_reordered_collection_elements_in_rejection_inputs() => _reorderedCollectionRejection.Single().Code.ShouldEqual("STAGE-ESM-011");
+    [Fact] void should_admit_ordered_rejection_inputs_omitting_optional_members() => _orderedSparseRejection.ShouldBeEmpty();
+
+    static ArtifactRenderDiagnostic[] Validate(string type, string value, bool rejection = false)
     {
         var model = invoice_model.Compile($$"""
             type Details
@@ -53,7 +69,7 @@ public class when_validating_composite_fixture_values : Specification
                     when Check
                       id = "one"
                       value = {{value}}
-                    then returns "one"
+                    {{(rejection ? "then error \"Rejected\"" : "then returns \"one\"")}}
             """);
         var options = new CratisRenderingOptions("Inputs", "Inputs");
         var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));

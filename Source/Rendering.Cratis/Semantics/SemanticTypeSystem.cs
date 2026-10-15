@@ -171,10 +171,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
 
         if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
         {
-            var semanticType = context.Types[type.Target];
-            var values = semanticType.Properties.Select(property =>
-                Value(composite.Properties.SingleOrDefault(_ => _.TargetProperty == property.Id)?.Value ?? SemanticValue.Null, property.Type));
-            return $"new {CommonType(semanticType.Name)}({string.Join(", ", values)})";
+            return CompositeValue(composite, context.Types[type.Target]);
         }
 
         return PrimitiveValue(value, type.Primitive);
@@ -228,6 +225,13 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             : throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/enum {concept.Name}", value is SemanticTextValue unknown ? unknown.Value : value.Kind.ToString());
 
     static string Literal(string value) => CSharpCodeBuilder.StringLiteral(value);
+
+    string CompositeValue(SemanticCompositeValue composite, SemanticCompositeType type)
+    {
+        var values = type.Properties.Select(property =>
+            Value(composite.Properties.SingleOrDefault(member => member.TargetProperty == property.Id)?.Value ?? SemanticValue.Null, property.Type));
+        return $"new {CommonType(type.Name)}({string.Join(", ", values)})";
+    }
 
     string PrimitiveValue(SemanticValue value, SemanticPrimitiveType primitive) => (value, primitive) switch
     {

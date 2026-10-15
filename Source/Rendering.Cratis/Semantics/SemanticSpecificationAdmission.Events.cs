@@ -27,37 +27,53 @@ internal static partial class SemanticSpecificationAdmission
                 given.Values.SingleOrDefault(value => value.TargetProperty == key.Target)?.Value is { } propertyValue &&
                 given.EventSource is { } source && Equals(propertyValue, source.Value)));
 
+    static bool CommandValuesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
+        ValuesMatch(
+            specification.When!.Values,
+            [.. command.Properties.Where(property => !property.IsGenerated)],
+            context: specification.ThenErrors.IsEmpty ? null : context);
+
     static bool ValuesMatch(
         System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> values,
         System.Collections.Immutable.ImmutableArray<SemanticProperty> properties,
-        bool exactly = true) =>
+        bool exactly = true,
+        SemanticApplicationContext? context = null) =>
         (!exactly || values.Length == properties.Length) &&
         values.Select(value => value.TargetProperty).Distinct().Count() == values.Length &&
         values.All(value =>
-            properties.Any(property => value.TargetProperty == property.Id && IsCompatible(value.Value, property.Type)));
+            properties.Any(property => value.TargetProperty == property.Id && IsCompatible(value.Value, property.Type, context)));
 
-    static bool IsCompatible(SemanticValue value, SemanticTypeReference type)
+    static bool IsCompatible(SemanticValue value, SemanticTypeReference type, SemanticApplicationContext? context) => value switch
     {
-        if (value is SemanticNullValue)
-        {
-            return type.IsOptional;
-        }
+        SemanticNullValue => type.IsOptional,
+        _ when type.IsCollection => CollectionValuesMatch(value, type, context),
+        SemanticCompositeValue composite when type.Kind == SemanticTypeReferenceKind.CompositeType => IsComparableCompositeValue(composite, type, context),
+        _ => IsScalar(value)
+    };
 
-        if (type.IsCollection)
-        {
-            return value is SemanticArrayValue array && array.Values.All(element => IsCompatible(element, type with { IsCollection = false, IsOptional = false }));
-        }
+    static bool CollectionValuesMatch(SemanticValue value, SemanticTypeReference type, SemanticApplicationContext? context) =>
+        value is SemanticArrayValue array && array.Values.All(element => IsCompatible(element, type with { IsCollection = false, IsOptional = false }, context));
 
-        return IsScalar(value) || (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite &&
-            composite.Properties.All(property => IsComparableCompositeValue(property.Value)));
+    static bool IsComparableCompositeValue(SemanticCompositeValue value, SemanticTypeReference type, SemanticApplicationContext? context)
+    {
+        // The reference compares composites structurally, including omitted members; C# record equality does not
+        // distinguish omission from explicit null. This is latent while authored fixtures reject null literals.
+        // Record equality also compares collection-valued members by reference, so keep those unsupported.
+        return value.Properties.All(property => HasComparableValue(property.Value)) &&
+            (context is null || CompositeMembersFollowDeclarationOrder(value, context.Types[type.Target], context));
     }
 
-    // This predicate also protects expected-event and read-model equality assertions. Record equality compares
-    // nested records by value, but collection-valued members by reference. Keep those shapes unsupported.
-    // The admitted ESM has already checked required members and the types of supplied composite members.
-    static bool IsComparableCompositeValue(SemanticValue value) => value switch
+    static bool CompositeMembersFollowDeclarationOrder(SemanticCompositeValue value, SemanticCompositeType type, SemanticApplicationContext context)
     {
-        SemanticCompositeValue composite => composite.Properties.All(property => IsComparableCompositeValue(property.Value)),
+        var supplied = value.Properties.Select(property => property.TargetProperty).ToArray();
+        var declared = type.Properties.Where(property => supplied.Contains(property.Id)).Select(property => property.Id);
+        return supplied.SequenceEqual(declared) && value.Properties.All(property =>
+            IsCompatible(property.Value, type.Properties.Single(member => member.Id == property.TargetProperty).Type, context));
+    }
+
+    static bool HasComparableValue(SemanticValue value) => value switch
+    {
+        SemanticCompositeValue composite => composite.Properties.All(property => HasComparableValue(property.Value)),
         SemanticNullValue => true,
         _ => IsScalar(value)
     };

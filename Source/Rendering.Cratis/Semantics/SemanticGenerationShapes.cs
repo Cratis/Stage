@@ -18,6 +18,9 @@ internal static class SemanticGenerationShapes
     const string Base32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     const string NanoIdAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
 
+    // Match Screenplay's UsesConceptGeneration: later schema versions alone do not enable freshness or strategy checks.
+    internal static bool UsesConceptGeneration(SemanticApplication application) => application.Concepts.Any(concept => concept.Generation is not null);
+
     internal static bool Supported(SemanticConcept concept) => concept.Primitive switch
     {
         SemanticPrimitiveType.Uuid => concept.Generation is null || IsUuid(concept.Generation.Kind),

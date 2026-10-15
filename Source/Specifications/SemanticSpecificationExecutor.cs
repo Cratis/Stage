@@ -321,10 +321,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             return Rejected(slice, context.Specification, SemanticStreamIdFormatter.FailureMessage(routeFailure));
         }
 
-        return GeneratedFixtureOutcome(context, slice, concepts, allowed);
+        return GeneratedFixtureOutcome(context, slice, allowed);
     }
 
-    static SemanticSpecificationRunRecord? GeneratedFixtureOutcome(SemanticRunContext context, SemanticSlice slice, IEnumerable<SemanticConcept> concepts, bool allowed)
+    static SemanticSpecificationRunRecord? GeneratedFixtureOutcome(SemanticRunContext context, SemanticSlice slice, bool allowed)
     {
         if (!allowed) return null;
         var command = context.Command;
@@ -340,14 +340,16 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         {
             return Unsupported(slice, specification, new(StageExecutionCapability.IdentityAllocation, command.Id.ToString(), "Generated command values require deterministic fixtures."));
         }
-        var failure = SemanticRuleEvaluation.GeneratedFailure(command, specification, concepts);
-
-        return failure is null ? null : Rejected(slice, specification, failure);
+        return null;
     }
 
     static string? FixtureShapeFailure(SemanticRunContext context, IEnumerable<SemanticProperty> properties, System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> generated)
     {
-        if (context.Plan.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15)) return StrategyFixtureFailure(context, generated);
+        if (SemanticGenerationShapes.UsesConceptGeneration(context.Plan.Model.Application) ||
+            context.Plan.Model.Application.Concepts.Any(concept => !concept.Validations.IsEmpty && properties.Any(property => property.Type.Target == concept.Id)))
+        {
+            return StrategyFixtureFailure(context, generated);
+        }
 
         return GeneratedFixturesMatch(properties, generated) ? null : "Generated fixtures do not match the command's generated UUID properties.";
     }

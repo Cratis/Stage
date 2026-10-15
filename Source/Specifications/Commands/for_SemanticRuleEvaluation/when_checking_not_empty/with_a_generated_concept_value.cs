@@ -15,5 +15,5 @@ public class with_a_generated_concept_value : given.a_not_empty_rule
 
     void Because() => _failure = SemanticRuleEvaluation.GeneratedFailure(_command, _specification, _concepts);
 
-    [Fact] void should_reject_generated_whitespace_with_the_authored_message() => _failure.ShouldEqual("Name is required");
+    [Fact] void should_report_the_reference_generated_contract_message_instead_of_the_authored_rule_message() => _failure.ShouldEqual("Generated fixture 'name' fails concept 'Name' rules");
 }

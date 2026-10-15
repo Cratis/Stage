@@ -4,6 +4,8 @@
 using System.Collections.Immutable;
 using Cratis.Concepts;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Semantics;
 
@@ -13,12 +15,11 @@ namespace Cratis.Stage.Semantics;
 internal static class SemanticGeneratedValues
 {
     internal static ImmutableArray<SemanticPropertyValue> For(SemanticCommand command, ExecutableSemanticModel model, DateTimeOffset now) =>
-        [.. command.Properties.Where(property => property.IsGenerated).Select(property => new SemanticPropertyValue(
-            property.Id, SemanticValue.Text(New(model.Application.Concepts.Single(concept => concept.Id == property.Type.Target), model.SemanticVersion, new GenerationContext(now, GenerationContext.DefaultTenant)))))];
+        [.. command.Properties.Where(property => property.IsGenerated).Select(property => Generate(property, model.Application, now))];
 
-    internal static string New(SemanticConcept concept, SemanticVersion version, GenerationContext context)
+    internal static string New(SemanticConcept concept, bool usesConceptGeneration, GenerationContext context)
     {
-        if (!version.IsAtLeast(SemanticVersion.V15)) return Guid.NewGuid().ToString();
+        if (!usesConceptGeneration) return Guid.NewGuid().ToString();
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
         var value = generation.Kind switch
         {
@@ -38,6 +39,23 @@ internal static class SemanticGeneratedValues
         };
 
         return generation.Kind == "typeid" ? value : $"{generation.Prefix}{value}";
+    }
+
+    static SemanticPropertyValue Generate(SemanticProperty property, SemanticApplication application, DateTimeOffset now)
+    {
+        var concept = application.Concepts.Single(concept => concept.Id == property.Type.Target);
+        var usesGeneration = SemanticGenerationShapes.UsesConceptGeneration(application);
+        var value = SemanticValue.Text(New(concept, usesGeneration, new(now, GenerationContext.DefaultTenant)));
+        if ((usesGeneration || !concept.Validations.IsEmpty) && !SemanticGenerationShapes.Matches(concept, value))
+        {
+            throw new SemanticCommandExecutionFailed(SemanticGenerationShapes.FixtureMessage(property.Name));
+        }
+        if (SemanticRuleValues.GeneratedFailure(concept, property.Name, value) is { } failure)
+        {
+            throw new SemanticCommandExecutionFailed(failure);
+        }
+
+        return new(property.Id, value);
     }
 
     static ValueEncoding Encoding(string? encoding) => encoding switch

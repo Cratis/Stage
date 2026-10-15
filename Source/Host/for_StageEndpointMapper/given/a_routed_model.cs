@@ -53,6 +53,8 @@ public class a_routed_model : Specification
     bool _semantic;
     IHttpContextAccessor? _httpContext;
 
+    protected virtual TimeProvider Clock => TimeProvider.System;
+
     protected void MapSemanticModel(EventModel model, SemanticExecutionPlan plan, IAppendSemanticFacts appender)
     {
         _semantic = true;
@@ -66,6 +68,7 @@ public class a_routed_model : Specification
         var routes = new StageHttpRouteOptions(enableQueryHttpMethod);
         _surface = semanticRuntime is null ? StageHttpSurface.Create(model, routes) : StageHttpSurface.Create(semanticRuntime.Plan.Model, routes);
         var builder = WebApplication.CreateBuilder();
+        builder.Services.AddSingleton(Clock);
         builder.Services.Configure<ArcOptions>(options => options.GeneratedApis = routes.Canonical);
         StageHttpRouteOptions.AlignIntrospection(builder.Services);
         builder.Services.AddEndpointsApiExplorer();

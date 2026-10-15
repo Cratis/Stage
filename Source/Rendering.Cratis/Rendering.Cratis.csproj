@@ -102,5 +102,6 @@
     </Target>
     <ItemGroup>
         <ProjectReference Include="../Contracts/Contracts.csproj" />
+        <Compile Include="../Specifications/Commands/SemanticRuleValues.cs" Link="Semantics/SemanticRuleValues.cs" />
     </ItemGroup>
 </Project>

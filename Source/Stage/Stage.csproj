@@ -43,6 +43,8 @@
         <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Semantics/Admission/SemanticVersionFeatures.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Semantics/Admission/SemanticSpecificationClock.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Semantics/Admission/SemanticGenerationShapes.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticMatchAnchors.cs" Link="Semantics/Admission/SemanticMatchAnchors.cs" />
+        <Compile Include="../Specifications/Commands/SemanticRuleValues.cs" Link="Semantics/Admission/SemanticRuleValues.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticProductionComparison.cs" Link="Semantics/Admission/SemanticProductionComparison.cs" />
     </ItemGroup>
 </Project>

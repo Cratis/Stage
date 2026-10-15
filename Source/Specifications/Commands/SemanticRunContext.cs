@@ -48,7 +48,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         _ => JsonSerializer.Serialize(value)
     };
 
-    internal static bool Empty(SemanticValue value) => value is SemanticNullValue || (value is SemanticTextValue text && string.IsNullOrWhiteSpace(text.Value)) || value is SemanticArrayValue { Values.IsEmpty: true };
+    internal static bool Empty(SemanticValue value) => SemanticRuleValues.Empty(value);
 
     internal static SemanticValue Evaluate(SemanticExpression expression, Dictionary<SemanticId, SemanticValue> inputs) => expression switch
     {

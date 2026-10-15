@@ -35,6 +35,7 @@ public static class ConceptRenderer
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> the concept was declared in.</param>
     /// <param name="rootNamespace">The root namespace of the target application.</param>
     /// <returns>The <see cref="RenderedFile"/>.</returns>
+    /// <exception cref="UnsupportedValidationRule">A validation rule cannot be rendered.</exception>
     public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace) =>
         Render(concept, applicationSet, rootNamespace, false);
 
@@ -46,6 +47,7 @@ public static class ConceptRenderer
     /// <param name="rootNamespace">The target application's root namespace.</param>
     /// <param name="complianceDetails">Whether to emit registration-changing protection details; defaults to off through the original overload.</param>
     /// <returns>The generated concept file.</returns>
+    /// <exception cref="UnsupportedValidationRule">A validation rule cannot be rendered.</exception>
     public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace, bool complianceDetails)
     {
         EventSourceIdentityComplianceAdmission.EnsureAccepted(concept, applicationSet);
@@ -165,15 +167,9 @@ public static class ConceptRenderer
         }
 
         var value = rule.Value is null ? string.Empty : ExpressionRenderer.Render(rule.Value);
-        var call = rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
+        var call = (rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
             ? RenderCustomRule(rule, ruleMethods)
-            : ValidationRuleRenderer.RenderCall(rule.Rule, value, subjectIsText);
-
-        if (call is null)
-        {
-            builder.Line($"// TODO: unsupported validation rule '{rule.Rule}' on '{rule.Property}'");
-            return;
-        }
+            : ValidationRuleRenderer.RenderCall(rule.Rule, value, subjectIsText)) ?? throw new UnsupportedValidationRule(rule);
 
         builder.Line($"RuleFor(_ => _.Value){call}{ValidationRuleRenderer.RenderMessage(rule)};");
     }

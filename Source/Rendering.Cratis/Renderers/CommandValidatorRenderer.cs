@@ -23,6 +23,7 @@ public static class CommandValidatorRenderer
     /// <param name="typeName">The rendered command type name.</param>
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> to resolve property types against.</param>
     /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
+    /// <exception cref="UnsupportedValidationRule">A validation rule cannot be rendered.</exception>
     public static void Render(
         CSharpCodeBuilder builder, CommandSyntax command, string typeName, ApplicationSet applicationSet, ICollection<string> diagnostics)
     {
@@ -70,15 +71,9 @@ public static class CommandValidatorRenderer
             return;
         }
 
-        var call = rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
+        var call = (rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
             ? RenderCustomRule(rule, property, subject, applicationSet, ruleMethods)
-            : ValidationRuleRenderer.RenderCall(rule.Rule, value, SubjectIsText(subject, applicationSet));
-
-        if (call is null)
-        {
-            builder.Line($"// TODO: unsupported validation rule '{rule.Rule}' on '{rule.Property}'");
-            return;
-        }
+            : ValidationRuleRenderer.RenderCall(rule.Rule, value, SubjectIsText(subject, applicationSet))) ?? throw new UnsupportedValidationRule(rule);
 
         builder.Line($"RuleFor(_ => _.{property}){call}{ValidationRuleRenderer.RenderMessage(rule)};");
     }

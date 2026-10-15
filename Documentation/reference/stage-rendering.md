@@ -236,13 +236,52 @@ The semantic executor, Host and generated C# validators use the same rule.
 
 ## Chrome
 
-The topbar, sidebar, menu, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them:
-the menu lists the model's screens, the breadcrumb shows the current one, and the topbar carries the blueprint's
-theme switcher and, when the model declares more than one locale, a locale picker.
+The topbar, sidebar, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them: the breadcrumb shows
+where the current screen is, the topbar carries the blueprint's theme switcher and, when the model declares more than one locale,
+a locale picker, and the menu is one of two things.
+
+### Navigation regions
+
+A model that declares `navigation topbar` and `navigation sidebar` (in the layout, and per module with `inherits`, `extends` or
+`overrides`) gets the shell's own regions: the blueprint's topbar and sidebar draw the **effective navigation** of the module
+the user is in (Scene's `effectiveNavigation`; the Stage keeps no navigation tree of its own). Going to another module swaps the
+sidebar, the item of the page is marked (`aria-current`) in both regions, an item renders into the slot it names, and an item
+that targets a module opens the module's first feature. The Stage tells Scene which screen each feature opened (`screenFor`: the
+screen declared in the feature) and which module a screen belongs to (`moduleOf`: the first of its `path`).
+
+Where the user is is the address: `#/OrderList` restores the module, the feature and the slots after a reload or from a shared link.
+`App` takes an `isVisible(item)` predicate that hides an item - hidden, never disabled, so nothing about it leaks - at every level of
+a region; a host that knows what the user may see plugs it in.
+
+The scene a running Stage serves carries the model's `structure` (modules, features and slices) and `commandSchemas` (the JSON
+schema of every modeled command) only when a toolbar button names a slice; an application without one is byte-identical to what it
+was before slice buttons existed.
+
+### Toolbar slice buttons
+
+A toolbar button that names a State Change slice opens the slice as a task dialog over the page - Scene's `SliceDialogView`, the
+same one the Studio preview shows. Its fields are what the command's schema declares, read the way the native command form reads
+it (a property the form cannot present, such as a collection, is left out rather than shown as a field that cannot be filled).
+Submitting posts the command to the route the Stage registered for it, through the Stage's slice invoker, exactly as an action or a
+form posts it: the application's own validation results come back to the dialog against the fields they name, a rejected command
+keeps the dialog open, and a successful one closes it and refreshes what the screen shows.
+
+### No sample data in production
+
+Sample data exists to preview with at design time. The runtime document and the scene a running Stage serves carry **no sample
+data**: no packs, no blueprint packs, and no selection in a profile (`SceneApplication.ForRuntime`). The browser scenarios assert
+it on the live Stage and on the generated application.
+
+### One composition for the Stage and the preview
+
+The Stage composes and hosts a screen with the same functions the Studio preview does - `composeApplicationScreen` and
+`ApplicationHost` from `@cratis/scene.blueprint.default`. The Stage decides only what is its own: the chrome around the shell, its
+command form, its status line, its data sources, and the data and command scope it provides around the screen and the dialogs. The
+template wrapper and the flow arrangement view the Stage used to keep are Scene's.
 
 ### Authored navigation hierarchy
 
-When a feature declares `contribute to Navigation` entries, the menu is the application hierarchy the model wrote
+A model that declares no navigation regions keeps what it always had. When a feature declares `contribute to Navigation` entries, the menu is the application hierarchy the model wrote
 instead of a flat list of screen names: a group for the module and for each feature, nested as deep as the model
 nests features, with each entry under the feature that contributed it and ordered by its `order`. An entry links to
 the screen it opens; the current screen is marked, and the breadcrumb shows the groups leading to it. A feature's

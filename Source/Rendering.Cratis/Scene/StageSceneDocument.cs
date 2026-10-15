@@ -56,6 +56,18 @@ internal static class StageSceneDocument
                 StringComparer.Ordinal);
 
         var document = JsonNode.Parse(sceneJson)!.AsObject();
+        StripSampleData(document);
+
+        // A toolbar slice button opens a task dialog built from its command's schema, so the runtime document carries the schemas -
+        // and, from the canonical document, the structure - only where one is used. An application with no such button is
+        // byte-identical to what it was before slice buttons existed.
+        if (CanonicalSceneJson.NamesSlices(document))
+        {
+            document["commandSchemas"] = new JsonObject(commands
+                .OrderBy(command => command.Key, StringComparer.Ordinal)
+                .Select(command => new KeyValuePair<string, JsonNode?>(command.Key, JsonValue.Create(command.Value.Schema))));
+        }
+
         if (document["screens"] is JsonArray screens)
         {
             foreach (var screen in screens.OfType<JsonObject>())
@@ -65,6 +77,17 @@ internal static class StageSceneDocument
         }
 
         return CanonicalSceneJson.Write(document);
+    }
+
+    // Sample data exists to preview with at design time; the runtime document a production application ships carries none (spec SD6).
+    static void StripSampleData(JsonObject document)
+    {
+        document.Remove("sampleDataPacks");
+        document.Remove("blueprintSampleDataPacks");
+        foreach (var profile in (document["uiProfiles"] as JsonArray ?? []).OfType<JsonObject>())
+        {
+            profile.Remove("sampleData");
+        }
     }
 
     static void Apply(JsonObject screen, IReadOnlyDictionary<string, Command> commands)

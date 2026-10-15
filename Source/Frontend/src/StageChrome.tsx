@@ -2,13 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createContext, useContext, type ReactNode } from 'react';
-import type { FlowArrangement } from '@cratis/scene.model';
-import { evaluateFlowArrangement } from '@cratis/scene.engine';
 import type { ComponentRegistry, RegisteredComponentProps } from '@cratis/scene.react';
 import { SceneElementView, SceneNavigationContextInternal, useSceneOutlets, useSceneTheme } from '@cratis/scene.react';
 import { useEffect } from 'react';
-import { FlowArrangementView } from './FlowArrangementView';
-import { useSizeClass } from './useSizeClass';
 import { screenHash, stageLocaleComponent, stageNavigationTreeComponent } from './blueprint';
 import { opensElsewhere, type NavigationNode } from './navigationTree';
 import { useStageData } from './stageData';
@@ -30,39 +26,8 @@ export function StageChromeProvider({ state, children }: { state: StageChromeSta
     return <StageChromeContext.Provider value={state}>{children}</StageChromeContext.Provider>;
 }
 
-/** The name the template wrapper is registered under. */
-export const stageTemplateComponent = 'Stage:template';
-
 /** The name the status line is registered under. */
 export const stageActivityComponent = 'Stage:activity';
-
-function isFlowArrangement(arrangement: unknown): arrangement is FlowArrangement {
-    return !!arrangement && typeof arrangement === 'object' && 'root' in arrangement;
-}
-
-/**
- * A screen's content inside the screen template it names.
- *
- * The template's own `arrangement flow` positions its slots - header, body, aside - exactly as the document
- * wrote it, evaluated for the window's current size class. A template with no flow arrangement stacks them.
- * This sits inside the blueprint shell's content slot, so the shell, not this, owns the chrome around it.
- */
-export function StageTemplate({ element, slots }: RegisteredComponentProps) {
-    const sizeClass = useSizeClass();
-    const arrangement = (element.properties as Record<string, unknown> | undefined)?.arrangement;
-    const nodes: Record<string, ReactNode> = {};
-    for (const [name, content] of Object.entries(slots)) {
-        nodes[name] = <section className='stage-slot' data-slot={name}>{content}</section>;
-    }
-
-    return (
-        <div className='stage-template' data-scene-id={element.id}>
-            {isFlowArrangement(arrangement)
-                ? <FlowArrangementView node={evaluateFlowArrangement(arrangement, sizeClass)} slots={nodes} />
-                : Object.entries(nodes).map(([name, node]) => <div key={name}>{node}</div>)}
-        </div>
-    );
-}
 
 /** The language picker in the topbar, shown only when the model declares more than one. */
 export function StageLocale() {
@@ -194,7 +159,6 @@ export function ColorSchemeMirror() {
 
 /** The Stage's own components, to merge over the blueprint's. */
 export const stageChromeComponents: ComponentRegistry = {
-    [stageTemplateComponent]: StageTemplate,
     [stageLocaleComponent]: StageLocale,
     [stageNavigationTreeComponent]: StageNavigationTree,
     [stageActivityComponent]: StageActivity,

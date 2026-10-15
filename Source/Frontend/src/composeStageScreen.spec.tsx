@@ -21,16 +21,16 @@ const screen = (name: string, template?: string): Screen => ({
 } as unknown as Screen);
 
 describe('composing a screen in the default blueprint', () => {
-    const scene = { layouts: [], screenTemplates: [{ name: 'Workspace', arrangement: undefined }], screens: [screen('Orders', 'Workspace'), screen('Payments')] } as never;
+    const scene = { layouts: [], screenTemplates: [{ name: 'Workspace', slots: [], arrangement: undefined }], screens: [screen('Orders', 'Workspace'), screen('Payments')] } as never;
 
     it('wraps the screen in the blueprint application shell', () => {
         const composed = compose(scene, screens(scene)[0]);
         expect(composed.componentName).toBe('Cratis.Blueprint.Default:appShell');
     });
 
-    it('fills the shell chrome - topbar, sidebar, menu, breadcrumb and footer', () => {
+    it('fills the shell chrome - topbar, sidebar, breadcrumb and footer', () => {
         const composed = compose(scene, screens(scene)[0]);
-        expect(Object.keys(composed.slots)).toEqual(expect.arrayContaining(['topbar', 'sidebar', 'menu', 'breadcrumb', 'footer', 'content']));
+        expect(Object.keys(composed.slots)).toEqual(expect.arrayContaining(['topbar', 'sidebar', 'breadcrumb', 'footer', 'content']));
     });
 
     it('lists every screen in the menu and marks the current one', () => {
@@ -39,9 +39,14 @@ describe('composing a screen in the default blueprint', () => {
         expect(items).toEqual(['Orders', 'Payments']);
     });
 
+    it('leaves the topbar and sidebar without a region of their own when the model declares no navigation regions', () => {
+        const composed = compose(scene, screens(scene)[0]);
+        expect([slot(composed, 'topbar')[0].properties.regionNavigation, slot(composed, 'sidebar')[0].properties.regionNavigation]).toEqual([false, false]);
+    });
+
     it('places a screen that names a template inside that template', () => {
         const composed = compose(scene, screens(scene)[0]);
-        expect(slot(composed, 'content')[0].componentName).toBe('Stage:template');
+        expect(slot(composed, 'content')[0].componentName).toBe('Scene:template');
     });
 
     it('places a screen with no template straight into the shell content slot', () => {
@@ -59,7 +64,7 @@ describe('composing a screen in the default blueprint', () => {
         const templated = screen('Orders', 'Workspace');
         const composed = compose({
             layouts: [],
-            screenTemplates: [{ name: 'Workspace', arrangement: undefined, content: { body: [element('template-title', 'core:title')] } }],
+            screenTemplates: [{ name: 'Workspace', slots: [], arrangement: undefined, content: { body: [element('template-title', 'core:title')] } }],
             screens: [templated],
         }, templated);
         const template = slot(composed, 'content')[0];

@@ -240,13 +240,14 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
 }
 
 /**
- * A toolbar item. An item that opens a destination is Scene's own - the Scene navigation host executes it. An item that
- * executes a command is the Stage's command action, so it opens the command's form and posts it to the route the Stage
- * registered, instead of only announcing that the command is wanted.
+ * A toolbar item. An item that opens a destination is Scene's own - the Scene navigation host executes it - and so is one that names
+ * a slice: it opens the slice's task dialog, which submits through the Stage's slice invoker to the route the Stage registered for
+ * its command. An item that executes a command by name is the Stage's command action, so it opens the command's form and posts it
+ * to that route, instead of only announcing that the command is wanted.
  */
 function StageToolbarItem(props: RegisteredProps) {
     const { element } = props;
-    if (text(element, 'kind').toLowerCase() !== 'action') return <CoreToolbarItem {...props} />;
+    if (text(element, 'kind').toLowerCase() !== 'action' || text(element, 'slice') !== '') return <CoreToolbarItem {...props} />;
 
     const name = text(element, 'name', element.id);
     const action = { ...element, componentName: 'core:action', properties: { command: text(element, 'target'), label: text(element, 'label', name) } } as ExternalComponent;

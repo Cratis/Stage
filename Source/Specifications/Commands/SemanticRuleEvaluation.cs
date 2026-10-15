@@ -10,10 +10,10 @@ namespace Cratis.Stage.Specifications.Commands;
 
 internal static class SemanticRuleEvaluation
 {
-    internal static string? FirstFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
-        => Failures(command, specification, concepts).FirstOrDefault()?.Message;
+    internal static string? FirstFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null)
+        => Failures(command, specification, concepts, composites).FirstOrDefault()?.Message;
 
-    internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
+    internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null)
     {
         var values = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
         foreach (var rule in command.Validations)
@@ -25,14 +25,12 @@ internal static class SemanticRuleEvaluation
         }
 
         var byId = concepts.ToDictionary(concept => concept.Id);
-        foreach (var property in command.Properties.Where(IsInputConcept))
+        var types = (composites ?? []).ToDictionary(composite => composite.Id);
+        foreach (var property in command.Properties.Where(property => !property.IsGenerated))
         {
-            foreach (var rule in byId[property.Type.Target].Validations)
+            foreach (var failure in SemanticConceptValues.Validate(property.Type, values[property.Id], byId, types))
             {
-                if (!Satisfies(rule, values[property.Id]))
-                {
-                    yield return new(rule.Message ?? Message(rule, values[property.Id], "A required concept value is empty."), rule.Severity);
-                }
+                yield return failure;
             }
         }
 
@@ -74,8 +72,6 @@ internal static class SemanticRuleEvaluation
         SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {Format(rule.Operand)}.",
         _ => throw new UnsupportedSemanticMapping()
     };
-
-    static bool IsInputConcept(SemanticProperty property) => !property.IsGenerated && property.Type.Kind == SemanticTypeReferenceKind.Concept;
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values)
     {

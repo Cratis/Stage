@@ -7,6 +7,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
 /// Checks event expectations and property values.
+/// Explicit null, member-order and record-equality refusals are renderer-only fidelity limits:
+/// the executor and Host retain supplied semantic values and must not inherit these refusals.
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {

@@ -170,10 +170,11 @@ public static class SemanticRunAdmission
         {
             return Block(StageExecutionCapability.Command, command.Id, "Validation implementation bodies cannot be executed by Stage.");
         }
-        if (command.Properties.Any(property => property.Type.Kind == SemanticTypeReferenceKind.Concept &&
-            plan.Model.Application.Concepts.Single(concept => concept.Id == property.Type.Target).Validations.Any(rule => !SupportedRule(rule.Kind))))
+        var valueContext = new SemanticApplicationContext(plan);
+        var valueRefusal = command.Properties.Select(property => SemanticValueShapeAdmission.Refusal(valueContext, property.Type)).FirstOrDefault(refusal => refusal is not null);
+        if (valueRefusal is not null)
         {
-            return Block(StageExecutionCapability.Command, command.Id, "A concept validation rule is not admitted.");
+            return Block(StageExecutionCapability.Command, command.Id, valueRefusal);
         }
 
         // The reference projects given events while establishing the world, and produced facts only when the command
@@ -182,8 +183,7 @@ public static class SemanticRunAdmission
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
         if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
-        if (command.Properties.Any(property => !Scalar(property.Type)) ||
-            command.Produces.Any(produced => !plan.Events.TryGetValue(produced.EventContract, out var eventContract) || eventContract.Properties.Any(property => !Scalar(property.Type))))
+        if (command.Produces.Any(produced => !plan.Events.TryGetValue(produced.EventContract, out var eventContract) || eventContract.Properties.Any(property => !Scalar(property.Type))))
         {
             return Block(StageExecutionCapability.Command, command.Id, "Only scalar command and event values are admitted.");
         }

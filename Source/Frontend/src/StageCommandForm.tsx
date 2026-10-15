@@ -11,7 +11,7 @@ import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField } from '@cratis/components/CommandForm';
 import { useStageData } from './stageData';
 
-interface SchemaProperty {
+export interface SchemaProperty {
     name: string;
     type?: 'text' | 'number' | 'boolean' | 'date';
     required: boolean;
@@ -394,7 +394,14 @@ function unsupportedGeometryMessagesFor(layout: CommandFormLayout | undefined, f
 }
 
 function schemaProperties(element: ExternalComponent): SchemaProperty[] {
-    const schema = text(element, 'schema');
+    return schemaPropertiesOf(text(element, 'schema'));
+}
+
+/**
+ * The properties a command's JSON schema declares, with the type the native form gives each and whether it is required. A toolbar
+ * slice's task dialog is built from the same reading, so a command is the same fields wherever it is presented.
+ */
+export function schemaPropertiesOf(schema: string): SchemaProperty[] {
     if (!schema) return [];
     try {
         const parsed = JSON.parse(schema) as { required?: unknown; properties?: Record<string, JsonSchemaDefinition> };

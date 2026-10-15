@@ -25,7 +25,8 @@ static class CommandFormRuntimeMetadata
 
     internal static SceneApplication Apply(SceneApplication scene, IReadOnlyDictionary<string, CommandFormRuntimeCommand> commands) => scene with
     {
-        Screens = [.. scene.Screens.Select(screen => Apply(screen, commands))]
+        Screens = [.. scene.Screens.Select(screen => Apply(screen, commands))],
+        CommandSchemas = !scene.ReferencesSlices ? null : commands.OrderBy(command => command.Key, StringComparer.Ordinal).ToDictionary(command => command.Key, command => command.Value.Schema, StringComparer.Ordinal)
     };
 
     internal static SceneElements.ExternalComponent PlacedFormElement(SceneElements.ExternalComponent placed, Form form, CommandFormRuntimeCommand? command)

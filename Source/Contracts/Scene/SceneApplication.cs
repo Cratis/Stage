@@ -10,6 +10,8 @@ using SceneSampleData = Cratis.Scene.Model.SampleData;
 using SceneScreens = Cratis.Scene.Model.Screens;
 using SceneStructure = Cratis.Scene.Model.Structure;
 
+using SceneElements = Cratis.Scene.Model.Elements;
+
 namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
@@ -48,9 +50,9 @@ public record SceneApplication(
 
     /// <summary>
     /// Gets the modules, features and slices (with each slice's kind) that navigation targets and toolbar buttons resolve against.
-    /// A reference input to Scene's validation, never written into a scene document.
+    /// A reference input to Scene's validation. It is written to a scene document only where a runtime needs it: the Stage's runtime
+    /// document and a live Stage's scene, so the shell's navigation regions and a toolbar's slice dialogs resolve against it.
     /// </summary>
-    [JsonIgnore]
     public SceneStructure.ApplicationStructure Structure { get; init; } = new([]);
 
     /// <summary>
@@ -73,4 +75,36 @@ public record SceneApplication(
     /// </summary>
     [JsonIgnore]
     public IReadOnlyList<SceneRuntimeIssue> RuntimeIssues { get; init; } = [];
+
+    /// <summary>
+    /// Gets the JSON schema of every modeled command, by command name, which a toolbar slice's task dialog reads its fields from. Set where the
+    /// semantic model is known - a live Stage and the generated Stage runtime document - and absent from the canonical document.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? CommandSchemas { get; init; }
+
+    /// <summary>
+    /// Gets whether a toolbar button of this application names a slice, which is when its runtime needs the structure and the command
+    /// schemas to open the slice as a task dialog.
+    /// </summary>
+    [JsonIgnore]
+    public bool ReferencesSlices =>
+        Screens.Any(screen => screen.SlotContent.Values.Any(HasSliceButton) || screen.Contributions.Any(contribution => HasSliceButton([contribution.Content]))) ||
+        ScreenTemplates.Any(template => template.Content is { } content && content.Values.Any(HasSliceButton)) ||
+        DialogTemplates.Any(template => template.Content is { } content && content.Values.Any(HasSliceButton));
+
+    static bool HasSliceButton(IReadOnlyList<SceneElements.SceneElement> elements) =>
+        elements.Any(element => element is SceneElements.ExternalComponent component &&
+            ((component.Properties.TryGetValue("slice", out var slice) && slice is string { Length: > 0 }) || component.Slots.Values.Any(HasSliceButton)));
+
+    /// <summary>
+    /// Gets this application as a running Stage serves it: without sample data (spec SD6). Packs, the blueprint packs it names and the profile's
+    /// selection exist to preview with at design time; a production render never carries them.
+    /// </summary>
+    /// <returns>The application with no sample data.</returns>
+    public SceneApplication ForRuntime() => this with
+    {
+        SampleDataPacks = [],
+        BlueprintSampleDataPacks = [],
+        UiProfiles = [.. UiProfiles.Select(profile => profile with { SampleData = null })]
+    };
 }

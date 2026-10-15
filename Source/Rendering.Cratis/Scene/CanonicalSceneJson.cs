@@ -113,7 +113,29 @@ public static class CanonicalSceneJson
         {
             application.Remove(CompositionNames.Navigation);
         }
+
+        // The structure is what navigation regions and toolbar slice buttons resolve against. An application that uses neither
+        // serializes as it did before they existed, so its plan digest does not move for a member nothing reads.
+        if (!application.ContainsKey(CompositionNames.Navigation) && !UsesSlices(application))
+        {
+            application.Remove(CompositionNames.Structure);
+        }
     }
+
+    /// <summary>
+    /// Gets whether a document's toolbar buttons name a slice.
+    /// </summary>
+    /// <param name="document">The scene document.</param>
+    /// <returns>True when one does.</returns>
+    internal static bool NamesSlices(JsonNode document) => UsesSlices(document);
+
+    static bool UsesSlices(JsonNode? node) => node switch
+    {
+        JsonObject o => o.Any(property => property.Key == "slice" && property.Value is JsonValue value && value.TryGetValue<string>(out _))
+            || o.Where(property => property.Key != CompositionNames.Structure).Any(property => UsesSlices(property.Value)),
+        JsonArray a => a.Any(UsesSlices),
+        _ => false
+    };
 
     static void PreserveLiteralNullValues(JsonNode? node)
     {
@@ -182,6 +204,7 @@ public static class CanonicalSceneJson
         public const string TemplateReferences = "templateReferences";
         public const string SampleDataPacks = "sampleDataPacks";
         public const string BlueprintSampleDataPacks = "blueprintSampleDataPacks";
+        public const string Structure = "structure";
         public const string Navigation = "navigation";
     }
 }

@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Reflection;
 using System.Text;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -47,6 +49,11 @@ public class when_rendering_generated_concept_rules : Specification
     void should_require_a_pin_only_for_the_rule_bearing_specification()
     {
         var model = Model(string.Empty);
+        var concept = model.Application.Concepts.Single();
+        model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
+        {
+            Concepts = [concept with { Validations = [concept.Validations.Single() with { Operand = new SemanticTextValue("^(?!never$)cus_[0-7][0-9a-hjkmnp-tv-z]{25}$") }] }]
+        });
         var plan = Render(model);
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
@@ -60,6 +67,30 @@ public class when_rendering_generated_concept_rules : Specification
         });
         var commandPlan = Render(model);
         Assert.True(commandPlan.Success, string.Join(';', commandPlan.Diagnostics.Select(diagnostic => diagnostic.Message)));
+    }
+
+    [Fact]
+    void should_render_unpinned_generation_with_proven_rules()
+    {
+        var plan = Plan(string.Empty);
+        Assert.True(plan.Success, string.Join(';', plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Text(plan, "Common/CustomerId.cs").ShouldContain("ConceptValidator<CustomerId>");
+    }
+
+    [Fact]
+    void should_require_a_pin_if_a_rule_is_refuted_after_validation()
+    {
+        var model = Model(string.Empty);
+        var execution = SemanticExecutionPlan.Compile(model).Plan!;
+        var concept = model.Application.Concepts.Single();
+
+        // Validated models reject refuted rules. Inject one after validation to exercise Stage's fail-closed proof check.
+        typeof(SemanticConcept).GetField("<Validations>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(concept, ImmutableArray.Create(concept.Validations.Single() with { Operand = new SemanticTextValue("^impossible$") }));
+        var plan = CratisRendering.Plan(model, execution, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("RuleApp", "RuleApp"));
+        plan.Success.ShouldBeFalse();
+        plan.Artifacts.ShouldBeEmpty();
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-038" && diagnostic.Message.Contains("pinned", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -41,6 +41,11 @@ public sealed record CratisPlanResult(
     /// </summary>
     public bool Success => Diagnostics.All(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Error);
 
+    /// <summary>
+    /// Gets the underlying plan's structured implementation gaps, or an empty list when no plan is available.
+    /// </summary>
+    public ImmutableArray<ArtifactImplementationGap> ImplementationGaps => Plan?.ImplementationGaps ?? [];
+
     internal static CratisPlanResult Create(string applicationName, ImmutableArray<PlannedArtifact> artifacts, ImmutableArray<CratisPlanDiagnostic> diagnostics, SemanticRevision? revision = null, ArtifactRenderPlan? plan = null)
     {
         var orderedArtifacts = artifacts.OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal).ToImmutableArray();

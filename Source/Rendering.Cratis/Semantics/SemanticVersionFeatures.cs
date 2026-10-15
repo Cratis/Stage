@@ -93,11 +93,16 @@ internal static class SemanticVersionFeatures
     internal const string ProtectedIdentity = "STAGE-ESM-040";
 
     /// <summary>
+    /// The code for checksum validation and other validation rules the legacy renderer cannot preserve.
+    /// </summary>
+    internal const string UnsupportedValidation = "STAGE-ESM-042";
+
+    /// <summary>
     /// Checks the language and semantic version pair Stage has audited.
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV20Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV21Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -116,6 +121,7 @@ internal static class SemanticVersionFeatures
         (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
         .Concat(RoutesInApplication(application))
+        .Concat(UnsupportedConcepts(application.Concepts))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
 
     /// <summary>
@@ -404,6 +410,28 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> ReducerFiltersInSlice(SemanticSlice slice) =>
         slice.Reducers.Where(reducer => reducer.From is not null).Select(reducer => new SemanticVersionFeature(
             ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet."));
+
+    internal static IEnumerable<SemanticVersionFeature> UnsupportedConcepts(IEnumerable<SemanticConcept> concepts)
+    {
+        foreach (var concept in concepts)
+        {
+            var strategy = concept.Generation?.Kind switch
+            {
+                "pattern" => "pattern",
+                "random" => "random",
+                "implementation" => "rule",
+                _ => null
+            };
+            if (strategy is not null)
+            {
+                yield return new(Generated, StageExecutionCapability.IdentityAllocation, concept.Id, "concept", $"Concept '{concept.Name}' uses 'generate {strategy}', which Stage does not support yet.");
+            }
+            if (concept.Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.Checksum))
+            {
+                yield return new(UnsupportedValidation, StageExecutionCapability.Command, concept.Id, "concept", $"Concept '{concept.Name}' uses 'validate checksum', which Stage does not support yet.");
+            }
+        }
+    }
 
     internal static IEnumerable<SemanticVersionFeature> UnsupportedGenerated(SemanticCommand command, IEnumerable<SemanticConcept>? concepts)
     {

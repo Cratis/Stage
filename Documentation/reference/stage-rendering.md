@@ -112,7 +112,7 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
-Stage uses Screenplay 4.170.0 and admits exact ESM v1–v20 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. Rule-bearing generated values require pins in rendered specifications; failing pins retain `STAGE-ESM-011`, and unpinned specifications or non-error-severity generated rules retain `STAGE-ESM-038`. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
+Stage uses Screenplay 4.180.1 and admits exact ESM v1–v21 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. V21's `generate pattern`, `generate random` and `generate rule` are refused per strategy with `STAGE-ESM-028`; `validate checksum` is refused with `STAGE-ESM-042`. Generated values with any unproven rule require pins in rendered specifications; fully proven rules permit unpinned generation. Failing pins retain `STAGE-ESM-011`, and unpinned specifications with unproven rules or non-error-severity generated rules retain `STAGE-ESM-038`. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
 For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
 `9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction
 `0.10000000000000002` renders as `0.10000000000000002m`. Command inputs, event payloads,
@@ -236,13 +236,52 @@ The semantic executor, Host and generated C# validators use the same rule.
 
 ## Chrome
 
-The topbar, sidebar, menu, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them:
-the menu lists the model's screens, the breadcrumb shows the current one, and the topbar carries the blueprint's
-theme switcher and, when the model declares more than one locale, a locale picker.
+The topbar, sidebar, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them: the breadcrumb shows
+where the current screen is, the topbar carries the blueprint's theme switcher and, when the model declares more than one locale,
+a locale picker, and the menu is one of two things.
+
+### Navigation regions
+
+A model that declares `navigation topbar` and `navigation sidebar` (in the layout, and per module with `inherits`, `extends` or
+`overrides`) gets the shell's own regions: the blueprint's topbar and sidebar draw the **effective navigation** of the module
+the user is in (Scene's `effectiveNavigation`; the Stage keeps no navigation tree of its own). Going to another module swaps the
+sidebar, the item of the page is marked (`aria-current`) in both regions, an item renders into the slot it names, and an item
+that targets a module opens the module's first feature. The Stage tells Scene which screen each feature opened (`screenFor`: the
+screen declared in the feature) and which module a screen belongs to (`moduleOf`: the first of its `path`).
+
+Where the user is is the address: `#/OrderList` restores the module, the feature and the slots after a reload or from a shared link.
+`App` takes an `isVisible(item)` predicate that hides an item - hidden, never disabled, so nothing about it leaks - at every level of
+a region; a host that knows what the user may see plugs it in.
+
+The scene a running Stage serves carries the model's `structure` (modules, features and slices) and `commandSchemas` (the JSON
+schema of every modeled command) only when a toolbar button names a slice; an application without one is byte-identical to what it
+was before slice buttons existed.
+
+### Toolbar slice buttons
+
+A toolbar button that names a State Change slice opens the slice as a task dialog over the page - Scene's `SliceDialogView`, the
+same one the Studio preview shows. Its fields are what the command's schema declares, read the way the native command form reads
+it (a property the form cannot present, such as a collection, is left out rather than shown as a field that cannot be filled).
+Submitting posts the command to the route the Stage registered for it, through the Stage's slice invoker, exactly as an action or a
+form posts it: the application's own validation results come back to the dialog against the fields they name, a rejected command
+keeps the dialog open, and a successful one closes it and refreshes what the screen shows.
+
+### No sample data in production
+
+Sample data exists to preview with at design time. The runtime document and the scene a running Stage serves carry **no sample
+data**: no packs, no blueprint packs, and no selection in a profile (`SceneApplication.ForRuntime`). The browser scenarios assert
+it on the live Stage and on the generated application.
+
+### One composition for the Stage and the preview
+
+The Stage composes and hosts a screen with the same functions the Studio preview does - `composeApplicationScreen` and
+`ApplicationHost` from `@cratis/scene.blueprint.default`. The Stage decides only what is its own: the chrome around the shell, its
+command form, its status line, its data sources, and the data and command scope it provides around the screen and the dialogs. The
+template wrapper and the flow arrangement view the Stage used to keep are Scene's.
 
 ### Authored navigation hierarchy
 
-When a feature declares `contribute to Navigation` entries, the menu is the application hierarchy the model wrote
+A model that declares no navigation regions keeps what it always had. When a feature declares `contribute to Navigation` entries, the menu is the application hierarchy the model wrote
 instead of a flat list of screen names: a group for the module and for each feature, nested as deep as the model
 nests features, with each entry under the feature that contributed it and ordered by its `order`. An entry links to
 the screen it opens; the current screen is marked, and the breadcrumb shows the groups leading to it. A feature's

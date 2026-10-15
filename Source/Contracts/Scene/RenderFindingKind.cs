@@ -112,5 +112,11 @@ public enum RenderFindingKind
     /// <summary>
     /// Scene's structure index found a problem with the application's modules, features and slices, such as an ambiguous name.
     /// </summary>
-    StructureInvalid = 16
+    StructureInvalid = 16,
+
+    /// <summary>
+    /// Scene's sample data validation found a problem with a pack or with a profile's selection: an id or locale that is not valid,
+    /// a repeated shape, or an active, mapped or bound pack that is not available.
+    /// </summary>
+    SampleDataInvalid = 17
 }

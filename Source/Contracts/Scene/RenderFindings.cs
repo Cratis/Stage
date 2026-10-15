@@ -63,6 +63,11 @@ public static class RenderFindings
             yield return new RenderFinding(RenderFindingKind.NavigationInvalid, diagnostic.Entry ?? string.Empty, $"{diagnostic.Code}: {diagnostic.Message}");
         }
 
+        foreach (var finding in SampleDataConverter.Validate(application))
+        {
+            yield return finding;
+        }
+
         var buttons = ComponentReferences.Elements(application)
             .OfType<SceneElements.ExternalComponent>()
             .Where(component => component.ComponentName == "core:toolbarItem")

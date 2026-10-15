@@ -95,7 +95,7 @@ public static class CanonicalSceneJson
             return;
         }
 
-        foreach (var name in (string[])[CompositionNames.Exposures, CompositionNames.InstanceContributions, CompositionNames.TemplateReferences])
+        foreach (var name in (string[])[CompositionNames.Exposures, CompositionNames.InstanceContributions, CompositionNames.TemplateReferences, CompositionNames.SampleDataPacks, CompositionNames.BlueprintSampleDataPacks])
         {
             if (application[name] is JsonArray { Count: 0 })
             {
@@ -180,6 +180,8 @@ public static class CanonicalSceneJson
         public const string Exposures = "exposures";
         public const string InstanceContributions = "instanceContributions";
         public const string TemplateReferences = "templateReferences";
+        public const string SampleDataPacks = "sampleDataPacks";
+        public const string BlueprintSampleDataPacks = "blueprintSampleDataPacks";
         public const string Navigation = "navigation";
     }
 }

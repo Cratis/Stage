@@ -6,6 +6,7 @@ using SceneExposure = Cratis.Scene.Model.Exposure;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneNavigation = Cratis.Scene.Model.Navigation;
 using SceneProfiles = Cratis.Scene.Model.Profiles;
+using SceneSampleData = Cratis.Scene.Model.SampleData;
 using SceneScreens = Cratis.Scene.Model.Screens;
 using SceneStructure = Cratis.Scene.Model.Structure;
 
@@ -51,6 +52,16 @@ public record SceneApplication(
     /// </summary>
     [JsonIgnore]
     public SceneStructure.ApplicationStructure Structure { get; init; } = new([]);
+
+    /// <summary>
+    /// Gets the sample data packs the document declares - design and preview time rows, never part of a production build.
+    /// </summary>
+    public IReadOnlyList<SceneSampleData.SampleDataPack> SampleDataPacks { get; init; } = [];
+
+    /// <summary>
+    /// Gets the ids of the blueprint-shipped sample data packs a profile names - packs the build resolves against the packages the profile activates.
+    /// </summary>
+    public IReadOnlyList<string> BlueprintSampleDataPacks { get; init; } = [];
 
     /// <summary>
     /// Gets every template the document assigns or uses, as Scene template references, in declaration order.

@@ -12,7 +12,8 @@ namespace Cratis.Stage.Validation;
 /// command. Rather than reproduce a rule engine, the modeled rules are translated one-to-one into the equivalent
 /// FluentValidation rules and executed over the command's raw JSON payload, matching the semantics of the Cratis Arc
 /// validation engine on both the C# and TypeScript sides (only non-null/non-empty rules reject an absent value;
-/// length, comparison and format rules are no-ops on an absent value).
+/// length, comparison and format rules are no-ops on an absent value). Screenplay bounds compare numbers by value
+/// and text by its UTF-16 length.
 /// </summary>
 public sealed class StageCommandValidator : AbstractValidator<IReadOnlyDictionary<string, JsonElement>>
 {
@@ -27,10 +28,13 @@ public sealed class StageCommandValidator : AbstractValidator<IReadOnlyDictionar
     {
         foreach (var propertyRules in rules)
         {
-            foreach (var rule in propertyRules.Rules)
+            When(values => !values.IsCollectionElementPath(propertyRules.PropertyName), () =>
             {
-                Apply(propertyRules.PropertyName, rule);
-            }
+                foreach (var rule in propertyRules.Rules)
+                {
+                    Apply(propertyRules.PropertyName, rule);
+                }
+            });
         }
     }
 
@@ -95,9 +99,9 @@ public sealed class StageCommandValidator : AbstractValidator<IReadOnlyDictionar
         RuleDefinition rule,
         Func<IRuleBuilderInitial<IReadOnlyDictionary<string, JsonElement>, double>, IRuleBuilderOptions<IReadOnlyDictionary<string, JsonElement>, double>> comparison)
     {
-        var configured = comparison(RuleFor(values => values.GetNumber(property)!.Value))
+        var configured = comparison(RuleFor(values => values.GetMeasure(property)!.Value))
             .OverridePropertyName(property)
-            .When(values => values.GetNumber(property) is not null);
+            .When(values => values.GetMeasure(property) is not null);
 
         Message(configured, rule);
     }

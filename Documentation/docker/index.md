@@ -122,6 +122,31 @@ The host separates **hosting** defaults from **deployment** configuration:
 Anything Chronicle-related can also be set with the kernel's own environment variables
 (`Cratis__Chronicle__…`), which is how the entrypoint pins in-memory storage and the Workbench.
 
+## Default-engine command validation
+
+Without `Stage__Runtime__Engine=semantic`, the EventModel engine enforces this subset of
+command-level declarative `validate` rules:
+
+| Rule | Default-engine behavior |
+|---|---|
+| `not empty` | Rejects missing or null values, blank text and empty collections. Nested object paths such as `customer.address.name` are resolved through the payload. |
+| `min` / `max` with a numeric literal | Inclusive value bounds on numbers (including decimals); inclusive UTF-16 length bounds on text. |
+| `>` / `>=` / `<` / `<=` with a numeric literal | Compares numeric values or text's UTF-16 length against the threshold. |
+| `length` with a non-negative integer literal up to 2147483647 | Requires that exact text length. |
+| `matches` with a quoted literal | Applies the literal as a .NET regular expression. |
+
+Except for `not empty`, these rules allow absent or null values. Authored messages are retained.
+Rules on paths that cross a collection are skipped, including `not empty` on `lines.description`;
+scalar rules cannot express element validation. Use `lines not empty` to require a nonempty collection.
+Numeric bounds and comparisons skip values that are neither numbers nor text (booleans, objects and collections).
+
+The default engine **drops**, rather than partially enforces, `all >` and `all >=`, equality and
+inequality (`==` / `!=`), checksums, named rules, inline code validation, and rules with non-literal
+operands (including property references, `today` and named match patterns such as `email`). It does
+not turn a collection quantifier into a scalar comparison. Dropped rules do not reject a command;
+compilation alone does not mean the default engine enforces all modeled validation. Use semantic
+execution for its admitted rule forms and inspect its admission report for unsupported constructs.
+
 ## Opt in to semantic execution
 
 By default the host runs the existing EventModel engine. That engine refuses named event sources, streams

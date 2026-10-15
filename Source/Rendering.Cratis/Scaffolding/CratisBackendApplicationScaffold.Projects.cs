@@ -18,10 +18,18 @@ public sealed partial class CratisBackendApplicationScaffold
             <Nullable>enable</Nullable>
             <ImplicitUsings>enable</ImplicitUsings>
             <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+            <!-- Source mapping and audit availability/advisories depend on the restore environment; keep them visible as warnings. -->
+            <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1507;NU1900;NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
             <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+            <!-- Use this application's analyzer rules, not configuration discovered in ancestor repositories. -->
+            <DiscoverEditorConfigFiles>false</DiscoverEditorConfigFiles>
+            <DiscoverGlobalAnalyzerConfigFiles>false</DiscoverGlobalAnalyzerConfigFiles>
             <!-- The source .play model is authoritative, so reverse code-to-model extraction is redundant. -->
             <CratisEmbeddedScreenplayEnabled>false</CratisEmbeddedScreenplayEnabled>
           </PropertyGroup>
+          <ItemGroup>
+            <EditorConfigFiles Include="$(MSBuildThisFileDirectory).editorconfig" />
+          </ItemGroup>
         </Project>
         """;
 

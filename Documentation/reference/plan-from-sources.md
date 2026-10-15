@@ -248,10 +248,10 @@ The backend scaffold contains:
 | `{Project}.csproj` | Web host, production dependencies, proxy-generation settings, and the optional `Customizations/Dependencies.props` import. |
 | `{Project}.Specs/{Project}.Specs.csproj` | Separate plain-SDK test project referencing the host and linking slice-local `**/when_*.cs` files. |
 | `{Project}.slnx` | Solution containing both projects. |
-| `Directory.Build.props` | Target framework from the profile, latest C# language version, nullable references, implicit usings, warnings as errors, and build-time code style. |
+| `Directory.Build.props` | Target framework from the profile, latest C# language version, nullable references, implicit usings, compiler/analyzer warnings as errors, and build-time code style. |
 | `Directory.Build.targets` | Local boundary preventing parent build targets from leaking into the application. |
 | `Directory.Packages.props` | Central NuGet package versions with transitive pinning enabled. |
-| `.editorconfig` | Root C# formatting and style conventions, isolated from parent editor settings. |
+| `.editorconfig` | Root C# formatting and style conventions, with BDD naming exceptions for specifications. |
 | `README.md` | Prerequisites, local backend/frontend commands, specification execution, and customization guidance. |
 | `Program.cs`, `GeneratedPolicyRegistration.cs` | Application startup and generated policy registration. |
 | `appsettings.json`, `docker-compose.yml` | Development connection settings and pinned Chronicle image with named data volumes. |
@@ -262,6 +262,16 @@ folder in both configurations. The specs project links them without moving them;
 existing `#if DEBUG` wrappers remain, so run `dotnet test {Project}.Specs -c Debug`.
 Build `{Project}.slnx` to compile both projects. Frontend scaffold files remain at their
 existing paths, including `package.json` and `.frontend/`.
+
+Builds explicitly include the application's `.editorconfig` and disable automatic
+`.editorconfig` and `.globalconfig` discovery, so ancestor repository analyzer settings
+do not leak into the scaffold. Customize the application's own `.editorconfig` to change
+its build-time rules; specification paths permit Cratis BDD names.
+
+Environment-dependent restore diagnostics stay visible as warnings: `NU1507` (multiple
+package sources without source mapping) and `NU1900`–`NU1904` (audit availability and
+package advisories). They do not fail the build; other warnings, including dependency
+resolution warnings, remain errors.
 
 All scaffold `PackageReference` entries are unversioned. After first run, bump NuGet
 versions in the user-owned `Directory.Packages.props`, not individual project references.

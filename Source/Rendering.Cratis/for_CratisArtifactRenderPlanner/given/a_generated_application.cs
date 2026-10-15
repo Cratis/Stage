@@ -72,7 +72,15 @@ public class a_generated_application : a_register_project_render_request
     protected void AddGeneratedSpecification(string name, string content)
     {
         var project = Directory.GetFiles(_application!.FullName, "*.csproj").Single();
-        var path = Path.Combine(_application.FullName, $"{Path.GetFileNameWithoutExtension(project)}.Specs", name);
+        WriteGeneratedSupport(Path.Combine($"{Path.GetFileNameWithoutExtension(project)}.Specs", name), content);
+    }
+
+    // Partial Program hooks must compile into the host, not the separate specification assembly.
+    protected void AddGeneratedHostSupport(string name, string content) => WriteGeneratedSupport(Path.Combine("Customizations", name), content);
+
+    void WriteGeneratedSupport(string relativePath, string content)
+    {
+        var path = Path.Combine(_application!.FullName, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, content);
     }
@@ -138,7 +146,7 @@ public class a_generated_application : a_register_project_render_request
         return output;
     }
 
-    // Callers name the host they rendered; scaffold verification now builds both projects and tests only specs.
+    // Callers name the host they rendered; restore/build cover both projects and test targets only specs.
     static string[] SpecificationsArguments(string[] arguments)
     {
         if (arguments.Length < 2 || !arguments[1].EndsWith(".csproj", StringComparison.Ordinal))
@@ -149,7 +157,7 @@ public class a_generated_application : a_register_project_render_request
         var project = arguments[1][..^".csproj".Length];
         return arguments[0] switch
         {
-            "build" => [arguments[0], $"{project}.slnx", .. arguments.Skip(2)],
+            "restore" or "build" => [arguments[0], $"{project}.slnx", .. arguments.Skip(2)],
             "test" => [arguments[0], $"{project}.Specs/{project}.Specs.csproj", .. arguments.Skip(2)],
             _ => arguments
         };

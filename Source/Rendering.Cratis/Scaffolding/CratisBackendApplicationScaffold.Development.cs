@@ -24,6 +24,11 @@ public sealed partial class CratisBackendApplicationScaffold
         csharp_style_var_elsewhere = true:suggestion
         dotnet_sort_system_directives_first = true
         dotnet_separate_import_directive_groups = false
+
+        [{**/*.Specs/**/*.cs,**/when_*.cs,**/for_*/**/*.cs,**/given/**/*.cs}]
+        # Cratis specifications use BDD names, including should_ facts.
+        dotnet_diagnostic.IDE1006.severity = none
+        dotnet_diagnostic.CA1707.severity = none
         """;
 
     static string Readme(CratisBackendApplicationScaffoldRequest request) =>

@@ -40,6 +40,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_end_every_input_with_exactly_one_line_feed_byte() => _first.All(EndsWithExactlyOneLineFeed).ShouldBeTrue();
     [Fact] void should_stop_inheriting_parent_build_properties() => Content("Directory.Build.props").ShouldNotContain("<Import");
     [Fact] void should_configure_the_shared_build_policy() => BuildProperties().ShouldEqual("net10.0|latest|enable|enable|true|true");
+    [Fact] void should_keep_only_environment_dependent_restore_diagnostics_as_warnings() => XDocument.Parse(Content("Directory.Build.props")).Descendants("WarningsNotAsErrors").Single().Value.ShouldEqual("$(WarningsNotAsErrors);NU1507;NU1900;NU1901;NU1902;NU1903;NU1904");
+    [Fact] void should_not_hide_restore_diagnostics() => XDocument.Parse(Content("Directory.Build.props")).Descendants("NoWarn").ShouldBeEmpty();
     [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");
     [Fact] void should_enable_isolated_central_package_management_and_transitive_pins() => CentralPackageManagement().ShouldBeTrue();
     [Fact] void should_leave_all_package_references_unversioned() => UnversionedReferences().ShouldBeTrue();
@@ -54,6 +56,10 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_not_suppress_the_test_entry_point_warning() => Content("MyApp.csproj").ShouldNotContain("NoWarn");
     [Fact] void should_not_mark_the_web_host_as_a_test_project() => Content("MyApp.csproj").ShouldNotContain("IsTestProject");
     [Fact] void should_isolate_editor_configuration_from_parent_rules() => Content(".editorconfig").ShouldContain("root = true");
+    [Fact] void should_disable_ancestor_editor_configuration_discovery() => XDocument.Parse(Content("Directory.Build.props")).Descendants("DiscoverEditorConfigFiles").Single().Value.ShouldEqual("false");
+    [Fact] void should_disable_ancestor_global_analyzer_configuration_discovery() => XDocument.Parse(Content("Directory.Build.props")).Descendants("DiscoverGlobalAnalyzerConfigFiles").Single().Value.ShouldEqual("false");
+    [Fact] void should_include_the_application_editor_configuration_explicitly() => XDocument.Parse(Content("Directory.Build.props")).Descendants("EditorConfigFiles").Single().Attribute("Include")!.Value.ShouldEqual("$(MSBuildThisFileDirectory).editorconfig");
+    [Fact] void should_allow_bdd_specification_names() => Content(".editorconfig").ShouldContain("[{**/*.Specs/**/*.cs,**/when_*.cs,**/for_*/**/*.cs,**/given/**/*.cs}]\n# Cratis specifications use BDD names, including should_ facts.\ndotnet_diagnostic.IDE1006.severity = none\ndotnet_diagnostic.CA1707.severity = none");
     [Fact] void should_describe_running_the_specs_project() => Content("README.md").ShouldContain("dotnet test MyApp.Specs -c Debug");
     [Fact] void should_describe_the_actual_frontend_dev_script() => Content("README.md").ShouldContain("yarn dev");
     [Fact] void should_document_scaffold_ownership() => Content("README.md").ShouldContain("Scaffold files belong to you after first run");

@@ -69,7 +69,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_load_the_runtime_only_components_entry() => Content(".frontend/main.tsx").ShouldContain("import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';");
     [Fact] void should_not_load_the_design_time_components_package() => Content(".frontend/main.tsx").ShouldNotContain("import { cratisComponentsPackage }");
     [Fact] void should_render_core_diagnostics_and_cratis_components_through_one_registry() =>
-        Content(".frontend/stage/blueprint.ts").ShouldContain("{ ...coreComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...overrides }");
+        Content(".frontend/stage/blueprint.ts").ShouldContain("{ ...coreComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...previewComponents, ...overrides }");
     [Fact] void should_apply_the_stage_theme() => Content(".frontend/main.tsx").ShouldContain("<PrimeReactProvider license={primeUiLicense} theme={stageTheme}>");
     [Fact] void should_serve_styled_primereact_components() => Content(".frontend/vite.config.ts").ShouldContain("styledPrimeReact(),");
     [Fact] void should_load_the_metadata_reflection_polyfill_first() => Content(".frontend/main.tsx").Split('\n')[0].ShouldEqual("import 'reflect-metadata';");
@@ -113,12 +113,12 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             "@cratis/arc.vite=22.58.2",
             "@cratis/components=4.26.2",
             "@cratis/fundamentals=7.22.8",
-            "@cratis/scene.blueprint.default=4.30.0",
-            "@cratis/scene.components=4.30.0",
-            "@cratis/scene.engine=4.30.0",
-            "@cratis/scene.model=4.30.0",
-            "@cratis/scene.primereact=4.30.0",
-            "@cratis/scene.react=4.30.0",
+            "@cratis/scene.blueprint.default=4.38.0",
+            "@cratis/scene.components=4.38.0",
+            "@cratis/scene.engine=4.38.0",
+            "@cratis/scene.model=4.38.0",
+            "@cratis/scene.primereact=4.38.0",
+            "@cratis/scene.react=4.38.0",
             "@primereact/core=11.2.0",
             "@primereact/headless=11.2.0",
             "@primereact/hooks=11.2.0",

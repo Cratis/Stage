@@ -339,6 +339,12 @@ function assertSceneDocument(result, scene) {
     if (guardedClose.length > 0) record(result, 'browser.guarded.scene.closeCarriesGuard', 'passed', guardedClose.map(_ => _.id).join(','));
     else block(result, 'browser.guarded.scene.closeCarriesGuard', 'no Close action guarded by item.status == "open" with a hidden fallback');
 
+    // A production application ships no sample data (spec SD6): not the packs, not the blueprint packs it names, not a profile's selection.
+    const sampleData = [scene.sampleDataPacks, scene.blueprintSampleDataPacks].filter(value => Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null);
+    const selections = (scene.uiProfiles ?? []).filter(profile => profile.sampleData !== undefined && profile.sampleData !== null);
+    if (sampleData.length === 0 && selections.length === 0) record(result, 'browser.scene.noSampleData', 'passed');
+    else block(result, 'browser.scene.noSampleData', `the production scene carries sample data: ${JSON.stringify({ sampleData, selections })}`);
+
     const closeCommand = collectComponents(scene).filter(component => component.properties?.command === 'CloseWorkItem');
     if (closeCommand.length === 0) record(result, 'browser.guarded.scene.noCloseCommand', 'passed');
     else block(result, 'browser.guarded.scene.noCloseCommand', `CloseWorkItem is reachable without its guard from: ${closeCommand.map(_ => _.id).join(',')}`);

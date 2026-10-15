@@ -177,7 +177,10 @@ before accepting a command. Accepted facts are appended to Chronicle as one batc
 commit the in-process read-model state. `GET /stage/semantic/admission` lists the model's admitted and
 unsupported artifacts. `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
 executable plan, the host returns `state: "unsupported"` with issues; `/api/**` responds with HTTP 501
-instead of performing a partial model. The shipped sandbox cannot rebuild across restarts: when the
+instead of performing a partial model. Only Error-severity compiler diagnostics become blocking
+`Plan` issues. Information and Warning diagnostics are returned separately in the optional `notes`
+array on `GET /stage/status`, for both successful and refused loads. Each note preserves its `code`,
+`message`, root-relative `source` location and `severity`; these notes do not prevent execution. The shipped sandbox cannot rebuild across restarts: when the
 semantic host exits the container stops, and an exit-42 warm handoff resets its in-memory kernel.
 Rebuild applies only to a host running against an external or persistent Chronicle store; that storage
 path is not verified by the sandbox. With a nonempty log, Stage reads the complete event history,

@@ -351,6 +351,14 @@ is exposed separately: equal output digests do not promise equal input revisions
 
 ## Diagnostics
 
+Semantic source loads retain every diagnostic in `SemanticModelLoadResult.Diagnostics`,
+with its original severity and order. `Notes` derives the non-blocking Information and
+Warning diagnostics from that collection; `Errors` derives the blocking diagnostics.
+Successful loads also retain notes on
+`LoadedSemanticModel.Notes`; throwing loads retain them on `InvalidSemanticModel.Notes`
+without including them in the exception's blocking diagnostics or message. Each note
+carries `Code`, `Message`, `Source` (root-relative path, line and column) and `Severity`.
+
 | Code | Outcome |
 | --- | --- |
 | `STAGE-PLAN-001` | Source missing, not a `.play` file, invalid path, outside root, or containing a link or reparse point below root. |

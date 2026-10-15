@@ -63,7 +63,7 @@ public static class Identifiers
         var start = 0;
         for (var i = 1; i < word.Length; i++)
         {
-            if (char.IsUpper(word[i]) && !char.IsUpper(word[i - 1]))
+            if (StartsWord(word, i))
             {
                 yield return word[start..i];
                 start = i;
@@ -72,4 +72,10 @@ public static class Identifiers
 
         yield return word[start..];
     }
+
+    // An uppercase letter starts a word after a non-uppercase letter (InvoiceNumber), or after an uppercase letter
+    // when a lowercase letter follows it, which ends an acronym or a single-letter word (HTTPRequest, AGreeting).
+    static bool StartsWord(string word, int index) =>
+        char.IsUpper(word[index]) &&
+        (!char.IsUpper(word[index - 1]) || (index + 1 < word.Length && char.IsLower(word[index + 1])));
 }

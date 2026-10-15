@@ -21,9 +21,9 @@ public class with_given_project_events_and_a_subset_read_model : Specification
         _success = plan.Success;
         if (_success)
         {
-            _command = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_aproject.cs", StringComparison.Ordinal)).Bytes.AsSpan());
-            _projection = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_aproject_is_projected.cs", StringComparison.Ordinal)).Bytes.AsSpan());
-            _query = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_aproject_is_queried.cs", StringComparison.Ordinal)).Bytes.AsSpan());
+            _command = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_a_project.cs", StringComparison.Ordinal)).Bytes.AsSpan());
+            _projection = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_a_project_is_projected.cs", StringComparison.Ordinal)).Bytes.AsSpan());
+            _query = Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_registering_a_project_is_queried.cs", StringComparison.Ordinal)).Bytes.AsSpan());
         }
     }
 

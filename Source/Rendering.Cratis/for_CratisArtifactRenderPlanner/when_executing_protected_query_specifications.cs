@@ -97,7 +97,7 @@ public class when_executing_protected_query_specifications : a_generated_applica
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);
         _results.ShouldContain("Passed!");
-        ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_aproject_is_queried.cs").ShouldContain("_scenario.Perform(");
+        ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_a_project_is_queried.cs").ShouldContain("_scenario.Perform(");
         ReadGeneratedFile("Projects/Registration/RegisterProject/when_denying_anonymous_project_lookup_is_queried.cs").ShouldContain("should_return_no_data");
     }
 }

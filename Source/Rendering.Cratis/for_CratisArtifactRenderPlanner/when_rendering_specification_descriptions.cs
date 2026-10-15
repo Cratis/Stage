@@ -105,10 +105,10 @@ public class when_rendering_specification_descriptions : Specification
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))];
     }
 
-    [Fact] void should_describe_the_command_scenario() => Described("when_registering_aproject.cs");
-    [Fact] void should_describe_the_read_model_scenario() => Described("when_registering_aproject_is_projected.cs");
-    [Fact] void should_describe_the_query_scenario() => Described("when_registering_aproject_is_queried_through_project_by_id.cs");
-    [Fact] void should_describe_the_protected_query_scenario() => Described("when_registering_aproject_is_queried_through_protected_project_by_id.cs");
+    [Fact] void should_describe_the_command_scenario() => Described("when_registering_a_project.cs");
+    [Fact] void should_describe_the_read_model_scenario() => Described("when_registering_a_project_is_projected.cs");
+    [Fact] void should_describe_the_query_scenario() => Described("when_registering_a_project_is_queried_through_project_by_id.cs");
+    [Fact] void should_describe_the_protected_query_scenario() => Described("when_registering_a_project_is_queried_through_protected_project_by_id.cs");
     [Fact] void should_describe_the_seeded_query_scenario() => Described("when_looking_up_project_is_queried.cs");
     [Fact] void should_describe_the_denied_query_scenario() => Described("when_denying_anonymous_lookup_is_queried.cs");
     [Fact] void should_compile_the_generated_application_and_debug_specifications() => RenderedOutput.Errors(_sources).ShouldBeEmpty();

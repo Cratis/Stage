@@ -54,7 +54,7 @@ public class when_recording_declaring_slice_sources
 
     public static TheoryData<string, string> Models => new()
     {
-        { when_rendering_scoped_projections.ScopedSource, "71edb7f8697a131019ccbd2d7d2da19524babc14cc368b694b6ea25f62033272" },
+        { when_rendering_scoped_projections.ScopedSource, "526f862d0de7d59386ad6883ec31b8d85e4310db7ea9df373f1e61cc74ac16f6" },
         { QuerySource, "97fa5b90bc77390ecf540ba65874c98123adbe826a4a5b0e4f6d3da30dce1ae1" },
         { DeniedQuerySource(), "6b699c9814d8c5a3b9a4ecae23981a886408cf9cb116e0b6af194c3b8b0d4ec3" },
         { a_reaction_specification.ProductionSource, "c865e969c777d53bfe134ef4be802d4aa0f312f186d4b7d2d8eadfca85ee5e19" },

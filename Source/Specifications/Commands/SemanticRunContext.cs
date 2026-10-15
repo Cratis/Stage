@@ -55,12 +55,11 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         if (value is SemanticNullValue) return "null";
         if (type.IsCollection && value is SemanticArrayValue array)
         {
-            return $"[{string.Join(',', array.Values.Select(element => Canonical(element, type with { IsCollection = false, IsOptional = false }, context)))}]";
+            return CanonicalArray(array, type, context);
         }
         if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
         {
-            var properties = context.Types[type.Target].Properties.ToDictionary(property => property.Id);
-            return $"{{{string.Join(',', composite.Properties.Select(member => $"{JsonSerializer.Serialize(properties[member.TargetProperty].Name)}:{Canonical(member.Value, properties[member.TargetProperty].Type, context)}"))}}}";
+            return CanonicalComposite(composite, type, context);
         }
 
         return Canonical(value);
@@ -137,6 +136,16 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
             ? SemanticValue.Text(Occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture))
             : Evaluate(mapping.Source, inputs))).ToImmutableArray();
         return (new(produced.EventContract, values) { EventSource = identity, Route = _commandRoute }, destination);
+    }
+
+    static string CanonicalArray(SemanticArrayValue array, SemanticTypeReference type, SemanticApplicationContext context) =>
+        $"[{string.Join(',', array.Values.Select(element => Canonical(element, type with { IsCollection = false, IsOptional = false }, context)))}]";
+
+    static string CanonicalComposite(SemanticCompositeValue composite, SemanticTypeReference type, SemanticApplicationContext context)
+    {
+        var properties = context.Types[type.Target].Properties.ToDictionary(property => property.Id);
+
+        return $"{{{string.Join(',', composite.Properties.Select(member => $"{JsonSerializer.Serialize(properties[member.TargetProperty].Name)}:{Canonical(member.Value, properties[member.TargetProperty].Type, context)}"))}}}";
     }
 
     static string StorageKey(SemanticValue destination) => destination switch

@@ -24,14 +24,9 @@ internal static class SemanticRuleEvaluation
             }
         }
 
-        var byId = concepts.ToDictionary(concept => concept.Id);
-        var types = (composites ?? []).ToDictionary(composite => composite.Id);
-        foreach (var property in command.Properties.Where(property => !property.IsGenerated))
+        foreach (var failure in ConceptFailures(command, values, concepts, composites))
         {
-            foreach (var failure in SemanticConceptValues.Validate(property.Type, values[property.Id], byId, types))
-            {
-                yield return failure;
-            }
+            yield return failure;
         }
 
         foreach (var requirement in command.Requirements)
@@ -72,6 +67,15 @@ internal static class SemanticRuleEvaluation
         SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {Format(rule.Operand)}.",
         _ => throw new UnsupportedSemanticMapping()
     };
+
+    static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticCommand command, Dictionary<SemanticId, SemanticValue> values, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites)
+    {
+        var byId = concepts.ToDictionary(concept => concept.Id);
+        var types = (composites ?? []).ToDictionary(composite => composite.Id);
+
+        return command.Properties.Where(property => !property.IsGenerated)
+            .SelectMany(property => SemanticConceptValues.Validate(property.Type, values[property.Id], byId, types));
+    }
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values)
     {

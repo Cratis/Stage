@@ -19,26 +19,35 @@ public class with_malformed_requests : given.a_composite_input
     [InlineData("wrong scalar")]
     [InlineData("duplicate input")]
     [InlineData("missing input")]
-    public void should_match_reference_contract_rejections_before_rules(string shape)
+    public void should_match_reference_contract_rejections_before_rules(string shape) => ContractRejectionsAgree(shape).ShouldBeTrue();
+
+    bool ContractRejectionsAgree(string shape)
+    {
+        var values = RequestValues(shape);
+        var request = new SemanticExecutionRequest(_command.Id, values, [], []);
+        var reference = Assert.IsType<SemanticRejected>(new SemanticEvaluator().Execute(_plan, SemanticWorld.Empty, request));
+
+        return (reference.Category, SemanticConceptValues.RequestFailure(_plan, _command, values)) == (SemanticRejectionCategory.Contract, reference.Details);
+    }
+
+    ImmutableArray<SemanticPropertyValue> RequestValues(string shape)
     {
         var input = _specification.When!.Values[^1];
-        var composite = (SemanticCompositeValue)input.Value;
-        var malformed = shape switch
-        {
-            "duplicate" => SemanticValue.Composite([composite.Properties[0], composite.Properties[0]]),
-            "unknown" => SemanticValue.Composite([composite.Properties[0] with { TargetProperty = _command.Properties[0].Id }]),
-            "missing" => SemanticValue.Composite([]),
-            _ => SemanticValue.Text("wrong")
-        };
-        ImmutableArray<SemanticPropertyValue> values = shape switch
+        var malformed = MalformedValue(shape, (SemanticCompositeValue)input.Value);
+
+        return shape switch
         {
             "duplicate input" => [input, input],
             "missing input" => [input],
             _ => [.. _specification.When.Values.Select(value => value.TargetProperty == input.TargetProperty ? value with { Value = malformed } : value)]
         };
-        var request = new SemanticExecutionRequest(_command.Id, values, [], []);
-        var reference = Assert.IsType<SemanticRejected>(new SemanticEvaluator().Execute(_plan, SemanticWorld.Empty, request));
-        reference.Category.ShouldEqual(SemanticRejectionCategory.Contract);
-        SemanticConceptValues.RequestFailure(_plan, _command, values).ShouldEqual(reference.Details);
     }
+
+    SemanticValue MalformedValue(string shape, SemanticCompositeValue composite) => shape switch
+    {
+        "duplicate" => SemanticValue.Composite([composite.Properties[0], composite.Properties[0]]),
+        "unknown" => SemanticValue.Composite([composite.Properties[0] with { TargetProperty = _command.Properties[0].Id }]),
+        "missing" => SemanticValue.Composite([]),
+        _ => SemanticValue.Text("wrong")
+    };
 }

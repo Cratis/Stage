@@ -20,7 +20,7 @@ public class when_rendering_an_optional_boolean_concept_command_rule : Specifica
         _rule = invoice_model.Compile("concept Flag : Bool\nmodule Inputs\n  feature Optional\n    slice StateChange Check\n      command Check\n        value Flag optional\n        validate\n          value == false").Application.Modules.Single().Features.Single().Slices.Single().Commands.Single().Validations.Single();
     }
 
-    void Because() => SemanticValidationRendering.Render(_builder, _rule, "value", SemanticPrimitiveType.Boolean, collection: false, concept: false, wrapped: true, optional: true, optionalConceptType: "global::Inputs.Common.Flag?");
+    void Because() => SemanticValidationRendering.Render(_builder, _rule, "value", SemanticPrimitiveType.Boolean, collection: false, concept: false, wrapped: true, optional: true, conceptRendering: new("global::Inputs.Common.Flag?"));
 
     [Fact] void should_select_the_nullable_concept_property_without_implicit_unwrapping() => _builder.ToString().ShouldContain("RuleFor<global::Inputs.Common.Flag?>(_ => _.Value)");
     [Fact] void should_compare_the_unwrapped_boolean_and_accept_absence() => _builder.ToString().ShouldContain("value is null || global::System.Object.Equals(value.Value, false)");

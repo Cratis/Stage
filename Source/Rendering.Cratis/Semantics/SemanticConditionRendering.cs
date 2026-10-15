@@ -19,6 +19,7 @@ internal static class SemanticConditionRendering
             CanRender(logical.Left, properties, context, numericOrderingOnly) && CanRender(logical.Right, properties, context, numericOrderingOnly),
         SemanticComparison comparison => Enum.IsDefined(comparison.Operator) &&
             CanRender(comparison.Left, properties, context) && CanRender(comparison.Right, properties, context) &&
+            CanCompareNamedValues(comparison, properties, context, numericOrderingOnly) &&
             (!numericOrderingOnly || comparison.Operator is SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual ||
                 (IsNumeric(comparison.Left, properties, context) && IsNumeric(comparison.Right, properties, context))),
         _ => false
@@ -42,27 +43,63 @@ internal static class SemanticConditionRendering
         var property = properties.FirstOrDefault(_ => _.Id == operand.Property);
         return property?.Type is { IsCollection: false, IsOptional: false, Kind: not SemanticTypeReferenceKind.CompositeType } type &&
             (type.Kind != SemanticTypeReferenceKind.Concept ||
-             (context.Concepts.TryGetValue(type.Target, out var concept) && concept.Values.IsEmpty));
+             context.Concepts.ContainsKey(type.Target));
     }
+
+    static SemanticConcept? NamedConcept(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    {
+        var type = properties.FirstOrDefault(property => property.Id == operand.Property)?.Type;
+        return type?.Kind == SemanticTypeReferenceKind.Concept && context.Concepts.TryGetValue(type.Target, out var concept) && !concept.Values.IsEmpty ? concept : null;
+    }
+
+    static bool CanCompareNamedValues(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, bool numericOrderingOnly)
+    {
+        var left = NamedConcept(comparison.Left, properties, context);
+        var right = NamedConcept(comparison.Right, properties, context);
+        if (left is null && right is null) return true;
+        if (numericOrderingOnly) return false;
+        return comparison.Operator is SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual &&
+            NamedOperandsMatch(comparison, left, right);
+    }
+
+    static bool NamedOperandsMatch(SemanticComparison comparison, SemanticConcept? left, SemanticConcept? right)
+    {
+        if (left is not null && right is not null) return left.Id == right.Id;
+        return left is null ? IsNamedMember(comparison.Left, right!) : IsNamedMember(comparison.Right, left);
+    }
+
+    static bool IsNamedMember(SemanticConditionOperand operand, SemanticConcept concept) =>
+        !operand.Property.IsSet && operand.Value is SemanticTextValue text && concept.Values.Contains(text.Value, StringComparer.Ordinal);
+
+    static SemanticConcept? ComparisonConcept(SemanticComparison comparison, SemanticConditionRenderingContext context) =>
+        NamedConcept(comparison.Left, context.Properties, context.Application) ?? NamedConcept(comparison.Right, context.Properties, context.Application);
 
     static string Comparison(SemanticComparison comparison, SemanticConditionRenderingContext context)
     {
-        var left = Operand(comparison.Left, context);
-        var right = Operand(comparison.Right, context);
-        var symbol = comparison.Operator switch
-        {
-            SemanticComparisonOperator.Equal => "==",
-            SemanticComparisonOperator.NotEqual => "!=",
-            SemanticComparisonOperator.GreaterThan => ">",
-            SemanticComparisonOperator.GreaterThanOrEqual => ">=",
-            SemanticComparisonOperator.LessThan => "<",
-            SemanticComparisonOperator.LessThanOrEqual => "<=",
-            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison.Operator)
-        };
+        var concept = ComparisonConcept(comparison, context);
+        var left = ComparisonOperand(comparison.Left, concept, context);
+        var right = ComparisonOperand(comparison.Right, concept, context);
+        var symbol = ComparisonSymbol(comparison.Operator);
 
         return IsNumeric(comparison.Left, context.Properties, context.Application) ? $"({left} {symbol} {right})" :
             $"({(comparison.Operator == SemanticComparisonOperator.NotEqual ? "!" : string.Empty)}global::System.Object.Equals({left}, {right}))";
     }
+
+    static string ComparisonSymbol(SemanticComparisonOperator comparison) => comparison switch
+    {
+        SemanticComparisonOperator.Equal => "==",
+        SemanticComparisonOperator.NotEqual => "!=",
+        SemanticComparisonOperator.GreaterThan => ">",
+        SemanticComparisonOperator.GreaterThanOrEqual => ">=",
+        SemanticComparisonOperator.LessThan => "<",
+        SemanticComparisonOperator.LessThanOrEqual => "<=",
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison)
+    };
+
+    static string ComparisonOperand(SemanticConditionOperand operand, SemanticConcept? concept, SemanticConditionRenderingContext context) =>
+        concept is not null && !operand.Property.IsSet
+            ? new SemanticTypeSystem(context.Application).Value(operand.Value!, SemanticTypeReference.ForConcept(concept.Id))
+            : Operand(operand, context);
 
     static bool IsNumeric(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context) =>
         Primitive(operand, properties, context) is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;
@@ -85,7 +122,7 @@ internal static class SemanticConditionRendering
     {
         var value = context.Accessor is null ? $"{context.Receiver}.{Identifiers.ToPascalCase(property.Name)}" : context.Accessor(property);
 
-        return property.Type.Kind == SemanticTypeReferenceKind.Concept ? $"{value}.Value" : value;
+        return property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Application.Concepts[property.Type.Target].Values.IsEmpty ? $"{value}.Value" : value;
     }
 
     static string LiteralOperand(SemanticValue? value) => value switch

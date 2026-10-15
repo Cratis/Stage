@@ -6,10 +6,23 @@ theme HighContrast
   compatible with core
 
 layout AppShell
+  category Shell
   topbar
   sidebar contributes mainNav
   content
   footer
+
+  // The application's navigation. A module inherits these items, extends them or overrides them.
+  navigation topbar
+    logo image "/assets/billing.svg" title "Billing"
+    item invoicing title "Invoicing" icon receipt target Invoicing
+    item ledger title "Ledger" icon book target Ledger
+  navigation sidebar
+    item invoicing title "Invoicing" icon receipt target Invoicing
+      item invoices title "Invoices" target Invoicing.Invoices
+    item ledger title "Ledger" icon book target Ledger
+      item payments title "Payments" target Ledger.Payments
+
   arrangement flow
     row gap 0
       sidebar width 240

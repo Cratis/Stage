@@ -22,7 +22,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "cbdc70ee4aeed1e14a666e3447d4b7f07cb2c6dc4101a4b81e92996a17e08855";
+    const string Digest = "3e1d98cf60bde5e93eb292c2ce05d54e9135471514f1769c379423b61540b5b2";
 
     const string Manifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -83,7 +83,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs f646a742678761c49e10be6d010dfe8f52bb2d0f615348dd724e202e122ed70d 2502
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 100ae9158ee336bbf09c743961ed2614a289f94e3022a301204cf8b76ad8c09f 259
-        package.json 03d8badc0648dffd0e9466a4efe32129fb1049b0cd27b3047917fa0dee52bd89 1431
+        package.json ad5be5dc909ab36b2b29db12d6fc6fb7c69c03968315ed6c31370b49585bec58 1431
         scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
         src/stage-scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
@@ -143,7 +143,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // those pins in Directory.Packages.props; frontend files may already name 22.100.1 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal).Replace("4.30.0", "4.22.1", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
             ? previous.Replace("22.100.1", "22.87.0", StringComparison.Ordinal)

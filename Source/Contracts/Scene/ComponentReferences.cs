@@ -30,7 +30,12 @@ public static class ComponentReferences
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)];
 
-    static IEnumerable<SceneElements.SceneElement> Elements(SceneApplication application)
+    /// <summary>
+    /// Walks every element the application's screens, contributions and template chrome hold, nested ones included.
+    /// </summary>
+    /// <param name="application">The <see cref="SceneApplication"/> to walk.</param>
+    /// <returns>Every element, outermost first.</returns>
+    internal static IEnumerable<SceneElements.SceneElement> Elements(SceneApplication application)
     {
         var roots = application.Screens.SelectMany(screen => screen.SlotContent.Values.SelectMany(content => content))
             .Concat(application.Screens.SelectMany(screen => screen.Contributions.Select(contribution => contribution.Content)))

@@ -4,8 +4,10 @@
 using System.Text.Json.Serialization;
 using SceneExposure = Cratis.Scene.Model.Exposure;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
+using SceneNavigation = Cratis.Scene.Model.Navigation;
 using SceneProfiles = Cratis.Scene.Model.Profiles;
 using SceneScreens = Cratis.Scene.Model.Screens;
+using SceneStructure = Cratis.Scene.Model.Structure;
 
 namespace Cratis.Stage.Contracts.Scene;
 
@@ -37,6 +39,23 @@ public record SceneApplication(
     /// Gets the values instances store for what was exposed, in declaration order.
     /// </summary>
     public IReadOnlyList<SceneExposure.InstanceContribution> InstanceContributions { get; init; } = [];
+
+    /// <summary>
+    /// Gets the application's topbar and sidebar and what each module inherits, extends or overrides. Empty when the document declares no region.
+    /// </summary>
+    public SceneNavigation.NavigationModel Navigation { get; init; } = new(new SceneNavigation.ApplicationNavigation([]), []);
+
+    /// <summary>
+    /// Gets the modules, features and slices (with each slice's kind) that navigation targets and toolbar buttons resolve against.
+    /// A reference input to Scene's validation, never written into a scene document.
+    /// </summary>
+    [JsonIgnore]
+    public SceneStructure.ApplicationStructure Structure { get; init; } = new([]);
+
+    /// <summary>
+    /// Gets every template the document assigns or uses, as Scene template references, in declaration order.
+    /// </summary>
+    public IReadOnlyList<TemplateAssignment> TemplateReferences { get; init; } = [];
 
     /// <summary>
     /// Gets source constructs the Stage runtime cannot run, such as a guard it cannot evaluate. These are not Scene wire members.

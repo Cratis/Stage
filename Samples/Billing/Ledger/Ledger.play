@@ -9,3 +9,7 @@ module Ledger
     navigate to PaymentList
     label $strings.navigation.payments
     order 3
+
+  // The ledger shows the application's sidebar and adds one item of its own; its topbar is the application's.
+  navigation sidebar extends
+    item reconciliation title "Reconciliation" target Ledger.Integration

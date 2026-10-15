@@ -60,6 +60,18 @@ The generated property is absent from the command constructor and request inputs
 
 A generated concept that is not an identifier derives from `ConceptAs<T>`. It implements `IGeneratable<T>` with `New()` for non-time-ordered strategies, or `IGeneratableInContext<T>` with `New(GenerationContext context)` for time-ordered strategies. The example above uses implicit UUID generation and stays below ESM v15; its handler remains unguarded and returns one `EventForEventSourceId`.
 
+## Version admission
+
+Stage admits exact ESM v1–v21 language/semantic pairs. Version admission does not imply support for every strategy:
+
+| Version | Generation support |
+| --- | --- |
+| v15 | UUID, UUID-v7, ULID, TypeID, NanoID and bytes factories |
+| v20 | Rules on generated concepts; unpinned rendered specifications require every rule to be proven |
+| v21 | Version admitted; `generate pattern`, `generate random` and `generate rule` are refused with strategy-specific `STAGE-ESM-028` diagnostics; `validate checksum` is refused with `STAGE-ESM-042` |
+
+These v21 constructs are also refused by the Host and independent specification executor. The legacy syntax renderer refuses checksum and other unknown validation rules rather than emitting a TODO and omitting the check. No artifacts are published for a refused semantic render plan.
+
 ## ESM v15 strategies
 
 Declare a strategy on the concept, for example `generate uuidv7` under a Uuid concept or `generate bytes 16 hex case upper` under a String concept. The command property still says `generated`. To pick one, see [Choosing a strategy](../guides/generated-values.md#choosing-a-strategy).
@@ -85,7 +97,7 @@ At ESM v20, Stage renders a generated concept's factory together with its `Conce
 
 The reference and independent specification executor report `Rejected(Contract)` with `Generated fixture '<property>' fails concept '<Concept>' rules`, not the rule's authored validation message. They check each supplied fixture's shape and then rules in fixture order, before reporting missing fixtures. This represents the same generation defect, not a caller-correctable validation failure.
 
-Rendered specifications must pin every generated property whose concept has rules. An unpinned property fails `STAGE-ESM-038`, even if Screenplay proved the rule against the strategy: that proof status is not serialized in ESM. A pin failing its shape or rules fails `STAGE-ESM-011`; Stage does not render it as an input-validation assertion or an exception assertion. The command and concept can still render without that specification. Opaque or unsupported rules are refused before any pin is evaluated: `STAGE-ESM-005` identifies the pinned specification, generated concept and rule rather than throwing during planning.
+Rendered specifications may leave a generated property unpinned when every concept rule is proven. Stage derives each rule's proof status with Screenplay's `RuleConsistency.Check` rather than reading it from ESM. Any unproven or refuted rule requires a pin (`STAGE-ESM-038`); this check applies to explicit strategies and implicit UUID generation. A pin failing its shape or rules fails `STAGE-ESM-011`; Stage does not render it as an input-validation assertion or an exception assertion. The command and concept can still render without that specification. Opaque or unsupported rules are refused before any pin is evaluated: `STAGE-ESM-005` identifies the pinned specification, generated concept and rule rather than throwing during planning.
 
 Warning- and information-severity rules on generated concepts fail `STAGE-ESM-038`. Arc only logs their failures while the reference rejects them. This is separate from Screenplay's proof diagnostics: `PLAY0688` refuses a refuted rule and `PLAY0689` warns that a rule is unproven.
 
@@ -93,7 +105,7 @@ Warning- and information-severity rules on generated concepts fail `STAGE-ESM-03
 
 In an application with at least one explicit concept generation strategy, a command that produces facts on a generated destination returns `EventsWithConcurrencyScopes`, with one `ConcurrencyScope(EventSequenceNumber.BeforeFirst, EventSourceId: id)` per generated source. Chronicle checks every scope in a batch once, against the state before the batch, so several initial facts in the same invocation are allowed. One violated scope rejects the entire batch and appends nothing; Arc reports it as `ValidationResultReason.ConcurrencyViolation`. When a storage append loses a sequence-number race, Chronicle renumbers the batch and validates the scopes again before retrying. It does so from Chronicle 19.40.1 (verified in the 19.55.2 kernel). See [Chronicle concurrency](/chronicle/events/concurrency/). Generated rejection specifications assert that reason rather than Arc's message text.
 
-The Host and specification executor use the reference freshness message: "A generated event source already has facts; retry the command with a fresh generated value." Earlier facts without a destination never make the generated source stale. A generated value that is not the destination, such as an invite code appended to a customer stream, adds a scope only when its text equals the destination's, so it makes no freshness claim about that stream. An application using only implicit UUID generation remains unguarded, including at v16–v20; the schema version alone does not activate freshness. Generated handle parameters declare `Freshness = GeneratedValueFreshness.Unguarded` so that Arc's own guard, which is `Guarded` by default from Arc 22.100, does not apply on top of these scopes. The explicit scopes will move to Arc's generated-identifier freshness contract ([Arc #3129](https://github.com/Cratis/Arc/issues/3129)).
+The Host and specification executor use the reference freshness message: "A generated event source already has facts; retry the command with a fresh generated value." Earlier facts without a destination never make the generated source stale. A generated value that is not the destination, such as an invite code appended to a customer stream, adds a scope only when its text equals the destination's, so it makes no freshness claim about that stream. An application using only implicit UUID generation remains unguarded, including at v16–v21; the schema version alone does not activate freshness. Generated handle parameters declare `Freshness = GeneratedValueFreshness.Unguarded` so that Arc's own guard, which is `Guarded` by default from Arc 22.100, does not apply on top of these scopes. The explicit scopes will move to Arc's generated-identifier freshness contract ([Arc #3129](https://github.com/Cratis/Arc/issues/3129)).
 
 ### Unique generated payloads
 
@@ -195,13 +207,14 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 
 | Diagnostic | Refused shape |
 | --- | --- |
-| `PLAY0268` (Screenplay) | Compliance markers on a generated concept; `pattern`, `random` and `rule` strategies |
-| `STAGE-ESM-028` | Unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy and generated properties whose concepts have rules |
+| `PLAY0268` (Screenplay) | Compliance markers on a generated concept |
+| `STAGE-ESM-028` | `pattern`, `random`, `rule` and unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy and generated properties whose concepts have rules |
+| `STAGE-ESM-042` | Unsupported `validate checksum`; the legacy syntax renderer also refuses other unknown validation rule kinds |
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
 | `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, non-error-severity rules on generated concepts, occurrence or conditional Handle local-name collisions; unsupported response sources, composite or collection responses; response/factory name collisions |
-| `STAGE-ESM-038` | Unpinned generation on a rule-bearing concept, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
+| `STAGE-ESM-038` | Unpinned generation on a concept with any unproven rule, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 
 The last case is not shorthand for using the generated identifier. Screenplay keeps legacy allocation in a separate `AllocatedIdentities` channel. Use an inline `produces event` declaration as above, or an explicit production destination. Stage refuses the ambiguous combination instead of sending the event to a different stream than the evaluator.

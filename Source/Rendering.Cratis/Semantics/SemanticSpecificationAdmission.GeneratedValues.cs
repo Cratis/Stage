@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Generation;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Specifications.Commands;
 
@@ -101,7 +102,10 @@ internal static partial class SemanticSpecificationAdmission
     static string? UnpinnedRuleBearingConcept(SemanticApplicationContext context, SemanticSpecification specification)
     {
         if (specification.When is not { } action || !context.Commands.TryGetValue(action.Command, out var command)) return null;
-        var property = UnpinnedGeneratedProperties(command, action).FirstOrDefault(property => !context.Concepts[property.Type.Target].Validations.IsEmpty);
+
+        // Date-segment pattern generation is refused, so the current UTC year cannot affect admitted output.
+        var property = UnpinnedGeneratedProperties(command, action).FirstOrDefault(property =>
+            RuleConsistency.Check(context.Concepts[property.Type.Target]).Any(result => result.Status != RuleConsistencyStatus.Proven));
 
         return property is null ? null : $"Specification '{specification.Name}' needs a pinned generated value for '{property.Name}': concept rules may reject an unpinned draw.";
     }

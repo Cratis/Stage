@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.159.0; ESM v1–v16 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.180.1; ESM v1–v21 version pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -104,9 +104,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values Numbers Compliance Generation");
         Add(entries, "SemanticGeneration", rendered, "Kind Prefix Case Size Alphabet Count Encoding");
 
-        // ESM v21 (pattern, random, checksum and rule generation) is not audited yet: a model that uses it carries a semantic version
-        // the planner refuses with STAGE-ESM-016 before any of these members is read. Cratis/Stage#414 admits and renders them.
-        Add(entries, "SemanticGeneration", rejected("STAGE-ESM-016"), "Pattern Checksum Minimum Maximum RequirementId");
+        // ESM v21 is admitted by version; pattern, random and rule generation remain refused per strategy.
+        Add(entries, "SemanticGeneration", rejected("STAGE-ESM-028"), "Pattern Checksum Minimum Maximum RequirementId");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");
         Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via opt-in [ComplianceDetails] (#259)."), "Special Criminal");
@@ -123,7 +122,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationRule", rejected("STAGE-ESM-005"), "Name RequirementId");
         Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches");
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown RulePredicate CodeValidation");
-        Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-016"), "Checksum");
+        Add(entries, "SemanticValidationRuleKind", rejected(SemanticVersionFeatures.UnsupportedValidation), "Checksum");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
         // State change: one or more commands with mapped events and portable When conditions in declaration order. Tags preserve

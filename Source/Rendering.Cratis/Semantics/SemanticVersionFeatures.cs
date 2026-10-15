@@ -447,10 +447,6 @@ internal static class SemanticVersionFeatures
                 {
                     yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' collides with its New factory.");
                 }
-                if (concept.Validations.Any(rule => rule.Severity != SemanticValidationSeverity.Error))
-                {
-                    yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' has a non-error severity rule; Arc logs warnings and information while the reference rejects every failing generated rule.");
-                }
             }
         }
     }

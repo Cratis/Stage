@@ -269,6 +269,7 @@ internal static class SemanticStateChangeArtifactRenderer
         }
 
         var commandName = Identifiers.ToPascalCase(command.Name);
+        var types = new SemanticTypeSystem(context);
         builder.Summary($"Validates {Identifiers.ToWords(command.Name)}.")
             .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>")
             .OpenBlock($"public {commandName}Validator()");
@@ -276,7 +277,11 @@ internal static class SemanticStateChangeArtifactRenderer
         {
             var property = command.Properties.Single(_ => _.Id == rule.Property);
             var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
-            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional, context.RootNamespace);
+            var optionalConceptType = property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true, IsCollection: false } &&
+                primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean
+                    ? types.Type(property.Type)
+                    : null;
+            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional, context.RootNamespace, optionalConceptType);
         }
 
         foreach (var id in constrained)

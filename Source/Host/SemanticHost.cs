@@ -21,7 +21,8 @@ internal static class SemanticHost
     internal static async Task Run(string[] args, string modelPath)
     {
         var issues = new List<StageUnsupportedIssue>();
-        var (loaded, scene) = await LoadModel(modelPath, issues);
+        var notes = new List<SemanticModelLoadDiagnostic>();
+        var (loaded, scene) = await LoadModel(modelPath, issues, notes);
 
         var admission = loaded is null ? null : new SemanticRuntimeAdmission(loaded.Plan);
         if (admission is not null)
@@ -73,13 +74,13 @@ internal static class SemanticHost
 
         if (surface is null)
         {
-            MapRefused(app, issues);
+            MapRefused(app, issues, notes: notes.Count > 0 ? notes : null);
             await app.RunAsync();
             return;
         }
 
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
-        app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
+        MapStatus(app, () => RegistrationStatus(world, issues, app.Services, modelName, modelPath), notes);
         SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
         SemanticReadModelBrowser.Map(app, app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null);
         UseReadinessGate(app, () => world, issues);
@@ -111,11 +112,12 @@ internal static class SemanticHost
         await app.WaitForShutdownAsync();
     }
 
-    internal static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadModel(string modelPath, List<StageUnsupportedIssue> issues)
+    internal static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadModel(string modelPath, List<StageUnsupportedIssue> issues, List<SemanticModelLoadDiagnostic>? notes = null)
     {
         try
         {
             var loaded = await SemanticModelLoader.LoadFromPathAsync(modelPath);
+            notes?.AddRange(loaded.Notes);
 
             var scene = SemanticHostScene.Load(modelPath, loaded.Model);
             if (scene.RuntimeIssues.All(SafeSceneApplication.CanServeWithoutUnsafeBehavior))
@@ -135,6 +137,7 @@ internal static class SemanticHost
         }
         catch (InvalidSemanticModel invalid)
         {
+            notes?.AddRange(invalid.Notes);
             issues.AddRange(invalid.Diagnostics.Select(message => new StageUnsupportedIssue("Plan", "model", message)));
             if (issues.Count == 0)
             {
@@ -207,12 +210,12 @@ internal static class SemanticHost
         }
         : new StageStatus("ready", new StageStatusModel(modelName), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" };
 
-    internal static void MapRefused(WebApplication app, List<StageUnsupportedIssue> issues, string engine = "semantic")
+    internal static void MapStatus(WebApplication app, Func<StageStatus> status, IReadOnlyList<SemanticModelLoadDiagnostic>? notes = null) =>
+        app.MapGet("/stage/status", () => status() with { Notes = notes is { Count: > 0 } ? notes : null });
+
+    internal static void MapRefused(WebApplication app, List<StageUnsupportedIssue> issues, string engine = "semantic", IReadOnlyList<SemanticModelLoadDiagnostic>? notes = null)
     {
-        app.MapGet("/stage/status", () => new StageStatus("unsupported", null, null)
-        {
-            Engine = engine, Issues = issues
-        });
+        MapStatus(app, () => new StageStatus("unsupported", null, null) { Engine = engine, Issues = issues }, notes);
         app.MapPost(SemanticSpecificationRuns.Route, (HttpContext context) => RefusedResponse(context, issues));
         if (engine == "semantic")
         {

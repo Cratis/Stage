@@ -17,7 +17,11 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in specifications)
         {
-            if (InvalidStrategyFixture(context, specification) is { } message)
+            if (UnsupportedGeneratedRule(context, specification) is { } refusal)
+            {
+                diagnostics.Add(refusal);
+            }
+            else if (InvalidStrategyFixture(context, specification) is { } message)
             {
                 diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, message, specification.Id));
             }
@@ -47,6 +51,27 @@ internal static partial class SemanticSpecificationAdmission
     static string PinReason(SemanticCommand command) => command.Produces.Any(produced => produced.When is not null)
         ? "production conditions, unordered or projected expectations"
         : "unordered or projected expectations";
+
+    static ArtifactRenderDiagnostic? UnsupportedGeneratedRule(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (specification.When is not { } action || !context.Commands.TryGetValue(action.Command, out var command)) return null;
+        foreach (var fixture in action.GeneratedValues)
+        {
+            var property = command.Properties.SingleOrDefault(property => property.Id == fixture.TargetProperty && property.IsGenerated);
+            if (property is null) continue;
+            var concept = context.Concepts[property.Type.Target];
+            if (concept.Validations.FirstOrDefault(rule => !SemanticRuleValues.CanEvaluate(rule.Kind)) is { } rule)
+            {
+                return new(
+                    "STAGE-ESM-005",
+                    ArtifactRenderDiagnosticSeverity.Error,
+                    $"Specification '{specification.Name}' cannot render: generated concept '{concept.Name}' has unsupported validation rule '{rule.Kind}' (requirement '{rule.RequirementId}').",
+                    specification.Id);
+            }
+        }
+
+        return null;
+    }
 
     static string? InvalidStrategyFixture(SemanticApplicationContext context, SemanticSpecification specification)
     {

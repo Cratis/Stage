@@ -11,6 +11,5 @@ public class with_an_optional_numeric_concept_rule : given.a_command_model
     void Establish() => SetModel(("concept Count : Int\n" + Source).Replace("        produces InvoiceIssued", "        count Count?\n        validate\n          count > 0\n        produces InvoiceIssued", StringComparison.Ordinal));
     void Because() => Evaluate();
 
-    [Fact] void should_name_the_rule_property_and_nullable_predicate_limitation() => Messages.ShouldContainOnly(["Command 'IssueInvoice' validation 'GreaterThan' on optional property 'count' requires nullable WholeNumber concept 'Count' comparisons; Stage does not yet support faithful underlying-value predicates for this shape. Make the property non-optional only if absence is not part of the contract, or keep this shape unsupported (Cratis/Stage#409)."]);
-    [Fact] void should_keep_the_code() => _diagnostics.Single().Code.ShouldEqual("STAGE-ESM-005");
+    [Fact] void should_admit_the_absence_passing_scalar_comparison() => _diagnostics.ShouldBeEmpty();
 }

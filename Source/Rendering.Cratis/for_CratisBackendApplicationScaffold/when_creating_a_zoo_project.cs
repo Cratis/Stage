@@ -19,11 +19,14 @@ public class when_creating_a_zoo_project : Specification
 
     [Fact] void should_order_all_actual_relative_paths_ordinally() => _paths.SequenceEqual(
         [
+            ".editorconfig",
             "Directory.Build.props",
             "Directory.Build.targets",
             "Directory.Packages.props",
             "GeneratedPolicyRegistration.cs",
             "Program.cs",
+            "README.md",
+            "Zoo.Specs/Zoo.Specs.csproj",
             "Zoo.csproj",
             "Zoo.slnx",
             "appsettings.json",

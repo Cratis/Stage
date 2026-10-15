@@ -12,19 +12,11 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_verifying_reactions_against_the_pinned_kernel : a_generated_application
 {
-    const string Probe = """
-        using System.Reflection;
-        using Cratis.Chronicle.Observation;
-        using Cratis.Chronicle.Reactors;
-        using Cratis.Chronicle.Registrations;
-        using Reactions.Work.Processing.FollowUp;
-        using Reactions.Work.Processing.Start;
-        using Xunit;
-
+    const string HostSupport = """
         public partial class Program
         {
-            internal static readonly TaskCompletionSource<WebApplication> Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            internal static WebApplication? ProbeApplication;
+            public static readonly TaskCompletionSource<WebApplication> Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            public static WebApplication? ProbeApplication;
 
             static partial void ConfigureServices(WebApplicationBuilder builder)
             {
@@ -40,19 +32,32 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
                 app.Lifetime.ApplicationStarted.Register(() => Started.TrySetResult(app));
             }
 
-            internal static WebApplication BuildProbe()
+            public static WebApplication BuildProbe()
             {
                 __GENERATED_BOOTSTRAP__
                 return builder.Build();
             }
         }
 
+        """;
+
+    const string Probe = """
+        using System.Reflection;
+        using Cratis.Chronicle.Observation;
+        using Cratis.Chronicle.Reactors;
+        using Cratis.Chronicle.Registrations;
+        using Microsoft.AspNetCore.Builder;
+        using Microsoft.Extensions.DependencyInjection;
+        using Reactions.Work.Processing.FollowUp;
+        using Reactions.Work.Processing.Start;
+        using Xunit;
+
         namespace Reactions.KernelProbe
         {
         public class ReactionProbe
         {
             [Fact]
-            public async Task should_settle_event_reactions()
+            async Task should_settle_event_reactions()
             {
                 var entry = typeof(Program).GetMethod("<Main>$", BindingFlags.Static | BindingFlags.NonPublic)!;
                 var running = (Task)entry.Invoke(null, [Array.Empty<string>()])!;
@@ -252,7 +257,8 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
         var end = program.IndexOf("var app = builder.Build();", StringComparison.Ordinal);
         Assert.True(start >= 0 && end > start);
         var bootstrap = program[start..end].Replace("CreateBuilder(args)", "CreateBuilder(Array.Empty<string>())", StringComparison.Ordinal);
-        AddGeneratedSpecification("ReactionProbe.cs", Probe.Replace("__GENERATED_BOOTSTRAP__", bootstrap, StringComparison.Ordinal));
+        AddGeneratedHostSupport("ReactionHost.cs", HostSupport.Replace("__GENERATED_BOOTSTRAP__", bootstrap, StringComparison.Ordinal));
+        AddGeneratedSpecification("ReactionProbe.cs", Probe);
     }
 
 #pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.

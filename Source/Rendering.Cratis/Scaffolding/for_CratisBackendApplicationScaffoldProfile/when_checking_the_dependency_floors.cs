@@ -14,10 +14,10 @@ public class when_checking_the_dependency_floors : Specification
     void Because()
     {
         var scaffold = CratisRendering.PlanScaffold(new("Shop", "Shop", "Shop"));
-        _project = XDocument.Parse(Encoding.UTF8.GetString(scaffold.Artifacts.Single(artifact => artifact.RelativePath == "Shop.csproj").Bytes.AsSpan()));
+        _project = XDocument.Parse(Encoding.UTF8.GetString(scaffold.Artifacts.Single(artifact => artifact.RelativePath == "Directory.Packages.props").Bytes.AsSpan()));
     }
     [Fact] void should_pin_the_chronicle_client_above_the_required_floor() => (Version.Parse(PackageVersion("Cratis.Chronicle")) >= new Version(19, 30, 0)).ShouldBeTrue();
     [Fact] void should_pin_the_cratis_integration_above_the_arc_chronicle_floor() => (Version.Parse(PackageVersion("Cratis")) >= new Version(22, 49, 1)).ShouldBeTrue();
     [Fact] void should_keep_the_pinned_client_and_kernel_together() => PackageVersion("Cratis.Chronicle").ShouldEqual(CratisBackendApplicationScaffoldProfile.Current.ChronicleImageVersion);
-    string PackageVersion(string name) => _project.Descendants("PackageReference").Single(element => (string?)element.Attribute("Include") == name).Attribute("Version")!.Value;
+    string PackageVersion(string name) => _project.Descendants("PackageVersion").Single(element => (string?)element.Attribute("Include") == name).Attribute("Version")!.Value;
 }

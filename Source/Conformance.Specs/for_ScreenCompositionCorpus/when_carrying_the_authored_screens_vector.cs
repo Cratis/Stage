@@ -46,7 +46,7 @@ public class when_carrying_the_authored_screens_vector : given.the_planned_scree
     [Fact] void should_plan_the_authored_scene_with_its_guards() => _refusal.ShouldBeNull();
     [Fact] void should_plan_without_warnings_or_errors() => _plan!.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_reassemble_the_canonical_scene_byte_identically() => _plan!.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(_bytes);
-    [Fact] void should_pin_the_partitioned_artifact_digest() => _plan!.Digest.ShouldEqual("e312b41f44652d018afd554dfedbc8782ee2583df8915a9663ab48e2d9fe8a5e");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => _plan!.Digest.ShouldEqual("cbc8deccc0dc1d50857ad798d1c8af0825afeb153db10e5182305552d28a2d50");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json 24fb27aa838c752d1032fbe31fc49502ff2b444cc2453741bb8efb08506858be 2223
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json 6748a60904bb7a192d0adcd630c4788ac299907c24400bf7e4a86a2e3b68f84d 9719

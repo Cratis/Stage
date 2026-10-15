@@ -22,10 +22,10 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "3897ef89bb9094f64a73a2109c1289d5823e94eb11842fd4dbed2bcf4541b7ff";
+    const string Digest = "3617a1d682b8141901e94faae775d40fe35aa4d406bbb009df92b02429840e59";
 
     const string Manifest = """
-        .editorconfig b4c06df6395b2c4359302ca535b3b6341866fdf8367c9d06355424f88cbb99c3 471
+        .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx e4dc56b56e3e3855a1fdeedf2c14c131db52853c73f87b3b28d51b30a0e361b7 2723
@@ -58,7 +58,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726
         Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733
         Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307
-        Directory.Build.props 4b2d5eb721faa800aa5358112aa17fa6d2e16a61d9b725d10397f65180c02035 516
+        Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
         Directory.Packages.props 08f1c433fbe4b7a13e9215562ae6fbc23833dd3eb8e4c071ce2254f503095801 1095
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
@@ -129,7 +129,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("333e6d8acca78dba72633e74f5272932df5d7ee93267ff0e550d0b3e2fa484fd");
+            plan.Diagnostics).ShouldEqual("d18575047d51d892b391f914f7f9196233a9dcd579b0bde3254dbf4460b9df39");
     }
 
     [Theory]

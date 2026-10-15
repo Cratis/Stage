@@ -26,8 +26,8 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("bfd60b78f0cd1c9b522c685286e17a0c4e71cb7f5b9f92ff792d63015909ec8d");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("e809f81bb32de1d97d292cec9796192f66bc2f32e3792247cbd3d1fd6c20e332");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("522393f950d47596afb818c72145b3cca9637d2571c9c4b8f3ec92c09d9c38a9");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("cbae10a70d73a6891d2d614882ef91da93583f724bf5231fb751b0ea40c10908");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

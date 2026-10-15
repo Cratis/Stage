@@ -15,7 +15,8 @@ public class when_loading_warning_diagnostics : given.a_source_with_notes
     async Task Because() => _result = await SemanticModelLoader.LoadAsync(_root, [], null, "Projects");
 
     [Fact] void should_load_successfully() => _result.Success.ShouldBeTrue();
-    [Fact] void should_not_report_blocking_diagnostics() => _result.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_not_report_blocking_diagnostics() => _result.Errors.ShouldBeEmpty();
+    [Fact] void should_keep_all_diagnostics_for_existing_consumers() => _result.Diagnostics.Length.ShouldEqual(3);
     [Fact] void should_preserve_the_warning_as_a_note() => _result.Notes.Count(note => note.Severity == DiagnosticSeverity.Warning).ShouldEqual(1);
     [Fact] void should_also_preserve_information() => _result.Notes.Count(note => note.Severity == DiagnosticSeverity.Information).ShouldEqual(2);
 }

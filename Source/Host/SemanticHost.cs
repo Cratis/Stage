@@ -80,7 +80,7 @@ internal static class SemanticHost
         }
 
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
-        app.MapGet("/stage/status", () => RegistrationStatus(world, issues, app.Services, modelName, modelPath) with { Notes = notes.Count > 0 ? notes : null });
+        MapStatus(app, () => RegistrationStatus(world, issues, app.Services, modelName, modelPath), notes);
         SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
         SemanticReadModelBrowser.Map(app, app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null);
         UseReadinessGate(app, () => world, issues);
@@ -210,12 +210,15 @@ internal static class SemanticHost
         }
         : new StageStatus("ready", new StageStatusModel(modelName), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" };
 
+    internal static void MapStatus(WebApplication app, Func<StageStatus> status, IReadOnlyList<SemanticModelLoadDiagnostic>? notes = null) =>
+        app.MapGet("/stage/status", () => status() with { Notes = notes is { Count: > 0 } ? notes : null });
+
     internal static void MapRefused(WebApplication app, List<StageUnsupportedIssue> issues, string engine = "semantic", IReadOnlyList<SemanticModelLoadDiagnostic>? notes = null)
     {
-        app.MapGet("/stage/status", () => new StageStatus("unsupported", null, null)
+        MapStatus(app, () => new StageStatus("unsupported", null, null)
         {
-            Engine = engine, Issues = issues, Notes = notes
-        });
+            Engine = engine, Issues = issues
+        }, notes);
         app.MapPost(SemanticSpecificationRuns.Route, (HttpContext context) => RefusedResponse(context, issues));
         if (engine == "semantic")
         {

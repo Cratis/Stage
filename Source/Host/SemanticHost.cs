@@ -215,10 +215,7 @@ internal static class SemanticHost
 
     internal static void MapRefused(WebApplication app, List<StageUnsupportedIssue> issues, string engine = "semantic", IReadOnlyList<SemanticModelLoadDiagnostic>? notes = null)
     {
-        MapStatus(app, () => new StageStatus("unsupported", null, null)
-        {
-            Engine = engine, Issues = issues
-        }, notes);
+        MapStatus(app, () => new StageStatus("unsupported", null, null) { Engine = engine, Issues = issues }, notes);
         app.MapPost(SemanticSpecificationRuns.Route, (HttpContext context) => RefusedResponse(context, issues));
         if (engine == "semantic")
         {

@@ -19,7 +19,7 @@ public static class JsonValues
     /// <returns>The string value or <see langword="null"/>.</returns>
     public static string? GetString(this IReadOnlyDictionary<string, JsonElement> values, string property)
     {
-        if (!values.TryGetValue(property, out var value))
+        if (Resolve(values, property).Value is not { } value)
         {
             return null;
         }
@@ -41,7 +41,7 @@ public static class JsonValues
     /// <returns>The numeric value or <see langword="null"/>.</returns>
     public static double? GetNumber(this IReadOnlyDictionary<string, JsonElement> values, string property)
     {
-        if (!values.TryGetValue(property, out var value) || value.ValueKind != JsonValueKind.Number)
+        if (Resolve(values, property).Value is not { ValueKind: JsonValueKind.Number } value)
         {
             return null;
         }
@@ -77,5 +77,39 @@ public static class JsonValues
         {
             return new Dictionary<string, JsonElement>();
         }
+    }
+
+    // Screenplay's min/max constrain a number's value and a text's UTF-16 length, not its JSON representation.
+    internal static double? GetMeasure(this IReadOnlyDictionary<string, JsonElement> values, string property) =>
+        Resolve(values, property).Value is { ValueKind: JsonValueKind.String } text
+            ? text.GetString()!.Length
+            : values.GetNumber(property);
+
+    // Element paths cannot be represented by scalar Stage rules. Distinguish them from missing required values.
+    internal static bool IsCollectionElementPath(this IReadOnlyDictionary<string, JsonElement> values, string property) =>
+        Resolve(values, property).CrossesCollection;
+
+    static (JsonElement? Value, bool CrossesCollection) Resolve(IReadOnlyDictionary<string, JsonElement> values, string property)
+    {
+        var segments = property.Split('.');
+        if (!values.TryGetValue(segments[0], out var value))
+        {
+            return (null, false);
+        }
+
+        foreach (var segment in segments.Skip(1))
+        {
+            if (value.ValueKind == JsonValueKind.Array)
+            {
+                return (null, true);
+            }
+
+            if (value.ValueKind != JsonValueKind.Object || !value.TryGetProperty(segment, out value))
+            {
+                return (null, false);
+            }
+        }
+
+        return (value, false);
     }
 }

@@ -71,6 +71,11 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         {
             Exposures = [.. (syntax.Exposures ?? []).Select(CompositionConverter.Exposure)],
             InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],
+            Navigation = NavigationConverter.Convert(syntax),
+            Structure = scope.Structure ?? StructureConverter.Convert(syntax),
+            TemplateReferences = TemplateReferenceConverter.Collect(syntax),
+            SampleDataPacks = SampleDataConverter.Packs(syntax),
+            BlueprintSampleDataPacks = SampleDataConverter.BlueprintPacks(syntax),
             RuntimeIssues = runtime.Issues
         };
     }

@@ -40,7 +40,7 @@ public static class UiProfileConverter
         var packages = uiProfile.Packages.ToList();
 
         return uiProfile.Platforms.Select(platform =>
-            new SceneModel.UiProfile(uiProfile.Name, platform, packages, defaultSizeClass, uiProfile.Layout, uiProfile.Theme));
+            new SceneModel.UiProfile(uiProfile.Name, platform, packages, defaultSizeClass, uiProfile.Layout, uiProfile.Theme, SampleData: SampleDataConverter.Selection(uiProfile.SampleData)));
     }
 
     static TargetSizeClass? ConvertDefaultSizeClass(string? defaultSizeClass) =>

@@ -44,7 +44,7 @@ public static class ScreenTemplateConverter
             template.DisplayName,
             template.Description)
         {
-            Metadata = CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes),
+            Metadata = CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes, template.SliceKinds),
             Outlets = [.. template.Outlets.Select(outlet => new SceneScreens.Outlet(outlet.Name))]
         };
 }

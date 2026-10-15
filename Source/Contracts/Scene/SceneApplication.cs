@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json.Serialization;
+using SceneElements = Cratis.Scene.Model.Elements;
 using SceneExposure = Cratis.Scene.Model.Exposure;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneNavigation = Cratis.Scene.Model.Navigation;
@@ -9,8 +10,6 @@ using SceneProfiles = Cratis.Scene.Model.Profiles;
 using SceneSampleData = Cratis.Scene.Model.SampleData;
 using SceneScreens = Cratis.Scene.Model.Screens;
 using SceneStructure = Cratis.Scene.Model.Structure;
-
-using SceneElements = Cratis.Scene.Model.Elements;
 
 namespace Cratis.Stage.Contracts.Scene;
 
@@ -92,10 +91,6 @@ public record SceneApplication(
         ScreenTemplates.Any(template => template.Content is { } content && content.Values.Any(HasSliceButton)) ||
         DialogTemplates.Any(template => template.Content is { } content && content.Values.Any(HasSliceButton));
 
-    static bool HasSliceButton(IReadOnlyList<SceneElements.SceneElement> elements) =>
-        elements.Any(element => element is SceneElements.ExternalComponent component &&
-            ((component.Properties.TryGetValue("slice", out var slice) && slice is string { Length: > 0 }) || component.Slots.Values.Any(HasSliceButton)));
-
     /// <summary>
     /// Gets this application as a running Stage serves it: without sample data (spec SD6). Packs, the blueprint packs it names and the profile's
     /// selection exist to preview with at design time; a production render never carries them.
@@ -107,4 +102,8 @@ public record SceneApplication(
         BlueprintSampleDataPacks = [],
         UiProfiles = [.. UiProfiles.Select(profile => profile with { SampleData = null })]
     };
+
+    static bool HasSliceButton(IReadOnlyList<SceneElements.SceneElement> elements) =>
+        elements.Any(element => element is SceneElements.ExternalComponent component &&
+            ((component.Properties.TryGetValue("slice", out var slice) && slice is string { Length: > 0 }) || component.Slots.Values.Any(HasSliceButton)));
 }

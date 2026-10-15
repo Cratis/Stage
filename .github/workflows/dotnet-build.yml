@@ -360,12 +360,17 @@ jobs:
       - name: Run the live custom package scenarios
         run: Verification/live-custom-packages/run.sh cratis/stage:ci "$PWD/TestResults/live-custom-packages"
 
+      - name: Run the live navigation scenarios
+        run: Verification/live-navigation/run.sh cratis/stage:ci "$PWD/TestResults/live-navigation"
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: live-custom-packages-results
-          path: TestResults/live-custom-packages
+          path: |
+            TestResults/live-custom-packages
+            TestResults/live-navigation
           if-no-files-found: error
           retention-days: 7
 

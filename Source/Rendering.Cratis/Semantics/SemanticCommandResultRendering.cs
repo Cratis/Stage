@@ -83,10 +83,12 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
             .BlankLine();
     }
 
+    // Stage renders generated-value freshness itself (explicit concurrency scopes from ESM v15, unguarded below), so
+    // Arc's own guard, Guarded by default, must not apply as well until the scopes move to it (Arc#3129).
     string Parameters()
     {
         var generated = command.Properties.Where(property => property.IsGenerated).Select(property =>
-            $"[global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute({CSharpCodeBuilder.StringLiteral(property.Name)})] {_types.Type(property.Type)} {PropertyValue(property)}");
+            $"[global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute({CSharpCodeBuilder.StringLiteral(property.Name)}, Freshness = global::Cratis.Arc.Commands.GeneratedValueFreshness.Unguarded)] {_types.Type(property.Type)} {PropertyValue(property)}");
 
         return string.Join(", ", generated.Concat(HasOccurrence ? ["global::Cratis.Arc.IOperationContextAccessor operation"] : []));
     }

@@ -26,13 +26,13 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("5dd2ba7b737ef458c227a9bd3f09b7aabb60a001072eece3a2ba123c640bd027");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("b4f7134a641f50ada25f1fbba2d8ba9062a392309850470ef402559bce8e4ce4");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("c15dc41dbf79c1f851002faf0d750041886bd7aad83ba27d4c898616339e4790");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
         // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-        _plan.TargetVersion.Replace("22.95.0", "22.87.0", StringComparison.Ordinal),
+        _plan.TargetVersion.Replace("22.100.1", "22.87.0", StringComparison.Ordinal),
         _plan.Renderer,
         _plan.RendererVersion,
         _plan.ApplicationName,
@@ -47,7 +47,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // CPM keeps the backend Arc pins in Directory.Packages.props; frontend files may use the same version independently.
     static string PreviousRealization(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.64.1", "19.55.2", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal);
         if (relativePath.EndsWith("Lookup.cs", StringComparison.Ordinal))
         {
             // Restore the frozen #350 primitive query signature and conversion, not the read-model property.
@@ -56,7 +56,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         }
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.95.0", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.100.1", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 }

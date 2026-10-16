@@ -14,7 +14,7 @@ public class with_a_protected_scoped_live_list : Specification
 
     void Because() => _plan = invoice_model.Plan(invoice_model.Compile(a_protected_collection_model.Scoped));
 
-    [Fact] void should_refuse_the_scoped_live_collection() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_children_observation_gap() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("Chronicle#4816", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_admit_the_scoped_live_collection() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_not_report_a_children_observation_gap() => _plan.Diagnostics.Any(diagnostic => diagnostic.Message.Contains("Chronicle#4816", StringComparison.Ordinal)).ShouldBeFalse();
+    [Fact] void should_emit_the_artifacts() => _plan.Artifacts.ShouldNotBeEmpty();
 }

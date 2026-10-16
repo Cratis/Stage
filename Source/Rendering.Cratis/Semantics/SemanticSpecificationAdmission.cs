@@ -24,6 +24,19 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in WithoutReactionCascades(context, slice, diagnostics))
         {
+            if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
+            {
+                if (!CanRenderProjectedFacts(context, facts))
+                {
+                    diagnostics.Add(new(
+                        "STAGE-ESM-011",
+                        ArtifactRenderDiagnosticSeverity.Error,
+                        $"Specification '{specification.Name}' cannot render: {ProjectedFactsRejection(context, facts)}",
+                        specification.Id));
+                }
+
+                continue;
+            }
             if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
             {
                 ValidateReactionAppend(context, specification, diagnostics);
@@ -42,6 +55,10 @@ internal static partial class SemanticSpecificationAdmission
             }
         }
     }
+
+    internal static IEnumerable<SemanticReactionTrigger> EventReactionTriggers(SemanticApplicationContext context) =>
+        SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions)
+            .SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event);
 
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
@@ -92,10 +109,6 @@ internal static partial class SemanticSpecificationAdmission
 
         return EventReactionTriggers(context).Any(trigger => SemanticProductionSelection.Taken(command, specification).Any(produced => produced.EventContract == trigger.Source));
     }
-
-    static IEnumerable<SemanticReactionTrigger> EventReactionTriggers(SemanticApplicationContext context) =>
-        SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions)
-            .SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event);
 
     static bool ProtectedQuerySourcesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command)
     {

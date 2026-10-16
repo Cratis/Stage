@@ -6,10 +6,12 @@ using Cratis.Scene.Engine.Packages;
 using Cratis.Scene.Engine.Profiles;
 using Cratis.Scene.Engine.Screens;
 using Cratis.Scene.Engine.Structure;
+using Cratis.Scene.Engine.Templates;
 using Cratis.Scene.Engine.Toolbar;
 using SceneElements = Cratis.Scene.Model.Elements;
 using ScenePackagesModel = Cratis.Scene.Model.Packages;
 using SceneProfilesModel = Cratis.Scene.Model.Profiles;
+using SceneScreens = Cratis.Scene.Model.Screens;
 using SceneShell = Cratis.Scene.Engine.Shell;
 using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
 using SceneToolbar = Cratis.Scene.Model.Toolbar;
@@ -78,6 +80,34 @@ public static class RenderFindings
         foreach (var diagnostic in ToolbarButtonValidation.Validate(index, new SceneToolbar.Toolbar(buttons)))
         {
             yield return new RenderFinding(RenderFindingKind.ToolbarButtonInvalid, diagnostic.Button, $"{diagnostic.Code}: {diagnostic.Message}");
+        }
+    }
+
+    /// <summary>
+    /// States which <c language="csharp">template blueprint</c> references name something the catalog cannot supply.
+    /// </summary>
+    /// <param name="application">The translated <see cref="SceneApplication"/>.</param>
+    /// <param name="catalog">Every package available to resolve against; each blueprint in it is known by the templates its manifest lists.</param>
+    /// <returns>The findings, if any.</returns>
+    /// <remarks>
+    /// The rule is Scene's own: <c language="csharp">TemplateReferenceResolver</c> reports the outcome and the message, run unmodified over the
+    /// blueprints the catalog declares, so a reference to a template a blueprint does not ship is refused here for the same reason the designer
+    /// refuses it instead of rendering a screen that silently has no template. References to the application's own templates are checked by the
+    /// compiler against the templates the document declares.
+    /// </remarks>
+    public static IEnumerable<RenderFinding> ForTemplateReferences(SceneApplication application, IReadOnlyList<ScenePackagesModel.ScenePackage> catalog)
+    {
+        var library = new TemplateLibrary(null, [.. catalog.Where(package => package.Kind == ScenePackagesModel.PackageKind.Blueprint).Select(package => new TemplateSource(package))]);
+        foreach (var assignment in application.TemplateReferences.Where(assignment => assignment.Reference.Source == SceneScreens.TemplateReferenceSource.Blueprint))
+        {
+            var resolution = TemplateReferenceResolver.Resolve(assignment.Reference, library);
+            if (resolution.Status != TemplateReferenceStatus.Resolved)
+            {
+                yield return new RenderFinding(
+                    RenderFindingKind.TemplateReferenceUnresolved,
+                    string.IsNullOrEmpty(assignment.Owner) ? assignment.Scope : assignment.Owner,
+                    resolution.Message ?? $"Template '{assignment.Reference.Id}' of blueprint '{assignment.Reference.Blueprint}' could not be resolved ({resolution.Status}).");
+            }
         }
     }
 

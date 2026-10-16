@@ -3,12 +3,13 @@
   "private": true,
   "description": "The published domain blueprint packages the live Stage scenario approves and renders. Versions are pinned so the scenario is repeatable.",
   "dependencies": {
-    "@cratis/scene.blueprint.administration": "4.60.0",
-    "@cratis/scene.blueprint.approvals": "4.60.0",
-    "@cratis/scene.blueprint.crm": "4.60.0",
-    "@cratis/scene.blueprint.hr": "4.60.0",
-    "@cratis/scene.blueprint.inventory": "4.60.0",
-    "@cratis/scene.blueprint.project-tracker": "4.60.0",
-    "@cratis/scene.blueprint.ticketing": "4.60.0"
+    "@cratis/scene.blueprint.administration": "4.66.0",
+    "@cratis/scene.blueprint.approvals": "4.66.0",
+    "@cratis/scene.blueprint.crm": "4.66.0",
+    "@cratis/scene.blueprint.hr": "4.66.0",
+    "@cratis/scene.blueprint.inventory": "4.66.0",
+    "@cratis/scene.blueprint.orders": "4.66.0",
+    "@cratis/scene.blueprint.project-tracker": "4.66.0",
+    "@cratis/scene.blueprint.ticketing": "4.66.0"
   }
 }

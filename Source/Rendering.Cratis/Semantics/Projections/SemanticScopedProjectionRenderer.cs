@@ -72,6 +72,7 @@ internal static class SemanticScopedProjectionRenderer
                 {
                     SemanticProjectionValueKey { Value: SemanticProjectionEventProperty property } => $"To(evt => evt.{Path(property.Path, @event.Properties, context)})",
                     SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } => "ToEventSourceId()",
+                    SemanticProjectionValueKey { Value: SemanticProjectionLiteral constant } => $"ToValue({Literal(constant, [identifier.Id], properties, context)})",
                     _ => throw UnsupportedSemanticRendering.For(nameof(SemanticProjectionKeyKind), from.Key.Kind)
                 };
                 code.Line($"from.Set(model => model.{target}).{source};");
@@ -173,6 +174,10 @@ internal static class SemanticScopedProjectionRenderer
         if (key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty property })
         {
             code.Line($"{receiver}.{method}(evt => evt.{Path(property.Path, @event.Properties, context)});");
+        }
+        else if (key is SemanticProjectionValueKey { Value: SemanticProjectionLiteral { Value: SemanticTextValue constant } })
+        {
+            code.Line($"{receiver}.UsingConstantKey(\"{constant.Value}\");");
         }
     }
 

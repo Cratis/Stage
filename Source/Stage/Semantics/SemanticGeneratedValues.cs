@@ -29,6 +29,13 @@ internal static class SemanticGeneratedValues
             "typeid" => GenerateValue.TypeId(generation.Prefix ?? string.Empty, context),
             "nanoid" => GenerateValue.NanoId(generation.Size ?? 21, generation.Alphabet),
             "bytes" => GenerateValue.Bytes(generation.Count!.Value, Encoding(generation.Encoding)),
+            "pattern" => GenerateValue.Pattern(generation.Pattern!, context, generation.Checksum switch
+            {
+                "luhn" => Checksum.Luhn,
+                "mod11" => Checksum.Mod11,
+                "mod97" => Checksum.Mod97,
+                _ => Checksum.None
+            }),
             _ => throw new UnsupportedSemanticValue($"Generation strategy '{generation.Kind}' is not admitted.")
         };
         value = generation.Case switch
@@ -58,7 +65,11 @@ internal static class SemanticGeneratedValues
         var concept = application.Concepts.Single(concept => concept.Id == property.Type.Target);
         var usesGeneration = SemanticGenerationShapes.UsesConceptGeneration(application);
 
-        return new(property.Id, SemanticValue.Text(New(concept, usesGeneration, new(now, GenerationContext.DefaultTenant))));
+        var value = concept.Generation is { } range && string.Equals(range.Kind, "random", StringComparison.Ordinal)
+            ? SemanticValue.Number(GenerateValue.Integer(range.Minimum!.Value, range.Maximum!.Value))
+            : SemanticValue.Text(New(concept, usesGeneration, new(now, GenerationContext.DefaultTenant)));
+
+        return new(property.Id, value);
     }
 
     static bool IsGeneratedFailure(SemanticProperty property, SemanticApplication application, string message) =>

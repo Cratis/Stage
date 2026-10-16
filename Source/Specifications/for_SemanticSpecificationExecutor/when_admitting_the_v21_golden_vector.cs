@@ -21,8 +21,6 @@ public class when_admitting_the_v21_golden_vector : Specification
     [Fact] void should_run_a_nonempty_specification_set() => _report.Results.ShouldNotBeEmpty();
     [Fact] void should_not_refuse_the_audited_version() => _report.Results.Any(result => result.Unsupported?.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal) == true).ShouldBeFalse();
     [Theory]
-    [InlineData("PatternReference", "STAGE-ESM-028: Concept 'PatternReference' uses 'generate pattern', which Stage does not support yet.")]
-    [InlineData("TicketNumber", "STAGE-ESM-028: Concept 'TicketNumber' uses 'generate random', which Stage does not support yet.")]
     [InlineData("TenantOrderId", "STAGE-ESM-028: Concept 'TenantOrderId' uses 'generate rule', which Stage does not support yet.")]
     async Task should_keep_construct_refusals(string conceptName, string expectedDetails)
     {

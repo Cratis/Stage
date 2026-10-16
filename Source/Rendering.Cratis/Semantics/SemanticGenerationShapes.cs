@@ -24,22 +24,25 @@ internal static class SemanticGenerationShapes
     internal static bool Supported(SemanticConcept concept) => concept.Primitive switch
     {
         SemanticPrimitiveType.Uuid => concept.Generation is null || IsUuid(concept.Generation.Kind),
-        SemanticPrimitiveType.Text => concept.Generation is { } generation && KnownKind(generation.Kind),
+        SemanticPrimitiveType.Text => concept.Generation is { } generation && (KnownKind(generation.Kind) || generation.Kind == "pattern"),
+        SemanticPrimitiveType.WholeNumber => concept.Generation?.Kind == "random",
         _ => false
     };
 
-    internal static bool Matches(SemanticConcept concept, SemanticValue value) => value is SemanticTextValue text &&
-        Regex.IsMatch(text.Value, Pattern(concept), RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+    internal static bool Matches(SemanticConcept concept, SemanticValue value, DateTimeOffset? instant = null) => concept.Generation is { } range && string.Equals(range.Kind, "random", StringComparison.Ordinal)
+        ? value is SemanticNumberValue number && decimal.Truncate(number.Value) == number.Value && number.Value >= range.Minimum && number.Value <= range.Maximum
+        : value is SemanticTextValue text && Regex.IsMatch(text.Value, Pattern(concept, instant), RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, TimeSpan.FromSeconds(1));
 
     internal static string FixtureMessage(string property) => $"Generated fixture for '{property}' does not match its generation strategy shape.";
 
     internal static string RuleMessage(string property, string concept) => $"Generated fixture '{property}' fails concept '{concept}' rules";
 
-    internal static string Pattern(SemanticConcept concept)
+    internal static string Pattern(SemanticConcept concept, DateTimeOffset? instant = null)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
+        var shape = generation.Kind == "pattern" ? SemanticPatternShape.Pattern(generation, instant) : Shape(generation);
 
-        return $"\\A{Regex.Escape(Prefix(generation))}{Shape(generation)}\\z";
+        return $"\\A{Regex.Escape(Prefix(generation))}{shape}\\z";
     }
 
     static string Prefix(SemanticGeneration generation) => generation.Prefix is { Length: > 0 } prefix &&

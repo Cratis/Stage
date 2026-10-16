@@ -86,7 +86,7 @@ internal static partial class SemanticSpecificationAdmission
             if (property is null) continue;
             var concept = context.Concepts[property.Type.Target];
             if ((SemanticGenerationShapes.UsesConceptGeneration(context.Request.Model.Application) || !concept.Validations.IsEmpty) &&
-                !SemanticGenerationShapes.Matches(concept, fixture.Value))
+                !SemanticGenerationShapes.Matches(concept, fixture.Value, SemanticSpecificationClock.TryGet(specification, out var instant) ? instant : null))
             {
                 return $"Specification '{specification.Name}' cannot render: {SemanticGenerationShapes.FixtureMessage(property.Name)}";
             }
@@ -103,9 +103,10 @@ internal static partial class SemanticSpecificationAdmission
     {
         if (specification.When is not { } action || !context.Commands.TryGetValue(action.Command, out var command)) return null;
 
-        // Date-segment pattern generation is refused, so the current UTC year cannot affect admitted output.
+        // Assess date-bearing draws at the deterministic scenario receipt year, never at render time.
+        var year = SemanticSpecificationClock.TryGet(specification, out var instant) ? instant.Year : 2026;
         var property = UnpinnedGeneratedProperties(command, action).FirstOrDefault(property =>
-            RuleConsistency.Check(context.Concepts[property.Type.Target]).Any(result => result.Status != RuleConsistencyStatus.Proven));
+            RuleConsistency.Check(context.Concepts[property.Type.Target], year).Any(result => result.Status != RuleConsistencyStatus.Proven));
 
         return property is null ? null : $"Specification '{specification.Name}' needs a pinned generated value for '{property.Name}': concept rules may reject an unpinned draw.";
     }

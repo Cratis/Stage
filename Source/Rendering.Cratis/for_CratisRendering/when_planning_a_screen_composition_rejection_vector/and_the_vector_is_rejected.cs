@@ -47,7 +47,7 @@ public class and_the_vector_is_rejected : Specification
         result.Artifacts.ShouldBeEmpty();
     }
 
-    [Fact] void should_cover_every_corpus_rejection_vector() => Vectors.Count.ShouldEqual(16);
+    [Fact] void should_cover_every_corpus_rejection_vector() => Vectors.Count.ShouldEqual(19);
 
     static string[] CompilerDiagnostics(CratisPlanResult result) =>
         [.. result.Diagnostics

@@ -44,7 +44,14 @@ public static class ScreenTemplateConverter
             template.DisplayName,
             template.Description)
         {
-            Metadata = CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes, template.SliceKinds),
+            Metadata = WithRootRole(template, CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes, template.SliceKinds)),
             Outlets = [.. template.Outlets.Select(outlet => new SceneScreens.Outlet(outlet.Name))]
         };
+
+    // A screen template that declares `scopes application` and fits no slot can be the application's shell - Screenplay's validator
+    // accepts it as a `root template` (PLAY0794) - and Scene's resolver takes such a template only when it has the root role.
+    static SceneScreens.TemplateMetadata WithRootRole(ScreenplaySyntax.ScreenTemplateSyntax template, SceneScreens.TemplateMetadata metadata) =>
+        string.IsNullOrEmpty(template.FitsSlot) && metadata.Scopes?.Contains(SceneScreens.TemplateScope.Application) == true
+            ? metadata with { Role = SceneScreens.TemplateRole.Root }
+            : metadata;
 }

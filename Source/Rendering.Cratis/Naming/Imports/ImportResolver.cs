@@ -14,7 +14,6 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 /// accesses. Spellings are decided against the final import set, and imports no short name needs are dropped again, so
 /// the result is deterministic for a given request.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0182:Unused internal type", Justification = "The C# renderers adopt the resolver in follow-up changes (Stage#424); its specifications and the name matrix use it today.")]
 internal static class ImportResolver
 {
     // Members C# binds by pattern rather than by an explicit call: awaiting, iterating, deconstructing, collection

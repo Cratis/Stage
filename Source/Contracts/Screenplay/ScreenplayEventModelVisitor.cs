@@ -13,7 +13,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<EventModel>
 {
     /// <summary>
-    /// Refuses described command bodies and atomic reaction batches before a legacy path can discard their behavior.
+    /// Refuses described command bodies, atomic reaction batches and protected command reads before a legacy path can discard their behavior.
     /// </summary>
     /// <param name="syntax">The application to inspect, including nested features.</param>
     /// <exception cref="InvalidEventModel">Thrown when the application requires behavior the legacy engines cannot preserve.</exception>
@@ -24,6 +24,13 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
             throw new InvalidEventModel(
                 syntax.Location.Path ?? "<source>",
                 ["STAGE-ESM-043: Application declares reaction batches atomic; Stage does not preserve that production boundary yet (Cratis/Stage#422)."]);
+        }
+
+        if (syntax.CommandReadMode is not null)
+        {
+            throw new InvalidEventModel(
+                syntax.Location.Path ?? "<source>",
+                ["STAGE-ESM-044: Application declares command reads protected; Stage does not preserve protected decision reads yet."]);
         }
 
         foreach (var command in syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Commands))

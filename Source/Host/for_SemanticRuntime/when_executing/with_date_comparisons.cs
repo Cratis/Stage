@@ -41,7 +41,10 @@ public class with_date_comparisons : Specification
             SemanticRunAdmission.Check(plan, fixture).ShouldBeNull();
             var reference = new SemanticSpecificationRunner().Run(plan, fixture.Id);
             Assert.True(reference.Passed, string.Join(';', reference.Failures));
-            var appender = Substitute.For<IAppendSemanticFacts>();
+            var facts = new List<SemanticFact>();
+            var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
+            ((ISemanticFactTail)appender).Tail().Returns(_ => facts.Count == 0 ? ulong.MaxValue : (ulong)facts.Count - 1);
+            appender.Append(Arg.Do<IReadOnlyList<SemanticFact>>(facts.AddRange), Arg.Any<SemanticCommandOccurrence>()).Returns(Task.CompletedTask);
             var runtime = SemanticRuntimeHosting.Create(plan, appender);
             using var lifetime = (IDisposable)runtime;
             var command = plan.Commands[fixture.When!.Command];
@@ -50,6 +53,7 @@ public class with_date_comparisons : Specification
             var result = await runtime.Execute(command, values, new ClaimsPrincipal(), new(DateTimeOffset.UtcNow, "owner", "Owner", "owner"), false);
             result.Kind.ShouldEqual(expectation.Outcome);
             result.World.Facts.Length.ShouldEqual(expectation.WorldFactCount!.Value);
+            facts.Count.ShouldEqual(expectation.WorldFactCount.Value);
             if (result is SemanticRejected rejected)
             {
                 rejected.Category.ShouldEqual(expectation.RejectionCategory!.Value);

@@ -26,14 +26,14 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("0ce9957a33b81dc8b470cf99baf0d2dbc41acf4be613b01382bd85193cd1c821");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("52fa7f699def59d7633c2511df0524be5f25864aa225f050d9aed5ca074bab39");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("1453f202958e7f5e3a95a923d4c3bbc1bd09a7c094f331997ecb413b435c6253");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("427e1933c38c5f792e637026271e7f42329ed45717cdc899ce4b99ae5a06e465");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("611a088c0d5dab37a7d5ab536cfe47bc8714e35b7410df228696a210b370abe5");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
         // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-        _plan.TargetVersion.Replace("22.104.0", "22.87.0", StringComparison.Ordinal),
+        _plan.TargetVersion.Replace("22.109.0", "22.87.0", StringComparison.Ordinal),
         _plan.Renderer,
         _plan.RendererVersion,
         _plan.ApplicationName,
@@ -48,7 +48,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // CPM keeps the backend Arc pins in Directory.Packages.props; frontend files may use the same version independently.
     static string PreviousRealization(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal).Replace("4.62.0", "4.22.1", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.62.0", "4.22.1", StringComparison.Ordinal);
         if (relativePath.EndsWith("Lookup.cs", StringComparison.Ordinal))
         {
             // Restore the frozen #350 primitive query signature and conversion, not the read-model property.
@@ -57,7 +57,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         }
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.104.0", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.109.0", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 }

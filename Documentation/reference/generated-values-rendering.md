@@ -3,7 +3,7 @@ title: Generated values and command responses
 description: Generation strategies, freshness guards, deterministic fixtures and command responses in rendered applications.
 ---
 
-A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards; v20 admits rules on generated concepts. The generated backend pins Arc **22.104.0**, which brings Fundamentals **7.25.0**.
+A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards; v20 admits rules on generated concepts. The generated backend pins Arc **22.109.0**, which brings Fundamentals **7.25.0**.
 
 This page is the terse reference. To follow one model from `.play` to rendered C# and its runtime behavior, read [Generate identifiers and values from a model](../guides/generated-values.md).
 
@@ -70,7 +70,7 @@ Stage admits exact ESM v1–v21 and v23–v25 language/semantic pairs (v22 remai
 | v20 | Rules on generated concepts; unpinned rendered specifications require every rule to be proven |
 | v21 | Pattern and inclusive Int64 random generation; checksum validation; `generate rule` remains refused with `STAGE-ESM-028` |
 
-The Host samples pattern and random values through Fundamentals 7.25.0, carried by Arc 22.104.0. The independent specification executor requires deterministic fixtures, just like Screenplay 4.182.0. Both paths enforce the reference strategy shapes and checksum rules; `generate rule` remains refused. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
+The Host samples pattern and random values through Fundamentals 7.25.0, carried by Arc 22.109.0. The independent specification executor requires deterministic fixtures, just like Screenplay 4.182.0. Both paths enforce the reference strategy shapes and checksum rules; `generate rule` remains refused. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
 
 ### Checksum rules
 

@@ -342,7 +342,7 @@ A navigation item authored with `slot <name>` renders its target into that outle
 `layout AppShell ... side`, not a `core:outlet` some screen draws - the Stage hosts it: the page stays in the primary outlet, the target
 is drawn in a closable pane beside it, both items are marked active (`aria-current`), `Close` empties the pane, the pane stays when another
 page is opened and is restored from the address after a reload or a deep link. A shell without that slot opens the target in the primary
-outlet, as an item with no `slot` does. The Studio preview and a rendered application behave the same: Scene's `ApplicationHost` composes them all.
+outlet, as an item with no `slot` does. The Studio preview and a rendered application behave the same: Scene's `ApplicationHost` composes them all, and `navigationParity.spec.tsx` clicks the same items in the Stage and in the preview host and requires the same pages, panes and marked items.
 
 ### No sample data in production
 

@@ -12,9 +12,35 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// </summary>
 public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<EventModel>
 {
+    /// <summary>
+    /// Refuses described command bodies and atomic reaction batches before a legacy path can discard their behavior.
+    /// </summary>
+    /// <param name="syntax">The application to inspect, including nested features.</param>
+    /// <exception cref="InvalidEventModel">Thrown when the application requires behavior the legacy engines cannot preserve.</exception>
+    public static void EnsureBehaviorSupported(ApplicationSyntax syntax)
+    {
+        if (syntax.ReactionProductionMode is not null)
+        {
+            throw new InvalidEventModel(
+                syntax.Location.Path ?? "<source>",
+                ["STAGE-ESM-043: Application declares reaction batches atomic; Stage does not preserve that production boundary yet (Cratis/Stage#422)."]);
+        }
+
+        foreach (var command in syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Commands))
+        {
+            if (command.Handler is { Implementation: not null, File: null, Code: null })
+            {
+                throw new InvalidEventModel(
+                    command.Location.Path ?? "<source>",
+                    [$"STAGE-IMPL-002: Command '{command.Name}' has a described command handler; Stage does not implement that body yet."]);
+            }
+        }
+    }
+
     /// <inheritdoc/>
     public EventModel Visit(ApplicationSyntax syntax)
     {
+        EnsureBehaviorSupported(syntax);
         new ReactionIdentitySyntaxAdmission().VisitApplication(syntax);
         new EventRouteSyntaxAdmission().VisitApplication(syntax);
         new PublicEventSyntaxAdmission().VisitApplication(syntax);

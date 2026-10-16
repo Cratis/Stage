@@ -411,8 +411,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticObserverFilter", rendered, "Source Stream");
         Add(entries, "SemanticProducedEvent", rejected(SemanticVersionFeatures.ProductionRoutes), "Route");
 
-        // ESM v25 protected command reads are admitted by version, but no Stage engine preserves their decision boundary yet.
-        var reads = rejected(SemanticVersionFeatures.ProtectedCommandReads);
+        // ESM v25 protected command reads render as Arc read protection; the shapes the target cannot preserve
+        // are refused case by case in SemanticCratisAdmission with STAGE-ESM-044, each naming its reason.
+        var reads = rendered;
         Add(entries, "SemanticApplication", reads, "CommandReadMode");
         Add(entries, "SemanticCommandReadMode", reads, "Protected");
         Add(entries, "SemanticCommand", reads, "Reads");

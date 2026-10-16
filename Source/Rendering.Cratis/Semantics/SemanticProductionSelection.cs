@@ -16,10 +16,18 @@ internal static class SemanticProductionSelection
 
     internal static ImmutableArray<SemanticProducedEvent> Taken(SemanticCommand command, IEnumerable<SemanticPropertyValue> values)
     {
-        if (command.Produces.All(produced => produced.When is null)) return command.Produces;
+        if (command.Produces.All(produced => produced.When is null) || command.Produces.Any(produced => produced.When is { } when && ReadsView(when))) return command.Produces;
         var inputs = values.ToDictionary(value => value.TargetProperty, value => value.Value);
         return [.. command.Produces.Where(produced => produced.When is null || Holds(produced.When, inputs))];
     }
+
+    // A condition over a protected read is refused by admission, which reports it; selection must not fail before that.
+    internal static bool ReadsView(SemanticCondition condition) => condition switch
+    {
+        SemanticLogicalCondition logical => ReadsView(logical.Left) || ReadsView(logical.Right),
+        SemanticComparison comparison => comparison.Left.Read is not null || comparison.Right.Read is not null,
+        _ => false
+    };
 
     internal static IEnumerable<SemanticId> Properties(SemanticCondition condition) => condition switch
     {

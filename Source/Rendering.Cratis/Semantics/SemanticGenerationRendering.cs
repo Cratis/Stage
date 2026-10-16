@@ -5,6 +5,7 @@ using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -13,31 +14,39 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static class SemanticGenerationRendering
 {
-    const string Generator = "global::Cratis.Concepts.GenerateValue";
-
     internal static bool IsTimeOrdered(SemanticGeneration? generation) =>
         string.Equals(generation?.Kind, "uuidv7", StringComparison.Ordinal) ||
         string.Equals(generation?.Kind, "ulid", StringComparison.Ordinal) ||
         string.Equals(generation?.Kind, "typeid", StringComparison.Ordinal);
 
-    internal static string Factory(SemanticConcept concept, string? context)
+    internal static string Factory(SemanticConcept concept, string? context, CSharpCodeBuilder? builder = null)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
-        var value = Strategy(generation, context);
+        var value = Strategy(generation, context, builder);
 
         return concept.Primitive == SemanticPrimitiveType.Uuid ? value : Text(generation, value);
     }
 
-    static string Strategy(SemanticGeneration generation, string? context) => generation.Kind switch
+    static string Strategy(SemanticGeneration generation, string? context, CSharpCodeBuilder? builder)
     {
-        "uuid" => $"{Generator}.Uuid()",
-        "uuidv7" => $"{Generator}.UuidV7({context})",
-        "ulid" => $"{Generator}.Ulid({context})",
-        "typeid" => $"{Generator}.TypeId({Literal(generation.Prefix ?? string.Empty)}, {context})",
-        "nanoid" => $"{Generator}.NanoId({Number(generation.Size ?? 21)}, {(generation.Alphabet is { } alphabet ? Literal(alphabet) : "null")})",
-        "bytes" => $"{Generator}.Bytes({Number(generation.Count!.Value)}, global::Cratis.Concepts.ValueEncoding.{Encoding(generation.Encoding)})",
-        _ => throw new InvalidArtifactRenderContract($"Generation strategy '{generation.Kind}' is not admitted.")
-    };
+        var generator = Name(builder, "GenerateValue");
+        return generation.Kind switch
+        {
+            "uuid" => $"{generator}.Uuid()",
+            "uuidv7" => $"{generator}.UuidV7({context})",
+            "ulid" => $"{generator}.Ulid({context})",
+            "typeid" => $"{generator}.TypeId({Literal(generation.Prefix ?? string.Empty)}, {context})",
+            "nanoid" => $"{generator}.NanoId({Number(generation.Size ?? 21)}, {(generation.Alphabet is { } alphabet ? Literal(alphabet) : "null")})",
+            "bytes" => $"{generator}.Bytes({Number(generation.Count!.Value)}, {Name(builder, "ValueEncoding")}.{Encoding(generation.Encoding)})",
+            _ => throw new InvalidArtifactRenderContract($"Generation strategy '{generation.Kind}' is not admitted.")
+        };
+    }
+
+    static string Name(CSharpCodeBuilder? builder, string name)
+    {
+        var reference = new TypeReference("Cratis.Concepts", name, 0, ReferenceContext.Expression);
+        return builder?.Type(reference) ?? reference.Qualified;
+    }
 
     static string Text(SemanticGeneration generation, string value)
     {

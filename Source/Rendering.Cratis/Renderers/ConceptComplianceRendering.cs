@@ -5,6 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
@@ -20,8 +21,21 @@ internal static class ConceptComplianceRendering
         RenderProtection(builder, new(pii is not null, pii is not null && complianceDetails ? Details(pii) : string.Empty, secret is not null ? Encrypted(secret.Scope, secret.Reason, complianceDetails, false) : null), false);
     }
 
-    internal static void Render(CSharpCodeBuilder builder, SemanticConceptCompliance? compliance) =>
-        RenderProtection(builder, new(compliance?.Personal is not null, string.Empty, compliance?.Secret is { } secret ? Encrypted(secret.Scope, null, false, true) : null), true);
+    internal static void Render(CSharpCodeBuilder builder, SemanticConceptCompliance? compliance)
+    {
+        if (compliance?.Personal is not null)
+        {
+            builder.Attribute(builder.Type(new("Cratis.Chronicle.Compliance.GDPR", "PIIAttribute", 0, ReferenceContext.Attribute)));
+        }
+        else if (compliance?.Secret is { } secret)
+        {
+            var encrypted = builder.Type(new("Cratis.Chronicle.ProtectedValues", "EncryptedAttribute", 0, ReferenceContext.Attribute));
+            var scope = Identifiers.ToPascalCase(secret.Scope ?? "subject");
+            if (scope != "Subject") encrypted += $"({builder.Type(new("Cratis.Chronicle.ProtectedValues", "EncryptionScope", 0, ReferenceContext.Expression))}.{scope})";
+            builder.Attribute(encrypted);
+            builder.Attribute(builder.Type(new("Cratis.Arc.Chronicle.Commands", "NotAuditedAttribute", 0, ReferenceContext.Attribute)));
+        }
+    }
 
     static void RenderProtection(CSharpCodeBuilder builder, Protection protection, bool qualified)
     {

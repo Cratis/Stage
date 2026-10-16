@@ -134,6 +134,16 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticReadPathExpression.PropertyId")]
     public void should_keep_protected_command_reads_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-044"));
 
+    [Theory]
+    [InlineData("SemanticKeyedQuery.KeyParts", "STAGE-ESM-047")]
+    [InlineData("SemanticQueryKeyPart.Id", "STAGE-ESM-047")]
+    [InlineData("SemanticQueryKeyPart.Name", "STAGE-ESM-047")]
+    [InlineData("SemanticQueryKeyPart.Type", "STAGE-ESM-047")]
+    [InlineData("SemanticQueryKeyPart.KeyProperty", "STAGE-ESM-047")]
+    [InlineData("SemanticProjectionPartsKey.Parts", "STAGE-ESM-048")]
+    [InlineData("SemanticProjectionKeyKind.Parts", "STAGE-ESM-048")]
+    public void should_keep_composite_read_model_keys_refused(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+
     static bool IsDiagnosticCode(string code) =>
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||
          (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14)) &&

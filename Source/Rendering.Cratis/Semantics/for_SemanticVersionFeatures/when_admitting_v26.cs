@@ -14,7 +14,7 @@ public class when_admitting_v26 : Specification
 {
     [Theory]
     [InlineData(26, 0, 26, 0, true)]
-    [InlineData(27, 0, 27, 0, false)]
+    [InlineData(27, 0, 27, 0, true)]
     [InlineData(25, 0, 26, 0, false)]
     [InlineData(26, 0, 25, 0, false)]
     [InlineData(26, 1, 26, 1, false)]

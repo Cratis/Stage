@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.199.0; exact ESM v1–v21, v23–v26 pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.204.0; exact ESM v1–v21, v23–v27 pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -191,6 +191,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "AffectedInstanceCardinality", rendered, "One");
         Add(entries, "AffectedInstanceCardinality", rejected("STAGE-ESM-009"), "Unknown Many ZeroOrOne");
         Add(entries, "SemanticKeyedQuery", rendered, "Argument Cardinality Delivery Id KeyProperty Name ReadModel Authorization Filters");
+
+        // ESM v27 single-instance lookups by key parts need Chronicle to find one instance by a composite key (Chronicle#4265).
+        Add(entries, "SemanticKeyedQuery", rejected(SemanticVersionFeatures.KeyPartsLookup), "KeyParts");
+        Add(entries, "SemanticQueryKeyPart", rejected(SemanticVersionFeatures.KeyPartsLookup), "Id Name Type KeyProperty");
         Add(entries, "SemanticQueryFilter", rendered, "Id Name Type Property");
         Add(entries, "SemanticQueryFilterValue", rendered, "Filter Value");
         Add(entries, "SemanticReadModelQueryArgument", rendered, "Id Name Type");
@@ -225,6 +229,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionKey", rendered, "Kind");
         Add(entries, "SemanticProjectionKeyKind", rendered, "Value");
         Add(entries, "SemanticProjectionKeyKind", rejected("STAGE-ESM-017"), "Unknown Composite");
+
+        // ESM v27 read models with several key parts and their parts projection keys refuse before rendering.
+        Add(entries, "SemanticProjectionKeyKind", rejected(SemanticVersionFeatures.CompositeReadModelKeys), "Parts");
+        Add(entries, "SemanticProjectionPartsKey", rejected(SemanticVersionFeatures.CompositeReadModelKeys), "Parts");
         Add(entries, "SemanticProjectionKeyPart", rejected("STAGE-ESM-017"), "Property Value");
         Add(entries, "SemanticProjectionLiteral", rendered, "Value");
         Add(entries, "SemanticProjectionMapping", rendered, "Operation Source Target");

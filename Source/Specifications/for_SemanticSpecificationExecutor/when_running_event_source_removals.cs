@@ -70,7 +70,15 @@ public class when_running_event_source_removals : Specification
             } };
             model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
             {
-                Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(candidate => candidate.Id == slice.Id ? slice with { Specifications = [specification] } : candidate)] }] }]
+                Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(candidate => candidate.Id == slice.Id ? slice with
+                {
+                    Specifications = [specification],
+                    Commands = [.. slice.Commands.Select(command => command.Name != "Remove" ? command : command with
+                    {
+                        Properties = [.. command.Properties.Select(property => property.IsIdentifier ? property with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.WholeNumber) } : property)],
+                        Destination = command.Destination is null ? null : command.Destination with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.WholeNumber) }
+                    })]
+                } : candidate)] }] }]
             });
         }
         var plan = SemanticExecutionPlan.Compile(model).Plan!;

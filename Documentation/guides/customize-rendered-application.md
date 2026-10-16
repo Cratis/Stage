@@ -67,6 +67,20 @@ only after the client is connected and Chronicle has successfully registered the
 including its read models. Wait for a healthy response before querying the generated application. Earlier
 Chronicle versions can report healthy before registration completes.
 
+## Keep the reducer convention stable
+
+A new application explicitly initialized with `CreateNewApplicationProfile` persists
+its `self` reducer convention in `.cratis/stage/rendering.json`. Keep that configuration
+and have your rendering host reload it for later plans. This file is application
+configuration, not a Screenplay behavior declaration or generated C# attachment.
+See [the profile API](../reference/plan-from-sources.md#reducer-rendering-convention).
+
+Applications without the input stay classic, including newly added reducers. Do not
+switch an existing classic application to self mode by editing the setting or deleting
+its reducer file. Stage does not yet migrate observer identity or coordinate removal
+of the old class. CLI and Studio integration for new-application selection is separate;
+untouched callers remain classic, and Studio migration is not supported.
+
 ## Register an adapter and its options
 
 The repository also contains a catalog adapter and stylesheet in `Samples/Customization/Customizations/`, ready

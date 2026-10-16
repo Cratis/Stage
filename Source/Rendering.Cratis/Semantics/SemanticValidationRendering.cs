@@ -15,7 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticValidationRendering
 {
     internal static bool CanRender(SemanticValidationRule rule) =>
-        SafeMessage(rule.Message) && SafeOperand(rule) && (rule.Kind != SemanticValidationRuleKind.Checksum || SemanticChecksumRules.Algorithm(rule.Operand) is not null) && !(rule.Operand is SemanticNullValue && rule.Kind is SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) && Enum.IsDefined(rule.Severity) && rule.Kind is
+        SafeMessage(rule.Message) && SafeOperand(rule) && (rule.Kind != SemanticValidationRuleKind.Checksum || SemanticChecksumRendering.Algorithm(rule.Operand) is not null) && !(rule.Operand is SemanticNullValue && rule.Kind is SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) && Enum.IsDefined(rule.Severity) && rule.Kind is
             SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
             SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
             SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
@@ -113,7 +113,7 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.NotContains => $"{absentPasses}!{scalar}.Contains({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
             SemanticValidationRuleKind.StartsWith => $"{absentPasses}{scalar}.StartsWith({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
             SemanticValidationRuleKind.EndsWith => $"{absentPasses}{scalar}.EndsWith({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
-            SemanticValidationRuleKind.Checksum => $"{absentPasses}global::Cratis.Concepts.GenerateValue.HasValidChecksum({scalar}, global::Cratis.Concepts.Checksum.{SemanticChecksumRules.Algorithm(operand)})",
+            SemanticValidationRuleKind.Checksum => $"{absentPasses}global::Cratis.Concepts.GenerateValue.HasValidChecksum({scalar}, global::Cratis.Concepts.Checksum.{SemanticChecksumRendering.Algorithm(operand)})",
             SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual => $"{absentPasses}value.All(element => {element} {comparison} {number})",
             _ => $"{absentPasses}{measured} {comparison} {number}"
         };

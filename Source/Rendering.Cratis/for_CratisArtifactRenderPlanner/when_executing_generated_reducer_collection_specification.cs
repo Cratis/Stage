@@ -13,9 +13,9 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_executing_generated_reducer_collection_specification : a_generated_application
 {
-    protected override ArtifactRenderPlan CreatePlan() => CreateCollectionPlan(optional: false);
+    protected override bool DeferPlan => true;
 
-    internal static ArtifactRenderPlan CreateCollectionPlan(bool optional)
+    internal static ArtifactRenderPlan CreateCollectionPlan(bool optional, bool self = false)
     {
         const string originalBody = "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);";
         var source = when_rendering_a_pure_reducer.WithIdentifierConcept(when_rendering_a_pure_reducer.Source)
@@ -36,7 +36,7 @@ public class when_executing_generated_reducer_collection_specification : a_gener
         };
         var arguments = string.Join(", ", SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties).Select(property => expressions[property.Name]));
         var body = $"global::System.Collections.Generic.IEnumerable<decimal> amounts = new decimal[] {{ context.Event.Amount, 40m }}; return new Total({arguments});";
-        var plan = when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source.Replace(originalBody, body, StringComparison.Ordinal)).GetAwaiter().GetResult());
+        var plan = when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source.Replace(originalBody, body, StringComparison.Ordinal)).GetAwaiter().GetResult(), self: self);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var spec = plan.Artifacts.Single(artifact => artifact.RelativePath.Contains("with_amounts_is_projected", StringComparison.Ordinal));
         var content = System.Text.Encoding.UTF8.GetString(spec.Bytes.AsSpan());
@@ -45,11 +45,14 @@ public class when_executing_generated_reducer_collection_specification : a_gener
         return plan;
     }
 
-    [Fact]
-    async Task should_build_and_pass_the_nonempty_collection_expectation()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_build_and_pass_the_nonempty_collection_expectation(bool self)
     {
         try
         {
+            RenderApplication(CreateCollectionPlan(optional: false, self));
             var build = await Run("reducer-collection-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("reducer-collection-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");

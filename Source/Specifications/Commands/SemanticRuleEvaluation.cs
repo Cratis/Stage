@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Specifications.Comparison;
@@ -13,7 +12,10 @@ internal static class SemanticRuleEvaluation
     internal static string? FirstFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null)
         => Failures(command, specification, concepts, composites).FirstOrDefault()?.Message;
 
-    internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null)
+    internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null) =>
+        RuleFailures(command, specification, concepts, composites).Concat(RequirementFailures(command, specification));
+
+    internal static IEnumerable<SemanticValidationFailure> RuleFailures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null)
     {
         var values = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
         foreach (var rule in command.Validations)
@@ -28,48 +30,37 @@ internal static class SemanticRuleEvaluation
         {
             yield return failure;
         }
+    }
 
+    internal static IEnumerable<SemanticValidationFailure> RequirementFailures(SemanticCommand command, SemanticSpecification specification, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads = null)
+    {
+        var values = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
         foreach (var requirement in command.Requirements)
         {
-            if (!Condition(requirement.Condition, values))
+            if (!Condition(requirement.Condition, values, reads))
             {
                 yield return new(requirement.Message ?? "Command requirement was not met.", requirement.Severity);
             }
         }
     }
 
-    internal static bool Condition(SemanticCondition condition, IReadOnlyDictionary<SemanticId, SemanticValue> values) => condition switch
+    internal static bool Condition(SemanticCondition condition, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads = null) => condition switch
     {
-        SemanticLogicalCondition { Operator: SemanticLogicalOperator.And } logical => Condition(logical.Left, values) && Condition(logical.Right, values),
-        SemanticLogicalCondition { Operator: SemanticLogicalOperator.Or } logical => Condition(logical.Left, values) || Condition(logical.Right, values),
-        SemanticComparison comparison => Compare(comparison, values),
+        SemanticLogicalCondition { Operator: SemanticLogicalOperator.And } logical => Condition(logical.Left, values, reads) && Condition(logical.Right, values, reads),
+        SemanticLogicalCondition { Operator: SemanticLogicalOperator.Or } logical => Condition(logical.Left, values, reads) || Condition(logical.Right, values, reads),
+        SemanticComparison comparison => Compare(comparison, values, reads),
         _ => throw new UnsupportedSemanticMapping()
     };
 
-    internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => SemanticRuleValues.Satisfies(rule, value, () => new UnsupportedSemanticMapping());
-
-    internal static string Message(SemanticValidationRule rule, SemanticValue value, string empty) => rule.Kind switch
+    internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => SemanticValidationRules.Check(rule, value).Status switch
     {
-        SemanticValidationRuleKind.NotEmpty => empty,
-        SemanticValidationRuleKind.Maximum when value is SemanticTextValue => $"A value must be at most {Format(rule.Operand)} characters long.",
-        SemanticValidationRuleKind.Minimum when value is SemanticTextValue => $"A value must be at least {Format(rule.Operand)} characters long.",
-        SemanticValidationRuleKind.Maximum => $"A value must be at most {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.Minimum => $"A value must be at least {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.Equal => $"A value must equal {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.NotEqual => $"A value must not equal {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.GreaterThan => $"A value must be greater than {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.GreaterThanOrEqual => $"A value must be at least {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.LessThan => $"A value must be less than {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.LessThanOrEqual => $"A value must be at most {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.Length => $"A value must be exactly {Format(rule.Operand)} characters long.",
-        SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
-        SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
-        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith => SemanticValidationRules.Check(rule, value).Message,
-        SemanticValidationRuleKind.Checksum => $"A value must end in the exact {Format(rule.Operand)} check digits.",
-        SemanticValidationRuleKind.AllGreaterThan => $"Every value must be greater than {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {Format(rule.Operand)}.",
+        SemanticRuleStatus.Satisfied => true,
+        SemanticRuleStatus.Failed => false,
         _ => throw new UnsupportedSemanticMapping()
     };
+
+    internal static string Message(SemanticValidationRule rule, SemanticValue value, string empty) =>
+        rule.Kind == SemanticValidationRuleKind.NotEmpty ? rule.Message ?? empty : SemanticValidationRules.Check(rule, value).Message;
 
     static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticCommand command, Dictionary<SemanticId, SemanticValue> values, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites)
     {
@@ -80,10 +71,10 @@ internal static class SemanticRuleEvaluation
             .SelectMany(property => SemanticConceptValues.Validate(property.Type, values[property.Id], byId, types));
     }
 
-    static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values)
+    static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads)
     {
-        var left = comparison.Left.Property.IsSet ? values[comparison.Left.Property] : comparison.Left.Value!;
-        var right = comparison.Right.Property.IsSet ? values[comparison.Right.Property] : comparison.Right.Value!;
+        var left = Operand(comparison.Left, values, reads);
+        var right = Operand(comparison.Right, values, reads);
         if (comparison.Operator == SemanticComparisonOperator.Equal) return SemanticExpectationComparer.AreEqual(left, right);
         if (comparison.Operator == SemanticComparisonOperator.NotEqual) return !SemanticExpectationComparer.AreEqual(left, right);
         if (left is not SemanticNumberValue a || right is not SemanticNumberValue b) throw new UnsupportedSemanticMapping();
@@ -97,11 +88,10 @@ internal static class SemanticRuleEvaluation
         };
     }
 
-    static string Format(SemanticValue? value) => value switch
+    static SemanticValue Operand(SemanticConditionOperand operand, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads) => operand switch
     {
-        SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
-        SemanticTextValue text => $"'{text.Value}'",
-        SemanticBooleanValue boolean => boolean.Value ? "true" : "false",
-        _ => "null"
+        { Read: { } read } => reads![read].GetValueOrDefault(operand.Property, SemanticValue.Null),
+        { Property.IsSet: true } => values[operand.Property],
+        _ => operand.Value!
     };
 }

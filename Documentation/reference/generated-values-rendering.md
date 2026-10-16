@@ -78,6 +78,8 @@ Declare `validate checksum luhn`, `validate checksum mod11` or `validate checksu
 
 The final one digit (Luhn/Mod11) or two digits (Mod97) must exactly match the checksum of the preceding ASCII digits. Printable non-digits in the payload, including lowercase letters and spaces, are ignored; they are not converted to numbers. Control characters and non-ASCII characters anywhere in the value fail validation. Empty values and non-digit suffixes fail too. Mod11 payloads whose check digit would be 10 have no valid one-digit suffix. For example, `79927398713` passes Luhn, `abc98` passes Mod97, and `79927398714` fails Luhn. A checksum is not a length or format constraint; declare those separately.
 
+The specification executor and generated-fixture admission check concept rules through Screenplay's public `SemanticValidationRules.Check` API. Generated C# continues to use Fundamentals for runtime checks.
+
 When a concept declares checksum validation, pinned generated fixtures must satisfy it as well as the generation shape. A bad pin blocks rendering with `STAGE-ESM-011`; it is not treated as invalid caller input.
 
 ### Pattern and random strategies

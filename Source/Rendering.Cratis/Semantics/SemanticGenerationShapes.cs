@@ -37,6 +37,14 @@ internal static class SemanticGenerationShapes
 
     internal static string RuleMessage(string property, string concept) => $"Generated fixture '{property}' fails concept '{concept}' rules";
 
+    internal static string? GeneratedFailure(SemanticConcept concept, string property, SemanticValue value) =>
+        SemanticValidationRules.Check(concept, value).Any(check => check.Status switch
+        {
+            SemanticRuleStatus.Satisfied => false,
+            SemanticRuleStatus.Failed => true,
+            _ => throw new InvalidSemanticContract("A generated concept rule escaped admission.")
+        }) ? RuleMessage(property, concept.Name) : null;
+
     internal static string Pattern(SemanticConcept concept, DateTimeOffset? instant = null)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");

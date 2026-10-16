@@ -34,9 +34,6 @@
         <ProjectReference Include="../Contracts/Contracts.csproj" />
         <!-- Share the executor's value-shape rule and renderer predicates without referencing the Testing executor. -->
         <Compile Include="../Specifications/Commands/SemanticValueShapeAdmission.cs" Link="Semantics/Admission/SemanticValueShapeAdmission.cs" />
-        <Compile Include="../Specifications/Commands/SemanticRuleValues.cs" Link="Semantics/Admission/SemanticRuleValues.cs" />
-        <Compile Include="../Rendering.Cratis/Semantics/SemanticMatchAnchors.cs" Link="Semantics/Admission/SemanticMatchAnchors.cs" />
-        <Compile Include="../Rendering.Cratis/Semantics/SemanticChecksumRules.cs" Link="Semantics/Admission/SemanticChecksumRules.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Semantics/Admission/SemanticScopedProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Semantics/Admission/SemanticFlatProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedPascalCase.cs" Link="Semantics/Admission/GeneratedPascalCase.cs" />

@@ -40,7 +40,7 @@ internal static class SemanticGenerationRendering
             "typeid" => $"{generator}.TypeId({Literal(generation.Prefix ?? string.Empty)}, {context})",
             "nanoid" => $"{generator}.NanoId({Number(generation.Size ?? 21)}, {(generation.Alphabet is { } alphabet ? Literal(alphabet) : "null")})",
             "bytes" => $"{generator}.Bytes({Number(generation.Count!.Value)}, {Name(builder, "ValueEncoding")}.{Encoding(generation.Encoding)})",
-            "pattern" => $"{generator}.Pattern({Literal(generation.Pattern!)}{(context is null ? string.Empty : $", {context}")}{(generation.Checksum is null ? string.Empty : $", {Name(builder, "Checksum")}.{SemanticChecksumRules.Algorithm(SemanticValue.Text(generation.Checksum))}")})",
+            "pattern" => $"{generator}.Pattern({Literal(generation.Pattern!)}{(context is null ? string.Empty : $", {context}")}{(generation.Checksum is null ? string.Empty : $", {Name(builder, "Checksum")}.{SemanticChecksumRendering.Algorithm(SemanticValue.Text(generation.Checksum))}")})",
             "random" => $"{generator}.Integer({generation.Minimum!.Value.ToString(CultureInfo.InvariantCulture)}L, {generation.Maximum!.Value.ToString(CultureInfo.InvariantCulture)}L)",
             _ => throw new InvalidArtifactRenderContract($"Generation strategy '{generation.Kind}' is not admitted.")
         };

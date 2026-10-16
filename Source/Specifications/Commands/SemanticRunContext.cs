@@ -30,6 +30,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     readonly List<SemanticValue> _destinations = parent?._destinations ?? [];
     SemanticFixtureRoute? _commandRoute;
 
+    internal SemanticRunReads Reads { get; } = new(runtimeTypes);
     internal Type CommandType => commandType;
     internal SemanticCommand Command => command;
     internal SemanticSpecification Specification => specification;
@@ -65,11 +66,13 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         return Canonical(value);
     }
 
-    internal static bool Empty(SemanticValue value) => SemanticRuleValues.Empty(value);
+    internal static bool Empty(SemanticValue value) =>
+        SemanticValidationRules.Check(new SemanticValidationRule(default, SemanticValidationRuleKind.NotEmpty, null, null), value).Status == SemanticRuleStatus.Failed;
 
-    internal static SemanticValue Evaluate(SemanticExpression expression, Dictionary<SemanticId, SemanticValue> inputs) => expression switch
+    internal static SemanticValue Evaluate(SemanticExpression expression, Dictionary<SemanticId, SemanticValue> inputs, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads = null) => expression switch
     {
         SemanticValueExpression literal => literal.Value,
+        SemanticReadPathExpression read => reads![read.Read].GetValueOrDefault(read.PropertyId, SemanticValue.Null),
         SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } reference => inputs[reference.Target],
         _ => throw new UnsupportedSemanticMapping()
     };
@@ -121,20 +124,20 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         return SemanticRunRoutes.TryFormat(plan.Model.Application, _commandRoute, out _, out failure);
     }
 
-    internal bool Holds(SemanticProducedEvent produced) => produced.When is null || SemanticRuleEvaluation.Condition(produced.When, Inputs());
+    internal bool Holds(SemanticProducedEvent produced) => produced.When is null || SemanticRuleEvaluation.Condition(produced.When, Inputs(), Reads.Values);
 
     internal (SemanticSpecificationEvent Fact, SemanticValue Destination) Produce(SemanticProducedEvent produced)
     {
         var inputs = Inputs();
         var expression = produced.Destination ?? command.Destination?.Value;
-        var destination = expression is null ? specification.When!.EventSource!.Value : Evaluate(expression, inputs);
+        var destination = expression is null ? specification.When!.EventSource!.Value : Evaluate(expression, inputs, Reads.Values);
         var identityType = expression is SemanticResolvedExpression resolved
             ? command.Properties.Single(property => property.Id == resolved.Target).Type
             : command.Destination?.Type ?? specification.When!.EventSource?.Type;
         var identity = plan.Model.SemanticVersion != SemanticVersion.V1 && identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
         var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }
             ? SemanticValue.Text(Occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture))
-            : Evaluate(mapping.Source, inputs))).ToImmutableArray();
+            : Evaluate(mapping.Source, inputs, Reads.Values))).ToImmutableArray();
         return (new(produced.EventContract, values) { EventSource = identity, Route = _commandRoute }, destination);
     }
 

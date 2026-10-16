@@ -28,20 +28,7 @@ public class a_generated_application : a_register_project_render_request
         {
             _application.Create();
             File.WriteAllText(Path.Combine(_evidence.FullName, "lifecycle.log"), $"Created: {_application.FullName}\nStarted: {DateTimeOffset.UtcNow:O}\n");
-            var plan = CreatePlan();
-            if (!AllowBlockedPlan)
-            {
-                Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Artifact}: {diagnostic.Message}")));
-            }
-            foreach (var artifact in plan.Artifacts)
-            {
-                var path = Path.Combine(_application.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                File.WriteAllBytes(path, [.. artifact.Bytes]);
-                _artifactHashes.Add(artifact.RelativePath, artifact.Sha256);
-            }
-
-            File.WriteAllText(Path.Combine(_evidence.FullName, "artifact-hashes.json"), JsonSerializer.Serialize(_artifactHashes));
+            if (!DeferPlan) RenderApplication(CreatePlan());
         }
         catch
         {
@@ -50,7 +37,26 @@ public class a_generated_application : a_register_project_render_request
         }
     }
 
+    protected virtual bool DeferPlan => false;
+
     protected virtual bool AllowBlockedPlan => false;
+
+    protected void RenderApplication(ArtifactRenderPlan plan)
+    {
+        if (!AllowBlockedPlan)
+        {
+            Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Artifact}: {diagnostic.Message}")));
+        }
+        foreach (var artifact in plan.Artifacts)
+        {
+            var path = Path.Combine(_application!.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, [.. artifact.Bytes]);
+            _artifactHashes.Add(artifact.RelativePath, artifact.Sha256);
+        }
+
+        File.WriteAllText(Path.Combine(_evidence.FullName, "artifact-hashes.json"), JsonSerializer.Serialize(_artifactHashes));
+    }
 
     protected virtual ArtifactRenderPlan CreatePlan() =>
         CratisRendering.Plan(_model, _executionPlan, _request.Scope, new("BackendHost", "Acme.projectAPI"));
@@ -68,6 +74,8 @@ public class a_generated_application : a_register_project_render_request
     }
 
     protected string ReadGeneratedFile(string relativePath) => File.ReadAllText(Path.Combine(_application!.FullName, relativePath));
+
+    protected string[] GeneratedFiles(string pattern) => [.. Directory.GetFiles(_application!.FullName, pattern, SearchOption.AllDirectories).Select(path => Path.GetRelativePath(_application.FullName, path))];
 
     protected void AddGeneratedSpecification(string name, string content)
     {

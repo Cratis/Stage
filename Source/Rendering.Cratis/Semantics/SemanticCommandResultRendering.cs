@@ -65,13 +65,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
             renderEventOnly();
             return;
         }
-        var result = HandleResult(wrappedEvent);
-        builder.OpenBlock($"public {result.Type} Handle({Parameters()})");
-        if (HasOccurrence)
-        {
-            builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
-        }
-        builder.Line($"return {result.Value};").EndBlock();
+        RenderCheckedHandle(builder, HandleResult(wrappedEvent));
     }
 
     internal void RenderResponseType(CSharpCodeBuilder builder)
@@ -82,6 +76,21 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         builder.Summary($"The response from {name}.")
             .Line($"public record {name}Response({string.Join(", ", fields)});")
             .BlankLine();
+    }
+
+    void RenderCheckedHandle(CSharpCodeBuilder builder, ResultExpression result, Action? renderEvents = null)
+    {
+        var routing = new SemanticCommandRouteRendering(command, context, locals);
+        routing.StreamId();
+        var routeResult = $"global::OneOf.OneOf<{result.Type}, global::Cratis.Arc.Validation.ValidationResult>";
+        builder.OpenBlock($"public {(routing.HasChecks ? routeResult : result.Type)} Handle({Parameters()})");
+        if (routing.HasChecks) routing.RenderChecks(builder, routeResult);
+        if (HasOccurrence)
+        {
+            builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
+        }
+        renderEvents?.Invoke();
+        builder.Line($"return {(routing.HasChecks ? $"{routeResult}.FromT0({result.Value})" : result.Value)};").EndBlock();
     }
 
     // Stage renders generated-value freshness itself (explicit concurrency scopes from ESM v15, unguarded below), so

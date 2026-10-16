@@ -45,5 +45,5 @@ public class when_admitting_routed_generated_values : Specification
     [Fact] void should_admit_a_route_with_a_generated_destination() => SemanticVersionFeatures.InCommand(_command).Except(SemanticVersionFeatures.RoutesInCommand(_command)).ShouldBeEmpty();
     [Fact] void should_check_text_stream_ids_before_building_the_result() => _code.ShouldContain("TryText(Period, out var streamIdPart0)");
     [Fact] void should_wrap_the_atomic_result_with_validation() => _code.ShouldContain("OneOf<global::Cratis.Chronicle.EventSequences.EventsWithConcurrencyScopes, global::Cratis.Arc.Validation.ValidationResult>");
-    [Fact] void should_keep_routed_responses_refused() => SemanticVersionFeatures.InCommand(_command with { Response = new SemanticScalarCommandResponse(_command.Properties[0].Id, _command.Properties[0].Type) }).Select(feature => feature.Code).ShouldContain(SemanticVersionFeatures.CommandResults);
+    [Fact] void should_admit_routed_responses() => SemanticVersionFeatures.InCommand(_command with { Response = new SemanticScalarCommandResponse(_command.Properties[0].Id, _command.Properties[0].Type) }).Except(SemanticVersionFeatures.RoutesInCommand(_command)).ShouldBeEmpty();
 }

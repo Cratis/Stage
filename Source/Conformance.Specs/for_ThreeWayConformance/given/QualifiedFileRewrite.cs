@@ -84,8 +84,9 @@ static class QualifiedFileRewrite
 
     static ISymbol? Symbol(SemanticModel model, SyntaxNode node)
     {
-        var info = model.GetSymbolInfo(node);
-        var symbol = info.Symbol ?? info.CandidateSymbols.FirstOrDefault();
+        // A candidate is not a binding: a namespace/type collision can occur in the middle of a qualified name.
+        // Rewriting an arbitrarily chosen type candidate would reinterpret the remaining namespace segments as members.
+        var symbol = model.GetSymbolInfo(node).Symbol;
         return symbol is IMethodSymbol { MethodKind: MethodKind.Constructor } constructor ? constructor.ContainingType : symbol;
     }
 

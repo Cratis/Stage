@@ -49,6 +49,40 @@ public class when_binding_rendered_common_short_names : Specification
         Assert.Empty(proof.Failures);
     }
 
+    [Fact]
+    public void should_include_namespace_shadows_outside_the_selected_module()
+    {
+        var model = invoice_model.Compile(a_generation_model.Source + "\n" + """
+            module Cratis
+              feature Other
+                slice StateChange Record
+                  command Record
+                    id Id identifier
+                    produces Recorded
+                      for id
+                  event Recorded
+            """);
+        var options = new CratisRenderingOptions("GenerationApp", "GenerationApp");
+        var execution = SemanticExecutionPlan.Compile(model).Plan!;
+        var request = new ArtifactRenderRequest(model, execution, CratisRendering.CreateProfile("GenerationApp", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var applicationContext = new SemanticApplicationContext(request, options);
+        var moduleContext = new SemanticApplicationContext(request with { Scope = new(ArtifactRenderScopeKind.Module, model.Application.Modules[0].Id) }, options);
+        Assert.True(applicationContext.GeneratedTypes.SequenceEqual(moduleContext.GeneratedTypes));
+        Assert.Contains(moduleContext.GeneratedTypes, type => type.Namespace.StartsWith("GenerationApp.Cratis.", StringComparison.Ordinal));
+        Assert.Contains("GenerationApp.Cratis", moduleContext.NamespacePaths);
+        var all = CratisRendering.Plan(model, execution, request.Scope, options);
+        var selected = CratisRendering.Plan(model, execution, moduleContext.Request.Scope, options);
+        Assert.True(all.Success, string.Join('\n', all.Diagnostics));
+        Assert.True(selected.Success, string.Join('\n', selected.Diagnostics));
+        var common = selected.Artifacts.Where(artifact => artifact.RelativePath.StartsWith("Common/", StringComparison.Ordinal)).ToArray();
+        Assert.NotEmpty(common);
+        foreach (var file in common)
+        {
+            var expected = all.Artifacts.Single(artifact => artifact.RelativePath == file.RelativePath);
+            Assert.True(expected.Bytes.AsSpan().SequenceEqual(file.Bytes.AsSpan()), $"{file.RelativePath}\nApplication:\n{Encoding.UTF8.GetString(expected.Bytes.AsSpan())}\nModule:\n{Encoding.UTF8.GetString(file.Bytes.AsSpan())}");
+        }
+    }
+
     [Theory]
     [InlineData(ArtifactRenderScopeKind.Module)]
     [InlineData(ArtifactRenderScopeKind.Slice)]

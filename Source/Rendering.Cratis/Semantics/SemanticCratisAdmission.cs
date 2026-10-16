@@ -102,6 +102,26 @@ internal static partial class SemanticCratisAdmission
             .OfType<SemanticAuthorization>()
             .Any(authorization => OpaquePolicies(authorization, context.Application.Policies).Any());
 
+    /// <summary>
+    /// Enumerates every top-level type the rendered application declares for the selected slices, with namespaces relative
+    /// to the root namespace — the inventory admission checks for collisions and the C# import resolver resolves against.
+    /// </summary>
+    /// <param name="context">The application being rendered.</param>
+    /// <param name="slices">The selected slices.</param>
+    /// <returns>The generated declarations.</returns>
+    internal static IEnumerable<GeneratedTypeDeclaration> GeneratedDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        GeneratedTypeNames.Declarations(
+            context.Application,
+            slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice)),
+            SelectedConstraints(context, slices).Select(selected =>
+                ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
+            rendersStringsCatalog: context.Strings is not null,
+            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices),
+            commonNamespace: string.Join('.', context.Domain.Append("Common")),
+            eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
+            eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
+            policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")));
+
     static bool PassesPreconditions(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {
         var model = context.Request.Model;
@@ -140,17 +160,7 @@ internal static partial class SemanticCratisAdmission
 
     static void ValidateGeneratedTypeNames(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var (artifact, kind, name) in GeneratedTypeNames.Collisions(
-            context.Application,
-            slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice)),
-            SelectedConstraints(context, slices).Select(selected =>
-                ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
-            rendersStringsCatalog: context.Strings is not null,
-            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices),
-            commonNamespace: string.Join('.', context.Domain.Append("Common")),
-            eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
-            eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
-            policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies"))))
+        foreach (var (artifact, kind, name) in GeneratedTypeNames.Collisions(slices.Select(located => (IEnumerable<string>)located.Path), GeneratedDeclarations(context, slices)))
         {
             var message = kind == "Namespace"
                 ? $"Generated type '{name}' collides with a generated C# namespace."

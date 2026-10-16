@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Text;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
@@ -15,8 +16,18 @@ public class CSharpCodeBuilder
 {
     readonly HashSet<string> _usings = new(StringComparer.Ordinal);
     readonly StringBuilder _body = new();
+    readonly CSharpImports? _imports;
     string? _namespace;
     int _indent;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CSharpCodeBuilder"/> class without import resolution.
+    /// </summary>
+    public CSharpCodeBuilder()
+    {
+    }
+
+    internal CSharpCodeBuilder(ImportRequest imports) => _imports = new(imports);
 
     /// <summary>
     /// Escapes a value so it can sit inside a C# string literal.
@@ -227,12 +238,23 @@ public class CSharpCodeBuilder
     /// <inheritdoc/>
     public override string ToString()
     {
+        var body = _body.ToString();
+        IEnumerable<string> innerUsings = [];
+        IEnumerable<string> topUsings = _usings;
+        if (_imports is not null)
+        {
+            var resolved = _imports.Resolve(body, _usings, _namespace);
+            body = resolved.Body;
+            innerUsings = resolved.Resolution.Usings;
+            topUsings = resolved.Resolution.TopLevelUsings;
+        }
+
         var result = new StringBuilder()
             .AppendLine("// Copyright (c) Cratis. All rights reserved.")
             .AppendLine("// Licensed under the MIT license. See LICENSE file in the project root for full license information.")
             .AppendLine();
 
-        foreach (var @using in _usings.Order(StringComparer.Ordinal))
+        foreach (var @using in topUsings.Order(StringComparer.Ordinal))
         {
             result.AppendLine($"using {@using};");
         }
@@ -247,7 +269,13 @@ public class CSharpCodeBuilder
             result.AppendLine($"namespace {_namespace};").AppendLine();
         }
 
-        result.Append(_body);
+        foreach (var @using in innerUsings)
+        {
+            result.AppendLine($"using global::{@using};");
+        }
+
+        if (innerUsings.Any()) result.AppendLine();
+        result.Append(body);
         return result.ToString();
     }
 
@@ -256,6 +284,13 @@ public class CSharpCodeBuilder
         text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n')
             .Replace('\u0085', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n')
             .Split('\n').Select(line => line.TrimEnd())).TrimEnd();
+
+    internal string Type(TypeReference reference) => _imports?.Type(reference) ?? reference.Qualified;
+
+    internal void Scope(IEnumerable<string> types, IEnumerable<string> values) => _imports?.Scope(types, values);
+    internal void Pin(params string[] names) => _imports?.Pin(names);
+    internal void Access(params string[] names) => _imports?.Access(names);
+    internal void Inherits(string fullName) => _imports?.Inherits(fullName);
 
     void TextDocumentation(string tag, string text)
     {

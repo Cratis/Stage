@@ -43,7 +43,8 @@ static class CatalogScaffold
 
         // A newer SDK can substitute framework ref assemblies for package lib assemblies of the same version.
         // Their public APIs agree, but implementation-only namespaces still participate in C# namespace lookup.
-        // Pin both framework packs before restore so the compiler and the catalog resolve the same assets everywhere.
+        // Pin both packs so this scaffold's compiler references are stable. Namespace generation also unions
+        // package compile/runtime libraries, so changing this pin cannot erase namespaces present on older SDKs.
         await File.WriteAllTextAsync(Path.Combine(directory.FullName, "Directory.Build.targets"),
             $"""
             <Project>

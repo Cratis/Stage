@@ -219,14 +219,30 @@ package	S	xunit.runner.visualstudio	4.0.0
 framework	AS	Microsoft.AspNetCore.App	net10.0
 framework	AS	Microsoft.NETCore.App	net10.0
 using	A	namespace	Microsoft.AspNetCore.Builder		Sdk.Server
+using	A	namespace	Microsoft.AspNetCore.Builder		compile:NameCatalogApp.GlobalUsings.g.cs
 using	A	namespace	Microsoft.AspNetCore.Hosting		Sdk.Server
+using	A	namespace	Microsoft.AspNetCore.Hosting		compile:NameCatalogApp.GlobalUsings.g.cs
 using	A	namespace	Microsoft.AspNetCore.Http		Sdk.Server
+using	A	namespace	Microsoft.AspNetCore.Http		compile:NameCatalogApp.GlobalUsings.g.cs
 using	A	namespace	Microsoft.AspNetCore.Routing		Sdk.Server
+using	A	namespace	Microsoft.AspNetCore.Routing		compile:NameCatalogApp.GlobalUsings.g.cs
 using	A	namespace	Microsoft.Extensions.Configuration		Sdk.Server
+using	A	namespace	Microsoft.Extensions.Configuration		compile:NameCatalogApp.GlobalUsings.g.cs
 using	A	namespace	Microsoft.Extensions.DependencyInjection		Sdk.Server
+using	A	namespace	Microsoft.Extensions.DependencyInjection		compile:NameCatalogApp.GlobalUsings.g.cs
 using	A	namespace	Microsoft.Extensions.Hosting		Sdk.Server
+using	A	namespace	Microsoft.Extensions.Hosting		compile:NameCatalogApp.GlobalUsings.g.cs
 using	A	namespace	Microsoft.Extensions.Logging		Sdk.Server
+using	A	namespace	Microsoft.Extensions.Logging		compile:NameCatalogApp.GlobalUsings.g.cs
+using	A	namespace	System		compile:NameCatalogApp.GlobalUsings.g.cs
+using	A	namespace	System.Collections.Generic		compile:NameCatalogApp.GlobalUsings.g.cs
+using	A	namespace	System.IO		compile:NameCatalogApp.GlobalUsings.g.cs
+using	A	namespace	System.Linq		compile:NameCatalogApp.GlobalUsings.g.cs
+using	A	namespace	System.Net.Http		compile:NameCatalogApp.GlobalUsings.g.cs
 using	A	namespace	System.Net.Http.Json		Sdk.Server
+using	A	namespace	System.Net.Http.Json		compile:NameCatalogApp.GlobalUsings.g.cs
+using	A	namespace	System.Threading		compile:NameCatalogApp.GlobalUsings.g.cs
+using	A	namespace	System.Threading.Tasks		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Cratis.Arc		cratis
 using	AS	namespace	Cratis.Arc.Authentication		cratis
 using	AS	namespace	Cratis.Arc.Authorization		cratis
@@ -261,9 +277,19 @@ using	AS	namespace	System.Threading.Tasks		Microsoft.NET.Sdk.CSharp
 using	S	namespace	Orleans		Microsoft.Orleans.Core
 using	S	namespace	Orleans		Microsoft.Orleans.Core.Abstractions
 using	S	namespace	Orleans		Microsoft.Orleans.Sdk
+using	S	namespace	Orleans		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
 using	S	namespace	Orleans.Hosting		Microsoft.Orleans.Core
+using	S	namespace	Orleans.Hosting		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
 using	S	namespace	Orleans.Runtime		Microsoft.Orleans.Core
 using	S	namespace	Orleans.Runtime		Microsoft.Orleans.Core.Abstractions
+using	S	namespace	Orleans.Runtime		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
+using	S	namespace	System		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
+using	S	namespace	System.Collections.Generic		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
+using	S	namespace	System.IO		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
+using	S	namespace	System.Linq		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
+using	S	namespace	System.Net.Http		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
+using	S	namespace	System.Threading		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
+using	S	namespace	System.Threading.Tasks		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
 scope	Cratis
 scope	FluentValidation
 scope	MongoDB
@@ -353,6 +379,46 @@ namespace	AS	Cratis.Chronicle.Concepts.Captures
 namespace	AS	Cratis.Chronicle.Concepts.Patterns
 namespace	AS	Cratis.Chronicle.Confidentiality
 namespace	AS	Cratis.Chronicle.Connections
+namespace	AS	Cratis.Chronicle.Contracts
+namespace	AS	Cratis.Chronicle.Contracts.Alerts
+namespace	AS	Cratis.Chronicle.Contracts.Auditing
+namespace	AS	Cratis.Chronicle.Contracts.Captures
+namespace	AS	Cratis.Chronicle.Contracts.Clients
+namespace	AS	Cratis.Chronicle.Contracts.Commands
+namespace	AS	Cratis.Chronicle.Contracts.Compliance
+namespace	AS	Cratis.Chronicle.Contracts.EventSequences
+namespace	AS	Cratis.Chronicle.Contracts.EventSequences.Concurrency
+namespace	AS	Cratis.Chronicle.Contracts.EventSources
+namespace	AS	Cratis.Chronicle.Contracts.EventStores
+namespace	AS	Cratis.Chronicle.Contracts.EventTypes
+namespace	AS	Cratis.Chronicle.Contracts.Events
+namespace	AS	Cratis.Chronicle.Contracts.Events.Constraints
+namespace	AS	Cratis.Chronicle.Contracts.ExternalServices
+namespace	AS	Cratis.Chronicle.Contracts.Host
+namespace	AS	Cratis.Chronicle.Contracts.Identities
+namespace	AS	Cratis.Chronicle.Contracts.Jobs
+namespace	AS	Cratis.Chronicle.Contracts.Namespaces
+namespace	AS	Cratis.Chronicle.Contracts.Observation
+namespace	AS	Cratis.Chronicle.Contracts.Observation.EventStoreSubscriptions
+namespace	AS	Cratis.Chronicle.Contracts.Observation.Reactors
+namespace	AS	Cratis.Chronicle.Contracts.Observation.Reducers
+namespace	AS	Cratis.Chronicle.Contracts.Observation.Webhooks
+namespace	AS	Cratis.Chronicle.Contracts.Patterns
+namespace	AS	Cratis.Chronicle.Contracts.Primitives
+namespace	AS	Cratis.Chronicle.Contracts.ProjectionEditor
+namespace	AS	Cratis.Chronicle.Contracts.Projections
+namespace	AS	Cratis.Chronicle.Contracts.Queries
+namespace	AS	Cratis.Chronicle.Contracts.ReadModelExplorer
+namespace	AS	Cratis.Chronicle.Contracts.ReadModels
+namespace	AS	Cratis.Chronicle.Contracts.Recommendations
+namespace	AS	Cratis.Chronicle.Contracts.Security
+namespace	AS	Cratis.Chronicle.Contracts.Seeding
+namespace	AS	Cratis.Chronicle.Contracts.Sequences
+namespace	AS	Cratis.Chronicle.Contracts.Sinks
+namespace	AS	Cratis.Chronicle.Contracts.Statistics
+namespace	AS	Cratis.Chronicle.Contracts.Storage
+namespace	AS	Cratis.Chronicle.Contracts.Storage.EventSequences
+namespace	AS	Cratis.Chronicle.Contracts.Validation
 namespace	AS	Cratis.Chronicle.Diagnostics
 namespace	AS	Cratis.Chronicle.Diagnostics.OpenTelemetry
 namespace	AS	Cratis.Chronicle.Diagnostics.OpenTelemetry.Tracing
@@ -1227,6 +1293,184 @@ namespace	S	Cratis.Arc.Chronicle.Testing.Queries
 namespace	S	Cratis.Arc.Testing
 namespace	S	Cratis.Arc.Testing.Commands
 namespace	S	Cratis.Arc.Testing.Queries
+namespace	S	Cratis.Arc.Validation.Generated
+namespace	S	Cratis.Chronicle.Alerts
+namespace	S	Cratis.Chronicle.Captures.Engine
+namespace	S	Cratis.Chronicle.Captures.Engine.DeclarationLanguage
+namespace	S	Cratis.Chronicle.Clients
+namespace	S	Cratis.Chronicle.Compatibility
+namespace	S	Cratis.Chronicle.Compliance.GDPR.Events
+namespace	S	Cratis.Chronicle.Concepts.Alerts
+namespace	S	Cratis.Chronicle.Concepts.Auditing
+namespace	S	Cratis.Chronicle.Concepts.Clients
+namespace	S	Cratis.Chronicle.Concepts.EventSequences
+namespace	S	Cratis.Chronicle.Concepts.EventSequences.Concurrency
+namespace	S	Cratis.Chronicle.Concepts.EventSources
+namespace	S	Cratis.Chronicle.Concepts.EventTypes
+namespace	S	Cratis.Chronicle.Concepts.Events
+namespace	S	Cratis.Chronicle.Concepts.Events.Constraints
+namespace	S	Cratis.Chronicle.Concepts.ExternalServices
+namespace	S	Cratis.Chronicle.Concepts.Identities
+namespace	S	Cratis.Chronicle.Concepts.Keys
+namespace	S	Cratis.Chronicle.Concepts.Observation
+namespace	S	Cratis.Chronicle.Concepts.Observation.EventStoreSubscriptions
+namespace	S	Cratis.Chronicle.Concepts.Observation.Reactors
+namespace	S	Cratis.Chronicle.Concepts.Observation.Reducers
+namespace	S	Cratis.Chronicle.Concepts.Observation.Replaying
+namespace	S	Cratis.Chronicle.Concepts.Observation.Sequencing
+namespace	S	Cratis.Chronicle.Concepts.Observation.Webhooks
+namespace	S	Cratis.Chronicle.Concepts.Patching
+namespace	S	Cratis.Chronicle.Concepts.PersonalInformation
+namespace	S	Cratis.Chronicle.Concepts.Projections
+namespace	S	Cratis.Chronicle.Concepts.Projections.Definitions
+namespace	S	Cratis.Chronicle.Concepts.Projections.Json
+namespace	S	Cratis.Chronicle.Concepts.ReadModels
+namespace	S	Cratis.Chronicle.Concepts.Recommendations
+namespace	S	Cratis.Chronicle.Concepts.Security
+namespace	S	Cratis.Chronicle.Concepts.Seeding
+namespace	S	Cratis.Chronicle.Concepts.SequenceQueries
+namespace	S	Cratis.Chronicle.Concepts.Servers
+namespace	S	Cratis.Chronicle.Concepts.Sinks
+namespace	S	Cratis.Chronicle.Concepts.System
+namespace	S	Cratis.Chronicle.Concepts.Targets
+namespace	S	Cratis.Chronicle.Configuration
+namespace	S	Cratis.Chronicle.DevelopmentTools
+namespace	S	Cratis.Chronicle.EventSequences.Migrations
+namespace	S	Cratis.Chronicle.EventSequences.Placement
+namespace	S	Cratis.Chronicle.EventStores
+namespace	S	Cratis.Chronicle.EventTypes
+namespace	S	Cratis.Chronicle.Events.EventSequences
+namespace	S	Cratis.Chronicle.Events.EventSequences.Migrations
+namespace	S	Cratis.Chronicle.Namespaces
+namespace	S	Cratis.Chronicle.Observation.Alerts
+namespace	S	Cratis.Chronicle.Observation.EventStoreSubscriptions
+namespace	S	Cratis.Chronicle.Observation.Jobs
+namespace	S	Cratis.Chronicle.Observation.Placement
+namespace	S	Cratis.Chronicle.Observation.Reactors
+namespace	S	Cratis.Chronicle.Observation.Reactors.Clients
+namespace	S	Cratis.Chronicle.Observation.Reactors.Kernel
+namespace	S	Cratis.Chronicle.Observation.Reducers
+namespace	S	Cratis.Chronicle.Observation.Reducers.Clients
+namespace	S	Cratis.Chronicle.Observation.States
+namespace	S	Cratis.Chronicle.Observation.Webhooks
+namespace	S	Cratis.Chronicle.Patches
+namespace	S	Cratis.Chronicle.Patching
+namespace	S	Cratis.Chronicle.ProjectionEditor
+namespace	S	Cratis.Chronicle.Projections.Engine.DeclarationLanguage
+namespace	S	Cratis.Chronicle.Projections.Engine.DeclarationLanguage.CodeGeneration
+namespace	S	Cratis.Chronicle.Projections.Engine.DeclarationLanguage.CodeGeneration.CSharp
+namespace	S	Cratis.Chronicle.Projections.Engine.DeclarationLanguage.CodeGeneration.Elixir
+namespace	S	Cratis.Chronicle.Projections.Engine.DeclarationLanguage.CodeGeneration.Kotlin
+namespace	S	Cratis.Chronicle.Projections.Engine.DeclarationLanguage.CodeGeneration.TypeScript
+namespace	S	Cratis.Chronicle.Projections.Engine.Expressions.EventValues
+namespace	S	Cratis.Chronicle.Projections.Engine.Expressions.Keys
+namespace	S	Cratis.Chronicle.Projections.Engine.Expressions.ReadModelProperties
+namespace	S	Cratis.Chronicle.Projections.Engine.Pipelines
+namespace	S	Cratis.Chronicle.Projections.Engine.Pipelines.Steps
+namespace	S	Cratis.Chronicle.Projections.Kernel
+namespace	S	Cratis.Chronicle.ReadModelDefinitions
+namespace	S	Cratis.Chronicle.ReadModelExplorer
+namespace	S	Cratis.Chronicle.Recommendations
+namespace	S	Cratis.Chronicle.SequenceQueries
+namespace	S	Cratis.Chronicle.Sequences
+namespace	S	Cratis.Chronicle.Servers
+namespace	S	Cratis.Chronicle.Services
+namespace	S	Cratis.Chronicle.Services.Alerts
+namespace	S	Cratis.Chronicle.Services.Auditing
+namespace	S	Cratis.Chronicle.Services.Captures
+namespace	S	Cratis.Chronicle.Services.Clients
+namespace	S	Cratis.Chronicle.Services.Compliance
+namespace	S	Cratis.Chronicle.Services.EventSequences
+namespace	S	Cratis.Chronicle.Services.EventSources
+namespace	S	Cratis.Chronicle.Services.EventStores
+namespace	S	Cratis.Chronicle.Services.EventTypes
+namespace	S	Cratis.Chronicle.Services.Events
+namespace	S	Cratis.Chronicle.Services.Events.Constraints
+namespace	S	Cratis.Chronicle.Services.ExternalServices
+namespace	S	Cratis.Chronicle.Services.Host
+namespace	S	Cratis.Chronicle.Services.Identities
+namespace	S	Cratis.Chronicle.Services.Jobs
+namespace	S	Cratis.Chronicle.Services.Namespaces
+namespace	S	Cratis.Chronicle.Services.Observation
+namespace	S	Cratis.Chronicle.Services.Observation.EventStoreSubscriptions
+namespace	S	Cratis.Chronicle.Services.Observation.Reactors
+namespace	S	Cratis.Chronicle.Services.Observation.Reducers
+namespace	S	Cratis.Chronicle.Services.Observation.Webhooks
+namespace	S	Cratis.Chronicle.Services.Patterns
+namespace	S	Cratis.Chronicle.Services.ProjectionEditor
+namespace	S	Cratis.Chronicle.Services.Projections
+namespace	S	Cratis.Chronicle.Services.Projections.Definitions
+namespace	S	Cratis.Chronicle.Services.ReadModelExplorer
+namespace	S	Cratis.Chronicle.Services.ReadModels
+namespace	S	Cratis.Chronicle.Services.Recommendations
+namespace	S	Cratis.Chronicle.Services.Security
+namespace	S	Cratis.Chronicle.Services.Seeding
+namespace	S	Cratis.Chronicle.Services.Sequences
+namespace	S	Cratis.Chronicle.Services.Sinks
+namespace	S	Cratis.Chronicle.Services.Statistics
+namespace	S	Cratis.Chronicle.Setup
+namespace	S	Cratis.Chronicle.Setup.Authentication
+namespace	S	Cratis.Chronicle.Setup.Execution
+namespace	S	Cratis.Chronicle.Setup.Serialization
+namespace	S	Cratis.Chronicle.Statistics
+namespace	S	Cratis.Chronicle.Storage
+namespace	S	Cratis.Chronicle.Storage.Alerts
+namespace	S	Cratis.Chronicle.Storage.Captures
+namespace	S	Cratis.Chronicle.Storage.Changes
+namespace	S	Cratis.Chronicle.Storage.Compliance
+namespace	S	Cratis.Chronicle.Storage.EventSequences
+namespace	S	Cratis.Chronicle.Storage.EventSources
+namespace	S	Cratis.Chronicle.Storage.EventTypes
+namespace	S	Cratis.Chronicle.Storage.Events
+namespace	S	Cratis.Chronicle.Storage.Events.Constraints
+namespace	S	Cratis.Chronicle.Storage.ExternalServices
+namespace	S	Cratis.Chronicle.Storage.Identities
+namespace	S	Cratis.Chronicle.Storage.InMemory
+namespace	S	Cratis.Chronicle.Storage.InMemory.Alerts
+namespace	S	Cratis.Chronicle.Storage.InMemory.Captures
+namespace	S	Cratis.Chronicle.Storage.InMemory.Changes
+namespace	S	Cratis.Chronicle.Storage.InMemory.Compliance
+namespace	S	Cratis.Chronicle.Storage.InMemory.EventSequences
+namespace	S	Cratis.Chronicle.Storage.InMemory.EventSources
+namespace	S	Cratis.Chronicle.Storage.InMemory.Events
+namespace	S	Cratis.Chronicle.Storage.InMemory.Events.Constraints
+namespace	S	Cratis.Chronicle.Storage.InMemory.Events.EventTypes
+namespace	S	Cratis.Chronicle.Storage.InMemory.ExternalServices
+namespace	S	Cratis.Chronicle.Storage.InMemory.Identities
+namespace	S	Cratis.Chronicle.Storage.InMemory.Keys
+namespace	S	Cratis.Chronicle.Storage.InMemory.Namespaces
+namespace	S	Cratis.Chronicle.Storage.InMemory.Observation
+namespace	S	Cratis.Chronicle.Storage.InMemory.Observation.EventStoreSubscriptions
+namespace	S	Cratis.Chronicle.Storage.InMemory.Observation.Reactors
+namespace	S	Cratis.Chronicle.Storage.InMemory.Observation.Reducers
+namespace	S	Cratis.Chronicle.Storage.InMemory.Observation.Webhooks
+namespace	S	Cratis.Chronicle.Storage.InMemory.Patching
+namespace	S	Cratis.Chronicle.Storage.InMemory.Patterns
+namespace	S	Cratis.Chronicle.Storage.InMemory.Projections
+namespace	S	Cratis.Chronicle.Storage.InMemory.ReadModels
+namespace	S	Cratis.Chronicle.Storage.InMemory.Recommendations
+namespace	S	Cratis.Chronicle.Storage.InMemory.Security
+namespace	S	Cratis.Chronicle.Storage.InMemory.Seeding
+namespace	S	Cratis.Chronicle.Storage.InMemory.SequenceQueries
+namespace	S	Cratis.Chronicle.Storage.InMemory.Sinks
+namespace	S	Cratis.Chronicle.Storage.Keys
+namespace	S	Cratis.Chronicle.Storage.Namespaces
+namespace	S	Cratis.Chronicle.Storage.Observation
+namespace	S	Cratis.Chronicle.Storage.Observation.Delivery
+namespace	S	Cratis.Chronicle.Storage.Observation.EventStoreSubscriptions
+namespace	S	Cratis.Chronicle.Storage.Observation.Reactors
+namespace	S	Cratis.Chronicle.Storage.Observation.Reducers
+namespace	S	Cratis.Chronicle.Storage.Observation.Webhooks
+namespace	S	Cratis.Chronicle.Storage.Patching
+namespace	S	Cratis.Chronicle.Storage.Patterns
+namespace	S	Cratis.Chronicle.Storage.Projections
+namespace	S	Cratis.Chronicle.Storage.ReadModels
+namespace	S	Cratis.Chronicle.Storage.Recommendations
+namespace	S	Cratis.Chronicle.Storage.Security
+namespace	S	Cratis.Chronicle.Storage.Seeding
+namespace	S	Cratis.Chronicle.Storage.SequenceQueries
+namespace	S	Cratis.Chronicle.Storage.Sinks
+namespace	S	Cratis.Chronicle.Sys
 namespace	S	Cratis.Chronicle.Testing
 namespace	S	Cratis.Chronicle.Testing.Auditing
 namespace	S	Cratis.Chronicle.Testing.Compliance
@@ -1286,11 +1530,25 @@ namespace	S	FxResources.System.IO
 namespace	S	FxResources.System.IO.Hashing
 namespace	S	FxResources.System.Memory
 namespace	S	FxResources.System.Memory.Data
+namespace	S	FxResources.System.Threading
+namespace	S	FxResources.System.Threading.RateLimiting
 namespace	S	JsonCons
 namespace	S	JsonCons.JmesPath
 namespace	S	Jsonite
 namespace	S	Microsoft.Cci
 namespace	S	Microsoft.CodeAnalysis.AddImport
+namespace	S	Microsoft.CodeAnalysis.CSharp
+namespace	S	Microsoft.CodeAnalysis.CSharp.CodeGen
+namespace	S	Microsoft.CodeAnalysis.CSharp.DocumentationComments
+namespace	S	Microsoft.CodeAnalysis.CSharp.Emit
+namespace	S	Microsoft.CodeAnalysis.CSharp.Emit.NoPia
+namespace	S	Microsoft.CodeAnalysis.CSharp.Symbols
+namespace	S	Microsoft.CodeAnalysis.CSharp.Symbols.Metadata
+namespace	S	Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
+namespace	S	Microsoft.CodeAnalysis.CSharp.Symbols.PublicModel
+namespace	S	Microsoft.CodeAnalysis.CSharp.Symbols.Retargeting
+namespace	S	Microsoft.CodeAnalysis.CSharp.Syntax
+namespace	S	Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax
 namespace	S	Microsoft.CodeAnalysis.CaseCorrection
 namespace	S	Microsoft.CodeAnalysis.ChangeNamespace
 namespace	S	Microsoft.CodeAnalysis.Classification
@@ -1310,6 +1568,7 @@ namespace	S	Microsoft.CodeAnalysis.Debugging
 namespace	S	Microsoft.CodeAnalysis.Diagnostics
 namespace	S	Microsoft.CodeAnalysis.Diagnostics.Analyzers
 namespace	S	Microsoft.CodeAnalysis.Diagnostics.Analyzers.NamingStyles
+namespace	S	Microsoft.CodeAnalysis.Diagnostics.CSharp
 namespace	S	Microsoft.CodeAnalysis.Diagnostics.Telemetry
 namespace	S	Microsoft.CodeAnalysis.Differencing
 namespace	S	Microsoft.CodeAnalysis.Editing
@@ -1525,6 +1784,9 @@ namespace	S	NuGetClone
 namespace	S	NuGetClone.Frameworks
 namespace	S	NuGetClone.Shared
 namespace	S	Orleans
+namespace	S	Orleans.BroadcastChannel
+namespace	S	Orleans.BroadcastChannel.Diagnostics
+namespace	S	Orleans.BroadcastChannel.SubscriberTable
 namespace	S	Orleans.Caching
 namespace	S	Orleans.Caching.Internal
 namespace	S	Orleans.ClientObservers
@@ -1568,6 +1830,9 @@ namespace	S	Orleans.Providers.MongoDB.StorageProviders
 namespace	S	Orleans.Providers.MongoDB.StorageProviders.Serializers
 namespace	S	Orleans.Providers.MongoDB.StorageProviders.Serializers.BsonSerializationProviders
 namespace	S	Orleans.Providers.MongoDB.Utils
+namespace	S	Orleans.Providers.Streams
+namespace	S	Orleans.Providers.Streams.Common
+namespace	S	Orleans.Providers.Streams.Generator
 namespace	S	Orleans.Reminders
 namespace	S	Orleans.Reminders.Diagnostics
 namespace	S	Orleans.Runtime
@@ -1618,6 +1883,13 @@ namespace	S	Orleans.Services
 namespace	S	Orleans.Statistics
 namespace	S	Orleans.Storage
 namespace	S	Orleans.Storage.Internal
+namespace	S	Orleans.Streaming
+namespace	S	Orleans.Streaming.Diagnostics
+namespace	S	Orleans.Streaming.JsonConverters
+namespace	S	Orleans.Streams
+namespace	S	Orleans.Streams.Core
+namespace	S	Orleans.Streams.Filtering
+namespace	S	Orleans.Streams.PubSub
 namespace	S	Orleans.Threading
 namespace	S	Orleans.Timers
 namespace	S	Orleans.Timers.Internal
@@ -1627,20 +1899,67 @@ namespace	S	Orleans.Versions.Compatibility
 namespace	S	Orleans.Versions.Selector
 namespace	S	OrleansCodeGen
 namespace	S	OrleansCodeGen.Cratis
+namespace	S	OrleansCodeGen.Cratis.Chronicle
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Alerts
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Captures
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Clients
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Compliance
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Compliance.GDPR
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts.Observation
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts.Projections
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts.ReadModels
+namespace	S	OrleansCodeGen.Cratis.Chronicle.DevelopmentTools
+namespace	S	OrleansCodeGen.Cratis.Chronicle.EventSequences
+namespace	S	OrleansCodeGen.Cratis.Chronicle.EventSequences.Migrations
+namespace	S	OrleansCodeGen.Cratis.Chronicle.EventSequences.Placement
+namespace	S	OrleansCodeGen.Cratis.Chronicle.EventTypes
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Events
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Events.Constraints
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Namespaces
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Alerts
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.EventStoreSubscriptions
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Jobs
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Placement
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Reactors
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Reactors.Clients
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Reactors.Kernel
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Reducers
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Reducers.Clients
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.States
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Webhooks
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Patching
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Patterns
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Projections
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Projections.Engine
+namespace	S	OrleansCodeGen.Cratis.Chronicle.ReadModels
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Recommendations
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Security
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Seeding
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Servers
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Sys
 namespace	S	OrleansCodeGen.Cratis.Orleans
 namespace	S	OrleansCodeGen.Cratis.Orleans.Jobs
 namespace	S	OrleansCodeGen.Cratis.Orleans.Workers
 namespace	S	OrleansCodeGen.CratisArcChronicleTesting
+namespace	S	OrleansCodeGen.CratisChronicleConcepts
+namespace	S	OrleansCodeGen.CratisChronicleCore
+namespace	S	OrleansCodeGen.CratisChronicleGrpc
+namespace	S	OrleansCodeGen.CratisChronicleStorage
+namespace	S	OrleansCodeGen.CratisChronicleStorageInMemory
 namespace	S	OrleansCodeGen.CratisChronicleTesting
 namespace	S	OrleansCodeGen.CratisOrleans
 namespace	S	OrleansCodeGen.CratisOrleansStorageMongoDB
 namespace	S	OrleansCodeGen.Orleans
+namespace	S	OrleansCodeGen.Orleans.BroadcastChannel
 namespace	S	OrleansCodeGen.Orleans.ClientObservers
 namespace	S	OrleansCodeGen.Orleans.CodeGeneration
 namespace	S	OrleansCodeGen.Orleans.Concurrency
 namespace	S	OrleansCodeGen.Orleans.Core
 namespace	S	OrleansCodeGen.Orleans.Core.Internal
 namespace	S	OrleansCodeGen.Orleans.GrainDirectory
+namespace	S	OrleansCodeGen.Orleans.Hosting
 namespace	S	OrleansCodeGen.Orleans.LeaseProviders
 namespace	S	OrleansCodeGen.Orleans.Metadata
 namespace	S	OrleansCodeGen.Orleans.Networking
@@ -1650,6 +1969,9 @@ namespace	S	OrleansCodeGen.Orleans.Placement.Rebalancing
 namespace	S	OrleansCodeGen.Orleans.Placement.Repartitioning
 namespace	S	OrleansCodeGen.Orleans.Placement.Repartitioning.AcceptExchangeResponse
 namespace	S	OrleansCodeGen.Orleans.Providers
+namespace	S	OrleansCodeGen.Orleans.Providers.Streams
+namespace	S	OrleansCodeGen.Orleans.Providers.Streams.Common
+namespace	S	OrleansCodeGen.Orleans.Providers.Streams.Generator
 namespace	S	OrleansCodeGen.Orleans.Runtime
 namespace	S	OrleansCodeGen.Orleans.Runtime.Development
 namespace	S	OrleansCodeGen.Orleans.Runtime.GrainDirectory
@@ -1669,9 +1991,12 @@ namespace	S	OrleansCodeGen.Orleans.Services
 namespace	S	OrleansCodeGen.Orleans.Statistics
 namespace	S	OrleansCodeGen.Orleans.Storage
 namespace	S	OrleansCodeGen.Orleans.Storage.Internal
+namespace	S	OrleansCodeGen.Orleans.Streams
+namespace	S	OrleansCodeGen.Orleans.Streams.Core
 namespace	S	OrleansCodeGen.Orleans.Versions
 namespace	S	OrleansCodeGen.Orleans.Versions.Compatibility
 namespace	S	OrleansCodeGen.Orleans.Versions.Selector
+namespace	S	OrleansCodeGen.OrleansBroadcastChannel
 namespace	S	OrleansCodeGen.OrleansCore
 namespace	S	OrleansCodeGen.OrleansCoreAbstractions
 namespace	S	OrleansCodeGen.OrleansPersistenceMemory
@@ -1680,6 +2005,7 @@ namespace	S	OrleansCodeGen.OrleansReminders
 namespace	S	OrleansCodeGen.OrleansRuntime
 namespace	S	OrleansCodeGen.OrleansSerialization
 namespace	S	OrleansCodeGen.OrleansSerializationSystemTextJson
+namespace	S	OrleansCodeGen.OrleansStreaming
 namespace	S	Polly.Bulkhead
 namespace	S	Polly.Caching
 namespace	S	Polly.NoOp

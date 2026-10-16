@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -11,7 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// Resolves ESM type and value contracts into deterministic C# syntax.
 /// </summary>
 /// <param name="context">The indexed semantic application.</param>
-internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
+/// <param name="builder">The optional file builder that resolves type spellings.</param>
+internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSharpCodeBuilder? builder = null)
 {
     readonly bool _usesLongWholeNumbers = context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8);
 
@@ -53,13 +55,13 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
     public string Primitive(SemanticPrimitiveType primitive) => primitive switch
     {
-        SemanticPrimitiveType.Uuid => "global::System.Guid",
+        SemanticPrimitiveType.Uuid => Named("System", "Guid"),
         SemanticPrimitiveType.Text => "string",
         SemanticPrimitiveType.WholeNumber => _usesLongWholeNumbers ? "long" : "int",
         SemanticPrimitiveType.DecimalNumber => "decimal",
         SemanticPrimitiveType.Boolean => "bool",
-        SemanticPrimitiveType.Date => "global::System.DateOnly",
-        SemanticPrimitiveType.DateTime => "global::System.DateTimeOffset",
+        SemanticPrimitiveType.Date => Named("System", "DateOnly"),
+        SemanticPrimitiveType.DateTime => Named("System", "DateTimeOffset"),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
     };
 
@@ -71,13 +73,13 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// <exception cref="UnsupportedSemanticRendering">The primitive is not handled by this renderer.</exception>
     public string NotSet(SemanticPrimitiveType primitive) => primitive switch
     {
-        SemanticPrimitiveType.Uuid => "global::System.Guid.Empty",
+        SemanticPrimitiveType.Uuid => $"{Named("System", "Guid", ReferenceContext.Expression)}.Empty",
         SemanticPrimitiveType.Text => "string.Empty",
         SemanticPrimitiveType.WholeNumber => _usesLongWholeNumbers ? "0L" : "0",
         SemanticPrimitiveType.DecimalNumber => "0m",
         SemanticPrimitiveType.Boolean => "false",
-        SemanticPrimitiveType.Date => "global::System.DateOnly.MinValue",
-        SemanticPrimitiveType.DateTime => "global::System.DateTimeOffset.MinValue",
+        SemanticPrimitiveType.Date => $"{Named("System", "DateOnly", ReferenceContext.Expression)}.MinValue",
+        SemanticPrimitiveType.DateTime => $"{Named("System", "DateTimeOffset", ReferenceContext.Expression)}.MinValue",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPrimitiveType), primitive)
     };
 
@@ -103,7 +105,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
         var type = scalar;
         if (reference.IsCollection)
         {
-            type = reducerInput ? $"global::System.Collections.Immutable.ImmutableArray<{scalar}>" : $"global::System.Collections.Generic.IReadOnlyList<{scalar}>";
+            type = reducerInput ? $"{Named("System.Collections.Immutable", "ImmutableArray", arity: 1)}<{scalar}>" : $"{Named("System.Collections.Generic", "IReadOnlyList", arity: 1)}<{scalar}>";
         }
 
         return reference.IsOptional ? $"{type}?" : type;
@@ -200,7 +202,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// </summary>
     /// <param name="name">The modeled type name.</param>
     /// <returns>The C# type name.</returns>
-    public string CommonType(string name) => $"global::{context.CommonNamespace}.{Identifiers.ToPascalCase(name)}";
+    public string CommonType(string name) => Named(context.CommonNamespace, Identifiers.ToPascalCase(name));
 
     /// <summary>
     /// Gets a fully qualified generated event type name.
@@ -216,7 +218,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
     /// <param name="name">The modeled declaration name.</param>
     /// <returns>The C# type name.</returns>
     public string SliceType(SemanticId id, string name) =>
-        $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path)}.{Identifiers.ToPascalCase(name)}";
+        Named(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path), Identifiers.ToPascalCase(name));
 
     // An enum concept renders as a C# enum, so its literal is a member rather than a wrapped primitive.
     static string EnumMember(string type, SemanticConcept concept, SemanticValue value) =>
@@ -225,6 +227,12 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
             : throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/enum {concept.Name}", value is SemanticTextValue unknown ? unknown.Value : value.Kind.ToString());
 
     static string Literal(string value) => CSharpCodeBuilder.StringLiteral(value);
+
+    string Named(string @namespace, string name, ReferenceContext referenceContext = ReferenceContext.Type, int arity = 0)
+    {
+        var reference = new TypeReference(@namespace, name, arity, referenceContext);
+        return builder?.Type(reference) ?? reference.Qualified;
+    }
 
     string CompositeValue(SemanticCompositeValue composite, SemanticCompositeType type)
     {
@@ -235,9 +243,9 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context)
 
     string PrimitiveValue(SemanticValue value, SemanticPrimitiveType primitive) => (value, primitive) switch
     {
-        (SemanticTextValue text, SemanticPrimitiveType.Uuid) => $"global::System.Guid.Parse({Literal(text.Value)})",
-        (SemanticTextValue text, SemanticPrimitiveType.Date) => $"global::System.DateOnly.Parse({Literal(text.Value)}, global::System.Globalization.CultureInfo.InvariantCulture)",
-        (SemanticTextValue text, SemanticPrimitiveType.DateTime) => $"global::System.DateTimeOffset.Parse({Literal(text.Value)}, global::System.Globalization.CultureInfo.InvariantCulture)",
+        (SemanticTextValue text, SemanticPrimitiveType.Uuid) => $"{Named("System", "Guid", ReferenceContext.Expression)}.Parse({Literal(text.Value)})",
+        (SemanticTextValue text, SemanticPrimitiveType.Date) => $"{Named("System", "DateOnly", ReferenceContext.Expression)}.Parse({Literal(text.Value)}, {Named("System.Globalization", "CultureInfo", ReferenceContext.Expression)}.InvariantCulture)",
+        (SemanticTextValue text, SemanticPrimitiveType.DateTime) => $"{Named("System", "DateTimeOffset", ReferenceContext.Expression)}.Parse({Literal(text.Value)}, {Named("System.Globalization", "CultureInfo", ReferenceContext.Expression)}.InvariantCulture)",
         (SemanticTextValue text, SemanticPrimitiveType.Text) => Literal(text.Value),
         (SemanticNumberValue number, SemanticPrimitiveType.DecimalNumber) => $"{number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}m",
         (SemanticNumberValue number, SemanticPrimitiveType.WholeNumber) => number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + (_usesLongWholeNumbers ? "L" : string.Empty),

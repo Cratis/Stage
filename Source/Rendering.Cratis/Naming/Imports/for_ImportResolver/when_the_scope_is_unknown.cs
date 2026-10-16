@@ -14,7 +14,7 @@ public class when_the_scope_is_unknown : given.a_framework_catalog
 
     void Because() => _result = ImportResolver.Resolve(Request(_guid, _regex) with { HasUnknownScope = true, RequiredImports = ["Cratis.Chronicle.Testing"] }, _catalog);
 
-    [Fact] void should_keep_only_the_required_imports() => string.Join(' ', _result.Usings).ShouldEqual("Cratis.Chronicle.Testing");
+    [Fact] void should_keep_only_the_required_imports() => string.Join(' ', _result.TopLevelUsings).ShouldEqual("Cratis.Chronicle.Testing");
     [Fact] void should_qualify_a_type_a_global_using_imports() => _result.Spell(_guid).ShouldEqual("global::System.Guid");
     [Fact] void should_qualify_a_type_needing_an_import() => _result.Spell(_regex).ShouldEqual("global::System.Text.RegularExpressions.Regex");
 }

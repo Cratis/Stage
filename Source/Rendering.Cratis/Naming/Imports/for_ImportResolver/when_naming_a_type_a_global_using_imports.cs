@@ -14,5 +14,5 @@ public class when_naming_a_type_a_global_using_imports : given.a_framework_catal
     void Because() => _result = ImportResolver.Resolve(Request(_guid), _catalog);
 
     [Fact] void should_spell_it_by_its_short_name() => _result.Spell(_guid).ShouldEqual("Guid");
-    [Fact] void should_not_import_anything() => _result.Usings.ShouldBeEmpty();
+    [Fact] void should_import_it_at_the_innermost_level() => _result.Usings.ShouldContain("System");
 }

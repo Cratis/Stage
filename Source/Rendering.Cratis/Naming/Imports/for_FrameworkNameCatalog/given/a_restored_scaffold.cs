@@ -10,12 +10,25 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports.for_FrameworkNameCatalog.
 /// </summary>
 public class a_restored_scaffold : Specification
 {
-    static readonly Lazy<Task<(string Text, IReadOnlyList<ScaffoldedReference> References)>> _generated = new(Generate);
+    static readonly Lazy<Task<(string Text, ScaffoldedProject Application, ScaffoldedProject Specifications)>> _generated = new(Generate);
 
     protected string _generatedText = null!;
     internal IReadOnlyList<ScaffoldedReference> References { get; set; } = null!;
 
-    async Task Establish() => (_generatedText, References) = await _generated.Value;
+    async Task Establish()
+    {
+        var restored = await _generated.Value;
+        _generatedText = restored.Text;
+        References = [.. restored.Application.References, .. restored.Specifications.References];
+    }
+
+    internal static string Workspace() => Environment.GetEnvironmentVariable("AI_WORK_OUTPUT") ?? Path.Combine(RepositoryRoot().FullName, ".ai-work", "stage-namespace");
+
+    internal static async Task<(ScaffoldedProject Application, ScaffoldedProject Specifications)> Projects()
+    {
+        var restored = await _generated.Value;
+        return (restored.Application, restored.Specifications);
+    }
 
     /// <summary>
     /// Gets the repository root.
@@ -32,15 +45,14 @@ public class a_restored_scaffold : Specification
         throw new DirectoryNotFoundException("The repository root containing .git was not found.");
     }
 
-    static async Task<(string Text, IReadOnlyList<ScaffoldedReference> References)> Generate()
+    static async Task<(string Text, ScaffoldedProject Application, ScaffoldedProject Specifications)> Generate()
     {
-        var workspace = Environment.GetEnvironmentVariable("AI_WORK_OUTPUT") ?? Path.Combine(RepositoryRoot().FullName, ".ai-work", "stage-namespace");
-        var directory = Directory.CreateDirectory(Path.Combine(workspace, $"name-catalog-{Guid.NewGuid():N}"));
+        var directory = Directory.CreateDirectory(Path.Combine(Workspace(), $"name-catalog-{Guid.NewGuid():N}"));
         try
         {
             var (application, specifications) = await CatalogScaffold.Restore(directory);
             return (FrameworkNameCatalogText.Write(FrameworkNameCatalogGenerator.Generate(application, specifications)),
-                [.. application.References, .. specifications.References]);
+                application, specifications);
         }
         finally
         {

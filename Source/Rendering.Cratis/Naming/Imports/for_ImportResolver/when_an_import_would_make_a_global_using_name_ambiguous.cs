@@ -14,6 +14,6 @@ public class when_an_import_would_make_a_global_using_name_ambiguous : given.a_f
 
     void Because() => _result = ImportResolver.Resolve(Request(_identities), _catalog);
 
-    [Fact] void should_keep_the_reference_fully_qualified() => _result.Spell(_identities).ShouldEqual("global::Cratis.Chronicle.Identities.IIdentityProvider");
-    [Fact] void should_not_keep_an_import_nothing_uses() => _result.Usings.ShouldBeEmpty();
+    [Fact] void should_bind_before_the_global_using() => _result.Spell(_identities).ShouldEqual("IIdentityProvider");
+    [Fact] void should_import_inside_the_namespace() => _result.Usings.ShouldContain("Cratis.Chronicle.Identities");
 }

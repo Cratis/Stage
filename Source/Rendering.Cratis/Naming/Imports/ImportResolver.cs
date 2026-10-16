@@ -14,7 +14,6 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 /// accesses. Spellings are decided against the final import set, and imports no short name needs are dropped again, so
 /// the result is deterministic for a given request.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0182:Unused internal type", Justification = "The C# renderers adopt the resolver in follow-up changes (Stage#424); its specifications and the name matrix use it today.")]
 internal static class ImportResolver
 {
     // Members C# binds by pattern rather than by an explicit call: awaiting, iterating, deconstructing, collection
@@ -45,13 +44,16 @@ internal static class ImportResolver
     {
         var references = request.References.Distinct().ToArray();
         var required = request.RequiredImports.Distinct(StringComparer.Ordinal).ToArray();
-        if (request.HasUnknownScope || catalog.HasUnmodeledUsings(request.Project))
+        if (request.HasUnknownScope)
         {
-            return new([.. required.Order(StringComparer.Ordinal)], references.ToImmutableDictionary(reference => reference, reference => reference.Qualified));
+            return new([], references.ToImmutableDictionary(reference => reference, reference => reference.Qualified))
+            {
+                TopLevelUsings = [.. required.Order(StringComparer.Ordinal)]
+            };
         }
 
         var scope = new NameScope(request, catalog);
-        var imported = catalog.GlobalUsings(request.Project).Concat(required).ToHashSet(StringComparer.Ordinal);
+        var imported = new HashSet<string>(StringComparer.Ordinal);
         var unspelled = request.PinnedNames.Concat(_contextualNames).ToHashSet(StringComparer.Ordinal);
         var accessed = request.MemberAccessNames.Concat(_patternMembers).ToHashSet(StringComparer.Ordinal);
         var chosen = references.Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal)
@@ -65,7 +67,10 @@ internal static class ImportResolver
             var used = chosen.Where(@namespace => references.Any(reference => reference.Namespace == @namespace && spellings[reference] != reference.Qualified)).ToList();
             if (used.Count == chosen.Count)
             {
-                return new([.. required.Concat(chosen).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)], spellings);
+                return new([.. chosen.Order(StringComparer.Ordinal)], spellings)
+                {
+                    TopLevelUsings = [.. required.Order(StringComparer.Ordinal)]
+                };
             }
 
             chosen = used;
@@ -76,8 +81,9 @@ internal static class ImportResolver
     {
         if (@namespace.Length == 0 || imported.Contains(@namespace) || scope.Encloses(@namespace) || !scope.Knows(@namespace)) return false;
 
-        // The directive itself is looked up from the global namespace, where a type would hide its first segment.
-        if (scope.TypeNames(string.Empty).Contains(@namespace.Split('.')[0], StringComparer.Ordinal)) return false;
+        // Resolver directives start with global::. Enclosing namespace prefixes cannot hide them,
+        // but retain the conservative check for a type at the global namespace's first segment.
+        if (scope.HidesImport(@namespace.Split('.')[0])) return false;
         if (scope.ExtensionNames(@namespace).Any(accessed.Contains)) return false;
         return !scope.TypeNames(@namespace).Any(name => unspelled.Contains(name) ||
             (name.EndsWith("Attribute", StringComparison.Ordinal) && unspelled.Contains(name[..^"Attribute".Length])));

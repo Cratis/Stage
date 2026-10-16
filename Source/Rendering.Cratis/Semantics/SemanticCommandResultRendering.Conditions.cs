@@ -14,7 +14,7 @@ internal sealed partial class SemanticCommandResultRendering
     {
         var events = ConditionalEvents(wrappedEvent);
         var response = Response();
-        var routing = new SemanticCommandRouteRendering(command, context);
+        var routing = new SemanticCommandRouteRendering(command, context, locals);
         routing.StreamId();
         var resultType = response is null ? events.Type : $"({response.Type}, {events.Type})";
         var routeResult = $"global::OneOf.OneOf<{resultType}, global::Cratis.Arc.Validation.ValidationResult>";
@@ -22,7 +22,7 @@ internal sealed partial class SemanticCommandResultRendering
         if (routing.HasChecks) routing.RenderChecks(builder, routeResult);
         if (HasOccurrence)
         {
-            builder.Line($"var occurred = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);");
+            builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
         }
         RenderSelectedEvents(builder, wrappedEvent);
         var value = response is null ? events.Value : $"({response.Value}, {events.Value})";
@@ -34,24 +34,24 @@ internal sealed partial class SemanticCommandResultRendering
         foreach (var (produced, index) in command.Produces.Select((produced, index) => (produced, index)))
         {
             var condition = produced.When is null ? "true" : SemanticConditionRendering.Render(produced.When, new(command.Properties, string.Empty, context, PropertyValue));
-            builder.Line($"var stageProduces{index} = {condition};");
+            builder.Line($"var {locals.Name($"stageProduces{index}")} = {condition};");
         }
-        builder.Line("var stageEvents = new global::System.Collections.Generic.List<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>();");
+        builder.Line($"var {locals.Name("stageEvents")} = new global::System.Collections.Generic.List<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>();");
         foreach (var (produced, index) in command.Produces.Select((produced, index) => (produced, index)))
         {
-            builder.OpenBlock($"if (stageProduces{index})").Line($"stageEvents.Add({wrappedEvent(produced)});").EndBlock();
+            builder.OpenBlock($"if ({locals.Name($"stageProduces{index}")})").Line($"{locals.Name("stageEvents")}.Add({wrappedEvent(produced)});").EndBlock();
         }
     }
 
     ResultExpression ConditionalEvents(Func<SemanticProducedEvent, string> wrappedEvent) =>
         SemanticGeneratedFreshness.Destinations(command, context).Any()
-            ? new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(new(command, context, wrappedEvent, "stageEvents", SourceGuard)))
-            : new(ConditionalEventsType, "stageEvents");
+            ? new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(new(command, context, wrappedEvent, locals, locals.Name("stageEvents"), SourceGuard)))
+            : new(ConditionalEventsType, locals.Name("stageEvents"));
 
     string SourceGuard(SemanticProperty property)
     {
         var targets = command.Produces.Select((produced, index) => (produced, index))
             .Where(item => SemanticDestinations.Of(command, item.produced) is SemanticResolvedExpression destination && destination.Target == property.Id).ToArray();
-        return targets.Any(item => item.produced.When is null) ? "true" : string.Join(" || ", targets.Select(item => $"stageProduces{item.index}"));
+        return targets.Any(item => item.produced.When is null) ? "true" : string.Join(" || ", targets.Select(item => locals.Name($"stageProduces{item.index}")));
     }
 }

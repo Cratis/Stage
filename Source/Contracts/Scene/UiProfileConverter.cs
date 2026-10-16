@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
+using System.Text.Json.Nodes;
 using Cratis.Scene.Model.SizeClasses;
 using SceneModel = Cratis.Scene.Model.Profiles;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
@@ -40,8 +42,58 @@ public static class UiProfileConverter
         var packages = uiProfile.Packages.ToList();
 
         return uiProfile.Platforms.Select(platform =>
-            new SceneModel.UiProfile(uiProfile.Name, platform, packages, defaultSizeClass, uiProfile.Layout, uiProfile.Theme, SampleData: SampleDataConverter.Selection(uiProfile.SampleData)));
+            new SceneModel.UiProfile(
+                uiProfile.Name,
+                platform,
+                packages,
+                defaultSizeClass,
+                uiProfile.Layout,
+                uiProfile.Theme,
+                SampleData: SampleDataConverter.Selection(uiProfile.SampleData),
+                Root: ConvertRoot(uiProfile.Root),
+                Appearance: ConvertAppearance(uiProfile.Appearance),
+                Defaults: ConvertDefaults(uiProfile.NewScreenTemplate)));
     }
+
+    static SceneModel.RootTemplate? ConvertRoot(ScreenplaySyntax.RootTemplateSyntax? root)
+    {
+        if (root is null)
+        {
+            return null;
+        }
+
+        var options = root.Options.ToDictionary<ScreenplaySyntax.ShellOptionSyntax, string, JsonNode?>(option => option.Name, ConvertOption, StringComparer.Ordinal);
+        return new SceneModel.RootTemplate(
+            TemplateReferenceConverter.Reference(root.Name, root.Blueprint, root.Version),
+            options.Count == 0 ? null : options);
+    }
+
+    // The value keeps the kind it was written with: a flag is a boolean and a number a number, so a shell reads `true`, not "true".
+    static JsonValue? ConvertOption(ScreenplaySyntax.ShellOptionSyntax option) => option.Kind switch
+    {
+        ScreenplaySyntax.ShellOptionValueKind.Flag => JsonValue.Create(string.Equals(option.Value, "true", StringComparison.Ordinal)),
+        ScreenplaySyntax.ShellOptionValueKind.Number => long.TryParse(option.Value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var whole)
+            ? JsonValue.Create(whole)
+            : JsonValue.Create(double.Parse(option.Value, NumberStyles.Float, CultureInfo.InvariantCulture)),
+        _ => JsonValue.Create(option.Value)
+    };
+
+    static SceneModel.ProfileAppearance? ConvertAppearance(ScreenplaySyntax.ProfileAppearanceSyntax? appearance) =>
+        appearance is null
+            ? null
+            : new SceneModel.ProfileAppearance(
+                appearance.ColorScheme is null ? null : ParseColorScheme(appearance.ColorScheme),
+                appearance.Accent);
+
+    static SceneModel.ProfileDefaults? ConvertDefaults(ScreenplaySyntax.NewScreenTemplateSyntax? newScreenTemplate) =>
+        newScreenTemplate is null
+            ? null
+            : new SceneModel.ProfileDefaults(TemplateReferenceConverter.Reference(newScreenTemplate.Name, newScreenTemplate.Blueprint, newScreenTemplate.Version));
+
+    static SceneModel.ColorScheme ParseColorScheme(string name) =>
+        Enum.TryParse<SceneModel.ColorScheme>(name, ignoreCase: true, out var value) && Enum.IsDefined(value)
+            ? value
+            : throw new UnknownColorSchemeName(name);
 
     static TargetSizeClass? ConvertDefaultSizeClass(string? defaultSizeClass) =>
         defaultSizeClass is null ? null : SizeClassNames.ParseTarget(defaultSizeClass);

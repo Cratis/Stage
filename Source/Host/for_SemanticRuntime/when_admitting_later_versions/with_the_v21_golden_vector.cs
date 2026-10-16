@@ -20,8 +20,6 @@ public class with_the_v21_golden_vector : Specification
 
     [Fact] void should_read_the_full_v21_vector() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V21);
     [Fact] void should_not_refuse_the_audited_version() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
-    [Theory]
-    [InlineData("rule")]
-    void should_refuse_each_unimplemented_strategy(string strategy) => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-028:", StringComparison.Ordinal) && entry.Details.Contains($"generate {strategy}", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_not_refuse_the_unused_rule_concept() => _admission.Blocking.ShouldNotContain(entry => entry.Kind == "concept" && entry.Details!.StartsWith("STAGE-ESM-028:", StringComparison.Ordinal));
     [Fact] void should_admit_checksum_validation() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-042:", StringComparison.Ordinal)).ShouldBeFalse();
 }

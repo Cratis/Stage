@@ -224,6 +224,10 @@ public static class SemanticRunAdmission
     public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact) =>
         SemanticRunProjectionAdmission.CheckFact(plan, fact);
 
+    // Live commands cannot consume pinned fixtures, so the Host refuses generation implementation bodies.
+    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticCommand command, IEnumerable<SemanticConcept> concepts) =>
+        CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, concepts).Select(Feature));
+
     // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
     // Keep non-event triggers, opaque bodies and unsupported context mappings refused in both engines.
     static IEnumerable<SemanticVersionFeature> LiveSliceFeatures(SemanticSlice slice) =>

@@ -28,10 +28,10 @@ internal static class SemanticReadModelSpecificationRenderer
         var readModel = context.ReadModels[expected.ReadModel];
         var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
         var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == readModel.Id);
-        var command = context.Commands[specification.When!.Command];
-        var replay = reducer is null
-            ? SemanticProjectionSpecificationEvents.Replay(specification, projection!, command)
-            : SemanticReducerSpecificationEvents.Replay(specification, expected, reducer, command);
+        var command = specification.When is null ? null : context.Commands[specification.When.Command];
+
+        // Without a command there is nothing to replay: the facts are all given, and only a projection builds the model from them.
+        var replay = command is null ? [] : ReplayOf(specification, expected, projection, reducer, command);
         var givenEvents = reducer is null ? specification.GivenEvents : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
@@ -76,7 +76,7 @@ internal static class SemanticReadModelSpecificationRenderer
                 builder.Using(eventNamespace);
             }
 
-            var source = SemanticDestinations.ForSpecification(specification, command, produced);
+            var source = SemanticDestinations.ForSpecification(specification, command!, produced);
             needsCommon |= SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
                 @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
@@ -153,4 +153,14 @@ internal static class SemanticReadModelSpecificationRenderer
     }
 
     static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";
+
+    static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> ReplayOf(
+        SemanticSpecification specification,
+        SemanticSpecificationReadModel expected,
+        SemanticProjection? projection,
+        SemanticReducer? reducer,
+        SemanticCommand command) =>
+        reducer is null
+            ? SemanticProjectionSpecificationEvents.Replay(specification, projection!, command)
+            : SemanticReducerSpecificationEvents.Replay(specification, expected, reducer, command);
 }

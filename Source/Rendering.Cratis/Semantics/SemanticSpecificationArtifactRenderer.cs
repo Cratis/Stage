@@ -22,6 +22,10 @@ internal static class SemanticSpecificationArtifactRenderer
         SemanticApplicationContext context)
     {
         var sources = new[] { specification.Id, context.DeclaringSlice(specification.Id).Slice.Id };
+        if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
+        {
+            return [.. specification.ThenReadModels.Select(expected => SemanticReadModelSpecificationRenderer.Render(facts, expected, context) with { Sources = [.. sources] })];
+        }
         if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
         {
             return [SemanticReactionSpecificationRenderer.Render(specification, context) with { Sources = [.. sources] }];

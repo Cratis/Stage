@@ -25,6 +25,7 @@
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Admission/SemanticSpecificationClock.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Admission/SemanticGenerationShapes.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticMatchAnchors.cs" Link="Commands/SemanticMatchAnchors.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticChecksumRules.cs" Link="Commands/SemanticChecksumRules.cs" />
         <ProjectReference Include="../Stage/Stage.csproj" />
         <PackageReference Include="Cratis.Arc.Testing" />
         <PackageReference Include="Cratis.Arc.Chronicle.Testing" />

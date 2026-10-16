@@ -6,6 +6,7 @@ using Cratis.Scene.Engine.Packages;
 using Cratis.Scene.Engine.Profiles;
 using Cratis.Scene.Engine.Screens;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
+using SceneShell = Cratis.Scene.Engine.Shell;
 using ScenePackagesModel = Cratis.Scene.Model.Packages;
 using SceneProfilesModel = Cratis.Scene.Model.Profiles;
 using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
@@ -77,7 +78,8 @@ public static class RenderPlanner
         // in - that is the order Scene documents a profile's package list should carry once resolved.
         var profile = declared with { Packages = selection.Packages };
         var sizeClass = SizeClassFor(profile);
-        var (layoutName, layout) = SelectLayout(profile, application, catalog);
+        var shell = profile.Root is null ? null : RootShell.Resolve(profile, application, catalog);
+        var (layoutName, layout) = shell is null ? SelectLayout(profile, application, catalog) : ShellLayout(shell);
         var theme = application.Themes.FirstOrDefault(candidate => candidate.Name == profile.Theme);
 
         var componentCatalog = PackageCatalog.ToComponentCatalog(catalog);
@@ -110,12 +112,13 @@ public static class RenderPlanner
             [.. arrangements.Where(arrangement => arrangement.Selection is not null).Select(arrangement => arrangement.Selection!)],
             [
                 .. RenderFindings.ForPackages(profile, selection, catalog, target),
-                .. RenderFindings.ForLayout(profile, application, layoutName, target),
+                .. (shell is null ? RenderFindings.ForLayout(profile, application, layoutName, target) : RenderFindings.ForShell(profile, shell, target)),
                 .. RenderFindings.ForTheme(profile, theme, target),
                 .. RenderFindings.ForComponents(components.Where(component => component.Resolution is null).Select(component => component.Name), target),
                 .. RenderFindings.ForScreenTemplates(screenTemplates, target),
                 .. RenderFindings.ForSizeClass(arrangements.Where(arrangement => arrangement.Selection is null).Select(arrangement => arrangement.Name), sizeClass, target),
-            ]);
+            ],
+            shell);
     }
 
     /// <summary>
@@ -172,6 +175,14 @@ public static class RenderPlanner
     /// <see cref="ScreenplaySceneVisitor"/> resolved every screen against - so the common single-shell
     /// application needs no <c language="csharp">layout</c> on its <c language="csharp">ui profile</c> at all.
     /// </remarks>
+    // The structure of a shell the application declares is known here; a blueprint's is not (only its manifest is), so the
+    // plan names it and leaves the layout empty, exactly as it does for a legacy layout a package provides.
+    static (string? Name, SceneLayouts.Layout? Layout) ShellLayout(SceneShell.EffectiveShell shell) => shell.Source switch
+    {
+        SceneShell.ShellSource.Blueprint => (shell.Name, null),
+        _ => (shell.Name, shell.Layout ?? new SceneLayouts.Layout(shell.Name, [.. shell.Outlets.Select(outlet => new SceneLayouts.Slot(outlet))]))
+    };
+
     static (string? Name, SceneLayouts.Layout? Layout) SelectLayout(
         SceneProfilesModel.UiProfile profile,
         SceneApplication application,

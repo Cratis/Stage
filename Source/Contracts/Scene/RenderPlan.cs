@@ -5,6 +5,7 @@ using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneModelProfiles = Cratis.Scene.Model.Profiles;
 using ScenePackages = Cratis.Scene.Engine.Packages;
 using SceneProfiles = Cratis.Scene.Engine.Profiles;
+using SceneShell = Cratis.Scene.Engine.Shell;
 using SceneScreensEngine = Cratis.Scene.Engine.Screens;
 using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
 
@@ -57,7 +58,8 @@ public record RenderPlan(
     IReadOnlyList<SceneProfiles.ComponentResolution> Components,
     SceneScreensEngine.ScreenTemplateResolution ScreenTemplates,
     IReadOnlyList<ArrangementSelection> Arrangements,
-    IReadOnlyList<RenderFinding> Findings)
+    IReadOnlyList<RenderFinding> Findings,
+    SceneShell.EffectiveShell? Shell = null)
 {
     /// <summary>
     /// Gets a value indicating whether everything this target needs resolved, resolved.

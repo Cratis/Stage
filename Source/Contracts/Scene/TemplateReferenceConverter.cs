@@ -61,7 +61,7 @@ public static class TemplateReferenceConverter
     static TemplateAssignment Assignment(string scope, string owner, ScreenplaySyntax.TemplateAssignmentSyntax assignment) =>
         new(scope, owner, Reference(assignment.Name, assignment.Blueprint, assignment.Version));
 
-    static SceneScreens.TemplateReference Reference(string name, string? blueprint, string? version) =>
+    internal static SceneScreens.TemplateReference Reference(string name, string? blueprint, string? version) =>
         blueprint is null
             ? new(SceneScreens.TemplateReferenceSource.Own, name)
             : new(SceneScreens.TemplateReferenceSource.Blueprint, name, blueprint, version);

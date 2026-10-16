@@ -231,7 +231,10 @@
       "notificationsButton",
       "kanbanBoard",
       "wizardProgress",
-      "formScreenBody"
+      "formScreenBody",
+      "calendarGrid",
+      "timelineGrid",
+      "inboxList"
     ],
     "layouts": [
       "AppShell",
@@ -246,6 +249,13 @@
       "RecordPage",
       "FormScreen",
       "WizardScreen",
+      "CalendarScreen",
+      "TimelineScreen",
+      "InboxScreen",
+      "SettingsScreen",
+      "ProfileScreen",
+      "ReportViewer",
+      "ImportWizard",
       "LoginScreen",
       "NotFoundScreen",
       "ForbiddenScreen",

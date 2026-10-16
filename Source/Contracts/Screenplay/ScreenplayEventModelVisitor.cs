@@ -13,7 +13,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<EventModel>
 {
     /// <summary>
-    /// Refuses described command bodies, atomic reaction batches and protected command reads before a legacy path can discard their behavior.
+    /// Refuses described command bodies, atomic reaction batches, protected command reads and composite read-model keys before a legacy path can discard their behavior.
     /// </summary>
     /// <param name="syntax">The application to inspect, including nested features.</param>
     /// <exception cref="InvalidEventModel">Thrown when the application requires behavior the legacy engines cannot preserve.</exception>
@@ -31,6 +31,15 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
             throw new InvalidEventModel(
                 syntax.Location.Path ?? "<source>",
                 ["STAGE-ESM-044: Application declares command reads protected; Stage does not preserve protected decision reads yet."]);
+        }
+
+        var composite = syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.ReadModels ?? [])
+            .FirstOrDefault(readModel => readModel.Properties.Count(property => property.IsKey) > 1);
+        if (composite is not null)
+        {
+            throw new InvalidEventModel(
+                composite.Location.Path ?? "<source>",
+                [$"STAGE-ESM-048: Read model '{composite.Name}' has several key parts (ESM v27 composite read-model keys); the legacy engines key every read model by one identifier and would merge its instances."]);
         }
 
         foreach (var command in syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Commands))

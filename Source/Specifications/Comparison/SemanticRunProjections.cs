@@ -37,13 +37,20 @@ internal static class SemanticRunProjections
         var output = new List<Projected>();
         foreach (var id in requested)
         {
-            var model = plan.ReadModels[id];
-            var projection = plan.Projections.Values.Single(value => value.ReadModel == id);
-            var method = typeof(SemanticRunProjections).GetMethod(nameof(Define), BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericMethod(types.ForReadModel(model));
-            output.AddRange((IReadOnlyList<Projected>)method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [plan, projection, model, context, types, defaults], null)!);
+            output.AddRange(ForReadModel(plan, id, context, types, defaults));
         }
         return output;
+    }
+
+    internal static IReadOnlyList<Projected> ForReadModel(SemanticExecutionPlan plan, SemanticId id, SemanticRunContext context, SemanticRuntimeTypes types, Defaults defaults)
+    {
+        if (context.Facts.Count == 0) return [];
+        var model = plan.ReadModels[id];
+        var projection = plan.Projections.Values.Single(value => value.ReadModel == id);
+        var method = typeof(SemanticRunProjections).GetMethod(nameof(Define), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(types.ForReadModel(model));
+
+        return (IReadOnlyList<Projected>)method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [plan, projection, model, context, types, defaults], null)!;
     }
 
     static List<Projected> Define<TReadModel>(
@@ -71,6 +78,10 @@ internal static class SemanticRunProjections
                 if (scope.Every is { } every)
                 {
                     DefineEvery(builder, every, model);
+                }
+                foreach (var removal in scope.Removals)
+                {
+                    DefineRemoval(builder, types.For(removal.EventContract));
                 }
             }
             else
@@ -123,6 +134,7 @@ internal static class SemanticRunProjections
     static bool Observes(SemanticProjection projection, SemanticId eventContract) =>
         projection.Scope?.Every is { SubscribesToAllEvents: true } ||
         projection.Scope?.From.Any(from => from.EventContract == eventContract) == true ||
+        projection.Scope?.Removals.Any(removal => removal.EventContract == eventContract) == true ||
         projection.Transitions.Any(transition => transition.EventContract == eventContract);
 
     static void DefineEvery<TReadModel>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionEvery every, SemanticReadModel model)
@@ -181,6 +193,18 @@ internal static class SemanticRunProjections
                 else set.To(new PropertyPath(source));
             }
         });
+#pragma warning restore CHR0002
+    }
+
+    static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType) =>
+        typeof(SemanticRunProjections).GetMethod(nameof(RemoveEvent), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder], null);
+
+    static void RemoveEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder)
+    {
+        // The generic parameter is a runtime-emitted event contract, as in DefineEvent.
+#pragma warning disable CHR0002
+        builder.RemovedWith<TEvent>();
 #pragma warning restore CHR0002
     }
 

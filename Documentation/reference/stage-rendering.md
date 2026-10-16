@@ -54,6 +54,39 @@ these refusals as unsupported capabilities: `/stage/status` reports `unsupported
 HTTP 501 rather than executing an unconditional action. If such a guard reaches the frontend runtime anyway, the
 action is shown disabled with the diagnostic and never executes.
 
+## Generated C# self-reducing read models
+
+Artifact planning can opt a confirmed new application into self-reducing read models.
+Existing callers remain classic; this does not change the running Stage's semantic
+execution or automatically change CLI and Studio output. See
+[the profile and persisted configuration contract](plan-from-sources.md#reducer-rendering-convention).
+
+In self mode, the read-model record in the existing slice file contains one public
+static `Reduce` overload per observed event and a non-public static typed-context
+helper for each verified pure transition. Its queries remain unchanged. Both
+StateView and Automation slices use this layout; no `IReducerFor<T>` companion is emitted.
+Observer source and stream filters are attributes on the model. Tenant translation,
+occurrence time, checked sequence conversion, immutable inputs, deletion, and exact
+event-source identity checks retain the classic semantics. The scaffold pins Chronicle
+19.66.0 and Arc 22.104.0 for this generated surface.
+
+Self-mode admission checks the same record and query signatures used for rendering,
+so model properties and query names participate in pure-body binding. Rendering and
+analysis share the entire file's imports and visible declarations, including sibling
+reducers, projections, and Automation commands. Observable query signatures are
+represented in closed analysis without allowing query or reactive-service calls from
+pure transitions. `Reduce` as a
+model, property, or query name, the replay-hook query names `BeginReplay`, `EndReplay`,
+`BeginReplayPartition`, `EndReplayPartition`, and collisions with generated
+`Transition_<suffix>` members refuse with `STAGE-ESM-019`. Rename the conflicting
+member; Stage never silently switches a self model back to classic.
+Existing purity and typed-context refusals still apply.
+
+For the Chronicle runtime contract, see
+[self-reducing read models](/chronicle/reducers/self-reducing-read-models/) and
+[choosing a read-model style](/chronicle/projections/choosing-a-read-model-style/).
+Migration of existing applications is not available yet.
+
 ## Generated C# query arguments
 
 Query arguments retain their concept types so Arc validates the `by` key and supplied filter
@@ -113,7 +146,7 @@ and to `int` for ESM v1–v7. Older models with authored whole-number literals o
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
 Stage uses Screenplay 4.193.0 and admits exact ESM v1–v21, v23–v25 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. V21's `generate pattern` and `generate random` render Fundamentals factories and execute with reference-compatible fixture shapes; dated patterns take their UTC date from the generation context, and random values preserve the full inclusive Int64 range. `generate rule` remains refused with `STAGE-ESM-028`. `validate checksum luhn`, `mod11` and `mod97` render and execute. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042`. Generated values with any unproven rule require pins in rendered specifications; fully proven rules permit unpinned generation. Failing pins retain `STAGE-ESM-011`, and unpinned specifications with unproven rules retain `STAGE-ESM-038`. The generated backend pins Arc 22.104.0, which rejects generated values failing concept rules of any severity. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
-ESM v22, v26 and mixed version pairs remain refused with `STAGE-ESM-016`. Admitting v25 does not enable protected command reads: `command reads protected`, command `reads`, and read-backed conditions or mappings refuse rendering, specification execution and semantic Host admission with `STAGE-ESM-044`, naming the unsupported decision boundary. No artifacts are emitted. The legacy renderer, Host and structural specification runner also refuse the preamble with `STAGE-ESM-044`; without it, reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`. ESM v24's `contains`, `not contains`, `starts with` and `ends with` rules execute on the Host and specification executor and render as ordinal UTF-16 string comparisons, without regex or a Screenplay dependency in generated apps. Absence passes; an empty operand satisfies contains/starts-with/ends-with and fails not-contains for every present value. In admitted v23 models, all three engines (renderer, Host and specification executor) refuse described command handlers with `STAGE-IMPL-002`, naming the command and RequirementId, and `reaction batches atomic` with `STAGE-ESM-043`. No stubs are emitted yet, even in Stub mode.
+ESM v22, v26 and mixed version pairs remain refused with `STAGE-ESM-016`. The semantic Host and specification executor run protected command reads, read-backed requirements and produced-event mappings. The Cratis renderer still refuses `command reads protected`, command `reads`, and read-backed conditions or mappings with `STAGE-ESM-044`, naming the unsupported decision boundary; no artifacts are emitted. Non-Error requirements on protected commands, including reaction-invoked commands, remain refused before execution with `STAGE-ESM-045` until Screenplay defines their severity semantics. See the [semantic Host](../docker/index.md#opt-in-to-semantic-execution) for its interim outside-append fault boundary. The legacy renderer, Host and structural specification runner also refuse the preamble with `STAGE-ESM-044`; without it, reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`. ESM v24's `contains`, `not contains`, `starts with` and `ends with` rules execute on the Host and specification executor and render as ordinal UTF-16 string comparisons, without regex or a Screenplay dependency in generated apps. Absence passes; an empty operand satisfies contains/starts-with/ends-with and fails not-contains for every present value. In admitted v23 models, all three engines (renderer, Host and specification executor) refuse described command handlers with `STAGE-IMPL-002`, naming the command and RequirementId, and `reaction batches atomic` with `STAGE-ESM-043`. No stubs are emitted yet, even in Stub mode.
 
 For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
 `9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction

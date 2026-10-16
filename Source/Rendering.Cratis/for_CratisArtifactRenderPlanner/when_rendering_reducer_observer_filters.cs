@@ -33,20 +33,22 @@ public class when_rendering_reducer_observer_filters
     internal static Task<LoadedSemanticModel> Load(string filter) => when_rendering_a_pure_reducer.Load(Source(filter));
 
     [Theory]
-    [InlineData("OrdersSource", false)]
-    [InlineData("OrdersSource.Entries", true)]
-    public async Task should_compile_the_stored_source_and_optional_stream_filter(string filter, bool withStream)
+    [InlineData("OrdersSource", false, false)]
+    [InlineData("OrdersSource.Entries", true, false)]
+    [InlineData("OrdersSource", false, true)]
+    [InlineData("OrdersSource.Entries", true, true)]
+    public async Task should_compile_the_stored_source_and_optional_stream_filter(string filter, bool withStream, bool self)
     {
-        var plan = when_rendering_a_pure_reducer.Plan(await Load(filter));
+        var plan = when_rendering_a_pure_reducer.Plan(await Load(filter), self: self);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var files = Files(plan);
-        var reducer = files.Single(file => file.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal));
+        var reducer = files.Single(file => file.RelativePath.EndsWith(self ? "Totals.cs" : "Fold.cs", StringComparison.Ordinal));
         var expected = withStream
             ? "[global::Cratis.Chronicle.EventSources.FromEventSourceAttribute<global::Projects.EventSources.OrdersSourceEventSource>(global::Projects.EventSources.OrdersSourceEventSource.Entries)]"
             : "[global::Cratis.Chronicle.Events.EventSourceTypeAttribute(\"stored-orders\")]";
         Assert.Contains(expected, reducer.Content, StringComparison.Ordinal);
         Assert.Empty(RenderedOutput.Errors(files));
-        var type = RenderedOutput.Load(files).GetType("Projects.Orders.Ordering.Totals.Fold")!;
+        var type = RenderedOutput.Load(files).GetType($"Projects.Orders.Ordering.Totals.{(self ? "Total" : "Fold")}")!;
         if (withStream)
         {
             var attribute = Assert.Single(type.GetCustomAttributes(false), attribute => attribute.GetType().IsGenericType);

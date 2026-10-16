@@ -56,15 +56,15 @@ public class when_comparing_non_error_generated_concept_rules(when_comparing_non
             return Verify();
         }
 
-        const string Source = """
+        static readonly string Source = $$"""
             concept WarningCode : String
               generate nanoid 64 alphabet "ab"
               validate
-                matches "^(?!a{63}b$)[ab]{64}$" severity warning
+                matches "{{invoice_model.UnprovenCodePattern}}" severity warning
             concept InformationCode : String
               generate nanoid 64 alphabet "ab"
               validate
-                matches "^(?!a{63}b$)[ab]{64}$" severity information
+                matches "{{invoice_model.UnprovenCodePattern}}" severity information
             module M
               feature F
                 slice StateChange Warning

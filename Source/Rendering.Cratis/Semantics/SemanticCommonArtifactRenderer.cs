@@ -119,7 +119,7 @@ internal static class SemanticCommonArtifactRenderer
         IsGeneratable(concept, context) ? $", {builder.Type(new("Cratis.Concepts", UsesGenerationContext(concept, context) ? "IGeneratableInContext" : "IGeneratable", 1, ReferenceContext.Type))}<{Identifiers.ToPascalCase(concept.Name)}>" : string.Empty;
 
     static bool UsesGenerationContext(SemanticConcept concept, SemanticApplicationContext context) =>
-        IsGeneratable(concept, context) && context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) && SemanticGenerationRendering.IsTimeOrdered(concept.Generation);
+        IsGeneratable(concept, context) && context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) && SemanticGenerationRendering.UsesContext(concept.Generation);
 
     static void RenderFactory(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context)
     {

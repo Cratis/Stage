@@ -417,8 +417,6 @@ internal static class SemanticVersionFeatures
         {
             var strategy = concept.Generation?.Kind switch
             {
-                "pattern" => "pattern",
-                "random" => "random",
                 "implementation" => "rule",
                 _ => null
             };

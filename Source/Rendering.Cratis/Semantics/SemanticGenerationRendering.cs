@@ -19,12 +19,14 @@ internal static class SemanticGenerationRendering
         string.Equals(generation?.Kind, "ulid", StringComparison.Ordinal) ||
         string.Equals(generation?.Kind, "typeid", StringComparison.Ordinal);
 
+    internal static bool UsesContext(SemanticGeneration? generation) => IsTimeOrdered(generation) || SemanticPatternShape.HasDates(generation);
+
     internal static string Factory(SemanticConcept concept, string? context, CSharpCodeBuilder? builder = null)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
         var value = Strategy(generation, context, builder);
 
-        return concept.Primitive == SemanticPrimitiveType.Uuid ? value : Text(generation, value);
+        return concept.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.WholeNumber ? value : Text(generation, value);
     }
 
     static string Strategy(SemanticGeneration generation, string? context, CSharpCodeBuilder? builder)
@@ -38,6 +40,8 @@ internal static class SemanticGenerationRendering
             "typeid" => $"{generator}.TypeId({Literal(generation.Prefix ?? string.Empty)}, {context})",
             "nanoid" => $"{generator}.NanoId({Number(generation.Size ?? 21)}, {(generation.Alphabet is { } alphabet ? Literal(alphabet) : "null")})",
             "bytes" => $"{generator}.Bytes({Number(generation.Count!.Value)}, {Name(builder, "ValueEncoding")}.{Encoding(generation.Encoding)})",
+            "pattern" => $"{generator}.Pattern({Literal(generation.Pattern!)}{(context is null ? string.Empty : $", {context}")}{(generation.Checksum is null ? string.Empty : $", {Name(builder, "Checksum")}.{SemanticChecksumRules.Algorithm(SemanticValue.Text(generation.Checksum))}")})",
+            "random" => $"{generator}.Integer({generation.Minimum!.Value.ToString(CultureInfo.InvariantCulture)}L, {generation.Maximum!.Value.ToString(CultureInfo.InvariantCulture)}L)",
             _ => throw new InvalidArtifactRenderContract($"Generation strategy '{generation.Kind}' is not admitted.")
         };
     }

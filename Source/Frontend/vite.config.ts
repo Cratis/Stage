@@ -21,5 +21,7 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         setupFiles: ['./src/testSetup.ts'],
+        // Each spec draws a whole application shell and the files run in parallel; a loaded CI runner needs more than the five seconds a test gets by default.
+        testTimeout: 20000,
     },
 });

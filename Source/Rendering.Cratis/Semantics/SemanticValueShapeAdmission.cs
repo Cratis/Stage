@@ -14,28 +14,30 @@ internal static class SemanticValueShapeAdmission
 {
     const string UnresolvedType = "The value has an unresolved type.";
 
-    internal static string? Refusal(SemanticApplicationContext context, SemanticTypeReference type) =>
-        Closure(context, type).Select(member => TypeRefusal(context, member.Type)).FirstOrDefault(refusal => refusal is not null);
+    // Rendering defers future primitive enum values to its existing STAGE-ESM-012 emission diagnostic.
+    // Execution and Host admission keep the default strict check before materializing values.
+    internal static string? Refusal(SemanticApplicationContext context, SemanticTypeReference type, bool deferUnhandledPrimitives = false) =>
+        Closure(context, type).Select(member => TypeRefusal(context, member.Type, deferUnhandledPrimitives)).FirstOrDefault(refusal => refusal is not null);
 
     internal static IEnumerable<(string Path, SemanticTypeReference Type)> Closure(SemanticApplicationContext context, SemanticTypeReference type) =>
         Closure(context, type, string.Empty, []);
 
-    static string? TypeRefusal(SemanticApplicationContext context, SemanticTypeReference type) => type.Kind switch
+    static string? TypeRefusal(SemanticApplicationContext context, SemanticTypeReference type, bool deferUnhandledPrimitives) => type.Kind switch
     {
-        SemanticTypeReferenceKind.Primitive => PrimitiveRefusal(type.Primitive),
+        SemanticTypeReferenceKind.Primitive => PrimitiveRefusal(type.Primitive, deferUnhandledPrimitives),
         SemanticTypeReferenceKind.CompositeType => context.Types.ContainsKey(type.Target) ? null : UnresolvedType,
-        SemanticTypeReferenceKind.Concept => ConceptRefusal(context, type.Target),
+        SemanticTypeReferenceKind.Concept => ConceptRefusal(context, type.Target, deferUnhandledPrimitives),
         _ => UnresolvedType
     };
 
-    static string? PrimitiveRefusal(SemanticPrimitiveType primitive) =>
-        primitive != SemanticPrimitiveType.Unknown && Enum.IsDefined(primitive) ? null : UnresolvedType;
+    static string? PrimitiveRefusal(SemanticPrimitiveType primitive, bool deferUnhandledPrimitives) =>
+        primitive != SemanticPrimitiveType.Unknown && (deferUnhandledPrimitives || Enum.IsDefined(primitive)) ? null : UnresolvedType;
 
-    static string? ConceptRefusal(SemanticApplicationContext context, SemanticId id)
+    static string? ConceptRefusal(SemanticApplicationContext context, SemanticId id, bool deferUnhandledPrimitives)
     {
         if (!context.Concepts.TryGetValue(id, out var concept)) return UnresolvedType;
 
-        return PrimitiveRefusal(concept.Primitive) ?? ConceptRuleRefusal(concept);
+        return PrimitiveRefusal(concept.Primitive, deferUnhandledPrimitives) ?? ConceptRuleRefusal(concept);
     }
 
     static string? ConceptRuleRefusal(SemanticConcept concept) =>

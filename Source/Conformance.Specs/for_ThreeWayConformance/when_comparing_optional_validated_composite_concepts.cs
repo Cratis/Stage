@@ -23,17 +23,30 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
 {
     [Fact] void should_cover_absent_parents_members_valid_invalid_collections_and_recursion() => fixture.Outcomes.Length.ShouldEqual(16);
     [Fact] void should_match_every_executed_path() => ThreeWayOutcomes.Report(fixture, output);
-    [Fact] void should_pin_the_stage_executor_gap_tracked_in_441() => Assert.All(fixture.Outcomes, outcome => Assert.Contains("Reference=Passed, Stage=Unsupported(Command), Rendered=Passed", outcome, StringComparison.Ordinal));
+    [Fact] void should_agree_on_all_composite_inputs() => Assert.All(fixture.Outcomes, outcome => Assert.Contains("Reference=Passed, Stage=Passed, Rendered=Passed", outcome, StringComparison.Ordinal));
+
+    [Fact]
+    void should_admit_every_renderer_admitted_well_formed_composite_command_shape_without_opaque_rules()
+    {
+        var model = optional_validated_composite_concept_cases.Admitted();
+        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("OptionalComposites", "OptionalComposites"));
+        Assert.True(rendered.Success, string.Join(';', rendered.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(16, plan.Specifications.Count);
+        Assert.All(plan.Specifications.Values, specification => Assert.Null(Cratis.Stage.Semantics.SemanticRunAdmission.Check(plan, specification)));
+    }
 
     [Theory]
     [InlineData("RequiredDetails")]
     [InlineData("OptionalDetails")]
-    public void should_refuse_explicit_null_members_that_pass_the_reference(string shape)
+    public async Task should_refuse_rendering_explicit_null_members_that_both_engines_execute(string shape)
     {
         var model = optional_validated_composite_concept_cases.ExplicitNull(shape);
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Values.Single().Id);
         Assert.True(reference.Passed, string.Join(';', reference.Failures));
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([plan.Specifications.Values.Single().Id]), new())).Results);
+        Assert.Equal("Passed", stage.Outcome.ToString());
         var rendered = CratisRendering.Plan(
             model,
             plan,
@@ -62,15 +75,14 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
         Assert.Empty(rendered.Artifacts);
         Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics).Code);
         var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
-        Assert.Equal("Unsupported", stage.Outcome.ToString());
-        Assert.Equal("Command", stage.Unsupported?.Capability.ToString());
+        Assert.Equal("Passed", stage.Outcome.ToString());
     }
 
     public class context : a_three_way_application
     {
         protected override string ApplicationName => "OptionalComposites";
         protected override string ProjectFile => "OptionalComposites.csproj";
-        protected override bool RequireStageExecution => false;
+        protected override bool RequireStageExecution => true;
 
         // Let Verify read failing probe facts from the TRX and mark their individual Rendered outcomes Failed.
         protected override bool ExpectFailedGeneratedTest => true;

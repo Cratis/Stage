@@ -121,7 +121,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var command = when is null ? null : plan.Commands[when.Command];
         var runtimeTypes = _types.GetOrAdd(plan.Revision, static (_, source) => new SemanticRuntimeTypes(source), plan);
         var runtimeType = command is null ? typeof(DynamicCommand) : runtimeTypes.ForCommand(command);
-        var instance = command is null ? null : Materialize(runtimeType, command, when!);
+        var instance = command is null ? null : Materialize(runtimeType, command, when!, plan);
 
         var eventTypes = plan.Events.Keys.Select(runtimeTypes.For).ToArray();
         var defaults = new Defaults(new SemanticClientArtifactsProvider(eventTypes));
@@ -154,7 +154,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             var invoked = plan.Commands[fixture.When!.Command];
             var invokedType = runtimeTypes.ForCommand(invoked);
             var invokedContext = new SemanticRunContext(invokedType, invoked, fixture, options, runtimeTypes, eventScenario.EventLog, plan, context);
-            var invokedInstance = Materialize(invokedType, invoked, fixture.When);
+            var invokedInstance = Materialize(invokedType, invoked, fixture.When, plan);
             var principal = fixture.GivenCaller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.SystemPrincipal(fixture.GivenCaller);
 
             return await ExecuteCommand(new(invokedContext, invokedInstance, slice, specification, plan, principal), cancellationToken, collectRefusalDetails);
@@ -167,13 +167,17 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts);
     }
 
-    static DynamicCommand Materialize(Type runtimeType, SemanticCommand command, SemanticSpecificationCommand when)
+    static DynamicCommand Materialize(Type runtimeType, SemanticCommand command, SemanticSpecificationCommand when, SemanticExecutionPlan plan)
     {
         var instance = (DynamicCommand)Activator.CreateInstance(runtimeType)!;
+
+        // Keep malformed inputs out of JSON binding; preparation rejects them after authorization, before rules.
+        if (SemanticConceptValues.RequestFailure(plan, command, when.Values) is not null) return instance;
+        var context = new SemanticApplicationContext(plan);
         foreach (var value in when.Values)
         {
             var property = command.Properties.Single(property => property.Id == value.TargetProperty);
-            instance.Data[property.Name] = JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value));
+            instance.Data[property.Name] = JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value, property.Type, context));
         }
 
         return instance;
@@ -235,17 +239,17 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     static SemanticInvocationOutcome? PrepareCommand(SemanticCommandRun run, bool collectRefusalDetails)
     {
         var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
-        if (run.IsInvocation && InvocationContractFailure(context, run.Plan) is { } contractFailure) return new(Rejected(slice, expected, contractFailure));
+        if (SemanticConceptValues.RequestFailure(run.Plan, context.Command, context.Specification.When!.Values) is { } contractFailure) return new(Rejected(slice, expected, contractFailure));
         if (collectRefusalDetails)
         {
-            var failures = SemanticRuleEvaluation.Failures(context.Command, context.Specification, run.Plan.Model.Application.Concepts).ToArray();
+            var failures = SemanticRuleEvaluation.Failures(context.Command, context.Specification, run.Plan.Model.Application.Concepts, run.Plan.Model.Application.Types).ToArray();
             if (failures.Length > 0)
             {
                 var errors = failures.Where(failure => failure.Severity == SemanticValidationSeverity.Error).ToArray();
                 return new(Rejected(slice, expected, failures[0].Message), errors.Length == 0 ? null : new("validation", [], string.Join('\n', errors.Select(failure => failure.Message))));
             }
         }
-        if (CommandInputOutcome(context, slice, run.Plan.Model.Application.Concepts, true) is { } inputOutcome) return new(Reframe(inputOutcome, slice, expected));
+        if (CommandInputOutcome(context, slice, true) is { } inputOutcome) return new(Reframe(inputOutcome, slice, expected));
         if (run.IsInvocation && SemanticSpecificationAdmission.Check(run.Plan, context.Specification) is { } blocker) return new(Unsupported(slice, expected, blocker));
         if (NeedsExplicitDestination(context))
         {
@@ -284,33 +288,15 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             ? new(SemanticRunReactions.FactLimit().ToRecord(slice, expected)) : null;
     }
 
-    static string? InvocationContractFailure(SemanticRunContext context, SemanticExecutionPlan plan)
-    {
-        try
-        {
-            foreach (var value in context.Specification.When!.Values)
-            {
-                var property = context.Command.Properties.Single(property => property.Id == value.TargetProperty);
-                SemanticRunReactionExpressions.Validate(plan, value.Value, property.Type, $"command property '{property.Name}'");
-            }
-        }
-        catch (InvalidSemanticContract exception)
-        {
-            return exception.Message;
-        }
-
-        return null;
-    }
-
     static SemanticSpecificationRunRecord Reframe(SemanticSpecificationRunRecord result, SemanticSlice slice, SemanticSpecification expected) =>
         result.Trace?.Rejection is { } rejection
             ? Rejected(slice, expected, new SemanticRejection(rejection, result.Trace.RejectionCode))
             : result with { SpecificationId = expected.Id.ToString(), Name = expected.Name, SliceId = slice.Id.ToString(), SliceKind = slice.Kind.ToString() };
 
-    static SemanticSpecificationRunRecord? CommandInputOutcome(SemanticRunContext context, SemanticSlice slice, IEnumerable<SemanticConcept> concepts, bool allowed)
+    static SemanticSpecificationRunRecord? CommandInputOutcome(SemanticRunContext context, SemanticSlice slice, bool allowed)
     {
         if (!allowed) return null;
-        if (SemanticRuleEvaluation.FirstFailure(context.Command, context.Specification, concepts) is { } failure)
+        if (SemanticRuleEvaluation.FirstFailure(context.Command, context.Specification, context.Plan.Model.Application.Concepts, context.Plan.Model.Application.Types) is { } failure)
         {
             return Rejected(slice, context.Specification, failure);
         }

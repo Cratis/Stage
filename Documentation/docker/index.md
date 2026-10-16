@@ -146,6 +146,7 @@ operands (including property references, `today` and named match patterns such a
 not turn a collection quantifier into a scalar comparison. Dropped rules do not reject a command;
 compilation alone does not mean the default engine enforces all modeled validation. Use semantic
 execution for its admitted rule forms and inspect its admission report for unsupported constructs.
+An unknown rule kind refuses the model.
 
 ## Opt in to semantic execution
 

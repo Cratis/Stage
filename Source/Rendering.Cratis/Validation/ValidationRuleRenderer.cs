@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -30,8 +31,9 @@ public static class ValidationRuleRenderer
     /// a string's <b>length</b>, and FluentValidation has a separate call for each — comparing a string against a
     /// number does not compile.
     /// </param>
-    /// <returns>The call fragment, or <see langword="null"/> when the rule kind is not recognized here.</returns>
-    public static string? RenderCall(ValidationRuleKind kind, string value, bool subjectIsText = false) => kind switch
+    /// <returns>The call fragment.</returns>
+    /// <exception cref="UnsupportedValidationRule">Thrown when an unmapped rule kind escapes admission.</exception>
+    public static string RenderCall(ValidationRuleKind kind, string value, bool subjectIsText = false) => kind switch
     {
         ValidationRuleKind.NotEmpty => ".NotEmpty()",
         ValidationRuleKind.Max => subjectIsText ? $".MaximumLength({value})" : $".LessThanOrEqualTo({value})",
@@ -43,7 +45,7 @@ public static class ValidationRuleRenderer
         ValidationRuleKind.Equal => $".Equal({value})",
         ValidationRuleKind.Length => $".Length({value})",
         ValidationRuleKind.Matches => RenderMatch(value),
-        _ => null,
+        _ => throw new UnsupportedValidationRule(kind),
     };
 
     /// <summary>
@@ -53,6 +55,22 @@ public static class ValidationRuleRenderer
     /// <returns>The <c language="csharp">.WithMessage(...)</c> fragment, or an empty string when the rule has no message.</returns>
     public static string RenderMessage(ValidationRuleSyntax rule) =>
         rule.Message is null ? string.Empty : $".WithMessage({CSharpCodeBuilder.StringLiteral(rule.Message)})";
+
+    internal static void EnsureSupported(ValidationRuleSyntax rule)
+    {
+        if (rule.Rule == ValidationRuleKind.Rule && rule.Code is not null)
+        {
+            return;
+        }
+        if (rule.Rule is ValidationRuleKind.NotEmpty or ValidationRuleKind.Max or ValidationRuleKind.Min or
+            ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or ValidationRuleKind.LessThan or
+            ValidationRuleKind.LessThanOrEqual or ValidationRuleKind.Equal or ValidationRuleKind.Length or ValidationRuleKind.Matches)
+        {
+            return;
+        }
+
+        throw new UnsupportedValidationRule(rule);
+    }
 
     static string RenderMatch(string value)
     {

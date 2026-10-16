@@ -25,7 +25,10 @@ public static partial class Program
     /// <param name="output">The standard output stream.</param>
     /// <param name="error">The standard error stream.</param>
     /// <returns>Two for missing arguments, one for invalid model input, or zero for a completed run.</returns>
-    public static async Task<int> Run(string[] args, TextWriter output, TextWriter error)
+    public static Task<int> Run(string[] args, TextWriter output, TextWriter error) =>
+        Run(args, output, error, EventModelLoader.LoadFromPathAsync);
+
+    internal static async Task<int> Run(string[] args, TextWriter output, TextWriter error, Func<string, Task<EventModel>> load)
     {
         // Preserve the command-line application's deterministic output culture.
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -59,14 +62,14 @@ public static partial class Program
         EventModel model;
         try
         {
-            model = await EventModelLoader.LoadFromPathAsync(arguments.ModelPath);
+            model = await load(arguments.ModelPath);
         }
         catch (InvalidEventModel exception)
         {
             await error.WriteLineAsync(exception.Message);
             return 1;
         }
-        catch (Exception exception) when (exception is UnsupportedEventSourceRoutes or UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters or UnsupportedGenerationStrategy)
+        catch (Exception exception) when (exception is UnsupportedEventSourceRoutes or UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters or UnsupportedGenerationStrategy or UnsupportedValidationRule)
         {
             await error.WriteLineAsync(exception.Message);
             return 1;

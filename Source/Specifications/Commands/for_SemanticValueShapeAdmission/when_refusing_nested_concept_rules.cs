@@ -13,6 +13,7 @@ public class when_refusing_nested_concept_rules : given.a_value_shape
     [InlineData(SemanticValidationRuleKind.RulePredicate)]
     [InlineData(SemanticValidationRuleKind.CodeValidation)]
     [InlineData(SemanticValidationRuleKind.Unknown)]
+    [InlineData((SemanticValidationRuleKind)999)]
     public void should_refuse_opaque_or_unevaluable_nested_rules(SemanticValidationRuleKind kind)
     {
         var concepts = (Dictionary<SemanticId, SemanticConcept>)_context.Concepts;

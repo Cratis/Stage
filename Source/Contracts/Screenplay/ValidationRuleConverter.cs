@@ -21,6 +21,7 @@ public static class ValidationRuleConverter
     /// </summary>
     /// <param name="validations">The validation blocks declared on the command.</param>
     /// <returns>The rules grouped by property.</returns>
+    /// <exception cref="UnsupportedValidationRule">Thrown when a rule kind has no audited conversion or documented omission.</exception>
     public static IReadOnlyList<CommandPropertyRules> Convert(IEnumerable<ValidateSyntax> validations)
     {
         var groups = new List<(string Property, List<RuleDefinition> Rules)>();
@@ -71,7 +72,15 @@ public static class ValidationRuleConverter
 
             // A scalar comparison cannot represent "all", even when the element path is known.
             // Drop quantifiers, equality, checksums and named rules rather than partially enforcing them.
-            _ => null
+            ValidationRuleKind.AllGreaterThan or ValidationRuleKind.AllGreaterThanOrEqual or
+            ValidationRuleKind.Equal or ValidationRuleKind.NotEqual or ValidationRuleKind.Checksum or
+            ValidationRuleKind.Rule => null,
+
+            // Known scalar rules still drop operands that cannot be represented as fixed values.
+            ValidationRuleKind.Max or ValidationRuleKind.Min or ValidationRuleKind.Length or
+            ValidationRuleKind.Matches or ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or
+            ValidationRuleKind.LessThan or ValidationRuleKind.LessThanOrEqual => null,
+            _ => throw new UnsupportedValidationRule(rule)
         };
 
     static int? IntOperand(ValidationRuleSyntax rule) =>

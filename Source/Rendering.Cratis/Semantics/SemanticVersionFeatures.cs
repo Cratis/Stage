@@ -426,10 +426,6 @@ internal static class SemanticVersionFeatures
             {
                 yield return new(Generated, StageExecutionCapability.IdentityAllocation, concept.Id, "concept", $"Concept '{concept.Name}' uses 'generate {strategy}', which Stage does not support yet.");
             }
-            if (concept.Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.Checksum))
-            {
-                yield return new(UnsupportedValidation, StageExecutionCapability.Command, concept.Id, "concept", $"Concept '{concept.Name}' uses 'validate checksum', which Stage does not support yet.");
-            }
         }
     }
 

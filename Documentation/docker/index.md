@@ -167,8 +167,14 @@ Clock, application, startup and shutdown triggers and opaque reaction bodies sti
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.193.0 and admits exact ESM v1–v21 and v23–v25 version pairs; unaudited
-language/semantic versions, including v22 and v26, refuse the whole model with `STAGE-ESM-016` before registration or execution.
+The semantic engine uses Screenplay 4.199.0 and admits exact ESM v1–v21 and v23–v26 version pairs; unaudited
+language/semantic versions, including v22 and v27, refuse the whole model with `STAGE-ESM-016` before registration or execution.
+At v26 the semantic engine executes Date/DateTime ordering and instant equality in command requirements,
+conditional productions and validation rules, including concept-backed properties. Participating DateTime inputs
+must carry an explicit offset or `Z`; validation rejects missing offsets after authorization and before other
+input validation, including reaction invocations. Date compares calendar days; DateTime compares UTC ticks.
+Specification expectations remain ordinal. Rendering and legacy engines refuse these comparisons with
+`STAGE-ESM-046`, naming the property, rather than emitting a different comparison.
 The semantic engine executes `command reads protected`: after authorization and property/concept rules, each
 required view must exist at its declared key. Absence rejects validation with `Current '<key>' does not exist.`
 (using the view's name), before requirements or generation. All requirements then run, including read-backed

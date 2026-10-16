@@ -117,8 +117,10 @@ public static class RenderPlanner
                 .. RenderFindings.ForComponents(components.Where(component => component.Resolution is null).Select(component => component.Name), target),
                 .. RenderFindings.ForScreenTemplates(screenTemplates, target),
                 .. RenderFindings.ForSizeClass(arrangements.Where(arrangement => arrangement.Selection is null).Select(arrangement => arrangement.Name), sizeClass, target),
-            ],
-            shell);
+            ])
+        {
+            Shell = shell
+        };
     }
 
     /// <summary>

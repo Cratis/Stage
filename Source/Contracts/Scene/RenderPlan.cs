@@ -58,9 +58,14 @@ public record RenderPlan(
     IReadOnlyList<SceneProfiles.ComponentResolution> Components,
     SceneScreensEngine.ScreenTemplateResolution ScreenTemplates,
     IReadOnlyList<ArrangementSelection> Arrangements,
-    IReadOnlyList<RenderFinding> Findings,
-    SceneShell.EffectiveShell? Shell = null)
+    IReadOnlyList<RenderFinding> Findings)
 {
+    /// <summary>
+    /// Gets the shell the profile's root template resolves to, or <see langword="null"/> when the profile names none. It is a member beside the constructor
+    /// parameters, not one of them, so the plan stays binary compatible with the release before it.
+    /// </summary>
+    public SceneShell.EffectiveShell? Shell { get; init; }
+
     /// <summary>
     /// Gets a value indicating whether everything this target needs resolved, resolved.
     /// </summary>

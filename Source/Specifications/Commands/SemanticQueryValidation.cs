@@ -16,30 +16,6 @@ internal static class SemanticQueryValidation
         var supplied = query.Filters.Where(filter => request.Filters.Any(value => value.Filter == filter.Id))
             .Select(filter => (filter.Type, request.Filters.Single(value => value.Filter == filter.Id).Value));
 
-        return arguments.Concat(supplied).SelectMany(argument => Validate(argument.Type, argument.Value, concepts, composites));
-    }
-
-    static IEnumerable<SemanticValidationFailure> Validate(
-        SemanticTypeReference type,
-        SemanticValue value,
-        IReadOnlyDictionary<SemanticId, SemanticConcept> concepts,
-        IReadOnlyDictionary<SemanticId, SemanticCompositeType> composites)
-    {
-        if (type.IsCollection)
-        {
-            return value is SemanticArrayValue array
-                ? array.Values.SelectMany(element => Validate(type with { IsCollection = false, IsOptional = false }, element, concepts, composites))
-                : [];
-        }
-
-        return type.Kind switch
-        {
-            SemanticTypeReferenceKind.Concept => concepts[type.Target].Validations
-                .Where(rule => !SemanticRuleEvaluation.Satisfies(rule, value))
-                .Select(rule => new SemanticValidationFailure(rule.Message ?? SemanticRuleEvaluation.Message(rule, value, "A required concept value is empty."), rule.Severity)),
-            SemanticTypeReferenceKind.CompositeType when value is SemanticCompositeValue composite => composite.Properties
-                .SelectMany(property => Validate(composites[type.Target].Properties.Single(member => member.Id == property.TargetProperty).Type, property.Value, concepts, composites)),
-            _ => []
-        };
+        return arguments.Concat(supplied).SelectMany(argument => SemanticConceptValues.Validate(argument.Type, argument.Value, concepts, composites));
     }
 }

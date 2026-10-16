@@ -8,6 +8,7 @@ using Cratis.Chronicle.Events;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Types;
 
 namespace Cratis.Stage.Specifications.Commands;
@@ -47,6 +48,22 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         SemanticBooleanValue boolean => boolean.Value ? "true" : "false",
         _ => JsonSerializer.Serialize(value)
     };
+
+    internal static string Canonical(SemanticValue value, SemanticTypeReference type, SemanticApplicationContext context)
+    {
+        if (SemanticValueShapeAdmission.Refusal(context, type) is not null) throw new UnsupportedSemanticMapping();
+        if (value is SemanticNullValue) return "null";
+        if (type.IsCollection && value is SemanticArrayValue array)
+        {
+            return CanonicalArray(array, type, context);
+        }
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
+        {
+            return CanonicalComposite(composite, type, context);
+        }
+
+        return Canonical(value);
+    }
 
     internal static bool Empty(SemanticValue value) => SemanticRuleValues.Empty(value);
 
@@ -119,6 +136,16 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
             ? SemanticValue.Text(Occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture))
             : Evaluate(mapping.Source, inputs))).ToImmutableArray();
         return (new(produced.EventContract, values) { EventSource = identity, Route = _commandRoute }, destination);
+    }
+
+    static string CanonicalArray(SemanticArrayValue array, SemanticTypeReference type, SemanticApplicationContext context) =>
+        $"[{string.Join(',', array.Values.Select(element => Canonical(element, type with { IsCollection = false, IsOptional = false }, context)))}]";
+
+    static string CanonicalComposite(SemanticCompositeValue composite, SemanticTypeReference type, SemanticApplicationContext context)
+    {
+        var properties = context.Types[type.Target].Properties.ToDictionary(property => property.Id);
+
+        return $"{{{string.Join(',', composite.Properties.Select(member => $"{JsonSerializer.Serialize(properties[member.TargetProperty].Name)}:{Canonical(member.Value, properties[member.TargetProperty].Type, context)}"))}}}";
     }
 
     static string StorageKey(SemanticValue destination) => destination switch

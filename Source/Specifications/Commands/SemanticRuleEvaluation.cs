@@ -10,10 +10,10 @@ namespace Cratis.Stage.Specifications.Commands;
 
 internal static class SemanticRuleEvaluation
 {
-    internal static string? FirstFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
-        => Failures(command, specification, concepts).FirstOrDefault()?.Message;
+    internal static string? FirstFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null)
+        => Failures(command, specification, concepts, composites).FirstOrDefault()?.Message;
 
-    internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts)
+    internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null)
     {
         var values = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
         foreach (var rule in command.Validations)
@@ -24,16 +24,9 @@ internal static class SemanticRuleEvaluation
             }
         }
 
-        var byId = concepts.ToDictionary(concept => concept.Id);
-        foreach (var property in command.Properties.Where(IsInputConcept))
+        foreach (var failure in ConceptFailures(command, values, concepts, composites))
         {
-            foreach (var rule in byId[property.Type.Target].Validations)
-            {
-                if (!Satisfies(rule, values[property.Id]))
-                {
-                    yield return new(rule.Message ?? Message(rule, values[property.Id], "A required concept value is empty."), rule.Severity);
-                }
-            }
+            yield return failure;
         }
 
         foreach (var requirement in command.Requirements)
@@ -76,7 +69,14 @@ internal static class SemanticRuleEvaluation
         _ => throw new UnsupportedSemanticMapping()
     };
 
-    static bool IsInputConcept(SemanticProperty property) => !property.IsGenerated && property.Type.Kind == SemanticTypeReferenceKind.Concept;
+    static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticCommand command, Dictionary<SemanticId, SemanticValue> values, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites)
+    {
+        var byId = concepts.ToDictionary(concept => concept.Id);
+        var types = (composites ?? []).ToDictionary(composite => composite.Id);
+
+        return command.Properties.Where(property => !property.IsGenerated)
+            .SelectMany(property => SemanticConceptValues.Validate(property.Type, values[property.Id], byId, types));
+    }
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values)
     {

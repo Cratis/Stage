@@ -46,5 +46,6 @@ public class with_an_offsetless_datetime_invocation : a_reaction_runtime
     [Fact] void should_reject_the_invoked_input() => _result.ShouldBeOfExactType<SemanticRejected>();
     [Fact] void should_preserve_the_validation_message() => ((SemanticRejected)_result).Details.ShouldEqual("DateTime command property 'at' requires an explicit offset or Z.");
     [Fact] void should_report_validation_rather_than_contract() => ((SemanticRejected)_result).Category.ShouldEqual(SemanticRejectionCategory.Validation);
-    [Fact] void should_keep_only_the_initiating_fact() => FactNames(_result.World.Facts).ShouldContainOnly(["Started"]);
+    [Fact] void should_return_the_original_world() => _result.World.Facts.ShouldBeEmpty();
+    [Fact] void should_append_nothing() => _batches.ShouldBeEmpty();
 }

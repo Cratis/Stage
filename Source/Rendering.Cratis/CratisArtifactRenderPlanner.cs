@@ -130,6 +130,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace)));
         }
 
+        if (GeneratedTypeNames.UsesProtectedReads(slices.SelectMany(located => located.Slice.Commands)))
+        {
+            artifacts.Add(Artifact(SemanticProtectedReadAdmissionRenderer.Render(context, slices.SelectMany(located => located.Slice.Commands))));
+        }
+
         if (GeneratedTypeNames.UsesStreamIds(slices.Select(slice => slice.Slice)))
         {
             artifacts.Add(Artifact(StreamIdsRendering.Render(context.RootNamespace)));

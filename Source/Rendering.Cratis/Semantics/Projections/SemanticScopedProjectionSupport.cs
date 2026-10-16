@@ -81,6 +81,12 @@ internal static class SemanticScopedProjectionSupport
             ((mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
              EventSourceMappingSupported(mapping, targets, context, identity)));
 
+    // The one instance a root block always addresses: Chronicle's UsingConstantKey names it with text, which its expression resolver
+    // reads unquoted, so only the characters a fluent text literal can carry are admitted.
+    internal static bool ConstantKeySupported(SemanticProjectionKey key) =>
+        key is SemanticProjectionValueKey { Value: SemanticProjectionLiteral { Value: SemanticTextValue text } } &&
+        text.Value.Length > 0 && FluentTextLiteral().IsMatch(text.Value);
+
     static bool KeySupported(SemanticProjectionKey key, SemanticEventContract @event, SemanticApplicationContext context) =>
         key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } ||
         (key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty property } && PathSupported(property.Path, @event.Properties, context));
@@ -109,9 +115,10 @@ internal static class SemanticScopedProjectionSupport
             return false;
         }
 
+        // A running whole-number total that may be absent has no zero to start from: only a required count or sum accumulates from nothing.
         if (mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract or
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement &&
-            UnderlyingPrimitive(target.Type, context) == SemanticPrimitiveType.WholeNumber)
+            target.Type.IsOptional && UnderlyingPrimitive(target.Type, context) == SemanticPrimitiveType.WholeNumber)
         {
             return false;
         }
@@ -190,6 +197,7 @@ internal static class SemanticScopedProjectionSupport
         {
             SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } => mapping.Source is SemanticProjectionEventSourceIdentity,
             SemanticProjectionValueKey { Value: SemanticProjectionEventProperty keyProperty } => mapping.Source is SemanticProjectionEventProperty source && source.Path.SequenceEqual(keyProperty.Path),
+            SemanticProjectionValueKey { Value: SemanticProjectionLiteral keyLiteral } => mapping.Source is SemanticProjectionLiteral source && Equals(source.Value, keyLiteral.Value),
             _ => false
         };
 
@@ -202,7 +210,9 @@ internal static class SemanticScopedProjectionSupport
         SemanticApplicationContext context,
         SemanticId? identity)
     {
-        var paths = mappings.Where(mapping => mapping.Operation == SemanticProjectionOperation.Set)
+        // A running total starts at zero where nothing was set: the first fact that touches it is what establishes it.
+        var paths = mappings.Where(mapping => mapping.Operation is SemanticProjectionOperation.Set or SemanticProjectionOperation.Add or
+                SemanticProjectionOperation.Subtract or SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement)
             .Select(mapping => mapping.Target.ToArray()).ToArray();
         return Required(properties, context, [], paths, identity);
     }
@@ -499,7 +509,7 @@ internal static class SemanticScopedProjectionSupport
 
         bool FromSupported(SemanticProjectionFrom from) =>
             context.Events.TryGetValue(from.EventContract, out var @event) &&
-            KeySupported(from.Key, @event, context) &&
+            (KeySupported(from.Key, @event, context) || (IsRoot && ConstantKeySupported(from.Key))) &&
             !ParentKeyUnsupported(from.ParentKey, @event) &&
             MappingsSupported(
                 from.Mappings,

@@ -31,13 +31,16 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
 
-        // Only a screen template fills a route. A dialog template opens from a toolbar button, and a reference the package does not
-        // ship is reported, not asserted: the sample names it, the package does not provide it.
+        // Only a screen template fills a route. A dialog template opens from a toolbar button. A reference to a template the package does
+        // not ship is a defect, never a note: the sample names a template the package does not provide, and rendering it would show a
+        // screen with no template (Cratis/Stage#457).
         const notScreens = screens.filter(({ template }) => !manifest.screenTemplates.includes(template));
         for (const { screen, template } of notScreens) {
-            record(`live.blueprint.${name}.${screen}`, 'noted', manifest.dialogTemplates.includes(template)
-                ? `${template} is a dialog template, opened from a button rather than routed to`
-                : `${template} is not shipped by ${manifest.name} ${manifest.version}`);
+            if (manifest.dialogTemplates.includes(template)) {
+                record(`live.blueprint.${name}.${screen}`, 'noted', `${template} is a dialog template, opened from a button rather than routed to`);
+            } else {
+                block(`live.blueprint.${name}.${screen}`, `${template} is not shipped by ${manifest.name} ${manifest.version}`);
+            }
         }
 
         for (const { screen, template } of screens.filter(candidate => !notScreens.includes(candidate))) {

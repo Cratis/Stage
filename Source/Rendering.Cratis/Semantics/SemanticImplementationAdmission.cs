@@ -89,8 +89,11 @@ internal static class SemanticImplementationAdmission
 
         if (requirement is { Role: SemanticImplementationRole.CommandHandler, AttachmentResolution: SemanticAttachmentResolution.Pending })
         {
-            diagnostics.Add(new(SemanticVersionFeatures.PendingCommandHandler, ArtifactRenderDiagnosticSeverity.Error,
-                $"Pending command handler requirement '{requirementId}' is not implemented by Stage yet; no body can be verified.", owner));
+            diagnostics.Add(new(
+                SemanticVersionFeatures.PendingCommandHandler,
+                ArtifactRenderDiagnosticSeverity.Error,
+                $"Pending command handler requirement '{requirementId}' is not implemented by Stage yet; no body can be verified.",
+                owner));
             return false;
         }
 

@@ -98,6 +98,11 @@ internal static class SemanticVersionFeatures
     internal const string UnsupportedValidation = "STAGE-ESM-042";
 
     /// <summary>
+    /// The code for atomic reaction batches, whose production boundary no Stage engine preserves yet.
+    /// </summary>
+    internal const string AtomicReactionBatches = "STAGE-ESM-043";
+
+    /// <summary>
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
@@ -142,7 +147,7 @@ internal static class SemanticVersionFeatures
     {
         if (application.ReactionProductionMode is { } mode)
         {
-            yield return new(Automation, StageExecutionCapability.Reaction, application.Id, "application", $"Application '{application.Name}' declares reaction batches {mode.ToString().ToLowerInvariant()} (ESM v22); Stage does not preserve that production boundary yet (Cratis/Stage#422).");
+            yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, application.Id, "application", $"Application '{application.Name}' declares reaction batches {mode.ToString().ToLowerInvariant()} (ESM v22); Stage does not preserve that production boundary yet (Cratis/Stage#422).");
         }
     }
 

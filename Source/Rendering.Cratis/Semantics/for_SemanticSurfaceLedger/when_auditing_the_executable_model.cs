@@ -117,7 +117,7 @@ public class when_auditing_the_executable_model : Specification
     [Theory]
     [InlineData("SemanticApplication.ReactionProductionMode")]
     [InlineData("SemanticReactionProductionMode.Atomic")]
-    public void should_keep_atomic_reaction_batches_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+    public void should_keep_atomic_reaction_batches_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-043"));
 
     static bool IsDiagnosticCode(string code) =>
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||
@@ -143,6 +143,12 @@ public class when_auditing_the_executable_model : Specification
             yield return $"{nameof(SemanticAttachmentResolution)}.{member}";
         }
         yield return "SemanticExecutionCapability.ImplementationBody";
+
+        // The application exposes this enum through Nullable<T>, outside the ordinary ESM traversal.
+        foreach (var member in Enum.GetNames<SemanticReactionProductionMode>())
+        {
+            yield return $"{nameof(SemanticReactionProductionMode)}.{member}";
+        }
 
         var pending = new Queue<Type>([typeof(ExecutableSemanticModel), typeof(SemanticApplication)]);
         var visited = new HashSet<Type>();

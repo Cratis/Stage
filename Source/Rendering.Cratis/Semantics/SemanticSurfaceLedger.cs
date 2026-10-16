@@ -89,8 +89,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay."), "IsValid");
         Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
-        Add(entries, "SemanticApplication", rejected(SemanticVersionFeatures.Automation), "ReactionProductionMode");
-        Add(entries, "SemanticReactionProductionMode", rejected(SemanticVersionFeatures.Automation), "Atomic");
+        Add(entries, "SemanticApplication", rejected(SemanticVersionFeatures.AtomicReactionBatches), "ReactionProductionMode");
+        Add(entries, "SemanticReactionProductionMode", rejected(SemanticVersionFeatures.AtomicReactionBatches), "Atomic");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
         Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications Reducers Reactions");

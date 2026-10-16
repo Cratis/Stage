@@ -228,6 +228,8 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 
 ## Limits and diagnostics
 
+Commands with generated properties can validate and require request values. Requirements run before generation: an unmet requirement rejects the request without drawing a generated value or appending events. Rules on generated concepts are checked during generation; pin those values in specifications when their rules are unproven. Command rules and requirements cannot read a generated property because it does not exist during request validation; Screenplay rejects those reads, and Stage refuses hand-built models containing them with `STAGE-ESM-038`.
+
 | Diagnostic | Refused shape |
 | --- | --- |
 | `PLAY0268` (Screenplay) | Compliance markers on a generated concept |
@@ -236,7 +238,7 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
-| `STAGE-ESM-038` | Generated values or responses combined with command routing; generated-property rules or requirements, occurrence or conditional Handle local-name collisions; unsupported response sources, composite or collection responses; response/factory name collisions |
+| `STAGE-ESM-038` | Generated values or responses combined with command routing; command rules or requirements that read a generated property, occurrence or conditional Handle local-name collisions; unsupported response sources, composite or collection responses; response/factory name collisions |
 | `STAGE-ESM-038` | Unpinned generation on a concept with any unproven rule, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 

@@ -22,6 +22,9 @@ public class with_generated_values_and_responses : Specification
               command RegisterProject
                 projectId ProjectId generated identifier
                 name String
+                validate
+                  name not empty
+                  require name != ""
                 produces event ProjectRegistered
                   name String = name
                 returns projectId
@@ -38,5 +41,5 @@ public class with_generated_values_and_responses : Specification
     void Because() => _admission = new(_plan);
 
     [Fact] void should_compile_an_esm_v7_model() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V7);
-    [Fact] void should_admit_generated_values_and_responses() => _admission.Blocking.ShouldBeEmpty();
+    [Fact] void should_admit_generated_values_and_responses_with_request_rules_and_requirements() => _admission.Blocking.ShouldBeEmpty();
 }

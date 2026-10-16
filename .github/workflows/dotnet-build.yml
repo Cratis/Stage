@@ -435,7 +435,7 @@ jobs:
 
       - name: Run the browser scenarios against the generated application
         env:
-          STAGE_GENERATED_REACT_CHRONICLE_IMAGE: cratis/chronicle:19.66.0-development
+          STAGE_GENERATED_REACT_CHRONICLE_IMAGE: cratis/chronicle:19.71.0-development
         run: Verification/generated-react-browser/run.sh "${{ runner.temp }}/generated-react" "$PWD/TestResults/generated-react/browser-result.json"
 
       - name: Upload build and browser results

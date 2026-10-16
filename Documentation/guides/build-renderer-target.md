@@ -389,7 +389,7 @@ Stage builds against Screenplay 4.193.0 and admits exact ESM v1 through v21, v23
 
 | Construct | Version | Diagnostic |
 |---|---|---|
-| Protected command reads (`command reads protected`, command `reads`, read-backed conditions and mappings) | v25 | `STAGE-ESM-044`: renderer, semantic Host and specification executor refuse the decision boundary before producing artifacts or executing specifications. Legacy engines refuse the preamble with the same code; without it, binding retains `PLAY0271` and `PLAY0786`. |
+| Protected command reads (`command reads protected`, command `reads`, read-backed conditions and mappings) | v25 | `STAGE-ESM-044`: the renderer refuses the decision boundary before producing artifacts. The semantic Host and specification executor execute required presence, read-backed requirements and event mappings; non-Error requirements on protected commands remain refused with this code. Legacy engines refuse the preamble with the same code; without it, binding retains `PLAY0271` and `PLAY0786`. |
 | `reaction batches atomic` carried in a v23 model | v22+ | `STAGE-ESM-043`: Stage does not preserve the atomic production boundary yet |
 | Ordinal text rules (`contains`, `not contains`, `starts with`, `ends with`) | v24 | Rendered and executed with ordinal UTF-16 comparisons; absence passes, and empty operands follow .NET ordinal string semantics. The default EventModel engine drops these rules. |
 | Described command handlers (`handler implementation` without a body) | v23 | `STAGE-IMPL-002`, naming the command and RequirementId; the renderer, Host and specification executor refuse before rendering or execution, including Stub mode |

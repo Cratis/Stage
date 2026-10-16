@@ -19,7 +19,7 @@ public class with_protected_command_reads : Specification
         _admission = new(SemanticExecutionPlan.Compile(model, []).Plan!);
     }
 
-    [Fact] void should_refuse_the_application_boundary() => _admission.Blocking.ShouldContain(entry => entry.Kind == "application" && entry.Details!.StartsWith("STAGE-ESM-044:", StringComparison.Ordinal));
-    [Fact] void should_refuse_read_commands() => _admission.Blocking.ShouldContain(entry => entry.Kind == "command" && entry.Details!.StartsWith("STAGE-ESM-044:", StringComparison.Ordinal));
+    [Fact] void should_admit_the_application_boundary() => _admission.Blocking.ShouldBeEmpty();
+    [Fact] void should_admit_every_protected_read_command() => _admission.Entries.ShouldNotContain(entry => entry.Kind == "command" && entry.Status != "supported");
     [Fact] void should_admit_the_version() => _admission.Blocking.ShouldNotContain(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
 }

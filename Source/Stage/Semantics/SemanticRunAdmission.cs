@@ -40,6 +40,7 @@ public static class SemanticRunAdmission
         var events = slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Id);
 
         return SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
+            .Except(SemanticVersionFeatures.ProtectedReadsInApplication(application))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
             .Distinct().Select(Feature);
     }
@@ -50,7 +51,8 @@ public static class SemanticRunAdmission
     /// <param name="command">The command.</param>
     /// <returns>The precise capability refusals.</returns>
     public static IEnumerable<SemanticAdmissionFeature> CommandFeatures(SemanticCommand command) =>
-        SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)).Select(Feature);
+        SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command))
+            .Except(SemanticVersionFeatures.ProtectedReadsInCommand(command)).Select(Feature);
 
     /// <summary>
     /// Finds later-version assertions in a specification.
@@ -194,7 +196,7 @@ public static class SemanticRunAdmission
             return Block(StageExecutionCapability.Command, command.Id, "A command validation rule is not admitted.");
         }
 
-        if (command.Produces.Any(produced => produced.Condition is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }) &&
+        if (command.Produces.Any(produced => produced.Condition is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticReadPathExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }) &&
                 !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } && SemanticSpecificationClock.TryGet(specification, out _)))))
         {
             return Block(StageExecutionCapability.Command, command.Id, "Expression conditions or non-command mappings are not admitted.");
@@ -239,9 +241,11 @@ public static class SemanticRunAdmission
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
         var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
+            .Except(SemanticVersionFeatures.ProtectedReadsInApplication(plan.Model.Application))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
             .Concat(RunSpecificationFeatures(specification))
-            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))
+            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command))
+                .Except(SemanticVersionFeatures.ProtectedReadsInCommand(command)))
             .FirstOrDefault();
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }

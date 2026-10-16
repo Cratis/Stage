@@ -103,7 +103,7 @@ internal static class SemanticVersionFeatures
     internal const string AtomicReactionBatches = "STAGE-ESM-043";
 
     /// <summary>
-    /// The code for protected command reads, which no Stage engine preserves yet.
+    /// The code for protected command reads, which the renderer does not preserve yet.
     /// </summary>
     internal const string ProtectedCommandReads = "STAGE-ESM-044";
 
@@ -162,7 +162,7 @@ internal static class SemanticVersionFeatures
     }
 
     /// <summary>
-    /// Finds an application-wide protected command-read boundary no Stage engine preserves yet.
+    /// Finds an application-wide protected command-read boundary the renderer must refuse.
     /// </summary>
     /// <param name="application">The semantic application.</param>
     /// <returns>The refused command-read mode.</returns>
@@ -170,12 +170,12 @@ internal static class SemanticVersionFeatures
     {
         if (application.CommandReadMode is not null)
         {
-            yield return new(ProtectedCommandReads, StageExecutionCapability.Command, application.Id, "application", $"Application '{application.Name}' declares command reads protected (ESM v25); Stage does not preserve protected decision reads yet.");
+            yield return new(ProtectedCommandReads, StageExecutionCapability.Command, application.Id, "application", $"Application '{application.Name}' declares command reads protected (ESM v25); The Cratis renderer does not preserve protected decision reads yet.");
         }
     }
 
     /// <summary>
-    /// Finds command reads and read-backed conditions or mappings that no Stage engine preserves yet.
+    /// Finds command reads and read-backed conditions or mappings the renderer must refuse.
     /// </summary>
     /// <param name="command">The command.</param>
     /// <returns>The refused command, if any.</returns>
@@ -186,7 +186,7 @@ internal static class SemanticVersionFeatures
                 produced.Mappings.Any(mapping => mapping.Source is SemanticReadPathExpression) || produced.Destination is SemanticReadPathExpression) ||
             command.Destination?.Value is SemanticReadPathExpression)
         {
-            yield return new(ProtectedCommandReads, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' uses protected decision reads or read paths (ESM v25); Stage does not preserve that decision boundary yet.");
+            yield return new(ProtectedCommandReads, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' uses protected decision reads or read paths (ESM v25); The Cratis renderer does not preserve that decision boundary yet.");
         }
     }
 
@@ -391,6 +391,7 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> InCommand(SemanticCommand command)
     {
         foreach (var feature in ProtectedReadsInCommand(command)) yield return feature;
+        foreach (var feature in UnsupportedReadRequirements(command)) yield return feature;
         foreach (var feature in DescribedHandlersInCommand(command)) yield return feature;
 
         foreach (var route in RoutesInCommand(command))
@@ -525,6 +526,14 @@ internal static class SemanticVersionFeatures
                     yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' collides with its New factory.");
                 }
             }
+        }
+    }
+
+    internal static IEnumerable<SemanticVersionFeature> UnsupportedReadRequirements(SemanticCommand command)
+    {
+        if (!command.Reads.IsDefaultOrEmpty && command.Requirements.Any(requirement => requirement.Severity != SemanticValidationSeverity.Error))
+        {
+            yield return new(ProtectedCommandReads, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' has a non-Error requirement on protected reads; Stage refuses this severity until Screenplay defines its semantics.");
         }
     }
 

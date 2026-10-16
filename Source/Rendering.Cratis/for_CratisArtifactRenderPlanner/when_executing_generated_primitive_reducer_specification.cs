@@ -13,7 +13,9 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_executing_generated_primitive_reducer_specification : a_generated_application
 {
-    protected override ArtifactRenderPlan CreatePlan()
+    protected override bool DeferPlan => true;
+
+    static ArtifactRenderPlan CreatePlan(bool self)
     {
         const string originalBody = "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);";
         var source = when_rendering_a_pure_reducer.Source
@@ -30,7 +32,7 @@ public class when_executing_generated_primitive_reducer_specification : a_genera
             ["note"] = "context.Event.Note"
         };
         var arguments = string.Join(", ", SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties).Select(property => expressions[property.Name]));
-        var plan = when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source.Replace(originalBody, $"return new Total({arguments});", StringComparison.Ordinal)).GetAwaiter().GetResult());
+        var plan = when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source.Replace(originalBody, $"return new Total({arguments});", StringComparison.Ordinal)).GetAwaiter().GetResult(), self: self);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath.StartsWith("Common/", StringComparison.Ordinal));
         var spec = plan.Artifacts.Single(artifact => artifact.RelativePath.Contains("with_primitives_is_projected", StringComparison.Ordinal));
@@ -38,11 +40,15 @@ public class when_executing_generated_primitive_reducer_specification : a_genera
         return plan;
     }
 
-    [Fact]
-    async Task should_build_and_pass_the_guid_text_decimal_expectations_without_common()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_build_and_pass_the_guid_text_decimal_expectations_without_common(bool self)
     {
         try
         {
+            RenderApplication(CreatePlan(self));
+
             // The required keyed query's primitive Guid argument triggers Arc's unrelated ARC0015 analyzer.
             var build = await Run("primitive-reducer-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "-p:NoWarn=ARC0015%3BCS7022", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);

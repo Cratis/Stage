@@ -47,11 +47,13 @@ public class when_executing_generated_reducer_event_collection_specifications : 
                   ```
         """;
 
-    protected override ArtifactRenderPlan CreatePlan()
+    protected override bool DeferPlan => true;
+
+    ArtifactRenderPlan CreatePlan(bool self)
     {
         var scenarios = Specification("GoodOrdered", false) + Specification("GoodUnordered", true);
         var source = when_rendering_a_pure_reducer.WithIdentifierConcept(Source.Replace("    slice StateView Totals", scenarios + "    slice StateView Totals", StringComparison.Ordinal));
-        var plan = when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source).GetAwaiter().GetResult());
+        var plan = when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source).GetAwaiter().GetResult(), self: self);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var ordered = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("when_good_ordered.cs", StringComparison.Ordinal));
         var unordered = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("when_good_unordered.cs", StringComparison.Ordinal));
@@ -97,11 +99,14 @@ public class when_executing_generated_reducer_event_collection_specifications : 
         AddGeneratedSpecification($"Wrong{order}.cs", changed);
     }
 
-    [Fact]
-    async Task should_pass_matching_collections_and_reject_mismatched_collections_in_both_event_orders()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_pass_matching_collections_and_reject_mismatched_collections_in_both_event_orders(bool self)
     {
         try
         {
+            RenderApplication(CreatePlan(self));
             AddMismatchedSpecification(_orderedPath, "ordered");
             AddMismatchedSpecification(_unorderedPath, "unordered");
             var build = await Run("reducer-event-collection-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");

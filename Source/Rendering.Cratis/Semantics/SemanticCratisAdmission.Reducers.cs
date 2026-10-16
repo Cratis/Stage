@@ -29,10 +29,10 @@ internal static partial class SemanticCratisAdmission
             }
 
             var reducerName = Identifiers.ToPascalCase(reducer.Name);
-            if (slice.ReadModels.Any(_ => Identifiers.ToPascalCase(_.Name) == reducerName) ||
+            if (!context.SelfReducing && (slice.ReadModels.Any(_ => Identifiers.ToPascalCase(_.Name) == reducerName) ||
                 slice.Events.Any(_ => Identifiers.ToPascalCase(_.Name) == reducerName) ||
                 slice.Projections.Any(_ => _.Scope is not null && Identifiers.ToPascalCase(_.Name) == reducerName) ||
-                SliceNaming.FileName(slice.Name) == $"{reducerName}.cs")
+                SliceNaming.FileName(slice.Name) == $"{reducerName}.cs"))
             {
                 diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' collides with another generated class name in the slice.", slice.Id));
                 continue;
@@ -45,6 +45,12 @@ internal static partial class SemanticCratisAdmission
                 reducer.Key != SemanticReducerKey.EventSourceId || reducer.Result != SemanticReducerResult.StateOrDelete)
             {
                 diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' needs one exclusive, resolvable read model and distinct event transitions.", slice.Id));
+                continue;
+            }
+
+            if (context.SelfReducing && SelfReducerCollision(model, reducer, slice) is { } collision)
+            {
+                diagnostics.Add(Error("STAGE-ESM-019", $"Self-reducing read model '{model.Name}' collides with reserved member '{collision}'. Rename the model, property or query; classic rendering remains available for existing applications.", model.Id));
                 continue;
             }
 
@@ -146,6 +152,17 @@ internal static partial class SemanticCratisAdmission
         }
 
         return analysed;
+    }
+
+    static string? SelfReducerCollision(SemanticReadModel model, SemanticReducer reducer, SemanticSlice slice)
+    {
+        var helpers = reducer.Transitions.Select(transition => SemanticReducerArtifactRenderer.HelperName(transition.RequirementId)).ToHashSet(StringComparer.Ordinal);
+        var type = Identifiers.ToPascalCase(model.Name);
+        if (type == "Reduce" || helpers.Contains(type)) return type;
+        var properties = model.Properties.Select(property => Identifiers.ToPascalCase(property.Name));
+        var queries = slice.Queries.Where(query => query.ReadModel == model.Id).Select(query => Identifiers.ToPascalCase(query.Name));
+        return properties.FirstOrDefault(name => name == "Reduce" || helpers.Contains(name)) ??
+            queries.FirstOrDefault(name => new[] { "Reduce", "BeginReplay", "EndReplay", "BeginReplayPartition", "EndReplayPartition" }.Contains(name, StringComparer.Ordinal) || helpers.Contains(name));
     }
 
     static bool MatchesReducerMemberType(SemanticTypedContextMember member, SemanticReadModel model, SemanticEventContract @event)

@@ -84,6 +84,8 @@ Removing a view's source and recreating it can fold differently from materializa
 
 Arc's `CommandScenario` switches to decision mode for a command with read protection. In that mode the generated specification seeds prior facts with `_scenario.Given.ForEventSource(...).Events(...)` rather than `EventScenario`, which is unavailable. The three-way conformance specification runs the four source forms of the canonical corpus against the reference evaluator, the Stage executor and the rendered application, and compares each outcome.
 
+A specification whose command produces an event that triggers a reaction invoking a protected command cannot run in one `CommandScenario`, which does not settle reactions. The renderer splits it: the reactor scenario appends the triggering event, runs the reactor and executes the command it returns, and a second specification, named with a `Trigger` suffix, runs the triggering command and asserts the event it produces. A rejection expected from the invoked command has no trigger half, because the specification lists no triggering event.
+
 Two things are tested only in the rendered application, because the reference has no race vector:
 
 - a decision without an outcome that is accepted appends nothing;

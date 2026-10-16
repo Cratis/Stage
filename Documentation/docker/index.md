@@ -173,7 +173,8 @@ The semantic engine executes `command reads protected`: after authorization and 
 required view must exist at its declared key. Absence rejects validation with `Current '<key>' does not exist.`
 (using the view's name), before requirements or generation. All requirements then run, including read-backed
 conditions; produced-event mappings can read the stored view values. `/validate` also reports required absence.
-Protected commands with non-Error requirement severities remain refused with `STAGE-ESM-044`.
+Protected commands with non-Error requirement severities remain refused with `STAGE-ESM-045` until Screenplay defines their severity semantics.
+This includes reaction-invoked commands: model admission and the runtime refuse before evaluating reads or requirements or appending facts.
 As an interim safety boundary, any outside append faults the session before committing an accepted command,
 including an unrelated append. This is stricter than the reference's dependency-scoped conflicts; Stage cannot
 commit a stale protected decision. Reference conflict semantics await the public decide/commit API in

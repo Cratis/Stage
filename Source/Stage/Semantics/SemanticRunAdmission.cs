@@ -247,7 +247,7 @@ public static class SemanticRunAdmission
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command))
                 .Except(SemanticVersionFeatures.ProtectedReadsInCommand(command)))
             .FirstOrDefault();
-        return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
+        return feature is null ? SemanticRunReactionAdmission.CheckCommands(plan, specification) : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
 
     // Rendering keeps its own absence refusal; the per-run engine compares the keyed instance collection.

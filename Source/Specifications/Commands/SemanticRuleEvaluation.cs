@@ -94,5 +94,4 @@ internal static class SemanticRuleEvaluation
         { Property.IsSet: true } => values[operand.Property],
         _ => operand.Value!
     };
-
 }

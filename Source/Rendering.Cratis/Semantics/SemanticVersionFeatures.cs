@@ -108,6 +108,11 @@ internal static class SemanticVersionFeatures
     internal const string ProtectedCommandReads = "STAGE-ESM-044";
 
     /// <summary>
+    /// The code for protected-read requirements whose non-Error severity semantics are not defined yet.
+    /// </summary>
+    internal const string ProtectedReadRequirementSeverity = "STAGE-ESM-045";
+
+    /// <summary>
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
@@ -533,7 +538,7 @@ internal static class SemanticVersionFeatures
     {
         if (!command.Reads.IsDefaultOrEmpty && command.Requirements.Any(requirement => requirement.Severity != SemanticValidationSeverity.Error))
         {
-            yield return new(ProtectedCommandReads, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' has a non-Error requirement on protected reads; Stage refuses this severity until Screenplay defines its semantics.");
+            yield return new(ProtectedReadRequirementSeverity, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' has a non-Error requirement on protected reads; Stage refuses this severity until Screenplay defines its semantics.");
         }
     }
 

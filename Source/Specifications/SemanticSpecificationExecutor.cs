@@ -193,6 +193,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var context = run.Context;
         var specification = context.Specification;
         var command = context.Command;
+        if (SemanticVersionFeatures.UnsupportedReadRequirements(command).FirstOrDefault() is { } feature)
+        {
+            return new(Unsupported(run.Slice, run.Expected, new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}")));
+        }
         var priorFacts = context.Facts.Count;
         var caller = specification.GivenCaller;
         var principal = run.ReactionPrincipal ?? (caller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.Principal(caller));

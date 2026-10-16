@@ -14,13 +14,13 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    const string FrozenDigest = "58c526c217ae7454714c16423536392ea83e8e6eb56620b0334289f6aa9cfbbc";
+    const string FrozenDigest = "6628a7d9d72821e5824c4c151f2504ca74956eb8f125d820455a1e958cff5bb9";
 
     string _digest = null!;
 
     void Because() => _digest = Digest(_first);
 
-    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("b085624c7b2471b4747c17930f9e85b0b3daa7d5f7a4a25ea1bb09103274bc58");
+    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("a2e43aa7bfafd95dee94bf65631f2e09c28924b6bf38e244e535d907aaf53b4b");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
     [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("8be112259fe445493964fed0fe105fd88f36111c8bc25ed99a940ba63ec13515");
 
@@ -37,14 +37,14 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    // The previous frozen backend predates the Chronicle 19.66.0 and Arc 22.104.0 pins; only the generated backend project
+    // The previous frozen backend predates the Chronicle 19.71.0 and Arc 22.109.0 pins; only the generated backend project
     // previously carried the scaffold's Arc pin. Central package management now keeps all pins in Directory.Packages.props.
     static string PreviousPins(string name, string text)
     {
-        var previous = text.Replace("19.66.0", "19.55.2", StringComparison.Ordinal);
+        var previous = text.Replace("19.71.0", "19.55.2", StringComparison.Ordinal);
 
         return name.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.104.0", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.109.0", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 }

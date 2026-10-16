@@ -14,9 +14,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="command">The routed command.</param>
 /// <param name="context">The indexed semantic application.</param>
 /// <param name="locals">The command's shared Handle name allocator.</param>
-internal sealed class SemanticCommandRouteRendering(SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals? locals = null)
+internal sealed class SemanticCommandRouteRendering(SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals locals)
 {
-    readonly SemanticHandleLocals _locals = locals ?? new(command);
     readonly List<(string Expression, string Variable, string Member, SemanticPrimitiveType Primitive)> _checkedParts = [];
 
     internal bool HasChecks => _checkedParts.Count > 0;
@@ -70,7 +69,7 @@ internal sealed class SemanticCommandRouteRendering(SemanticCommand command, Sem
         var expression = type.Kind == SemanticTypeReferenceKind.Concept ? $"{member}.Value" : member;
         if (primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber)
         {
-            var variable = _locals.Name($"streamIdPart{index}");
+            var variable = locals.Name($"streamIdPart{index}");
             _checkedParts.Add((expression, variable, member, primitive));
             return variable;
         }

@@ -232,6 +232,10 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 
 Generated property names may match renderer locals such as `operation`, `occurred`, `stageEvents`, `stageProduces0`, `streamIdPart0` or `source`. The Cratis renderer renames its locals with the first free numeric suffix; generated-value parameter names and their bindings stay unchanged. These names do not restrict Host or specification-executor admission.
 
+Commands with generated properties can route events to the generated identifier within a named stream. Stream ids must come from request values or literals, never generated properties: Screenplay resolves the route before generation. When concept generation is enabled, generated destination freshness spans all streams of that event source, even when a source definition declares narrower concurrency dimensions. Bare `generate uuid` is normalized to legacy implicit UUID generation and does not enable this guard on its own; use an explicit strategy such as `generate uuidv7` when requiring freshness.
+
+Route-format failures append no events. In a rendered app, route checks stay in `Handle` and return a `ValidationResult` after generation; the reference evaluator rejects the route as `Contract` before generation. Deterministic pins that fail generation shape or concept rules are already refused at render time with `STAGE-ESM-011`.
+
 Commands with generated properties can validate and require request values. Requirements run before generation: an unmet requirement rejects the request without drawing a generated value or appending events. Rules on generated concepts are checked during generation; pin those values in specifications when their rules are unproven. Command rules and requirements cannot read a generated property because it does not exist during request validation; Screenplay rejects those reads, and Stage refuses hand-built models containing them with `STAGE-ESM-038`.
 
 | Diagnostic | Refused shape |
@@ -242,7 +246,7 @@ Commands with generated properties can validate and require request values. Requ
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
-| `STAGE-ESM-038` | Generated values or responses combined with command routing; command rules or requirements that read a generated property; unsupported response sources, composite or collection responses; response/factory name collisions |
+| `STAGE-ESM-038` | Responses combined with command routing; command rules or requirements that read a generated property; unsupported response sources, composite or collection responses; response/factory name collisions |
 | `STAGE-ESM-038` | Unpinned generation on a concept with any unproven rule, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 

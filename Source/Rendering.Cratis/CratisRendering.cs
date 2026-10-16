@@ -12,6 +12,7 @@ using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Shipped;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -55,7 +56,7 @@ public static partial class CratisRendering
 
     /// <summary>
     /// Gets the packages this target renders without any approval: the Scene core vocabulary, the Scene web
-    /// components and the Cratis component library the Stage frontend ships.
+    /// components, the Cratis component library, the PrimeReact widgets and the default blueprint the Stage frontend ships.
     /// </summary>
     /// <remarks>
     /// This is the catalog a <c language="csharp">ui profile</c> is resolved against. A package outside it is only
@@ -64,9 +65,10 @@ public static partial class CratisRendering
     /// </remarks>
     public static IReadOnlyList<ScenePackage> ShippedPackages { get; } =
     [
-        new(StageShippedPackages.Core, "1.0.0", PackageKind.ComponentLibrary, [], [], [], [], [], []),
+        .. ShippedPackageManifests.All.Where(package => package.Name == StageShippedPackages.Core),
         new(StageShippedPackages.SceneWeb, "1.0.0", PackageKind.ComponentLibrary, [], [], [], [], [], []),
-        new(StageShippedPackages.CratisComponents, Dependencies.FrontendPackageSet.ComponentsPackageVersion, PackageKind.ComponentLibrary, [], [], [], [], [], [])
+        new(StageShippedPackages.CratisComponents, Dependencies.FrontendPackageSet.ComponentsPackageVersion, PackageKind.ComponentLibrary, [], [], [], [], [], []),
+        .. ShippedPackageManifests.All.Where(package => package.Name == StageShippedPackages.PrimeReact || package.Name == StageShippedPackages.DefaultBlueprint)
     ];
 
     /// <summary>

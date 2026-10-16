@@ -8,7 +8,11 @@ import type { Plugin } from 'vite';
 export const sharedModulesGlobal = '__cratisStageShared';
 
 /** The modules a custom package built for a live Stage imports by bare name instead of bundling its own copy. */
-export const sharedModuleSpecifiers = ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'react-dom', 'react-dom/client'] as const;
+export const sharedModuleSpecifiers = ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'react-dom', 'react-dom/client',
+    // What a domain blueprint package (@cratis/scene.blueprint.*) imports: the default blueprint it builds on and Scene's engine and model.
+    // They are the Stage's own instances - the default blueprint holds the layout state the shell and the templates share.
+    '@cratis/scene.blueprint.default', '@cratis/scene.engine', '@cratis/scene.model',
+] as const;
 
 /** Where a shared module's browser entry is served, relative to the page - what the import map in `index.html` points at. */
 export const sharedModuleFile = (specifier: string) => `stage-shared/${specifier.replace(/\//g, '--')}.js`;

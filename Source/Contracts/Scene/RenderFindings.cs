@@ -10,6 +10,7 @@ using Cratis.Scene.Engine.Toolbar;
 using SceneElements = Cratis.Scene.Model.Elements;
 using ScenePackagesModel = Cratis.Scene.Model.Packages;
 using SceneProfilesModel = Cratis.Scene.Model.Profiles;
+using SceneShell = Cratis.Scene.Engine.Shell;
 using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
 using SceneToolbar = Cratis.Scene.Model.Toolbar;
 
@@ -155,6 +156,31 @@ public static class RenderFindings
                 screen.Name,
                 $"Screen '{screen.Name}' resolved against layout '{screen.Layout}', but target '{target}' renders inside '{layoutName}'."));
     }
+
+    /// <summary>
+    /// Reports what the Scene engine found wrong with the root template of a profile that names one: a template that does not
+    /// exist, a blueprint that is not installed, a version pin the installed blueprint does not satisfy, a template that cannot be
+    /// a shell. A profile with no <c language="csharp">root</c> is judged by <see cref="ForLayout"/> alone.
+    /// </summary>
+    /// <param name="profile">The profile.</param>
+    /// <param name="shell">The effective shell the engine resolved.</param>
+    /// <param name="target">The target's display name.</param>
+    /// <returns>One finding per shell diagnostic the build can decide.</returns>
+    public static IEnumerable<RenderFinding> ForShell(SceneProfilesModel.UiProfile profile, SceneShell.EffectiveShell shell, string target) =>
+        profile.Root is null
+            ? []
+            : shell.Diagnostics
+                .Where(diagnostic => diagnostic.Code is
+                    SceneShell.ShellDiagnosticCode.RootTemplateUnknown or
+                    SceneShell.ShellDiagnosticCode.RootTemplateVersionNotSatisfied or
+                    SceneShell.ShellDiagnosticCode.RootTemplateNotApplicable or
+                    SceneShell.ShellDiagnosticCode.RootTemplateMissingContentSlot or
+                    SceneShell.ShellDiagnosticCode.RootTemplateCycle or
+                    SceneShell.ShellDiagnosticCode.RootTemplateBlueprintNotInstalled)
+                .Select(diagnostic => new RenderFinding(
+                    RenderFindingKind.RootTemplateInvalid,
+                    diagnostic.Subject ?? profile.Root.Template.Id,
+                    $"Target '{target}': {diagnostic.Message}."));
 
     /// <summary>
     /// States what a target's theme selection could not settle.

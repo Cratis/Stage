@@ -15,7 +15,7 @@ application gets.
 | `screen` | One entry in the blueprint menu, addressed by `#/<ScreenName>`. |
 | `screen template` | The template's `arrangement flow` positions the screen's slots, evaluated for the current size class. |
 | `layout` | The blueprint's shell for that layout name (`AppShell`, `FullPage`). A layout the blueprint does not provide is drawn in `AppShell`. |
-| `ui profile` | Decides which packages a bare component name resolves against. `core`, `PrimeReact` and the blueprint are always admitted. |
+| `ui profile` | Decides which packages a bare component name resolves against. `core`, `PrimeReact` and the blueprint are always admitted. Its `root template`, shell options and `appearance` decide the shell the application starts in (see [Root template, options and appearance](#root-template-options-and-appearance)). |
 | Command and query | Components wired to the routes the running application exposes. |
 
 A bare component name in a template (for example `title` or `inputText`) is resolved against the profile's
@@ -315,6 +315,33 @@ it (a property the form cannot present, such as a collection, is left out rather
 Submitting posts the command to the route the Stage registered for it, through the Stage's slice invoker, exactly as an action or a
 form posts it: the application's own validation results come back to the dialog against the fields they name, a rejected command
 keeps the dialog open, and a successful one closes it and refreshes what the screen shows.
+
+### Root template, options and appearance
+
+A `ui profile` can name the application's shell, configure it and set its look:
+
+```screenplay
+ui profile Web
+  root template blueprint Cratis.Blueprint.Default AppShell version "^4.5"
+    option navigationMode slim
+    option showFooter false
+  appearance
+    color scheme dark
+    accent "#4f46e5"
+  new screens use template MasterDetail
+```
+
+* The shell is chosen by Scene's `resolveEffectiveShell` (in .NET `ShellResolver`, through `RootShell.Resolve`) - the function the Studio preview
+  calls, so the Stage and the preview start in the same shell: `root`, then the legacy `layout`, then the default blueprint's layout,
+  then the bare shell. Nothing in the Stage re-implements the order.
+* `option navigationMode` (`static`, `overlay`, `slim`, `slim-plus`, `compact`, `horizontal`, `reveal`, `drawer`), `option menuTheme` and `option showFooter` are applied to the shell; an option or
+  value the shell does not understand is reported, never silently dropped.
+* `color scheme` (`light`, `dark`, `system`) selects the dark or light theme (a `system` scheme follows the operating system), and `accent`
+  becomes the theme's primary colour.
+* A root template the application cannot start with - unknown, blueprint not installed, version pin not satisfied, no `content` outlet - is
+  a **build-time finding** when planning (`cratis render`, the render plan) and, in a running Stage, an explicit start-up message that names
+  the cause. The Stage never falls back to a different shell, and never shows a blank page.
+* The runtime scene carries `root`, `appearance` and `defaults` and, as always, no sample data (see below).
 
 ### No sample data in production
 

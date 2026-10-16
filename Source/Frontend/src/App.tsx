@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
     DestinationKind, type ApplicationStructure, type DestinationReference, type DialogTemplate, type Form, type InstanceContribution, type Layout,
     type EffectiveConfiguration, type NavigationModel, type SceneElement, type Screen, type ScreenTemplate, type Theme, type UiProfile, type ExposureDeclaration,
@@ -25,6 +25,8 @@ import {
     LayoutThemeProvider,
     SlotName,
     composeApplicationScreen,
+    defaultBlueprintThemes,
+    effectiveShellOf,
     galleryScreenTemplates,
     externalComponent,
     type ApplicationDocument,
@@ -37,6 +39,8 @@ import { stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
 import { applicationChrome, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
+import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
+import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
 import { bindDataSources } from './stageDataSources';
 import { navigateToScreen, screenArguments } from './stageNavigation';
@@ -97,10 +101,26 @@ function commandFormElement(screenName: string, form: Form): SceneElement {
 }
 
 /**
+ * The shell the application starts in - the one the profile's root template names, resolved by the Scene engine against the
+ * default blueprint and the application's own templates, exactly as the Studio preview resolves it.
+ *
+ * @param scene The scene the Stage renders.
+ * @param screenTemplates The templates the approved domain blueprints bring.
+ * @returns The effective shell, with the engine's diagnostics.
+ */
+export function stageShellOf(scene: StageSceneApplication, screenTemplates?: ScreenTemplate[]) {
+    const first = scene.screens[0];
+    return effectiveShellOf(scene as ApplicationDocument, first, {
+        profile: stageProfile(scene.uiProfiles),
+        blueprintTemplates: screenTemplates?.length ? [...galleryScreenTemplates, ...screenTemplates] : undefined,
+    });
+}
+
+/**
  * What the Stage decides about composing a screen, on top of the composition it shares with the preview: its own chrome around the
  * shell (the effective navigation regions are Scene's), its command form, its status line and its data sources.
  */
-export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[]): CompositionOptions {
+export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true): CompositionOptions {
     const regions = declaresRegions(scene.navigation);
     const application = scene.navigation?.application.logo ? { title: scene.navigation.application.logo.title, image: scene.navigation.application.logo.image || undefined } : undefined;
     return {
@@ -109,8 +129,8 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
         // A screen that fills a blueprint's template finds it among the default blueprint's and the approved domain blueprints'.
         blueprintTemplates: blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : undefined,
         chrome: (screen, shell) => shell === ComponentName.FullPageShell
-            ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale, application, regions)[SlotName.ConfigPanel] }
-            : applicationChrome(scene.screens, screen.name, locales, locale, application, regions),
+            ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter)[SlotName.ConfigPanel] }
+            : applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter),
         form: commandFormElement,
         trailing: [externalComponent('activity', stageActivityComponent)],
         decorate: element => {
@@ -203,18 +223,37 @@ interface StageApplicationProps {
  */
 function StageApplication({ scene, registry, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
     const history = useMemo(() => createHashSceneHistory(), []);
+    const [prefersDark, setPrefersDark] = useState(systemPrefersDark);
+    const initial = scene.screens[0]?.name ?? '';
+    const profile = useMemo(() => stageProfile(scene.uiProfiles), [scene]);
+    const shell = useMemo(() => initial ? stageShellOf(scene, screenTemplates) : undefined, [scene, screenTemplates, initial]);
+    const shellProblems = useMemo(() => shell ? shellStartupProblems(profile, shell) : [], [profile, shell]);
+    const shellSettings = useMemo(() => shell ? stageShellSettings(profile, shell, prefersDark) : undefined, [profile, shell, prefersDark]);
+    const themes = useMemo(() => themesWithAccent(defaultBlueprintThemes, shellSettings?.accent), [shellSettings?.accent]);
+    const showFooter = shellSettings?.showFooter ?? true;
     const composition = useMemo(
-        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates),
-        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates]);
+        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter),
+        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter]);
+    const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
     const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible), [scene, isVisible]);
     const document = scene as ApplicationDocument;
-    const initial = scene.screens[0]?.name ?? '';
 
     if (!initial) {
         return (
             <main className='stage-message'>
                 <h1>Nothing to show yet</h1>
                 <p>This model has no slice carrying a command or a read model, so there is no screen to render.</p>
+            </main>
+        );
+    }
+
+    // A root template that cannot be the shell stops the application with the reason, rather than drawing it in some other shell.
+    if (shellProblems.length > 0) {
+        return (
+            <main className='stage-message' role='alert' data-stage-startup-problem='root-template'>
+                <h1>Unable to start this Stage</h1>
+                <p>The ui profile&apos;s root template cannot be the application&apos;s shell.</p>
+                <ul>{shellProblems.map(problem => <li key={problem}>{problem}</li>)}</ul>
             </main>
         );
     }
@@ -228,7 +267,7 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
             initialScreen={initial}
             history={history}
             layoutConfigStorage={browserStorage()}
-            scope={(navigation, children) => <StageScope scene={scene} routeState={routeState} strings={strings} navigation={navigation}>{children}</StageScope>}
+            scope={(navigation, children) => <StageScope scene={scene} routeState={routeState} strings={strings} navigation={navigation} themes={themes} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>}
             renderScreen={(element, configuration) => <StageScreen element={element} configuration={configuration} registry={registry} />}
             renderDialogTemplate={(template, content, navigation) => <StageDialog template={template} content={content} registry={registry} strings={strings} close={() => navigation.closeDialog()} />}
         />
@@ -240,6 +279,9 @@ interface StageScopeProps {
     routeState: ReturnType<typeof useStageRouteState>;
     strings: ReturnType<typeof useStrings>;
     navigation: SceneNavigationContextValue;
+    themes: Theme[];
+    shellSettings?: StageShellSettings;
+    onSystemSchemeChange: (prefersDark: boolean) => void;
     children: ReactNode;
 }
 
@@ -247,7 +289,7 @@ interface StageScopeProps {
  * What the Stage provides around the screen on the page and every dialog over it: the theme, the data and command scope, the
  * status line, and the dispatcher and invoker that point what the document does at the running application.
  */
-function StageScope({ scene, routeState, strings, navigation, children }: StageScopeProps) {
+function StageScope({ scene, routeState, strings, navigation, themes, shellSettings, onSystemSchemeChange, children }: StageScopeProps) {
     const [activity, setActivity] = useState('');
     const { navigate } = navigation;
 
@@ -285,7 +327,8 @@ function StageScope({ scene, routeState, strings, navigation, children }: StageS
     }, [navigate, scene]);
 
     return (
-        <LayoutThemeProvider>
+        <LayoutThemeProvider themes={themes}>
+            {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
             <ColorSchemeMirror />
             <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
                 <StageInteractions activity={activity} routes={routeState.routes} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>

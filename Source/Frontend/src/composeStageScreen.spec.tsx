@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { FormGenerationMode, FormWidthUnit, HorizontalAlignment, VerticalAlignment, Visibility, type ExternalComponent, type Screen } from '@cratis/scene.model';
-import { composeStageScreen } from './App';
+import { composeStageScreen, stageShellOf } from './App';
 
 const screens = (scene: unknown) => (scene as { screens: Screen[] }).screens;
 const slot = (parent: ExternalComponent, name: string) => (parent.slots[name] ?? []) as unknown as ExternalComponent[];
@@ -54,10 +54,14 @@ describe('composing a screen in the default blueprint', () => {
         expect(slot(composed, 'content').map(_ => _.componentName)).toContain('core:title');
     });
 
-    it('keeps an unsupported layout unresolved rather than substituting a default shell', () => {
+    it('falls back to the installed blueprint\'s shell for an unknown layout, as the Scene engine resolves it, and says so', () => {
+        // The shell is the Scene engine's single answer (resolveEffectiveShell), the one the Studio preview uses; the build reports the
+        // layout that does not exist (LayoutNotFound), and the engine names it in its diagnostics.
         const custom = { ...screen('Custom'), layout: 'CustomShell' };
-        const composed = compose({ layouts: [], screenTemplates: [], screens: [custom] }, custom);
-        expect(composed.componentName).toBe('CustomShell');
+        const scene = { layouts: [], screenTemplates: [], screens: [custom] };
+        const composed = compose(scene, custom);
+        expect(composed.componentName).toBe('Cratis.Blueprint.Default:appShell');
+        expect(stageShellOf(scene).diagnostics.map(diagnostic => diagnostic.subject)).toContain('CustomShell');
     });
 
     it('preserves template chrome and screen content in the same authored slot', () => {

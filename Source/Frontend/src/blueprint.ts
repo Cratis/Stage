@@ -79,7 +79,7 @@ function logo(id: string, title: string, image?: string): SceneElement {
  * the entries its screens authored as `Navigation` contributions - or one flat list of its screens - as the menu, and the topbar and
  * sidebar draw no region of their own.
  */
-export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: { title: string; image?: string }, regions = false): Record<string, SceneElement[]> {
+export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: { title: string; image?: string }, regions = false, showFooter = true): Record<string, SceneElement[]> {
     const first = screens[0]?.name ?? '';
     const title = application?.title ?? stageApplicationName;
     const authored = authoredNavigationEntries(screens);
@@ -109,7 +109,7 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
             homeTargetScreen: first,
             items: (trail.length > 0 ? trail : [activeScreen]).map(label => ({ label })),
         })],
-        [SlotName.Footer]: [externalComponent('footer', ComponentName.Footer, { text: `${title} · rendered from your model` })],
+        ...(showFooter ? { [SlotName.Footer]: [externalComponent('footer', ComponentName.Footer, { text: `${title} · rendered from your model` })] } : {}),
         [SlotName.ConfigPanel]: [externalComponent(ComponentName.ConfigPanel, ComponentName.ConfigPanel, {
             title: 'Settings',
             themes: defaultBlueprintThemes.map(theme => ({ name: theme.name, label: theme.name, isDark: theme.isDark ?? false })),

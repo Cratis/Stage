@@ -118,5 +118,10 @@ public enum RenderFindingKind
     /// Scene's sample data validation found a problem with a pack or with a profile's selection: an id or locale that is not valid,
     /// a repeated shape, or an active, mapped or bound pack that is not available.
     /// </summary>
-    SampleDataInvalid = 17
+    SampleDataInvalid = 17,
+
+    /// <summary>
+    /// The ui profile's root template cannot be the application's shell: it does not exist, its blueprint is missing or its version pin is not satisfied by the installed one.
+    /// </summary>
+    RootTemplateInvalid = 18
 }

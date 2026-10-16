@@ -18,6 +18,7 @@
     "styledPrimeReact.ts",
     "styledPrimeReact.spec.ts",
     "stageSharedModules.ts",
-    "stageSharedModules.spec.ts"
+    "stageSharedModules.spec.ts",
+    "shippedPackages.spec.ts"
   ]
 }

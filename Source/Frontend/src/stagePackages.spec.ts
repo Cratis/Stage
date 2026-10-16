@@ -54,12 +54,12 @@ describe('loading the custom packages a live Stage was handed', () => {
 
     it('renders with the shipped packages when the Stage was handed none', async () => {
         const { host: h, imported } = host(document({ set: null, modules: {}, styles: [] }));
-        expect(await loadStagePackages(h)).toEqual({ components: {}, catalog: {} });
+        expect(await loadStagePackages(h)).toEqual({ components: {}, catalog: {}, screenTemplates: [], dialogTemplates: [] });
         expect(imported).toEqual([]);
     });
 
     it('renders with the shipped packages when the Stage predates custom packages', async () => {
-        expect(await loadStagePackages(host(undefined).host)).toEqual({ components: {}, catalog: {} });
+        expect(await loadStagePackages(host(undefined).host)).toEqual({ components: {}, catalog: {}, screenTemplates: [], dialogTemplates: [] });
     });
 
     it('refuses to render when the Stage reports a problem with the packages', async () => {

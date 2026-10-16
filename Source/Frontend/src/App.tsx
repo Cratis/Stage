@@ -25,6 +25,7 @@ import {
     LayoutThemeProvider,
     SlotName,
     composeApplicationScreen,
+    galleryScreenTemplates,
     externalComponent,
     type ApplicationDocument,
     type CompositionOptions,
@@ -99,12 +100,14 @@ function commandFormElement(screenName: string, form: Form): SceneElement {
  * What the Stage decides about composing a screen, on top of the composition it shares with the preview: its own chrome around the
  * shell (the effective navigation regions are Scene's), its command form, its status line and its data sources.
  */
-export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>): CompositionOptions {
+export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[]): CompositionOptions {
     const regions = declaresRegions(scene.navigation);
     const application = scene.navigation?.application.logo ? { title: scene.navigation.application.logo.title, image: scene.navigation.application.logo.image || undefined } : undefined;
     return {
         profile: stageProfile(scene.uiProfiles),
         catalog: stageCatalogWith(packageCatalog),
+        // A screen that fills a blueprint's template finds it among the default blueprint's and the approved domain blueprints'.
+        blueprintTemplates: blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : undefined,
         chrome: (screen, shell) => shell === ComponentName.FullPageShell
             ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale, application, regions)[SlotName.ConfigPanel] }
             : applicationChrome(scene.screens, screen.name, locales, locale, application, regions),
@@ -121,8 +124,8 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
  * Composes one screen the way the application shows it: the shared composition - the shell for the screen's layout, the chrome in
  * its slots, the screen inside the template it names - with the Stage's own decisions.
  */
-export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string, packageCatalog?: PackageCatalog): SceneElement {
-    return composeApplicationScreen(scene as ApplicationDocument, screen, stageComposition(scene, locales, locale, packageCatalog)).element;
+export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string, packageCatalog?: PackageCatalog, blueprintTemplates?: ScreenTemplate[]): SceneElement {
+    return composeApplicationScreen(scene as ApplicationDocument, screen, stageComposition(scene, locales, locale, packageCatalog, undefined, blueprintTemplates)).element;
 }
 
 /** The browser's local storage, where the shell keeps what a user chose; none where the browser refuses it. */
@@ -144,11 +147,17 @@ export interface AppProps {
      */
     packageCatalog?: PackageCatalog;
 
+    /** The screen templates the approved domain blueprints bring; a screen's `template blueprint ...` reference resolves to one of them. */
+    screenTemplates?: ScreenTemplate[];
+
+    /** The dialog templates the approved domain blueprints bring, which an authored dialog destination can open. */
+    dialogTemplates?: DialogTemplate[];
+
     /** Hides a navigation item the user may not see - hidden, never disabled, so nothing about it leaks. */
     isVisible?: (item: EffectiveNavItem) => boolean;
 }
 
-export function App({ components, packageCatalog, isVisible }: AppProps = {}) {
+export function App({ components, packageCatalog, screenTemplates, dialogTemplates, isVisible }: AppProps = {}) {
     const source = useStageSource();
     const registry = useMemo(() => stageApplicationRegistry(components), [components]);
     const [scene, setScene] = useState<StageSceneApplication>();
@@ -160,16 +169,19 @@ export function App({ components, packageCatalog, isVisible }: AppProps = {}) {
     useEffect(() => {
         const abort = new AbortController();
         source.scene(abort.signal)
-            .then(setScene)
+            // The application's own dialog templates win a name a blueprint also declares.
+            .then(loaded => setScene(dialogTemplates?.length
+                ? { ...loaded, dialogTemplates: [...(loaded.dialogTemplates ?? []), ...dialogTemplates.filter(template => !loaded.dialogTemplates?.some(own => own.name === template.name))] }
+                : loaded))
             .catch(reason => {
                 if (!abort.signal.aborted) setError(reason instanceof Error ? reason.message : String(reason));
             });
         return () => abort.abort();
-    }, [source]);
+    }, [source, dialogTemplates]);
 
     if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
     if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
-    return <StageApplication scene={scene} registry={registry} routeState={routeState} strings={strings} packageCatalog={packageCatalog} isVisible={isVisible} />;
+    return <StageApplication scene={scene} registry={registry} routeState={routeState} strings={strings} packageCatalog={packageCatalog} screenTemplates={screenTemplates} isVisible={isVisible} />;
 }
 
 interface StageApplicationProps {
@@ -178,6 +190,7 @@ interface StageApplicationProps {
     routeState: ReturnType<typeof useStageRouteState>;
     strings: ReturnType<typeof useStrings>;
     packageCatalog?: PackageCatalog;
+    screenTemplates?: ScreenTemplate[];
     isVisible?: (item: EffectiveNavItem) => boolean;
 }
 
@@ -188,11 +201,11 @@ interface StageApplicationProps {
  * topbar and sidebar are the effective navigation regions. The Stage supplies what is its own: the shell chrome, the data and
  * the commands the screens run against.
  */
-function StageApplication({ scene, registry, routeState, strings, packageCatalog, isVisible }: StageApplicationProps) {
+function StageApplication({ scene, registry, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
     const history = useMemo(() => createHashSceneHistory(), []);
     const composition = useMemo(
-        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary),
-        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog]);
+        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates),
+        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates]);
     const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible), [scene, isVisible]);
     const document = scene as ApplicationDocument;
     const initial = scene.screens[0]?.name ?? '';

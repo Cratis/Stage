@@ -6,7 +6,8 @@
         <title>Cratis Stage</title>
         <!--
           What an approved custom package imports by bare name resolves to the Stage's own copy of React, so a
-          package's hooks and contexts are the Stage's (see stageSharedModules.ts). It must precede every module.
+          package's hooks and contexts are the Stage's (see stageSharedModules.ts). A domain blueprint package imports the default
+          blueprint, Scene's engine and Scene's model the same way. It must precede every module.
         -->
         <script type="importmap">
             {
@@ -15,7 +16,10 @@
                     "react/jsx-runtime": "./stage-shared/react--jsx-runtime.js",
                     "react/jsx-dev-runtime": "./stage-shared/react--jsx-dev-runtime.js",
                     "react-dom": "./stage-shared/react-dom.js",
-                    "react-dom/client": "./stage-shared/react-dom--client.js"
+                    "react-dom/client": "./stage-shared/react-dom--client.js",
+                    "@cratis/scene.blueprint.default": "./stage-shared/@cratis--scene.blueprint.default.js",
+                    "@cratis/scene.engine": "./stage-shared/@cratis--scene.engine.js",
+                    "@cratis/scene.model": "./stage-shared/@cratis--scene.model.js"
                 }
             }
         </script>

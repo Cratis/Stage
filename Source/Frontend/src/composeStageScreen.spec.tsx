@@ -94,3 +94,21 @@ describe('composing a screen in the default blueprint', () => {
         expect(form?.properties.fields).toEqual([{ name: 'orderNumber', label: 'Order #' }]);
     });
 });
+
+describe('composing a screen that fills a domain blueprint template', () => {
+    const templated = screen('Leads', 'CrmLeadList');
+    const scene = { layouts: [], screenTemplates: [], screens: [templated] } as never;
+    const crmLeadList = { name: 'CrmLeadList', slots: [{ name: 'body' }], fitsSlot: 'content', content: { body: [element('crm-lead-list-title', 'core:title')] } };
+    const compose = (blueprintTemplates?: unknown[]) =>
+        composeStageScreen(scene, templated, [], '', undefined, blueprintTemplates as never) as unknown as ExternalComponent;
+
+    it('places the screen in the template the approved blueprint brought', () => {
+        const template = slot(compose([crmLeadList]), 'content')[0];
+        expect(template.componentName).toBe('Scene:template');
+        expect(slot(template, 'body').map(_ => _.id)).toEqual(['crm-lead-list-title', 'Leads-body']);
+    });
+
+    it('does not find the template when no blueprint brought it', () => {
+        expect(slot(slot(compose(), 'content')[0], 'body').map(_ => _.id)).not.toContain('crm-lead-list-title');
+    });
+});

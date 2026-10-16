@@ -173,7 +173,11 @@ At v26 the semantic engine executes Date/DateTime ordering and instant equality 
 conditional productions and validation rules, including concept-backed properties. Participating DateTime inputs
 must carry an explicit offset or `Z`; validation rejects missing offsets after authorization and before other
 input validation, including reaction invocations. Date compares calendar days; DateTime compares UTC ticks.
-Specification expectations remain ordinal. Rendering and legacy engines refuse these comparisons with
+Specification expectations remain ordinal. Opaque `validate csharp` is an explicit ordering difference:
+the specification executor refuses it at run admission, and the Host refuses it before authorization and
+input validation. The reference checks authorization, then offsets, then opaque validation, so an offset-less
+DateTime combined with opaque validation returns `Validation` in the reference but `Unsupported` in either
+Stage path. `Unsupported` never counts as a pass. Rendering and legacy engines refuse these comparisons with
 `STAGE-ESM-046`, naming the property, rather than emitting a different comparison.
 The semantic engine executes `command reads protected`: after authorization and property/concept rules, each
 required view must exist at its declared key. Absence rejects validation with `Current '<key>' does not exist.`

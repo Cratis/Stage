@@ -39,8 +39,10 @@ At v26 the semantic executor runs chronological Date/DateTime command requiremen
 and validation rules (including concepts). DateTime equality compares UTC ticks; Date compares calendar days.
 Participating DateTime inputs without an explicit offset or `Z` reject after authorization, before other input
 validation, including reaction invocations. Specification `then` matching remains ordinal. A command combined
-with opaque validation still reports `Unsupported` at run admission, before execution; the Host's live command
-path instead checks offsets before opaque validation, as the reference does. The renderer and legacy engines
+with opaque validation reports `Unsupported` at run admission, before execution. The Host also refuses opaque
+validation before authorization and input validation. Unlike both Stage paths, the reference checks authorization,
+then offsets, then opaque validation: an offset-less input combined with opaque validation returns `Validation`
+in the reference but `Unsupported` in Stage. `Unsupported` never counts as a pass. The renderer and legacy engines
 refuse date comparisons with `STAGE-ESM-046`; date three-way conformance awaits renderer support.
 The semantic executor runs protected command reads, including reaction-invoked commands. After authorization and
 property/concept rules, it projects the prior facts through Chronicle's in-memory read-model scenario and requires

@@ -294,7 +294,7 @@ ui profile Web
 * The shell is chosen by Scene's `resolveEffectiveShell` (in .NET `ShellResolver`, through `RootShell.Resolve`) - the function the Studio preview
   calls, so the Stage and the preview start in the same shell: `root`, then the legacy `layout`, then the default blueprint's layout,
   then the bare shell. Nothing in the Stage re-implements the order.
-* `option navigationMode` (`full`, `slim`, `top`, ...), `option menuTheme` and `option showFooter` are applied to the shell; an option or
+* `option navigationMode` (`static`, `overlay`, `slim`, `slim-plus`, `compact`, `horizontal`, `reveal`, `drawer`), `option menuTheme` and `option showFooter` are applied to the shell; an option or
   value the shell does not understand is reported, never silently dropped.
 * `color scheme` (`light`, `dark`, `system`) selects the dark or light theme (a `system` scheme follows the operating system), and `accent`
   becomes the theme's primary colour.

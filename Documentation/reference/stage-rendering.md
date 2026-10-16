@@ -231,10 +231,18 @@ same event store. Chronicle refuses the second registration of a changed schema 
 
 ## Match patterns
 
-`matches` uses ECMAScript regular-expression semantics with culture-invariant matching and a one-second timeout.
+`matches` uses Screenplay's portable match dialect: case-sensitive UTF-16 matching without culture-dependent
+character classes. `\d` and `\w` are ASCII; `\s` includes Unicode spaces and the byte-order mark (`U+FEFF`),
+but not next-line (`U+0085`). Dot excludes LF, CR, line separator (`U+2028`) and paragraph separator (`U+2029`).
 An unescaped `$` outside a character class means end of input, not the position before a final newline:
 `^[A-Z]{3}$` accepts `ABC` but rejects `ABC\n`. Escaped dollars and dollars inside character classes remain literal.
-The semantic executor, Host and generated C# validators use the same rule.
+Unanchored patterns search the input rather than requiring a whole-input match.
+
+The semantic executor and Host delegate match evaluation to Screenplay. Generated C# validators expand portable
+character sets and use strict anchors with .NET's non-backtracking engine; they do not turn timeouts into
+validation failures. If .NET cannot compile an otherwise portable pattern (for example, an empty group with a
+counted repeat larger than .NET's integer bound), rendering refuses it with `STAGE-ESM-005`, naming the construct.
+The renderer also retains .NET's non-backtracking automaton-size limit rather than changing process-wide settings.
 
 ## Chrome
 

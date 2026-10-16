@@ -71,12 +71,7 @@ internal static class SemanticValidationRendering
     {
         builder.BlankLine()
             .OpenBlock("static bool MatchesPattern(string value, string pattern)")
-            .OpenBlock("try")
-            .Line($"return {Name(typeBuilder, "System.Text.RegularExpressions", "Regex")}.IsMatch(value, pattern, {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.ECMAScript | {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.CultureInvariant, {Name(typeBuilder, "System", "TimeSpan")}.FromSeconds(1));")
-            .EndBlock()
-            .OpenBlock($"catch ({Name(typeBuilder, "System.Text.RegularExpressions", "RegexMatchTimeoutException", ReferenceContext.Type)})")
-            .Line("return false;")
-            .EndBlock()
+            .Line($"return {Name(typeBuilder, "System.Text.RegularExpressions", "Regex")}.IsMatch(value, pattern, {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.NonBacktracking | {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.CultureInvariant, {Name(typeBuilder, "System.Text.RegularExpressions", "Regex")}.InfiniteMatchTimeout);")
             .EndBlock();
     }
 

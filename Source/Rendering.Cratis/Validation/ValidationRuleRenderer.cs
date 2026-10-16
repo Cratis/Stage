@@ -81,11 +81,16 @@ public static class ValidationRuleRenderer
     {
         if (SyntaxFactory.ParseExpression(value) is not CSharpLiteral literal || literal.RawKind != (int)SyntaxKind.StringLiteralExpression)
         {
-            return $".Matches({value})";
+            throw new UnsupportedValidationRule(ValidationRuleKind.Matches, "non-literal match pattern");
+        }
+
+        if (SemanticMatchAnchors.Refusal(literal.Token.ValueText) is { } construct)
+        {
+            throw new UnsupportedValidationRule(ValidationRuleKind.Matches, construct);
         }
 
         var pattern = CSharpCodeBuilder.StringLiteral(SemanticMatchAnchors.Portable(literal.Token.ValueText));
 
-        return $".Matches(new global::System.Text.RegularExpressions.Regex({pattern}, global::System.Text.RegularExpressions.RegexOptions.ECMAScript | global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.TimeSpan.FromSeconds(1)))";
+        return $".Matches(new global::System.Text.RegularExpressions.Regex({pattern}, global::System.Text.RegularExpressions.RegexOptions.NonBacktracking | global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.Text.RegularExpressions.Regex.InfiniteMatchTimeout))";
     }
 }

@@ -24,7 +24,7 @@ internal static class SemanticGenerationShapes
     internal static bool Supported(SemanticConcept concept) => concept.Primitive switch
     {
         SemanticPrimitiveType.Uuid => concept.Generation is null || IsUuid(concept.Generation.Kind),
-        SemanticPrimitiveType.Text => concept.Generation is { } generation && (KnownKind(generation.Kind) || generation.Kind == "pattern"),
+        SemanticPrimitiveType.Text => concept.Generation is { } generation && (KnownKind(generation.Kind) || generation.Kind == "pattern" || generation.Kind == "implementation"),
         SemanticPrimitiveType.WholeNumber => concept.Generation?.Kind == "random",
         _ => false
     };
@@ -63,6 +63,7 @@ internal static class SemanticGenerationShapes
         "typeid" => TypeId(),
         "nanoid" => Symbols(generation.Alphabet ?? NanoIdAlphabet, generation.Size ?? 21),
         "bytes" => Bytes(generation),
+        "implementation" => "[\\s\\S]*",
         _ => "(?!)"
     };
 

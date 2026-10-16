@@ -148,7 +148,6 @@ internal static class SemanticVersionFeatures
         .Concat(ProtectedReadsInApplication(application))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(DescribedHandlersInCommand))
         .Concat(RoutesInApplication(application))
-        .Concat(UnsupportedConcepts(application.Concepts))
         .Concat(application.Concepts.SelectMany(concept => UnknownValidationRules(concept.Validations, concept.Id, "concept", concept.Name)))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnknownValidationRules(command.Validations, command.Id, "command", command.Name)))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
@@ -500,6 +499,7 @@ internal static class SemanticVersionFeatures
         slice.Reducers.Where(reducer => reducer.From is not null).Select(reducer => new SemanticVersionFeature(
             ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet."));
 
+    // Only renderer admission refuses rule generation on the concept itself; pinned execution never runs the body.
     internal static IEnumerable<SemanticVersionFeature> UnsupportedConcepts(IEnumerable<SemanticConcept> concepts)
     {
         foreach (var concept in concepts)
@@ -512,6 +512,18 @@ internal static class SemanticVersionFeatures
             if (strategy is not null)
             {
                 yield return new(Generated, StageExecutionCapability.IdentityAllocation, concept.Id, "concept", $"Concept '{concept.Name}' uses 'generate {strategy}', which Stage does not support yet.");
+            }
+        }
+    }
+
+    internal static IEnumerable<SemanticVersionFeature> ImplementationGenerationInCommand(SemanticCommand command, IEnumerable<SemanticConcept> concepts)
+    {
+        foreach (var property in command.Properties.Where(property => property.IsGenerated))
+        {
+            var concept = concepts.FirstOrDefault(concept => concept.Id == property.Type.Target && concept.Generation?.Kind == "implementation");
+            if (concept is not null)
+            {
+                yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}' with 'generate rule' on concept '{concept.Name}'; Stage's interpreter never runs implementation bodies — render the application.");
             }
         }
     }

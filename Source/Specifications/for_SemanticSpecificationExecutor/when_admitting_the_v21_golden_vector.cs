@@ -21,12 +21,12 @@ public class when_admitting_the_v21_golden_vector : Specification
     [Fact] void should_run_a_nonempty_specification_set() => _report.Results.ShouldNotBeEmpty();
     [Fact] void should_not_refuse_the_audited_version() => _report.Results.Any(result => result.Unsupported?.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal) == true).ShouldBeFalse();
     [Theory]
-    [InlineData("TenantOrderId", "STAGE-ESM-028: Concept 'TenantOrderId' uses 'generate rule', which Stage does not support yet.")]
-    async Task should_keep_construct_refusals(string conceptName, string expectedDetails)
+    [InlineData("TenantOrderId")]
+    async Task should_admit_an_unused_rule_concept(string conceptName)
     {
         var concept = _plan.Model.Application.Concepts.Single(concept => concept.Name == conceptName);
 
-        // Execution reports the first blocker; isolate each v21 concept in the admitted billing specification fixture.
+        // An unused generation body must not block unrelated billing specifications.
         const string source = conformance.when_running_inline_billing_validation.Source;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("V21Refusals"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("refusals"), "refusals", "Refusals.play", source);
@@ -42,9 +42,8 @@ public class when_admitting_the_v21_golden_vector : Specification
         report.Results.ShouldNotBeEmpty();
         Assert.All(report.Results, result =>
         {
-            result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-            result.Unsupported!.Details.ShouldEqual(expectedDetails);
-            result.Unsupported.Construct.ShouldEqual(concept.Id.ToString());
+            result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+            result.Unsupported.ShouldBeNull();
         });
     }
 }

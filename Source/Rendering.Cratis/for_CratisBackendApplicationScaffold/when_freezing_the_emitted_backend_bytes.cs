@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold.given;
 using Xunit;
 
@@ -13,24 +14,24 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    const string FrozenDigest = "b085624c7b2471b4747c17930f9e85b0b3daa7d5f7a4a25ea1bb09103274bc58";
+    const string FrozenDigest = "58c526c217ae7454714c16423536392ea83e8e6eb56620b0334289f6aa9cfbbc";
 
     string _digest = null!;
 
     void Because() => _digest = Digest(_first);
 
+    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("b085624c7b2471b4747c17930f9e85b0b3daa7d5f7a4a25ea1bb09103274bc58");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
     [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("8be112259fe445493964fed0fe105fd88f36111c8bc25ed99a940ba63ec13515");
 
-    static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false)
+    static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         foreach (var input in inputs)
         {
             hash.AppendData(Encoding.UTF8.GetBytes(input.Name));
-            hash.AppendData(previousPins
-                ? Encoding.UTF8.GetBytes(PreviousPins(input.Name, Text(input)))
-                : input.Bytes.AsSpan());
+            var text = beforePlacement || previousPins ? QualifiedCommonOutput.BeforePlacement(Text(input)) : Text(input);
+            hash.AppendData(Encoding.UTF8.GetBytes(previousPins ? PreviousPins(input.Name, text) : text));
         }
 
         return Convert.ToHexStringLower(hash.GetHashAndReset());

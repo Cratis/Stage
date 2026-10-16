@@ -55,6 +55,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_not_duplicate_the_shared_extraction_setting_in_the_host() => Content("MyApp.csproj").ShouldNotContain("CratisEmbeddedScreenplayEnabled");
     [Fact] void should_not_suppress_the_test_entry_point_warning() => Content("MyApp.csproj").ShouldNotContain("NoWarn");
     [Fact] void should_not_mark_the_web_host_as_a_test_project() => Content("MyApp.csproj").ShouldNotContain("IsTestProject");
+    [Fact] void should_place_generated_type_imports_inside_the_namespace() => Content(".editorconfig").ShouldContain("csharp_using_directive_placement = inside_namespace");
     [Fact] void should_isolate_editor_configuration_from_parent_rules() => Content(".editorconfig").ShouldContain("root = true");
     [Fact] void should_disable_ancestor_editor_configuration_discovery() => XDocument.Parse(Content("Directory.Build.props")).Descendants("DiscoverEditorConfigFiles").Single().Value.ShouldEqual("false");
     [Fact] void should_disable_ancestor_global_analyzer_configuration_discovery() => XDocument.Parse(Content("Directory.Build.props")).Descendants("DiscoverGlobalAnalyzerConfigFiles").Single().Value.ShouldEqual("false");

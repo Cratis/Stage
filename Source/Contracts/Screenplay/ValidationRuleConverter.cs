@@ -21,6 +21,7 @@ public static class ValidationRuleConverter
     /// </summary>
     /// <param name="validations">The validation blocks declared on the command.</param>
     /// <returns>The rules grouped by property.</returns>
+    /// <exception cref="UnsupportedValidationRule">Thrown when a rule kind has no audited conversion or documented omission.</exception>
     public static IReadOnlyList<CommandPropertyRules> Convert(IEnumerable<ValidateSyntax> validations)
     {
         var groups = new List<(string Property, List<RuleDefinition> Rules)>();
@@ -69,10 +70,19 @@ public static class ValidationRuleConverter
             ValidationRuleKind.LessThan when DoubleOperand(rule) is { } threshold => new LessThan(threshold, rule.Message),
             ValidationRuleKind.LessThanOrEqual when DoubleOperand(rule) is { } threshold => new LessThanOrEqual(threshold, rule.Message),
 
-            // A scalar comparison cannot represent "all", even when the element path is known.
-            // Drop quantifiers, equality, checksums and named rules rather than partially enforcing them.
-            _ => null
+            _ => DropOrRefuse(rule)
         };
+
+    static RuleDefinition? DropOrRefuse(ValidationRuleSyntax rule) =>
+        IsDocumentedDrop(rule.Rule) ? null : throw new UnsupportedValidationRule(rule);
+
+    // Quantifiers, equality, checksums and named rules have no Stage equivalent. Known scalar rules
+    // reaching this fallback have operands that cannot be represented as fixed values.
+    static bool IsDocumentedDrop(ValidationRuleKind kind) => kind is
+        ValidationRuleKind.AllGreaterThan or ValidationRuleKind.AllGreaterThanOrEqual or
+        ValidationRuleKind.Equal or ValidationRuleKind.NotEqual or ValidationRuleKind.Checksum or ValidationRuleKind.Rule or
+        ValidationRuleKind.Max or ValidationRuleKind.Min or ValidationRuleKind.Length or ValidationRuleKind.Matches or
+        ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or ValidationRuleKind.LessThan or ValidationRuleKind.LessThanOrEqual;
 
     static int? IntOperand(ValidationRuleSyntax rule) =>
         DoubleOperand(rule) is { } number && number is >= 0 and <= int.MaxValue && Math.Truncate(number) == number ? (int)number : null;

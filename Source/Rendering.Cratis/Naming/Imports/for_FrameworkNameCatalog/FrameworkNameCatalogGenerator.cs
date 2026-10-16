@@ -42,6 +42,14 @@ static class FrameworkNameCatalogGenerator
             types.Add(assembly.Aggregate(GeneratedProjects.None, (all, reference) => all | reference.Project), namespaces, metadata);
         }
 
+        foreach (var project in projects)
+        {
+            foreach (var path in project.NamespaceReferences)
+            {
+                foreach (var @namespace in MetadataAssembly.Read(path).Namespaces) types.AddNamespace(project.Project, @namespace);
+            }
+        }
+
         var sourceTypes = SourceTypes(projects, types).Where(type => Records(type.Namespace)).ToArray();
         return new(
             profile.Version,
@@ -70,7 +78,8 @@ static class FrameworkNameCatalogGenerator
         .. Merge(
             projects.SelectMany(project => project.Usings
                 .Concat(project.PackageSources.SelectMany(source => CatalogSources.Usings(project.Project, source.Package, source.Path)))
-                .Concat(project.GeneratedSources.SelectMany(path => CatalogSources.Usings(project.Project, $"generator:{Path.GetFileName(path)}", path))))
+                .Concat(project.GeneratedSources.SelectMany(path => CatalogSources.Usings(project.Project, $"generator:{Path.GetFileName(path)}", path)))
+                .Concat(project.ProjectSources.SelectMany(path => CatalogSources.Usings(project.Project, $"compile:{Path.GetFileName(path)}", path))))
                 .Select(@using => (@using.Projects, @using)),
             @using => (@using.Kind, @using.Target, @using.Alias, @using.Source),
             (tags, @using) => @using with { Projects = tags })

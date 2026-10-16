@@ -13,20 +13,23 @@ namespace Cratis.Stage.Rendering.Cratis.for_CommandValidatorRenderer;
 public class when_refusing_unsupported_validation : Specification
 {
     [Theory]
-    [InlineData(ValidationRuleKind.Checksum)]
-    [InlineData((ValidationRuleKind)999)]
-    void should_fail_closed_instead_of_emitting_a_todo(ValidationRuleKind kind)
+    [InlineData(ValidationRuleKind.Checksum, false)]
+    [InlineData((ValidationRuleKind)999, false)]
+    [InlineData((ValidationRuleKind)999, true)]
+    void should_fail_closed_instead_of_emitting_a_todo(ValidationRuleKind kind, bool nonLiteral)
     {
         var location = SourceLocation.Start;
         var command = new CommandSyntax(
             "Register",
             [new("reference", new("String", false, false, location), location)],
             null,
-            [new DeclarativeValidateSyntax([new("reference", kind, new LiteralExpressionSyntax("luhn", location), null, location)], location)],
+            [new DeclarativeValidateSyntax([new("reference", kind, nonLiteral ? new PathExpressionSyntax("missing", location) : new LiteralExpressionSyntax("luhn", location), null, location)], location)],
             [],
             null,
             location);
         var error = Assert.Throws<UnsupportedValidationRule>(() => CommandValidatorRenderer.Render(new CSharpCodeBuilder(), command, "Register", new ApplicationSet([]), []));
-        Assert.StartsWith("STAGE-ESM-042:", error.Message, StringComparison.Ordinal);
+        Assert.StartsWith(kind == (ValidationRuleKind)999 ? "STAGE-ESM-005:" : "STAGE-ESM-042:", error.Message, StringComparison.Ordinal);
+        Assert.Contains("reference", error.Message, StringComparison.Ordinal);
+        Assert.Contains(kind.ToString(), error.Message, StringComparison.Ordinal);
     }
 }

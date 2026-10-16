@@ -24,7 +24,7 @@ public class when_rendering_pattern_and_random_generation : Specification
     [Fact] void should_render_a_pure_pattern_factory() => File("Reference").ShouldContain("GenerateValue.Pattern(\"REF-?{16}\")");
     [Fact] void should_render_a_contextual_date_factory() => File("DatedReference").ShouldContain("GenerateValue.Pattern(\"{yyyy}-{MM}-{dd}-?{16}\", context)");
     [Fact] void should_implement_contextual_generation_only_for_dates() => File("DatedReference").ShouldContain("IGeneratableInContext<DatedReference>");
-    [Fact] void should_render_the_checksum_argument() => File("CheckedReference").ShouldContain("GenerateValue.Pattern(\"#{16}\", global::Cratis.Concepts.Checksum.Luhn)");
+    [Fact] void should_render_the_checksum_argument() => File("CheckedReference").ShouldContain("GenerateValue.Pattern(\"#{16}\", Checksum.Luhn)");
     [Fact] void should_preserve_the_full_admitted_int64_range() => File("Ticket").ShouldContain("GenerateValue.Integer(-9223372036854775808L, 9223372036854775807L)");
     [Fact] void should_not_narrow_v21_whole_numbers_to_int32() => File("Ticket").ShouldContain("Ticket(long Value)");
     [Fact] void should_never_read_the_render_time_clock() => File("DatedReference").ShouldNotContain("UtcNow");

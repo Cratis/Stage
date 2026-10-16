@@ -345,7 +345,7 @@ public class when_compiling_generated_name_matrix
                 public global::Cratis.Chronicle.Identities.Identity Current() => Identities.GetCurrent();
             }
             """,
-            "global::Cratis.Chronicle.Identities.IIdentityProvider Identities"
+            "global::Cratis.Arc.Identity.IIdentityProvider Users"
         },
         {
             "member-shadow",

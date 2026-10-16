@@ -51,6 +51,36 @@ static class BindingSites
         }
     }
 
+    /// <summary>
+    /// Compares independently rendered spellings without discarding sites inside a whole-file text replacement.
+    /// </summary>
+    /// <param name="original">The qualified oracle.</param>
+    /// <param name="rendered">The real short-name output.</param>
+    /// <returns>Every binding difference.</returns>
+    internal static IEnumerable<string> RenderedDifferences(SemanticModel original, SemanticModel rendered)
+    {
+        var before = ComparableSites(original).ToArray();
+        var after = ComparableSites(rendered).ToArray();
+        if (before.Length != after.Length)
+        {
+            yield return $"{original.SyntaxTree.FilePath}: binding site count changed from {before.Length} to {after.Length}";
+            yield break;
+        }
+
+        for (var index = 0; index < before.Length; index++)
+        {
+            var expected = Describe(original, before[index]);
+            var actual = Describe(rendered, after[index]);
+            if (expected != actual) yield return $"{original.SyntaxTree.FilePath}: '{before[index]}' bound to {expected} but rendered as {actual}";
+        }
+    }
+
+    static IEnumerable<SyntaxNode> ComparableSites(SemanticModel model) => Sites(model.SyntaxTree.GetRoot())
+        .Where(node => !node.Ancestors().OfType<UsingDirectiveSyntax>().Any() &&
+            !node.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().Any(@namespace => @namespace.Name.Span.Contains(node.Span)) &&
+            model.GetSymbolInfo(node).Symbol is not INamespaceSymbol &&
+            node.Parent is not AliasQualifiedNameSyntax { Alias.Identifier.ValueText: "global" });
+
     static IEnumerable<SyntaxNode> Sites(SyntaxNode root) => root.DescendantNodes().Where(node => node is SimpleNameSyntax or InvocationExpressionSyntax
         or BaseObjectCreationExpressionSyntax or AttributeSyntax or AwaitExpressionSyntax or ForEachStatementSyntax);
 

@@ -39,8 +39,8 @@ public class when_planning_the_register_project_application : a_register_project
     [Fact] void should_pin_the_frontend_packages_the_shell_mounts() => Content("package.json").ShouldContain("\"@cratis/arc\": \"22.58.2\"");
     [Fact] void should_mount_the_arc_provider_in_the_planned_shell() => Content(".frontend/main.tsx").ShouldContain("<Arc>");
     [Fact] void should_serve_the_bundled_frontend_from_the_planned_host() => Content("Program.cs").ShouldContain("MapFallbackToFile(\"/index.html\")");
-    [Fact] void should_render_the_identifier_concept() => Content("Common/ProjectId.cs").ShouldContain("global::Cratis.Chronicle.Events.EventSourceId<global::System.Guid>");
-    [Fact] void should_render_the_value_concept() => Content("Common/ProjectName.cs").ShouldContain("global::Cratis.Concepts.ConceptAs<string>");
+    [Fact] void should_render_the_identifier_concept() => Content("Common/ProjectId.cs").ShouldContain("EventSourceId<global::System.Guid>");
+    [Fact] void should_render_the_value_concept() => Content("Common/ProjectName.cs").ShouldContain("ConceptAs<string>");
     [Fact] void should_render_the_command_from_esm() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("public record RegisterProject(global::Projects.Common.ProjectId ProjectId, global::Projects.Common.ProjectName Name)");
     [Fact] void should_render_the_exact_validation_message() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("WithMessage(\"Project name is required\")");
     [Fact] void should_render_the_event_destination_as_the_identifier() => Content("Projects/Registration/RegisterProject/RegisterProject.cs").ShouldContain("public global::Projects.Projects.Registration.RegisterProject.ProjectRegistered Handle() => new(ProjectId, Name);");

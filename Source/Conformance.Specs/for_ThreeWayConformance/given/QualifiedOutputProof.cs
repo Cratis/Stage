@@ -5,6 +5,7 @@
 using System.Collections.Immutable;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports.for_FrameworkNameCatalog;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -21,16 +22,16 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 /// </summary>
 static class QualifiedOutputProof
 {
-    static readonly ImmutableArray<MetadataReference> _references =
-    [
-        .. ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(assembly => MetadataReference.CreateFromFile(assembly))
-    ];
+    static readonly Lazy<(ImmutableArray<MetadataReference> Application, ImmutableArray<MetadataReference> Specifications)> _references = new(() =>
+    {
+        var projects = Rendering.Cratis.Naming.Imports.for_FrameworkNameCatalog.given.a_restored_scaffold.Projects().GetAwaiter().GetResult();
+        return (References(projects.Application), References(projects.Specifications));
+    });
 
     static readonly CSharpParseOptions _parseOptions = new(preprocessorSymbols: ["DEBUG"]);
     static readonly CSharpCompilationOptions _options = new(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable);
-    static readonly Lazy<CSharpCompilation> _probe = new(() => CSharpCompilation.Create("Probe", [], _references, _options));
+    static ImmutableArray<MetadataReference> References(ScaffoldedProject project) =>
+        [.. project.References.Select(reference => reference.Path).Distinct(StringComparer.Ordinal).Select(path => MetadataReference.CreateFromFile(path))];
 
     /// <summary>
     /// Rewrites rendered files through the resolver and compares their bindings.
@@ -79,6 +80,36 @@ static class QualifiedOutputProof
     }
 
     /// <summary>
+    /// Compares actual renderer output with the qualified spelling oracle.
+    /// </summary>
+    /// <param name="qualified">The pre-short-name output.</param>
+    /// <param name="rendered">The real short-name output.</param>
+    /// <param name="allowShortFailure">Whether a hostile addition may make only the short version fail compilation.</param>
+    /// <returns>The proof outcome.</returns>
+    internal static QualifiedOutputResult VerifyRendered(IReadOnlyList<RenderedFile> qualified, IReadOnlyList<RenderedFile> rendered, bool allowShortFailure = false)
+    {
+        var original = Compile(qualified);
+        var actual = Compile(rendered);
+        var failures = new List<string>();
+        var shortSpellings = 0;
+        foreach (var (before, after) in new[] { (original.Application, actual.Application), (original.Specifications, actual.Specifications) })
+        {
+            foreach (var tree in Rendered(before))
+            {
+                var counterpart = after.SyntaxTrees.Single(candidate => candidate.FilePath == tree.FilePath);
+                var errorsBefore = Errors(before, tree);
+                var errorsAfter = Errors(after, counterpart);
+                if (allowShortFailure && errorsBefore.Length == 0 && errorsAfter.Length > 0) continue;
+                if (errorsBefore != errorsAfter) failures.Add($"{tree.FilePath}: compiler errors changed from [{errorsBefore}] to [{errorsAfter}]");
+                failures.AddRange(BindingSites.RenderedDifferences(before.GetSemanticModel(tree), after.GetSemanticModel(counterpart)));
+                shortSpellings += QualifiedReferences(tree) - QualifiedReferences(counterpart);
+            }
+        }
+
+        return new(failures, shortSpellings, rendered);
+    }
+
+    /// <summary>
     /// Compares the bindings and compiler errors of files before and after text changes.
     /// </summary>
     /// <param name="files">The original files.</param>
@@ -115,15 +146,30 @@ static class QualifiedOutputProof
             $"RenderedApplication_{Guid.NewGuid():N}",
             [GlobalUsings(GeneratedProjects.Application), Parse("Specifications.g.cs", "[assembly: System.Runtime.CompilerServices.InternalsVisibleTo(\"RenderedSpecifications\")]"),
                 .. files.Where(file => !IsSpecification(file)).Select(file => Parse(file.RelativePath, file.Content))],
-            _references,
+            _references.Value.Application,
             _options);
         var specifications = CSharpCompilation.Create(
             "RenderedSpecifications",
             [GlobalUsings(GeneratedProjects.Specifications), .. files.Where(IsSpecification).Select(file => Parse(file.RelativePath, file.Content))],
-            [.. _references, application.ToMetadataReference()],
+            [.. _references.Value.Specifications, application.ToMetadataReference()],
             _options);
         return (application, specifications);
     }
+
+    /// <summary>
+    /// Requires an independently rendered proof fixture to compile, not merely to reproduce the same errors.
+    /// </summary>
+    /// <param name="files">The rendered sources.</param>
+    /// <returns>The compilation errors from both scaffold projects.</returns>
+    internal static IReadOnlyList<string> CompilationErrors(IReadOnlyList<RenderedFile> files)
+    {
+        var compiled = Compile(files);
+        return [.. new[] { compiled.Application, compiled.Specifications }.SelectMany(compilation => compilation.GetDiagnostics())
+            .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.ToString())];
+    }
+
+    static int QualifiedReferences(SyntaxTree tree) => tree.GetRoot().DescendantNodes().OfType<AliasQualifiedNameSyntax>()
+        .Count(name => !name.Ancestors().OfType<UsingDirectiveSyntax>().Any());
 
     static bool IsSpecification(RenderedFile file) => Path.GetFileName(file.RelativePath).StartsWith("when_", StringComparison.Ordinal);
 
@@ -131,14 +177,10 @@ static class QualifiedOutputProof
 
     static SyntaxTree Parse(string path, string content) => CSharpSyntaxTree.ParseText(SourceText.From(content), _parseOptions, path);
 
-    // The scaffolded project's implicit and package global usings, for the namespaces the specification host can resolve.
+    // The complete scaffold reference set resolves every implicit and package global namespace.
     static SyntaxTree GlobalUsings(GeneratedProjects project) => Parse(
         $"GlobalUsings.{project}.g.cs",
-        string.Concat(FrameworkNameCatalog.Current.GlobalUsings(project).Where(Exists).Select(@namespace => $"global using {@namespace};\n")));
-
-    static bool Exists(string @namespace) => @namespace.Split('.').Aggregate(
-        (INamespaceSymbol?)_probe.Value.GlobalNamespace,
-        (current, segment) => current?.GetNamespaceMembers().FirstOrDefault(member => member.Name == segment)) is not null;
+        string.Concat(FrameworkNameCatalog.Current.GlobalUsings(project).Select(@namespace => $"global using {@namespace};\n")));
 
     static string Errors(CSharpCompilation compilation, SyntaxTree tree) => string.Join(", ", compilation.GetSemanticModel(tree).GetDiagnostics()
         .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.Id).Order(StringComparer.Ordinal));

@@ -14,19 +14,8 @@ internal sealed partial class SemanticCommandResultRendering
     {
         var events = ConditionalEvents(wrappedEvent);
         var response = Response();
-        var routing = new SemanticCommandRouteRendering(command, context, locals);
-        routing.StreamId();
-        var resultType = response is null ? events.Type : $"({response.Type}, {events.Type})";
-        var routeResult = $"global::OneOf.OneOf<{resultType}, global::Cratis.Arc.Validation.ValidationResult>";
-        builder.OpenBlock($"public {(routing.HasChecks ? routeResult : resultType)} Handle({Parameters()})");
-        if (routing.HasChecks) routing.RenderChecks(builder, routeResult);
-        if (HasOccurrence)
-        {
-            builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
-        }
-        RenderSelectedEvents(builder, wrappedEvent);
-        var value = response is null ? events.Value : $"({response.Value}, {events.Value})";
-        builder.Line($"return {(routing.HasChecks ? $"{routeResult}.FromT0({value})" : value)};").EndBlock();
+        var result = response is null ? events : new ResultExpression($"({response.Type}, {events.Type})", $"({response.Value}, {events.Value})");
+        RenderCheckedHandle(builder, result, () => RenderSelectedEvents(builder, wrappedEvent));
     }
 
     void RenderSelectedEvents(CSharpCodeBuilder builder, Func<SemanticProducedEvent, string> wrappedEvent)

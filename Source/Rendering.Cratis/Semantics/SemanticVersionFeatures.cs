@@ -371,7 +371,7 @@ internal static class SemanticVersionFeatures
 
         if (UnsupportedCommandResults(command))
         {
-            yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' combines generated values or a response with routing, legacy destination allocation, rules or requirements reading generated properties, or an unsupported response source or shape; Stage cannot preserve that combination yet.");
+            yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' combines a response with routing, generated identifiers with legacy destination allocation, rules or requirements reading generated properties, or an unsupported response source or shape; Stage cannot preserve that combination yet.");
         }
     }
 
@@ -564,7 +564,7 @@ internal static class SemanticVersionFeatures
     static bool UnsupportedGeneratedCombination(SemanticCommand command)
     {
         var generated = command.Properties.Where(property => property.IsGenerated).ToArray();
-        if (HasRoutedResults(command, generated.Length)) return true;
+        if (HasRoutedResults(command)) return true;
         if (generated.Length == 0) return false;
         if (generated.Any(property => property.IsIdentifier) && command.Produces.Any(produced => produced.Destination is null)) return true;
 
@@ -579,8 +579,8 @@ internal static class SemanticVersionFeatures
         _ => false
     };
 
-    static bool HasRoutedResults(SemanticCommand command, int generatedCount) =>
-        command.Route is not null && (command.Response is not null || generatedCount > 0);
+    static bool HasRoutedResults(SemanticCommand command) =>
+        command.Route is not null && command.Response is not null;
 
     static bool UnsupportedResponse(SemanticCommand command) => command.Response switch
     {

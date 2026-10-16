@@ -336,6 +336,14 @@ ui profile Web
   the cause. The Stage never falls back to a different shell, and never shows a blank page.
 * The runtime scene carries `root`, `appearance` and `defaults` and, as always, no sample data (see below).
 
+### Navigation items that render into a shell slot
+
+A navigation item authored with `slot <name>` renders its target into that outlet. When the outlet is one the shell declares - `side` in
+`layout AppShell ... side`, not a `core:outlet` some screen draws - the Stage hosts it: the page stays in the primary outlet, the target
+is drawn in a closable pane beside it, both items are marked active (`aria-current`), `Close` empties the pane, the pane stays when another
+page is opened and is restored from the address after a reload or a deep link. A shell without that slot opens the target in the primary
+outlet, as an item with no `slot` does. The Studio preview and a rendered application behave the same: Scene's `ApplicationHost` composes them all.
+
 ### No sample data in production
 
 Sample data exists to preview with at design time. The runtime document and the scene a running Stage serves carry **no sample

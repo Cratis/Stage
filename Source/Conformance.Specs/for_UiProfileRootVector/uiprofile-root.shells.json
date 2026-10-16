@@ -1,0 +1,33 @@
+{
+  "Desktop": {
+    "name": "AppShell",
+    "kind": "layout",
+    "source": "own",
+    "origin": "root",
+    "primaryOutlet": "content",
+    "options": {
+      "showFooter": true
+    },
+    "diagnostics": []
+  },
+  "Docked": {
+    "name": "Docked",
+    "kind": "screenTemplate",
+    "source": "own",
+    "origin": "root",
+    "primaryOutlet": "content",
+    "options": {},
+    "diagnostics": []
+  },
+  "FromBlueprint": {
+    "name": "AppShell",
+    "kind": "layout",
+    "source": "blueprint",
+    "origin": "blueprintDefault",
+    "primaryOutlet": "content",
+    "options": {},
+    "diagnostics": [
+      "rootTemplateVersionNotSatisfied"
+    ]
+  }
+}

@@ -112,7 +112,8 @@ function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationN
  * inside the Stage's own data scope so its queries, selections and commands work as they do on a primary screen.
  *
  * Scene's own outlet renders the placed screen in a scope of its own, which cannot see what the Stage resolves
- * queries and selections with, so the Stage draws the same region itself.
+ * queries and selections with, so the Stage draws the same region itself - including the `Close` button of an outlet the host
+ * put in a slot the shell declares (`slot side`).
  */
 export function StageOutlet({ element }: RegisteredComponentProps) {
     const name = typeof element.properties.name === 'string' ? element.properties.name : '';
@@ -121,9 +122,15 @@ export function StageOutlet({ element }: RegisteredComponentProps) {
     const data = useStageData();
     const placed = navigation?.outlets[name];
     const screen = placed && outlets ? outlets.screens[placed] : undefined;
+    const closable = element.properties.closable === true;
 
     return (
         <div data-scene-outlet={name} data-scene-outlet-screen={placed}>
+            {closable && placed && (
+                <div className='scene-outlet-bar'>
+                    <button type='button' className='scene-outlet-close' aria-label='Close' onClick={() => navigation?.closeOutlet(name)}>Close</button>
+                </div>
+            )}
             {screen && outlets && <SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} />}
         </div>
     );

@@ -28,6 +28,12 @@ public class a_composite_input : Specification
               validate
                 not empty message "Label required"
                 matches "^X" severity warning message "Label pattern"
+            concept AccountCode : String
+              validate
+                checksum luhn
+            type CheckedDetails
+              count Count optional
+              code AccountCode optional
             type Details
               count Count optional
               label Label optional

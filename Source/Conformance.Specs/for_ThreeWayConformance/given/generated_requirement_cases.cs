@@ -34,12 +34,12 @@ internal static class generated_requirement_cases
         return model;
     }
 
-    const string Source = """
+    static readonly string Source = $$"""
         concept Receipt : Uuid
         concept InviteCode : String
           generate nanoid 64 alphabet "ab"
           validate
-            matches "^(?!a{63}b$)[ab]{64}$"
+            matches "{{invoice_model.UnprovenCodePattern}}"
         module Orders
           feature Registration
             slice StateChange Register

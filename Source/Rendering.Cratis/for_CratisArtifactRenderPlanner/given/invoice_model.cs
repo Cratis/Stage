@@ -1,8 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 
@@ -14,6 +16,10 @@ public static class invoice_model
     public const string OtherTextSource = "\"invoice-two\"";
     public const string UuidSource = "\"3fa85f64-5717-4562-b3fc-2c963f66afa6\"";
     public const string OtherUuidSource = "\"4fa85f64-5717-4562-b3fc-2c963f66afa7\"";
+
+    // The portable corpus excludes only a{63}b, while its named group keeps generation proof Unproven.
+    public static string UnprovenCodePattern => ((SemanticTextValue)SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan())
+        .Application.Concepts.Single(concept => concept.Name == "InviteCode").Validations.Single().Operand!).Value;
 
     public static string Source(string type, string first, string second) => $$"""
         module Billing

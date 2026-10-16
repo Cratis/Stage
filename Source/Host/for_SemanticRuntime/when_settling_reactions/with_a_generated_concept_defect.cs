@@ -16,7 +16,7 @@ public class with_a_generated_concept_defect : a_reaction_runtime
         concept Code : String
           generate ulid case lower
           validate
-            matches "^(?!01)[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            matches "^(?<portable>0[02-9a-hjkmnp-tv-z][0-9a-hjkmnp-tv-z]{24}|[1-7][0-9a-hjkmnp-tv-z]{25})$"
         """ + "\n" + StartSource + """
 
             slice Automation FollowUp

@@ -20,7 +20,9 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
             SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
             SemanticValidationRuleKind.Length or SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual or
-            SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.Checksum;
+            SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.Checksum or
+            SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
+            SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
 
     internal static bool SafeMessage(string? message) => message is null ||
         (!message.StartsWith("$strings.", StringComparison.Ordinal) && !message.Any(_ => char.IsControl(_) || char.IsSurrogate(_) || (_ is '{' or '}')));
@@ -33,7 +35,8 @@ internal static class SemanticValidationRendering
         CanRender(rule with { Message = "Localized validation message" }))) && CanResolve(rule.Message, context);
 
     internal static bool SafeOperand(SemanticValidationRule rule) => rule.Operand is not SemanticTextValue text ||
-        (!text.Value.Any(_ => char.IsControl(_) || char.IsSurrogate(_)) && (rule.Message is not null || rule.Kind is not (SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) ||
+        (!text.Value.Any(_ => char.IsControl(_) || char.IsSurrogate(_)) && (rule.Message is not null || rule.Kind is not (SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or
+        SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith) ||
         !text.Value.Any(_ => _ is '{' or '}')));
 
     internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, ConceptRendering? conceptRendering = null, CSharpCodeBuilder? typeBuilder = null)
@@ -68,12 +71,7 @@ internal static class SemanticValidationRendering
     {
         builder.BlankLine()
             .OpenBlock("static bool MatchesPattern(string value, string pattern)")
-            .OpenBlock("try")
-            .Line($"return {Name(typeBuilder, "System.Text.RegularExpressions", "Regex")}.IsMatch(value, pattern, {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.ECMAScript | {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.CultureInvariant, {Name(typeBuilder, "System", "TimeSpan")}.FromSeconds(1));")
-            .EndBlock()
-            .OpenBlock($"catch ({Name(typeBuilder, "System.Text.RegularExpressions", "RegexMatchTimeoutException", ReferenceContext.Type)})")
-            .Line("return false;")
-            .EndBlock()
+            .Line($"return {Name(typeBuilder, "System.Text.RegularExpressions", "Regex")}.IsMatch(value, pattern, {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.NonBacktracking | {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.CultureInvariant, {Name(typeBuilder, "System.Text.RegularExpressions", "Regex")}.InfiniteMatchTimeout);")
             .EndBlock();
     }
 
@@ -111,6 +109,10 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.NotEqual => $"{absentPasses}!{Name(builder, "System", "Object")}.Equals({scalar}, {equality})",
             SemanticValidationRuleKind.Length => $"{absentPasses}{scalar}.Length == {number}",
             SemanticValidationRuleKind.Matches => $"{absentPasses}MatchesPattern({scalar}, {CSharpCodeBuilder.StringLiteral(SemanticMatchAnchors.Portable(((SemanticTextValue)operand!).Value))})",
+            SemanticValidationRuleKind.Contains => $"{absentPasses}{scalar}.Contains({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
+            SemanticValidationRuleKind.NotContains => $"{absentPasses}!{scalar}.Contains({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
+            SemanticValidationRuleKind.StartsWith => $"{absentPasses}{scalar}.StartsWith({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
+            SemanticValidationRuleKind.EndsWith => $"{absentPasses}{scalar}.EndsWith({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
             SemanticValidationRuleKind.Checksum => $"{absentPasses}global::Cratis.Concepts.GenerateValue.HasValidChecksum({scalar}, global::Cratis.Concepts.Checksum.{SemanticChecksumRules.Algorithm(operand)})",
             SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual => $"{absentPasses}value.All(element => {element} {comparison} {number})",
             _ => $"{absentPasses}{measured} {comparison} {number}"
@@ -145,6 +147,10 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.LessThan => $"A value must be less than {operand}.",
             SemanticValidationRuleKind.Length => $"A value must be exactly {operand} characters long.",
             SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
+            SemanticValidationRuleKind.Contains => $"A value must contain {operand}.",
+            SemanticValidationRuleKind.NotContains => $"A value must not contain {operand}.",
+            SemanticValidationRuleKind.StartsWith => $"A value must start with {operand}.",
+            SemanticValidationRuleKind.EndsWith => $"A value must end with {operand}.",
             SemanticValidationRuleKind.Checksum => $"A value must end in the exact {operand} check digits.",
             SemanticValidationRuleKind.AllGreaterThan => $"Every value must be greater than {operand}.",
             SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {operand}.",

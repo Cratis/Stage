@@ -132,7 +132,7 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticExpressionKind.ReadPath")]
     [InlineData("SemanticReadPathExpression.Read")]
     [InlineData("SemanticReadPathExpression.PropertyId")]
-    public void should_keep_protected_command_reads_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-044"));
+    public void should_render_protected_command_reads(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     static bool IsDiagnosticCode(string code) =>
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||

@@ -37,6 +37,11 @@ public static class TemplateReferenceConverter
         return result;
     }
 
+    internal static SceneScreens.TemplateReference Reference(string name, string? blueprint, string? version) =>
+        blueprint is null
+            ? new(SceneScreens.TemplateReferenceSource.Own, name)
+            : new(SceneScreens.TemplateReferenceSource.Blueprint, name, blueprint, version);
+
     static void Collect(ScreenplaySyntax.FeatureSyntax feature, string parent, List<TemplateAssignment> result)
     {
         var path = $"{parent}.{feature.Name}";
@@ -60,9 +65,4 @@ public static class TemplateReferenceConverter
 
     static TemplateAssignment Assignment(string scope, string owner, ScreenplaySyntax.TemplateAssignmentSyntax assignment) =>
         new(scope, owner, Reference(assignment.Name, assignment.Blueprint, assignment.Version));
-
-    internal static SceneScreens.TemplateReference Reference(string name, string? blueprint, string? version) =>
-        blueprint is null
-            ? new(SceneScreens.TemplateReferenceSource.Own, name)
-            : new(SceneScreens.TemplateReferenceSource.Blueprint, name, blueprint, version);
 }

@@ -62,14 +62,14 @@ public static class UiProfileConverter
             return null;
         }
 
-        var options = root.Options.ToDictionary(option => option.Name, option => ConvertOption(option), StringComparer.Ordinal);
+        var options = root.Options.ToDictionary<ScreenplaySyntax.ShellOptionSyntax, string, JsonNode?>(option => option.Name, ConvertOption, StringComparer.Ordinal);
         return new SceneModel.RootTemplate(
             TemplateReferenceConverter.Reference(root.Name, root.Blueprint, root.Version),
             options.Count == 0 ? null : options);
     }
 
     // The value keeps the kind it was written with: a flag is a boolean and a number a number, so a shell reads `true`, not "true".
-    static JsonNode? ConvertOption(ScreenplaySyntax.ShellOptionSyntax option) => option.Kind switch
+    static JsonValue? ConvertOption(ScreenplaySyntax.ShellOptionSyntax option) => option.Kind switch
     {
         ScreenplaySyntax.ShellOptionValueKind.Flag => JsonValue.Create(string.Equals(option.Value, "true", StringComparison.Ordinal)),
         ScreenplaySyntax.ShellOptionValueKind.Number => long.TryParse(option.Value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var whole)

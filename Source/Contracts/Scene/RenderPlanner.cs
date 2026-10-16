@@ -6,9 +6,9 @@ using Cratis.Scene.Engine.Packages;
 using Cratis.Scene.Engine.Profiles;
 using Cratis.Scene.Engine.Screens;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
-using SceneShell = Cratis.Scene.Engine.Shell;
 using ScenePackagesModel = Cratis.Scene.Model.Packages;
 using SceneProfilesModel = Cratis.Scene.Model.Profiles;
+using SceneShell = Cratis.Scene.Engine.Shell;
 using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
 
 namespace Cratis.Stage.Contracts.Scene;
@@ -112,7 +112,7 @@ public static class RenderPlanner
             [.. arrangements.Where(arrangement => arrangement.Selection is not null).Select(arrangement => arrangement.Selection!)],
             [
                 .. RenderFindings.ForPackages(profile, selection, catalog, target),
-                .. (shell is null ? RenderFindings.ForLayout(profile, application, layoutName, target) : RenderFindings.ForShell(profile, shell, target)),
+                .. shell is null ? RenderFindings.ForLayout(profile, application, layoutName, target) : RenderFindings.ForShell(profile, shell, target),
                 .. RenderFindings.ForTheme(profile, theme, target),
                 .. RenderFindings.ForComponents(components.Where(component => component.Resolution is null).Select(component => component.Name), target),
                 .. RenderFindings.ForScreenTemplates(screenTemplates, target),

@@ -10,6 +10,7 @@ public class when_refusing_unimplemented_behavior : Specification
 {
     [Theory]
     [InlineData("reaction batches atomic\n", "", "STAGE-ESM-043")]
+    [InlineData("command reads protected\n", "", "STAGE-ESM-044")]
     [InlineData("", "          handler\n            implementation\n              hint \"Calculate the fee\"\n", "STAGE-IMPL-002")]
     public void should_refuse_before_translating_nested_commands_or_reactions(string boundary, string handler, string code)
     {

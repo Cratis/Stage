@@ -24,7 +24,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "2c828e84a2db8f174fd66aa290881b7c52c8af5243f0bbe80009522d91cc982e";
+    const string Digest = "80be4e37923af96480627492ca51d56d355db9481d15b0c9a79d6c078171621d";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -32,7 +32,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx e4dc56b56e3e3855a1fdeedf2c14c131db52853c73f87b3b28d51b30a0e361b7 2723
         .frontend/stage/App.tsx 12169599231660c97494a1f08b2ab32bb89f2069b957246f92da206eb56998ea 24239
-        .frontend/stage/StageChrome.tsx 2cbcc9370c6e6385d097a4c2f96af89830371a1ce9efa3490b5058789cbfb925 7731
+        .frontend/stage/StageChrome.tsx 1c40eddd9cd9cbac5efb89902a83265f0c2bd2b82338f828f2e667486709e6c7 8172
         .frontend/stage/StageCommandForm.tsx 07c4a176399590ee73a3ef5ce96d3389995f2f36204b8d08faa7903c061a2a81 22785
         .frontend/stage/StageGuardedAction.tsx 8c950711a7cd89ddd11191f846bf5230da93cf2a31a450976ff22d26e6210c5e 6921
         .frontend/stage/StageShellSettings.tsx c2e9eae4cf842185f9b76862b51886012ead363e60b79d000d15c6a38b5b3f1d 2442
@@ -87,7 +87,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs f646a742678761c49e10be6d010dfe8f52bb2d0f615348dd724e202e122ed70d 2502
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 100ae9158ee336bbf09c743961ed2614a289f94e3022a301204cf8b76ad8c09f 259
-        package.json 54d079bf2fba138e0b9da74bd1dd248dcd50c64bb99e27fba546953340ac00d4 1431
+        package.json cc4c8a22b882b883948386d9741dcdb2ad134bf95fa127c1a0674a857e6729b2 1431
         scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
         src/stage-scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
@@ -150,7 +150,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("d924b0284bfd89bf56318a0770f3c73788c8e7394311cd3ae6f8538eb5313071");
+            plan.Diagnostics).ShouldEqual("5663e0a4100191286afb9d991f813bb364c91d85feca83abdcba9dd60dabd5e1");
     }
 
     [Theory]
@@ -164,7 +164,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // those pins in Directory.Packages.props; frontend files may already name 22.100.1 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal).Replace("4.62.0", "4.22.1", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal).Replace("4.67.0", "4.22.1", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
             ? previous.Replace("22.104.0", "22.87.0", StringComparison.Ordinal)

@@ -16,5 +16,7 @@
     </ItemGroup>
   <ItemGroup>
     <None Include="for_SceneEnumerationNaming/scene-model-enumerations.json" CopyToOutputDirectory="PreserveNewest" Link="for_SceneEnumerationNaming/scene-model-enumerations.json" />
+    <None Include="for_UiProfileRootVector/uiprofile-root.scene.json" CopyToOutputDirectory="PreserveNewest" Link="for_UiProfileRootVector/uiprofile-root.scene.json" />
+    <None Include="for_UiProfileRootVector/uiprofile-root.shells.json" CopyToOutputDirectory="PreserveNewest" Link="for_UiProfileRootVector/uiprofile-root.shells.json" />
   </ItemGroup>
 </Project>

@@ -57,7 +57,7 @@ ui profile Desktop
   packages
     core
     primereact
-  layout AppShell
+  root template AppShell
   theme Corporate
   sample data
     active NordicDemo
@@ -67,5 +67,5 @@ ui profile Phone
   target size compact
   packages
     core
-  layout AppShell
+  root template AppShell
   theme HighContrast

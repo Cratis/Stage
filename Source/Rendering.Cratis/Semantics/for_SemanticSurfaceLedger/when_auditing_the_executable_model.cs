@@ -103,8 +103,26 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticInvocation.Mappings")]
     public void should_render_event_reactions(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
-    static bool IsDiagnosticCode(string code) => code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) &&
-        code.Length == 13 && code.AsSpan(10).ToString().All(char.IsAsciiDigit);
+    [Theory]
+    [InlineData("SemanticCommand.Handler")]
+    [InlineData("SemanticCommandHandler.RequirementId")]
+    [InlineData("SemanticCommandHandler.ResultVersion")]
+    [InlineData("SemanticImplementationRequirement.Hints")]
+    [InlineData("SemanticImplementationRequirement.IsProvisional")]
+    [InlineData("SemanticImplementationRequirement.IsAmbiguous")]
+    [InlineData("SemanticAttachmentResolution.Pending")]
+    [InlineData("SemanticExecutionCapability.ImplementationBody")]
+    public void should_keep_described_implementation_members_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-IMPL-002"));
+
+    [Theory]
+    [InlineData("SemanticApplication.ReactionProductionMode")]
+    [InlineData("SemanticReactionProductionMode.Atomic")]
+    public void should_keep_atomic_reaction_batches_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+
+    static bool IsDiagnosticCode(string code) =>
+        ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||
+         (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14)) &&
+        code.AsSpan(code.Length - 3).ToString().All(char.IsAsciiDigit);
 
     static IEnumerable<string> EnumerateSurface()
     {
@@ -117,6 +135,14 @@ public class when_auditing_the_executable_model : Specification
         {
             yield return $"{nameof(SemanticImplementationRequirement)}.{property.Name}";
         }
+
+        // Pending attachment state and the evaluator's body capability are not ESM members,
+        // but both must retain an explicit refusal until described bodies are implemented.
+        foreach (var member in Enum.GetNames<SemanticAttachmentResolution>())
+        {
+            yield return $"{nameof(SemanticAttachmentResolution)}.{member}";
+        }
+        yield return "SemanticExecutionCapability.ImplementationBody";
 
         var pending = new Queue<Type>([typeof(ExecutableSemanticModel), typeof(SemanticApplication)]);
         var visited = new HashSet<Type>();

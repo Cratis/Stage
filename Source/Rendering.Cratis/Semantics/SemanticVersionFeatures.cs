@@ -98,11 +98,18 @@ internal static class SemanticVersionFeatures
     internal const string UnsupportedValidation = "STAGE-ESM-042";
 
     /// <summary>
+    /// The code for pending command handlers, which no Stage engine implements yet.
+    /// </summary>
+    internal const string PendingCommandHandler = "STAGE-IMPL-002";
+
+    /// <summary>
     /// Checks the language and semantic version pair Stage has audited.
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
-    public static bool Supports(ExecutableSemanticModel model) => EsmSchemaV21Support.Supports(model.LanguageVersion, model.SemanticVersion);
+    public static bool Supports(ExecutableSemanticModel model) =>
+        EsmSchemaV21Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
+        (model.LanguageVersion == LanguageVersion.V23 && model.SemanticVersion == SemanticVersion.V23);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -120,9 +127,37 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> InApplication(SemanticApplication application) =>
         (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
+        .Concat(ReactionBatchesInApplication(application))
+        .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(DescribedHandlersInCommand))
         .Concat(RoutesInApplication(application))
         .Concat(UnsupportedConcepts(application.Concepts))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
+
+    /// <summary>
+    /// Finds an application-wide reaction production boundary no Stage engine preserves yet.
+    /// </summary>
+    /// <param name="application">The semantic application.</param>
+    /// <returns>The refused reaction production mode.</returns>
+    public static IEnumerable<SemanticVersionFeature> ReactionBatchesInApplication(SemanticApplication application)
+    {
+        if (application.ReactionProductionMode is { } mode)
+        {
+            yield return new(Automation, StageExecutionCapability.Reaction, application.Id, "application", $"Application '{application.Name}' declares reaction batches {mode.ToString().ToLowerInvariant()} (ESM v22); Stage does not preserve that production boundary yet (Cratis/Stage#422).");
+        }
+    }
+
+    /// <summary>
+    /// Finds a described command body that must not be replaced by declarative mappings.
+    /// </summary>
+    /// <param name="command">The command.</param>
+    /// <returns>The pending handler refusal.</returns>
+    public static IEnumerable<SemanticVersionFeature> DescribedHandlersInCommand(SemanticCommand command)
+    {
+        if (command.Handler is { } handler)
+        {
+            yield return new(PendingCommandHandler, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' has pending command handler requirement '{handler.RequirementId}'; described command handlers are not implemented by Stage yet.");
+        }
+    }
 
     /// <summary>
     /// Finds named event sources and streams the renderer cannot render yet.
@@ -311,6 +346,8 @@ internal static class SemanticVersionFeatures
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InCommand(SemanticCommand command)
     {
+        foreach (var feature in DescribedHandlersInCommand(command)) yield return feature;
+
         foreach (var route in RoutesInCommand(command))
         {
             yield return route;

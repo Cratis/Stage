@@ -26,7 +26,8 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("df59dec578a26db71571a0f93dafed1e575c88b138b4eaead43bd76fc6332cde");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("df59dec578a26db71571a0f93dafed1e575c88b138b4eaead43bd76fc6332cde");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("174f80a1cafb939b822d54e5d5ef0184da30940cd525589b1c3cc7287540cca8");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("3d3cdbafcd57d2a6cca5b501b4503cacd3f149fc564706a94bc5ae008d136033");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
@@ -36,7 +37,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         _plan.Renderer,
         _plan.RendererVersion,
         _plan.ApplicationName,
-        [.. _plan.Artifacts.Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
+        [.. QualifiedCommonOutput.Restore(_model, _plan, new("InvoiceApp", "Invoices")).Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
             ? PlannedArtifact.CreateText(
                 artifact.RelativePath,
                 PreviousRealization(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),

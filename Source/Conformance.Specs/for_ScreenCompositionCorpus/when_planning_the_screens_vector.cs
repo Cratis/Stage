@@ -5,6 +5,8 @@ using System.Text;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.given;
 using Xunit;
@@ -22,9 +24,9 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "0f8dc52e3c77d034e0ce0f4c317bd699cf121a8484c0b17f911e87206ef05c3e";
+    const string Digest = "d8d0e0c8824d55591732cf391de66262cb5f3ce91232e724284de56c6969495d";
 
-    const string Manifest = """
+    const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
@@ -91,7 +93,24 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;
 
+    static readonly string Manifest = QualifiedManifest
+        .Replace(".editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689", ".editorconfig 4cf0d1389cef373e18920c4fddb10948553e3c171badb2de66399717f870df76 741", StringComparison.Ordinal)
+        .Replace("Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726", "Common/CommentId.cs 22e4f037b6a68e681c9d3dc99fe196a1bf1d04c459d6b256e7b5dfbb70a60539 701", StringComparison.Ordinal)
+        .Replace("Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733", "Common/WorkItemId.cs 2e63fd86e53381114093bcfccd9e2a51bb098a326a48cb3bd8bb6bec89f24da9 708", StringComparison.Ordinal);
+
     public static TheoryData<string> Forms => [.. ScreenCompositionCorpus.V1.SourceForms.Select(form => form.Name)];
+
+    [Theory]
+    [MemberData(nameof(Forms))]
+    public void should_confine_changes_to_common_files_and_using_placement(string form)
+    {
+        var source = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
+        var planned = Plan(source.Documents, source.IdentityCatalogBytes.AsSpan(), carryScene: false);
+        var restored = QualifiedCommonOutput.Restore(planned.Model, planned.Plan, new(ApplicationName, ApplicationName));
+        var actual = restored.Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
+        var expected = QualifiedManifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim()).ToArray();
+        Assert.True(actual.SequenceEqual(expected), string.Join('\n', actual.Except(expected)));
+    }
 
     [Theory]
     [MemberData(nameof(Forms))]
@@ -123,7 +142,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
             plan.Renderer,
             plan.RendererVersion,
             plan.ApplicationName,
-            [.. plan.Artifacts.Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
+            [.. QualifiedCommonOutput.Restore(planned.Model, plan, new(ApplicationName, ApplicationName)).Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
                 ? PlannedArtifact.CreateText(
                     PreviousNames(artifact.RelativePath),
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),

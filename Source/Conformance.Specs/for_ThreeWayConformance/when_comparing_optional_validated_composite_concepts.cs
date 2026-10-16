@@ -26,7 +26,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
     [Fact] void should_agree_on_all_composite_inputs() => Assert.All(fixture.Outcomes, outcome => Assert.Contains("Reference=Passed, Stage=Passed, Rendered=Passed", outcome, StringComparison.Ordinal));
 
     [Fact]
-    void should_admit_every_renderer_admitted_composite_command_shape()
+    void should_admit_every_renderer_admitted_well_formed_composite_command_shape_without_opaque_rules()
     {
         var model = optional_validated_composite_concept_cases.Admitted();
         var plan = SemanticExecutionPlan.Compile(model).Plan!;

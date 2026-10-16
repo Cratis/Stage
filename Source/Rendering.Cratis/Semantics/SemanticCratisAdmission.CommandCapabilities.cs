@@ -30,7 +30,7 @@ internal static partial class SemanticCratisAdmission
         }
 
         ValidateCommandEventProperties(context, slice, command, diagnostics);
-        foreach (var property in command.Properties.Where(property => SemanticValueShapeAdmission.Refusal(context, property.Type, deferUnhandledPrimitives: true) is not null))
+        foreach (var property in command.Properties.Where(property => !TypeExists(context, property.Type)))
         {
             diagnostics.Add(CommandCapability(command, $"property '{property.Name}' has an unresolved type; Stage cannot emit its C# type. Declare a supported primitive, concept, or composite type."));
         }

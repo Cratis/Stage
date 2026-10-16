@@ -10,15 +10,15 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticValueShapeAdmissio
 public class when_checking_an_unhandled_primitive : given.a_value_shape
 {
     string? _refusal;
-    string? _renderingRefusal;
+    bool _renderingTypeExists;
 
     void Because()
     {
         var type = SemanticTypeReference.ForPrimitive((SemanticPrimitiveType)99);
         _refusal = SemanticValueShapeAdmission.Refusal(_context, type);
-        _renderingRefusal = SemanticValueShapeAdmission.Refusal(_context, type, deferUnhandledPrimitives: true);
+        _renderingTypeExists = SemanticCratisAdmission.TypeExists(_context, type);
     }
 
     [Fact] void should_refuse_execution_and_host_admission() => _refusal.ShouldEqual("The value has an unresolved type.");
-    [Fact] void should_defer_to_the_renderer_primitive_diagnostic() => _renderingRefusal.ShouldBeNull();
+    [Fact] void should_defer_to_the_renderer_primitive_diagnostic() => _renderingTypeExists.ShouldBeTrue();
 }

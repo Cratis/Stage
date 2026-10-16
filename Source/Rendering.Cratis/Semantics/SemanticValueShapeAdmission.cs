@@ -7,37 +7,37 @@ using Cratis.Stage.Specifications.Commands;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Shares semantic value-shape admission between rendering, specification execution and Host admission.
-/// Rendering-fidelity limits belong to the renderer, not to this semantic closure.
+/// Provides strict semantic value-shape admission for specification execution and Host admission.
+/// Renderer command properties consume only the top-level check in SemanticCratisAdmission.TypeExists:
+/// its own STAGE-ESM-002/003/005/012 type diagnostics cover concept rules, primitives and nested types.
+/// Rendering-fidelity limits also belong to the renderer, not to this semantic closure.
 /// </summary>
 internal static class SemanticValueShapeAdmission
 {
     const string UnresolvedType = "The value has an unresolved type.";
 
-    // Rendering defers future primitive enum values to its existing STAGE-ESM-012 emission diagnostic.
-    // Execution and Host admission keep the default strict check before materializing values.
-    internal static string? Refusal(SemanticApplicationContext context, SemanticTypeReference type, bool deferUnhandledPrimitives = false) =>
-        Closure(context, type).Select(member => TypeRefusal(context, member.Type, deferUnhandledPrimitives)).FirstOrDefault(refusal => refusal is not null);
+    internal static string? Refusal(SemanticApplicationContext context, SemanticTypeReference type) =>
+        Closure(context, type).Select(member => TypeRefusal(context, member.Type)).FirstOrDefault(refusal => refusal is not null);
 
     internal static IEnumerable<(string Path, SemanticTypeReference Type)> Closure(SemanticApplicationContext context, SemanticTypeReference type) =>
         Closure(context, type, string.Empty, []);
 
-    static string? TypeRefusal(SemanticApplicationContext context, SemanticTypeReference type, bool deferUnhandledPrimitives) => type.Kind switch
+    static string? TypeRefusal(SemanticApplicationContext context, SemanticTypeReference type) => type.Kind switch
     {
-        SemanticTypeReferenceKind.Primitive => PrimitiveRefusal(type.Primitive, deferUnhandledPrimitives),
+        SemanticTypeReferenceKind.Primitive => PrimitiveRefusal(type.Primitive),
         SemanticTypeReferenceKind.CompositeType => context.Types.ContainsKey(type.Target) ? null : UnresolvedType,
-        SemanticTypeReferenceKind.Concept => ConceptRefusal(context, type.Target, deferUnhandledPrimitives),
+        SemanticTypeReferenceKind.Concept => ConceptRefusal(context, type.Target),
         _ => UnresolvedType
     };
 
-    static string? PrimitiveRefusal(SemanticPrimitiveType primitive, bool deferUnhandledPrimitives) =>
-        primitive != SemanticPrimitiveType.Unknown && (deferUnhandledPrimitives || Enum.IsDefined(primitive)) ? null : UnresolvedType;
+    static string? PrimitiveRefusal(SemanticPrimitiveType primitive) =>
+        primitive != SemanticPrimitiveType.Unknown && Enum.IsDefined(primitive) ? null : UnresolvedType;
 
-    static string? ConceptRefusal(SemanticApplicationContext context, SemanticId id, bool deferUnhandledPrimitives)
+    static string? ConceptRefusal(SemanticApplicationContext context, SemanticId id)
     {
         if (!context.Concepts.TryGetValue(id, out var concept)) return UnresolvedType;
 
-        return PrimitiveRefusal(concept.Primitive, deferUnhandledPrimitives) ?? ConceptRuleRefusal(concept);
+        return PrimitiveRefusal(concept.Primitive) ?? ConceptRuleRefusal(concept);
     }
 
     static string? ConceptRuleRefusal(SemanticConcept concept) =>

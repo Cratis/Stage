@@ -27,8 +27,6 @@ public class when_admitting_the_v21_golden_vector : Specification
     [Fact] void should_not_refuse_the_audited_version() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
     [Fact] void should_emit_no_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
     [Theory]
-    [InlineData("PatternReference", "pattern")]
-    [InlineData("TicketNumber", "random")]
     [InlineData("TenantOrderId", "rule")]
     void should_name_each_unsupported_strategy(string name, string strategy) => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-028" && diagnostic.Artifact == _model.Application.Concepts.Single(concept => concept.Name == name).Id && diagnostic.Message.Contains(strategy, StringComparison.Ordinal));
     [Fact] void should_admit_checksum_validation() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-042");

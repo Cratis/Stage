@@ -21,7 +21,7 @@ public sealed partial class SemanticSpecificationExecutor
             }
             var concept = context.Plan.Model.Application.Concepts.Single(concept => concept.Id == property.Type.Target);
             if ((SemanticGenerationShapes.UsesConceptGeneration(context.Plan.Model.Application) || !concept.Validations.IsEmpty) &&
-                !SemanticGenerationShapes.Matches(concept, fixture.Value))
+                !SemanticGenerationShapes.Matches(concept, fixture.Value, SemanticSpecificationClock.TryGet(context.Specification, out var instant) ? instant : null))
             {
                 return SemanticGenerationShapes.FixtureMessage(property.Name);
             }

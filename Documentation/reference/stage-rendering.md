@@ -141,8 +141,8 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
-Stage uses Screenplay 4.182.0 and admits exact ESM v1–v21 and v23 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. V21's `generate pattern` and `generate random` render Fundamentals factories and execute with reference-compatible fixture shapes; dated patterns take their UTC date from the generation context, and random values preserve the full inclusive Int64 range. `generate rule` remains refused with `STAGE-ESM-028`. `validate checksum luhn`, `mod11` and `mod97` render and execute. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042`. Generated values with any unproven rule require pins in rendered specifications; fully proven rules permit unpinned generation. Failing pins retain `STAGE-ESM-011`, and unpinned specifications with unproven rules retain `STAGE-ESM-038`. The generated backend pins Arc 22.104.0, which rejects generated values failing concept rules of any severity. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
-ESM v22 remains refused with `STAGE-ESM-016`. In admitted v23 models, all three engines (renderer, Host and specification executor) refuse described command handlers with `STAGE-IMPL-002`, naming the command and RequirementId, and `reaction batches atomic` with `STAGE-ESM-043`. No stubs are emitted yet, even in Stub mode.
+Stage uses Screenplay 4.188.0 and admits exact ESM v1–v21, v23 and v24 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. V21's `generate pattern` and `generate random` render Fundamentals factories and execute with reference-compatible fixture shapes; dated patterns take their UTC date from the generation context, and random values preserve the full inclusive Int64 range. `generate rule` remains refused with `STAGE-ESM-028`. `validate checksum luhn`, `mod11` and `mod97` render and execute. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042`. Generated values with any unproven rule require pins in rendered specifications; fully proven rules permit unpinned generation. Failing pins retain `STAGE-ESM-011`, and unpinned specifications with unproven rules retain `STAGE-ESM-038`. The generated backend pins Arc 22.104.0, which rejects generated values failing concept rules of any severity. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
+ESM v22, v25 and mixed version pairs remain refused with `STAGE-ESM-016`. ESM v24's `contains`, `not contains`, `starts with` and `ends with` rules execute on the Host and specification executor and render as ordinal UTF-16 string comparisons, without regex or a Screenplay dependency in generated apps. Absence passes; an empty operand satisfies contains/starts-with/ends-with and fails not-contains for every present value. In admitted v23 models, all three engines (renderer, Host and specification executor) refuse described command handlers with `STAGE-IMPL-002`, naming the command and RequirementId, and `reaction batches atomic` with `STAGE-ESM-043`. No stubs are emitted yet, even in Stub mode.
 
 For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
 `9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction
@@ -260,10 +260,18 @@ same event store. Chronicle refuses the second registration of a changed schema 
 
 ## Match patterns
 
-`matches` uses ECMAScript regular-expression semantics with culture-invariant matching and a one-second timeout.
+`matches` uses Screenplay's portable match dialect: case-sensitive UTF-16 matching without culture-dependent
+character classes. `\d` and `\w` are ASCII; `\s` includes Unicode spaces and the byte-order mark (`U+FEFF`),
+but not next-line (`U+0085`). Dot excludes LF, CR, line separator (`U+2028`) and paragraph separator (`U+2029`).
 An unescaped `$` outside a character class means end of input, not the position before a final newline:
 `^[A-Z]{3}$` accepts `ABC` but rejects `ABC\n`. Escaped dollars and dollars inside character classes remain literal.
-The semantic executor, Host and generated C# validators use the same rule.
+Unanchored patterns search the input rather than requiring a whole-input match.
+
+The semantic executor and Host delegate match evaluation to Screenplay. Generated C# validators expand portable
+character sets and use strict anchors with .NET's non-backtracking engine; they do not turn timeouts into
+validation failures. If .NET cannot compile an otherwise portable pattern (for example, an empty group with a
+counted repeat larger than .NET's integer bound), rendering refuses it with `STAGE-ESM-005`, naming the construct.
+The renderer also retains .NET's non-backtracking automaton-size limit rather than changing process-wide settings.
 
 ## Chrome
 

@@ -218,7 +218,7 @@ public sealed class CratisFrontendApplicationScaffold
             StringComparison.Ordinal)
         .Replace(
             "<App components={cratisComponentsRuntimePackage.components} />",
-            "<App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} />",
+            "<App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />",
             StringComparison.Ordinal);
 
     static string MainModuleSource() =>
@@ -317,6 +317,9 @@ public sealed class CratisFrontendApplicationScaffold
                 components: mergePackageRegistries(loaded.bundles),
                 // What each approved package declares, so an authored `Package.component` resolves to the key it registers under.
                 catalog: Object.fromEntries(loaded.bundles.map(bundle => [bundle.manifest.name, bundle.manifest.components])),
+                // The screen and dialog templates a domain blueprint among them brings: what a `template blueprint ...` reference fills.
+                screenTemplates: loaded.bundles.flatMap(bundle => bundle.screenTemplates ?? []),
+                dialogTemplates: loaded.bundles.flatMap(bundle => bundle.dialogTemplates ?? []),
             };
         }
         """;

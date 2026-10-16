@@ -31,7 +31,8 @@ public class when_classifying_semantic_members
             SemanticValidationRuleKind.Equal, SemanticValidationRuleKind.NotEqual, SemanticValidationRuleKind.GreaterThan,
             SemanticValidationRuleKind.GreaterThanOrEqual, SemanticValidationRuleKind.LessThan,
             SemanticValidationRuleKind.LessThanOrEqual, SemanticValidationRuleKind.Length, SemanticValidationRuleKind.AllGreaterThan,
-            SemanticValidationRuleKind.AllGreaterThanOrEqual, SemanticValidationRuleKind.Matches, SemanticValidationRuleKind.Checksum],
+            SemanticValidationRuleKind.AllGreaterThanOrEqual, SemanticValidationRuleKind.Matches, SemanticValidationRuleKind.Checksum,
+            SemanticValidationRuleKind.Contains, SemanticValidationRuleKind.NotContains, SemanticValidationRuleKind.StartsWith, SemanticValidationRuleKind.EndsWith],
         [SemanticValidationRuleKind.Unknown, SemanticValidationRuleKind.RulePredicate, SemanticValidationRuleKind.CodeValidation]);
 
     [Fact]

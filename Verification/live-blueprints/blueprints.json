@@ -1,0 +1,9 @@
+[
+  { "model": "crm",            "npm": "scene.blueprint.crm",            "export": "crmBlueprint" },
+  { "model": "ticketing",      "npm": "scene.blueprint.ticketing",      "export": "ticketingBlueprint" },
+  { "model": "approvals",      "npm": "scene.blueprint.approvals",      "export": "approvalsBlueprint" },
+  { "model": "inventory",      "npm": "scene.blueprint.inventory",      "export": "inventoryBlueprint" },
+  { "model": "hr",             "npm": "scene.blueprint.hr",             "export": "hrBlueprint" },
+  { "model": "projects",       "npm": "scene.blueprint.project-tracker", "export": "projectTrackerBlueprint" },
+  { "model": "administration", "npm": "scene.blueprint.administration", "export": "administrationBlueprint" }
+]

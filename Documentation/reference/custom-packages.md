@@ -42,7 +42,7 @@ For an application with an approved set, the planned artifacts add and change:
 | `approved-packages.json` | The canonical document. |
 | `package.json` | One extra dependency for each `module.npm` at `module.version`, in ordinal order among the others. A package that is already installed (for example `react`) or reuses a shipped package name is refused. |
 | `.frontend/approvedPackages.ts` | A literal `import()` for each approved module, the package style sheets, and `loadApprovedComponents()`, which loads the bundles through `loadApprovedPackages` from `@cratis/scene.react`. |
-| `.frontend/main.tsx` | Awaits `loadApprovedComponents()` before the first render and renders `App` with the approved components next to the Cratis components. |
+| `.frontend/main.tsx` | Awaits `loadApprovedComponents()` before the first render and renders `App` with the approved components - and the screen and dialog templates the approved packages bring - next to the Cratis components. |
 
 `loadApprovedPackages` refuses a bundle that differs from its declaration - name, version, kind, components, layouts, templates
 or themes - and a package that fails to import or lacks its export. The application then stops with the reasons on the page, never
@@ -78,4 +78,18 @@ paths ([run reference](https://github.com/Cratis/cli/blob/main/Documentation/ref
 A package is a browser ES module that leaves React external. Its `import ... from 'react'` (and `react/jsx-runtime`, `react-dom`,
 `react-dom/client`) resolves through an import map in the Stage page to shim modules that re-export **the Stage's own React**, so the
 package's hooks and contexts are the Stage's. A package that bundles its own copy of React fails on its first hook. Anything else a
-package imports must be bundled into its module. A Stage handed no set renders the three shipped packages, as before.
+package imports must be bundled into its module. A Stage handed no set renders the five shipped packages, as before.
+
+## Domain blueprints
+
+The Stage ships `core`, `scene.web`, `Cratis.Components`, `PrimeReact` and `Cratis.Blueprint.Default`; their declarations are generated
+from the real package manifests by `Source/Frontend/src/shippedPackages.spec.ts` (which fails when the checked-in
+`Rendering.Cratis/Shipped/ShippedPackages.json` is stale), so the catalog a `ui profile` is resolved against is the one the frontend renders with.
+A domain blueprint - `@cratis/scene.blueprint.crm`, `.ticketing`, `.approvals`, `.inventory`, `.hr`, `.project-tracker`, `.administration` - therefore
+only needs approving itself: its dependency on `Cratis.Blueprint.Default` is already satisfied.
+
+The approved set accepts a blueprint manifest as published. Its `blueprint` and `sampleData` members are design-time only and are dropped from the
+canonical document, so sample data never reaches a generated application or `GET /stage/packages` (spec SD6). The screen and dialog templates
+of an approved blueprint are what an authored `template blueprint <Package> <Template>` reference fills, in a live Stage and in a generated
+application. A blueprint bundle imports `@cratis/scene.blueprint.default`, `@cratis/scene.engine`, `@cratis/scene.model` and `@cratis/scene.react`; a live Stage
+maps them to its own instances, like React.

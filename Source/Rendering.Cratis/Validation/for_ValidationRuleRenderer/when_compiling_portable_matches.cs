@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -18,11 +19,27 @@ public class when_compiling_portable_matches : Specification
     [InlineData(@"^\$$", "$", true)]
     [InlineData("^[$]$", "$", true)]
     [InlineData(@"^[\]$]+$", "]$", true)]
-    [InlineData("^[]$]+$", "]$", true)]
-    [InlineData("^A[^]$", "AB\n", false)]
+    [InlineData("^.$", "\r", false)]
+    [InlineData("^.$", "\u2028", false)]
+    [InlineData("^.$", "\u2029", false)]
+    [InlineData(@"^\s$", "\u00a0", true)]
+    [InlineData(@"^\s$", "\ufeff", true)]
+    [InlineData(@"^\s$", "\u0085", false)]
+    [InlineData(@"^\S$", "\u00a0", false)]
+    [InlineData(@"^[\s]$", "\u2003", true)]
+    [InlineData(@"^[^\s]$", "\u3000", false)]
+    [InlineData(@"^\w$", "\u0130", false)]
+    [InlineData(@"^\W$", "\u0130", true)]
+    [InlineData(@"^[\w]$", "\u0130", false)]
+    [InlineData(@"^\w$", "é", false)]
+    [InlineData(@"^\d$", "\u0661", false)]
+    [InlineData("^abc$", "ABC", false)]
+    [InlineData("^.*$", null, true)]
     [InlineData("B", "ABC", true)]
-    public void should_compile_and_apply_screenplay_matching(string pattern, string input, bool expected)
+    public void should_compile_and_apply_screenplay_matching(string pattern, string? input, bool expected)
     {
+        var rule = new SemanticValidationRule(default, SemanticValidationRuleKind.Matches, SemanticValue.Text(pattern), null);
+        (SemanticValidationRules.Check(rule, input is null ? SemanticValue.Null : SemanticValue.Text(input)).Status == SemanticRuleStatus.Satisfied).ShouldEqual(expected);
         var call = ValidationRuleRenderer.RenderCall(ValidationRuleKind.Matches, CSharpCodeBuilder.StringLiteral(pattern));
         var code = $$"""
             public record Probe(string Value);

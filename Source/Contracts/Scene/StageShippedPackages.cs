@@ -8,7 +8,9 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </summary>
 /// <remarks>
 /// The renderer's catalog and a live Stage's package host both read the names from here, so the packages a
-/// generated application renders and the ones a running Stage renders are the same three.
+/// generated application renders and the ones a running Stage renders are the same five. The PrimeReact widgets and the default
+/// blueprint are shipped because the frontend is built from them: a domain blueprint package depends on the default blueprint,
+/// and that dependency is satisfied by the Stage rather than by an approval.
 /// </remarks>
 public static class StageShippedPackages
 {
@@ -28,7 +30,17 @@ public static class StageShippedPackages
     public const string CratisComponents = "Cratis.Components";
 
     /// <summary>
+    /// The PrimeReact widgets package the default blueprint is built from.
+    /// </summary>
+    public const string PrimeReact = "PrimeReact";
+
+    /// <summary>
+    /// The default blueprint: the application shell, the shell components and the foundation templates every domain blueprint builds on.
+    /// </summary>
+    public const string DefaultBlueprint = "Cratis.Blueprint.Default";
+
+    /// <summary>
     /// Gets the names of the shipped packages.
     /// </summary>
-    public static IReadOnlyList<string> Names { get; } = [Core, SceneWeb, CratisComponents];
+    public static IReadOnlyList<string> Names { get; } = [Core, SceneWeb, CratisComponents, PrimeReact, DefaultBlueprint];
 }

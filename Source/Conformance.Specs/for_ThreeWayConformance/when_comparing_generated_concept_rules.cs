@@ -24,7 +24,7 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
     [Fact]
     public async Task should_execute_the_failing_pin_as_a_contract_rejection_but_refuse_to_render_it()
     {
-        var model = context.WithoutOpaqueRule(SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.V20.EsmBytes.AsSpan()));
+        var model = context.WithoutOpaqueRule(SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan()));
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
         plan.Specifications.Count.ShouldEqual(2);
         var specification = plan.Specifications.Values.Single(specification => specification.Name == "InvalidInviteFixture");
@@ -48,8 +48,8 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
         protected override string ApplicationName => "GeneratedConceptRules";
         protected override string ProjectFile => "GeneratedConceptRules.csproj";
         protected override bool RequireStageExecution => true;
-        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => GeneratedConceptRulesCorpus.V20.SourceForms.Select(form =>
-            (form.Name, WithoutOpaqueRule(Compile(GeneratedConceptRulesCorpus.V20, form), renderable: true)));
+        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => GeneratedConceptRulesCorpus.PortableV20.SourceForms.Select(form =>
+            (form.Name, WithoutOpaqueRule(Compile(GeneratedConceptRulesCorpus.PortableV20, form), renderable: true)));
 
         internal static ExecutableSemanticModel WithoutOpaqueRule(ExecutableSemanticModel model, bool renderable = false)
         {

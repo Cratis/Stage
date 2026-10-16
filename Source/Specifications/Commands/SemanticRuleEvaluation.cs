@@ -63,6 +63,8 @@ internal static class SemanticRuleEvaluation
         SemanticValidationRuleKind.LessThanOrEqual => $"A value must be at most {Format(rule.Operand)}.",
         SemanticValidationRuleKind.Length => $"A value must be exactly {Format(rule.Operand)} characters long.",
         SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
+        SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith => SemanticValidationRules.Check(rule, value).Message,
         SemanticValidationRuleKind.Checksum => $"A value must end in the exact {Format(rule.Operand)} check digits.",
         SemanticValidationRuleKind.AllGreaterThan => $"Every value must be greater than {Format(rule.Operand)}.",
         SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {Format(rule.Operand)}.",

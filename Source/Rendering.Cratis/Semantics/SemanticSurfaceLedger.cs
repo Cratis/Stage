@@ -106,8 +106,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values Numbers Compliance Generation");
         Add(entries, "SemanticGeneration", rendered, "Kind Prefix Case Size Alphabet Count Encoding");
 
-        // ESM v21 is admitted by version; pattern, random and rule generation remain refused per strategy.
-        Add(entries, "SemanticGeneration", rejected("STAGE-ESM-028"), "Pattern Checksum Minimum Maximum RequirementId");
+        Add(entries, "SemanticGeneration", rendered, "Pattern Checksum Minimum Maximum");
+
+        // Opaque rule generation still needs a verified implementation path.
+        Add(entries, "SemanticGeneration", rejected("STAGE-ESM-028"), "RequirementId");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");
         Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via opt-in [ComplianceDetails] (#259)."), "Special Criminal");
@@ -122,9 +124,8 @@ internal static class SemanticSurfaceLedger
         // Message includes localized $strings keys only with a validated catalog; missing default keys block as STAGE-ESM-018.
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
         Add(entries, "SemanticValidationRule", rejected("STAGE-ESM-005"), "Name RequirementId");
-        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches");
+        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum");
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown RulePredicate CodeValidation");
-        Add(entries, "SemanticValidationRuleKind", rejected(SemanticVersionFeatures.UnsupportedValidation), "Checksum");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
         // State change: one or more commands with mapped events and portable When conditions in declaration order. Tags preserve

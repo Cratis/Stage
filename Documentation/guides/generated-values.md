@@ -115,7 +115,7 @@ Success=True artifacts=17 scaffold=40
 Publication check: Compatible { }
 ```
 
-`Success=True` means no diagnostic has error severity. The publication check compares the plan with the files already in the output folder and refuses changes that would break them, such as an event type id change (`STAGE-EVENT-002`). The program writes nothing unless the result is `Compatible`, which it is for an empty folder. A real publisher also has to protect hand-edited files; see [Build a renderer target](build-renderer-target.md). The rendered project pins Arc 22.100.1 and Chronicle 19.66.0. The slice artifacts land in these files, next to the 40 scaffold files:
+`Success=True` means no diagnostic has error severity. The publication check compares the plan with the files already in the output folder and refuses changes that would break them, such as an event type id change (`STAGE-EVENT-002`). The program writes nothing unless the result is `Compatible`, which it is for an empty folder. A real publisher also has to protect hand-edited files; see [Build a renderer target](build-renderer-target.md). The rendered project pins Arc 22.104.0 and Chronicle 19.66.0. The slice artifacts land in these files, next to the 40 scaffold files:
 
 ```text title="Planned slice artifacts"
 Common/ApiKey.cs
@@ -441,7 +441,7 @@ Stage emits both the factory and a `ConceptValidator<CustomerId>`. Arc checks a 
 
 Pin every rule-bearing generated value in a rendered specification, even for this provable rule. Stage cannot see the compiler's proof status in ESM, so it refuses an unpinned specification with `STAGE-ESM-038` instead of allowing a random failure. A pin failing the strategy shape or rules fails `STAGE-ESM-011`; it is not rendered as a normal validation-error assertion. The command and concept remain renderable without that specification.
 
-Use error severity on generated concept rules. Stage refuses warning and information severity with `STAGE-ESM-038`, since Arc logs those failures while the reference rejects them. A compiler warning that a rule is *unproven* (`PLAY0689`) is different: pin a valid value to make its rendered specification deterministic. A refuted rule (`PLAY0688`) must be corrected before rendering.
+Generated concept rules can use error, warning or information severity. Arc rejects a generated value failing any of them as a server generation defect, not an input validation failure. A compiler warning that a rule is *unproven* (`PLAY0689`) is different: pin a valid value to make its rendered specification deterministic. A refuted rule (`PLAY0688`) must be corrected before rendering.
 
 Freshness follows feature use, not the schema version. Adding rules to an implicit UUID concept selects v20 but does not enable freshness by itself. A model with no explicit concept strategy remains unguarded, even when another feature selects v16 or later.
 

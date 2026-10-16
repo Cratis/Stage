@@ -12,18 +12,20 @@
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="../Stage/Semantics/SemanticApplicationContext.cs" Link="Admission/SemanticApplicationContext.cs" />
-        <!-- Compile the render admission predicate from its owning source so run admission cannot drift. -->
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Admission/SemanticScopedProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Admission/SemanticFlatProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedPascalCase.cs" Link="Admission/GeneratedPascalCase.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeNames.cs" Link="Admission/GeneratedTypeNames.cs" />
+        <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeDeclaration.cs" Link="Admission/GeneratedTypeDeclaration.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleEventPropertyNameIsSafe.cs" Link="Admission/ChronicleEventPropertyNameIsSafe.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleReadModelPropertyNamesAreSafe.cs" Link="Admission/ChronicleReadModelPropertyNamesAreSafe.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ProjectionReferencedEventNamesAreUnique.cs" Link="Admission/ProjectionReferencedEventNamesAreUnique.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Admission/SemanticVersionFeatures.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Admission/SemanticSpecificationClock.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Admission/SemanticGenerationShapes.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticPatternShape.cs" Link="Admission/SemanticPatternShape.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticMatchAnchors.cs" Link="Commands/SemanticMatchAnchors.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticChecksumRules.cs" Link="Commands/SemanticChecksumRules.cs" />
         <ProjectReference Include="../Stage/Stage.csproj" />
         <PackageReference Include="Cratis.Arc.Testing" />
         <PackageReference Include="Cratis.Arc.Chronicle.Testing" />

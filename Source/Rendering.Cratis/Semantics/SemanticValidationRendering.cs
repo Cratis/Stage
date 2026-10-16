@@ -14,12 +14,12 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticValidationRendering
 {
     internal static bool CanRender(SemanticValidationRule rule) =>
-        SafeMessage(rule.Message) && SafeOperand(rule) && !(rule.Operand is SemanticNullValue && rule.Kind is SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) && Enum.IsDefined(rule.Severity) && rule.Kind is
+        SafeMessage(rule.Message) && SafeOperand(rule) && (rule.Kind != SemanticValidationRuleKind.Checksum || SemanticChecksumRules.Algorithm(rule.Operand) is not null) && !(rule.Operand is SemanticNullValue && rule.Kind is SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) && Enum.IsDefined(rule.Severity) && rule.Kind is
             SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
             SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
             SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
             SemanticValidationRuleKind.Length or SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual or
-            SemanticValidationRuleKind.Matches;
+            SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.Checksum;
 
     internal static bool SafeMessage(string? message) => message is null ||
         (!message.StartsWith("$strings.", StringComparison.Ordinal) && !message.Any(_ => char.IsControl(_) || char.IsSurrogate(_) || (_ is '{' or '}')));
@@ -35,14 +35,12 @@ internal static class SemanticValidationRendering
         (!text.Value.Any(_ => char.IsControl(_) || char.IsSurrogate(_)) && (rule.Message is not null || rule.Kind is not (SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual) ||
         !text.Value.Any(_ => _ is '{' or '}')));
 
-    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, string? optionalConceptType = null)
+    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, ConceptRendering? conceptRendering = null)
     {
         var value = concept ? "_.Value" : $"_.{Identifiers.ToPascalCase(property)}";
-        var unwrap = (wrapped && collection) || optionalConceptType is not null;
-
-        // Select FluentValidation's property overload: Arc's concept overload replaces absence with default(T).
-        var ruleFor = optionalConceptType is null ? "RuleFor" : $"RuleFor<{optionalConceptType}>";
-        var predicate = Predicate(rule, primitive, collection, unwrap, optional);
+        conceptRendering ??= new();
+        var ruleFor = conceptRendering.RuleFor;
+        var predicate = conceptRendering.Predicate(rule, primitive, collection, wrapped, optional);
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
         var severity = rule.Severity switch
         {
@@ -112,6 +110,7 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.NotEqual => $"{absentPasses}!global::System.Object.Equals({scalar}, {equality})",
             SemanticValidationRuleKind.Length => $"{absentPasses}{scalar}.Length == {number}",
             SemanticValidationRuleKind.Matches => $"{absentPasses}MatchesPattern({scalar}, {CSharpCodeBuilder.StringLiteral(SemanticMatchAnchors.Portable(((SemanticTextValue)operand!).Value))})",
+            SemanticValidationRuleKind.Checksum => $"{absentPasses}global::Cratis.Concepts.GenerateValue.HasValidChecksum({scalar}, global::Cratis.Concepts.Checksum.{SemanticChecksumRules.Algorithm(operand)})",
             SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual => $"{absentPasses}value.All(element => {element} {comparison} {number})",
             _ => $"{absentPasses}{measured} {comparison} {number}"
         };
@@ -139,9 +138,29 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.LessThan => $"A value must be less than {operand}.",
             SemanticValidationRuleKind.Length => $"A value must be exactly {operand} characters long.",
             SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
+            SemanticValidationRuleKind.Checksum => $"A value must end in the exact {operand} check digits.",
             SemanticValidationRuleKind.AllGreaterThan => $"Every value must be greater than {operand}.",
             SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {operand}.",
             _ => string.Empty
         };
+    }
+
+    /// <summary>
+    /// Carries concept-specific property selection and enum operands for validation rendering.
+    /// </summary>
+    /// <param name="OptionalType">The optional concept type requiring explicit property selection.</param>
+    /// <param name="EnumOperand">The rendered named-value member, when applicable.</param>
+    internal sealed record ConceptRendering(string? OptionalType = null, string? EnumOperand = null)
+    {
+        // Select FluentValidation's property overload: Arc's concept overload replaces absence with default(T).
+        internal string RuleFor => OptionalType is null ? "RuleFor" : $"RuleFor<{OptionalType}>";
+
+        internal string Predicate(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool collection, bool wrapped, bool optional) =>
+            EnumOperand is null
+                ? SemanticValidationRendering.Predicate(rule, primitive, collection, (wrapped && collection) || OptionalType is not null, optional)
+                : EnumPredicate(rule, optional);
+
+        string EnumPredicate(SemanticValidationRule rule, bool optional) =>
+            $"{(optional ? "value is null || " : string.Empty)}value {(rule.Kind == SemanticValidationRuleKind.Equal ? "==" : "!=")} {EnumOperand}";
     }
 }

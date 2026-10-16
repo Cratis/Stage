@@ -91,11 +91,21 @@ internal static partial class SemanticCratisAdmission
                 diagnostics.Add(CommandCapability(command, $"validation '{label}' on optional property '{property.Name}' uses {concept.Primitive} concept '{concept.Name}'; only absence-passing scalar comparisons are supported. Collection rules and 'not empty' remain unsupported. Make the property non-optional only if absence is not part of the contract, or keep this shape unsupported (Cratis/Stage#419)."));
             }
 
-            if (!concept.Values.IsEmpty)
+            if (HasUnsupportedNamedValueRule(rule, property.Type, concept))
             {
-                diagnostics.Add(CommandCapability(command, $"validation '{label}' on property '{property.Name}' uses concept '{concept.Name}' with named values; Stage renders these values as an enum and cannot apply the underlying-value predicate faithfully. Remove the command validation if the named values already express the rule; otherwise keep this combination unsupported (Cratis/Stage#409)."));
+                diagnostics.Add(CommandCapability(command, $"validation '{label}' on property '{property.Name}' uses concept '{concept.Name}' with named values; only scalar equality and inequality against a declared member are supported. Collection rules, 'not empty', ordering, and other predicates remain unsupported (Cratis/Stage#420)."));
             }
         }
+    }
+
+    static bool HasUnsupportedNamedValueRule(SemanticValidationRule rule, SemanticTypeReference type, SemanticConcept concept) =>
+        !concept.Values.IsEmpty && !IsNamedValueComparison(rule, type, concept);
+
+    static bool IsNamedValueComparison(SemanticValidationRule rule, SemanticTypeReference type, SemanticConcept concept)
+    {
+        if (type.IsCollection) return false;
+        if (rule.Kind is not (SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual)) return false;
+        return rule.Operand is SemanticTextValue member && concept.Values.Contains(member.Value, StringComparer.Ordinal);
     }
 
     static string ValidationRenderingReason(SemanticValidationRule rule, SemanticApplicationContext context)
@@ -135,7 +145,7 @@ internal static partial class SemanticCratisAdmission
             var label = $"requirement #{index + 1} ({properties})";
             if (!SemanticRequirementRendering.CanRender(requirement, command, context))
             {
-                var reason = RequirementRenderingReason(requirement, context);
+                var reason = RequirementRenderingReason(requirement, command, context);
                 diagnostics.Add(CommandCapability(command, $"{label} cannot be rendered: {reason}"));
             }
 
@@ -146,7 +156,7 @@ internal static partial class SemanticCratisAdmission
         }
     }
 
-    static string RequirementRenderingReason(SemanticRequirement requirement, SemanticApplicationContext context)
+    static string RequirementRenderingReason(SemanticRequirement requirement, SemanticCommand command, SemanticApplicationContext context)
     {
         if (!SemanticValidationRendering.CanResolve(requirement.Message, context))
         {
@@ -158,7 +168,23 @@ internal static partial class SemanticCratisAdmission
             return $"severity '{requirement.Severity}' has no generated equivalent. Use Error, Warning, or Information severity.";
         }
 
-        return "the condition has no faithful generated guard. Use supported comparisons over non-optional scalar command properties without named concept values, or keep this shape unsupported (Cratis/Stage#409).";
+        return ConditionRenderingReason(requirement.Condition, command, context);
+    }
+
+    static string ConditionRenderingReason(SemanticCondition condition, SemanticCommand command, SemanticApplicationContext context)
+    {
+        var referenced = RequirementProperties(condition, command);
+        var hasNamedValues = command.Properties.Any(property => IsNamedValueRequirementProperty(property, referenced, context));
+        return hasNamedValues
+            ? "named-value conditions support only equality and inequality over required scalar properties, against a declared member or a property of the same concept. Optional operands, collections, different concepts, and ordering remain unsupported (Cratis/Stage#420)."
+            : "the condition has no faithful generated guard. Use supported comparisons over non-optional scalar command properties without named concept values, or keep this shape unsupported (Cratis/Stage#409).";
+    }
+
+    static bool IsNamedValueRequirementProperty(SemanticProperty property, IEnumerable<string> referenced, SemanticApplicationContext context)
+    {
+        if (!referenced.Contains(property.Name, StringComparer.Ordinal)) return false;
+        if (property.Type.Kind != SemanticTypeReferenceKind.Concept) return false;
+        return !context.Concepts[property.Type.Target].Values.IsEmpty;
     }
 
     static IEnumerable<string> RequirementProperties(SemanticCondition condition, SemanticCommand command) => condition switch

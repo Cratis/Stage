@@ -454,18 +454,12 @@ internal static class SemanticVersionFeatures
         {
             var strategy = concept.Generation?.Kind switch
             {
-                "pattern" => "pattern",
-                "random" => "random",
                 "implementation" => "rule",
                 _ => null
             };
             if (strategy is not null)
             {
                 yield return new(Generated, StageExecutionCapability.IdentityAllocation, concept.Id, "concept", $"Concept '{concept.Name}' uses 'generate {strategy}', which Stage does not support yet.");
-            }
-            if (concept.Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.Checksum))
-            {
-                yield return new(UnsupportedValidation, StageExecutionCapability.Command, concept.Id, "concept", $"Concept '{concept.Name}' uses 'validate checksum', which Stage does not support yet.");
             }
         }
     }
@@ -483,10 +477,6 @@ internal static class SemanticVersionFeatures
                 if (GeneratedPascalCase.From(concept.Name) == "New")
                 {
                     yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' collides with its New factory.");
-                }
-                if (concept.Validations.Any(rule => rule.Severity != SemanticValidationSeverity.Error))
-                {
-                    yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' has a non-error severity rule; Arc logs warnings and information while the reference rejects every failing generated rule.");
                 }
             }
         }

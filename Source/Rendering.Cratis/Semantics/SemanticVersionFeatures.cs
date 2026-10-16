@@ -136,6 +136,8 @@ internal static class SemanticVersionFeatures
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(DescribedHandlersInCommand))
         .Concat(RoutesInApplication(application))
         .Concat(UnsupportedConcepts(application.Concepts))
+        .Concat(application.Concepts.SelectMany(concept => UnknownValidationRules(concept.Validations, concept.Id, "concept", concept.Name)))
+        .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnknownValidationRules(command.Validations, command.Id, "command", command.Name)))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
 
     /// <summary>
@@ -363,6 +365,7 @@ internal static class SemanticVersionFeatures
             yield return route;
         }
 
+        foreach (var feature in UnknownValidationRules(command.Validations, command.Id, "command", command.Name)) yield return feature;
         foreach (var feature in UnsupportedGenerated(command, null)) yield return feature;
 
         if (UnsupportedCommandResults(command))
@@ -486,6 +489,19 @@ internal static class SemanticVersionFeatures
             }
         }
     }
+
+    static IEnumerable<SemanticVersionFeature> UnknownValidationRules(
+        IEnumerable<SemanticValidationRule> rules, SemanticId owner, string kind, string name) =>
+        rules.Where(rule => !KnownValidationRule(rule.Kind)).Select(rule => new SemanticVersionFeature(
+            "STAGE-ESM-005", StageExecutionCapability.Command, owner, kind, $"{kind} '{name}' declares unsupported validation rule kind '{rule.Kind}' on property '{rule.Property}'."));
+
+    static bool KnownValidationRule(SemanticValidationRuleKind kind) => kind is
+        SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
+        SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
+        SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
+        SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.Checksum or
+        SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual or
+        SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
 
     static IEnumerable<SemanticVersionFeature> MixedEffectsInReaction(SemanticReaction reaction)
     {

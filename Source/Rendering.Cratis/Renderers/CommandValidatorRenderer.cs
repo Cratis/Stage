@@ -61,6 +61,7 @@ public static class CommandValidatorRenderer
         List<(string Name, string ParameterType, string PropertyName, string Code)> ruleMethods,
         ICollection<string> diagnostics)
     {
+        ValidationRuleRenderer.EnsureSupported(rule);
         var property = Identifiers.ToPascalCase(rule.Property);
         var subject = Property(rule.Property, command);
         var value = RenderValue(rule, subject, command, applicationSet, diagnostics);
@@ -71,9 +72,9 @@ public static class CommandValidatorRenderer
             return;
         }
 
-        var call = (rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
+        var call = rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
             ? RenderCustomRule(rule, property, subject, applicationSet, ruleMethods)
-            : ValidationRuleRenderer.RenderCall(rule.Rule, value, SubjectIsText(subject, applicationSet))) ?? throw new UnsupportedValidationRule(rule);
+            : ValidationRuleRenderer.RenderCall(rule.Rule, value, SubjectIsText(subject, applicationSet));
 
         builder.Line($"RuleFor(_ => _.{property}){call}{ValidationRuleRenderer.RenderMessage(rule)};");
     }

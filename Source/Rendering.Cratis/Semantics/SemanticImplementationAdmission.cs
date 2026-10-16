@@ -87,6 +87,16 @@ internal static class SemanticImplementationAdmission
             return false;
         }
 
+        if (requirement is { Role: SemanticImplementationRole.CommandHandler, AttachmentResolution: SemanticAttachmentResolution.Pending })
+        {
+            diagnostics.Add(new(
+                SemanticVersionFeatures.PendingCommandHandler,
+                ArtifactRenderDiagnosticSeverity.Error,
+                $"Pending command handler requirement '{requirementId}' is not implemented by Stage yet; no body can be verified.",
+                owner));
+            return false;
+        }
+
         if (requirement.AttachmentResolution != SemanticAttachmentResolution.Resolved ||
             request.ImplementationContents is null || !request.ImplementationContents.TryGetValue(requirementId, out var candidate) || candidate is null)
         {

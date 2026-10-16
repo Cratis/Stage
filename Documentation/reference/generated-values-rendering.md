@@ -62,7 +62,7 @@ A generated concept that is not an identifier derives from `ConceptAs<T>`. It im
 
 ## Version admission
 
-Stage admits exact ESM v1–v21 language/semantic pairs. Version admission does not imply support for every strategy:
+Stage admits exact ESM v1–v21 and v23 language/semantic pairs (v22 remains refused). Version admission does not imply support for every strategy:
 
 | Version | Generation support |
 | --- | --- |
@@ -70,7 +70,7 @@ Stage admits exact ESM v1–v21 language/semantic pairs. Version admission does 
 | v20 | Rules on generated concepts; unpinned rendered specifications require every rule to be proven |
 | v21 | Pattern and inclusive Int64 random generation; checksum validation; `generate rule` remains refused with `STAGE-ESM-028` |
 
-The Host samples pattern and random values through Fundamentals 7.25.0, carried by Arc 22.104.0. The independent specification executor requires deterministic fixtures, just like Screenplay 4.180.1. Both paths enforce the reference strategy shapes and checksum rules; `generate rule` remains refused. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
+The Host samples pattern and random values through Fundamentals 7.25.0, carried by Arc 22.104.0. The independent specification executor requires deterministic fixtures, just like Screenplay 4.182.0. Both paths enforce the reference strategy shapes and checksum rules; `generate rule` remains refused. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
 
 ### Checksum rules
 

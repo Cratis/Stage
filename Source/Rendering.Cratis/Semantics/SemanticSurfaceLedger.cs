@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.180.1; ESM v1–v21 version pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.182.0; exact ESM v1–v21 and v23 pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -89,6 +89,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay."), "IsValid");
         Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
+        Add(entries, "SemanticApplication", rejected(SemanticVersionFeatures.AtomicReactionBatches), "ReactionProductionMode");
+        Add(entries, "SemanticReactionProductionMode", rejected(SemanticVersionFeatures.AtomicReactionBatches), "Atomic");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
         Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications Reducers Reactions");
@@ -131,6 +133,8 @@ internal static class SemanticSurfaceLedger
         // Requirements use the same catalog-backed message resolution as property and concept validation.
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
         Add(entries, "SemanticCommand", rendered, "Route");
+        Add(entries, "SemanticCommand", rejected(SemanticVersionFeatures.PendingCommandHandler), "Handler");
+        Add(entries, "SemanticCommandHandler", rejected(SemanticVersionFeatures.PendingCommandHandler), "RequirementId ResultVersion");
         Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "CodeValidations");
         Add(entries, "SemanticCodeValidation", rejected("STAGE-ESM-005"), "RequirementId");
         Add(entries, "SemanticCommandRoute", rendered, "Source Stream StreamId StreamIdParts");
@@ -143,6 +147,10 @@ internal static class SemanticSurfaceLedger
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
         // admitted through the closed-compilation pure gate; opaque validation still cannot receive RuleContext.Occurred.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
+        Add(entries, "SemanticImplementationRequirement", rejected(SemanticVersionFeatures.PendingCommandHandler), "Hints IsProvisional IsAmbiguous");
+        Add(entries, "SemanticAttachmentResolution", ignored("Resolved and unresolved attachments retain whole-envelope verification (STAGE-ESM-020)."), "Resolved UnresolvedFile");
+        Add(entries, "SemanticAttachmentResolution", rejected(SemanticVersionFeatures.PendingCommandHandler), "Pending");
+        Add(entries, "SemanticExecutionCapability", rejected(SemanticVersionFeatures.PendingCommandHandler), "ImplementationBody");
         Add(entries, "SemanticProducedEvent", rendered, "Destination EventContract Mappings Tags When");
         Add(entries, "SemanticProducedEvent", rejected("STAGE-ESM-006"), "Condition");
         Add(entries, "SemanticEventContract", rendered, "Id Name StoredName Properties Tags");

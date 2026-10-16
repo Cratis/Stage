@@ -201,6 +201,7 @@ public class CratisRenderer : IRenderer
             // renderable model is affected. Routed models use the semantic planner instead.
             foreach (var application in context.Applications)
             {
+                ScreenplayEventModelVisitor.EnsureBehaviorSupported(application);
                 new ReactionIdentitySyntaxAdmission().VisitApplication(application);
                 new SyntaxRouteAdmission().VisitApplication(application);
                 new PublicEventSyntaxAdmission().VisitApplication(application);
@@ -209,7 +210,7 @@ public class CratisRenderer : IRenderer
 
             EventSourceIdentityComplianceAdmission.EnsureAccepted(slices, context);
         }
-        catch (Exception exception) when (exception is UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes or
+        catch (Exception exception) when (exception is InvalidEventModel or UnsupportedProtectedEventSourceIdentity or UnsupportedExpression or UnsupportedEventRoutes or
             UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters or UnsupportedGenerationStrategy)
         {
             await error.WriteLineAsync(exception.Message);

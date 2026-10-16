@@ -33,8 +33,17 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.193.0, admits exact ESM v1–v21 and v23–v25
-version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions, including v22 and v26, with `STAGE-ESM-016`.
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.199.0, admits exact ESM v1–v21 and v23–v26
+version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions, including v22 and v27, with `STAGE-ESM-016`.
+At v26 the semantic executor runs chronological Date/DateTime command requirements, conditional productions
+and validation rules (including concepts). DateTime equality compares UTC ticks; Date compares calendar days.
+Participating DateTime inputs without an explicit offset or `Z` reject after authorization, before other input
+validation, including reaction invocations. Specification `then` matching remains ordinal. A command combined
+with opaque validation reports `Unsupported` at run admission, before execution. The Host also refuses opaque
+validation before authorization and input validation. Unlike both Stage paths, the reference checks authorization,
+then offsets, then opaque validation: an offset-less input combined with opaque validation returns `Validation`
+in the reference but `Unsupported` in Stage. `Unsupported` never counts as a pass. The renderer and legacy engines
+refuse date comparisons with `STAGE-ESM-046`; date three-way conformance awaits renderer support.
 The semantic executor runs protected command reads, including reaction-invoked commands. After authorization and
 property/concept rules, it projects the prior facts through Chronicle's in-memory read-model scenario and requires
 each declared view at its key. Event-source-keyed removal and recreation are preserved. Absence rejects validation

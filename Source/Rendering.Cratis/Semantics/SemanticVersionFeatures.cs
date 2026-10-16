@@ -113,6 +113,11 @@ internal static class SemanticVersionFeatures
     internal const string ProtectedReadRequirementSeverity = "STAGE-ESM-045";
 
     /// <summary>
+    /// The code for chronological command date comparisons a rendering target cannot preserve.
+    /// </summary>
+    internal const string DateOrdering = "STAGE-ESM-046";
+
+    /// <summary>
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
@@ -126,7 +131,8 @@ internal static class SemanticVersionFeatures
         EsmSchemaV21Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
         (model.LanguageVersion == LanguageVersion.V23 && model.SemanticVersion == SemanticVersion.V23) ||
         (model.LanguageVersion == LanguageVersion.V24 && model.SemanticVersion == SemanticVersion.V24) ||
-        (model.LanguageVersion == LanguageVersion.V25 && model.SemanticVersion == SemanticVersion.V25);
+        (model.LanguageVersion == LanguageVersion.V25 && model.SemanticVersion == SemanticVersion.V25) ||
+        (model.LanguageVersion == LanguageVersion.V26 && model.SemanticVersion == SemanticVersion.V26);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.

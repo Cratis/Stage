@@ -134,6 +134,13 @@ internal static partial class SemanticCratisAdmission
         }
 
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
+        foreach (var command in slices.SelectMany(located => located.Slice.Commands))
+        {
+            foreach (var property in SemanticDateOrdering.Properties(context.Application.Concepts, command))
+            {
+                diagnostics.Add(Error(SemanticVersionFeatures.DateOrdering, $"Command '{command.Name}' compares date property '{property.Name}'; chronological comparisons and explicit-offset input binding are not supported by the renderer yet.", command.Id));
+            }
+        }
         return diagnostics.Count == 0 &&
             Passes(diagnostics, () => ValidateEventRevisions(context, slices, diagnostics)) &&
             Passes(diagnostics, () => ValidateReservedNamespace(context, slices, diagnostics)) &&

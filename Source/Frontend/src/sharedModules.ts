@@ -1,6 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import * as DefaultBlueprint from '@cratis/scene.blueprint.default';
+import * as SceneEngine from '@cratis/scene.engine';
+import * as SceneModel from '@cratis/scene.model';
 import * as React from 'react';
 import * as JsxDevRuntime from 'react/jsx-dev-runtime';
 import * as JsxRuntime from 'react/jsx-runtime';
@@ -17,6 +20,9 @@ export const sharedModules: Record<string, unknown> = {
     'react/jsx-dev-runtime': JsxDevRuntime,
     'react-dom': ReactDom,
     'react-dom/client': ReactDomClient,
+    '@cratis/scene.blueprint.default': DefaultBlueprint,
+    '@cratis/scene.engine': SceneEngine,
+    '@cratis/scene.model': SceneModel,
 };
 
 /**

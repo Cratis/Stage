@@ -31,6 +31,9 @@ describe('the module a live Stage maps a shared specifier to', () => {
             'stage-shared/react--jsx-dev-runtime.js',
             'stage-shared/react-dom.js',
             'stage-shared/react-dom--client.js',
+            'stage-shared/@cratis--scene.blueprint.default.js',
+            'stage-shared/@cratis--scene.engine.js',
+            'stage-shared/@cratis--scene.model.js',
         ]);
     });
 

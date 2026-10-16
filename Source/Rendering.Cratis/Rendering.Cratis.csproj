@@ -83,6 +83,12 @@
         <EmbeddedResource Include="../Frontend/styledPrimeReact.ts" LogicalName="StageFrontend/styledPrimeReact.ts" />
     </ItemGroup>
     <ItemGroup>
+        <!-- What the Stage frontend's core, PrimeReact and default blueprint declare, generated from their manifests by
+             Frontend/src/shippedPackages.spec.ts, which fails when it is stale: the catalog a ui profile is resolved against
+             must be the one the frontend renders with. -->
+        <EmbeddedResource Include="Shipped/ShippedPackages.json" LogicalName="Cratis.Stage.Rendering.Cratis.Shipped.ShippedPackages.json" />
+    </ItemGroup>
+    <ItemGroup>
         <!-- The framework names in scope in a generated project, read by the C# import resolver. Generated from the
              scaffold's restored compile assets by for_FrameworkNameCatalog; checked in so its changes show in review. -->
         <EmbeddedResource Include="Naming/Imports/FrameworkNames.catalog" LogicalName="Cratis.Stage.Rendering.Cratis.Naming.Imports.FrameworkNames.catalog" />

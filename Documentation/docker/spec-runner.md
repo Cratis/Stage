@@ -33,8 +33,12 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.170.0, admits exact ESM v1–v20
-version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions with `STAGE-ESM-016`.
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.193.0, admits exact ESM v1–v21 and v23–v25
+version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions, including v22 and v26, with `STAGE-ESM-016`.
+Protected command reads remain unsupported: a model declaring `command reads protected` records `Unsupported` with
+`STAGE-ESM-044` for every specification, before execution. Read-backed conditions and mappings are not executed.
+The structural engine refuses the same preamble with `STAGE-ESM-044`, exits `1` and writes no results file.
+Without the preamble, command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
 At v20 it executes rules on generated concepts. A failing fixture is a contract rejection with
 `Generated fixture '<property>' fails concept '<Concept>' rules`, not the rule's authored input-validation message.
 Each supplied fixture is checked for shape and rules before the next fixture or a missing fixture.

@@ -25,7 +25,7 @@ public sealed partial class SemanticSpecificationExecutor
             {
                 return SemanticGenerationShapes.FixtureMessage(property.Name);
             }
-            if (SemanticRuleValues.GeneratedFailure(concept, property.Name, fixture.Value) is { } failure) return failure;
+            if (SemanticGenerationShapes.GeneratedFailure(concept, property.Name, fixture.Value) is { } failure) return failure;
         }
 
         return null;

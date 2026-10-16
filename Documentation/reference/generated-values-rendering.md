@@ -62,7 +62,7 @@ A generated concept that is not an identifier derives from `ConceptAs<T>`. It im
 
 ## Version admission
 
-Stage admits exact ESM v1–v21, v23 and v24 language/semantic pairs (v22 and v25 remain refused). Version admission does not imply support for every strategy:
+Stage admits exact ESM v1–v21 and v23–v25 language/semantic pairs (v22 remains refused). Version admission does not imply support for every strategy:
 
 | Version | Generation support |
 | --- | --- |
@@ -77,6 +77,8 @@ The Host samples pattern and random values through Fundamentals 7.25.0, carried 
 Declare `validate checksum luhn`, `validate checksum mod11` or `validate checksum mod97` on a String concept. The rendered validator calls `global::Cratis.Concepts.GenerateValue.HasValidChecksum(value, global::Cratis.Concepts.Checksum.Luhn)` (or `Mod11` / `Mod97`), retaining the authored message and severity.
 
 The final one digit (Luhn/Mod11) or two digits (Mod97) must exactly match the checksum of the preceding ASCII digits. Printable non-digits in the payload, including lowercase letters and spaces, are ignored; they are not converted to numbers. Control characters and non-ASCII characters anywhere in the value fail validation. Empty values and non-digit suffixes fail too. Mod11 payloads whose check digit would be 10 have no valid one-digit suffix. For example, `79927398713` passes Luhn, `abc98` passes Mod97, and `79927398714` fails Luhn. A checksum is not a length or format constraint; declare those separately.
+
+The specification executor and generated-fixture admission check concept rules through Screenplay's public `SemanticValidationRules.Check` API. Generated C# continues to use Fundamentals for runtime checks.
 
 When a concept declares checksum validation, pinned generated fixtures must satisfy it as well as the generation shape. A bad pin blocks rendering with `STAGE-ESM-011`; it is not treated as invalid caller input.
 

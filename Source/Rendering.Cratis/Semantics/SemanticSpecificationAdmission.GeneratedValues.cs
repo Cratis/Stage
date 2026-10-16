@@ -4,7 +4,6 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Generation;
 using Cratis.Stage.Contracts.Rendering;
-using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -60,7 +59,7 @@ internal static partial class SemanticSpecificationAdmission
             var property = command.Properties.SingleOrDefault(property => property.Id == fixture.TargetProperty && property.IsGenerated);
             if (property is null) continue;
             var concept = context.Concepts[property.Type.Target];
-            if (concept.Validations.FirstOrDefault(rule => !SemanticRuleValues.CanEvaluate(rule.Kind)) is { } rule)
+            if (concept.Validations.FirstOrDefault(rule => SemanticValidationRules.Check(rule, SemanticValue.Null).Status == SemanticRuleStatus.NotEvaluable) is { } rule)
             {
                 return new(
                     "STAGE-ESM-005",
@@ -90,7 +89,7 @@ internal static partial class SemanticSpecificationAdmission
             {
                 return $"Specification '{specification.Name}' cannot render: {SemanticGenerationShapes.FixtureMessage(property.Name)}";
             }
-            if (SemanticRuleValues.GeneratedFailure(concept, property.Name, fixture.Value) is { } failure)
+            if (SemanticGenerationShapes.GeneratedFailure(concept, property.Name, fixture.Value) is { } failure)
             {
                 return $"Specification '{specification.Name}' cannot render: {failure}.";
             }

@@ -11,7 +11,9 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_executing_generated_reducer_specifications : a_generated_application
 {
-    protected override ArtifactRenderPlan CreatePlan()
+    protected override bool DeferPlan => true;
+
+    static ArtifactRenderPlan CreatePlan(bool self)
     {
         var source = when_rendering_a_pure_reducer.WithIdentifierConcept(when_rendering_a_pure_reducer.Source)
             .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal)
@@ -21,17 +23,27 @@ public class when_executing_generated_reducer_specifications : a_generated_appli
             "if (context.Event.Amount < 0m) return null; return new Total(context.Event.Id, (context.State?.Amount ?? 0m) + context.Event.Amount);",
             StringComparison.Ordinal)
             .Replace("      specification CreatingATotal\n", "      specification UpdatingATotalAcrossSources\n        given OrderPlaced\n          for \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 4\n        given OrderPlaced\n          for \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n          id = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n          amount = 40\n        when PlaceOrder\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 5\n        then OrderPlaced\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 5\n        then readmodel Total\n          id = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          amount = 9\n      specification CreatingATotal\n", StringComparison.Ordinal);
-        return when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source).GetAwaiter().GetResult());
+        return when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source).GetAwaiter().GetResult(), self: self);
     }
 
-    [Fact]
-    async Task should_build_and_run_the_generated_reducer_specifications()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_build_and_run_the_generated_reducer_specifications(bool self)
     {
         try
         {
+            RenderApplication(CreatePlan(self));
+
             // ESM v3 cannot express an absent read-model expectation; prove deletion with a target-side probe.
             AddGeneratedSpecification("ReducerDeletion.cs", """
+                using Cratis.Arc.Authorization;
+                using Cratis.Arc.Queries;
+                using Cratis.Arc.Queries.ModelBound;
                 using Cratis.Chronicle.Testing.ReadModels;
+                using Cratis.Types;
+                using Microsoft.Extensions.DependencyInjection;
+                using NSubstitute;
                 using Projects.Common;
                 using Projects.Orders.Ordering.PlaceOrder;
                 using Projects.Orders.Ordering.Totals;
@@ -50,6 +62,26 @@ public class when_executing_generated_reducer_specifications : a_generated_appli
                         Assert.NotNull(scenario.InstanceForEventSourceId(key));
                         await scenario.Given.ForEventSource(key).Events(new OrderPlaced(key, -1m));
                         Assert.Null(scenario.InstanceForEventSourceId(key));
+                        await scenario.Given.ForEventSource(key).Events(new OrderPlaced(key, 7m));
+                        Assert.Equal(7m, scenario.InstanceForEventSourceId(key)!.Amount);
+                    }
+
+                    [Fact]
+                    public void should_have_no_instance_for_empty_history()
+                    {
+                        var scenario = new ReadModelScenario<Total>();
+                        Assert.Null(scenario.InstanceForEventSourceId(new OrderId(Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"))));
+                    }
+
+                    [Fact]
+                    public void should_expose_only_the_authored_query_to_arc_endpoint_discovery()
+                    {
+                        var types = Substitute.For<ITypes>();
+                        types.All.Returns(new[] { typeof(Total) });
+                        var metadata = Substitute.For<IQueryMetadataRegistry>();
+                        metadata.All.Returns(new Dictionary<string, Type>());
+                        var provider = new QueryPerformerProvider(types, metadata, Substitute.For<IServiceProviderIsService>(), Substitute.For<IAuthorizationEvaluator>());
+                        Assert.Equal("ById", Assert.Single(provider.Performers).Name.Value);
                     }
 
                     [Fact]
@@ -66,6 +98,9 @@ public class when_executing_generated_reducer_specifications : a_generated_appli
                 """);
             var build = await Run("reducer-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
+            var proxies = GeneratedFiles("*.ts").Select(ReadGeneratedFile).ToArray();
+            Assert.Contains(proxies, proxy => proxy.Contains("class ById", StringComparison.Ordinal));
+            Assert.DoesNotContain(proxies, proxy => proxy.Contains("class Reduce", StringComparison.Ordinal) || proxy.Contains("class Transition_", StringComparison.Ordinal));
             var test = await Run("reducer-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
             Assert.Contains("Passed!", test, StringComparison.Ordinal);
         }

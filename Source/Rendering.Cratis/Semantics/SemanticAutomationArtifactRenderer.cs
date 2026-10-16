@@ -15,10 +15,13 @@ internal static class SemanticAutomationArtifactRenderer
     {
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         var hasReadSurface = SemanticReadSurface.IsDeclaredBy(located.Slice);
-        SemanticStateChangeArtifactRenderer.Configure(builder, located, context);
         if (hasReadSurface)
         {
-            SemanticStateViewArtifactRenderer.Configure(builder, located, context);
+            context.ReducerBindings(located).Configure(builder);
+        }
+        else
+        {
+            SemanticStateChangeArtifactRenderer.Configure(builder, located, context);
         }
         SemanticStateChangeArtifactRenderer.RenderMembers(builder, located, context);
         if (hasReadSurface)
@@ -30,7 +33,7 @@ internal static class SemanticAutomationArtifactRenderer
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]), builder.ToString())
         {
             Sources = [located.Slice.Id, .. located.Slice.Commands.Select(command => command.Id), .. located.Slice.Events.Select(@event => @event.Id),
-                .. located.Slice.ReadModels.Select(model => model.Id), .. located.Slice.Projections.Select(projection => projection.Id), .. located.Slice.Queries.Select(query => query.Id)]
+                .. located.Slice.ReadModels.Select(model => model.Id), .. located.Slice.Projections.Select(projection => projection.Id), .. located.Slice.Queries.Select(query => query.Id), .. SemanticStateViewArtifactRenderer.SelfReducerSources(located, context)]
         };
     }
 }

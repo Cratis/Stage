@@ -18,6 +18,29 @@ internal static class SemanticReducerArtifactRenderer
         var model = context.ReadModels[reducer.ReadModel];
         var modelType = $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{Identifiers.ToPascalCase(model.Name)}";
         var name = Identifiers.ToPascalCase(reducer.Name);
+        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        context.ReducerBindings(located, reducer).Configure(builder);
+        if (reducer.From is { } filter)
+        {
+            SemanticObserverFilterRendering.Attribute(builder, filter, context);
+        }
+        builder.OpenBlock($"public class {name} : global::Cratis.Chronicle.Reducers.IReducerFor<{modelType}>");
+        RenderTransitions(builder, reducer, context);
+        builder.EndBlock();
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString())
+        {
+            Sources = [reducer.ReadModel, .. reducer.Transitions.Select(_ => _.EventContract), located.Slice.Id]
+        };
+    }
+
+    internal static string HelperName(string requirementId) =>
+        "Transition_" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(requirementId)))[..8];
+
+    internal static void RenderTransitions(CSharpCodeBuilder builder, SemanticReducer reducer, SemanticApplicationContext context, string? analysisRequirement = null, string? analysisBody = null)
+    {
+        var model = context.ReadModels[reducer.ReadModel];
+        var modelType = $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{Identifiers.ToPascalCase(model.Name)}";
+        var name = Identifiers.ToPascalCase(reducer.Name);
         var keyType = model.Properties.Single(_ => _.IsIdentifier).Type;
         var keyMember = Identifiers.ToPascalCase(model.Properties.Single(_ => _.IsIdentifier).Name);
         var concept = keyType.Kind == SemanticTypeReferenceKind.Concept;
@@ -34,59 +57,49 @@ internal static class SemanticReducerArtifactRenderer
             check = $"{key} is null || {check} || !global::System.String.Equals({valueWire}, originalSourceId, global::System.StringComparison.Ordinal)";
         }
 
-        var builder = new CSharpCodeBuilder()
-            .Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path))
-            .Using("Cratis.Chronicle.Events")
-            .Using("Cratis.Chronicle.Reducers")
-            .Using($"{context.RootNamespace}.TypedContexts")
-            .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path));
-        if (reducer.From is { } filter)
-        {
-            SemanticObserverFilterRendering.Attribute(builder, filter, context);
-        }
-        builder.OpenBlock($"public class {name} : global::Cratis.Chronicle.Reducers.IReducerFor<{modelType}>");
         foreach (var transition in reducer.Transitions)
         {
             var @event = context.Events[transition.EventContract];
             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path);
             var eventType = $"global::{eventNamespace}.{Identifiers.ToPascalCase(@event.Name)}";
-            builder.Using(eventNamespace);
             var descriptor = context.Request.TypedContextDescriptors.Single(_ => _.RequirementId == transition.RequirementId && _.OperationId == reducer.ReadModel);
             var wrapper = $"TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
-            var suffix = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(transition.RequirementId)))[..8];
+            var helper = HelperName(transition.RequirementId);
             var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
-            if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, transition.RequirementId, reducer.ReadModel, diagnostics, out var body))
+            var body = analysisRequirement == transition.RequirementId ? analysisBody : "throw new global::System.NotImplementedException();";
+            if (analysisRequirement is null && !SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, transition.RequirementId, reducer.ReadModel, diagnostics, out body))
             {
                 throw new InvalidTypedContext($"Reducer '{name}' lost its verified body after admission.");
             }
 
-            if (!context.ReducerContextReads.TryGetValue(transition.RequirementId, out var contextReads))
+            if (!context.ReducerContextReads.TryGetValue(transition.RequirementId, out var contextReads) && analysisRequirement is null)
             {
                 throw new InvalidTypedContext($"Reducer '{name}' lost its analyzed context reads after admission.");
             }
 
-            var tenant = contextReads.Contains("Tenant")
+            var tenant = contextReads?.Contains("Tenant") == true
                 ? $"global::{context.RootNamespace}.TypedContexts.ReducerContextValues.Tenant(eventContext.Namespace)"
                 : $"global::{context.RootNamespace}.TypedContexts.TenantId.NotSet";
-            builder.OpenBlock($"public {modelType}? On({eventType} @event, {modelType}? current, global::Cratis.Chronicle.Events.EventContext eventContext)")
-                .Line("var originalSourceId = eventContext.EventSourceId.Value;")
-                .Line($"var result = Transition_{suffix}(new global::{context.TypedContextsNamespace}.{wrapper}(current, @event, originalSourceId, {tenant}, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
+            builder.OpenBlock($"public {(context.SelfReducing ? "static " : string.Empty)}{modelType}? {(context.SelfReducing ? "Reduce" : "On")}({eventType} @event, {modelType}? current, global::Cratis.Chronicle.Events.EventContext eventContext)");
+            if (analysisRequirement is null)
+            {
+                builder.Line("var originalSourceId = eventContext.EventSourceId.Value;")
+                .Line($"var result = {helper}(new global::{context.TypedContextsNamespace}.{wrapper}(current, @event, originalSourceId, {tenant}, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
                 .OpenBlock($"if (result is not null && ({check}))")
                 .Line("throw new global::System.InvalidOperationException(\"Reducer returned a read model with an identifier different from the event source.\");")
                 .EndBlock()
-                .Line("return result;")
-                .EndBlock()
+                .Line("return result;");
+            }
+            else
+            {
+                builder.Line("throw new global::System.NotImplementedException();");
+            }
+            builder.EndBlock()
                 .BlankLine()
-                .OpenBlock($"static {modelType}? Transition_{suffix}(global::{context.TypedContextsNamespace}.{wrapper} context)")
+                .OpenBlock($"static {modelType}? {helper}(global::{context.TypedContextsNamespace}.{wrapper} context)")
                 .RawVerbatim(body!)
                 .EndBlock()
                 .BlankLine();
         }
-
-        builder.EndBlock();
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString())
-        {
-            Sources = [reducer.ReadModel, .. reducer.Transitions.Select(_ => _.EventContract), located.Slice.Id]
-        };
     }
 }

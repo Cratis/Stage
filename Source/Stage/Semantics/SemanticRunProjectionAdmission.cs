@@ -162,11 +162,13 @@ internal static class SemanticRunProjectionAdmission
             }
             if (scope.Every is { SubscribesToAllEvents: true }
                 ? reachable.Any(eventContract => !ScopedKeysMatch(plan, specification, eventContract, identifier.Type))
-                : scope.From.Any(from => reachable.Contains(from.EventContract) && !ScopedKeysMatch(plan, specification, from.EventContract, identifier.Type)))
+                : scope.From.Select(from => from.EventContract).Concat(scope.Removals.Select(removal => removal.EventContract))
+                    .Any(eventContract => reachable.Contains(eventContract) && !ScopedKeysMatch(plan, specification, eventContract, identifier.Type)))
             {
                 return "A scoped event-source key must have the read-model identifier's value type and enumeration values.";
             }
-            if (projection.Transitions.Length > 0 || scope.Joins.Length > 0 || scope.Removals.Length > 0 ||
+            if (projection.Transitions.Length > 0 || scope.Joins.Length > 0 ||
+                scope.Removals.Any(removal => removal.ParentKey is not null || removal.Key is not SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }) ||
                 scope.JoinRemovals.Length > 0 || scope.Children.Length > 0 || scope.Nested.Length > 0 ||
                 (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
                     mapping.Target.Length != 1 || mapping.Source is not SemanticProjectionEventSourceIdentity)) ||

@@ -32,6 +32,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     static readonly SemaphoreSlim _processGate = new(1, 1);
     static readonly ConcurrentDictionary<SemanticRevision, SemanticRuntimeTypes> _types = [];
 
+    // Observe the actual retained world, including facts accepted before a reaction's refusal.
+    // Kept internal so conformance can check counts without changing the public report schema.
+    internal Action<SemanticId, int>? ObserveWorldFacts { private get; init; }
+
     /// <inheritdoc/>
     public async Task<SemanticSpecificationRunReport> Run(SemanticExecutionPlan plan, SemanticSpecificationSelection selection, SemanticSpecificationRunOptions options, CancellationToken cancellationToken = default)
     {
@@ -66,7 +70,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 await _processGate.WaitAsync(cancellationToken);
                 try
                 {
-                    results.Add(await Execute(specification, slice, plan, options, cancellationToken));
+                    results.Add(await Execute(specification, slice, plan, options, ObserveWorldFacts, cancellationToken));
                 }
                 finally
                 {
@@ -114,7 +118,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         return result with { Failures = [.. result.Failures.Select(failure => $"{prefix}{failure} {provenance}")] };
     }
 
-    static async Task<SemanticSpecificationRunRecord> Execute(SemanticSpecification specification, SemanticSlice slice, SemanticExecutionPlan plan, SemanticSpecificationRunOptions options, CancellationToken cancellationToken)
+    static async Task<SemanticSpecificationRunRecord> Execute(SemanticSpecification specification, SemanticSlice slice, SemanticExecutionPlan plan, SemanticSpecificationRunOptions options, Action<SemanticId, int>? observeWorldFacts, CancellationToken cancellationToken)
     {
         if (SemanticSpecificationClock.TryGet(specification, out var instant)) options = options with { Clock = new FixedSemanticClock(instant) };
         var when = specification.When;
@@ -127,6 +131,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var defaults = new Defaults(new SemanticClientArtifactsProvider(eventTypes));
         using var eventScenario = new EventScenario(defaults);
         var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventScenario.EventLog, plan);
+        using var observation = observeWorldFacts is { } observe ? new WorldFactObservation(context, observe) : null;
 
         // A new Chronicle-backed event log and scenario are created for each specification.
         foreach (var given in specification.GivenEvents)
@@ -188,6 +193,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var context = run.Context;
         var specification = context.Specification;
         var command = context.Command;
+        if (SemanticVersionFeatures.UnsupportedReadRequirements(command).FirstOrDefault() is { } feature)
+        {
+            return new(Unsupported(run.Slice, run.Expected, new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}")));
+        }
         var priorFacts = context.Facts.Count;
         var caller = specification.GivenCaller;
         var principal = run.ReactionPrincipal ?? (caller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.Principal(caller));
@@ -240,14 +249,11 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     {
         var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
         if (SemanticConceptValues.RequestFailure(run.Plan, context.Command, context.Specification.When!.Values) is { } contractFailure) return new(Rejected(slice, expected, contractFailure));
-        if (collectRefusalDetails)
+        var failures = context.Reads.Failures(context).ToArray();
+        if (failures.Length > 0)
         {
-            var failures = SemanticRuleEvaluation.Failures(context.Command, context.Specification, run.Plan.Model.Application.Concepts, run.Plan.Model.Application.Types).ToArray();
-            if (failures.Length > 0)
-            {
-                var errors = failures.Where(failure => failure.Severity == SemanticValidationSeverity.Error).ToArray();
-                return new(Rejected(slice, expected, failures[0].Message), errors.Length == 0 ? null : new("validation", [], string.Join('\n', errors.Select(failure => failure.Message))));
-            }
+            var errors = failures.Where(failure => failure.Severity == SemanticValidationSeverity.Error).ToArray();
+            return new(Rejected(slice, expected, failures[0].Message), !collectRefusalDetails || errors.Length == 0 ? null : new("validation", [], string.Join('\n', errors.Select(failure => failure.Message))));
         }
         if (CommandInputOutcome(context, slice, true) is { } inputOutcome) return new(Reframe(inputOutcome, slice, expected));
         if (run.IsInvocation && SemanticSpecificationAdmission.Check(run.Plan, context.Specification) is { } blocker) return new(Unsupported(slice, expected, blocker));
@@ -296,10 +302,6 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     static SemanticSpecificationRunRecord? CommandInputOutcome(SemanticRunContext context, SemanticSlice slice, bool allowed)
     {
         if (!allowed) return null;
-        if (SemanticRuleEvaluation.FirstFailure(context.Command, context.Specification, context.Plan.Model.Application.Concepts, context.Plan.Model.Application.Types) is { } failure)
-        {
-            return Rejected(slice, context.Specification, failure);
-        }
 
         // The reference resolves the route after authorization and validation, before identity allocation.
         if (!context.TryResolveRoute(out var routeFailure))
@@ -428,5 +430,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 yield return result;
             }
         }
+    }
+
+    sealed class WorldFactObservation(SemanticRunContext context, Action<SemanticId, int> observe) : IDisposable
+    {
+        public void Dispose() => observe(context.Specification.Id, context.Facts.Count);
     }
 }

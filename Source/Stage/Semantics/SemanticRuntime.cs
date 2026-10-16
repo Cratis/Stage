@@ -7,6 +7,7 @@ using System.Text.Json;
 using Cratis.DependencyInjection;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Runtime;
 
 namespace Cratis.Stage.Semantics;
@@ -221,6 +222,12 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
 
     SemanticUnsupported? UnsupportedImplementation(SemanticCommand? command = null)
     {
+        // Match Host model admission even for runtimes created directly, before evaluating or settling any command.
+        if (Plan.Commands.Values.SelectMany(SemanticVersionFeatures.UnsupportedReadRequirements).FirstOrDefault() is { } feature)
+        {
+            return new(_world, SemanticExecutionCapability.Command, $"{feature.Code}: {feature.Message}");
+        }
+
         var slices = Plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices);
         if (slices.SelectMany(slice => slice.Reducers).Any())
         {

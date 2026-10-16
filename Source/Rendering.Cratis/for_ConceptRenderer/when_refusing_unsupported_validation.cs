@@ -11,15 +11,17 @@ namespace Cratis.Stage.Rendering.Cratis.for_ConceptRenderer;
 public class when_refusing_unsupported_validation : given.concepts
 {
     [Theory]
-    [InlineData(ValidationRuleKind.Checksum)]
-    [InlineData((ValidationRuleKind)999)]
-    void should_fail_closed_instead_of_emitting_a_todo(ValidationRuleKind kind)
+    [InlineData(ValidationRuleKind.Checksum, false)]
+    [InlineData((ValidationRuleKind)999, false)]
+    [InlineData((ValidationRuleKind)999, true)]
+    void should_fail_closed_instead_of_emitting_a_todo(ValidationRuleKind kind, bool nonLiteral)
     {
         var concept = _emailAddress with
         {
-            Validations = [new DeclarativeValidateSyntax([new(ValidationRuleSyntax.ConceptValue, kind, new LiteralExpressionSyntax("luhn", SourceLocation.Start), null, SourceLocation.Start)], SourceLocation.Start)]
+            Validations = [new DeclarativeValidateSyntax([new(ValidationRuleSyntax.ConceptValue, kind, nonLiteral ? new PathExpressionSyntax("missing", SourceLocation.Start) : new LiteralExpressionSyntax("luhn", SourceLocation.Start), null, SourceLocation.Start)], SourceLocation.Start)]
         };
         var error = Assert.Throws<UnsupportedValidationRule>(() => ConceptRenderer.Render(concept, _applicationSet, "Shop"));
-        Assert.StartsWith("STAGE-ESM-042:", error.Message, StringComparison.Ordinal);
+        Assert.StartsWith(kind == (ValidationRuleKind)999 ? "STAGE-ESM-005:" : "STAGE-ESM-042:", error.Message, StringComparison.Ordinal);
+        Assert.Contains(kind.ToString(), error.Message, StringComparison.Ordinal);
     }
 }

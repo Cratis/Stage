@@ -152,6 +152,14 @@ declarations exactly. A namespace or a changed signature fails the build with `C
 The endpoint sits under `/api` because the generated Vite development server proxies `/api` to the backend. Pick a
 path that cannot collide with a route Arc generates from your model.
 
+## Keep custom types out of generated namespaces
+
+Put adapter types in your own namespace, such as `Customizations`, not in a namespace Stage generates (including `<RootNamespace>.Common` and slice namespaces). The global partial `Program` hook above is the supported exception. Remove obsolete generated declarations through your publisher's managed-file cleanup rather than leaving stale siblings in those namespaces.
+
+Generated `Common/` files use short names with globally rooted imports inside their file-scoped namespace (for example, `using global::Cratis.Concepts;`), retaining fully qualified type references when binding is uncertain. The rooted imports cannot be redirected by customization namespaces such as `<RootNamespace>.Cratis` or `<RootNamespace>.System`. Stage plans only from its request and its framework catalog; it does not scan `Customizations/` or packages added through `Dependencies.props`. Adding a type to a generated namespace can silently change a short name's binding. A package that adds a colliding type to an imported namespace can instead cause an ambiguity error when you build; resolve the dependency conflict rather than editing managed code.
+
+Also review extension methods when adding dependencies. A new extension method in an imported namespace can change overload resolution in generated code, even without a type-name collision. Build and run the application's specifications after changing custom dependencies.
+
 ## Supply configuration without editing `appsettings.json`
 
 `appsettings.json` is managed. Supply adapter settings through any other ASP.NET Core configuration source, such as

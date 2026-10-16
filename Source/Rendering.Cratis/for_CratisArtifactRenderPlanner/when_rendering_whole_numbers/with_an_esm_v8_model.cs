@@ -19,7 +19,7 @@ public class with_an_esm_v8_model : Specification
     string Text(string suffix) => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith(suffix, StringComparison.Ordinal)).Bytes.AsSpan());
 
     [Fact] void should_admit_the_model() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_widen_the_concept() => Text("/Quantity.cs").ShouldContain("Quantity(long Value) : global::Cratis.Concepts.ConceptAs<long>");
+    [Fact] void should_widen_the_concept() => Text("/Quantity.cs").ShouldContain("Quantity(long Value) : ConceptAs<long>");
     [Fact] void should_use_a_long_sentinel() => Text("/Quantity.cs").ShouldContain("NotSet = new(0L)");
     [Fact] void should_widen_the_command_property() => Text("/Record.cs").ShouldContain("record RecordStock(global::Invoices.Common.StockId Id, global::Invoices.Common.Quantity Quantity, long Count)");
     [Fact] void should_widen_the_event_property() => Text("/Record.cs").ShouldContain("record StockRecorded(global::Invoices.Common.Quantity Quantity, long Count)");

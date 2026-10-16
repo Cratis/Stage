@@ -15,8 +15,7 @@ public class when_a_generator_contributes_global_usings : Specification
 
     async Task Establish()
     {
-        var workspace = Environment.GetEnvironmentVariable("AI_WORK_OUTPUT") ?? Path.Combine(given.a_restored_scaffold.RepositoryRoot().FullName, ".ai-work", "stage-namespace");
-        _directory = Directory.CreateDirectory(Path.Combine(workspace, $"generator-imports-{Guid.NewGuid():N}"));
+        _directory = Directory.CreateDirectory(Path.Combine(given.a_restored_scaffold.Workspace(), $"generator-imports-{Guid.NewGuid():N}"));
         var path = Path.Combine(_directory.FullName, "Imports.g.cs");
         await File.WriteAllTextAsync(path,
             """

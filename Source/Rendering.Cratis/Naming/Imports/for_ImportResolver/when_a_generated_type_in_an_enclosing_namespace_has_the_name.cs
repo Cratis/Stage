@@ -17,5 +17,5 @@ public class when_a_generated_type_in_an_enclosing_namespace_has_the_name : give
     void Because() => _result = ImportResolver.Resolve(Request(_guid, _generatedGuid), _catalog);
 
     [Fact] void should_qualify_the_framework_type() => _result.Spell(_guid).ShouldEqual("global::System.Guid");
-    [Fact] void should_spell_the_enclosing_type_short() => _result.Spell(_generatedGuid).ShouldEqual("Guid");
+    [Fact] void should_qualify_the_other_ambiguous_type() => _result.Spell(_generatedGuid).ShouldEqual("global::Shop.Orders.Guid");
 }

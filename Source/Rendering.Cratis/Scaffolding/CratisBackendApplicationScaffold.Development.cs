@@ -19,6 +19,7 @@ public sealed partial class CratisBackendApplicationScaffold
         indent_size = 4
         csharp_new_line_before_open_brace = all
         csharp_style_namespace_declarations = file_scoped:suggestion
+        csharp_using_directive_placement = inside_namespace
         csharp_style_var_for_built_in_types = true:suggestion
         csharp_style_var_when_type_is_apparent = true:suggestion
         csharp_style_var_elsewhere = true:suggestion

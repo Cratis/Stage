@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -13,6 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal sealed class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
+    readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SemanticApplicationContext"/> class.
@@ -48,6 +50,12 @@ internal sealed class SemanticApplicationContext
         Specifications = _slices.Values.SelectMany(_ => _.Slice.Specifications).ToDictionary(_ => _.Id);
         IdentifierConcepts = FindIdentifierConcepts();
         Constraints = [.. _slices.Values.SelectMany(located => located.Slice.Constraints.Select(constraint => (located.Slice, constraint)))];
+        _generatedTypes = new(() =>
+        [
+            new(string.Empty, "Program"),
+            .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Select(type =>
+                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+        ]);
     }
 
     /// <summary>
@@ -122,6 +130,8 @@ internal sealed class SemanticApplicationContext
     /// Gets every append-time constraint in the application with the slice declaring it.
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
+
+    internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 
     internal IReadOnlyList<string> Domain { get; }
     internal string CommonFolder => string.Join('/', Domain.Append("Common"));

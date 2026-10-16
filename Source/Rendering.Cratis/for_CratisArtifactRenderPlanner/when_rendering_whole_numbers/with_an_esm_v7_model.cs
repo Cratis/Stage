@@ -19,7 +19,7 @@ public class with_an_esm_v7_model : Specification
     string Text(string suffix) => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith(suffix, StringComparison.Ordinal)).Bytes.AsSpan());
 
     [Fact] void should_admit_the_int_boundary() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_keep_the_concept_int32() => Text("/Quantity.cs").ShouldContain("Quantity(int Value) : global::Cratis.Concepts.ConceptAs<int>");
+    [Fact] void should_keep_the_concept_int32() => Text("/Quantity.cs").ShouldContain("Quantity(int Value) : ConceptAs<int>");
     [Fact] void should_keep_the_sentinel_unchanged() => Text("/Quantity.cs").ShouldContain("NotSet = new(0)");
     [Fact] void should_keep_the_command_property_int32() => Text("/Record.cs").ShouldContain("record RecordStock(global::Invoices.Common.StockId Id, global::Invoices.Common.Quantity Quantity, int Count)");
     [Fact] void should_keep_the_event_property_int32() => Text("/Record.cs").ShouldContain("record StockRecorded(global::Invoices.Common.Quantity Quantity, int Count)");

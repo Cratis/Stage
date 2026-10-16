@@ -158,6 +158,8 @@ public static class ConceptRenderer
 
     static void RenderRule(CSharpCodeBuilder builder, ValidationRuleSyntax rule, List<(string Name, string Code)> ruleMethods, bool subjectIsText)
     {
+        ValidationRuleRenderer.EnsureSupported(rule);
+
         // A concept validator has exactly one value in scope — the concept's own. A rule value that is anything but
         // a literal names something outside that scope, and rendering it would emit an identifier bound to nothing.
         if (rule.Value is not null and not LiteralExpressionSyntax)
@@ -167,9 +169,9 @@ public static class ConceptRenderer
         }
 
         var value = rule.Value is null ? string.Empty : ExpressionRenderer.Render(rule.Value);
-        var call = (rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
+        var call = rule.Rule == ValidationRuleKind.Rule && rule.Code is not null
             ? RenderCustomRule(rule, ruleMethods)
-            : ValidationRuleRenderer.RenderCall(rule.Rule, value, subjectIsText)) ?? throw new UnsupportedValidationRule(rule);
+            : ValidationRuleRenderer.RenderCall(rule.Rule, value, subjectIsText);
 
         builder.Line($"RuleFor(_ => _.Value){call}{ValidationRuleRenderer.RenderMessage(rule)};");
     }

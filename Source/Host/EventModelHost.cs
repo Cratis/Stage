@@ -9,11 +9,12 @@ namespace Cratis.Stage.Host;
 
 internal static class EventModelHost
 {
-    internal static async Task<StageApplication?> LoadModel(string modelPath, List<StageUnsupportedIssue> issues)
+    internal static async Task<StageApplication?> LoadModel(
+        string modelPath, List<StageUnsupportedIssue> issues, Func<string, Task<StageApplication>>? load = null)
     {
         try
         {
-            var application = await EventModelLoader.LoadStageApplicationFromPathAsync(modelPath);
+            var application = await (load ?? EventModelLoader.LoadStageApplicationFromPathAsync)(modelPath);
             if (application.Scene.RuntimeIssues.All(SafeSceneApplication.CanServeWithoutUnsafeBehavior))
             {
                 return application with { Scene = SafeSceneApplication.From(application.Scene) };
@@ -23,7 +24,7 @@ internal static class EventModelHost
 
             return application.Scene.RuntimeIssues.Count > 0 ? null : application;
         }
-        catch (Exception exception) when (exception is InvalidEventModel or UnsupportedEventSourceRoutes or UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters or UnsupportedGenerationStrategy)
+        catch (Exception exception) when (exception is InvalidEventModel or UnsupportedEventSourceRoutes or UnsupportedPublicEvents or UnsupportedForeignEvents or UnsupportedTranslationDirection or UnsupportedReactionIdentity or UnsupportedObserverFilters or UnsupportedGenerationStrategy or UnsupportedValidationRule)
         {
             issues.Add(new StageUnsupportedIssue("Plan", "model", exception.Message));
 

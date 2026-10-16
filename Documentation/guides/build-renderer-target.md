@@ -28,6 +28,14 @@ Reference:
 
 The renderer extension surface is the contracts under `Cratis.Stage.Contracts.Rendering`. The Cratis renderer is a useful behavioral example, but its admission classes, semantic indexes, naming code, emitters, scaffold conventions, and other internal helpers are Cratis implementation details. They are not reusable renderer APIs. Build target-owned equivalents around the public contracts rather than taking a dependency on `Cratis.Stage.Rendering.Cratis`.
 
+### Cratis C# type-name convention
+
+The Cratis target emits short type names in generated `Common/` concept and composite-type files when its import resolver can prove their binding. It places globally rooted type imports, such as `using global::Cratis.Concepts;`, **inside** the file-scoped namespace, sorted ordinally; existing extension-method imports stay above the namespace. Ambiguous or unknown references retain `global::` qualification. This is a Cratis C# target convention, not a Screenplay or shared renderer-contract requirement. Other generated files keep their current spelling.
+
+The resolver uses the complete application's generated declarations, even for a scoped plan, and an embedded catalog generated from the scaffold's compile assets. It does not inspect the output folder or user dependencies. The `global::` prefix prevents enclosing namespaces such as `<RootNamespace>.Cratis` or `<RootNamespace>.System` from redirecting an import. Placement inside the namespace prevents enclosing user types and global aliases from silently replacing a resolved short name. Keep user types out of generated namespaces, and review extension-method additions as described in [Customize a rendered application](customize-rendered-application.md#keep-custom-types-out-of-generated-namespaces).
+
+Existing applications see a one-time text change in these files on their next regeneration. Preserve the scaffold's `csharp_using_directive_placement = inside_namespace` editor setting when updating an existing application's configuration.
+
 ## Compile Screenplay before calling the planner
 
 Compilation belongs to the caller or orchestration layer, not the target planner. Compile every file in one logical application through `SemanticModelCompiler`. Stable document keys establish identity; display paths provide diagnostic context and must not establish identity.

@@ -25,6 +25,9 @@ sealed record ScaffoldedProject(
     IReadOnlyList<string> GeneratedSources,
     IReadOnlyList<(string Id, string Version)> Packages)
 {
+    internal IReadOnlyList<string> NamespaceReferences { get; init; } = [];
+    internal IReadOnlyList<string> ProjectSources { get; init; } = [];
+
     /// <summary>
     /// Reads a project from the JSON MSBuild prints for <c language="csharp">-getItem</c> and the restore assets file.
     /// </summary>
@@ -53,13 +56,20 @@ sealed record ScaffoldedProject(
         var packageSources = root.GetProperty("Compile").EnumerateArray()
             .Select(item => Path.GetFullPath(Metadata(item, "FullPath")))
             .Where(path => !path.StartsWith(Path.GetFullPath(directory), StringComparison.Ordinal))
-            .Select(path => (PackageOf(path), path))
+            .Select(path => (Package: PackageOf(path), Path: path))
             .ToArray();
         var generated = System.IO.Directory.Exists(generatedSources)
             ? System.IO.Directory.GetFiles(generatedSources, "*.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToArray()
             : [];
 
-        return new(project, directory, references, usings, packageSources, generated, Assets(Path.Combine(directory, "obj", "project.assets.json")));
+        var assets = Path.Combine(directory, "obj", "project.assets.json");
+        return new(project, directory, references, usings, packageSources, generated, Assets(assets))
+        {
+            NamespaceReferences = ScaffoldedNamespaces.PackageAssemblies(assets),
+            ProjectSources = [.. root.GetProperty("Compile").EnumerateArray()
+                .Select(item => Path.GetFullPath(Metadata(item, "FullPath")))
+                .Except(packageSources.Select(source => source.Path), StringComparer.Ordinal)]
+        };
     }
 
     /// <summary>

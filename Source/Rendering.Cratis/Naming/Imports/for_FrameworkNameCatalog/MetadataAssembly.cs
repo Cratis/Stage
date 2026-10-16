@@ -73,8 +73,11 @@ static class MetadataAssembly
         foreach (var property in definition.GetProperties().Select(metadata.GetPropertyDefinition))
         {
             var accessors = property.GetAccessors();
-            var accessor = accessors.Getter.IsNil ? accessors.Setter : accessors.Getter;
-            if (!accessor.IsNil && IsInherited(metadata.GetMethodDefinition(accessor).Attributes & MethodAttributes.MemberAccessMask)) members.Add(metadata.GetString(property.Name));
+            if (new[] { accessors.Getter, accessors.Setter }.Any(accessor =>
+                !accessor.IsNil && IsInherited(metadata.GetMethodDefinition(accessor).Attributes & MethodAttributes.MemberAccessMask)))
+            {
+                members.Add(metadata.GetString(property.Name));
+            }
         }
 
         foreach (var field in definition.GetFields().Select(metadata.GetFieldDefinition))

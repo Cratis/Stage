@@ -82,10 +82,6 @@ internal static partial class SemanticSpecificationAdmission
             {
                 return "A protected snapshot collection success needs a collection-aware query scenario GetInstances store; Arc 22.87 forwards GetInstances to the inner store rather than its seeded events and pinned rows.";
             }
-            if (context.Projections.Values.Any(projection => projection.ReadModel == query.ReadModel && projection.Scope is not null))
-            {
-                return "A protected live collection over a scoped projection needs default query-scenario observation of children read models (Chronicle#4816).";
-            }
             var routedReplay = specification.GivenEvents.Any(given => given.Route is not null) ||
                 SemanticSpecificationRouteRendering.ForCommand(specification, context) is not null;
             if (routedReplay && !HasReadablePinnedKey(context, query.ReadModel))

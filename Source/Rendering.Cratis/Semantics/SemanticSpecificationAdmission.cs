@@ -91,6 +91,12 @@ internal static partial class SemanticSpecificationAdmission
         {
             if (CommandTriggersReaction(context, specification))
             {
+                if (SemanticReactionCascade.TryLower(context, specification, out var cascade))
+                {
+                    ValidateCascade(context, cascade, diagnostics);
+                    continue;
+                }
+
                 diagnostics.Add(new(
                     "STAGE-ESM-011",
                     ArtifactRenderDiagnosticSeverity.Error,
@@ -102,7 +108,16 @@ internal static partial class SemanticSpecificationAdmission
         }
     }
 
-    static bool CommandTriggersReaction(SemanticApplicationContext context, SemanticSpecification specification)
+    static void ValidateCascade(SemanticApplicationContext context, SemanticReactionCascade cascade, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        ValidateReactionAppend(context, cascade.Reaction, diagnostics);
+        if (cascade.Trigger is { } trigger && !CanRenderSpecification(context, trigger))
+        {
+            diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{cascade.Reaction.Name}' cannot render: its triggering command specification cannot be preserved ({RejectionReason(context, trigger)}).", cascade.Reaction.Id));
+        }
+    }
+
+    internal static bool CommandTriggersReaction(SemanticApplicationContext context, SemanticSpecification specification)
     {
         if (specification.When is not { } action) return false;
         if (!context.Commands.TryGetValue(action.Command, out var command)) return false;

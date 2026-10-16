@@ -25,7 +25,7 @@ public class when_planning_opaque_generated_concept_rules : Specification
 
     void Establish()
     {
-        var corpus = GeneratedConceptRulesCorpus.V20;
+        var corpus = GeneratedConceptRulesCorpus.PortableV20;
         var form = corpus.SourceForms.Single(form => form.Name == "single");
         var catalog = SemanticIdentityCatalogSerializer.Deserialize(form.IdentityCatalogBytes.AsSpan());
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));

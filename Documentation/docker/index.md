@@ -141,7 +141,8 @@ scalar rules cannot express element validation. Use `lines not empty` to require
 Numeric bounds and comparisons skip values that are neither numbers nor text (booleans, objects and collections).
 
 The default engine **drops**, rather than partially enforces, `all >` and `all >=`, equality and
-inequality (`==` / `!=`), checksums, named rules, inline code validation, and rules with non-literal
+inequality (`==` / `!=`), checksums, ordinal text rules (`contains`, `not contains`, `starts with`,
+`ends with`), named rules, inline code validation, and rules with non-literal
 operands (including property references, `today` and named match patterns such as `email`). It does
 not turn a collection quantifier into a scalar comparison. Dropped rules do not reject a command;
 compilation alone does not mean the default engine enforces all modeled validation. Use semantic

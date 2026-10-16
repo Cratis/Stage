@@ -264,7 +264,8 @@ public static class SemanticRunAdmission
         SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
         SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or
         SemanticValidationRuleKind.LessThanOrEqual or SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or
-        SemanticValidationRuleKind.Checksum;
+        SemanticValidationRuleKind.Checksum or SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
 
     static bool Scalar(SemanticTypeReference type)
     {

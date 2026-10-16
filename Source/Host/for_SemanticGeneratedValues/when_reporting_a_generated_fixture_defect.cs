@@ -22,7 +22,7 @@ public class when_reporting_a_generated_fixture_defect : Specification
             concept Code : String
               generate ulid case lower
               validate
-                matches "^(?!01)[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                matches "^(?<portable>0[02-9a-hjkmnp-tv-z][0-9a-hjkmnp-tv-z]{24}|[1-7][0-9a-hjkmnp-tv-z]{25})$"
             module M
               feature F
                 slice StateChange S

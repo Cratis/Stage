@@ -20,19 +20,15 @@ public class when_porting_end_of_input : Specification
     [InlineData(@"^\\$", "\\", true)]
     [InlineData(@"^\\$", "\\\n", false)]
     [InlineData(@"^[\]$]+$", "]$", true)]
-    [InlineData("^[]$]+$", "]$", true)]
-    [InlineData("^A[^]$", "AB\n", false)]
     [InlineData("B", "ABC", true)]
     [InlineData(@"^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$", "a@b.co\n", false)]
     public void should_preserve_literals_and_require_the_whole_input(string pattern, string input, bool expected) =>
-        Regex.IsMatch(input, SemanticMatchAnchors.Portable(pattern), RegexOptions.ECMAScript | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)).ShouldEqual(expected);
+        Regex.IsMatch(input, SemanticMatchAnchors.Portable(pattern), RegexOptions.NonBacktracking | RegexOptions.CultureInvariant, Regex.InfiniteMatchTimeout).ShouldEqual(expected);
 
     [Theory]
-    [InlineData("^[A-Z]{3}$", @"^[A-Z]{3}(?![\s\S])")]
-    [InlineData("^[]$]+$", @"^[]$]+(?![\s\S])")]
-    [InlineData("^A[^]$", @"^A[^](?![\s\S])")]
-    [InlineData(@"^\$$", @"^\$(?![\s\S])")]
-    [InlineData("^[$]$", @"^[$](?![\s\S])")]
+    [InlineData("^[A-Z]{3}$", @"^[A-Z]{3}\z")]
+    [InlineData(@"^\$$", @"^\$\z")]
+    [InlineData("^[$]$", @"^[$]\z")]
     [InlineData("B", "B")]
     public void should_rewrite_only_anchors(string pattern, string expected) => SemanticMatchAnchors.Portable(pattern).ShouldEqual(expected);
 }

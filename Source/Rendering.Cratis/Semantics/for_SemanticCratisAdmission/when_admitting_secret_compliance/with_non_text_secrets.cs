@@ -52,5 +52,5 @@ public class with_non_text_secrets : Specification
 
     [Fact] void should_admit_each_primitive_in_application_and_slice_scopes() => _plans.TrueForAll(entry => entry.Plan.Success).ShouldBeTrue();
     [Fact] void should_report_no_compliance_refusals() => _plans.SelectMany(entry => entry.Plan.Diagnostics).ShouldBeEmpty();
-    [Fact] void should_preserve_encryption_and_audit_exclusion() => _plans.TrueForAll(entry => entry.Plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("Protected.cs", StringComparison.Ordinal) && System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute", StringComparison.Ordinal) && System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("[global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]", StringComparison.Ordinal))).ShouldBeTrue();
+    [Fact] void should_preserve_encryption_and_audit_exclusion() => _plans.TrueForAll(entry => entry.Plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("Protected.cs", StringComparison.Ordinal) && System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("[Encrypted", StringComparison.Ordinal) && System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("[NotAudited]", StringComparison.Ordinal))).ShouldBeTrue();
 }

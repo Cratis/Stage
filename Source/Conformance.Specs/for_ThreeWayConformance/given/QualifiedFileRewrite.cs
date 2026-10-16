@@ -57,16 +57,12 @@ static class QualifiedFileRewrite
             if (spelling != reference.Name.Identifier.Text) changes.Add(new(reference.Name.Identifier.Span, spelling));
         }
 
-        changes.Add(Usings(root, namespaces, resolution.Usings));
+        if (resolution.Usings.Length > 0 && namespaces is [FileScopedNamespaceDeclarationSyntax fileNamespace])
+        {
+            var lines = string.Concat(resolution.Usings.Select(@namespace => $"\nusing {@namespace};"));
+            changes.Add(new(new(fileNamespace.SemicolonToken.Span.End, 0), $"\n{lines}\n"));
+        }
         return ([.. changes.Where(change => change.Span.Length > 0 || change.NewText!.Length > 0).OrderBy(change => change.Span.Start)], spelledShort);
-    }
-
-    static TextChange Usings(CompilationUnitSyntax root, BaseNamespaceDeclarationSyntax[] namespaces, ImmutableArray<string> usings)
-    {
-        var lines = string.Join('\n', usings.Select(@namespace => $"using {@namespace};"));
-        if (root.Usings.Count > 0) return new(TextSpan.FromBounds(root.Usings[0].SpanStart, root.Usings[^1].Span.End), lines);
-        var start = namespaces.Length > 0 ? namespaces[0].SpanStart : root.Members.FirstOrDefault()?.SpanStart ?? root.EndOfFileToken.SpanStart;
-        return new(new(start, 0), usings.Length == 0 ? string.Empty : $"{lines}\n\n");
     }
 
     static QualifiedReference? Reference(SemanticModel model, AliasQualifiedNameSyntax name)

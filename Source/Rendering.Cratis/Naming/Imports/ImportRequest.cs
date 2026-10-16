@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 /// </summary>
 /// <param name="FileNamespace">The file-scoped namespace of the file.</param>
 /// <param name="Project">The project the file compiles into; exactly one of <see cref="GeneratedProjects.Application"/> and <see cref="GeneratedProjects.Specifications"/>.</param>
-/// <param name="GeneratedTypes">Every type the project's own source declares, in every namespace, including the scaffold's types.</param>
+/// <param name="GeneratedTypes">The complete renderer-owned declaration inventory, including known scaffold types; user customizations are not inputs to the planner.</param>
 /// <param name="References">The types the file names.</param>
 internal sealed record ImportRequest(
     string FileNamespace,

@@ -1,14 +1,13 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Text.RegularExpressions;
-
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
 
-#pragma warning disable MA0110, SA1202 // The current SDK does not generate implementations for these regex members in this project.
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
@@ -36,30 +35,35 @@ public class when_planning_generated_code_quality : a_register_project_render_re
             .ShouldBeFalse();
 
     [Fact] void should_not_declare_a_namespace_twice_in_one_file() =>
-        Sources()
-            .Any(_ => UsingDirective().Matches(_.Text)
-                .Select(match => match.Groups["namespace"].Value)
-                .GroupBy(namespaceName => namespaceName, StringComparer.Ordinal)
-                .Any(group => group.Count() > 1))
+        Sources().Any(source => ImportScopes(source.Text).SelectMany(imports => imports)
+            .Select(name => name.StartsWith("global::", StringComparison.Ordinal) ? name["global::".Length..] : name)
+            .GroupBy(name => name, StringComparer.Ordinal).Any(group => group.Count() > 1))
             .ShouldBeFalse();
 
-    [Fact] void should_order_usings_so_a_style_analyser_does_not_reject_them() =>
-        Sources()
-            .Any(_ =>
-            {
-                var declared = UsingDirective().Matches(_.Text)
-                    .Select(match => match.Groups["namespace"].Value)
-                    .ToArray();
-                return !declared.SequenceEqual(declared.Order(StringComparer.Ordinal));
-            })
+    [Fact] void should_not_leave_type_only_common_imports_at_the_top_of_the_file() =>
+        Sources().Where(source => source.Path.StartsWith("Common/", StringComparison.Ordinal))
+            .Select(source => CSharpSyntaxTree.ParseText(source.Text).GetCompilationUnitRoot())
+            .Any(root => root.Usings.Select(directive => directive.NamespaceOrType.ToString())
+                .Any(name => string.Equals(name, "Cratis.Concepts", StringComparison.Ordinal) || string.Equals(name, "Cratis.Chronicle.Events", StringComparison.Ordinal)))
+            .ShouldBeFalse();
+
+    [Fact] void should_order_usings_at_each_lexical_scope() =>
+        Sources().SelectMany(source => ImportScopes(source.Text))
+            .Any(imports => !imports.SequenceEqual(imports.Order(StringComparer.Ordinal)))
             .ShouldBeFalse();
 
     [Fact] void should_leave_no_blank_line_at_the_end_of_a_file() =>
         Sources().Any(_ => _.Text.EndsWith("\n\n", StringComparison.Ordinal)).ShouldBeFalse();
 
-    static readonly Regex _usingDirective = new("(?m)^using (?<namespace>[A-Za-z0-9_.]+);", RegexOptions.ExplicitCapture, TimeSpan.FromMilliseconds(1000));
-
-    static Regex UsingDirective() => _usingDirective;
+    static IEnumerable<IReadOnlyList<string>> ImportScopes(string source)
+    {
+        var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
+        yield return root.Usings.Select(directive => directive.NamespaceOrType.ToString()).ToArray();
+        foreach (var scope in root.DescendantNodes().OfType<BaseNamespaceDeclarationSyntax>())
+        {
+            yield return scope.Usings.Select(directive => directive.NamespaceOrType.ToString()).ToArray();
+        }
+    }
 
     IEnumerable<(string Path, string Text)> Sources() =>
         _plan.Artifacts

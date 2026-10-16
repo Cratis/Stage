@@ -20,12 +20,14 @@ internal static class SemanticGenerationRendering
         string.Equals(generation?.Kind, "ulid", StringComparison.Ordinal) ||
         string.Equals(generation?.Kind, "typeid", StringComparison.Ordinal);
 
+    internal static bool UsesContext(SemanticGeneration? generation) => IsTimeOrdered(generation) || SemanticPatternShape.HasDates(generation);
+
     internal static string Factory(SemanticConcept concept, string? context)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
         var value = Strategy(generation, context);
 
-        return concept.Primitive == SemanticPrimitiveType.Uuid ? value : Text(generation, value);
+        return concept.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.WholeNumber ? value : Text(generation, value);
     }
 
     static string Strategy(SemanticGeneration generation, string? context) => generation.Kind switch
@@ -36,6 +38,8 @@ internal static class SemanticGenerationRendering
         "typeid" => $"{Generator}.TypeId({Literal(generation.Prefix ?? string.Empty)}, {context})",
         "nanoid" => $"{Generator}.NanoId({Number(generation.Size ?? 21)}, {(generation.Alphabet is { } alphabet ? Literal(alphabet) : "null")})",
         "bytes" => $"{Generator}.Bytes({Number(generation.Count!.Value)}, global::Cratis.Concepts.ValueEncoding.{Encoding(generation.Encoding)})",
+        "pattern" => $"{Generator}.Pattern({Literal(generation.Pattern!)}{(context is null ? string.Empty : $", {context}")}{(generation.Checksum is null ? string.Empty : $", global::Cratis.Concepts.Checksum.{SemanticChecksumRules.Algorithm(SemanticValue.Text(generation.Checksum))}")})",
+        "random" => $"{Generator}.Integer({generation.Minimum!.Value.ToString(CultureInfo.InvariantCulture)}L, {generation.Maximum!.Value.ToString(CultureInfo.InvariantCulture)}L)",
         _ => throw new InvalidArtifactRenderContract($"Generation strategy '{generation.Kind}' is not admitted.")
     };
 

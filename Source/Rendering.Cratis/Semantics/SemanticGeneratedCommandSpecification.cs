@@ -43,7 +43,7 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
         {
             builder.Line($"_scenario.Clock(new global::System.DateTimeOffset({instant.Ticks}L, global::System.TimeSpan.Zero));");
         }
-        else if (UnpinnedProperties.Any(IsTimeOrdered))
+        else if (UnpinnedProperties.Any(property => SemanticGenerationRendering.UsesContext(context.Concepts[property.Type.Target].Generation)))
         {
             builder.Line("_scenario.Clock(new global::System.DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, global::System.TimeSpan.Zero));");
         }
@@ -103,9 +103,7 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
         }
         foreach (var property in UnpinnedProperties)
         {
-            var expectation = context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15)
-                ? $"global::System.Text.RegularExpressions.Regex.IsMatch({Captured(property)}.Value.ToString()!, {CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(context.Concepts[property.Type.Target]))}, global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.TimeSpan.FromSeconds(1)).ShouldBeTrue()"
-                : $"{Captured(property)}.Value.ShouldNotEqual(global::System.Guid.Empty)";
+            var expectation = StrategyExpectation(property);
             builder.Line($"[global::Xunit.FactAttribute] void should_generate_{Identifiers.ToSnakeCase(property.Name)}() => {expectation};");
             if (IsTimeOrdered(property))
             {
@@ -113,6 +111,19 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
                 builder.Line($"[global::Xunit.FactAttribute] void should_generate_{Identifiers.ToSnakeCase(property.Name)}_at_the_receipt_time() => {Captured(property)}.Value.ToString()!.StartsWith({CSharpCodeBuilder.StringLiteral(prefix)}, global::System.StringComparison.Ordinal).ShouldBeTrue();");
             }
         }
+    }
+
+    string StrategyExpectation(SemanticProperty property)
+    {
+        var concept = context.Concepts[property.Type.Target];
+        if (concept.Generation is { } range && string.Equals(range.Kind, "random", StringComparison.Ordinal))
+        {
+            return $"{Captured(property)}.Value.ShouldBeInRange({range.Minimum!.Value.ToString(global::System.Globalization.CultureInfo.InvariantCulture)}L, {range.Maximum!.Value.ToString(global::System.Globalization.CultureInfo.InvariantCulture)}L)";
+        }
+
+        return context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15)
+            ? $"global::System.Text.RegularExpressions.Regex.IsMatch({Captured(property)}.Value.ToString()!, {CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(concept, ReceiptTime))}, global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.TimeSpan.FromSeconds(1)).ShouldBeTrue()"
+            : $"{Captured(property)}.Value.ShouldNotEqual(global::System.Guid.Empty)";
     }
 
     bool IsTimeOrdered(SemanticProperty property) => context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) &&

@@ -104,8 +104,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConcept", rendered, "Id Name Primitive Validations Values Numbers Compliance Generation");
         Add(entries, "SemanticGeneration", rendered, "Kind Prefix Case Size Alphabet Count Encoding");
 
-        // ESM v21 is admitted by version; pattern, random and rule generation remain refused per strategy.
-        Add(entries, "SemanticGeneration", rejected("STAGE-ESM-028"), "Pattern Checksum Minimum Maximum RequirementId");
+        Add(entries, "SemanticGeneration", rendered, "Pattern Checksum Minimum Maximum");
+
+        // Opaque rule generation still needs a verified implementation path.
+        Add(entries, "SemanticGeneration", rejected("STAGE-ESM-028"), "RequirementId");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");
         Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via opt-in [ComplianceDetails] (#259)."), "Special Criminal");

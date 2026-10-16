@@ -68,9 +68,9 @@ Stage admits exact ESM v1–v21 language/semantic pairs. Version admission does 
 | --- | --- |
 | v15 | UUID, UUID-v7, ULID, TypeID, NanoID and bytes factories |
 | v20 | Rules on generated concepts; unpinned rendered specifications require every rule to be proven |
-| v21 | `validate checksum luhn`, `mod11` and `mod97` render and execute; `generate pattern`, `generate random` and `generate rule` remain refused with strategy-specific `STAGE-ESM-028` diagnostics |
+| v21 | Pattern and inclusive Int64 random generation; checksum validation; `generate rule` remains refused with `STAGE-ESM-028` |
 
-The Host and independent specification executor enforce the same checksum rules. The three generation strategies remain refused on those paths too. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
+The Host samples pattern and random values through Fundamentals 7.25.0, carried by Arc 22.104.0. The independent specification executor requires deterministic fixtures, just like Screenplay 4.180.1. Both paths enforce the reference strategy shapes and checksum rules; `generate rule` remains refused. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
 
 ### Checksum rules
 
@@ -78,7 +78,20 @@ Declare `validate checksum luhn`, `validate checksum mod11` or `validate checksu
 
 The final one digit (Luhn/Mod11) or two digits (Mod97) must exactly match the checksum of the preceding ASCII digits. Printable non-digits in the payload, including lowercase letters and spaces, are ignored; they are not converted to numbers. Control characters and non-ASCII characters anywhere in the value fail validation. Empty values and non-digit suffixes fail too. Mod11 payloads whose check digit would be 10 have no valid one-digit suffix. For example, `79927398713` passes Luhn, `abc98` passes Mod97, and `79927398714` fails Luhn. A checksum is not a length or format constraint; declare those separately.
 
-Pinned generated fixtures must satisfy the checksum as well as the generation shape. A bad pin blocks rendering with `STAGE-ESM-011`; it is not treated as invalid caller input. Checksum validation does not enable pattern or random generation.
+When a concept declares checksum validation, pinned generated fixtures must satisfy it as well as the generation shape. A bad pin blocks rendering with `STAGE-ESM-011`; it is not treated as invalid caller input.
+
+### Pattern and random strategies
+
+| Strategy | Backing type | Rendered factory |
+| --- | --- | --- |
+| `pattern "REF-?{16}"` | String | `GenerateValue.Pattern("REF-?{16}")` through `IGeneratable<T>.New()` |
+| `pattern "{yyyy}-{MM}-{dd}-?{16}"` | String | `GenerateValue.Pattern(pattern, context)` through `IGeneratableInContext<T>.New(context)` |
+| `pattern "#{16}" checksum luhn` | String | `GenerateValue.Pattern(pattern, Checksum.Luhn)`; `Mod11` and `Mod97` use the corresponding enum values |
+| `random a..b` | Int | `GenerateValue.Integer(a, b)` through `IGeneratable<T>.New()`; both Int64 endpoints are inclusive |
+
+Pattern factories sample distinct strings uniformly from the finite language. Dated patterns expand every date segment from the operation's captured UTC date, not the render-time clock. The date-free factory does not require a context. Random values remain numeric throughout Host execution and generated specifications. ESM v21 whole-number concepts render as `long`, so the compiler's entire Int64 random range is representable without an Int32 range refusal.
+
+A pattern fixture checks language membership, including trailing digit width for a generation checksum. It does not check checksum arithmetic unless you also declare `validate checksum`. Without an authored clock, date positions in a pin need only have the correct digit widths; with a clock, all repeated date segments must match that exact UTC date. A random fixture must be an integral number inside the inclusive range. Neither strategy guarantees uniqueness: generated destinations retain the existing freshness guard, and constrained payloads retain append-time collision handling.
 
 ## ESM v15 strategies
 
@@ -197,13 +210,15 @@ When a rendered specification omits a fixture, Stage calls `_scenario.AllowGener
 
 For an unpinned time-ordered value, Stage emits `_scenario.Clock(new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero))` as the first setup statement, before policy registration and givens. A `should_generate_<name>_at_the_receipt_time` fact checks the capture's encoded millisecond prefix as well as its shape. The random portion remains unpinned. If a command specification states `given clock`, Stage uses that authored instant instead, normalized to UTC, for both the scenario clock and the receipt-time prefix assertion. Authored clocks also produce clock setup for fully pinned commands and commands without time-ordered generation. Without an authored clock, those specifications get no clock setup. Clocks must be millisecond-aligned and at or after the Unix epoch; `when clock`, query-only, append and reaction clocks remain refused.
 
+Dated pattern captures use the same deterministic scenario clock as time-ordered values and assert the expanded UTC date in their shape. Random captures assert the inclusive range. Date-pattern rule proofs use the authored UTC year, or the fixed scenario year 2026 when no clock is authored, keeping rendered bytes deterministic.
+
 The in-memory specification executor requires deterministic fixtures, just like the Screenplay evaluator. Missing fixtures produce an `Unsupported(IdentityAllocation)` outcome; they do not silently allocate a value and pass. It compares scalar responses and each asserted named field after successful execution.
 
 Rendering is not compilation or execution. Build the generated project in Debug, then run its Debug specifications. A successful run proves that Arc resolves the parameters, the events land on the intended streams, and the response assertions execute.
 
 ## Partial-perform runtime
 
-The live semantic runtime supplies a value from the concept's strategy as a semantic text value for every generated property, including validation-only requests. Applications without explicit concept generation retain implicit UUID generation, regardless of their schema version. It rejects attempts to supply generated properties as request inputs. Validation-only requests do not append facts or reserve the generated UUID for a later execution.
+The live semantic runtime supplies a value from the concept's strategy for every generated property, including validation-only requests: a semantic number for `random`, and semantic text for the other strategies. Applications without explicit concept generation retain implicit UUID generation, regardless of their schema version. It rejects attempts to supply generated properties as request inputs. Validation-only requests do not append facts or reserve the generated UUID for a later execution.
 
 For time-ordered strategies, the Host uses the same occurrence instant for generation and event metadata. It takes that instant from `CommandContext.ReceivedAt`, retaining a UTC wall-clock fallback only for hand-built contexts without a receipt. Reaction-invoked Host commands use the triggering command's occurrence; rendered reactions dispatch through Arc and use their own pipeline receipt.
 
@@ -216,7 +231,7 @@ Form `on submit` response binding and navigation remain blocked on [Scene #53](h
 | Diagnostic | Refused shape |
 | --- | --- |
 | `PLAY0268` (Screenplay) | Compliance markers on a generated concept |
-| `STAGE-ESM-028` | `pattern`, `random`, `rule` and unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy and generated properties whose concepts have rules |
+| `STAGE-ESM-028` | `rule` and unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy and generated properties whose concepts have rules |
 | `STAGE-ESM-042` | Unsupported validation rule kinds in the legacy syntax renderer, including checksum; semantic checksum rules are supported |
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |

@@ -9,12 +9,12 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 
 internal static class generated_local_collision_cases
 {
-    static readonly string[] Names = ["operation", "operation1", "occurred", "occurred1", "stageEvents", "stageEvents1", "stageProduces0", "stageProduces01", "streamIdPart0", "streamIdPart01", "source", "source1"];
-    const string Pin = "11111111-1111-4111-8111-111111111111";
+    static readonly string[] Names = ["operation", "operation1", "occurred", "occurred1", "stageEvents", "stageEvents1", "stageProduces0", "stageProduces01", "streamIdPart0", "streamIdPart01", "source", "source1", "generatedSource0_0", "generatedSource0_01"];
+    const string Pin = "11111111-1111-7111-8111-111111111111";
 
     internal static ExecutableSemanticModel Compile() => invoice_model.Compile($"""
         concept Receipt : Uuid
-          generate uuid
+          generate uuidv7
         module Collisions
           feature Recording
         {Slice("Conditional", true)}

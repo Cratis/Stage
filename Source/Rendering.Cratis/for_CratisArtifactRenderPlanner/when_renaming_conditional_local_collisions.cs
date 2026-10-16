@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public class when_refusing_conditional_local_collisions : Specification
+public class when_renaming_conditional_local_collisions : Specification
 {
     [Theory]
     [InlineData("stageEvents")]

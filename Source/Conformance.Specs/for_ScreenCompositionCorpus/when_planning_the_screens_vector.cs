@@ -32,7 +32,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx e4dc56b56e3e3855a1fdeedf2c14c131db52853c73f87b3b28d51b30a0e361b7 2723
         .frontend/stage/App.tsx 12169599231660c97494a1f08b2ab32bb89f2069b957246f92da206eb56998ea 24239
-        .frontend/stage/StageChrome.tsx 2cbcc9370c6e6385d097a4c2f96af89830371a1ce9efa3490b5058789cbfb925 7731
+        .frontend/stage/StageChrome.tsx 1c40eddd9cd9cbac5efb89902a83265f0c2bd2b82338f828f2e667486709e6c7 8172
         .frontend/stage/StageCommandForm.tsx 07c4a176399590ee73a3ef5ce96d3389995f2f36204b8d08faa7903c061a2a81 22785
         .frontend/stage/StageGuardedAction.tsx 8c950711a7cd89ddd11191f846bf5230da93cf2a31a450976ff22d26e6210c5e 6921
         .frontend/stage/StageShellSettings.tsx c2e9eae4cf842185f9b76862b51886012ead363e60b79d000d15c6a38b5b3f1d 2442
@@ -150,7 +150,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("d924b0284bfd89bf56318a0770f3c73788c8e7394311cd3ae6f8538eb5313071");
+            plan.Diagnostics).ShouldEqual("5663e0a4100191286afb9d991f813bb364c91d85feca83abdcba9dd60dabd5e1");
     }
 
     [Theory]
@@ -164,7 +164,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // those pins in Directory.Packages.props; frontend files may already name 22.100.1 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.62.0", "4.22.1", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.67.0", "4.22.1", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
             ? previous.Replace("22.109.0", "22.87.0", StringComparison.Ordinal)

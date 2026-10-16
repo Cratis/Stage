@@ -177,7 +177,11 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var instance = (DynamicCommand)Activator.CreateInstance(runtimeType)!;
 
         // Keep malformed inputs out of JSON binding; preparation rejects them after authorization, before rules.
-        if (SemanticConceptValues.RequestFailure(plan, command, when.Values) is not null) return instance;
+        if (SemanticDateOrdering.InputFailure(plan.Model.Application, command, when.Values) is not null ||
+            SemanticConceptValues.RequestFailure(plan, command, when.Values) is not null)
+        {
+            return instance;
+        }
         var context = new SemanticApplicationContext(plan);
         foreach (var value in when.Values)
         {
@@ -248,6 +252,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     static SemanticInvocationOutcome? PrepareCommand(SemanticCommandRun run, bool collectRefusalDetails)
     {
         var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
+        if (SemanticDateOrdering.InputFailure(run.Plan.Model.Application, context.Command, context.Specification.When!.Values) is { } dateFailure)
+        {
+            return new(Rejected(slice, expected, dateFailure), collectRefusalDetails ? new("validation", [], dateFailure) : null);
+        }
         if (SemanticConceptValues.RequestFailure(run.Plan, context.Command, context.Specification.When!.Values) is { } contractFailure) return new(Rejected(slice, expected, contractFailure));
         var failures = context.Reads.Failures(context).ToArray();
         if (failures.Length > 0)

@@ -182,7 +182,7 @@ public static class SemanticRunAdmission
 
         // The reference projects given events while establishing the world, and produced facts only when the command
         // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
-        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? SemanticProductionConditions.Taken(command, when).Select(produce => produce.EventContract) : [];
+        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? SemanticProductionConditions.Taken(command, when, plan.Model.Application).Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
         if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
@@ -208,7 +208,7 @@ public static class SemanticRunAdmission
         }
 
         // A routed command can reject its route before reaching identity allocation; defer that decision to execution.
-        if (specification.ThenErrors.IsEmpty && command.Route is null && when.EventSource is null && command.Destination?.Value is null && SemanticProductionConditions.Taken(command, when).Any(produced => produced.Destination is null))
+        if (specification.ThenErrors.IsEmpty && command.Route is null && when.EventSource is null && command.Destination?.Value is null && SemanticProductionConditions.Taken(command, when, plan.Model.Application).Any(produced => produced.Destination is null))
         {
             return Block(StageExecutionCapability.IdentityAllocation, command.Id, "An accepted command requires an explicit destination.");
         }
@@ -223,6 +223,10 @@ public static class SemanticRunAdmission
     /// <returns>The projection refusal, or null when the fact is safe to project.</returns>
     public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact) =>
         SemanticRunProjectionAdmission.CheckFact(plan, fact);
+
+    // Live commands cannot consume pinned fixtures, so the Host refuses generation implementation bodies.
+    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticCommand command, IEnumerable<SemanticConcept> concepts) =>
+        CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, concepts).Select(Feature));
 
     // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
     // Keep non-event triggers, opaque bodies and unsupported context mappings refused in both engines.

@@ -48,7 +48,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // CPM keeps the backend Arc pins in Directory.Packages.props; frontend files may use the same version independently.
     static string PreviousRealization(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.62.0", "4.22.1", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.67.0", "4.22.1", StringComparison.Ordinal);
         if (relativePath.EndsWith("Lookup.cs", StringComparison.Ordinal))
         {
             // Restore the frozen #350 primitive query signature and conversion, not the read-model property.

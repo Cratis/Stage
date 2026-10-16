@@ -62,15 +62,15 @@ A generated concept that is not an identifier derives from `ConceptAs<T>`. It im
 
 ## Version admission
 
-Stage admits exact ESM v1–v21 and v23–v25 language/semantic pairs (v22 remains refused). Version admission does not imply support for every strategy:
+Stage admits exact ESM v1–v21 and v23–v26 language/semantic pairs (v22 remains refused). Version admission does not imply support for every strategy:
 
 | Version | Generation support |
 | --- | --- |
 | v15 | UUID, UUID-v7, ULID, TypeID, NanoID and bytes factories |
 | v20 | Rules on generated concepts; unpinned rendered specifications require every rule to be proven |
-| v21 | Pattern and inclusive Int64 random generation; checksum validation; `generate rule` remains refused with `STAGE-ESM-028` |
+| v21 | Pattern and inclusive Int64 random generation; checksum validation; executor runs pinned String `generate rule` values without invoking the body; Host refuses commands generating rule values and renderer still refuses rule concepts with `STAGE-ESM-028` |
 
-The Host samples pattern and random values through Fundamentals 7.25.0, carried by Arc 22.109.0. The independent specification executor requires deterministic fixtures, just like Screenplay 4.182.0. Both paths enforce the reference strategy shapes and checksum rules; `generate rule` remains refused. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
+The Host samples pattern and random values through Fundamentals 7.25.0, carried by Arc 22.109.0. The independent specification executor requires deterministic fixtures, just like Screenplay 4.182.0. Both paths enforce the reference strategy shapes and checksum rules. For `generate rule`, the executor accepts any String fixture that satisfies the concept's rules and never invokes the implementation body; missing pins remain `Unsupported(IdentityAllocation)`. An unused rule-generation concept does not block the Host or executor. The Host refuses each command that generates a rule value with `STAGE-ESM-028`, naming the command, property and concept, because its interpreter never runs implementation bodies. The renderer still refuses each rule-generation concept with `STAGE-ESM-028`; rendering those bodies requires a later release. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
 
 ### Checksum rules
 
@@ -243,7 +243,7 @@ Commands with generated properties can validate and require request values. Requ
 | Diagnostic | Refused shape |
 | --- | --- |
 | `PLAY0268` (Screenplay) | Compliance markers on a generated concept |
-| `STAGE-ESM-028` | `rule` and unknown generation strategies, non-concept generated values, optional values and collections; the legacy syntax engine refuses every explicit strategy and generated properties whose concepts have rules |
+| `STAGE-ESM-028` | Renderer: each `generate rule` concept; Host: each command generating a rule value, not unused rule concepts. The executor admits pinned String rule values. Unknown generation strategies, non-concept generated values, optional values and collections remain refused; the legacy syntax engine refuses every explicit strategy and generated properties whose concepts have rules |
 | `STAGE-ESM-042` | Unsupported validation rule kinds in the legacy syntax renderer, including checksum; semantic checksum rules are supported |
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
@@ -254,7 +254,7 @@ Commands with generated properties can validate and require request values. Requ
 
 The last case is not shorthand for using the generated identifier. Screenplay keeps legacy allocation in a separate `AllocatedIdentities` channel. Use an inline `produces event` declaration as above, or an explicit production destination. Stage refuses the ambiguous combination instead of sending the event to a different stream than the evaluator.
 
-Time-ordered factories (`uuidv7`, `ulid`, `typeid`) follow Arc's `ReceivedAt`, with no wall-clock fallback in the rendered app. Missing receipt times fail generation. Pins bypass the factory and need not encode the receipt time. Values reveal the receipt time and are not monotonic within a millisecond. Screenplay `given clock` is supported on otherwise admitted command specifications from ESM v6. Fixed `$context.occurred` payload assertions use that instant; a wrong expected instant fails rather than changing the clock. The executor also uses the authored instant for stored occurrence metadata, while retaining deterministic generated fixtures. Authored clocks with reactions, `when clock`, `sequence` and tenant-aware `rule` generation remain unsupported.
+Time-ordered factories (`uuidv7`, `ulid`, `typeid`) follow Arc's `ReceivedAt`, with no wall-clock fallback in the rendered app. Missing receipt times fail generation. Pins bypass the factory and need not encode the receipt time. Values reveal the receipt time and are not monotonic within a millisecond. Screenplay `given clock` is supported on otherwise admitted command specifications from ESM v6. Fixed `$context.occurred` payload assertions use that instant; a wrong expected instant fails rather than changing the clock. The executor also uses the authored instant for stored occurrence metadata, while retaining deterministic generated fixtures. Authored clocks with reactions, `when clock` and `sequence` remain unsupported. The executor can run pinned `rule` values, but neither the Host interpreter nor the renderer executes or emits their bodies yet.
 
 ## Pitfalls
 

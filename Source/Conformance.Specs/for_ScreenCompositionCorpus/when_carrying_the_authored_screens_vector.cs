@@ -43,8 +43,8 @@ public class when_carrying_the_authored_screens_vector : given.the_planned_scree
         });
     }
 
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("25ccba40d3be0513ea07a07825d4f51c3a7c2187bdc653895209fc6711ccb3c1");
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23340);
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("a26dd2f6127424b174fdd95e87ce35b2af792e2374894e6d79da1ed709237c33");
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23373);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);

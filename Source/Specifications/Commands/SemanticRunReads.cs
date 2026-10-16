@@ -4,6 +4,7 @@
 using Cratis.Chronicle.Testing;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Types;
 
@@ -27,7 +28,7 @@ internal sealed class SemanticRunReads(SemanticRuntimeTypes types)
             if (Resolve(context) is { } missing) return [missing];
         }
 
-        return rules.Concat(SemanticRuleEvaluation.RequirementFailures(command, context.Specification, _values));
+        return rules.Concat(SemanticRuleEvaluation.RequirementFailures(command, context.Specification, _values, SemanticDateOrdering.Participating(application.Concepts, command)));
     }
 
     SemanticValidationFailure? Resolve(SemanticRunContext context)

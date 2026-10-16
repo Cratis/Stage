@@ -5,9 +5,8 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 /// <summary>
 /// Models how C# binds a simple name at the top level of a generated file's file-scoped namespace: hidden first by
-/// type parameters and nested types, then, for each enclosing namespace from the innermost out, a namespace of that
-/// name, then a type of that name and arity, and only at the outermost level the types the using directives import —
-/// where two imported types of the same name are ambiguous.
+/// type parameters and nested types, then members of the file namespace and imports declared inside it. A short name
+/// must bind at that innermost level; enclosing namespaces and global usings cannot establish a safe short spelling.
 /// </summary>
 internal sealed class NameScope
 {
@@ -69,7 +68,16 @@ internal sealed class NameScope
     /// </summary>
     /// <param name="namespace">The namespace.</param>
     /// <returns><see langword="true"/> when the file is in the namespace or one nested in it.</returns>
-    public bool Encloses(string @namespace) => CatalogNames.SelfAndContaining(FileNamespace).Contains(@namespace, StringComparer.Ordinal);
+    public bool Encloses(string @namespace) => FileNamespace == @namespace;
+
+    /// <summary>
+    /// Determines whether an in-namespace directive's first segment could bind to another type or namespace.
+    /// </summary>
+    /// <param name="name">The first segment of the directive.</param>
+    /// <returns>Whether the directive could be shadowed.</returns>
+    public bool HidesImport(string name) => CatalogNames.SelfAndContaining(FileNamespace).Any(@namespace =>
+        TypeNames(@namespace).Contains(name, StringComparer.Ordinal) ||
+        (@namespace.Length > 0 && IsNamespace(CatalogNames.Qualify(@namespace, name))));
 
     /// <summary>
     /// Gets the names of every top-level type in a namespace, generated or referenced.
@@ -91,19 +99,16 @@ internal sealed class NameScope
     /// </summary>
     /// <param name="name">The simple name.</param>
     /// <param name="arity">The number of type arguments written with it.</param>
-    /// <param name="imports">Every namespace the file imports, including the project's global usings.</param>
+    /// <param name="imports">The namespaces imported inside the file-scoped namespace.</param>
     /// <param name="target">The type the name is meant to bind to.</param>
     /// <returns>What the name binds to.</returns>
     public NameLookup Find(string name, int arity, IReadOnlyCollection<string> imports, TypeReference target)
     {
         if (_typeNames.Contains(name)) return NameLookup.Other;
-        foreach (var @namespace in CatalogNames.SelfAndContaining(FileNamespace))
-        {
-            if (arity == 0 && IsNamespace(CatalogNames.Qualify(@namespace, name))) return NameLookup.Other;
-            if (!Knows(@namespace) && @namespace.Length > 0) return NameLookup.Unknown;
-            var found = Count(@namespace, name, arity);
-            if (found > 0) return found == 1 && Is(target, @namespace, name, arity) ? NameLookup.Target : NameLookup.Other;
-        }
+        if (arity == 0 && IsNamespace(CatalogNames.Qualify(FileNamespace, name))) return NameLookup.Other;
+        if (!Knows(FileNamespace) && FileNamespace.Length > 0) return NameLookup.Unknown;
+        var found = Count(FileNamespace, name, arity);
+        if (found > 0) return found == 1 && Is(target, FileNamespace, name, arity) ? NameLookup.Target : NameLookup.Other;
 
         return Imported(name, arity, imports, target);
     }

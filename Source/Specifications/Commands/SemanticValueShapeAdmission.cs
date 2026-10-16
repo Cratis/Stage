@@ -2,15 +2,15 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
-using Cratis.Stage.Specifications.Commands;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
-namespace Cratis.Stage.Rendering.Cratis.Semantics;
+namespace Cratis.Stage.Specifications.Commands;
 
 /// <summary>
-/// Provides strict semantic value-shape admission for specification execution and Host admission.
-/// Renderer command properties consume only the top-level check in SemanticCratisAdmission.TypeExists:
-/// its own STAGE-ESM-002/003/005/012 type diagnostics cover concept rules, primitives and nested types.
-/// Rendering-fidelity limits also belong to the renderer, not to this semantic closure.
+/// Provides the single source of semantic value-shape admission for the executor and Host.
+/// The renderer keeps its own top-level check and STAGE-ESM-002/003/005/012 type diagnostics.
+/// The conformance divergence guard proves renderer-admits implies run-admits for well-formed
+/// composite command shapes without opaque rules. Rendering-fidelity limits stay renderer-only.
 /// </summary>
 internal static class SemanticValueShapeAdmission
 {

@@ -4,10 +4,9 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
-using Cratis.Stage.Contracts.Rendering;
-using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
-namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticValueShapeAdmission.given;
+namespace Cratis.Stage.Specifications.Commands.for_SemanticValueShapeAdmission.given;
 
 public class a_value_shape : Specification
 {
@@ -16,7 +15,7 @@ public class a_value_shape : Specification
 
     void Establish()
     {
-        var model = invoice_model.Compile("""
+        const string source = """
             concept Count : Int
               validate
                 > 5
@@ -30,11 +29,13 @@ public class a_value_shape : Specification
                   command CheckInput
                     value Node optional
                     returns value
-            """);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
-        var options = new CratisRenderingOptions("Inputs", "Inputs");
-        var request = new ArtifactRenderRequest(model, plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
-        _context = new(request, options);
+            """;
+        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Inputs"));
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("inputs"), "inputs", "Inputs.play", source);
+        var compilation = new SemanticModelCompiler().Compile("Inputs", SemanticDocumentSet.Create([document], catalog));
+        Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
+        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _context = new(plan);
         _type = plan.Commands.Values.Single().Properties.Single().Type;
     }
 }

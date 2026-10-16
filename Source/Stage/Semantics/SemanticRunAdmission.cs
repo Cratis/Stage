@@ -8,6 +8,7 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
+using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Semantics;
 

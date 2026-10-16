@@ -5,7 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Xunit;
 
-namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticValueShapeAdmission;
+namespace Cratis.Stage.Specifications.Commands.for_SemanticValueShapeAdmission;
 
 public class when_refusing_nested_unknown_types : given.a_value_shape
 {

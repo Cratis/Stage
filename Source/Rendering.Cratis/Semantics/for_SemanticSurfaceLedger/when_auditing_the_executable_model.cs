@@ -129,25 +129,9 @@ public class when_auditing_the_executable_model : Specification
         var assembly = typeof(ExecutableSemanticModel).Assembly;
         var types = assembly.GetExportedTypes().Where(type => type.Namespace == typeof(SemanticApplication).Namespace).ToArray();
 
-        // Compilation exposes implementation attachments beside (not inside) the executable model.
-        // Audit their metadata separately without treating compiler source-map types as rendered input.
-        foreach (var property in typeof(SemanticImplementationRequirement).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+        foreach (var member in EnumerateSupplementarySurface())
         {
-            yield return $"{nameof(SemanticImplementationRequirement)}.{property.Name}";
-        }
-
-        // Pending attachment state and the evaluator's body capability are not ESM members,
-        // but both must retain an explicit refusal until described bodies are implemented.
-        foreach (var member in Enum.GetNames<SemanticAttachmentResolution>())
-        {
-            yield return $"{nameof(SemanticAttachmentResolution)}.{member}";
-        }
-        yield return "SemanticExecutionCapability.ImplementationBody";
-
-        // The application exposes this enum through Nullable<T>, outside the ordinary ESM traversal.
-        foreach (var member in Enum.GetNames<SemanticReactionProductionMode>())
-        {
-            yield return $"{nameof(SemanticReactionProductionMode)}.{member}";
+            yield return member;
         }
 
         var pending = new Queue<Type>([typeof(ExecutableSemanticModel), typeof(SemanticApplication)]);
@@ -190,6 +174,30 @@ public class when_auditing_the_executable_model : Specification
                     pending.Enqueue(derived);
                 }
             }
+        }
+    }
+
+    static IEnumerable<string> EnumerateSupplementarySurface()
+    {
+        // Compilation exposes implementation attachments beside (not inside) the executable model.
+        // Audit their metadata separately without treating compiler source-map types as rendered input.
+        foreach (var property in typeof(SemanticImplementationRequirement).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+        {
+            yield return $"{nameof(SemanticImplementationRequirement)}.{property.Name}";
+        }
+
+        // Pending attachment state and the evaluator's body capability are not ESM members,
+        // but both must retain an explicit refusal until described bodies are implemented.
+        foreach (var member in Enum.GetNames<SemanticAttachmentResolution>())
+        {
+            yield return $"{nameof(SemanticAttachmentResolution)}.{member}";
+        }
+        yield return "SemanticExecutionCapability.ImplementationBody";
+
+        // The application exposes this enum through Nullable<T>, outside the ordinary ESM traversal.
+        foreach (var member in Enum.GetNames<SemanticReactionProductionMode>())
+        {
+            yield return $"{nameof(SemanticReactionProductionMode)}.{member}";
         }
     }
 

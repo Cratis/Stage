@@ -15,7 +15,7 @@ internal sealed class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
-    readonly Dictionary<(SemanticId Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
+    readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SemanticApplicationContext"/> class.
@@ -197,7 +197,7 @@ internal sealed class SemanticApplicationContext
     internal SemanticReducerBindingEnvironment ReducerBindings(LocatedSemanticSlice located, SemanticReducer? reducer = null)
     {
         var classic = SelfReducing ? null : reducer;
-        var key = (located.Slice.Id, classic?.ReadModel);
+        var key = (located.Slice, classic?.ReadModel);
         if (!_reducerBindings.TryGetValue(key, out var environment))
         {
             environment = SemanticReducerBindingEnvironment.Create(located, this, classic);

@@ -26,7 +26,7 @@ public class when_formatting_integer_literals : Specification
         foreach (var value in new[] { -9007199254740991m, 9007199254740991m, -9007199254740992m, 9007199254740992m })
         {
             var routed = command with { Route = command.Route! with { StreamId = SemanticExpression.FromValue(SemanticValue.Number(value)) } };
-            var exception = Catch.Exception(() => _ids.Add(new SemanticCommandRouteRendering(routed, context).StreamId()));
+            var exception = Catch.Exception(() => _ids.Add(new SemanticCommandRouteRendering(routed, context, new(routed)).StreamId()));
             if (exception is not null) _refusals.Add(Assert.IsType<UnsupportedSemanticRendering>(exception));
         }
     }

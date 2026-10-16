@@ -53,7 +53,7 @@ async function start() {
                           Cratis.Components renders with, live exactly as in a generated application. Approved custom
                           packages add theirs beside it; the Stage's own never lose a name to them.
                         */}
-                        <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} />
+                        <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />
                     </CratisComponentsProvider>
                 )}
             </PrimeReactProvider>

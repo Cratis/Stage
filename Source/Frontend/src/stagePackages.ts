@@ -8,6 +8,7 @@ import {
     type ApprovedPackageSet,
     type ComponentRegistry,
 } from '@cratis/scene.react';
+import type { DialogTemplate, ScreenTemplate } from '@cratis/scene.model';
 import type { PackageCatalog } from '@cratis/scene.engine';
 
 /** Where a live Stage serves the approved custom packages it was handed, relative to the page. */
@@ -31,10 +32,16 @@ export interface StagePackagesDocument {
     diagnostics: string[];
 }
 
-/** The components the approved packages register and what each declares, ready for the Stage's `App`. */
+/**
+ * The components the approved packages register and what each declares, ready for the Stage's `App`, and the templates a
+ * domain blueprint among them brings: the screen templates an authored `template blueprint ...` reference names, and the dialog
+ * templates a quick-create or confirmation opens.
+ */
 export interface StagePackages {
     components: ComponentRegistry;
     catalog: PackageCatalog;
+    screenTemplates: ScreenTemplate[];
+    dialogTemplates: DialogTemplate[];
 }
 
 /** How the packages' modules and style sheets reach the page. Replaced in specs. */
@@ -88,7 +95,7 @@ export class StagePackagesFailed extends Error {
  * @throws {StagePackagesFailed} When a package cannot be used.
  */
 export async function loadStagePackages(host: StagePackagesHost = browserStagePackagesHost, signal?: AbortSignal): Promise<StagePackages> {
-    const none: StagePackages = { components: {}, catalog: {} };
+    const none: StagePackages = { components: {}, catalog: {}, screenTemplates: [], dialogTemplates: [] };
     const document = await host.read(signal).catch(() => undefined);
     if (!document?.set) {
         return none;
@@ -112,5 +119,7 @@ export async function loadStagePackages(host: StagePackagesHost = browserStagePa
     return {
         components: mergePackageRegistries(loaded.bundles),
         catalog: Object.fromEntries(loaded.bundles.map(bundle => [bundle.manifest.name, bundle.manifest.components])),
+        screenTemplates: loaded.bundles.flatMap(bundle => bundle.screenTemplates ?? []),
+        dialogTemplates: loaded.bundles.flatMap(bundle => bundle.dialogTemplates ?? []),
     };
 }

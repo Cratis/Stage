@@ -123,5 +123,11 @@ public enum RenderFindingKind
     /// <summary>
     /// The ui profile's root template cannot be the application's shell: it does not exist, its blueprint is missing or its version pin is not satisfied by the installed one.
     /// </summary>
-    RootTemplateInvalid = 18
+    RootTemplateInvalid = 18,
+
+    /// <summary>
+    /// A <c language="csharp">template blueprint</c> reference names a blueprint the catalog does not have, a version of it the reference
+    /// does not accept, or a template the blueprint does not ship. Rendering it would silently show a screen with no template.
+    /// </summary>
+    TemplateReferenceUnresolved = 19
 }

@@ -5,5 +5,6 @@
   { "model": "inventory",      "npm": "scene.blueprint.inventory",      "export": "inventoryBlueprint" },
   { "model": "hr",             "npm": "scene.blueprint.hr",             "export": "hrBlueprint" },
   { "model": "projects",       "npm": "scene.blueprint.project-tracker", "export": "projectTrackerBlueprint" },
-  { "model": "administration", "npm": "scene.blueprint.administration", "export": "administrationBlueprint" }
+  { "model": "administration", "npm": "scene.blueprint.administration", "export": "administrationBlueprint" },
+  { "model": "orders",         "npm": "scene.blueprint.orders",         "export": "ordersBlueprint" }
 ]

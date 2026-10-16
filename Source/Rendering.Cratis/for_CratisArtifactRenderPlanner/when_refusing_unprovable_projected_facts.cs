@@ -1,0 +1,100 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Xunit;
+
+namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+
+/// <summary>
+/// A projected-facts specification only renders when the generated read-model scenario can prove it; what would need a
+/// reaction settled, or an instance no given event reaches, still refuses instead of rendering a scenario that proves nothing.
+/// </summary>
+public class when_refusing_unprovable_projected_facts
+{
+    const string Source = """
+        concept LeadId : Uuid
+        module Sales
+          feature Leads
+            slice StateChange RegisterLead
+              command RegisterLead
+                leadId LeadId identifier
+                name String
+                produces LeadRegistered
+                  for leadId
+                  name = name
+              event LeadRegistered
+                name String
+            slice StateView LeadList
+              readmodel Leads
+                leadId LeadId
+                name String
+              query AllLeads => Leads[]
+              projection LeadsProjection => Leads
+                from LeadRegistered
+                  leadId = $eventSourceId
+                  name = name
+              specification <specification>
+        """;
+
+    const string Appended = """
+                given LeadRegistered
+                  for "6f1f4a3e-0c0d-4c6a-9a41-3b6a1a0e0001"
+                  name = "Kari"
+                when append LeadRegistered
+                  for "6f1f4a3e-0c0d-4c6a-9a41-3b6a1a0e0002"
+                  name = "Ola"
+                then readmodel Leads
+                  leadId = "6f1f4a3e-0c0d-4c6a-9a41-3b6a1a0e0002"
+                  name = "Ola"
+        """;
+
+    const string Unreached = """
+                given LeadRegistered
+                  for "6f1f4a3e-0c0d-4c6a-9a41-3b6a1a0e0001"
+                  name = "Kari"
+                then readmodel Leads
+                  leadId = "6f1f4a3e-0c0d-4c6a-9a41-3b6a1a0e0002"
+                  name = "Ola"
+        """;
+
+    const string Reaction = """
+            slice Automation Welcome
+              event Welcomed
+                name String
+              reaction Welcome
+                when LeadRegistered
+                  produces Welcomed
+                    for "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    name = name
+        """;
+
+    static ArtifactRenderPlan Plan(string specification, bool reacts = false)
+    {
+        var source = Source.Replace("<specification>", "Proving\n" + specification, StringComparison.Ordinal);
+        if (reacts) source += "\n" + Reaction;
+
+        return invoice_model.Plan(invoice_model.Compile(source));
+    }
+
+    [Fact]
+    void should_admit_an_append_nothing_reacts_to() => Plan(Appended).Success.ShouldBeTrue();
+
+    [Fact]
+    void should_refuse_an_append_a_reaction_reacts_to()
+    {
+        var plan = Plan(Appended, reacts: true);
+        plan.Success.ShouldBeFalse();
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("Reaction append scenarios", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    void should_refuse_an_instance_no_given_event_reaches()
+    {
+        var plan = Plan(Unreached);
+        plan.Success.ShouldBeFalse();
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("an event it handles on the asserted instance", StringComparison.Ordinal));
+    }
+}

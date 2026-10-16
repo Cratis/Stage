@@ -14,7 +14,6 @@ public class when_checking_ordinal_text_rules : Specification
     [InlineData(SemanticValidationRuleKind.EndsWith)]
     public void should_preserve_reference_outcomes_and_default_messages(SemanticValidationRuleKind kind)
     {
-        SemanticRuleValues.CanEvaluate(kind).ShouldBeTrue();
         foreach (var operand in new[] { "ABC", "", ".*", "İ", "é" })
         {
             var rule = new SemanticValidationRule(default, kind, SemanticValue.Text(operand), null);

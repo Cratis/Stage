@@ -5,7 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Xunit;
 
-namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticChecksumRules;
+namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticValidationRendering;
 
 public class when_reading_screenplay_checksum_vectors
 {
@@ -38,5 +38,5 @@ public class when_reading_screenplay_checksum_vectors
     [InlineData("62106", "mod97", false)]
     [InlineData("01", "mod97", false)]
     public void should_match_the_frozen_validation_result(string value, string algorithm, bool valid) =>
-        SemanticChecksumRules.Satisfies(SemanticValue.Text(value), SemanticValue.Text(algorithm), () => new InvalidSemanticContract("A checksum vector has an unsupported shape.")).ShouldEqual(valid);
+        (SemanticValidationRules.Check(new SemanticValidationRule(default, SemanticValidationRuleKind.Checksum, SemanticValue.Text(algorithm), null), SemanticValue.Text(value)).Status == SemanticRuleStatus.Satisfied).ShouldEqual(valid);
 }

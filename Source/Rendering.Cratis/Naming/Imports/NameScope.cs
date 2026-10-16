@@ -71,13 +71,11 @@ internal sealed class NameScope
     public bool Encloses(string @namespace) => FileNamespace == @namespace;
 
     /// <summary>
-    /// Determines whether an in-namespace directive's first segment could bind to another type or namespace.
+    /// Determines whether a globally rooted directive's first segment is hidden by a global type.
     /// </summary>
     /// <param name="name">The first segment of the directive.</param>
     /// <returns>Whether the directive could be shadowed.</returns>
-    public bool HidesImport(string name) => CatalogNames.SelfAndContaining(FileNamespace).Any(@namespace =>
-        TypeNames(@namespace).Contains(name, StringComparer.Ordinal) ||
-        (@namespace.Length > 0 && IsNamespace(CatalogNames.Qualify(@namespace, name))));
+    public bool HidesImport(string name) => TypeNames(string.Empty).Contains(name, StringComparer.Ordinal);
 
     /// <summary>
     /// Gets the names of every top-level type in a namespace, generated or referenced.

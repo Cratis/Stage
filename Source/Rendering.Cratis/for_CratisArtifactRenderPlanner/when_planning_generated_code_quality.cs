@@ -34,9 +34,17 @@ public class when_planning_generated_code_quality : a_register_project_render_re
             .Any(_ => _.Text.Contains("using System.Globalization;", StringComparison.Ordinal) && !_.Text.Contains("CultureInfo", StringComparison.Ordinal))
             .ShouldBeFalse();
 
-    [Fact] void should_not_declare_a_namespace_twice_at_the_same_scope() =>
-        Sources().SelectMany(source => ImportScopes(source.Text))
-            .Any(imports => imports.Distinct(StringComparer.Ordinal).Count() != imports.Count)
+    [Fact] void should_not_declare_a_namespace_twice_in_one_file() =>
+        Sources().Any(source => ImportScopes(source.Text).SelectMany(imports => imports)
+            .Select(name => name.StartsWith("global::", StringComparison.Ordinal) ? name["global::".Length..] : name)
+            .GroupBy(name => name, StringComparer.Ordinal).Any(group => group.Count() > 1))
+            .ShouldBeFalse();
+
+    [Fact] void should_not_leave_type_only_common_imports_at_the_top_of_the_file() =>
+        Sources().Where(source => source.Path.StartsWith("Common/", StringComparison.Ordinal))
+            .Select(source => CSharpSyntaxTree.ParseText(source.Text).GetCompilationUnitRoot())
+            .Any(root => root.Usings.Select(directive => directive.NamespaceOrType.ToString())
+                .Any(name => string.Equals(name, "Cratis.Concepts", StringComparison.Ordinal) || string.Equals(name, "Cratis.Chronicle.Events", StringComparison.Ordinal)))
             .ShouldBeFalse();
 
     [Fact] void should_order_usings_at_each_lexical_scope() =>

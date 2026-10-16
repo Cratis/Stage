@@ -102,7 +102,7 @@ static class QualifiedOutputProof
                 if (allowShortFailure && errorsBefore.Length == 0 && errorsAfter.Length > 0) continue;
                 if (errorsBefore != errorsAfter) failures.Add($"{tree.FilePath}: compiler errors changed from [{errorsBefore}] to [{errorsAfter}]");
                 failures.AddRange(BindingSites.RenderedDifferences(before.GetSemanticModel(tree), after.GetSemanticModel(counterpart)));
-                shortSpellings += tree.GetRoot().DescendantNodes().OfType<AliasQualifiedNameSyntax>().Count() - counterpart.GetRoot().DescendantNodes().OfType<AliasQualifiedNameSyntax>().Count();
+                shortSpellings += QualifiedReferences(tree) - QualifiedReferences(counterpart);
             }
         }
 
@@ -155,6 +155,21 @@ static class QualifiedOutputProof
             _options);
         return (application, specifications);
     }
+
+    /// <summary>
+    /// Requires an independently rendered proof fixture to compile, not merely to reproduce the same errors.
+    /// </summary>
+    /// <param name="files">The rendered sources.</param>
+    /// <returns>The compilation errors from both scaffold projects.</returns>
+    internal static IReadOnlyList<string> CompilationErrors(IReadOnlyList<RenderedFile> files)
+    {
+        var compiled = Compile(files);
+        return [.. new[] { compiled.Application, compiled.Specifications }.SelectMany(compilation => compilation.GetDiagnostics())
+            .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.ToString())];
+    }
+
+    static int QualifiedReferences(SyntaxTree tree) => tree.GetRoot().DescendantNodes().OfType<AliasQualifiedNameSyntax>()
+        .Count(name => !name.Ancestors().OfType<UsingDirectiveSyntax>().Any());
 
     static bool IsSpecification(RenderedFile file) => Path.GetFileName(file.RelativePath).StartsWith("when_", StringComparison.Ordinal);
 

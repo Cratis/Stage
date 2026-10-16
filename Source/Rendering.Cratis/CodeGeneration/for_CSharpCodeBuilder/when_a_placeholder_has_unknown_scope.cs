@@ -22,5 +22,5 @@ public class when_a_placeholder_has_unknown_scope : Specification
     void Because() => _result = _builder.ToString();
 
     [Fact] void should_qualify_every_reference() => _result.ShouldContain("public record Item(global::System.Guid Id);");
-    [Fact] void should_not_add_imports() => _result.Contains("using System;", StringComparison.Ordinal).ShouldBeFalse();
+    [Fact] void should_not_add_imports() => _result.Contains("using ", StringComparison.Ordinal).ShouldBeFalse();
 }

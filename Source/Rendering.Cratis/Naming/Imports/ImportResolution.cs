@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 /// <summary>
 /// Represents the using directives of a generated file and the spelling of every type it names.
 /// </summary>
-/// <param name="Usings">The namespaces to import inside the file-scoped namespace, sorted ordinally.</param>
+/// <param name="Usings">The namespace identities to import with globally rooted directives inside the file-scoped namespace, sorted ordinally.</param>
 /// <param name="Spellings">The spelling of each reference: its short name, or its fully qualified name when a short name cannot be proven to bind to it.</param>
 internal sealed record ImportResolution(ImmutableArray<string> Usings, ImmutableDictionary<TypeReference, string> Spellings)
 {

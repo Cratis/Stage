@@ -271,7 +271,7 @@ public class CSharpCodeBuilder
 
         foreach (var @using in innerUsings)
         {
-            result.AppendLine($"using {@using};");
+            result.AppendLine($"using global::{@using};");
         }
 
         if (innerUsings.Any()) result.AppendLine();

@@ -34,7 +34,7 @@ internal static class SemanticCommonArtifactRenderer
         }
         else
         {
-            RenderConcept(builder, concept, name, context);
+            RenderConcept(builder, concept, name, context, qualified);
         }
 
         return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
@@ -75,15 +75,17 @@ internal static class SemanticCommonArtifactRenderer
         builder.EndBlock();
     }
 
-    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context)
+    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context, bool qualified)
     {
         var types = new SemanticTypeSystem(context, builder);
         var isIdentifier = context.IdentifierConcepts.Contains(concept.Id);
         var primitive = types.Primitive(concept.Primitive);
-        builder.Using("Cratis.Concepts");
-        if (isIdentifier)
+
+        // These original type-only imports belong to the byte oracle, not to the extension-method scope.
+        if (qualified)
         {
-            builder.Using("Cratis.Chronicle.Events");
+            builder.Using("Cratis.Concepts");
+            if (isIdentifier) builder.Using("Cratis.Chronicle.Events");
         }
 
         builder.Inherits(isIdentifier ? "Cratis.Chronicle.Events.EventSourceId`1" : "Cratis.Concepts.ConceptAs`1");

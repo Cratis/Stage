@@ -81,7 +81,8 @@ internal static class ImportResolver
     {
         if (@namespace.Length == 0 || imported.Contains(@namespace) || scope.Encloses(@namespace) || !scope.Knows(@namespace)) return false;
 
-        // An in-namespace directive is looked up at every enclosing namespace level.
+        // Resolver directives start with global::. Enclosing namespace prefixes cannot hide them,
+        // but retain the conservative check for a type at the global namespace's first segment.
         if (scope.HidesImport(@namespace.Split('.')[0])) return false;
         if (scope.ExtensionNames(@namespace).Any(accessed.Contains)) return false;
         return !scope.TypeNames(@namespace).Any(name => unspelled.Contains(name) ||

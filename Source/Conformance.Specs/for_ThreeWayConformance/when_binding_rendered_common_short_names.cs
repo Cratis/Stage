@@ -36,6 +36,7 @@ public class when_binding_rendered_common_short_names : Specification
     [Fact] void should_preserve_every_binding() => Assert.Empty(_proof.Failures);
     [Fact] void should_exercise_more_than_twenty_short_spellings() => _proof.ShortSpellings.ShouldBeGreaterThan(20);
     [Fact] void should_keep_the_qualified_oracle_free_of_in_namespace_imports() => _qualified.All(file => !file.Content.Contains("namespace GenerationApp.Common;\n\nusing", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_remain_compilable() => Assert.Empty(QualifiedOutputProof.CompilationErrors(_rendered));
 
     [Theory]
     [InlineData("public class GenerateValue;")]
@@ -47,6 +48,19 @@ public class when_binding_rendered_common_short_names : Specification
         var hostile = new RenderedFile("Customizations/Hostile.cs", source);
         var proof = QualifiedOutputProof.VerifyRendered([.. _qualified, hostile], [.. _rendered, hostile], allowShortFailure: true);
         Assert.Empty(proof.Failures);
+    }
+
+    [Theory]
+    [InlineData("namespace GenerationApp.Cratis.Concepts { public record ConceptAs<T>(T Value); }")]
+    [InlineData("namespace GenerationApp.System { public struct Guid; }")]
+    public void should_preserve_bindings_with_namespace_prefix_shadows(string source)
+    {
+        var hostile = new RenderedFile("Customizations/Prefix.cs", source);
+        var qualified = _qualified.Append(hostile).ToArray();
+        var rendered = _rendered.Append(hostile).ToArray();
+        Assert.Empty(QualifiedOutputProof.CompilationErrors(qualified));
+        Assert.Empty(QualifiedOutputProof.CompilationErrors(rendered));
+        Assert.Empty(QualifiedOutputProof.VerifyRendered(qualified, rendered).Failures);
     }
 
     [Fact]

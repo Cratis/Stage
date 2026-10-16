@@ -69,6 +69,8 @@ internal static class routed_generated_value_cases
         {(conditional ? SkippedRoute(name) : string.Empty)}
         """;
 
+    // Only the no-append outcome is shared: Arc resolves generated parameters before Handle checks the route,
+    // while the reference checks the route before accepting generation fixtures.
     static string EmptyRoute(string name, bool conditional) => $"""
               specification {name}EmptyRoute
                 when Record{name}

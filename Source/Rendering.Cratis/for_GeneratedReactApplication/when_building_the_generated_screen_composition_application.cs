@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Specs;
 using Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication.given;
@@ -36,7 +37,14 @@ public class when_building_the_generated_screen_composition_application(when_bui
     [Fact] void should_build_the_frontend() => Failure(built.FrontendBuild).ShouldEqual(string.Empty);
     [Fact] void should_type_check_the_whole_frontend_without_errors() => built.FrontendBuild.Output.Contains("error TS", StringComparison.Ordinal).ShouldBeFalse();
     [Fact] void should_emit_the_built_application_into_the_web_root() => built.BuiltIndex.ShouldBeTrue();
-    [Fact] void should_generate_the_proxy_every_route_is_read_from() => built.GeneratedProxy.ShouldBeTrue();
+    [Fact]
+    void should_generate_typed_proxies_for_routes_and_command_responses()
+    {
+        built.GeneratedProxy.ShouldBeTrue();
+        built.ResponseProxies.ShouldContain("export class RecordScalar extends Command<IRecordScalar, Guid>");
+        built.ResponseProxies.ShouldContain("export class RecordNamed extends Command<IRecordNamed, RecordNamedResponse>");
+        built.ResponseProxies.ShouldContain("export class RecordConditional extends Command<IRecordConditional, Guid>");
+    }
 
     static string Failure(ProcessResult result) => result.ExitCode == 0 ? string.Empty : $"exit {result.ExitCode}{Environment.NewLine}{result.Output}";
 
@@ -69,8 +77,12 @@ public class when_building_the_generated_screen_composition_application(when_bui
 
         public bool GeneratedProxy { get; private set; }
 
+        public string ResponseProxies { get; private set; } = string.Empty;
+
         void Establish()
         {
+            _model = routed_response_commands.AddTo(_model);
+            _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
             var plan = Plan();
             if (!plan.Success)
             {
@@ -103,6 +115,10 @@ public class when_building_the_generated_screen_composition_application(when_bui
                 : new(-1, "The frontend was not built because its install failed.");
             BuiltIndex = File.Exists(Path.Combine(_application, "wwwroot", "index.html"));
             GeneratedProxy = File.Exists(Path.Combine(_application, "Workspaces", "Tracking", "AddComment", "AddComment.ts"));
+            if (DebugBuild.ExitCode == 0)
+            {
+                ResponseProxies = string.Join(Environment.NewLine, Directory.EnumerateFiles(Path.Combine(_application, "Responses"), "*.ts", SearchOption.AllDirectories).Select(File.ReadAllText));
+            }
         }
 
         void Destroy()

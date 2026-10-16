@@ -35,6 +35,20 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         foreach (var command in syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Commands))
         {
+            var dates = command.Properties.Where(property => IsDate(property.Type.Name) ||
+                syntax.Concepts.Any(concept => concept.Name == property.Type.Name && IsDate(concept.Type))).Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+            var blocks = command.Validations.OfType<DeclarativeValidateSyntax>().ToArray();
+            var compared = blocks.SelectMany(block => block.Rules).Where(rule =>
+                    rule.Rule is ValidationRuleKind.Equal or ValidationRuleKind.NotEqual or ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or ValidationRuleKind.LessThan or ValidationRuleKind.LessThanOrEqual &&
+                    rule.Value is LiteralExpressionSyntax).Select(rule => rule.Property)
+                .Concat(blocks.SelectMany(block => block.Requirements ?? []).SelectMany(requirement => ComparedProperties(requirement.Condition)))
+                .Concat(command.Produces.Where(produced => produced.When is not null).SelectMany(produced => ComparedProperties(produced.When!)));
+            if (compared.FirstOrDefault(dates.Contains) is { } date)
+            {
+                throw new InvalidEventModel(
+                    command.Location.Path ?? "<source>",
+                    [$"STAGE-ESM-046: Command '{command.Name}' compares date property '{date}'; the legacy engines cannot preserve chronological comparisons."]);
+            }
             if (command.Handler is { Implementation: not null, File: null, Code: null })
             {
                 throw new InvalidEventModel(
@@ -155,6 +169,15 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         return properties;
     }
+
+    static bool IsDate(string type) => type == "Date" || type == "DateTime";
+
+    static IEnumerable<string> ComparedProperties(ConditionSyntax condition) => condition switch
+    {
+        ComparisonConditionSyntax comparison => [comparison.Left],
+        LogicalConditionSyntax logical => ComparedProperties(logical.Left).Concat(ComparedProperties(logical.Right)),
+        _ => []
+    };
 
     static IEnumerable<SliceSyntax> Slices(IEnumerable<FeatureSyntax> features) =>
         features.SelectMany(feature => feature.Slices.Concat(Slices(feature.Features)));

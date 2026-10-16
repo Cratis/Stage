@@ -47,5 +47,6 @@
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Semantics/Admission/SemanticGenerationShapes.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticPatternShape.cs" Link="Semantics/Admission/SemanticPatternShape.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticProductionComparison.cs" Link="Semantics/Admission/SemanticProductionComparison.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticDateOrdering.cs" Link="Semantics/Admission/SemanticDateOrdering.cs" />
     </ItemGroup>
 </Project>

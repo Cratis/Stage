@@ -363,6 +363,9 @@ jobs:
       - name: Run the live navigation scenarios
         run: Verification/live-navigation/run.sh cratis/stage:ci "$PWD/TestResults/live-navigation"
 
+      - name: Run the live domain blueprint scenarios
+        run: Verification/live-blueprints/run.sh cratis/stage:ci "$PWD/TestResults/live-blueprints"
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
@@ -371,6 +374,7 @@ jobs:
           path: |
             TestResults/live-custom-packages
             TestResults/live-navigation
+            TestResults/live-blueprints
           if-no-files-found: error
           retention-days: 7
 

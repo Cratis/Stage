@@ -85,7 +85,8 @@ internal static class SemanticStateChangeArtifactRenderer
         SemanticApplicationContext context,
         SemanticTypeSystem types)
     {
-        var results = new SemanticCommandResultRendering(command, context);
+        var locals = new SemanticHandleLocals(command);
+        var results = new SemanticCommandResultRendering(command, context, locals);
 
         var severities = command.Validations.Select(rule => rule.Severity)
             .Concat(command.Requirements.Select(requirement => requirement.Severity))
@@ -111,7 +112,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var hasOccurrence = command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
         var hasTags = command.Produces.Any(produced => !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty);
-        var routing = new SemanticCommandRouteRendering(command, context);
+        var routing = new SemanticCommandRouteRendering(command, context, locals);
         var streamId = routing.StreamId();
         string EventValue(SemanticProducedEvent produced)
         {
@@ -119,7 +120,7 @@ internal static class SemanticStateChangeArtifactRenderer
             var arguments = @event.Properties.Select(property =>
             {
                 var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
-                if (mapping.Source is SemanticEventContextExpression) return "occurred";
+                if (mapping.Source is SemanticEventContextExpression) return locals.Name("occurred");
                 if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                 var commandProperty = command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target);
                 var expression = SemanticCommandResultRendering.PropertyValue(commandProperty);
@@ -141,7 +142,7 @@ internal static class SemanticStateChangeArtifactRenderer
             }
             if (hasOccurrence)
             {
-                metadata.Add("Occurred = occurred");
+                metadata.Add($"Occurred = {locals.Name("occurred")}");
             }
 
             if (tags.Length > 0)
@@ -159,11 +160,11 @@ internal static class SemanticStateChangeArtifactRenderer
             {
                 var eventResult = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
                 var result = $"global::OneOf.OneOf<{eventResult}, global::Cratis.Arc.Validation.ValidationResult>";
-                builder.OpenBlock($"public {result} Handle({(hasOccurrence ? "global::Cratis.Arc.IOperationContextAccessor operation" : string.Empty)})");
+                builder.OpenBlock($"public {result} Handle({(hasOccurrence ? $"global::Cratis.Arc.IOperationContextAccessor {locals.Name("operation")}" : string.Empty)})");
                 routing.RenderChecks(builder, result);
                 if (hasOccurrence)
                 {
-                    builder.Line($"var occurred = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);");
+                    builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
                 }
                 var events = command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(WrappedEvent))} }}";
                 builder.Line($"return {result}.FromT0({events});").EndBlock();
@@ -200,8 +201,8 @@ internal static class SemanticStateChangeArtifactRenderer
 
                 // Chronicle's MongoDB event context retains UTC milliseconds. Normalize the payload
                 // and append context together so a stored replay sees identical occurrence values.
-                builder.OpenBlock($"public {result} Handle(global::Cratis.Arc.IOperationContextAccessor operation)")
-                    .Line($"var occurred = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);")
+                builder.OpenBlock($"public {result} Handle(global::Cratis.Arc.IOperationContextAccessor {locals.Name("operation")})")
+                    .Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});")
                     .Line($"return {(command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(WrappedEvent))}]")};")
                     .EndBlock();
             }

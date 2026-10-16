@@ -370,7 +370,7 @@ internal static class SemanticVersionFeatures
 
         if (UnsupportedCommandResults(command))
         {
-            yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' combines generated values or a response with routing, legacy destination allocation, rules or requirements reading generated properties, or a non-scalar/non-command response source; Stage cannot preserve that combination yet.");
+            yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' combines generated values or a response with routing, legacy destination allocation, rules or requirements reading generated properties, or an unsupported response source or shape; Stage cannot preserve that combination yet.");
         }
     }
 
@@ -562,10 +562,8 @@ internal static class SemanticVersionFeatures
     {
         var generated = command.Properties.Where(property => property.IsGenerated).ToArray();
         if (HasRoutedResults(command, generated.Length)) return true;
-        if (ConditionalLocalCollides(command, generated)) return true;
         if (generated.Length == 0) return false;
         if (generated.Any(property => property.IsIdentifier) && command.Produces.Any(produced => produced.Destination is null)) return true;
-        if (OccurrenceParameterCollides(command, generated)) return true;
 
         return command.Requirements.Any(requirement => ReadsGenerated(requirement.Condition, generated)) ||
             command.Validations.Any(rule => generated.Any(property => property.Id == rule.Property));
@@ -578,24 +576,8 @@ internal static class SemanticVersionFeatures
         _ => false
     };
 
-    static bool ConditionalLocalCollides(SemanticCommand command, IEnumerable<SemanticProperty> generated) =>
-        command.Produces.Any(produced => produced.When is not null) && generated.Any(property =>
-            string.Equals(GeneratedPascalCase.From(property.Name), "StageEvents", StringComparison.Ordinal) ||
-            Enumerable.Range(0, command.Produces.Length).Any(index => string.Equals(GeneratedPascalCase.From(property.Name), $"StageProduces{index}", StringComparison.Ordinal)));
-
     static bool HasRoutedResults(SemanticCommand command, int generatedCount) =>
         command.Route is not null && (command.Response is not null || generatedCount > 0);
-
-    static bool OccurrenceParameterCollides(SemanticCommand command, IEnumerable<SemanticProperty> generated) =>
-        command.Produces.Any(produced => produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
-        generated.Any(property => IsOccurrenceParameter(property.Name));
-
-    static bool IsOccurrenceParameter(string name)
-    {
-        var generatedName = GeneratedPascalCase.From(name);
-
-        return string.Equals(generatedName, "Operation", StringComparison.Ordinal) || string.Equals(generatedName, "Occurred", StringComparison.Ordinal);
-    }
 
     static bool UnsupportedResponse(SemanticCommand command) => command.Response switch
     {

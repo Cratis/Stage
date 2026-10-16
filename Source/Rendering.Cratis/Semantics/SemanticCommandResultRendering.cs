@@ -12,7 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 /// <param name="command">The command whose result is rendered.</param>
 /// <param name="context">The indexed semantic application.</param>
-internal sealed partial class SemanticCommandResultRendering(SemanticCommand command, SemanticApplicationContext context)
+/// <param name="locals">The command's shared Handle name allocator.</param>
+internal sealed partial class SemanticCommandResultRendering(SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals locals)
 {
     readonly SemanticTypeSystem _types = new(context);
     readonly SemanticCommandCompliance _compliance = new(context);
@@ -68,7 +69,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         builder.OpenBlock($"public {result.Type} Handle({Parameters()})");
         if (HasOccurrence)
         {
-            builder.Line($"var occurred = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);");
+            builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
         }
         builder.Line($"return {result.Value};").EndBlock();
     }
@@ -90,7 +91,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         var generated = command.Properties.Where(property => property.IsGenerated).Select(property =>
             $"[global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute({CSharpCodeBuilder.StringLiteral(property.Name)}, Freshness = global::Cratis.Arc.Commands.GeneratedValueFreshness.Unguarded)] {_types.Type(property.Type)} {PropertyValue(property)}");
 
-        return string.Join(", ", generated.Concat(HasOccurrence ? ["global::Cratis.Arc.IOperationContextAccessor operation"] : []));
+        return string.Join(", ", generated.Concat(HasOccurrence ? [$"global::Cratis.Arc.IOperationContextAccessor {locals.Name("operation")}"] : []));
     }
 
     ResultExpression HandleResult(Func<SemanticProducedEvent, string> wrappedEvent)
@@ -107,7 +108,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     {
         if (SemanticGeneratedFreshness.Destinations(command, context).Any())
         {
-            return new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(new(command, context, wrappedEvent)));
+            return new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(new(command, context, wrappedEvent, locals)));
         }
 
         return command.Produces.Length == 1

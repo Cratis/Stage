@@ -29,11 +29,11 @@ public class when_admitting_generated_values : Specification
     [Fact] void should_refuse_a_factory_type_name_collision() => SemanticVersionFeatures.UnsupportedGenerated(_command, [_concept with { Name = "New" }]).Select(feature => feature.Code).ShouldContainOnly(SemanticVersionFeatures.CommandResults);
 
     [Fact]
-    void should_refuse_generated_occurrence_local_name_collisions()
+    void should_admit_generated_occurrence_local_name_collisions()
     {
         var model = invoice_model.Compile("concept Id : Uuid\nmodule M\n  feature F\n    slice StateChange S\n      command C\n        id Id generated identifier\n        occurred Id generated\n        produces event Created\n          timestamp DateTime = $context.occurred\n        returns id");
         var command = SemanticVersionFeatures.Slices(model.Application).Single().Commands.Single();
-        SemanticVersionFeatures.InCommand(command).Select(feature => feature.Code).ShouldContainOnly(SemanticVersionFeatures.CommandResults);
+        SemanticVersionFeatures.InCommand(command).ShouldBeEmpty();
     }
 
     IEnumerable<string> Refusals(SemanticTypeReference type) => SemanticVersionFeatures.UnsupportedGenerated(_command with { Properties = [_command.Properties.Single() with { Type = type }] }, [_concept]).Select(feature => feature.Code);

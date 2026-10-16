@@ -77,6 +77,58 @@ Pass the same `Profile` to `PlanScaffold` and `PlanFrom`. The scaffold supplies
 code that references localized messages compiles with that scaffold. Documentation
 is checked against the model by `PlanFrom`; scaffold planning does not consume it.
 
+## Reducer rendering convention
+
+Existing applications and all existing `CreateProfile` overloads remain **classic**:
+Stage emits a separate `IReducerFor<T>` class. It does not infer a new application
+from a missing file or a newer package version.
+
+For a confirmed new application, select self-reducing models explicitly:
+
+```csharp
+var profile = CratisRendering.CreateNewApplicationProfile(
+    "Shop", new("Shop.Backend", "Acme.Shop"));
+var options = new CratisPlanOptions("Shop", "Shop.Backend", "Acme.Shop")
+{
+    Profile = profile
+};
+var scaffold = CratisRendering.PlanScaffold(options);
+```
+
+The scaffold includes application configuration at `.cratis/stage/rendering.json`:
+
+```json
+{"version":1,"application":"Shop","reducerConvention":"self"}
+```
+
+On subsequent renders, the host reads that file and resolves it back into the profile:
+
+```csharp
+var input = ReducerConventionInput.Read("Shop", configurationJson);
+var profile = CratisRendering.WithReducerConvention(
+    CratisRendering.CreateProfile("Shop", new("Shop.Backend", "Acme.Shop")), input);
+```
+
+`configurationJson` is the file content supplied by the host. Stage does not search
+the destination. `WithReducerConvention` also accepts a profile carrying Scene,
+strings, and authoring metadata. Pass the resulting profile to both `PlanFrom`
+overloads through `CratisPlanOptions.Profile`, and to scaffold planning.
+
+The canonical input is named `cratis-rendering:reducer-convention`, version `1`.
+Its application name must match; its convention must be `classic` or `self`.
+`ReducerConventionInput.Read` refuses malformed, duplicate-field, unknown-version,
+and unsupported configuration with `InvalidArtifactRenderContract`. Invalid inputs
+submitted directly to planning produce `STAGE-CRATIS-001` and no artifacts.
+The input is validated separately from the immutable scaffold roster. Its bytes,
+version, and hash distinguish resolved profiles; an unused convention does not alter
+a scoped plan's output digest. A persisted configuration artifact does affect the
+scaffold or application plan digest.
+
+There are no per-model overrides or migration support yet. Do not select `self` for
+an existing classic application: preserving observer identity and removing the old
+reducer together requires a migration-capable publisher. Existing CLI and Studio
+callers that do not pass the input continue to render classic models.
+
 ## Sources and identity
 
 | `PlaySources` member | Meaning |

@@ -54,6 +54,35 @@ these refusals as unsupported capabilities: `/stage/status` reports `unsupported
 HTTP 501 rather than executing an unconditional action. If such a guard reaches the frontend runtime anyway, the
 action is shown disabled with the diagnostic and never executes.
 
+## Generated C# self-reducing read models
+
+Artifact planning can opt a confirmed new application into self-reducing read models.
+Existing callers remain classic; this does not change the running Stage's semantic
+execution or automatically change CLI and Studio output. See
+[the profile and persisted configuration contract](plan-from-sources.md#reducer-rendering-convention).
+
+In self mode, the read-model record in the existing slice file contains one public
+static `Reduce` overload per observed event and a non-public static typed-context
+helper for each verified pure transition. Its queries remain unchanged. Both
+StateView and Automation slices use this layout; no `IReducerFor<T>` companion is emitted.
+Observer source and stream filters are attributes on the model. Tenant translation,
+occurrence time, checked sequence conversion, immutable inputs, deletion, and exact
+event-source identity checks retain the classic semantics. The scaffold pins Chronicle
+19.66.0 and Arc 22.104.0 for this generated surface.
+
+Self-mode admission checks the same record and query signatures used for rendering,
+so model properties and query names participate in pure-body binding. `Reduce` as a
+model, property, or query name, the replay-hook query names `BeginReplay`, `EndReplay`,
+`BeginReplayPartition`, `EndReplayPartition`, and collisions with generated
+`Transition_<suffix>` members refuse with `STAGE-ESM-019`. Rename the conflicting
+member; Stage never silently switches a self model back to classic.
+Existing purity and typed-context refusals still apply.
+
+For the Chronicle runtime contract, see
+[self-reducing read models](/chronicle/reducers/self-reducing-read-models/) and
+[choosing a read-model style](/chronicle/projections/choosing-a-read-model-style/).
+Migration of existing applications is not available yet.
+
 ## Generated C# query arguments
 
 Query arguments retain their concept types so Arc validates the `by` key and supplied filter

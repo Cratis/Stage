@@ -120,7 +120,8 @@ internal static partial class SemanticCratisAdmission
             commonNamespace: string.Join('.', context.Domain.Append("Common")),
             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
-            policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")));
+            policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
+            selfReducing: context.SelfReducing);
 
     static bool PassesPreconditions(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {

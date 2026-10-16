@@ -28,6 +28,8 @@ internal sealed class SemanticApplicationContext
         RootNamespace = options.RootNamespace;
         Domain = DomainPlacementInput.From(request.Profile);
         Strings = StringsCatalogInput.From(request.Profile);
+        ReducerConventionInput.TryRead(request.Profile, Application.Name, out var selfReducing);
+        SelfReducing = selfReducing;
         var metadata = request.Profile.Inputs.SingleOrDefault(input => input.Name == AuthoringMetadataInput.Name);
         Documentation = metadata is not null && AuthoringMetadataInput.TryRead(metadata, request.Model, out var catalog) ? catalog : null;
         Concepts = Application.Concepts.ToDictionary(_ => _.Id);
@@ -132,6 +134,8 @@ internal sealed class SemanticApplicationContext
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
 
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
+
+    internal bool SelfReducing { get; }
 
     internal IReadOnlyList<string> Domain { get; }
     internal string CommonFolder => string.Join('/', Domain.Append("Common"));

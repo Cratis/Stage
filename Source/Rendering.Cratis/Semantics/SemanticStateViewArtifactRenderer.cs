@@ -28,7 +28,8 @@ internal static class SemanticStateViewArtifactRenderer
         return new(path, builder.ToString())
         {
             Sources = [located.Slice.Id, .. located.Slice.ReadModels.Select(_ => _.Id),
-                .. located.Slice.Projections.Select(_ => _.Id), .. located.Slice.Queries.Select(_ => _.Id)]
+                .. located.Slice.Projections.Select(_ => _.Id), .. located.Slice.Queries.Select(_ => _.Id),
+                .. SelfReducerSources(located, context)]
         };
     }
 
@@ -40,6 +41,10 @@ internal static class SemanticStateViewArtifactRenderer
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels");
+        if (context.SelfReducing && !located.Slice.Reducers.IsEmpty)
+        {
+            builder.Using($"{context.RootNamespace}.TypedContexts");
+        }
         if (located.Slice.ReadModels.SelectMany(_ => _.Properties).Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)) ||
             located.Slice.Queries.Any(QueryNeedsCommon))
         {
@@ -86,13 +91,24 @@ internal static class SemanticStateViewArtifactRenderer
                 builder.Attribute($"global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute<{types.EventType(@event)}>");
             }
 
+            var reducer = located.Slice.Reducers.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
+            if (context.SelfReducing && reducer?.From is { } filter)
+            {
+                SemanticObserverFilterRendering.Attribute(builder, filter, context);
+            }
             builder.Attribute("global::Cratis.Arc.Queries.ModelBound.ReadModelAttribute")
-                .OpenBlock($"public record {Identifiers.ToPascalCase(readModel.Name)}({(transition is null ? ScopedParameters(readModel, types, queries, context.Reducers.Any(reducer => reducer.ReadModel == readModel.Id)) : Parameters(readModel, transition, @event!, types, queries.FirstOrDefault(query => query.Cardinality == SemanticQueryCardinality.ZeroOrOne)))})");
+                .OpenBlock(transition is null ? ModelDeclaration(readModel, types, queries, reducer is not null) :
+                    $"public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(readModel, transition, @event!, types, queries.FirstOrDefault(query => query.Cardinality == SemanticQueryCardinality.ZeroOrOne))})");
             foreach (var query in queries)
             {
                 RenderQuery(builder, query, readModel, types, context);
             }
 
+            if (context.SelfReducing && reducer is not null)
+            {
+                builder.BlankLine();
+                SemanticReducerArtifactRenderer.RenderTransitions(builder, reducer, context);
+            }
             builder.EndBlock();
             if (projection?.Scope is { } scope)
             {
@@ -104,15 +120,21 @@ internal static class SemanticStateViewArtifactRenderer
     internal static IOrderedEnumerable<SemanticProperty> OrderedProperties(IEnumerable<SemanticProperty> properties) =>
         properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal);
 
-    static bool QueryNeedsCommon(SemanticKeyedQuery query) =>
+    internal static bool QueryNeedsCommon(SemanticKeyedQuery query) =>
         (query.Argument is not null && SemanticTypeSystem.DeclarationNeedsCommon(query.Argument.Type)) ||
         query.Filters.Any(filter => SemanticTypeSystem.DeclarationNeedsCommon(filter.Type));
 
-    static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
+    internal static IEnumerable<SemanticId> SelfReducerSources(LocatedSemanticSlice located, SemanticApplicationContext context) =>
+        context.SelfReducing ? located.Slice.Reducers.SelectMany(reducer => reducer.Transitions.Select(transition => transition.EventContract)).Distinct() : [];
+
+    internal static string ModelDeclaration(SemanticReadModel model, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
+        $"public record {Identifiers.ToPascalCase(model.Name)}({ScopedParameters(model, types, queries, reducerInput)})";
+
+    internal static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
         string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
             $"{((property.IsIdentifier || queries.Any(_ => _.Cardinality == SemanticQueryCardinality.ZeroOrOne && _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[global::Cratis.Chronicle.Keys.KeyAttribute] " : string.Empty)}{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
 
-    static string Parameters(
+    internal static string Parameters(
         SemanticReadModel readModel,
         SemanticProjectionTransition transition,
         SemanticEventContract @event,
@@ -132,7 +154,7 @@ internal static class SemanticStateViewArtifactRenderer
             return $"{key}{attribute}{types.Type(property.Type)} {targetName}";
         }));
 
-    static void RenderQuery(
+    internal static void RenderQuery(
         CSharpCodeBuilder builder,
         SemanticKeyedQuery query,
         SemanticReadModel readModel,

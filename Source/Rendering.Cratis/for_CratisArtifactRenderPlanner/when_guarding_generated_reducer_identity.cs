@@ -18,11 +18,15 @@ public class when_guarding_generated_reducer_identity
     const string Body = "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);";
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public async Task public_on_checks_guid_and_text_primitive_or_concept_keys(bool concept, bool text)
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    public async Task public_on_checks_guid_and_text_primitive_or_concept_keys(bool concept, bool text, bool self)
     {
         var source = when_rendering_a_pure_reducer.Source.Replace(Body, "if (context.Event.Amount < 0m) return null; if (context.Event.Amount == 2m && context.State is not null) return context.State; return new Total(context.Event.Id, context.Event.Amount);", StringComparison.Ordinal);
         if (concept)
@@ -37,7 +41,7 @@ public class when_guarding_generated_reducer_identity
                 .Replace("id Uuid", "id String", StringComparison.Ordinal);
         }
 
-        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source));
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source), self: self);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
@@ -45,8 +49,9 @@ public class when_guarding_generated_reducer_identity
         var assembly = RenderedOutput.Load(files);
         var record = assembly.GetTypes().Single(type => type.Name == "Total");
         var eventType = assembly.GetTypes().Single(type => type.Name == "OrderPlaced");
-        var reducer = Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "Fold"));
-        var on = reducer!.GetType().GetMethods().Single(method => method.Name == "On");
+        var reducerType = self ? record : assembly.GetTypes().Single(type => type.Name == "Fold");
+        var reducer = self ? null : Activator.CreateInstance(reducerType);
+        var on = reducerType.GetMethods().Single(method => method.Name == (self ? "Reduce" : "On"));
         var identity = concept ? assembly.GetTypes().Single(type => type.Name == "OrderId") : null;
         object Key(string value)
         {
@@ -90,20 +95,23 @@ public class when_guarding_generated_reducer_identity
         }
     }
 
-    [Fact]
-    public async Task every_public_on_overload_guards_its_own_transition()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task every_public_on_overload_guards_its_own_transition(bool self)
     {
         var source = when_rendering_a_pure_reducer.Source.Replace(Body, "return new Total(context.Event.Id, context.Event.Amount);", StringComparison.Ordinal)
             .Replace("      event OrderPlaced\n        id Uuid\n        amount Decimal", "      event OrderPlaced\n        id Uuid\n        amount Decimal\n      event OrderAdjusted\n        id Uuid\n        amount Decimal", StringComparison.Ordinal)
             .Replace("          return new Total(context.Event.Id, context.Event.Amount);\n          ```", "          return new Total(context.Event.Id, context.Event.Amount);\n          ```\n        on OrderAdjusted\n          ```csharp\n          return new Total(context.Event.Id, context.Event.Amount);\n          ```", StringComparison.Ordinal);
-        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source));
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source), self: self);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
         Assert.Empty(RenderedOutput.Errors(files));
         var assembly = RenderedOutput.Load(files);
-        var reducer = Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "Fold"));
-        var overloads = reducer.GetType().GetMethods().Where(method => method.Name == "On").ToArray();
+        var reducerType = assembly.GetTypes().Single(type => type.Name == (self ? "Total" : "Fold"));
+        var reducer = self ? null : Activator.CreateInstance(reducerType);
+        var overloads = reducerType.GetMethods().Where(method => method.Name == (self ? "Reduce" : "On")).ToArray();
         Assert.Equal(2, overloads.Length);
         foreach (var on in overloads)
         {

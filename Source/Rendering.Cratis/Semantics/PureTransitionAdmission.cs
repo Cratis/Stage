@@ -171,7 +171,7 @@ internal static partial class PureTransitionAdmission
             return slice.ReadModels.Select(_ => (Id: (SemanticId?)_.Id, _.Name))
                 .Concat(slice.Events.Select(_ => (Id: (SemanticId?)_.Id, _.Name)))
                 .Concat(slice.Commands.Select(_ => (Id: (SemanticId?)_.Id, _.Name)))
-                .Concat(slice.Reducers.Select(_ => (Id: (SemanticId?)null, _.Name)))
+                .Concat(slice.Reducers.Where(_ => !context.SelfReducing).Select(_ => (Id: (SemanticId?)null, _.Name)))
                 .Concat(slice.Projections.Where(_ => _.Scope is not null).Select(_ => (Id: (SemanticId?)_.Id, _.Name)))
                 .Concat(slice.Constraints.Select(_ => (Id: (SemanticId?)null, _.Name)))
                 .Concat(slice.Commands.Select(_ => (Id: (SemanticId?)null, Name: _.Name + "Validator")))
@@ -218,14 +218,20 @@ internal static partial class PureTransitionAdmission
             definitions.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(composite.Name)}({Parameters(composite.Properties)}); }}");
         }
 
-        definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
+        if (!context.SelfReducing)
+        {
+            definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
+        }
         foreach (var transitionEvent in reducerEvents)
         {
             var transitionNs = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(transitionEvent.Id).Path);
             definitions.Add($"namespace {transitionNs} {{ public record {Identifiers.ToPascalCase(transitionEvent.Name)}({Parameters(transitionEvent.Properties, true)}); }}");
         }
-        var wrapper = SemanticTypedContextRenderer.Render(descriptor, context).Content
-            .Replace($"namespace {context.TypedContextsNamespace};", $"namespace {context.TypedContextsNamespace} {{", StringComparison.Ordinal) + "\n}";
+        var descriptors = context.SelfReducing
+            ? context.Request.TypedContextDescriptors.Where(candidate => candidate.OperationId == readModel.Id)
+            : [descriptor];
+        var wrapper = string.Join('\n', descriptors.Select(candidate => SemanticTypedContextRenderer.Render(candidate, context).Content
+            .Replace($"namespace {context.TypedContextsNamespace};", $"namespace {context.TypedContextsNamespace} {{", StringComparison.Ordinal) + "\n}"));
         var modelType = $"global::{modelNs}.{Identifiers.ToPascalCase(readModel.Name)}";
         var wrapperType = $"global::{context.TypedContextsNamespace}.TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
         var tenant = $"namespace {context.RootNamespace}.TypedContexts {{ public record TenantId(string Value) {{ public static readonly TenantId Default = new(\"00000000-0000-0000-0000-000000000000\"); public static readonly TenantId NotSet = new(\"\"); }} }}";
@@ -238,6 +244,9 @@ internal static partial class PureTransitionAdmission
             "namespace Cratis.Concepts { public record ConceptAs<T>(T Value); } " +
             "namespace Cratis.Chronicle.Events { public class EventContext {} public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue); } " +
             "namespace Cratis.Chronicle.Reducers { public interface IReducerFor<T> {} } " +
+            "namespace Cratis.Arc.Authorization {} namespace Cratis.Arc.Queries.ModelBound {} " +
+            "namespace Cratis.Chronicle.Projections.ModelBound {} namespace Cratis.Chronicle.Keys {} " +
+            "namespace Cratis.Chronicle.ReadModels { public interface IReadModels {} } " +
             string.Join('\n', definitions) + "\n" + tenant + "\n" + wrapper;
         var builder = new CodeGeneration.CSharpCodeBuilder()
             .Namespace(ns)
@@ -267,6 +276,10 @@ internal static partial class PureTransitionAdmission
             .EndBlock()
             .EndBlock()
             .ToString();
+        if (context.SelfReducing)
+        {
+            code = SelfAnalysisCode(context, located, readModel, reducer, descriptor, body);
+        }
         var options = new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest);
         var tree = CSharpSyntaxTree.ParseText(code, options);
         var declarationTree = CSharpSyntaxTree.ParseText(declarations, options);
@@ -276,7 +289,7 @@ internal static partial class PureTransitionAdmission
             ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var semanticModel = compilation.GetSemanticModel(tree);
-        var referencedTypes = MethodTypeReferences(tree, semanticModel);
+        var referencedTypes = MethodTypeReferences(tree, semanticModel, $"Transition_{suffix}");
         var shadow = peers.FirstOrDefault(name => referencedTypes.Any(reference => reference.Name == name) || ShadowsAuditedName(name));
         if (shadow is not null)
             return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows a type referenced by the reducer body.");
@@ -294,7 +307,8 @@ internal static partial class PureTransitionAdmission
         if (errors.Length > 0)
         {
             var error = errors[0];
-            var methodOffset = code.IndexOf(body, code.LastIndexOf($"public class {reducerName}", StringComparison.Ordinal), StringComparison.Ordinal);
+            var helper = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => method.Identifier.Text == $"Transition_{suffix}");
+            var methodOffset = code.IndexOf(body, helper.Body!.OpenBraceToken.Span.End, StringComparison.Ordinal);
             var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}{GeneratedMemberDiagnostic.Hint(error, semanticModel)}";
             if (!error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < methodOffset ||
                 error.Location.SourceSpan.Start > methodOffset + body.Length)

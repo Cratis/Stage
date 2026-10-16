@@ -1040,19 +1040,21 @@ public class when_rendering_a_pure_reducer
         Assert.Equal(PureTransitionAdmission.AuditedMemberSignatures.Order(StringComparer.Ordinal), members.Order(StringComparer.Ordinal));
     }
 
-    [Fact]
-    public async Task should_match_the_real_rendered_compilation_verdict_for_every_admitted_fixture()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_match_the_real_rendered_compilation_verdict_for_every_admitted_fixture(bool self)
     {
         var compiled = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
-        var plan = Plan(compiled);
+        var plan = Plan(compiled, self: self);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-023" && diagnostic.Message == "1 transition bodies analysed.");
         var descriptor = compiled.TypedContextDescriptors.Single();
-        var reducerFile = plan.Artifacts.Single(_ => _.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal));
+        var reducerFile = plan.Artifacts.Single(_ => _.RelativePath.EndsWith(self ? "Totals.cs" : "Fold.cs", StringComparison.Ordinal));
         const string originalBody = "return new Total(context.Event.Id, context.Event.Amount);";
         foreach (var fixture in AdmittedFixtures)
         {
-            var synthetic = await Analyze(fixture);
+            var synthetic = await Analyze(fixture, self: self);
             var realizedFixture = fixture.Replace("Guid.Empty", "context.Event.Id", StringComparison.Ordinal);
             var files = plan.Artifacts.Where(_ => _.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && _.RelativePath != "Program.cs")
                 .Select(artifact => new RenderedFile(artifact.RelativePath,
@@ -1108,13 +1110,13 @@ public class when_rendering_a_pure_reducer
         Assert.Contains("Guid.Empty", verdict.Reason, StringComparison.Ordinal);
     }
 
-    static async Task<PureTransitionAdmission.Verdict> Analyze(string body, bool normalizeIdentity = true)
+    static async Task<PureTransitionAdmission.Verdict> Analyze(string body, bool normalizeIdentity = true, bool self = false)
     {
         var loaded = await Load(Source.Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "Guid.Empty", StringComparison.Ordinal));
         var request = new ArtifactRenderRequest(
             loaded.Model,
             loaded.Plan,
-            CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
+            self ? CratisRendering.CreateNewApplicationProfile("Projects", new("Projects", "Projects")) : CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
             new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {
             TypedContextDescriptors = loaded.TypedContextDescriptors
@@ -1167,13 +1169,13 @@ public class when_rendering_a_pure_reducer
         }
     }
 
-    internal static ArtifactRenderPlan Plan(LoadedSemanticModel compiled, ArtifactRenderScope? scope = null)
+    internal static ArtifactRenderPlan Plan(LoadedSemanticModel compiled, ArtifactRenderScope? scope = null, bool self = false)
     {
         var model = compiled.Model;
         var request = new ArtifactRenderRequest(
             model,
             SemanticExecutionPlan.Compile(model).Plan,
-            CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
+            self ? CratisRendering.CreateNewApplicationProfile("Projects", new("Projects", "Projects")) : CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
             scope ?? new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = compiled.ImplementationRequirements,

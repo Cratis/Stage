@@ -176,6 +176,20 @@ not.
 
 `ArtifactRenderPlan` is the separate, destination-independent code-rendering contract (not the Scene `RenderPlan` above). Its `Artifacts` are ordered by normalized relative path. Each `PlannedArtifact` carries exact `Bytes`, their lowercase `Sha256`, and `Sources`: sorted, distinct `SemanticId`s of the model elements that file realizes. Scaffold files have empty `Sources` because they realize no semantic element; a Scene composition carried as a profile input is the exception and names the application identity. The plan carries the model's `SemanticRevision`; SHA-256 hashes only artifact bytes, not sources or plan metadata. Use path, sources, and hash together when recording a mapping from model elements to generated files.
 
+### Self-reducing model ownership
+
+With the explicit `self` reducer convention, the existing slice file contains the
+read-model record, queries, public static `Reduce` overloads, and non-public typed-context
+transition helpers. No separate reducer class or file is planned. The combined file's
+`Sources` includes its declaring slice, models, queries, projections, and the observed
+event contracts that previously belonged to the separate reducer file. The generated-type
+inventory likewise contains no nonexistent reducer class.
+
+The default classic layout retains its existing bytes, paths, and ownership. A convention
+input alone does not change an output-only digest when it affects no selected artifact.
+This release plans no removals and does not migrate existing reducer files. See
+[Reducer rendering convention](plan-from-sources.md#reducer-rendering-convention).
+
 ### Source ownership inventory
 
 The Cratis renderer records the following identities in `Sources`. The plan normalizes every list by removing duplicates and sorting identities ordinally; list order does not imply ownership priority.

@@ -11,13 +11,16 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_executing_generated_optional_reducer_collection_specification : a_generated_application
 {
-    protected override ArtifactRenderPlan CreatePlan() => when_executing_generated_reducer_collection_specification.CreateCollectionPlan(optional: true);
+    protected override bool DeferPlan => true;
 
-    [Fact]
-    async Task should_build_and_pass_the_nonempty_optional_decimal_collection_expectation()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_build_and_pass_the_nonempty_optional_decimal_collection_expectation(bool self)
     {
         try
         {
+            RenderApplication(when_executing_generated_reducer_collection_specification.CreateCollectionPlan(optional: true, self));
             var build = await Run("optional-reducer-collection-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("optional-reducer-collection-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");

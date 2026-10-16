@@ -325,7 +325,7 @@ internal static class SemanticVersionFeatures
 
         if (UnsupportedCommandResults(command))
         {
-            yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' combines generated values or a response with routing, legacy destination allocation, generated-property rules, or a non-scalar/non-command response source; Stage cannot preserve that combination yet.");
+            yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' combines generated values or a response with routing, legacy destination allocation, rules or requirements reading generated properties, or a non-scalar/non-command response source; Stage cannot preserve that combination yet.");
         }
     }
 
@@ -509,8 +509,16 @@ internal static class SemanticVersionFeatures
         if (generated.Any(property => property.IsIdentifier) && command.Produces.Any(produced => produced.Destination is null)) return true;
         if (OccurrenceParameterCollides(command, generated)) return true;
 
-        return !command.Requirements.IsEmpty || command.Validations.Any(rule => generated.Any(property => property.Id == rule.Property));
+        return command.Requirements.Any(requirement => ReadsGenerated(requirement.Condition, generated)) ||
+            command.Validations.Any(rule => generated.Any(property => property.Id == rule.Property));
     }
+
+    static bool ReadsGenerated(SemanticCondition condition, IReadOnlyList<SemanticProperty> generated) => condition switch
+    {
+        SemanticLogicalCondition logical => ReadsGenerated(logical.Left, generated) || ReadsGenerated(logical.Right, generated),
+        SemanticComparison comparison => generated.Any(property => property.Id == comparison.Left.Property || property.Id == comparison.Right.Property),
+        _ => false
+    };
 
     static bool ConditionalLocalCollides(SemanticCommand command, IEnumerable<SemanticProperty> generated) =>
         command.Produces.Any(produced => produced.When is not null) && generated.Any(property =>

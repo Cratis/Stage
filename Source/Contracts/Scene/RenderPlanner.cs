@@ -55,7 +55,7 @@ public static class RenderPlanner
     public static ApplicationRenderPlan Plan(SceneApplication application, IReadOnlyList<ScenePackagesModel.ScenePackage> catalog)
     {
         var targets = application.UiProfiles.Select(profile => PlanFor(profile, application, catalog)).ToList();
-        return new ApplicationRenderPlan(targets, [.. RenderFindings.ForApplication(targets), .. RenderFindings.ForStructure(application)]);
+        return new ApplicationRenderPlan(targets, [.. RenderFindings.ForApplication(targets), .. RenderFindings.ForStructure(application), .. RenderFindings.ForTemplateReferences(application, catalog)]);
     }
 
     /// <summary>

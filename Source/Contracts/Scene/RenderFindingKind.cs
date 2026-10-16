@@ -118,5 +118,11 @@ public enum RenderFindingKind
     /// Scene's sample data validation found a problem with a pack or with a profile's selection: an id or locale that is not valid,
     /// a repeated shape, or an active, mapped or bound pack that is not available.
     /// </summary>
-    SampleDataInvalid = 17
+    SampleDataInvalid = 17,
+
+    /// <summary>
+    /// A <c language="csharp">template blueprint</c> reference names a blueprint the catalog does not have, a version of it the reference
+    /// does not accept, or a template the blueprint does not ship. Rendering it would silently show a screen with no template.
+    /// </summary>
+    TemplateReferenceUnresolved = 18
 }

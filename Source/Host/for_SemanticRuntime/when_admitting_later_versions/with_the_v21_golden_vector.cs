@@ -25,5 +25,5 @@ public class with_the_v21_golden_vector : Specification
     [InlineData("random")]
     [InlineData("rule")]
     void should_refuse_each_unimplemented_strategy(string strategy) => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-028:", StringComparison.Ordinal) && entry.Details.Contains($"generate {strategy}", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_refuse_checksum_validation() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-042:", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_admit_checksum_validation() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-042:", StringComparison.Ordinal)).ShouldBeFalse();
 }

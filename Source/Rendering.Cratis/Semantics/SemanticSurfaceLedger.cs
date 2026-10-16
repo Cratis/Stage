@@ -120,9 +120,8 @@ internal static class SemanticSurfaceLedger
         // Message includes localized $strings keys only with a validated catalog; missing default keys block as STAGE-ESM-018.
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
         Add(entries, "SemanticValidationRule", rejected("STAGE-ESM-005"), "Name RequirementId");
-        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches");
+        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum");
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown RulePredicate CodeValidation");
-        Add(entries, "SemanticValidationRuleKind", rejected(SemanticVersionFeatures.UnsupportedValidation), "Checksum");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
         // State change: one or more commands with mapped events and portable When conditions in declaration order. Tags preserve

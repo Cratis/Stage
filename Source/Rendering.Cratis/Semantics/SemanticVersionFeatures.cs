@@ -114,7 +114,8 @@ internal static class SemanticVersionFeatures
     /// <returns>Whether Stage supports the version pair.</returns>
     public static bool Supports(ExecutableSemanticModel model) =>
         EsmSchemaV21Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
-        (model.LanguageVersion == LanguageVersion.V23 && model.SemanticVersion == SemanticVersion.V23);
+        (model.LanguageVersion == LanguageVersion.V23 && model.SemanticVersion == SemanticVersion.V23) ||
+        (model.LanguageVersion == LanguageVersion.V24 && model.SemanticVersion == SemanticVersion.V24);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -501,7 +502,9 @@ internal static class SemanticVersionFeatures
         SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
         SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.Checksum or
         SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual or
-        SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
+        SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation or
+        SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
 
     static IEnumerable<SemanticVersionFeature> MixedEffectsInReaction(SemanticReaction reaction)
     {

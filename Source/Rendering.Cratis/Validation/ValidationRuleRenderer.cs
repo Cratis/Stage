@@ -45,6 +45,10 @@ public static class ValidationRuleRenderer
         ValidationRuleKind.Equal => $".Equal({value})",
         ValidationRuleKind.Length => $".Length({value})",
         ValidationRuleKind.Matches => RenderMatch(value),
+        ValidationRuleKind.Contains => $".Must(value => value is null || value.Contains({value}, global::System.StringComparison.Ordinal))",
+        ValidationRuleKind.NotContains => $".Must(value => value is null || !value.Contains({value}, global::System.StringComparison.Ordinal))",
+        ValidationRuleKind.StartsWith => $".Must(value => value is null || value.StartsWith({value}, global::System.StringComparison.Ordinal))",
+        ValidationRuleKind.EndsWith => $".Must(value => value is null || value.EndsWith({value}, global::System.StringComparison.Ordinal))",
         _ => throw new UnsupportedValidationRule(kind),
     };
 
@@ -64,7 +68,8 @@ public static class ValidationRuleRenderer
         }
         if (rule.Rule is ValidationRuleKind.NotEmpty or ValidationRuleKind.Max or ValidationRuleKind.Min or
             ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or ValidationRuleKind.LessThan or
-            ValidationRuleKind.LessThanOrEqual or ValidationRuleKind.Equal or ValidationRuleKind.Length or ValidationRuleKind.Matches)
+            ValidationRuleKind.LessThanOrEqual or ValidationRuleKind.Equal or ValidationRuleKind.Length or ValidationRuleKind.Matches or
+            ValidationRuleKind.Contains or ValidationRuleKind.NotContains or ValidationRuleKind.StartsWith or ValidationRuleKind.EndsWith)
         {
             return;
         }

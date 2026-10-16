@@ -23,7 +23,7 @@ public class with_an_unaudited_version : Specification
     void Because()
     {
         // Simulate dependency versions Stage has not audited, including the hole before v23.
-        _admissions = [.. new uint[] { 22, 24 }.Select(version =>
+        _admissions = [.. new uint[] { 22, 25 }.Select(version =>
         {
             typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new LanguageVersion(version, 0));
             typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new SemanticVersion(version, 0));

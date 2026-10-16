@@ -18,11 +18,12 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
               command RenameOtherProject
                 projectId ProjectId identifier
                 name String
+                stream Account.Transactions
+                  streamId = name
                 produces event OtherProjectRenamed
                   for projectId
                   name String = name
-                returns
-                  equals = name
+                returns name
         """;
 
     readonly List<(ExecutableSemanticModel Model, SemanticExecutionPlan ExecutionPlan, SemanticSlice Sibling, SemanticId Artifact, string Code)> _cases = [];
@@ -69,15 +70,16 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
                   event OtherProjectRegistered
                     name String
             """, SemanticVersion.V7, "STAGE-ESM-038"),
-            (ResponseSibling, SemanticVersion.V7, "STAGE-ESM-038")
+            (ResponseSibling, SemanticVersion.V8, "STAGE-ESM-038")
         ];
         var form = Corpus.SourceForms.Single(candidate => candidate.Name == "single");
         var document = form.Documents.Single();
+        const string routes = "\neventsource Account\n  identifier ProjectId\n  stream Transactions\n    streamId String\n";
         foreach (var sibling in siblings)
         {
             var model = Compile(form with
             {
-                Documents = [document with { Bytes = [.. Encoding.UTF8.GetBytes(document.Text + Environment.NewLine + sibling.Source)] }]
+                Documents = [document with { Bytes = [.. Encoding.UTF8.GetBytes(document.Text + Environment.NewLine + sibling.Source + (sibling.Source == ResponseSibling ? routes : string.Empty))] }]
             }).Model;
             model.SemanticVersion.ShouldEqual(sibling.Version);
             var slice = model.Application.Modules.Single().Features.Single().Slices.Single(candidate => candidate.Name == "Unsupported");

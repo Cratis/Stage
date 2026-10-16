@@ -167,8 +167,12 @@ Clock, application, startup and shutdown triggers and opaque reaction bodies sti
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.154.0 and admits exact ESM v1–v16 version pairs; unaudited
-language/semantic versions refuse the whole model with `STAGE-ESM-016` before registration or execution.
+The semantic engine uses Screenplay 4.193.0 and admits exact ESM v1–v21 and v23–v25 version pairs; unaudited
+language/semantic versions, including v22 and v26, refuse the whole model with `STAGE-ESM-016` before registration or execution.
+Both engines refuse `command reads protected` with `STAGE-ESM-044`: protected decision reads and read-backed
+conditions or mappings are not executed. The semantic engine blocks the application and its read commands before
+registration, rather than silently dropping their reads. Without the preamble, command reads still fail binding
+with `PLAY0271` and the repair diagnostic `PLAY0786`.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and
 read-model state, including ±9007199254740991 and `0.10000000000000002`. Source integers still use
 the Double safe range; `numbers exact` and arbitrary-precision arithmetic are not admitted.

@@ -189,8 +189,9 @@ As an interim safety boundary, any outside append faults the session before comm
 including an unrelated append. This is stricter than the reference's dependency-scoped conflicts; Stage cannot
 commit a stale protected decision. Reference conflict semantics await the public decide/commit API in
 [Screenplay #833](https://github.com/Cratis/Screenplay/issues/833).
-The Cratis renderer and legacy engines still refuse the preamble with `STAGE-ESM-044`; without it, command reads
-still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
+The Cratis renderer renders protected reads as Arc read protection (see [Protected reads rendering](../reference/protected-reads-rendering.md)),
+refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The legacy engines still refuse the preamble with the same code; without it,
+command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and
 read-model state, including ±9007199254740991 and `0.10000000000000002`. Source integers still use
 the Double safe range; `numbers exact` and arbitrary-precision arithmetic are not admitted.

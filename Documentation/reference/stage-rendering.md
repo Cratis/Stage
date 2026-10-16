@@ -71,7 +71,11 @@ event-source identity checks retain the classic semantics. The scaffold pins Chr
 19.66.0 and Arc 22.104.0 for this generated surface.
 
 Self-mode admission checks the same record and query signatures used for rendering,
-so model properties and query names participate in pure-body binding. `Reduce` as a
+so model properties and query names participate in pure-body binding. Rendering and
+analysis share the entire file's imports and visible declarations, including sibling
+reducers, projections, and Automation commands. Observable query signatures are
+represented in closed analysis without allowing query or reactive-service calls from
+pure transitions. `Reduce` as a
 model, property, or query name, the replay-hook query names `BeginReplay`, `EndReplay`,
 `BeginReplayPartition`, `EndReplayPartition`, and collisions with generated
 `Transition_<suffix>` members refuse with `STAGE-ESM-019`. Rename the conflicting

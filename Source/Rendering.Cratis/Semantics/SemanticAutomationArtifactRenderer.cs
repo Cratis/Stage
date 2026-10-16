@@ -15,10 +15,13 @@ internal static class SemanticAutomationArtifactRenderer
     {
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         var hasReadSurface = SemanticReadSurface.IsDeclaredBy(located.Slice);
-        SemanticStateChangeArtifactRenderer.Configure(builder, located, context);
         if (hasReadSurface)
         {
-            SemanticStateViewArtifactRenderer.Configure(builder, located, context);
+            context.ReducerBindings(located).Configure(builder);
+        }
+        else
+        {
+            SemanticStateChangeArtifactRenderer.Configure(builder, located, context);
         }
         SemanticStateChangeArtifactRenderer.RenderMembers(builder, located, context);
         if (hasReadSurface)

@@ -18,12 +18,8 @@ internal static class SemanticReducerArtifactRenderer
         var model = context.ReadModels[reducer.ReadModel];
         var modelType = $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{Identifiers.ToPascalCase(model.Name)}";
         var name = Identifiers.ToPascalCase(reducer.Name);
-        var builder = new CSharpCodeBuilder()
-            .Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path))
-            .Using("Cratis.Chronicle.Events")
-            .Using("Cratis.Chronicle.Reducers")
-            .Using($"{context.RootNamespace}.TypedContexts")
-            .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path));
+        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        context.ReducerBindings(located, reducer).Configure(builder);
         if (reducer.From is { } filter)
         {
             SemanticObserverFilterRendering.Attribute(builder, filter, context);
@@ -66,7 +62,6 @@ internal static class SemanticReducerArtifactRenderer
             var @event = context.Events[transition.EventContract];
             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path);
             var eventType = $"global::{eventNamespace}.{Identifiers.ToPascalCase(@event.Name)}";
-            builder.Using(eventNamespace);
             var descriptor = context.Request.TypedContextDescriptors.Single(_ => _.RequirementId == transition.RequirementId && _.OperationId == reducer.ReadModel);
             var wrapper = $"TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
             var helper = HelperName(transition.RequirementId);

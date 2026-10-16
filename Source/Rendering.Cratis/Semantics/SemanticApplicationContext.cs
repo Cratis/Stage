@@ -15,6 +15,7 @@ internal sealed class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
+    readonly Dictionary<(SemanticId Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SemanticApplicationContext"/> class.
@@ -135,6 +136,8 @@ internal sealed class SemanticApplicationContext
 
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 
+    internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];
+
     internal bool SelfReducing { get; }
 
     internal IReadOnlyList<string> Domain { get; }
@@ -190,6 +193,19 @@ internal sealed class SemanticApplicationContext
 
     internal AuthoringMetadataInput.Metadata Docs(SemanticId id) =>
         Documentation?.Entries.GetValueOrDefault(id.ToString()) ?? new(null, null);
+
+    internal SemanticReducerBindingEnvironment ReducerBindings(LocatedSemanticSlice located, SemanticReducer? reducer = null)
+    {
+        var classic = SelfReducing ? null : reducer;
+        var key = (located.Slice.Id, classic?.ReadModel);
+        if (!_reducerBindings.TryGetValue(key, out var environment))
+        {
+            environment = SemanticReducerBindingEnvironment.Create(located, this, classic);
+            _reducerBindings.Add(key, environment);
+        }
+
+        return environment;
+    }
 
     static IReadOnlyList<SemanticFeature> FindFeaturePath(SemanticFeature feature, SemanticId slice)
     {

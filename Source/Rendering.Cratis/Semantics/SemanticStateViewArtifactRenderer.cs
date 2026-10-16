@@ -33,7 +33,10 @@ internal static class SemanticStateViewArtifactRenderer
         };
     }
 
-    internal static void Configure(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
+    internal static void Configure(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context) =>
+        context.ReducerBindings(located).Configure(builder);
+
+    internal static void ConfigureImports(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
     {
         var ownNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
         builder.Using("Cratis.Arc.Authorization")

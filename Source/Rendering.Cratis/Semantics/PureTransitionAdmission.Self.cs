@@ -17,7 +17,7 @@ internal static partial class PureTransitionAdmission
     static string SelfAnalysisCode(SemanticApplicationContext context, LocatedSemanticSlice located, SemanticReadModel model, SemanticReducer reducer, SemanticTypedContextDescriptor descriptor, string body)
     {
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
-        SemanticStateViewArtifactRenderer.Configure(builder, located, context);
+        context.ReducerBindings(located, reducer).Configure(builder);
         var queries = located.Slice.Queries.Where(query => query.ReadModel == model.Id).ToArray();
         var types = new SemanticTypeSystem(context);
         builder.OpenBlock(SemanticStateViewArtifactRenderer.ModelDeclaration(model, types, queries, true));

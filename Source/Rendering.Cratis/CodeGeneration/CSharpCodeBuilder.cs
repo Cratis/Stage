@@ -29,6 +29,8 @@ public class CSharpCodeBuilder
 
     internal CSharpCodeBuilder(ImportRequest imports) => _imports = new(imports);
 
+    internal IReadOnlyCollection<string> UsingNamespaces => _usings;
+
     /// <summary>
     /// Escapes a value so it can sit inside a C# string literal.
     /// </summary>

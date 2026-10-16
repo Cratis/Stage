@@ -154,31 +154,18 @@ internal static partial class PureTransitionAdmission
         var reducer = reducers[0];
         var reducerName = Identifiers.ToPascalCase(reducer.Name);
 
-        // Synthetic stubs contain only the current model and observed events. Inventory every
-        // declaration imported by the real file, including constraint classes in event slices.
-        // Exclude only the exact stubbed declaration, never an unrelated peer with the same short name.
+        // The actual output file owns the binding environment: a separate classic reducer,
+        // or the entire combined slice, including sibling reducers/projections and Automation commands.
+        var environment = context.ReducerBindings(located, reducer);
         var reducerEvents = reducer.Transitions.Select(transition => context.Events[transition.EventContract]).ToArray();
-        var importedSlices = reducerEvents.Select(@event => context.DeclaringSlice(@event.Id).Slice).Append(located.Slice).Distinct();
         var stubbed = reducerEvents.Select(@event => (
                 Id: (SemanticId?)@event.Id,
                 Namespace: SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path),
                 Name: Identifiers.ToPascalCase(@event.Name)))
             .Append(((SemanticId?)readModel.Id, modelNs, Identifiers.ToPascalCase(readModel.Name)))
             .ToHashSet();
-        var peerDeclarations = importedSlices.SelectMany(slice =>
-        {
-            var sliceNamespace = SliceNaming.Namespace(context.RootNamespace, context.Slice(slice.Id).Path);
-            return slice.ReadModels.Select(_ => (Id: (SemanticId?)_.Id, _.Name))
-                .Concat(slice.Events.Select(_ => (Id: (SemanticId?)_.Id, _.Name)))
-                .Concat(slice.Commands.Select(_ => (Id: (SemanticId?)_.Id, _.Name)))
-                .Concat(slice.Reducers.Where(_ => !context.SelfReducing).Select(_ => (Id: (SemanticId?)null, _.Name)))
-                .Concat(slice.Projections.Where(_ => _.Scope is not null).Select(_ => (Id: (SemanticId?)_.Id, _.Name)))
-                .Concat(slice.Constraints.Select(_ => (Id: (SemanticId?)null, _.Name)))
-                .Concat(slice.Commands.Select(_ => (Id: (SemanticId?)null, Name: _.Name + "Validator")))
-                .Select(_ => (_.Id, Namespace: sliceNamespace, Name: Identifiers.ToPascalCase(_.Name)));
-        }).Concat(context.Application.Concepts.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.CommonNamespace, Name: Identifiers.ToPascalCase(_.Name))))
-            .Concat(context.Application.Types.Select(_ => (Id: (SemanticId?)_.Id, Namespace: context.CommonNamespace, Name: Identifiers.ToPascalCase(_.Name))));
-        var allDeclarations = peerDeclarations.ToArray();
+        var allDeclarations = environment.Declarations.Select(declaration =>
+            (Id: (SemanticId?)declaration.Artifact, Namespace: SemanticReducerBindingEnvironment.Qualify(context, declaration.Namespace), declaration.Name)).ToArray();
         var peers = allDeclarations.Where(declaration => !stubbed.Contains(declaration))
             .Select(declaration => declaration.Name).ToHashSet(StringComparer.Ordinal);
 
@@ -222,10 +209,24 @@ internal static partial class PureTransitionAdmission
         {
             definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
         }
-        foreach (var transitionEvent in reducerEvents)
+        foreach (var visibleEvent in environment.Events)
         {
-            var transitionNs = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(transitionEvent.Id).Path);
-            definitions.Add($"namespace {transitionNs} {{ public record {Identifiers.ToPascalCase(transitionEvent.Name)}({Parameters(transitionEvent.Properties, true)}); }}");
+            var eventNs = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(visibleEvent.Id).Path);
+            var immutable = context.Reducers.Any(candidate => candidate.Transitions.Any(transition => transition.EventContract == visibleEvent.Id));
+            definitions.Add($"namespace {eventNs} {{ public record {Identifiers.ToPascalCase(visibleEvent.Name)}({Parameters(visibleEvent.Properties, immutable)}); }}");
+        }
+        var defined = environment.Events.Select(visibleEvent =>
+                (Namespace: SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(visibleEvent.Id).Path), Name: Identifiers.ToPascalCase(visibleEvent.Name)))
+            .Concat(context.Application.Concepts.Select(concept => (Namespace: context.CommonNamespace, Name: Identifiers.ToPascalCase(concept.Name))))
+            .Concat(context.Application.Types.Select(type => (Namespace: context.CommonNamespace, Name: Identifiers.ToPascalCase(type.Name))))
+            .Append((modelNs, Identifiers.ToPascalCase(readModel.Name))).ToHashSet();
+        if (!context.SelfReducing) defined.Add((ns, reducerName));
+        foreach (var peer in allDeclarations.Where(declaration => !defined.Contains((declaration.Namespace, declaration.Name)))
+            .DistinctBy(declaration => (declaration.Namespace, declaration.Name)))
+        {
+            // Peer members are never an admitted pure API. Their declarations still participate in
+            // namespace and short-name binding exactly where the real combined file imports them.
+            definitions.Add($"namespace {peer.Namespace} {{ public class {peer.Name} {{}} }}");
         }
         var descriptors = context.SelfReducing
             ? context.Request.TypedContextDescriptors.Where(candidate => candidate.OperationId == readModel.Id)
@@ -238,6 +239,7 @@ internal static partial class PureTransitionAdmission
 
         // Model stubs are compilation peers, not imports into the reducer file. The body has the
         // same namespace and exact using directives as SemanticReducerArtifactRenderer.Render.
+        // The observable interface is a signature-only stand-in, not an admitted pure call surface.
         var declarations = "global using System; global using System.Collections.Generic; global using System.Linq; " +
             "global using System.IO; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks; " +
             (context.Application.Concepts.IsEmpty && context.Application.Types.IsEmpty ? string.Empty : $"using {context.CommonNamespace}; ") +
@@ -245,19 +247,13 @@ internal static partial class PureTransitionAdmission
             "namespace Cratis.Chronicle.Events { public class EventContext {} public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue); } " +
             "namespace Cratis.Chronicle.Reducers { public interface IReducerFor<T> {} } " +
             "namespace Cratis.Arc.Authorization {} namespace Cratis.Arc.Queries.ModelBound {} " +
+            "namespace Cratis.Arc.Commands.ModelBound {} namespace Cratis.Arc.Validation {} namespace Cratis.Chronicle.EventSequences {} " +
             "namespace Cratis.Chronicle.Projections.ModelBound {} namespace Cratis.Chronicle.Keys {} " +
             "namespace Cratis.Chronicle.ReadModels { public interface IReadModels {} } " +
+            "namespace System.Reactive.Subjects { public interface ISubject<T> : global::System.IObservable<T>, global::System.IObserver<T> {} } " +
             string.Join('\n', definitions) + "\n" + tenant + "\n" + wrapper;
-        var builder = new CodeGeneration.CSharpCodeBuilder()
-            .Namespace(ns)
-            .Using("Cratis.Chronicle.Events")
-            .Using("Cratis.Chronicle.Reducers")
-            .Using($"{context.RootNamespace}.TypedContexts")
-            .Using(modelNs);
-        foreach (var transitionEvent in reducerEvents)
-        {
-            builder.Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(transitionEvent.Id).Path));
-        }
+        var builder = new CodeGeneration.CSharpCodeBuilder().Namespace(ns);
+        environment.Configure(builder);
 
         var suffix = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
             System.Text.Encoding.UTF8.GetBytes(descriptor.RequirementId)))[..8];

@@ -35,6 +35,6 @@ public class when_matching_the_portable_dialect : Specification
         var value = input is null ? SemanticValue.Null : SemanticValue.Text(input);
         var reference = SemanticValidationRules.Check(rule, value);
         (reference.Status == SemanticRuleStatus.Satisfied).ShouldEqual(expected);
-        SemanticRuleValues.Satisfies(rule, value, () => new InvalidSemanticContract("Unexpected unsupported match.")).ShouldEqual(expected);
+        SemanticRuleEvaluation.Satisfies(rule, value).ShouldEqual(expected);
     }
 }

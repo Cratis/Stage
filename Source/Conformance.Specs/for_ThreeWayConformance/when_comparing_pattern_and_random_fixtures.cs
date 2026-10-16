@@ -36,7 +36,7 @@ public class when_comparing_pattern_and_random_fixtures(when_comparing_pattern_a
                     ? "new global::Cratis.Concepts.GenerationContext(new global::System.DateTimeOffset(2024, 2, 29, 22, 30, 0, global::System.TimeSpan.Zero), global::Cratis.Concepts.GenerationContext.DefaultTenant)" : string.Empty;
                 var pattern = CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(concept, instant));
                 var checksum = concept.Generation!.Checksum is { } algorithm
-                    ? $"Xunit.Assert.True(global::Cratis.Concepts.GenerateValue.HasValidChecksum(value, global::Cratis.Concepts.Checksum.{SemanticChecksumRules.Algorithm(SemanticValue.Text(algorithm))}));" : string.Empty;
+                    ? $"Xunit.Assert.True(global::Cratis.Concepts.GenerateValue.HasValidChecksum(value, global::Cratis.Concepts.Checksum.{SemanticChecksumRendering.Algorithm(SemanticValue.Text(algorithm))}));" : string.Empty;
                 return $"[Xunit.Fact] public void should_sample_{concept.Name}() {{ for (var index = 0; index < 256; index++) {{ var value = global::PatternRandom.Common.{concept.Name}.New({arguments}).Value; Xunit.Assert.Matches({pattern}, value); {checksum} }} }}";
             });
             const string numeric = "[Xunit.Fact] public void should_sample_int64_values() { for (var index = 0; index < 256; index++) { var value = global::PatternRandom.Common.Ticket.New().Value; Xunit.Assert.InRange(value, long.MinValue, long.MaxValue); } }";

@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Specifications.Comparison;
@@ -53,30 +52,15 @@ internal static class SemanticRuleEvaluation
         _ => throw new UnsupportedSemanticMapping()
     };
 
-    internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => SemanticRuleValues.Satisfies(rule, value, () => new UnsupportedSemanticMapping());
-
-    internal static string Message(SemanticValidationRule rule, SemanticValue value, string empty) => rule.Kind switch
+    internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => SemanticValidationRules.Check(rule, value).Status switch
     {
-        SemanticValidationRuleKind.NotEmpty => empty,
-        SemanticValidationRuleKind.Maximum when value is SemanticTextValue => $"A value must be at most {Format(rule.Operand)} characters long.",
-        SemanticValidationRuleKind.Minimum when value is SemanticTextValue => $"A value must be at least {Format(rule.Operand)} characters long.",
-        SemanticValidationRuleKind.Maximum => $"A value must be at most {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.Minimum => $"A value must be at least {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.Equal => $"A value must equal {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.NotEqual => $"A value must not equal {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.GreaterThan => $"A value must be greater than {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.GreaterThanOrEqual => $"A value must be at least {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.LessThan => $"A value must be less than {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.LessThanOrEqual => $"A value must be at most {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.Length => $"A value must be exactly {Format(rule.Operand)} characters long.",
-        SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
-        SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
-        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith => SemanticValidationRules.Check(rule, value).Message,
-        SemanticValidationRuleKind.Checksum => $"A value must end in the exact {Format(rule.Operand)} check digits.",
-        SemanticValidationRuleKind.AllGreaterThan => $"Every value must be greater than {Format(rule.Operand)}.",
-        SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {Format(rule.Operand)}.",
+        SemanticRuleStatus.Satisfied => true,
+        SemanticRuleStatus.Failed => false,
         _ => throw new UnsupportedSemanticMapping()
     };
+
+    internal static string Message(SemanticValidationRule rule, SemanticValue value, string empty) =>
+        rule.Kind == SemanticValidationRuleKind.NotEmpty ? rule.Message ?? empty : SemanticValidationRules.Check(rule, value).Message;
 
     static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticCommand command, Dictionary<SemanticId, SemanticValue> values, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites)
     {
@@ -111,11 +95,4 @@ internal static class SemanticRuleEvaluation
         _ => operand.Value!
     };
 
-    static string Format(SemanticValue? value) => value switch
-    {
-        SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
-        SemanticTextValue text => $"'{text.Value}'",
-        SemanticBooleanValue boolean => boolean.Value ? "true" : "false",
-        _ => "null"
-    };
 }

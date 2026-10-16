@@ -11,8 +11,7 @@ public class when_checking_absent_checksum_values
     [InlineData("luhn")]
     [InlineData("mod11")]
     [InlineData("mod97")]
-    public void should_leave_presence_to_not_empty(string algorithm) => SemanticRuleValues.Satisfies(
+    public void should_leave_presence_to_not_empty(string algorithm) => SemanticRuleEvaluation.Satisfies(
         new(default, SemanticValidationRuleKind.Checksum, SemanticValue.Text(algorithm), null),
-        SemanticValue.Null,
-        () => new UnsupportedSemanticMapping()).ShouldBeTrue();
+        SemanticValue.Null).ShouldBeTrue();
 }

@@ -26,6 +26,8 @@ Reference:
 - `Cratis.Stage.Contracts` for `ArtifactRenderRequest`, profiles, scopes, planned artifacts, and diagnostics;
 - target framework packages only from the target integration and generated-code verification projects.
 
+For value-rule evaluation, use Screenplay's public `SemanticValidationRules.Check` API rather than copying the reference evaluator. Its single-rule and concept overloads return `Satisfied`, `Failed` or `NotEvaluable`; the last is an unsupported check, never a pass. Keep target-runtime validation dependencies in generated code, not in target-neutral fixture checks.
+
 The renderer extension surface is the contracts under `Cratis.Stage.Contracts.Rendering`. The Cratis renderer is a useful behavioral example, but its admission classes, semantic indexes, naming code, emitters, scaffold conventions, and other internal helpers are Cratis implementation details. They are not reusable renderer APIs. Build target-owned equivalents around the public contracts rather than taking a dependency on `Cratis.Stage.Rendering.Cratis`.
 
 ### Cratis C# type-name convention

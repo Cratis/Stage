@@ -66,7 +66,8 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         return Canonical(value);
     }
 
-    internal static bool Empty(SemanticValue value) => SemanticRuleValues.Empty(value);
+    internal static bool Empty(SemanticValue value) =>
+        SemanticValidationRules.Check(new SemanticValidationRule(default, SemanticValidationRuleKind.NotEmpty, null, null), value).Status == SemanticRuleStatus.Failed;
 
     internal static SemanticValue Evaluate(SemanticExpression expression, Dictionary<SemanticId, SemanticValue> inputs, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads = null) => expression switch
     {

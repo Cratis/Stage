@@ -62,7 +62,7 @@ A generated concept that is not an identifier derives from `ConceptAs<T>`. It im
 
 ## Version admission
 
-Stage admits exact ESM v1–v21 and v23–v25 language/semantic pairs (v22 remains refused). Version admission does not imply support for every strategy:
+Stage admits exact ESM v1–v21 and v23–v26 language/semantic pairs (v22 remains refused). Version admission does not imply support for every strategy:
 
 | Version | Generation support |
 | --- | --- |

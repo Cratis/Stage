@@ -51,7 +51,7 @@ public class when_rendering_generated_concept_rules : Specification
         var concept = model.Application.Concepts.Single();
         model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
         {
-            Concepts = [concept with { Validations = [concept.Validations.Single() with { Operand = new SemanticTextValue("^(?!never$)cus_[0-7][0-9a-hjkmnp-tv-z]{25}$") }] }]
+            Concepts = [concept with { Validations = [concept.Validations.Single() with { Operand = new SemanticTextValue("^(?<portable>cus_[0-7][0-9a-hjkmnp-tv-z]{25})$") }] }]
         });
         var plan = Render(model);
         plan.Success.ShouldBeFalse();
@@ -95,11 +95,11 @@ public class when_rendering_generated_concept_rules : Specification
     [Fact]
     void should_refuse_a_shape_valid_fixture_that_fails_a_rule()
     {
-        var model = invoice_model.Compile("""
+        var model = invoice_model.Compile($$"""
             concept Code : String
               generate nanoid 64 alphabet "ab"
               validate
-                matches "^(?!a{63}b$)[ab]{64}$"
+                matches "{{invoice_model.UnprovenCodePattern}}"
             module M
               feature F
                 slice StateChange S

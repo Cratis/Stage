@@ -38,6 +38,17 @@ public sealed class UnsupportedValidationRule : Exception
     }
 
     /// <summary>
+    /// Initializes a refusal for a validation construct without an exact generated equivalent.
+    /// </summary>
+    /// <param name="kind">The validation rule kind.</param>
+    /// <param name="construct">The unsupported construct.</param>
+    public UnsupportedValidationRule(ValidationRuleKind kind, string construct)
+        : base($"STAGE-ESM-005: Validation rule '{kind}' cannot preserve construct '{construct}' in generated code.")
+    {
+        Location = SourceLocation.Start;
+    }
+
+    /// <summary>
     /// Gets the authored source location.
     /// </summary>
     public SourceLocation Location { get; }

@@ -12,7 +12,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// <see cref="CommandPropertyRules"/>. Only <see cref="DeclarativeValidateSyntax"/> blocks are translated; inline
 /// <c language="csharp">validate csharp</c> blocks have no Stage rule equivalent and are skipped, as is any rule whose operand is not a
 /// literal — a Stage rule holds a fixed value, and there is none to hold for one stated against a runtime value.
-/// Collection quantifiers, equality, checksums and named rules have no Stage rule equivalent and are skipped.
+/// Collection quantifiers, equality, checksums, ordinal text rules and named rules have no Stage rule equivalent and are skipped.
 /// </summary>
 public static class ValidationRuleConverter
 {
@@ -76,13 +76,14 @@ public static class ValidationRuleConverter
     static RuleDefinition? DropOrRefuse(ValidationRuleSyntax rule) =>
         IsDocumentedDrop(rule.Rule) ? null : throw new UnsupportedValidationRule(rule);
 
-    // Quantifiers, equality, checksums and named rules have no Stage equivalent. Known scalar rules
+    // Quantifiers, equality, checksums, ordinal text rules and named rules have no Stage equivalent. Known scalar rules
     // reaching this fallback have operands that cannot be represented as fixed values.
     static bool IsDocumentedDrop(ValidationRuleKind kind) => kind is
         ValidationRuleKind.AllGreaterThan or ValidationRuleKind.AllGreaterThanOrEqual or
         ValidationRuleKind.Equal or ValidationRuleKind.NotEqual or ValidationRuleKind.Checksum or ValidationRuleKind.Rule or
         ValidationRuleKind.Max or ValidationRuleKind.Min or ValidationRuleKind.Length or ValidationRuleKind.Matches or
-        ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or ValidationRuleKind.LessThan or ValidationRuleKind.LessThanOrEqual;
+        ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or ValidationRuleKind.LessThan or ValidationRuleKind.LessThanOrEqual or
+        ValidationRuleKind.Contains or ValidationRuleKind.NotContains or ValidationRuleKind.StartsWith or ValidationRuleKind.EndsWith;
 
     static int? IntOperand(ValidationRuleSyntax rule) =>
         DoubleOperand(rule) is { } number && number is >= 0 and <= int.MaxValue && Math.Truncate(number) == number ? (int)number : null;

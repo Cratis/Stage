@@ -223,7 +223,9 @@ internal static partial class SemanticCratisAdmission
             SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or
             SemanticValidationRuleKind.GreaterThan or SemanticValidationRuleKind.GreaterThanOrEqual or
             SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
-            SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches);
+            SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or
+            SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
+            SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith);
 
     static bool HasUnsupportedOptionalConcept(SemanticApplicationContext context, SemanticTypeReference type) =>
         type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true } &&

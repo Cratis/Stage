@@ -17,7 +17,7 @@ public class when_admitting_opaque_generated_concept_rules : Specification
 
     void Establish()
     {
-        var model = SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.V20.EsmBytes.AsSpan());
+        var model = SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan());
         _plan = SemanticExecutionPlan.Compile(model).Plan!;
         _concept = model.Application.Concepts.Single(concept => concept.Name == "ReviewedCode").Id;
     }

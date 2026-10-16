@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Text.RegularExpressions;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -18,11 +17,14 @@ internal static class SemanticRuleValues
         SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
         SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
         SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.AllGreaterThan or
-        SemanticValidationRuleKind.AllGreaterThanOrEqual or SemanticValidationRuleKind.Checksum;
+        SemanticValidationRuleKind.AllGreaterThanOrEqual or SemanticValidationRuleKind.Checksum or
+        SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
 
     internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value, Func<Exception> unsupported) => rule.Kind switch
     {
         SemanticValidationRuleKind.NotEmpty => !Empty(value),
+        SemanticValidationRuleKind.Matches => Matches(rule, value, unsupported),
         _ when value is SemanticNullValue => true,
         SemanticValidationRuleKind.Maximum => Measure(value, unsupported) <= Number(rule.Operand, unsupported),
         SemanticValidationRuleKind.Minimum => Measure(value, unsupported) >= Number(rule.Operand, unsupported),
@@ -33,7 +35,9 @@ internal static class SemanticRuleValues
         SemanticValidationRuleKind.LessThan => Measure(value, unsupported) < Number(rule.Operand, unsupported),
         SemanticValidationRuleKind.LessThanOrEqual => Measure(value, unsupported) <= Number(rule.Operand, unsupported),
         SemanticValidationRuleKind.Length => value is SemanticTextValue text && text.Value.Length == Number(rule.Operand, unsupported),
-        SemanticValidationRuleKind.Matches => Matches(value, rule.Operand, unsupported),
+        SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith =>
+            SemanticValidationRules.Check(rule, value).Status == SemanticRuleStatus.Satisfied,
         SemanticValidationRuleKind.Checksum => SemanticChecksumRules.Satisfies(value, rule.Operand, unsupported),
         SemanticValidationRuleKind.AllGreaterThan => value is SemanticArrayValue array && array.Values.All(element => Measure(element, unsupported) > Number(rule.Operand, unsupported)),
         SemanticValidationRuleKind.AllGreaterThanOrEqual => value is SemanticArrayValue array && array.Values.All(element => Measure(element, unsupported) >= Number(rule.Operand, unsupported)),
@@ -54,18 +58,13 @@ internal static class SemanticRuleValues
         _ => false
     };
 
-    static bool Matches(SemanticValue value, SemanticValue? operand, Func<Exception> unsupported)
-    {
-        if (value is not SemanticTextValue text || operand is not SemanticTextValue pattern) throw unsupported();
-        try
+    static bool Matches(SemanticValidationRule rule, SemanticValue value, Func<Exception> unsupported) =>
+        SemanticValidationRules.Check(rule, value).Status switch
         {
-            return Regex.IsMatch(text.Value, SemanticMatchAnchors.Portable(pattern.Value), RegexOptions.ECMAScript | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
-        }
-        catch (RegexMatchTimeoutException)
-        {
-            return false;
-        }
-    }
+            SemanticRuleStatus.Satisfied => true,
+            SemanticRuleStatus.Failed => false,
+            _ => throw unsupported()
+        };
 
     static decimal Measure(SemanticValue value, Func<Exception> unsupported) => value switch
     {

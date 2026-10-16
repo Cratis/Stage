@@ -162,7 +162,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // those pins in Directory.Packages.props; frontend files may already name 22.100.1 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal).Replace("4.53.1", "4.22.1", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.66.0", "19.55.2", StringComparison.Ordinal).Replace("4.62.0", "4.22.1", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
             ? previous.Replace("22.104.0", "22.87.0", StringComparison.Ordinal)

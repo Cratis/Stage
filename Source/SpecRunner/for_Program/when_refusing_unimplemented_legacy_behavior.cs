@@ -16,6 +16,7 @@ public class when_refusing_unimplemented_legacy_behavior : Specification
 
     [Theory]
     [InlineData("reaction batches atomic\n", "", "STAGE-ESM-043")]
+    [InlineData("command reads protected\n", "", "STAGE-ESM-044")]
     [InlineData("", "        handler\n          implementation\n            hint \"Calculate the fee\"\n", "STAGE-IMPL-002")]
     public async Task should_exit_without_writing_results(string boundary, string handler, string code)
     {

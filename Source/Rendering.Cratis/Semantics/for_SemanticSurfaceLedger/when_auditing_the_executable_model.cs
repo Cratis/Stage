@@ -119,6 +119,21 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticReactionProductionMode.Atomic")]
     public void should_keep_atomic_reaction_batches_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-043"));
 
+    [Theory]
+    [InlineData("SemanticApplication.CommandReadMode")]
+    [InlineData("SemanticCommandReadMode.Protected")]
+    [InlineData("SemanticCommand.Reads")]
+    [InlineData("SemanticDecisionRead.Name")]
+    [InlineData("SemanticDecisionRead.ReadModel")]
+    [InlineData("SemanticDecisionRead.Key")]
+    [InlineData("SemanticDecisionRead.Presence")]
+    [InlineData("SemanticDecisionReadPresence.Required")]
+    [InlineData("SemanticConditionOperand.Read")]
+    [InlineData("SemanticExpressionKind.ReadPath")]
+    [InlineData("SemanticReadPathExpression.Read")]
+    [InlineData("SemanticReadPathExpression.PropertyId")]
+    public void should_keep_protected_command_reads_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-044"));
+
     static bool IsDiagnosticCode(string code) =>
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||
          (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14)) &&
@@ -194,7 +209,11 @@ public class when_auditing_the_executable_model : Specification
         }
         yield return "SemanticExecutionCapability.ImplementationBody";
 
-        // The application exposes this enum through Nullable<T>, outside the ordinary ESM traversal.
+        // The application exposes these enums through Nullable<T>, outside the ordinary ESM traversal.
+        foreach (var member in Enum.GetNames<SemanticCommandReadMode>())
+        {
+            yield return $"{nameof(SemanticCommandReadMode)}.{member}";
+        }
         foreach (var member in Enum.GetNames<SemanticReactionProductionMode>())
         {
             yield return $"{nameof(SemanticReactionProductionMode)}.{member}";

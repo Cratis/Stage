@@ -103,6 +103,11 @@ internal static class SemanticVersionFeatures
     internal const string AtomicReactionBatches = "STAGE-ESM-043";
 
     /// <summary>
+    /// The code for protected command reads, which no Stage engine preserves yet.
+    /// </summary>
+    internal const string ProtectedCommandReads = "STAGE-ESM-044";
+
+    /// <summary>
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
@@ -115,7 +120,8 @@ internal static class SemanticVersionFeatures
     public static bool Supports(ExecutableSemanticModel model) =>
         EsmSchemaV21Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
         (model.LanguageVersion == LanguageVersion.V23 && model.SemanticVersion == SemanticVersion.V23) ||
-        (model.LanguageVersion == LanguageVersion.V24 && model.SemanticVersion == SemanticVersion.V24);
+        (model.LanguageVersion == LanguageVersion.V24 && model.SemanticVersion == SemanticVersion.V24) ||
+        (model.LanguageVersion == LanguageVersion.V25 && model.SemanticVersion == SemanticVersion.V25);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -134,6 +140,7 @@ internal static class SemanticVersionFeatures
         (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
         .Concat(ReactionBatchesInApplication(application))
+        .Concat(ProtectedReadsInApplication(application))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(DescribedHandlersInCommand))
         .Concat(RoutesInApplication(application))
         .Concat(UnsupportedConcepts(application.Concepts))
@@ -151,6 +158,35 @@ internal static class SemanticVersionFeatures
         if (application.ReactionProductionMode is { } mode)
         {
             yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, application.Id, "application", $"Application '{application.Name}' declares reaction batches {mode.ToString().ToLowerInvariant()} (ESM v22); Stage does not preserve that production boundary yet (Cratis/Stage#422).");
+        }
+    }
+
+    /// <summary>
+    /// Finds an application-wide protected command-read boundary no Stage engine preserves yet.
+    /// </summary>
+    /// <param name="application">The semantic application.</param>
+    /// <returns>The refused command-read mode.</returns>
+    public static IEnumerable<SemanticVersionFeature> ProtectedReadsInApplication(SemanticApplication application)
+    {
+        if (application.CommandReadMode is not null)
+        {
+            yield return new(ProtectedCommandReads, StageExecutionCapability.Command, application.Id, "application", $"Application '{application.Name}' declares command reads protected (ESM v25); Stage does not preserve protected decision reads yet.");
+        }
+    }
+
+    /// <summary>
+    /// Finds command reads and read-backed conditions or mappings that no Stage engine preserves yet.
+    /// </summary>
+    /// <param name="command">The command.</param>
+    /// <returns>The refused command, if any.</returns>
+    public static IEnumerable<SemanticVersionFeature> ProtectedReadsInCommand(SemanticCommand command)
+    {
+        if (!command.Reads.IsDefaultOrEmpty || command.Requirements.Any(requirement => ReadsView(requirement.Condition)) ||
+            command.Produces.Any(produced => (produced.When is { } condition && ReadsView(condition)) ||
+                produced.Mappings.Any(mapping => mapping.Source is SemanticReadPathExpression) || produced.Destination is SemanticReadPathExpression) ||
+            command.Destination?.Value is SemanticReadPathExpression)
+        {
+            yield return new(ProtectedCommandReads, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' uses protected decision reads or read paths (ESM v25); Stage does not preserve that decision boundary yet.");
         }
     }
 
@@ -354,6 +390,7 @@ internal static class SemanticVersionFeatures
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InCommand(SemanticCommand command)
     {
+        foreach (var feature in ProtectedReadsInCommand(command)) yield return feature;
         foreach (var feature in DescribedHandlersInCommand(command)) yield return feature;
 
         foreach (var route in RoutesInCommand(command))
@@ -570,6 +607,13 @@ internal static class SemanticVersionFeatures
         return command.Requirements.Any(requirement => ReadsGenerated(requirement.Condition, generated)) ||
             command.Validations.Any(rule => generated.Any(property => property.Id == rule.Property));
     }
+
+    static bool ReadsView(SemanticCondition condition) => condition switch
+    {
+        SemanticLogicalCondition logical => ReadsView(logical.Left) || ReadsView(logical.Right),
+        SemanticComparison comparison => comparison.Left.Read is not null || comparison.Right.Read is not null,
+        _ => false
+    };
 
     static bool ReadsGenerated(SemanticCondition condition, IReadOnlyList<SemanticProperty> generated) => condition switch
     {

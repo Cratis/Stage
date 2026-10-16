@@ -54,7 +54,7 @@ public class when_classifying_semantic_members
     [Fact]
     public void should_classify_every_mapping_expression_kind() => AssertCoverage(
         [SemanticExpressionKind.Resolved],
-        [SemanticExpressionKind.Unknown, SemanticExpressionKind.Value, SemanticExpressionKind.EventContext, SemanticExpressionKind.Refusal]);
+        [SemanticExpressionKind.Unknown, SemanticExpressionKind.Value, SemanticExpressionKind.EventContext, SemanticExpressionKind.Refusal, SemanticExpressionKind.ReadPath]);
 
     // Admission accepts null only for optional values and arrays only for collections of scalars.
     // The type emitter can construct composites, but specification admission still rejects them.

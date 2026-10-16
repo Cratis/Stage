@@ -11,11 +11,13 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="Command">The command whose events are rendered.</param>
 /// <param name="Application">The indexed application.</param>
 /// <param name="WrappedEvent">Renders one event wrapper.</param>
+/// <param name="Locals">The command's shared Handle name allocator.</param>
 /// <param name="SelectedEvents">An optional expression for the selected events.</param>
 /// <param name="Inclusion">An optional destination inclusion predicate.</param>
 internal sealed record SemanticGeneratedFreshnessContext(
     SemanticCommand Command,
     SemanticApplicationContext Application,
     Func<SemanticProducedEvent, string> WrappedEvent,
+    SemanticHandleLocals Locals,
     string? SelectedEvents = null,
     Func<SemanticProperty, string>? Inclusion = null);

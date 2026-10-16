@@ -220,12 +220,6 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
     public string SliceType(SemanticId id, string name) =>
         Named(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path), Identifiers.ToPascalCase(name));
 
-    string Named(string @namespace, string name, ReferenceContext referenceContext = ReferenceContext.Type, int arity = 0)
-    {
-        var reference = new TypeReference(@namespace, name, arity, referenceContext);
-        return builder?.Type(reference) ?? reference.Qualified;
-    }
-
     // An enum concept renders as a C# enum, so its literal is a member rather than a wrapped primitive.
     static string EnumMember(string type, SemanticConcept concept, SemanticValue value) =>
         value is SemanticTextValue text && concept.Values.Contains(text.Value, StringComparer.Ordinal)
@@ -233,6 +227,12 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
             : throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/enum {concept.Name}", value is SemanticTextValue unknown ? unknown.Value : value.Kind.ToString());
 
     static string Literal(string value) => CSharpCodeBuilder.StringLiteral(value);
+
+    string Named(string @namespace, string name, ReferenceContext referenceContext = ReferenceContext.Type, int arity = 0)
+    {
+        var reference = new TypeReference(@namespace, name, arity, referenceContext);
+        return builder?.Type(reference) ?? reference.Qualified;
+    }
 
     string CompositeValue(SemanticCompositeValue composite, SemanticCompositeType type)
     {

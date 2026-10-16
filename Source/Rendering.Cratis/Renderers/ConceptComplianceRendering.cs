@@ -32,8 +32,8 @@ internal static class ConceptComplianceRendering
             var encrypted = builder.Type(new("Cratis.Chronicle.ProtectedValues", "EncryptedAttribute", 0, ReferenceContext.Attribute));
             var scope = Identifiers.ToPascalCase(secret.Scope ?? "subject");
             if (scope != "Subject") encrypted += $"({builder.Type(new("Cratis.Chronicle.ProtectedValues", "EncryptionScope", 0, ReferenceContext.Expression))}.{scope})";
-            builder.Attribute(encrypted);
-            builder.Attribute(builder.Type(new("Cratis.Arc.Chronicle.Commands", "NotAuditedAttribute", 0, ReferenceContext.Attribute)));
+            builder.Attribute(encrypted)
+                .Attribute(builder.Type(new("Cratis.Arc.Chronicle.Commands", "NotAuditedAttribute", 0, ReferenceContext.Attribute)));
         }
     }
 

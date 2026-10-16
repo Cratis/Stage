@@ -41,7 +41,7 @@ internal static class SemanticValueShapeAdmission
     }
 
     static string? ConceptRuleRefusal(SemanticConcept concept) =>
-        concept.Validations.Any(rule => !SemanticRuleValues.CanEvaluate(rule.Kind)) ? "A concept validation rule is not admitted." : null;
+        concept.Validations.Any(rule => SemanticValidationRules.Check(rule, SemanticValue.Null).Status == SemanticRuleStatus.NotEvaluable) ? "A concept validation rule is not admitted." : null;
 
     static IEnumerable<(string Path, SemanticTypeReference Type)> Closure(SemanticApplicationContext context, SemanticTypeReference type, string path, HashSet<SemanticId> visited)
     {

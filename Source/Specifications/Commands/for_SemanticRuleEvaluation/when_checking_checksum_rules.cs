@@ -36,6 +36,6 @@ public class when_checking_checksum_rules
     public void should_match_screenplay_check_digits(string algorithm, string value, bool expected)
     {
         var rule = new SemanticValidationRule(default, SemanticValidationRuleKind.Checksum, SemanticValue.Text(algorithm), null);
-        SemanticRuleValues.Satisfies(rule, SemanticValue.Text(value), () => new UnsupportedSemanticMapping()).ShouldEqual(expected);
+        SemanticRuleEvaluation.Satisfies(rule, SemanticValue.Text(value)).ShouldEqual(expected);
     }
 }

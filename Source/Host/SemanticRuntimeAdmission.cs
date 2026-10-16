@@ -46,7 +46,7 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var command in plan.Commands.Values)
         {
-            if (SemanticRunAdmission.CommandFeatures(command).FirstOrDefault() is { } feature)
+            if (SemanticRunAdmission.RuntimeCommandFeatures(command, plan.Model.Application.Concepts).FirstOrDefault() is { } feature)
             {
                 var entry = Refused(feature);
                 entries.Add(entry);

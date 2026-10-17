@@ -21,8 +21,8 @@ internal sealed class SemanticRunReactions(
     internal static SemanticRunReactionFailure FactLimit() =>
         SemanticRunReactionFailure.Unsupported($"The scenario appends more than {MaximumFacts} facts; its reactions do not settle.");
 
-    internal static SemanticRunReactionFailure? ContextGuard(SemanticReaction reaction, SemanticProducedEvent produced) =>
-        produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)
+    SemanticRunReactionFailure? ContextGuard(SemanticReaction reaction, SemanticProducedEvent produced) =>
+        context.AuthoredOccurrence is null && produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)
             ? SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.")
             : null;
 
@@ -158,7 +158,7 @@ internal sealed class SemanticRunReactions(
     (SemanticSpecificationEvent Fact, SemanticValue Destination) Build(SemanticProducedEvent produced, SemanticReactionCause cause, SemanticInvocationRefusalOutcome? refusal)
     {
         var contract = plan.Events[produced.EventContract];
-        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, refusal))).ToArray();
+        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, refusal, context.AuthoredOccurrence))).ToArray();
         foreach (var value in mapped)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
@@ -196,10 +196,11 @@ internal sealed class SemanticRunReactions(
         var mappings = invocation.Mappings.ToDictionary(mapping => mapping.TargetProperty);
         var inputs = command.Properties.Where(property => !property.IsGenerated).Select(property => new SemanticPropertyValue(
             property.Id,
-            mappings.TryGetValue(property.Id, out var mapping) ? SemanticRunReactionExpressions.Evaluate(mapping.Source, values) : SemanticValue.Null));
+            mappings.TryGetValue(property.Id, out var mapping) ? SemanticRunReactionExpressions.Evaluate(mapping.Source, values, occurred: context.AuthoredOccurrence) : SemanticValue.Null));
 
         return new(context.Specification.Id, context.Specification.Name, [], [], new(command.Id, [.. inputs]), [], [], [], [])
         {
+            GivenClock = context.Specification.GivenClock,
             GivenCaller = reaction.RunsAs is { Kind: SemanticReactionIdentityKind.System, Roles.IsDefault: false } identity ? new(true, identity.Roles, []) : null
         };
     }

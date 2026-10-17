@@ -113,7 +113,7 @@ internal sealed class SemanticRunReactions(
 
     async Task<SemanticRunReactionFailure?> Produce(SemanticReaction reaction, SemanticProducedEvent produced, SemanticReactionCause cause, CancellationToken cancellationToken, SemanticInvocationRefusalOutcome? refusal = null)
     {
-        if (produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression))
+        if (context.AuthoredOccurrence is null && produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression))
         {
             return SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.");
         }
@@ -125,7 +125,7 @@ internal sealed class SemanticRunReactions(
     (SemanticSpecificationEvent Fact, SemanticValue Destination) Build(SemanticProducedEvent produced, SemanticReactionCause cause, SemanticInvocationRefusalOutcome? refusal)
     {
         var contract = plan.Events[produced.EventContract];
-        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, refusal))).ToArray();
+        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, refusal, context.AuthoredOccurrence))).ToArray();
         foreach (var value in mapped)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
@@ -163,10 +163,11 @@ internal sealed class SemanticRunReactions(
         var mappings = invocation.Mappings.ToDictionary(mapping => mapping.TargetProperty);
         var inputs = command.Properties.Where(property => !property.IsGenerated).Select(property => new SemanticPropertyValue(
             property.Id,
-            mappings.TryGetValue(property.Id, out var mapping) ? SemanticRunReactionExpressions.Evaluate(mapping.Source, values) : SemanticValue.Null));
+            mappings.TryGetValue(property.Id, out var mapping) ? SemanticRunReactionExpressions.Evaluate(mapping.Source, values, occurred: context.AuthoredOccurrence) : SemanticValue.Null));
 
         return new(context.Specification.Id, context.Specification.Name, [], [], new(command.Id, [.. inputs]), [], [], [], [])
         {
+            GivenClock = context.Specification.GivenClock,
             GivenCaller = reaction.RunsAs is { Kind: SemanticReactionIdentityKind.System, Roles.IsDefault: false } identity ? new(true, identity.Roles, []) : null
         };
     }

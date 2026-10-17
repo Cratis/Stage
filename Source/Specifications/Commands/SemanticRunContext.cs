@@ -38,8 +38,13 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal IReadOnlyList<SemanticSpecificationEvent> Facts => _facts;
     internal IReadOnlyList<SemanticValue> Destinations => _destinations;
     internal DateTimeOffset Occurred => options.Clock.GetUtcNow();
+    internal DateTimeOffset? AuthoredOccurrence => OccurrenceOf(specification);
     internal string Tenant => options.Tenant;
     internal SemanticExecutionResponse? Response { get; private set; }
+
+    // An absent authored fixture must stay absent in semantic reactions, regardless of the injectable storage clock.
+    internal static DateTimeOffset? OccurrenceOf(SemanticSpecification fixture) =>
+        SemanticSpecificationClock.TryGetOccurrence(fixture, out var instant) ? instant : null;
 
     internal static string Canonical(SemanticValue value) => value switch
     {

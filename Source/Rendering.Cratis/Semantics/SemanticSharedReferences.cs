@@ -147,6 +147,7 @@ internal static class SemanticSharedReferences
         void Command(SemanticCommand command)
         {
             Properties(command.Properties);
+            foreach (var read in command.Reads.IsDefaultOrEmpty ? [] : command.Reads) ReadModel(read.ReadModel);
             Reference(command.Destination?.Type);
             foreach (var produced in command.Produces)
             {

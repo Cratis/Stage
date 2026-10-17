@@ -72,7 +72,8 @@ internal static partial class SemanticSpecificationAdmission
             // duplicate contracts cannot be paired with their production occurrences unambiguously.
             var command = context.Commands[specification.When!.Command];
             return specification.ThenEvents.Length == SemanticProductionSelection.Taken(command, specification).Length &&
-                scope.From.Any(from => specification.ThenEvents.Any(@event => @event.EventContract == from.EventContract)) &&
+                (scope.From.Any(from => specification.ThenEvents.Any(@event => @event.EventContract == from.EventContract)) ||
+                    FedByGivenFacts(specification, scope, expected)) &&
                 (!specification.ThenEventsInAnyOrder ||
                     specification.ThenEvents.Select(@event => @event.EventContract).Distinct().Count() == specification.ThenEvents.Length) &&
                 SemanticProductionSelection.Taken(command, specification).All(produced => SemanticDestinations.Of(command, produced) is SemanticResolvedExpression destination &&
@@ -84,6 +85,11 @@ internal static partial class SemanticSpecificationAdmission
         return projection?.Transitions.Length == 1 &&
             specification.ThenEvents.Count(_ => _.EventContract == projection.Transitions[0].EventContract) == 1;
     }
+
+    // The scenario seeds the given facts next to the produced ones, so a view the given facts of its own key feed is projected faithfully.
+    static bool FedByGivenFacts(SemanticSpecification specification, SemanticProjectionScope scope, SemanticSpecificationReadModel expected) =>
+        specification.GivenEvents.Any(given => Equals(given.EventSource?.Value, expected.Key) &&
+            (scope.From.Any(from => from.EventContract == given.EventContract) || scope.Removals.Any(removal => removal.EventContract == given.EventContract)));
 
     static bool ReadModelMatches(SemanticApplicationContext context, SemanticSpecificationReadModel expected) =>
         !CannotCompareScopedPresence(context, expected.ReadModel, expected.Exactly, expected.Values) &&

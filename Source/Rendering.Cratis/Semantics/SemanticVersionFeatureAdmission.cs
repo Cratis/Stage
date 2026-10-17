@@ -36,7 +36,6 @@ internal static class SemanticVersionFeatureAdmission
 
         // Application-wide modes govern every slice, and a scoped render also emits sibling constraints that govern its produced events.
         features = features.Concat(SemanticVersionFeatures.ReactionBatchesInApplication(context.Application))
-            .Concat(SemanticVersionFeatures.ProtectedReadsInApplication(context.Application))
             .Concat(SemanticVersionFeatures.EventReferences(
             SemanticCratisAdmission.SelectedConstraints(context, slices).Select(selected => selected.Constraint), context.Events)).Distinct();
 

@@ -66,7 +66,7 @@ The renderer refuses each of these with `STAGE-ESM-044`, and the message names t
 
 ## Where the result differs from the reference
 
-Outcomes match the reference evaluator for every specification in the canonical corpus. These behaviors differ, and none changes a canonical outcome:
+Outcomes match the reference evaluator for every specification in the canonical protected-read corpus, which the three-way conformance specification compares. The behaviors below differ outside that corpus or without changing a corpus outcome:
 
 | Area | Reference | Generated application |
 |---|---|---|
@@ -76,15 +76,20 @@ Outcomes match the reference evaluator for every specification in the canonical 
 | Race result | `DecisionStateChanged` conflict | Arc returns a validation failure with reason `ConcurrencyViolation` and its own message. No reference vector exists for races ([Screenplay#833](https://github.com/Cratis/Screenplay/issues/833)). |
 | Reactors | A refusal can drive an `on refused` branch | A race is not classified as a refusal, so it is an unclassified failure that retries. |
 | Reactor-invoked commands | One pipeline per invoked command | Production runs them through Arc's command side-effect executor. The generated specification runs `CommandScenario.Execute` directly. |
+| Atomicity of a cascade | A command whose invoked reaction command rejects is rejected as a whole and appends nothing | The rendered application commits the triggering command; the reactor runs eventually and fails later (see [Docker hosting](../docker/index.md)). Generated specifications split the cascade into a reactor scenario and a `Trigger` scenario, and split a rejection only when the triggering command cannot reject on its own. Any other rejected cascade stays refused with `STAGE-ESM-011`. |
 | Keys | Any text or UUID key | Chronicle refuses an empty key, `*`, `#` and keys with leading or trailing whitespace. Arc returns a 400 for an empty key and Chronicle faults the others. The renderer adds no guard. Whether such keys should be contract errors is open in [Screenplay#843](https://github.com/Cratis/Screenplay/issues/843). |
 
 Removing a view's source and recreating it can fold differently from materialization when the recreating event does not set every property. The canonical corpus covers only full recreation.
+
+## Single-instance queries
+
+A single-instance query with a raw text or UUID key takes an event source id parameter, which satisfies Arc's `ARC0015` analyzer under warnings-as-errors. A UUID key is matched as text, so callers must send the canonical lowercase form.
 
 ## Testing
 
 Arc's `CommandScenario` switches to decision mode for a command with read protection. In that mode the generated specification seeds prior facts with `_scenario.Given.ForEventSource(...).Events(...)` rather than `EventScenario`, which is unavailable. The three-way conformance specification runs the four source forms of the canonical corpus against the reference evaluator, the Stage executor and the rendered application, and compares each outcome.
 
-A specification whose command produces an event that triggers a reaction invoking a protected command cannot run in one `CommandScenario`, which does not settle reactions. The renderer splits it: the reactor scenario appends the triggering event, runs the reactor and executes the command it returns, and a second specification, named with a `Trigger` suffix, runs the triggering command and asserts the event it produces. A rejection expected from the invoked command has no trigger half, because the specification lists no triggering event.
+A specification whose command produces an event that triggers a reaction invoking a protected command cannot run in one `CommandScenario`, which does not settle reactions. The renderer splits it: the reactor scenario appends the triggering event, runs the reactor and executes the command it returns, and a second specification, named with a `Trigger` suffix, runs the triggering command and asserts the event it produces. A rejection expected from the invoked command has no trigger half, because the specification lists no triggering event. That split applies only when the triggering command cannot reject on its own (no validation, requirement, decision read, route, authorization, constraint-bound event or validated concept property); otherwise the specification keeps `STAGE-ESM-011`.
 
 Two things are tested only in the rendered application, because the reference has no race vector:
 

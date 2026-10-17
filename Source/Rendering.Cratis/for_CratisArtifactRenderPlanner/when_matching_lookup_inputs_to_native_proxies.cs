@@ -9,6 +9,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -25,7 +26,7 @@ public class when_matching_lookup_inputs_to_native_proxies(when_matching_lookup_
     [Fact] void should_preserve_optional_single_proxy_semantics() => new[] { identifier.Proxy, text.Proxy }.All(_ => _.Contains("super(ProjectSummary, false)", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_display_an_own_native_string_property() => new[] { identifier.Proxy, text.Proxy }.All(_ => _.Contains("name!: string", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_not_add_a_format_or_default_to_string_keys() => text.InputProperties.ShouldEqual("label|parameter|required|type");
-    [Fact] void should_emit_the_requested_scene_package_not_a_substitute() => new[] { identifier.SceneVersion, text.SceneVersion }.ShouldContainOnly("4.68.2", "4.68.2");
+    [Fact] void should_emit_the_requested_scene_package_not_a_substitute() => new[] { identifier.SceneVersion, text.SceneVersion }.ShouldContainOnly(CratisFrontendPackageSet.Current.ScenePackageVersion, CratisFrontendPackageSet.Current.ScenePackageVersion);
 
     public class guid_context : native_context;
     public class string_context : native_context

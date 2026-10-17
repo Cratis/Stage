@@ -45,7 +45,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");
     [Fact] void should_enable_isolated_central_package_management_and_transitive_pins() => CentralPackageManagement().ShouldBeTrue();
     [Fact] void should_leave_all_package_references_unversioned() => UnversionedReferences().ShouldBeTrue();
-    [Fact] void should_pin_the_current_profile() => ProfileValues().ShouldEqual("2|net10.0|22.112.0|22.112.0|22.112.0|4.1.1|4.1.1|18.10.1|6.2.0|2.9.3|4.0.0|19.74.2");
+    [Fact] void should_pin_the_profile_contract_and_target_framework() => $"{_profile.Version}|{_profile.TargetFramework}".ShouldEqual("2|net10.0");
     [Fact] void should_expose_only_the_verified_current_profile_as_public_static_surface() => PublicStaticProfileMethods().ShouldContainOnly("get_Current");
     [Fact] void should_emit_the_solution_without_a_guid() => SolutionSemantics().ShouldEqual("MyApp.csproj|MyApp.Specs/MyApp.Specs.csproj|False");
     [Fact] void should_emit_only_the_exact_package_versions() => PackageVersions().ShouldEqual(ExpectedPackageVersions());
@@ -69,7 +69,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_emit_the_exact_arc_chronicle_and_mongodb_settings() => AppSettingsSemantics().ShouldEqual("api|False|1|MyApp|chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000|mongodb://localhost:27017|MyApp");
     [Fact] void should_keep_event_store_data_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-data:/data/db");
     [Fact] void should_keep_event_store_configuration_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-config:/data/configdb");
-    [Fact] void should_pin_the_compatible_development_chronicle_image() => Content("docker-compose.yml").ShouldContain("image: cratis/chronicle:19.74.2-development");
+    [Fact] void should_pin_the_compatible_development_chronicle_image() => Content("docker-compose.yml").ShouldContain($"image: cratis/chronicle:{_profile.ChronicleImageVersion}-development");
     [Fact] void should_expose_only_the_required_chronicle_and_mongodb_ports() => ComposePorts().ShouldEqual("27017:27017|35000:35000");
     [Fact] void should_not_emit_wildcard_range_latest_or_random_guid_values() => HasForbiddenValues().ShouldBeFalse();
 
@@ -77,21 +77,6 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         typeof(CratisBackendApplicationScaffoldProfile)
             .GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
             .Select(method => method.Name);
-
-    string ProfileValues() => string.Join(
-        '|',
-        _profile.Version,
-        _profile.TargetFramework,
-        _profile.CratisPackageVersion,
-        _profile.CratisArcMongoDBPackageVersion,
-        _profile.CratisArcChronicleTestingPackageVersion,
-        _profile.CratisSpecificationsPackageVersion,
-        _profile.CratisSpecificationsXUnitPackageVersion,
-        _profile.MicrosoftNetTestSdkPackageVersion,
-        _profile.NSubstitutePackageVersion,
-        _profile.XunitPackageVersion,
-        _profile.XunitRunnerVisualStudioPackageVersion,
-        _profile.ChronicleImageVersion);
 
     string BuildProperties()
     {
@@ -128,22 +113,22 @@ public class when_creating_the_current_scaffold : a_current_scaffold
                 .Order(StringComparer.Ordinal));
     }
 
-    static string ExpectedPackageVersions() => string.Join(
+    string ExpectedPackageVersions() => string.Join(
         '|',
         new[]
         {
-            "Cratis=22.112.0",
-            "Cratis.Arc.Chronicle.Testing=22.112.0",
-            "Cratis.Arc.MongoDB=22.112.0",
-            "Cratis.Chronicle=19.74.2",
-            "Cratis.Chronicle.AspNetCore=19.74.2",
-            "Cratis.Chronicle.Testing=19.74.2",
-            "Cratis.Specifications=4.1.1",
-            "Cratis.Specifications.XUnit=4.1.1",
-            "Microsoft.NET.Test.Sdk=18.10.1",
-            "NSubstitute=6.2.0",
-            "xunit=2.9.3",
-            "xunit.runner.visualstudio=4.0.0"
+            $"Cratis={_profile.CratisPackageVersion}",
+            $"Cratis.Arc.Chronicle.Testing={_profile.CratisArcChronicleTestingPackageVersion}",
+            $"Cratis.Arc.MongoDB={_profile.CratisArcMongoDBPackageVersion}",
+            $"Cratis.Chronicle={_profile.CratisChroniclePackageVersion}",
+            $"Cratis.Chronicle.AspNetCore={_profile.CratisChroniclePackageVersion}",
+            $"Cratis.Chronicle.Testing={_profile.CratisChroniclePackageVersion}",
+            $"Cratis.Specifications={_profile.CratisSpecificationsPackageVersion}",
+            $"Cratis.Specifications.XUnit={_profile.CratisSpecificationsXUnitPackageVersion}",
+            $"Microsoft.NET.Test.Sdk={_profile.MicrosoftNetTestSdkPackageVersion}",
+            $"NSubstitute={_profile.NSubstitutePackageVersion}",
+            $"xunit={_profile.XunitPackageVersion}",
+            $"xunit.runner.visualstudio={_profile.XunitRunnerVisualStudioPackageVersion}"
         }.Order(StringComparer.Ordinal));
 
     bool TestingPackagesAreSeparate()

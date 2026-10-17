@@ -15,7 +15,7 @@ jobs:
       # pure-transition admission embeds; it follows PureTransitionReferencePackVersion and PureTransitionAdmission.
       # Bump both deliberately, not automatically.
       nuget-package-exclusions: StyleCop.Analyzers,Microsoft.NETCore.App.Ref
-      post-update-command: python3 Verification/verify-runtime-compatibility.py --self-test --synchronize
+      post-update-command: python3 Verification/verify-runtime-compatibility.py --self-test --synchronize && python3 Verification/synchronize-rendered-pins.py --self-test && python3 Verification/synchronize-rendered-pins.py
       publication-mode: pull-request
       pull-request-label: patch
     secrets:

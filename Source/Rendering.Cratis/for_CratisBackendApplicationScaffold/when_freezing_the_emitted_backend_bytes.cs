@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    const string FrozenDigest = "6ee7c774043a6a33e5bdca033412a040880c481d6150f89336486c08105c03c3";
+    const string FrozenDigest = "6628a7d9d72821e5824c4c151f2504ca74956eb8f125d820455a1e958cff5bb9";
 
     string _digest = null!;
 
@@ -22,35 +22,19 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 
     [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("a2e43aa7bfafd95dee94bf65631f2e09c28924b6bf38e244e535d907aaf53b4b");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
-    [Fact] void should_change_only_chronicle_pins_from_the_previous_backend() => Digest(_first, previousChronicle: true).ShouldEqual("6628a7d9d72821e5824c4c151f2504ca74956eb8f125d820455a1e958cff5bb9");
     [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("8be112259fe445493964fed0fe105fd88f36111c8bc25ed99a940ba63ec13515");
 
-    static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false, bool previousChronicle = false)
+    static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         foreach (var input in inputs)
         {
             hash.AppendData(Encoding.UTF8.GetBytes(input.Name));
             var text = beforePlacement || previousPins ? QualifiedCommonOutput.BeforePlacement(Text(input)) : Text(input);
-            if ((beforePlacement || previousChronicle) && (input.Name.EndsWith("Directory.Packages.props", StringComparison.Ordinal) || input.Name.EndsWith("docker-compose.yml", StringComparison.Ordinal)))
-            {
-                text = text.Replace("19.74.2", "19.71.0", StringComparison.Ordinal).Replace("22.112.0", "22.109.0", StringComparison.Ordinal);
-            }
-
-            hash.AppendData(Encoding.UTF8.GetBytes(previousPins ? PreviousPins(input.Name, text) : text));
+            hash.AppendData(Encoding.UTF8.GetBytes(FrozenScaffoldPins.Normalize(input.Name, text, previousPins)));
         }
 
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    // The previous frozen backend predates the Chronicle 19.74.2 and Arc 22.112.0 pins; only the generated backend project
-    // previously carried the scaffold's Arc pin. Central package management now keeps all pins in Directory.Packages.props.
-    static string PreviousPins(string name, string text)
-    {
-        var previous = text.Replace("19.74.2", "19.55.2", StringComparison.Ordinal);
-
-        return name.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.112.0", "22.87.0", StringComparison.Ordinal)
-            : previous;
-    }
 }

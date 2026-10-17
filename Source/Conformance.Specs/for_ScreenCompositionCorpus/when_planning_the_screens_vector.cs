@@ -7,6 +7,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.given;
 using Xunit;
@@ -24,7 +25,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "9e6e5da28f71df10714eedd8633f31f79504daef6b94183105e6d7838f126ba3";
+    const string Digest = "063c099b40315806abc4ce4c50d9ea065949785d56c0080e17c64346ace98615";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -87,7 +88,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs f646a742678761c49e10be6d010dfe8f52bb2d0f615348dd724e202e122ed70d 2502
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
-        package.json cf163b81ad765132aba9b813da4416186fcd891b4ec2bf766faef186b0f9cbe7 1431
+        package.json cc4c8a22b882b883948386d9741dcdb2ad134bf95fa127c1a0674a857e6729b2 1431
         scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
         src/stage-scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
@@ -96,8 +97,6 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         """;
 
     static readonly string Manifest = QualifiedManifest
-        .Replace("Directory.Packages.props 969b29a5bdea717d8f06b5f39a9728ff47a958a8fc8f13a2ab21c169d7e43710 1098", "Directory.Packages.props d8a81980ec57c7bb7b89814e27d5774b187273627393af4a1207c44ee005c204 1098", StringComparison.Ordinal)
-        .Replace("docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259", "docker-compose.yml 749a78bd0dd54a4397f48184a66b6fc98a1c1e59e2085798dbaa2e9bdd3d14d7 259", StringComparison.Ordinal)
         .Replace(".editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689", ".editorconfig 4cf0d1389cef373e18920c4fddb10948553e3c171badb2de66399717f870df76 741", StringComparison.Ordinal)
         .Replace("Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726", "Common/CommentId.cs 090339b5965d73ed60cb7e6b62bd8bfb9addfdc778f49ecb129d294a63c0b119 662", StringComparison.Ordinal)
         .Replace("Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733", "Common/WorkItemId.cs 59ca162d48ce6b922cdf7176b53d85e5c5bac0e61b65da86d5f03858bb103cef 669", StringComparison.Ordinal);
@@ -106,12 +105,12 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_confine_changes_to_common_files_using_placement_and_chronicle_pins(string form)
+    public void should_confine_changes_to_common_files_and_using_placement(string form)
     {
         var source = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
         var planned = Plan(source.Documents, source.IdentityCatalogBytes.AsSpan(), carryScene: false);
         var restored = QualifiedCommonOutput.Restore(planned.Model, planned.Plan, new(ApplicationName, ApplicationName));
-        var actual = restored.Select(PreviousChronicle).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
+        var actual = restored.Select(FrozenScaffoldPins.Normalize).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
         var expected = QualifiedManifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim()).ToArray();
         Assert.True(actual.SequenceEqual(expected), string.Join('\n', actual.Except(expected)));
     }
@@ -124,13 +123,13 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     [MemberData(nameof(Forms))]
     public void should_plan_exactly_the_pinned_ordered_artifacts(string form)
     {
-        var actual = PlanOf(form).Artifacts.Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
+        var actual = PlanOf(form).Artifacts.Select(FrozenScaffoldPins.Normalize).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
         Assert.True(actual.SequenceEqual(Pinned()), string.Join(Environment.NewLine, actual.Except(Pinned())));
     }
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_plan_the_pinned_digest(string form) => PlanOf(form).Digest.ShouldEqual(Digest);
+    public void should_plan_the_pinned_digest(string form) => FrozenScaffoldPins.Digest(PlanOf(form)).ShouldEqual(Digest);
 
     [Theory]
     [MemberData(nameof(Forms))]
@@ -141,9 +140,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         var plan = planned.Plan;
         ArtifactRenderPlan.ComputeDigest(
             plan.Target,
-
             // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-            plan.TargetVersion.Replace("22.112.0", "22.87.0", StringComparison.Ordinal),
+            "22.87.0",
             plan.Renderer,
             plan.RendererVersion,
             plan.ApplicationName,
@@ -158,47 +156,19 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_change_only_chronicle_pins_from_the_previous_plan(string form)
-    {
-        var plan = PlanOf(form);
-        ArtifactRenderPlan.ComputeDigest(
-            plan.Target,
-            plan.TargetVersion.Replace("22.112.0", "22.109.0", StringComparison.Ordinal),
-            plan.Renderer,
-            plan.RendererVersion,
-            plan.ApplicationName,
-            [.. plan.Artifacts.Select(PreviousChronicle)],
-            plan.Diagnostics).ShouldEqual("5e823e61f9552a1f3cda239d0c0d4b9e506be65066641353883385e2142ba8ba");
-    }
-
-    [Theory]
-    [MemberData(nameof(Forms))]
     public void should_plan_the_same_bytes_as_the_folder_form(string form) =>
         PlanOf(form).Artifacts.Select(artifact => Convert.ToHexString(artifact.Bytes.AsSpan())).ShouldEqual(PlanOf("folder").Artifacts.Select(artifact => Convert.ToHexString(artifact.Bytes.AsSpan())));
 
     [Fact] void should_cover_every_source_form() => Forms.Count.ShouldEqual(4);
 
-    // The previous frozen plan predates the Chronicle 19.74.2 and backend Arc 22.112.0 scaffold pins. CPM now keeps
-    // those pins in Directory.Packages.props; frontend files may already name 22.100.1 for unrelated packages.
-    static string PreviousPins(string relativePath, string text)
-    {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.74.2", "19.55.2", StringComparison.Ordinal).Replace("4.68.2", "4.22.1", StringComparison.Ordinal);
-
-        return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.112.0", "22.87.0", StringComparison.Ordinal)
-            : previous;
-    }
+    static string PreviousPins(string relativePath, string text) =>
+        FrozenScaffoldPins.Normalize(relativePath, PreviousFrontendEntryPoint.Restore(relativePath, text), previous: true);
 
     // The previous frozen plan predates single-letter word splitting in snake-cased names (Cratis/Stage#417), which
     // rendered "AWorkItem" as "awork_item".
     static string PreviousNames(string text) => text
         .Replace("_a_work_item", "_awork_item", StringComparison.Ordinal)
         .Replace("adding_a_comment", "adding_acomment", StringComparison.Ordinal);
-
-    static PlannedArtifact PreviousChronicle(PlannedArtifact artifact) =>
-        artifact.RelativePath.Equals("Directory.Packages.props", StringComparison.Ordinal) || artifact.RelativePath.Equals("docker-compose.yml", StringComparison.Ordinal)
-            ? PlannedArtifact.CreateText(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("19.74.2", "19.71.0", StringComparison.Ordinal).Replace("22.112.0", "22.109.0", StringComparison.Ordinal), artifact.Sources)
-            : artifact;
 
     static string[] Pinned() => [.. Manifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim())];
 

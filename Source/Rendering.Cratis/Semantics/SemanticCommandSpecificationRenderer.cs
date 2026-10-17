@@ -108,6 +108,9 @@ internal static partial class SemanticCommandSpecificationRenderer
 
     static bool SeedsEventLog(SemanticSpecification specification, SemanticCommand command, SemanticApplicationContext context)
     {
+        // A protected command's scenario runs its own decision store, where EventScenario is unavailable: only routed facts seed through the log.
+        if (!command.Reads.IsDefaultOrEmpty) return specification.GivenEvents.Any(given => given.Route is not null);
+
         var constrainedEvents = context.Constraints.Select(_ => _.Constraint)
             .SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy)).ToHashSet();
         return !specification.GivenEvents.IsEmpty &&
@@ -203,7 +206,8 @@ internal static partial class SemanticCommandSpecificationRenderer
             return;
         }
 
-        builder.Line(scope.SeedInLog
+        // Decision mode (protected reads) seeds through the scenario's own given, which feeds the store the reads observe.
+        builder.Line(scope.SeedInLog && scope.Command.Reads.IsDefaultOrEmpty
             ? $"await _scenario.EventScenario.Given.ForEventSource({eventSource}).Events({eventValue});"
             : $"_scenario.Given.ForEventSource({eventSource}).Events({eventValue});");
     }

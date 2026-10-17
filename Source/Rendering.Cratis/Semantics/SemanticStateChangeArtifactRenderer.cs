@@ -93,6 +93,10 @@ internal static class SemanticStateChangeArtifactRenderer
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
         context.Docs(command.Id).Render(builder).Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
+        if (results.Reads.HasReads)
+        {
+            builder.Attribute(SemanticDecisionReadRendering.ProtectionAttribute);
+        }
         if (command.Route is { } route)
         {
             var source = context.Application.EventSources.Single(source => source.Id == route.Source);
@@ -122,6 +126,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 var mapping = produced.Mappings.Single(_ => _.TargetProperty == property.Id);
                 if (mapping.Source is SemanticEventContextExpression) return locals.Name("occurred");
                 if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
+                if (mapping.Source is SemanticReadPathExpression readPath) return results.Reads.ReadPath(readPath);
                 var commandProperty = command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target);
                 var expression = SemanticCommandResultRendering.PropertyValue(commandProperty);
                 return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
@@ -264,7 +269,10 @@ internal static class SemanticStateChangeArtifactRenderer
             .Where(id => !command.Properties.Any(property => property.Id == id && property.IsGenerated) &&
                 !command.Validations.Any(rule => rule.Property == id && rule.Kind == SemanticValidationRuleKind.NotEmpty))
             .ToArray();
-        if (command.Validations.IsEmpty && command.Requirements.IsEmpty && constrained.Length == 0)
+
+        // A protected command evaluates its requirements inside Handle, with the decision reads, not in the parameterless validator.
+        var requirements = command.Reads.IsDefaultOrEmpty ? command.Requirements : [];
+        if (command.Validations.IsEmpty && requirements.IsEmpty && constrained.Length == 0)
         {
             return;
         }
@@ -286,7 +294,7 @@ internal static class SemanticStateChangeArtifactRenderer
             builder.Line($"RuleFor(_ => _.{Identifiers.ToPascalCase(property.Name)}).NotNull().WithMessage(\"A constrained value is required.\");");
         }
 
-        foreach (var requirement in command.Requirements)
+        foreach (var requirement in requirements)
         {
             SemanticRequirementRendering.Render(builder, requirement, command, context);
         }

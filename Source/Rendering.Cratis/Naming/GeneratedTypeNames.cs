@@ -191,6 +191,10 @@ internal static class GeneratedTypeNames
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTime", application.Id, "Generated")) yield return name;
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTimeUnavailable", application.Id, "Generated")) yield return name;
         }
+        if (UsesProtectedReads(selectedSlices.SelectMany(located => located.Slice.Commands)))
+        {
+            foreach (var name in Names("GeneratedCommands.when_admitting_protected_reads", "when_admitting_protected_reads", application.Id, "Generated", generated: true)) yield return name;
+        }
         if (selectedSlices.Any(located => !located.Slice.Reducers.IsEmpty))
         {
             foreach (var name in Names("TypedContexts", "TenantId", application.Id, "Generated")) yield return name;
@@ -220,6 +224,8 @@ internal static class GeneratedTypeNames
             specification.GivenEvents.Concat(specification.ThenEvents).Any(occurrence => occurrence.Route is { } route &&
                 (route.StreamId is not null || !route.StreamIdParts.IsDefaultOrEmpty)) ||
             (specification.WhenAppended?.Route is { } appendRoute && (appendRoute.StreamId is not null || !appendRoute.StreamIdParts.IsDefaultOrEmpty))));
+
+    internal static bool UsesProtectedReads(IEnumerable<SemanticCommand> commands) => commands.Any(command => !command.Reads.IsDefaultOrEmpty);
 
     internal static bool UsesCommandReceiptTime(IEnumerable<SemanticCommand> commands) =>
         commands.Any(command => command.Produces.Any(produced => produced.Mappings.Any(mapping =>

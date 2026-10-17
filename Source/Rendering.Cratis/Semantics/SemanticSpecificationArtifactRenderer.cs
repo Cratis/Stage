@@ -26,6 +26,12 @@ internal static class SemanticSpecificationArtifactRenderer
         {
             return [.. specification.ThenReadModels.Select(expected => SemanticReadModelSpecificationRenderer.Render(facts, expected, context) with { Sources = [.. sources] })];
         }
+        if (SemanticReactionCascade.TryLower(context, specification, out var cascade) && SemanticSpecificationAdmission.CommandTriggersReaction(context, specification))
+        {
+            var reaction = SemanticReactionSpecificationRenderer.Render(cascade.Reaction, context) with { Sources = [.. sources] };
+
+            return cascade.Trigger is null ? [reaction] : [reaction, SemanticCommandSpecificationRenderer.Render(cascade.Trigger, context) with { Sources = [.. sources] }];
+        }
         if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
         {
             return [SemanticReactionSpecificationRenderer.Render(specification, context) with { Sources = [.. sources] }];

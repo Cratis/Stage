@@ -49,7 +49,7 @@ public class when_preserving_state_view_bytes : given.an_automation
             {
 
                 [global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
-                public static async global::System.Threading.Tasks.Task<Summary?> ById(global::Cratis.Chronicle.ReadModels.IReadModels readModels, string id) => await readModels.GetInstanceById<Summary>((global::Cratis.Chronicle.Events.EventSourceId)id);
+                public static async global::System.Threading.Tasks.Task<Summary?> ById(global::Cratis.Chronicle.ReadModels.IReadModels readModels, global::Cratis.Chronicle.Events.EventSourceId id) => await readModels.GetInstanceById<Summary>(id);
             }
             """ + Environment.NewLine;
     }

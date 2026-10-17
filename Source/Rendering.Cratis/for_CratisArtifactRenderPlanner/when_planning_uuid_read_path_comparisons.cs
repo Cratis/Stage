@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public class when_refusing_uuid_read_path_comparisons : Specification
+public class when_planning_uuid_read_path_comparisons : Specification
 {
     const string Source = """
         command reads protected
@@ -57,7 +57,9 @@ public class when_refusing_uuid_read_path_comparisons : Specification
 
     void Because() => _plan = invoice_model.Plan(invoice_model.Compile(Source));
 
-    [Fact] void should_refuse_with_STAGE_ESM_044() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-044");
+    [Fact] void should_plan_successfully() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_not_refuse_the_read() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-044");
     [Fact] void should_not_refuse_the_version() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_emit_artifacts() => _plan.Artifacts.ShouldNotBeEmpty();
+    [Fact] void should_compare_the_read_path_as_a_Guid() => _plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("Object.Equals(", StringComparison.Ordinal)).ShouldBeTrue();
 }

@@ -46,8 +46,9 @@ validation, including reaction invocations. Specification `then` matching remain
 with opaque validation reports `Unsupported` at run admission, before execution. The Host also refuses opaque
 validation before authorization and input validation. Unlike both Stage paths, the reference checks authorization,
 then offsets, then opaque validation: an offset-less input combined with opaque validation returns `Validation`
-in the reference but `Unsupported` in Stage. `Unsupported` never counts as a pass. The renderer and legacy engines
-refuse date comparisons with `STAGE-ESM-046`; date three-way conformance awaits renderer support.
+in the reference but `Unsupported` in Stage. `Unsupported` never counts as a pass. The renderer
+render date comparisons, and the legacy engines refuse them with `STAGE-ESM-046`. Date three-way conformance
+covers the canonical corpus in all source forms.
 The semantic executor runs protected command reads, including reaction-invoked commands. After authorization and
 property/concept rules, it projects the prior facts through Chronicle's in-memory read-model scenario and requires
 each declared view at its key. Event-source-keyed removal and recreation are preserved. Absence rejects validation

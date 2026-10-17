@@ -503,7 +503,6 @@ jobs:
 
       - name: Run the blueprint template vector against the generated application
         env:
-          STAGE_GENERATED_REACT_CHRONICLE_IMAGE: cratis/chronicle:19.71.0-development
           STAGE_GENERATED_REACT_SCENARIO: ${{ github.workspace }}/Verification/blueprint-templates/generated-scenario.cjs
         run: Verification/generated-react-browser/run.sh "${{ runner.temp }}/generated-blueprint-templates" "$PWD/TestResults/generated-blueprint-templates/browser-result.json"
 

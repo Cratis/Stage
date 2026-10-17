@@ -90,6 +90,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var results = new SemanticCommandResultRendering(command, context, locals);
 
         var severities = command.Validations.Select(rule => rule.Severity)
+            .Concat(command.CodeValidations.Select(_ => SemanticValidationSeverity.Error))
             .Concat(command.Requirements.Select(requirement => requirement.Severity))
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
@@ -273,7 +274,7 @@ internal static class SemanticStateChangeArtifactRenderer
 
         // A protected command evaluates its requirements inside Handle, with the decision reads, not in the parameterless validator.
         var requirements = command.Reads.IsDefaultOrEmpty ? command.Requirements : [];
-        if (command.Validations.IsEmpty && requirements.IsEmpty && constrained.Length == 0)
+        if (command.Validations.IsEmpty && command.CodeValidations.IsEmpty && requirements.IsEmpty && constrained.Length == 0)
         {
             return;
         }
@@ -296,6 +297,11 @@ internal static class SemanticStateChangeArtifactRenderer
             {
                 SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context));
             }
+        }
+
+        foreach (var validation in command.CodeValidations)
+        {
+            SemanticValidationContextRuntime.RenderIterator(builder, context, validation.RequirementId, command.Id);
         }
 
         foreach (var id in constrained)

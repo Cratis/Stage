@@ -18,9 +18,9 @@ internal static class PureValidationAdmission
     {
         var generated = context.Application.Concepts.Select(concept => Naming.Identifiers.ToPascalCase(concept.Name))
             .Concat(context.Application.Types.Select(type => Naming.Identifiers.ToPascalCase(type.Name))).ToHashSet(StringComparer.Ordinal);
-        var parsed = PureTransitionAdmission.ParseBody(body, generated, "validation");
+        var parsed = PureTransitionAdmission.ParseBody(body, generated, "validation", validationIterator: SemanticValidationContextRuntime.IsIterator(descriptor));
         if (parsed.Rejection is not null) return parsed.Rejection;
-        var code = SemanticValidationContextRuntime.RenderBodies(context, [(descriptor, body)]).Content;
+        var code = SemanticValidationContextRuntime.RenderBodies(context, [(descriptor, body)], analysis: true).Content;
         var options = new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest);
         var tree = CSharpSyntaxTree.ParseText(code, options);
         var declarations = "global using System; global using System.Collections.Generic; global using System.Linq; global using System.IO; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks;\n" + SemanticValidationContextRuntime.AnalysisDeclarations(context);

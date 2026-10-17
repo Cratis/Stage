@@ -23,13 +23,12 @@ public class when_verifying_implementation_attachments : Specification
                 amount Decimal
                 validate csharp
                   ```csharp
-                  if (context.Artifact.amount <= 0) yield return "Nothing to order";
+                  if (context.Artifact.Amount <= 0) yield return "Nothing to order";
                   ```
                 produces OrderPlaced
-                  orderId = orderId
+                  for orderId
                   amount = amount
               event OrderPlaced
-                orderId Uuid
                 amount Decimal
         """;
 
@@ -150,7 +149,7 @@ public class when_verifying_implementation_attachments : Specification
             _loaded.ImplementationRequirements,
             _loaded.ImplementationContents,
             _loaded.AttachmentDiagnostics,
-            _loaded.TypedContextDescriptors).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005");
+            _loaded.TypedContextDescriptors).Success.ShouldBeTrue();
     }
 
     [Fact]
@@ -231,7 +230,6 @@ public class when_verifying_implementation_attachments : Specification
             _loaded.ImplementationContents,
             _loaded.AttachmentDiagnostics,
             [malformed]);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-005");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021");
     }
 
@@ -295,15 +293,11 @@ public class when_verifying_implementation_attachments : Specification
     }
 
     [Fact]
-    void should_keep_code_validation_rejected_when_the_body_is_verified()
+    void should_render_code_validation_with_a_verified_body_and_descriptor()
     {
-        var plan = Render(_loaded.ImplementationContents);
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005" &&
-            diagnostic.Message.Contains("Arc does not supply RuleContext.Occurred (received-at)", StringComparison.Ordinal) &&
-            diagnostic.Message.Contains("does not yet enforce the pure capability", StringComparison.Ordinal) &&
-            !diagnostic.Message.Contains("RuleContext.Tenant", StringComparison.Ordinal) &&
-            !diagnostic.Message.Contains("RuleContext.CausedBy", StringComparison.Ordinal));
-        plan.Artifacts.ShouldBeEmpty();
+        var plan = CratisRendering.Plan(_loaded.Model, _loaded.Plan, Scope(_loaded), new("Orders", "Orders"), _loaded.ImplementationRequirements, _loaded.ImplementationContents, _loaded.AttachmentDiagnostics, _loaded.TypedContextDescriptors);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        plan.Artifacts.ShouldContain(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("yield return \"Nothing to order\";", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -347,7 +341,7 @@ public class when_verifying_implementation_attachments : Specification
             ImplementationContents = _loaded.ImplementationContents
         };
         var plan = new CratisArtifactRenderPlanner().Plan(request);
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005");
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021");
         plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-020");
     }
 
@@ -408,13 +402,14 @@ public class when_verifying_implementation_attachments : Specification
     }
 
     [Fact]
-    async Task should_list_concept_validation_requirement_ids_in_005()
+    async Task should_render_a_verified_concept_code_validation()
     {
         const string source = "concept Label : String\n  validate\n    ```csharp\n    yield return \"Invalid label\";\n    ```\n" + Source;
         await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
-        Render(loaded).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005" &&
-            diagnostic.Message.Contains(loaded.ImplementationRequirements.Single(requirement => requirement.Role == SemanticImplementationRole.ConceptValidation).RequirementId, StringComparison.Ordinal));
+        var plan = CratisRendering.Plan(loaded.Model, loaded.Plan, Scope(loaded), new("Orders", "Orders"), loaded.ImplementationRequirements, loaded.ImplementationContents, loaded.AttachmentDiagnostics, loaded.TypedContextDescriptors);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        plan.Artifacts.ShouldContain(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("yield return \"Invalid label\";", StringComparison.Ordinal));
     }
 
     [Fact]

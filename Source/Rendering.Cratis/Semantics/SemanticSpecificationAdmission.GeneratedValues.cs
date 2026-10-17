@@ -59,7 +59,7 @@ internal static partial class SemanticSpecificationAdmission
             var property = command.Properties.SingleOrDefault(property => property.Id == fixture.TargetProperty && property.IsGenerated);
             if (property is null) continue;
             var concept = context.Concepts[property.Type.Target];
-            if (concept.Validations.FirstOrDefault(rule => rule.Kind != SemanticValidationRuleKind.RulePredicate && SemanticValidationRules.Check(rule, SemanticValue.Null).Status == SemanticRuleStatus.NotEvaluable) is { } rule)
+            if (concept.Validations.FirstOrDefault(rule => rule.Kind is not (SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation) && SemanticValidationRules.Check(rule, SemanticValue.Null).Status == SemanticRuleStatus.NotEvaluable) is { } rule)
             {
                 return new(
                     "STAGE-ESM-005",
@@ -89,7 +89,7 @@ internal static partial class SemanticSpecificationAdmission
             {
                 return $"Specification '{specification.Name}' cannot render: {SemanticGenerationShapes.FixtureMessage(property.Name)}";
             }
-            if (SemanticGenerationShapes.GeneratedFailure(concept with { Validations = [.. concept.Validations.Where(rule => rule.Kind != SemanticValidationRuleKind.RulePredicate)] }, property.Name, fixture.Value) is { } failure)
+            if (SemanticGenerationShapes.GeneratedFailure(concept with { Validations = [.. concept.Validations.Where(rule => rule.Kind is not (SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))] }, property.Name, fixture.Value) is { } failure)
             {
                 return $"Specification '{specification.Name}' cannot render: {failure}.";
             }

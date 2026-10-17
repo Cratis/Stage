@@ -136,7 +136,7 @@ internal static class GeneratedTypeNames
             foreach (var command in slice.Commands)
             {
                 foreach (var name in Names(ns, command.Name, command.Id, "Command")) yield return name;
-                if (command.Validations.IsEmpty && command.Requirements.IsEmpty && !HasConstrainedProperty(application, command)) continue;
+                if (command.Validations.IsEmpty && command.CodeValidations.IsEmpty && command.Requirements.IsEmpty && !HasConstrainedProperty(application, command)) continue;
                 foreach (var name in Names(ns, $"{GeneratedPascalCase.From(command.Name)}Validator", command.Id, "Command")) yield return name;
             }
             foreach (var @event in slice.Events)

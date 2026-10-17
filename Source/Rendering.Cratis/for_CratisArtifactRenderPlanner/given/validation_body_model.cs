@@ -51,6 +51,47 @@ internal static class validation_body_model
                 amount Amount
         """;
 
+    internal static string IteratorCommand(string body) => $$"""
+        concept OrderId : Uuid
+        module Orders
+          feature Ordering
+            slice StateChange PlaceOrder
+              command PlaceOrder
+                orderId OrderId generated identifier
+                amount Decimal
+                recordedAt DateTime
+                validate csharp
+                  ```csharp
+                  {{body}}
+                  ```
+                produces OrderPlaced
+                  for orderId
+                  amount = amount
+                  recordedAt = recordedAt
+              event OrderPlaced
+                amount Decimal
+                recordedAt DateTime
+        """;
+
+    internal static string IteratorConcept(string body) => $$"""
+        concept Amount : Decimal
+          validate
+            ```csharp
+            {{body}}
+            ```
+        module Orders
+          feature Ordering
+            slice StateChange PlaceOrder
+              command PlaceOrder
+                orderId Uuid identifier
+                amount Amount
+                produces OrderPlaced
+                  for orderId
+                  amount = amount
+              event OrderPlaced
+                amount Amount
+        """;
+
     internal static LoadedSemanticModel Load(string source) => opaque_policy_model.Load(source);
 
     internal static ValidationResult Validate(Assembly assembly, string typeName, params object[] arguments)

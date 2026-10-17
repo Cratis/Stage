@@ -14,19 +14,21 @@ internal static class SemanticValidationContextRuntime
 {
     internal static readonly string[] RefusedMembers = ["Tenant", "CausedBy", "Occurred"];
 
-    internal static bool IsBody(SemanticValidationRule rule) => rule.Kind == SemanticValidationRuleKind.RulePredicate;
+    internal static bool IsBody(SemanticValidationRule rule) => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
+
+    internal static bool IsIterator(SemanticTypedContextDescriptor descriptor) => descriptor.Role is SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation;
 
     internal static IEnumerable<SemanticTypedContextDescriptor> Selected(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
         var owners = slices.SelectMany(slice => slice.Slice.Commands).Select(command => command.Id)
             .Concat(context.Application.Concepts.Select(concept => concept.Id)).ToHashSet();
-        return context.Request.TypedContextDescriptors.Where(descriptor => descriptor.Role == SemanticImplementationRole.RulePredicate &&
+        return context.Request.TypedContextDescriptors.Where(descriptor => (descriptor.Role == SemanticImplementationRole.RulePredicate || IsIterator(descriptor)) &&
             descriptor.OperationId is { } owner && owners.Contains(owner));
     }
 
     internal static string Wrapper(SemanticTypedContextDescriptor descriptor) => $"TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
 
-    internal static string Method(SemanticTypedContextDescriptor descriptor) => $"Rule_{SemanticTypedContextRenderer.Suffix(descriptor)}";
+    internal static string Method(SemanticTypedContextDescriptor descriptor) => $"{(IsIterator(descriptor) ? "Validate" : "Rule")}_{SemanticTypedContextRenderer.Suffix(descriptor)}";
 
     internal static RenderedFile RenderWrapper(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, bool analysis = false)
     {
@@ -37,14 +39,16 @@ internal static class SemanticValidationContextRuntime
         return file with { Content = file.Content.Replace(marker, marker + "string Tenant, string CausedBy, global::System.DateTimeOffset Occurred, ", StringComparison.Ordinal) };
     }
 
-    internal static RenderedFile RenderBodies(SemanticApplicationContext context, IEnumerable<(SemanticTypedContextDescriptor Descriptor, string Body)> bodies)
+    internal static RenderedFile RenderBodies(SemanticApplicationContext context, IEnumerable<(SemanticTypedContextDescriptor Descriptor, string Body)> bodies, bool analysis = false)
     {
         var builder = new CSharpCodeBuilder().Namespace(context.TypedContextsNamespace)
             .OpenBlock("internal static class ValidationBodies");
         foreach (var (descriptor, body) in bodies)
         {
-            builder.OpenBlock($"public static bool {Method(descriptor)}(global::{context.TypedContextsNamespace}.{Wrapper(descriptor)} context)")
-                .RawVerbatim(body).EndBlock().BlankLine();
+            var iterator = IsIterator(descriptor);
+            var result = iterator ? "global::System.Collections.Generic.IEnumerable<string>" : "bool";
+            builder.OpenBlock($"public static {result} {Method(descriptor)}(global::{context.TypedContextsNamespace}.{Wrapper(descriptor)} context)")
+                .RawVerbatim(iterator && !analysis ? InvariantValidationInterpolation.Render(body) : body).EndBlock().BlankLine();
         }
         builder.EndBlock();
         return new(Path.Combine(context.TypedContextsFolder, "ValidationBodies.cs"), builder.ToString());
@@ -67,8 +71,24 @@ internal static class SemanticValidationContextRuntime
         string Parameters(IEnumerable<SemanticProperty> properties) => string.Join(", ", properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
     }
 
+    internal static void RenderIterator(CSharpCodeBuilder builder, SemanticApplicationContext context, string requirementId, SemanticId owner, SemanticProperty? property = null)
+    {
+        var descriptor = context.Request.TypedContextDescriptors.Single(descriptor => descriptor.RequirementId == requirementId && descriptor.OperationId == owner);
+        var selector = property is null ? "_" : $"_.{Identifiers.ToPascalCase(property.Name)}";
+        var path = CSharpCodeBuilder.StringLiteral(property?.Name ?? string.Empty);
+        builder.OpenBlock($"RuleFor(_ => {selector}).Custom((value, validation) =>")
+            .OpenBlock($"foreach (var message in global::{context.TypedContextsNamespace}.ValidationBodies.{Method(descriptor)}(new global::{context.TypedContextsNamespace}.{Wrapper(descriptor)}(validation.InstanceToValidate, value, {path})))")
+            .Line("validation.AddFailure(message);")
+            .EndBlock().EndBlock().Line(");");
+    }
+
     internal static void RenderRule(CSharpCodeBuilder builder, SemanticApplicationContext context, SemanticValidationRule rule, SemanticId owner, SemanticProperty? property)
     {
+        if (rule.Kind == SemanticValidationRuleKind.CodeValidation)
+        {
+            RenderIterator(builder, context, rule.RequirementId!, owner, property);
+            return;
+        }
         var descriptor = context.Request.TypedContextDescriptors.Single(descriptor => descriptor.RequirementId == rule.RequirementId && descriptor.OperationId == owner);
         var type = property is null ? new SemanticTypeSystem(context).Type(SemanticTypeReference.ForConcept(owner)) : new SemanticTypeSystem(context).Type(property.Type);
         var selector = property is null ? "_" : $"_.{Identifiers.ToPascalCase(property.Name)}";

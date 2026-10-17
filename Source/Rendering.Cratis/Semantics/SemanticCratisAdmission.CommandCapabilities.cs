@@ -11,8 +11,6 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticCratisAdmission
 {
-    const string ValidationBodyReason = "Arc does not supply RuleContext.Occurred (received-at) to a generated validator, and Stage does not yet enforce the pure capability. Use equivalent declarative validation; implementation bodies are not supported yet (Cratis/Stage#409).";
-
     /// <summary>
     /// Reports every unsupported command capability, retaining the command diagnostic identity.
     /// </summary>
@@ -26,7 +24,7 @@ internal static partial class SemanticCratisAdmission
         var before = diagnostics.Count;
         foreach (var validation in command.CodeValidations)
         {
-            diagnostics.Add(CommandCapability(command, $"validation implementation body '{validation.RequirementId}' cannot be rendered: {ValidationBodyReason}"));
+            ValidateValidationBody(context, validation.RequirementId, SemanticImplementationRole.CommandValidation, command.Id, null, diagnostics);
         }
 
         ValidateCommandEventProperties(context, slice, command, diagnostics);
@@ -72,13 +70,9 @@ internal static partial class SemanticCratisAdmission
         {
             var property = command.Properties.Single(property => property.Id == rule.Property);
             var label = rule.Name ?? rule.Kind.ToString();
-            if (rule.Kind == SemanticValidationRuleKind.RulePredicate)
+            if (rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation)
             {
                 ValidateRuleBody(context, rule, command.Id, property, diagnostics);
-            }
-            else if (rule.Kind == SemanticValidationRuleKind.CodeValidation)
-            {
-                diagnostics.Add(CommandCapability(command, $"validation '{label}' on property '{property.Name}' has implementation body '{rule.RequirementId}' that cannot be rendered: {ValidationBodyReason}"));
             }
             else if (!SemanticValidationRendering.CanRender(rule, context))
             {

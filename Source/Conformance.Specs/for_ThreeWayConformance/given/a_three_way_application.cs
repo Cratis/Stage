@@ -35,8 +35,11 @@ public abstract class a_three_way_application : a_generated_application
     {
         var models = Models.ToArray();
         var first = models[0].Model;
-        return CratisRendering.Plan(first, SemanticExecutionPlan.Compile(first).Plan!, new(ArtifactRenderScopeKind.Application, first.Application.Id), new(ProjectFile[..^7], ApplicationName));
+        return Render(first);
     }
+
+    protected virtual ArtifactRenderPlan Render(ExecutableSemanticModel model) =>
+        CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new(ProjectFile[..^7], ApplicationName));
 
     protected async Task Verify()
     {
@@ -77,7 +80,7 @@ public abstract class a_three_way_application : a_generated_application
                     differences.Add($"{form}: specification IDs differ from the frozen corpus");
                 }
 
-                var candidate = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new(ProjectFile[..^7], ApplicationName));
+                var candidate = Render(model);
                 var sameArtifacts = candidate.Artifacts.Select(artifact => (artifact.RelativePath, artifact.Sha256))
                     .SequenceEqual(rendered.Artifacts.Select(artifact => (artifact.RelativePath, artifact.Sha256)));
                 if (candidate.Success != rendered.Success || (candidate.Success && !sameArtifacts))

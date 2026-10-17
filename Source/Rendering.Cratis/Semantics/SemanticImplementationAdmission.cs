@@ -126,6 +126,11 @@ internal static class SemanticImplementationAdmission
     {
         foreach (var concept in application.Concepts)
         {
+            if (string.Equals(concept.Generation?.Kind, "implementation", StringComparison.Ordinal))
+            {
+                yield return (concept.Generation!.RequirementId!, concept.Id);
+            }
+
             foreach (var rule in concept.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))
             {
                 yield return (rule.RequirementId!, concept.Id);

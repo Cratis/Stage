@@ -474,23 +474,6 @@ internal static class SemanticVersionFeatures
         slice.Reducers.Where(reducer => reducer.From is not null).Select(reducer => new SemanticVersionFeature(
             ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet."));
 
-    // Only renderer admission refuses rule generation on the concept itself; pinned execution never runs the body.
-    internal static IEnumerable<SemanticVersionFeature> UnsupportedConcepts(IEnumerable<SemanticConcept> concepts)
-    {
-        foreach (var concept in concepts)
-        {
-            var strategy = concept.Generation?.Kind switch
-            {
-                "implementation" => "rule",
-                _ => null
-            };
-            if (strategy is not null)
-            {
-                yield return new(Generated, StageExecutionCapability.IdentityAllocation, concept.Id, "concept", $"Concept '{concept.Name}' uses 'generate {strategy}', which Stage does not support yet.");
-            }
-        }
-    }
-
     internal static IEnumerable<SemanticVersionFeature> ImplementationGenerationInCommand(SemanticCommand command, IEnumerable<SemanticConcept> concepts)
     {
         foreach (var property in command.Properties.Where(property => property.IsGenerated))

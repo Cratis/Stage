@@ -108,8 +108,8 @@ internal static class SemanticSurfaceLedger
 
         Add(entries, "SemanticGeneration", rendered, "Pattern Checksum Minimum Maximum");
 
-        // Opaque rule generation still needs a verified implementation path.
-        Add(entries, "SemanticGeneration", rejected("STAGE-ESM-028"), "RequirementId");
+        // Rule generation emits the verified body through the Fundamentals context factory.
+        Add(entries, "SemanticGeneration", rendered, "RequirementId");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");
         Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via opt-in [ComplianceDetails] (#259)."), "Special Criminal");

@@ -8,8 +8,19 @@ using System.Text.Json;
 
 namespace Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.given;
 
-// One expected cell. A refused cell names its tracking Stage issue, or says in `Reason` why there is none.
-public record expected_conformance_cell(string Outcome, int? Issue, string? Reason);
+// A refusal that is correct behavior: the corpus input is intentionally invalid, so there is nothing to track.
+public record by_design_refusal(string Code, string Reason, string Artifact)
+{
+    public renderer_refusal Fingerprint => new(Code, Artifact);
+}
+
+// One expected cell. Every code of a refused cell is tracked by the cell's Stage issue, or listed in `ByDesign` with the reason it is correct.
+// `Reason` is an optional note.
+public record expected_conformance_cell(string Outcome, int? Issue, string? Reason, IReadOnlyList<by_design_refusal> ByDesign)
+{
+    // Renderer issue coverage is explicit and bounded to exact code/artifact pairs, not every diagnostic sharing a code.
+    public IReadOnlyList<renderer_refusal> IssueRefusals { get; init; } = [];
+}
 
 // The checked-in conformance matrix (conformance-matrix.json), loaded from the test output directory.
 public class expected_conformance_table
@@ -44,12 +55,24 @@ public class expected_conformance_table
                     surface => new expected_conformance_cell(
                         surface.Value.GetProperty("outcome").GetString()!,
                         surface.Value.TryGetProperty("issue", out var issue) && issue.ValueKind == JsonValueKind.Number ? issue.GetInt32() : null,
-                        surface.Value.TryGetProperty("reason", out var reason) ? reason.GetString() : null)))
+                        surface.Value.TryGetProperty("reason", out var reason) ? reason.GetString() : null,
+                        surface.Value.TryGetProperty("byDesign", out var byDesign)
+                            ? [.. byDesign.EnumerateArray().Select(entry => new by_design_refusal(
+                                entry.GetProperty("code").GetString()!,
+                                entry.TryGetProperty("reason", out var why) ? why.GetString() ?? string.Empty : string.Empty,
+                                entry.TryGetProperty("artifact", out var artifact) ? artifact.GetString() ?? string.Empty : string.Empty))]
+                            : [])
+                    {
+                        IssueRefusals = surface.Value.TryGetProperty("issueRefusals", out var coverage)
+                            ? [.. coverage.EnumerateArray().Select(entry => new renderer_refusal(
+                                entry.GetProperty("code").GetString()!, entry.GetProperty("artifact").GetString()!))]
+                            : []
+                    }))
         };
     }
 
     // Renders the table the actual run produced, one line per cell so a changed cell is a one-line diff.
-    // A cell whose outcome is unchanged keeps its issue and reason from `previous`; a new refusal starts as a TODO that the spec rejects.
+    // A cell whose outcome is unchanged keeps its issue and reason from `previous`; a new refusal gets `"issue": null`, which the spec rejects.
     public static string Render(
         expected_conformance_table previous,
         string corpusVersion,
@@ -72,10 +95,14 @@ public class expected_conformance_table
                 expected_conformance_cell? old = null;
                 known?.TryGetValue(pair.Key, out old);
                 var kept = old is not null && old.Outcome == pair.Value ? old : null;
+                var reason = kept?.Reason is { Length: > 0 } note ? $", \"reason\": {JsonSerializer.Serialize(note, _text)}" : string.Empty;
+                var fingerprints = pair.Key == conformance_surface.Renderer ? renderer_refusals.Parse(pair.Value) : new HashSet<renderer_refusal>();
+                var designs = old?.ByDesign.Where(entry => fingerprints.Contains(entry.Fingerprint)).ToArray() ?? [];
+                var byDesign = designs.Length == 0 ? string.Empty : $", \"byDesign\": [{string.Join(", ", designs.Select(entry => $"{{ \"code\": {JsonSerializer.Serialize(entry.Code, _text)}, \"artifact\": {JsonSerializer.Serialize(entry.Artifact, _text)}, \"reason\": {JsonSerializer.Serialize(entry.Reason, _text)} }}"))}]";
+                var coverage = old?.IssueRefusals.Where(fingerprints.Contains).ToArray() ?? [];
+                var issueRefusals = coverage.Length == 0 ? string.Empty : $", \"issueRefusals\": [{string.Join(", ", coverage.Select(entry => $"{{ \"code\": {JsonSerializer.Serialize(entry.Code, _text)}, \"artifact\": {JsonSerializer.Serialize(entry.Artifact, _text)} }}"))}]";
                 var tracking = pair.Value.StartsWith("refused:", StringComparison.Ordinal)
-                    ? kept?.Issue is { } issue
-                        ? $", \"issue\": {issue}"
-                        : $", \"issue\": null, \"reason\": {JsonSerializer.Serialize(kept?.Reason ?? "TODO: link the tracking Stage issue", _text)}"
+                    ? $", \"issue\": {(kept?.Issue is { } issue ? issue.ToString() : "null")}{issueRefusals}{byDesign}{reason}"
                     : string.Empty;
                 return $"      \"{pair.Key.ToString().ToLowerInvariant()}\": {{ \"outcome\": {JsonSerializer.Serialize(pair.Value, _text)}{tracking} }}";
             });

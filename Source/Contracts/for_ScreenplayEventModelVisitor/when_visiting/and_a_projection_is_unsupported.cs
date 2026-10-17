@@ -11,12 +11,16 @@ namespace Cratis.Stage.Contracts.for_ScreenplayEventModelVisitor.when_visiting;
 public class and_a_projection_is_unsupported : a_slice_with_projections
 {
     Exception? _error;
+    Exception? _legacyError;
 
-    void Because() => _error = Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(_application));
+    void Because()
+    {
+        _legacyError = Catch.Exception(() => SliceConverter.Convert(_slice, _schema, new Dictionary<string, string>(), "Store.Browsing"));
+        _error = Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(_application));
+    }
 
     [Fact] void should_preserve_the_legacy_refusal() => _error.ShouldBeOfExactType<InvalidEventModel>();
-    [Fact] void should_include_the_diagnostic_code() => _error!.Message.ShouldContain("STAGE-PROJECTION-001");
-    [Fact] void should_include_the_construct() => _error!.Message.ShouldContain("projection sequence 'audit'");
+    [Fact] void should_preserve_the_legacy_message() => _error!.Message.ShouldEqual(_legacyError!.Message);
+    [Fact] void should_include_the_construct() => _error!.Message.ShouldContain("sequence 'audit'");
     [Fact] void should_include_the_owning_slice() => _error!.Message.ShouldContain("Store.Browsing.Listing");
-    [Fact] void should_include_the_source_location() => _error!.Message.ShouldContain("items.play(5,9)");
 }

@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Screenplay;
@@ -69,18 +68,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
     }
 
     /// <inheritdoc/>
-    public EventModel Visit(ApplicationSyntax syntax)
-    {
-        var conversion = Convert(syntax);
-        var errors = conversion.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
-        if (errors.Length > 0)
-        {
-            throw new InvalidEventModel(syntax.Location.Path ?? "<source>", errors.Select(error =>
-                $"{error.Code} {error.Path} {error.Location.Path ?? "<source>"}({error.Location.Line},{error.Location.Column}): {error.Message}"));
-        }
-
-        return conversion.Model;
-    }
+    public EventModel Visit(ApplicationSyntax syntax) => Convert(syntax, null).Model;
 
     /// <summary>
     /// Converts an application while retaining diagnostics for omitted projections.
@@ -88,9 +76,10 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
     /// </summary>
     /// <param name="syntax">The application to convert.</param>
     /// <returns>The model and conversion diagnostics.</returns>
-    public EventModelConversion Convert(ApplicationSyntax syntax)
+    public EventModelConversion Convert(ApplicationSyntax syntax) => Convert(syntax, new ConversionDiagnostics());
+
+    static EventModelConversion Convert(ApplicationSyntax syntax, ConversionDiagnostics? diagnostics)
     {
-        var diagnostics = new ConversionDiagnostics();
         EnsureBehaviorSupported(syntax);
         new ReactionIdentitySyntaxAdmission().VisitApplication(syntax);
         new EventRouteSyntaxAdmission().VisitApplication(syntax);
@@ -121,7 +110,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         var collection = new ModuleCollection(collectionId, modelId, collectionModules);
 
-        return new(new EventModel(modelId, modelName, [collection]), diagnostics.All);
+        return new(new EventModel(modelId, modelName, [collection]), diagnostics?.All ?? []);
     }
 
     static Module ConvertModule(
@@ -131,7 +120,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
         IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
-        ConversionDiagnostics diagnostics)
+        ConversionDiagnostics? diagnostics)
     {
         var features = module.Features
             .Select(feature => ConvertFeature(feature, parentId: null, $"{module.Name}", schema, eventPropertyTypes, eventProperties, diagnostics))
@@ -147,7 +136,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
         IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
-        ConversionDiagnostics diagnostics)
+        ConversionDiagnostics? diagnostics)
     {
         var featurePath = $"{parentPath}.{feature.Name}";
         var featureId = DeterministicId.From($"feature:{featurePath}");
@@ -157,7 +146,9 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
             .ToArray();
 
         var slices = feature.Slices
-            .Select(slice => SliceConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, featurePath, diagnostics))
+            .Select(slice => diagnostics is null
+                ? SliceConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, featurePath)
+                : SliceConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, featurePath, diagnostics))
             .ToArray();
 
         return new Feature(featureId, feature.Name, parentId, subFeatures, slices);

@@ -115,6 +115,7 @@ public static class ReadModelConverter
             ?? slice.Name;
 
         var properties = CollectProperties(projection, queries, eventPropertyTypes, eventProperties);
+        var jsonSchema = schema.ForReadModel(properties);
 
         foreach (var additional in projections.Skip(1))
         {
@@ -136,7 +137,7 @@ public static class ReadModelConverter
         return new ReadModelDefinition(
             DeterministicId.From($"{slicePath}.readmodel.{name}"),
             name,
-            schema.ForReadModel(properties),
+            jsonSchema,
             definition)
         {
             SelectedProjectionName = projection?.Name,

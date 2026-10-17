@@ -67,12 +67,14 @@ An unsupported projection is omitted as a whole, not partially translated. Its r
 `Projection = null` and `UnconvertedProjectionName` naming the omission. Other slices, commands, events and
 specifications remain available. Additional projections receive a warning because a Stage read-model definition
 carries only the first projection. Existing converter overloads keep their throwing behavior;
-`ScreenplayEventModelVisitor.Visit` refuses errors with `InvalidEventModel`, including their codes and messages.
+`ScreenplayEventModelVisitor.Visit` stops at the first unsupported projection with the original
+`InvalidEventModel` from `SliceConverter`, preserving its message.
 Other legacy engine admission checks still apply to both visitor entry points.
 
 `ScreenplaySceneVisitor.Convert` records arrangement conversion diagnostics in
-`SceneApplication.ConversionDiagnostics`. The existing `Visit` entry point still refuses Error diagnostics with
-`InvalidEventModel`, naming their code, owning path and source location. Unsupported nodes and containers lose
+`SceneApplication.ConversionDiagnostics`. The existing `Visit` entry point uses the original throwing path,
+stopping at the first invalid arrangement with `UnknownArrangementNode`, `UnknownArrangementContainerKind`,
+`UnknownSizeClassName` or `FormatException` as appropriate. Unsupported nodes and containers lose
 their subtree; invalid sizes omit the affected placement, override or variant. Supported siblings remain. These diagnostics are not Scene
 JSON members, so keep them alongside the translated Scene when importing. The Cratis renderer refuses Error
 conversion diagnostics before creating a profile; warnings alone do not refuse it.

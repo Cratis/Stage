@@ -98,8 +98,8 @@ public class and_an_external_writer_arrives_during_append : a_semantic_runtime
         scope.Scope.ExpectsNoMatchingEvent.ShouldBeFalse();
     }
 
-    [Fact] void should_fault_on_the_atomic_rejection() => _second.ShouldBeOfExactType<SemanticUnsupported>();
-    [Fact] void should_identify_the_external_change() => ((ISemanticRuntimeStatus)_chronicleRuntime).FaultReason.ShouldContain("outside this session (0 -> 1)");
+    [Fact] void should_report_the_atomic_rejection_as_a_conflict() => _second.ShouldBeOfExactType<SemanticConflict>();
+    [Fact] void should_not_fault_on_a_definitively_unwritten_batch() => ((ISemanticRuntimeStatus)_chronicleRuntime).FaultReason.ShouldBeNull();
     [Fact] void should_not_commit_the_rejected_world() => _second.World.Facts.Length.ShouldEqual(1);
 
     Task<SemanticExecutionResult> Execute(string id) => _chronicleRuntime.Execute(

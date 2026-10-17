@@ -21,7 +21,7 @@ internal sealed class SemanticRunReactions(
     internal static SemanticRunReactionFailure FactLimit() =>
         SemanticRunReactionFailure.Unsupported($"The scenario appends more than {MaximumFacts} facts; its reactions do not settle.");
 
-    SemanticRunReactionFailure? ContextGuard(SemanticReaction reaction, SemanticProducedEvent produced) =>
+    internal SemanticRunReactionFailure? ContextGuard(SemanticReaction reaction, SemanticProducedEvent produced) =>
         context.AuthoredOccurrence is null && produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)
             ? SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.")
             : null;

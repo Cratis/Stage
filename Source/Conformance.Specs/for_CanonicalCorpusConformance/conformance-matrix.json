@@ -1,0 +1,331 @@
+{
+  "corpusVersion": "4.204.0",
+  "minimumVectorCount": 64,
+  "excludedTypes": {
+    "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
+    "ScreenCompositionCorpus": "Scene and screen-composition vectors, not executable semantic models; for_ScreenCompositionCorpus covers them.",
+    "TextRulesCorpus": "Source forms only; the package carries no vector with an application name or ESM bytes."
+  },
+  "vectors": {
+    "AtomicReactionBatchesCorpus.Legacy": {
+      "executor": { "outcome": "refused:STAGE-ESM-024", "issue": 79 },
+      "host": { "outcome": "refused:STAGE-ESM-024", "issue": 79 },
+      "renderer": { "outcome": "refused:STAGE-ESM-024+STAGE-ESM-037", "issue": 79 }
+    },
+    "AtomicReactionBatchesCorpus.V22": {
+      "executor": { "outcome": "refused:STAGE-ESM-016", "issue": 422 },
+      "host": { "outcome": "refused:STAGE-ESM-016+STAGE-ESM-024", "issue": 422 },
+      "renderer": { "outcome": "refused:STAGE-ESM-016", "issue": 422 }
+    },
+    "CompositeReadModelKeysCorpus.V27": {
+      "executor": { "outcome": "refused:capability:Projection", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "refused:capability:Projection", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-027+STAGE-ESM-047+STAGE-ESM-048", "issue": 481 }
+    },
+    "ConceptComplianceCorpus.V13": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "DateComparisonsCorpus.V26": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "refused:STAGE-ESM-046", "issue": 473 }
+    },
+    "DescribedCommandHandlersCorpus.Legacy": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "refused:STAGE-ESM-005+STAGE-ESM-011", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "DescribedCommandHandlersCorpus.V23": {
+      "executor": { "outcome": "refused:STAGE-IMPL-002", "issue": 316 },
+      "host": { "outcome": "refused:STAGE-IMPL-002", "issue": 316 },
+      "renderer": { "outcome": "refused:STAGE-IMPL-002", "issue": 316 }
+    },
+    "EnumMemberNumbersCorpus.V12": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "EsmGoldenVectors.PolicyNegationV7": {
+      "executor": { "outcome": "refused:capability:Authorization", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "refused:capability:Authorization", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-011", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "EsmGoldenVectors.V1": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V10": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V11": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V12": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V13": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V14": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V15": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V16": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V17": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V18": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V19": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V2": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V20": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V21": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V22": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V23": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V24": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V25": {
+      "executor": { "outcome": "n/a:no-specifications" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "EsmGoldenVectors.V26": {
+      "executor": { "outcome": "n/a:no-specifications" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "refused:STAGE-ESM-046", "issue": 473 }
+    },
+    "EsmGoldenVectors.V27": {
+      "executor": { "outcome": "refused:capability:GivenReadModel+capability:IdentityAllocation", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "refused:capability:GivenReadModel+capability:IdentityAllocation", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-027+STAGE-ESM-047+STAGE-ESM-048", "issue": 481 }
+    },
+    "EsmGoldenVectors.V3": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V4": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V5": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V6": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V7": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V8": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EsmGoldenVectors.V9": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "EventRoutesCorpus.CompositeCommandsV8": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "EventRoutesCorpus.CompositesV8": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "EventRoutesCorpus.ObserverFiltersV10": {
+      "executor": { "outcome": "refused:STAGE-ESM-035", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." },
+      "host": { "outcome": "refused:STAGE-ESM-035", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." },
+      "renderer": { "outcome": "refused:STAGE-ESM-027", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "EventRoutesCorpus.ProductionRoutesV10": {
+      "executor": { "outcome": "refused:STAGE-ESM-036", "issue": 262 },
+      "host": { "outcome": "refused:STAGE-ESM-036", "issue": 262 },
+      "renderer": { "outcome": "refused:STAGE-ESM-036", "issue": 262 }
+    },
+    "EventRoutesCorpus.SpecificationsV8": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "refused:STAGE-ESM-011", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "EventRoutesCorpus.V8": {
+      "executor": { "outcome": "refused:capability:Command", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "refused:capability:Command", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-012", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "GeneratedConceptRulesCorpus.PortableV20": {
+      "executor": { "outcome": "refused:capability:Command", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "refused:capability:Command", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-020", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "GeneratedConceptRulesCorpus.V20": {
+      "executor": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "host": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-PLAN-004", "issue": null, "reason": "Refused by SemanticModelLoader because the execution plan does not compile; no tracking issue (matrix.md lists none)." }
+    },
+    "GeneratedValuesCorpus.V15": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "GenerationFixturesCorpus.V21": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "refused:STAGE-ESM-028", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." },
+      "renderer": { "outcome": "refused:STAGE-ESM-020", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "GenerationSupportCorpus.V21": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "refused:STAGE-ESM-020", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "InvocationRefusalsCorpus.V19": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "refused:STAGE-ESM-011", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "NumberLiteralsCorpus.ExactLiteralsV11": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "PolicyNegationCorpus.V7": {
+      "executor": { "outcome": "refused:capability:Authorization", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "refused:capability:Authorization", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-011", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "ProtectedCommandReadsCorpus.V25": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "PublicEventsCorpus.CapturesFromEventsV9": {
+      "executor": { "outcome": "refused:STAGE-ESM-024", "issue": 79 },
+      "host": { "outcome": "refused:STAGE-ESM-024+STAGE-ESM-033", "issue": 79 },
+      "renderer": { "outcome": "refused:STAGE-ESM-024+STAGE-ESM-033", "issue": 79 }
+    },
+    "PublicEventsCorpus.V9": {
+      "executor": { "outcome": "refused:STAGE-ESM-024", "issue": 79 },
+      "host": { "outcome": "refused:STAGE-ESM-024+STAGE-ESM-032+STAGE-ESM-033", "issue": 79 },
+      "renderer": { "outcome": "refused:STAGE-ESM-024+STAGE-ESM-032+STAGE-ESM-033", "issue": 79 }
+    },
+    "QueryFiltersCorpus.V14": {
+      "executor": { "outcome": "refused:capability:GivenReadModel", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "refused:capability:GivenReadModel", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-007+STAGE-ESM-011", "issue": 58 }
+    },
+    "QueryValidationCorpus.V18": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "refused:STAGE-ESM-007", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "ReactionIdentityCorpus.V10": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "ReactionsCorpus.V6": {
+      "executor": { "outcome": "refused:STAGE-ESM-024", "issue": 79 },
+      "host": { "outcome": "refused:STAGE-ESM-024", "issue": 79 },
+      "renderer": { "outcome": "refused:STAGE-ESM-024", "issue": 79 }
+    },
+    "ReadModelAbsenceCorpus.V5": {
+      "executor": { "outcome": "refused:capability:GivenReadModel", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "refused:capability:GivenReadModel", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-027", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "RecordCapturesCorpus.V6": {
+      "executor": { "outcome": "refused:STAGE-ESM-024", "issue": 79 },
+      "host": { "outcome": "refused:STAGE-ESM-024", "issue": 79 },
+      "renderer": { "outcome": "refused:STAGE-ESM-024", "issue": 79 }
+    },
+    "RecoverySpecificationsCorpus.V17": {
+      "executor": { "outcome": "refused:capability:IdentityAllocation", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "refused:capability:IdentityAllocation", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-011", "issue": null, "reason": "No tracking issue listed in matrix.md section 2." }
+    },
+    "RegisterProjectCorpus.LegacyV1": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "RegisterProjectCorpus.V2": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "refused:capability:EventContract", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "renderer": { "outcome": "refused:STAGE-ESM-026", "issue": 204 }
+    },
+    "RegisterProjectCorpus.V7": {
+      "executor": { "outcome": "refused:capability:IdentityAllocation", "issue": null, "reason": "Typed by capability only, no STAGE code; no tracking issue yet (matrix.md lists none)." },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    },
+    "StoredEventNamesCorpus.V16": {
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
+    }
+  }
+}

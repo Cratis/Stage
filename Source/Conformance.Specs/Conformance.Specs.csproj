@@ -8,6 +8,8 @@
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <ProjectReference Include="../Rendering.Cratis/Rendering.Cratis.csproj" />
         <ProjectReference Include="../Specifications/Specifications.csproj" />
+        <!-- The Host's admission is internal; the matrix reads it by reflection so it exercises the shipped code, not a copy. -->
+        <ProjectReference Include="../Host/Host.csproj" />
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
         <PackageReference Include="Cratis.Arc.Screenplay" PrivateAssets="All" />
         <!-- Match the renderer's Roslyn assembly and the corpus' Workspaces dependency. -->
@@ -15,6 +17,7 @@
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" PrivateAssets="All" />
     </ItemGroup>
   <ItemGroup>
+    <None Include="for_CanonicalCorpusConformance/conformance-matrix.json" CopyToOutputDirectory="PreserveNewest" Link="for_CanonicalCorpusConformance/conformance-matrix.json" />
     <None Include="for_SceneEnumerationNaming/scene-model-enumerations.json" CopyToOutputDirectory="PreserveNewest" Link="for_SceneEnumerationNaming/scene-model-enumerations.json" />
     <None Include="for_UiProfileRootVector/uiprofile-root.scene.json" CopyToOutputDirectory="PreserveNewest" Link="for_UiProfileRootVector/uiprofile-root.scene.json" />
     <None Include="for_UiProfileRootVector/uiprofile-root.shells.json" CopyToOutputDirectory="PreserveNewest" Link="for_UiProfileRootVector/uiprofile-root.shells.json" />

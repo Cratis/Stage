@@ -35,7 +35,7 @@ internal static partial class SemanticSpecificationAdmission
             return true;
         }
 
-        var taken = SemanticProductionSelection.Taken(command, specification);
+        var taken = SemanticProductionSelection.Taken(context.Application, command, specification);
         if (context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8) && specification.ThenEventsInAnyOrder)
         {
             // An omitted source is a wildcard. Explicit sources must be losslessly representable, but their

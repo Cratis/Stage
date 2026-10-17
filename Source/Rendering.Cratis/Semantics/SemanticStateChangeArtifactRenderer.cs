@@ -281,11 +281,13 @@ internal static class SemanticStateChangeArtifactRenderer
         builder.Summary($"Validates {Identifiers.ToWords(command.Name)}.")
             .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>")
             .OpenBlock($"public {commandName}Validator()");
+        var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
         foreach (var rule in command.Validations)
         {
             var property = command.Properties.Single(_ => _.Id == rule.Property);
             var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
-            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, property.Type.Kind == SemanticTypeReferenceKind.Concept, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context));
+            var wrapped = property.Type.Kind == SemanticTypeReferenceKind.Concept && !raw.Contains(property.Id);
+            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context));
         }
 
         foreach (var id in constrained)
@@ -313,7 +315,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var types = new SemanticTypeSystem(context);
         var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
         var optionalType = property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true, IsCollection: false } &&
-            primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean
+            primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date
                 ? types.Type(property.Type)
                 : null;
         var enumOperand = property.Type.Kind == SemanticTypeReferenceKind.Concept && !context.Concepts[property.Type.Target].Values.IsEmpty

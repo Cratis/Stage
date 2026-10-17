@@ -10,7 +10,7 @@ public class a_not_empty_rule : Specification
 {
     protected SemanticCommand _command = null!;
     protected SemanticSpecification _specification = null!;
-    protected IEnumerable<SemanticConcept> _concepts = [];
+    protected SemanticApplication _application = null!;
     protected string? _failure;
 
     protected void Prepare(string value, bool concept = false, bool collection = false)
@@ -34,6 +34,6 @@ public class a_not_empty_rule : Specification
         var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
         _command = plan.Commands.Values.Single();
         _specification = plan.Specifications.Values.Single();
-        _concepts = plan.Model.Application.Concepts;
+        _application = plan.Model.Application;
     }
 }

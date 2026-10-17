@@ -38,7 +38,8 @@ const workItemB = {
 };
 const createdWorkItem = {
     id: '33333333-3333-3333-3333-333333333333',
-    title: 'Browser-created work item'
+    title: 'Browser-created work item',
+    notes: 'Notes typed across both columns'
 };
 const nativeComment = {
     id: '44444444-4444-4444-4444-444444444444',
@@ -281,7 +282,7 @@ async function navigateByUi(page, result, path, screen) {
 
 async function seedData(result) {
     for (const item of [workItemA, workItemB]) {
-        await postJson(routes.createWorkItem, { workItemId: item.id, title: item.title });
+        await postJson(routes.createWorkItem, { workItemId: item.id, title: item.title, notes: 'Seeded' });
         record(result, `browser.seed.CreateWorkItem.${item.id}`, 'passed', item.title);
         await postJson(routes.addComment, { commentId: item.commentId, workItemId: item.id, text: item.comment });
         record(result, `browser.seed.AddComment.${item.commentId}`, 'passed', item.comment);
@@ -301,6 +302,16 @@ function collectSceneIds(value, ids = []) {
     }
 
     return ids;
+}
+
+// Whether the rendered corpus's CreateWorkItemForm is the manual two-column form with a notes field spanning both columns.
+let declaredTwoColumnCreateForm = false;
+
+function declareCreateForm(scene) {
+    const form = collectComponents(scene).find(component => String(component.componentName).endsWith('ommandForm') && component.properties?.command === 'CreateWorkItem');
+    const layout = form?.properties?.layout;
+    declaredTwoColumnCreateForm = form?.properties?.generationMode === 'manual' && Array.isArray(layout?.columns) && layout.columns.length === 2 &&
+        (form.properties.fields ?? []).some(field => field.name === 'notes');
 }
 
 function collectComponents(value, components = []) {
@@ -475,6 +486,71 @@ async function assertStaleSelectionDiscard(page, result, network) {
     record(result, 'browser.queryRebind.staleDelayedA.observedRequests', 'info', staleRequests.map(request => `${request.method} ${request.url}`).join('\n'));
 }
 
+// The corpus CreateWorkItemForm is a manual two-column form: column 1 is 1fr, column 2 is 2fr, a 24px column gap and 16px
+// row gap; workItemId sits in row 1 column 1, title in row 1 column 2 and notes spans both columns in row 2. The same
+// measurement runs against the generated React application here and against a live Stage in Cratis/Screenplay's browser harness,
+// so both are held to the same geometry: track ratio, gap, placed fields and the spanning field.
+async function assertTwoColumnFormGeometry(page, result) {
+    const prefix = 'browser.native.CreateWorkItem.form.geometry';
+    const measured = await page.evaluate(() => {
+        const dialog = document.querySelector('[role="dialog"]') ?? document.body;
+        const grids = [...dialog.querySelectorAll('.stage-command-form__layout')];
+        const grid = grids[0];
+        if (!grid) return { grids: 0, forms: dialog.querySelectorAll('form').length };
+        const style = getComputedStyle(grid);
+        const box = grid.getBoundingClientRect();
+        const field = name => {
+            const element = grid.querySelector(`[data-field="${name}"]`);
+            if (!element) return null;
+            const rect = element.getBoundingClientRect();
+            return { left: rect.left - box.left, width: rect.width, top: rect.top - box.top, copies: dialog.querySelectorAll(`[data-field="${name}"]`).length, inputs: element.querySelectorAll('input, textarea, select').length };
+        };
+        return {
+            grids: grids.length,
+            forms: dialog.querySelectorAll('form').length,
+            tracks: style.gridTemplateColumns.split(' ').map(Number.parseFloat),
+            columnGap: Number.parseFloat(style.columnGap),
+            rowGap: Number.parseFloat(style.rowGap),
+            width: box.width,
+            fields: { workItemId: field('workItemId'), title: field('title'), notes: field('notes') },
+            namedInputs: ['workItemId', 'title', 'notes'].map(name => dialog.querySelectorAll(`input[name="${name}"], textarea[name="${name}"]`).length),
+            submitButtons: dialog.querySelectorAll('button[type="submit"]').length
+        };
+    });
+    record(result, `${prefix}.measured`, 'info', JSON.stringify(measured));
+
+    if (measured.grids !== 1) {
+        block(result, `${prefix}.layout`, `expected one two-column layout grid in the form, saw ${measured.grids}`);
+        return;
+    }
+
+    const near = (actual, expected, tolerance = 1.5) => Math.abs(actual - expected) <= tolerance;
+    const [first, second] = measured.tracks;
+    const { workItemId, title, notes } = measured.fields;
+    const checks = [
+        ['two tracks', measured.tracks.length === 2],
+        ['unequal tracks 1fr:2fr', second > first && near(second / first, 2, 0.05)],
+        ['column gap 24px', near(measured.columnGap, 24, 0.5)],
+        ['row gap 16px', near(measured.rowGap, 16, 0.5)],
+        ['workItemId in column 1', !!workItemId && near(workItemId.left, 0) && near(workItemId.width, first)],
+        ['title in column 2', !!title && near(title.left, first + measured.columnGap) && near(title.width, second)],
+        ['title shares the row with workItemId', !!title && !!workItemId && near(title.top, workItemId.top)],
+        ['notes spans both columns', !!notes && near(notes.left, 0) && near(notes.width, first + measured.columnGap + second)],
+        ['notes is on a later row', !!notes && !!title && notes.top > title.top]
+    ];
+    for (const [name, ok] of checks) {
+        if (ok) record(result, `${prefix}.${name.replace(/\W+/g, '-')}`, 'passed');
+        else block(result, `${prefix}.${name.replace(/\W+/g, '-')}`, JSON.stringify(measured));
+    }
+
+    const oneInputEach = ['workItemId', 'title', 'notes'].every(name => measured.fields[name]?.copies === 1 && measured.fields[name]?.inputs === 1) && measured.namedInputs.every(count => count <= 1);
+    if (oneInputEach) record(result, `${prefix}.noDuplicateInputs`, 'passed');
+    else block(result, `${prefix}.noDuplicateInputs`, JSON.stringify(measured));
+
+    if (measured.forms === 1) record(result, `${prefix}.oneSubmitBoundary`, 'passed');
+    else block(result, `${prefix}.oneSubmitBoundary`, `expected one form element, saw ${measured.forms}`);
+}
+
 async function assertInvalidThenValidCreate(page, result, network) {
     const button = await recordNativeButton(page, result, 'CreateWorkItem', 'browser.native.CreateWorkItem.control');
     if (button.state !== 'enabled') return;
@@ -489,9 +565,16 @@ async function assertInvalidThenValidCreate(page, result, network) {
     else block(result, 'browser.native.CreateWorkItem.invalidSubmit.zeroRequests', `expected zero command requests, saw ${afterInvalid - beforeInvalid}`);
     await expectText(page, result, 'browser.native.CreateWorkItem.invalidSubmit.validation', 'required');
 
+    // The scenario asserts what the rendered corpus declares: a corpus whose CreateWorkItemForm is the manual two-column form
+    // (Cratis.Screenplay.CanonicalCorpus 4.211.2 and later) is held to its grid geometry and its extra field; an earlier
+    // single-column corpus keeps the original assertions.
+    const twoColumn = declaredTwoColumnCreateForm;
+    if (twoColumn) await assertTwoColumnFormGeometry(page, result);
+
     const fieldsFilled = [
         await fillField(page, result, 'workItemId', createdWorkItem.id),
-        await fillField(page, result, 'title', createdWorkItem.title)
+        await fillField(page, result, 'title', createdWorkItem.title),
+        ...(twoColumn ? [await fillField(page, result, 'notes', createdWorkItem.notes)] : [])
     ].every(Boolean);
     if (!fieldsFilled) {
         await closeDialog(page, result, 'browser.native.CreateWorkItem.dialog.closeAfterMissingFields');
@@ -502,7 +585,7 @@ async function assertInvalidThenValidCreate(page, result, network) {
     await clickSubmit(page, result, 'browser.native.CreateWorkItem.validSubmit.submitControl');
     await page.waitForTimeout(3_000);
     const validRequests = commandRequests(network, 'create-work-item').slice(beforeValid);
-    if (validRequests.length === 1 && requestContainsWorkItem(validRequests[0], createdWorkItem)) record(result, 'browser.native.CreateWorkItem.validSubmit.payload', 'passed', validRequests[0].postData ?? validRequests[0].url);
+    if (validRequests.length === 1 && requestContainsWorkItem(validRequests[0], createdWorkItem) && (!declaredTwoColumnCreateForm || (validRequests[0].postData ?? '').includes(createdWorkItem.notes))) record(result, 'browser.native.CreateWorkItem.validSubmit.payload', 'passed', validRequests[0].postData ?? validRequests[0].url);
     else block(result, 'browser.native.CreateWorkItem.validSubmit.payload', `expected one canonical create payload, saw ${validRequests.length}`);
 
     await page.goto(`${baseUrl}/#/WorkItemList`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
@@ -811,7 +894,13 @@ else (async () => {
     let exitCode = 2;
     try {
         if (!applicationDirectory) throw new Error('STAGE_GENERATED_REACT_APPLICATION must name the rendered application directory.');
-        assertSceneDocument(result, JSON.parse(readFileSync(join(applicationDirectory, 'src', 'stage-scene.json'), 'utf8')));
+        const scene = JSON.parse(readFileSync(join(applicationDirectory, 'src', 'stage-scene.json'), 'utf8'));
+        declareCreateForm(scene);
+        record(result, 'browser.scene.createForm.twoColumn', 'info', String(declaredTwoColumnCreateForm));
+        // A caller that renders the published corpus (the cli's generated-React check) requires the two-column form, so a
+        // corpus that lost it fails instead of silently skipping the geometry assertions.
+        if (process.env.STAGE_GENERATED_REACT_REQUIRE_TWO_COLUMN_FORM && !declaredTwoColumnCreateForm) block(result, 'browser.scene.createForm.twoColumn.required', 'the rendered corpus does not declare the manual two-column CreateWorkItemForm');
+        assertSceneDocument(result, scene);
         await runBrowserFlow(result);
         const passed = result.assertions.filter(assertion => assertion.status === 'passed').length;
         result.status = result.remainingBlockers.length > 0 ? 'failed' : 'passed';

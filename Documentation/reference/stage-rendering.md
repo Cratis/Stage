@@ -117,6 +117,37 @@ Before writing, publishers must call `CratisRendering.CheckPublication` at every
 A rename without a pin still orphans stored events: a renderer cannot distinguish it from deleting one type and adding another. Use the Screenplay workspace/MCP rename, which pins by default.
 :::
 
+## Render around refused specifications
+
+By default, any render error refuses the whole plan and emits no artifacts. To render the
+application while omitting supported specification gaps, set `CratisPlanOptions.Refusals` to
+`ArtifactRefusalMode.RenderAround`. Low-level callers carry `RefusalModeInput.Create` in the
+profile inputs: `cratis-render:refusals`, version `1`, with exact UTF-8 bytes `RenderAround`.
+`Refuse` is the other valid value; absence means `Refuse`. The input is hashed with the profile.
+
+This opt-in applies only when **every** Error is `STAGE-ESM-011` or `STAGE-ESM-024` and names
+a specification in the model. Stage omits only those specification files, never commands,
+events, policies, or other application contracts. Any other error still refuses the entire
+plan, including evolved events (`STAGE-ESM-026`), implementation-envelope errors, and
+`STAGE-ESM-024` attached to a reaction, trigger, capture, or slice.
+
+A partial plan retains the original errors, so `Success` remains false. Inspect `Outcome`
+(`Complete`, `Partial`, or `Refused`) and `Refusals` on `ArtifactRenderPlan` or `CratisPlanResult`.
+Each refusal lists its semantic `Artifact`, `Kind` (`specification`), and sorted diagnostic
+`Codes`; entries are sorted by artifact identity. No emitted artifact's `Sources` contains
+an omitted identity, and no placeholder specification is emitted.
+
+| Diagnostic | Severity | Meaning |
+| --- | --- | --- |
+| `STAGE-PLAN-007` | Information | Rendered around N refused specifications; the original errors remain. |
+
+Publishers must explicitly accept `Outcome == ArtifactRenderOutcome.Partial` before writing
+these artifacts and must still perform the ordinary publication and ownership checks.
+Consumers checking only `Success` continue to refuse partial plans. The opt-in does not
+change Host or specification-executor admission, and does not add a CLI flag.
+Without the opt-in, artifact bytes and digests are unchanged. The output digest adds a
+`refusals-v1` segment only when `Refusals` is nonempty.
+
 ## Release-baseline warnings in artifact plans
 
 An admitted release baseline freezes stored event revisions, including the resolved

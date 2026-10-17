@@ -44,8 +44,9 @@ internal static class SemanticProductionSelection
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticCondition), condition.GetType().Name)
     };
 
+    // A view is not an input of the command specification; admission refuses the condition, so selection takes the production.
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values) =>
-        SemanticProductionComparison.Compare(
+        comparison.Left.Read is not null || comparison.Right.Read is not null || SemanticProductionComparison.Compare(
             comparison,
             values,
             (() => UnsupportedSemanticRendering.For(nameof(SemanticComparison), comparison.Operator), () => UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison.Operator)));

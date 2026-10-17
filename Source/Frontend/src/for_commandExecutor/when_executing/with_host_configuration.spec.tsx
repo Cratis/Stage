@@ -5,7 +5,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, chai, describe, it, vi } from 'vitest';
 import { ArcContext } from '@cratis/arc.react';
 import { registerCommand } from '@cratis/scene.components';
-import { InteractionActionKind, InteractionTriggerKind } from '@cratis/scene.model';
+import { BindingSourceKind, InteractionActionKind, InteractionTriggerKind } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core/config';
 import { App, type StageSceneApplication } from '../../App';
 import { StageSourceProvider, staticStageSource } from '../../stageSource';
@@ -30,7 +30,7 @@ describe('when executing an interaction in a rendered application with host conf
 
     it('should reach the configured API route and carry the microservice and identity headers', async () => {
         const button = element('register', 'core:button', { label: 'Register project' });
-        const action = { kind: InteractionActionKind.ExecuteCommand, command: 'RegisterProject' };
+        const action = { kind: InteractionActionKind.ExecuteCommand, command: 'RegisterProject', arguments: [{ name: 'name', value: { kind: BindingSourceKind.Literal, path: '', value: 'Apollo' } }] };
         button.behaviors = [{ name: 'Register', bindings: [{
             trigger: { kind: InteractionTriggerKind.Click },
             actions: [action],

@@ -10,6 +10,8 @@ export class RegisterProject extends Command {
     readonly route = 'api/projects/register';
     readonly propertyDescriptors = [new PropertyDescriptor('name', String)];
     get requestParameters(): string[] { return []; }
-    name = 'Apollo';
+    private _name?: string;
+    get name() { return this._name; }
+    set name(value: string | undefined) { this._name = value; this.propertyChanged('name'); }
     constructor() { super(ProjectResponse, false); }
 }

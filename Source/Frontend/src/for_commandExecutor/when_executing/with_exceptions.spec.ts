@@ -15,7 +15,7 @@ describe('when executing with server exceptions', () => {
         vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(commandResult({
             isSuccess: false, hasExceptions: true, exceptionMessages: ['Commit failed'], response: { name: 'uncommitted' },
         })))));
-        const outcome = await executeRegisteredCommand('RegisterProject', {}, { microservice: '' });
+        const outcome = await executeRegisteredCommand('RegisterProject', { name: 'Apollo' }, { microservice: '' });
         outcome.isSuccess.should.equal(false);
         outcome.messages.should.deep.equal(['Commit failed']);
         should.equal(outcome.response, undefined);

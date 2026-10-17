@@ -40,7 +40,7 @@ function registerForm(element: ExternalComponent, routes: Record<string, string>
     registerTestCommand(name, route, properties);
 }
 
-/** Fixture setup for directly rendered forms; production registration is exercised separately. */
+/** Fixture setup for directly rendered forms. Production registers proxies before rendering, not during render. */
 export function RegisteredForm(props: Parameters<typeof StageCommandForm>[0]) {
     registerForm(props.element, useStageData().routes?.commands);
     return <StageCommandForm {...props} />;

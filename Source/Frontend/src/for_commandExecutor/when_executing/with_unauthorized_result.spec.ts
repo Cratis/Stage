@@ -15,7 +15,7 @@ describe('when executing without authorization', () => {
         vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(commandResult({
             isAuthorized: false, authorizationFailureReason: 'Policy denied', response: { name: 'secret' },
         })))));
-        const outcome = await executeRegisteredCommand('RegisterProject', {}, { microservice: '' });
+        const outcome = await executeRegisteredCommand('RegisterProject', { name: 'Apollo' }, { microservice: '' });
         outcome.isSuccess.should.equal(false);
         outcome.messages.should.deep.equal(['Policy denied']);
         should.equal(outcome.response, undefined);

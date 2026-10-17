@@ -3,7 +3,7 @@
 
 import { afterEach, chai, describe, it, vi } from 'vitest';
 import { registerCommand } from '@cratis/scene.components';
-import { executeRegisteredCommand } from '../../commandExecutor';
+import { executeRegisteredCommand, registeredCommand } from '../../commandExecutor';
 import { commandResult } from '../../testing/commands';
 import { RegisterProject } from '../given/RegisterProject';
 import { ProjectResponse } from '../given/ProjectResponse';
@@ -13,6 +13,8 @@ describe('when executing a command with a typed response', () => {
     afterEach(() => vi.unstubAllGlobals());
     it('should preserve the response instantiated by the proxy and assign only declared command properties', async () => {
         registerCommand('RegisterProject', RegisterProject);
+        chai.should().equal(registeredCommand('RegisterProject', 'Projects.RegisterProject', '/api/projects/register'), RegisterProject);
+        chai.should().equal(registeredCommand('RegisterProject', 'Other.RegisterProject', '/api/other/register'), undefined);
         const bodies: string[] = [];
         vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
             bodies.push(String(init?.body));

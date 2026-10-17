@@ -3,15 +3,15 @@
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_running_atomic_reaction_batches;
 
-public class and_the_model_is_legacy : when_settling_reactions.given.a_reaction_plan
+public class and_the_model_is_legacy : given.an_observed_reaction_plan
 {
     void Establish() => Compile(
         "reaction Worker\n  when Started\n    item\n    produces Completed\n    produces Followed\n      item = item\n    produces Followed\n      item = item",
         "then error \"Already followed\"",
         new() { Declarations = "constraint Once\n  unique event Followed\n  message \"Already followed\"" });
 
-    Task Because() => Execute();
+    Task Because() => ExecuteObserved();
 
     [Fact] void should_reject_as_the_reference_does() => AssertMatchesReference();
-    [Fact] void should_keep_the_productions_before_the_rejected_one() => _result.Trace!.Facts.Count.ShouldEqual(3);
+    [Fact] void should_keep_the_productions_before_the_rejected_one() => _worldFacts.ShouldEqual(3);
 }

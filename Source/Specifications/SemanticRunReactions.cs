@@ -21,6 +21,11 @@ internal sealed class SemanticRunReactions(
     internal static SemanticRunReactionFailure FactLimit() =>
         SemanticRunReactionFailure.Unsupported($"The scenario appends more than {MaximumFacts} facts; its reactions do not settle.");
 
+    internal static SemanticRunReactionFailure? ContextGuard(SemanticReaction reaction, SemanticProducedEvent produced) =>
+        produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)
+            ? SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.")
+            : null;
+
     internal async Task<SemanticRunReactionFailure?> Settle(CancellationToken cancellationToken)
     {
         for (var index = historyCount; index < context.Facts.Count; index++)
@@ -142,18 +147,13 @@ internal sealed class SemanticRunReactions(
         {
             if (SemanticRunAdmission.CheckProjectionFact(plan, fact) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
         }
-        foreach (var (fact, destination) in candidates)
+        foreach (var fact in candidates.Select(candidate => context.Prepare(candidate.Fact, candidate.Destination)).ToArray())
         {
-            await context.Append(fact, destination, cancellationToken);
+            await context.Append(fact, cancellationToken);
         }
 
         return null;
     }
-
-    static SemanticRunReactionFailure? ContextGuard(SemanticReaction reaction, SemanticProducedEvent produced) =>
-        produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)
-            ? SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.")
-            : null;
 
     (SemanticSpecificationEvent Fact, SemanticValue Destination) Build(SemanticProducedEvent produced, SemanticReactionCause cause, SemanticInvocationRefusalOutcome? refusal)
     {

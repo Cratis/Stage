@@ -3,7 +3,7 @@
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_running_atomic_reaction_batches;
 
-public class and_a_refusal_branch_rejects : when_settling_reactions.given.a_reaction_plan
+public class and_a_refusal_branch_rejects : given.an_observed_reaction_plan
 {
     void Establish() => Compile(
         "reaction Worker\n  when Started\n    item\n    invokes Complete\n      item = item\n      on refused by validation\n        produces Completed\n        produces Followed\n          item = item",
@@ -16,9 +16,9 @@ public class and_a_refusal_branch_rejects : when_settling_reactions.given.a_reac
             Caller = "given Followed\n  for \"one\"\n  item = \"one\""
         });
 
-    Task Because() => Execute();
+    Task Because() => ExecuteObserved();
 
     [Fact] void should_reject_as_the_reference_does() => AssertMatchesReference();
     [Fact] void should_preserve_the_constraint_name() => _result.Trace!.RejectionCode.ShouldEqual("Once");
-    [Fact] void should_append_none_of_the_branch() => _result.Trace!.Facts.Count.ShouldEqual(2);
+    [Fact] void should_append_none_of_the_branch() => _worldFacts.ShouldEqual(2);
 }

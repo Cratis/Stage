@@ -37,20 +37,20 @@ public class a_constrained_plan : Specification
         _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
     }
 
-    protected SemanticConstraintEvaluator.Fact Changed(string owner, string value)
+    internal SemanticConstraintEvaluator.Fact Changed(string owner, string value)
     {
         var contract = _plan.Events.Values.Single(candidate => candidate.Name == "Changed");
 
         return new(contract.Id, SemanticValue.Text(owner), [new(contract.Properties.Single().Id, SemanticValue.Text(value))]);
     }
 
-    protected SemanticConstraintEvaluator.Fact Claimed(string owner) => Bare("Claimed", owner);
+    internal SemanticConstraintEvaluator.Fact Claimed(string owner) => Bare("Claimed", owner);
 
-    protected SemanticConstraintEvaluator.Fact Released(string owner) => Bare("Released", owner);
+    internal SemanticConstraintEvaluator.Fact Released(string owner) => Bare("Released", owner);
 
-    protected SemanticConstraintEvaluator.Fact Bare(string name, string owner) => new(_plan.Events.Values.Single(candidate => candidate.Name == name).Id, SemanticValue.Text(owner), []);
+    internal SemanticConstraintEvaluator.Fact Bare(string name, string owner) => new(_plan.Events.Values.Single(candidate => candidate.Name == name).Id, SemanticValue.Text(owner), []);
 
-    protected void Validate(IReadOnlyList<SemanticConstraintEvaluator.Fact> history, params SemanticConstraintEvaluator.Fact[] candidates)
+    internal void Validate(IReadOnlyList<SemanticConstraintEvaluator.Fact> history, params SemanticConstraintEvaluator.Fact[] candidates)
     {
         var claims = new SemanticReactionBatchClaims(_plan, history);
         _results = [.. candidates.Select(claims.Validate)];

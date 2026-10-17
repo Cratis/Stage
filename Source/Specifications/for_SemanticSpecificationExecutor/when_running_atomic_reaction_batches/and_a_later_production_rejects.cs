@@ -3,16 +3,16 @@
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_running_atomic_reaction_batches;
 
-public class and_a_later_production_rejects : when_settling_reactions.given.a_reaction_plan
+public class and_a_later_production_rejects : given.an_observed_reaction_plan
 {
     void Establish() => Compile(
         "reaction Worker\n  when Started\n    item\n    produces Completed\n    produces Followed\n      item = item\n    produces Followed\n      item = item",
         "then error \"Already followed\"",
         new() { Policy = "reaction batches atomic", Declarations = "constraint Once\n  unique event Followed\n  message \"Already followed\"" });
 
-    Task Because() => Execute();
+    Task Because() => ExecuteObserved();
 
     [Fact] void should_reject_as_the_reference_does() => AssertMatchesReference();
     [Fact] void should_preserve_the_constraint_name() => _result.Trace!.RejectionCode.ShouldEqual("Once");
-    [Fact] void should_append_none_of_the_batch() => _result.Trace!.Facts.Select(fact => fact.EventContract).ShouldEqual([_plan.Events.Values.Single(contract => contract.Name == "Started").Id.ToString()]);
+    [Fact] void should_append_none_of_the_batch() => _worldFacts.ShouldEqual(1);
 }

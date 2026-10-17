@@ -90,18 +90,39 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
 
     internal Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken) => Append(fact, fact.EventSource?.Value ?? throw new UnsupportedSemanticMapping(), cancellationToken);
 
-    internal async Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken)
+    internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        return Append(Prepare(fact, destination), cancellationToken);
+    }
+
+    internal SemanticPreparedFact Prepare(SemanticSpecificationEvent fact, SemanticValue destination)
+    {
         var instance = runtimeTypes.Materialize(fact);
         var source = StorageKey(destination);
         var route = SemanticRunRoutes.Format(plan, fact.Route);
-        var result = await eventLog.Append(
-            new EventSourceId(source),
+
+        return new(
+            fact,
+            destination,
             instance,
-            eventStreamType: route is null ? EventStreamType.All : new EventStreamType(route.StreamKind),
-            eventStreamId: route?.StreamId is null ? EventStreamId.Default : new EventStreamId(route.StreamId),
-            eventSourceType: route is null ? EventSourceType.Default : new EventSourceType(route.SourceKind),
+            new EventSourceId(source),
+            route is null ? EventStreamType.All : new EventStreamType(route.StreamKind),
+            route?.StreamId is null ? EventStreamId.Default : new EventStreamId(route.StreamId),
+            route is null ? EventSourceType.Default : new EventSourceType(route.SourceKind));
+    }
+
+    internal async Task Append(SemanticPreparedFact prepared, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var fact = prepared.Fact;
+        var result = await eventLog.Append(
+            prepared.Source,
+            prepared.Instance,
+            eventStreamType: prepared.StreamType,
+            eventStreamId: prepared.StreamId,
+            eventSourceType: prepared.SourceType,
             occurred: Occurred);
         if (!result.IsSuccess)
         {
@@ -109,7 +130,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         }
 
         _facts.Add(fact);
-        _destinations.Add(destination);
+        _destinations.Add(prepared.Destination);
     }
 
     internal bool TryResolveRoute(out StreamIdFormatFailure failure)

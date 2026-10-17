@@ -101,6 +101,9 @@ internal static class SemanticValidationRendering
         };
         return rule.Kind switch
         {
+            SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or SemanticValidationRuleKind.GreaterThanOrEqual or
+            SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual when primitive is SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime && !collection =>
+                DatePredicate(rule, primitive, wrapped, optional, absentPasses, builder),
             SemanticValidationRuleKind.NotEmpty when collection => "value is { Count: > 0 }",
             SemanticValidationRuleKind.NotEmpty => $"!{Name(builder, "System", "String")}.IsNullOrWhiteSpace(value)",
             SemanticValidationRuleKind.Equal when primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber => $"{absentPasses}{scalar} == {number}",
@@ -117,6 +120,24 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual => $"{absentPasses}value.All(element => {element} {comparison} {number})",
             _ => $"{absentPasses}{measured} {comparison} {number}"
         };
+    }
+
+    // Chronological: DateOnly and DateTimeOffset order calendar dates and UTC instants at tick precision, and absence passes.
+    static string DatePredicate(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool wrapped, bool optional, string absentPasses, CSharpCodeBuilder? builder)
+    {
+        var symbol = rule.Kind switch
+        {
+            SemanticValidationRuleKind.Equal => "==",
+            SemanticValidationRuleKind.NotEqual => "!=",
+            SemanticValidationRuleKind.GreaterThan => ">",
+            SemanticValidationRuleKind.GreaterThanOrEqual => ">=",
+            SemanticValidationRuleKind.LessThan => "<",
+            _ => "<="
+        };
+        var scalar = wrapped || optional ? "value.Value" : "value";
+        var literal = SemanticDateLiteral.Render(((SemanticTextValue)rule.Operand!).Value, primitive, type => Name(builder, "System", type));
+
+        return $"{absentPasses}{scalar}.CompareTo({literal}) {symbol} 0";
     }
 
     static string Name(CSharpCodeBuilder? builder, string @namespace, string name, ReferenceContext context = ReferenceContext.Expression)

@@ -167,8 +167,9 @@ Clock, application, startup and shutdown triggers and opaque reaction bodies sti
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.204.0 and admits exact ESM v1–v21 and v23–v27 version pairs; unaudited
-language/semantic versions, including v22, refuse the whole model with `STAGE-ESM-016` before registration or execution.
+The semantic engine uses Screenplay 4.204.0 and admits exact ESM v1–v27 version pairs; unaudited
+language/semantic versions (v28 and later, mixed or noncanonical pairs) refuse the whole model with `STAGE-ESM-016` before registration or execution.
+A v22 model that uses `reaction batches atomic` is admitted and refused with `STAGE-ESM-043` until atomic batches execute.
 At v27 the semantic engine runs read models with several `key` parts: instances that differ in one part stay apart,
 `parts` projection keys create and remove only the instance whose parts all match, list queries filter on any part,
 and a single-instance query by parts takes one parameter per part, validated against its concept like a single key.
@@ -184,8 +185,8 @@ Specification expectations remain ordinal. Opaque `validate csharp` is an explic
 the specification executor refuses it at run admission, and the Host refuses it before authorization and
 input validation. The reference checks authorization, then offsets, then opaque validation, so an offset-less
 DateTime combined with opaque validation returns `Validation` in the reference but `Unsupported` in either
-Stage path. `Unsupported` never counts as a pass. Rendering and legacy engines refuse these comparisons with
-`STAGE-ESM-046`, naming the property, rather than emitting a different comparison.
+Stage path. `Unsupported` never counts as a pass. The renderer renders these comparisons (see
+[Stage rendering](../reference/stage-rendering.md)); the legacy engines refuse them with `STAGE-ESM-046`.
 The semantic engine executes `command reads protected`: after authorization and property/concept rules, each
 required view must exist at its declared key. Absence rejects validation with `Current '<key>' does not exist.`
 (using the view's name), before requirements or generation. All requirements then run, including read-backed

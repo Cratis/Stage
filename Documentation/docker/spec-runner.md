@@ -33,8 +33,9 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.204.0, admits exact ESM v1–v21 and v23–v27
-version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions, including v22, with `STAGE-ESM-016`.
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.204.0, admits exact ESM v1–v27
+version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v28 and later) with `STAGE-ESM-016`.
+A v22 model with `reaction batches atomic` is admitted and records `Unsupported` with `STAGE-ESM-043` until atomic batches execute.
 At v27 a specification that projects into a read model with several `key` parts records `Unsupported(Projection)`,
 naming ESM v27 composite read-model keys: the per-run scenario seeds and looks up instances by one event-source key.
 The semantic Host runs such read models; the legacy structural runner refuses them with `STAGE-ESM-048`.
@@ -45,8 +46,9 @@ validation, including reaction invocations. Specification `then` matching remain
 with opaque validation reports `Unsupported` at run admission, before execution. The Host also refuses opaque
 validation before authorization and input validation. Unlike both Stage paths, the reference checks authorization,
 then offsets, then opaque validation: an offset-less input combined with opaque validation returns `Validation`
-in the reference but `Unsupported` in Stage. `Unsupported` never counts as a pass. The renderer and legacy engines
-refuse date comparisons with `STAGE-ESM-046`; date three-way conformance awaits renderer support.
+in the reference but `Unsupported` in Stage. `Unsupported` never counts as a pass. The renderer
+render date comparisons, and the legacy engines refuse them with `STAGE-ESM-046`. Date three-way conformance
+covers the canonical corpus in all source forms.
 The semantic executor runs protected command reads, including reaction-invoked commands. After authorization and
 property/concept rules, it projects the prior facts through Chronicle's in-memory read-model scenario and requires
 each declared view at its key. Event-source-keyed removal and recreation are preserved. Absence rejects validation
@@ -62,7 +64,7 @@ Without the preamble, command reads still fail binding with `PLAY0271` and the r
 At v20 it executes rules on generated concepts. A failing fixture is a contract rejection with
 `Generated fixture '<property>' fails concept '<Concept>' rules`, not the rule's authored input-validation message.
 Each supplied fixture is checked for shape and rules before the next fixture or a missing fixture.
-Generated concept rules render at every severity; the pinned Arc 22.109.0 runtime rejects any failing generated rule as a server generation defect.
+Generated concept rules render at every severity; the pinned Arc 22.112.0 runtime rejects any failing generated rule as a server generation defect.
 Explicit concept generation, not the schema version, activates strategy shape checks and generated-source freshness;
 implicit-UUID-only models remain unguarded at later versions. A generated concept with rules still requires its fixture's canonical strategy shape.
 See [Generated values](../reference/generated-values-rendering.md#rules-on-generated-concepts) for rendering refusals and Host exception behavior.

@@ -6,7 +6,7 @@ namespace Cratis.Stage.Specifications.Commands.for_SemanticRuleEvaluation.when_c
 public class with_surrounding_whitespace : given.a_not_empty_rule
 {
     void Establish() => Prepare("\" a \"");
-    void Because() => _failure = SemanticRuleEvaluation.FirstFailure(_command, _specification, _concepts);
+    void Because() => _failure = SemanticRuleEvaluation.FirstFailure(_command, _specification, _application);
 
     [Fact] void should_accept_text_containing_non_whitespace() => _failure.ShouldBeNull();
 }

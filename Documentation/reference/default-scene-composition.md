@@ -90,12 +90,12 @@ Command registration and command form behavior are unchanged. Bindings and Scene
 ## Package and verification boundary
 
 The emitted frontend pins the Scene family at exact **4.2.0** for this contract, Components **4.14.0**
-for native form actions, and Fundamentals **7.19.8**. The generated backend uses Arc **22.109.0** (Fundamentals **7.25.0**);
+for native form actions, and Fundamentals **7.19.8**. The generated backend uses Arc **22.112.0** (Fundamentals **7.25.0**);
 the frontend uses Arc **22.58.2**, including Arc React's form custom-validation gate. The generated backend
 references Cratis.Chronicle **19.71.0** explicitly to match the runtime image **19.71.0-development**,
 instead of relying on the client the Cratis metapackage brings transitively. Stage's own central
 Chronicle/Host image and Scene NuGet tooling pins are separate from this generated profile; they currently use
-Chronicle **19.71.0** and Scene **4.67.0**.
+Chronicle **19.71.0** and Scene **4.68.2**.
 Published Components **4.14.0** and Scene **4.2.0** provide the command-form Guid/submit UI contract;
 native build and specification checks do not prove browser functionality.
 

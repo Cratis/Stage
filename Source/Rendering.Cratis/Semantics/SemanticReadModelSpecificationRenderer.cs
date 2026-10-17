@@ -31,7 +31,7 @@ internal static class SemanticReadModelSpecificationRenderer
         var command = specification.When is null ? null : context.Commands[specification.When.Command];
 
         // Without a command there is nothing to replay: the facts are all given, and only a projection builds the model from them.
-        var replay = command is null ? [] : ReplayOf(specification, expected, projection, reducer, command);
+        var replay = command is null ? [] : ReplayOf(context.Application, specification, expected, projection, reducer, command);
         var givenEvents = reducer is null ? specification.GivenEvents : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
@@ -155,12 +155,13 @@ internal static class SemanticReadModelSpecificationRenderer
     static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";
 
     static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> ReplayOf(
+        SemanticApplication application,
         SemanticSpecification specification,
         SemanticSpecificationReadModel expected,
         SemanticProjection? projection,
         SemanticReducer? reducer,
         SemanticCommand command) =>
         reducer is null
-            ? SemanticProjectionSpecificationEvents.Replay(specification, projection!, command)
-            : SemanticReducerSpecificationEvents.Replay(specification, expected, reducer, command);
+            ? SemanticProjectionSpecificationEvents.Replay(application, specification, projection!, command)
+            : SemanticReducerSpecificationEvents.Replay(application, specification, expected, reducer, command);
 }

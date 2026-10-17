@@ -94,6 +94,6 @@ public class a_composite_input : Specification
     {
         _reference = new SemanticSpecificationRunner().Run(_plan, _specification.Id);
         _result = Assert.Single((await new SemanticSpecificationExecutor().Run(_plan, new([_specification.Id]), new())).Results);
-        _failures = [.. SemanticRuleEvaluation.Failures(_command, _specification, _plan.Model.Application.Concepts, _plan.Model.Application.Types)];
+        _failures = [.. SemanticRuleEvaluation.Failures(_command, _specification, _plan.Model.Application)];
     }
 }

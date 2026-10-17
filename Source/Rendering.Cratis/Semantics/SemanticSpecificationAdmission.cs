@@ -65,7 +65,7 @@ internal static partial class SemanticSpecificationAdmission
         if (specification.When is not { } action) return false;
         if (!context.Commands.TryGetValue(action.Command, out var command)) return false;
 
-        return EventReactionTriggers(context).Any(trigger => SemanticProductionSelection.Taken(command, specification).Any(produced => produced.EventContract == trigger.Source));
+        return EventReactionTriggers(context).Any(trigger => SemanticProductionSelection.Taken(context.Application, command, specification).Any(produced => produced.EventContract == trigger.Source));
     }
 
     internal static bool IsReactionConstraintTarget(SemanticApplicationContext context, SemanticId @event) =>
@@ -78,17 +78,17 @@ internal static partial class SemanticSpecificationAdmission
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
-                    !AssertsUncontrolledOccurrence(specification, command!) &&
+                    !AssertsUncontrolledOccurrence(context.Application, specification, command!) &&
                     !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
                     CommandValuesMatch(context, specification, command!) &&
                     HasOneOutcome(specification) && HasSupportedCounts(specification) &&
-                    (specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == SemanticProductionSelection.Taken(command!, specification).Length) &&
+                    (specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == SemanticProductionSelection.Taken(context.Application, command!, specification).Length) &&
                     specification.ThenEvents.All(expected => EventMatches(context, expected)) &&
                     (specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty ||
                         (specification.ThenEventsInAnyOrder
                             ? specification.ThenEvents.GroupBy(_ => _.EventContract).All(group =>
-                                SemanticProductionSelection.Taken(command!, specification).Count(_ => _.EventContract == group.Key) == group.Count())
-                            : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(SemanticProductionSelection.Taken(command!, specification).Select(_ => _.EventContract)))) &&
+                                SemanticProductionSelection.Taken(context.Application, command!, specification).Count(_ => _.EventContract == group.Key) == group.Count())
+                            : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(SemanticProductionSelection.Taken(context.Application, command!, specification).Select(_ => _.EventContract)))) &&
                     specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
                         HasExpectedProjectionEvent(context, specification, expected) &&
                         !ReducerUsesUnstableContext(context, expected.ReadModel)) &&
@@ -139,7 +139,7 @@ internal static partial class SemanticSpecificationAdmission
             // Keyed lookups still read only their selected stream; collection scenarios preserve all seeded rows.
             if (context.Queries[expected.Query].Cardinality == SemanticQueryCardinality.Many) continue;
             if (specification.GivenEvents.Any(given => !Equals(given.EventSource?.Value, expected.Key)) ||
-                SemanticProductionSelection.Taken(command, specification).Any(produced => !Equals(SemanticDestinations.ForSpecification(specification, command, produced).Value, expected.Key)))
+                SemanticProductionSelection.Taken(context.Application, command, specification).Any(produced => !Equals(SemanticDestinations.ForSpecification(specification, command, produced).Value, expected.Key)))
             {
                 return false;
             }
@@ -162,8 +162,8 @@ internal static partial class SemanticSpecificationAdmission
             .Any(authorization => SemanticCratisAdmission.OpaquePolicies(authorization, context.Application.Policies).Any());
     }
 
-    static bool AssertsUncontrolledOccurrence(SemanticSpecification specification, SemanticCommand command) =>
-        !SemanticSpecificationClock.TryGet(specification, out _) && SemanticProductionSelection.Taken(command, specification).Any(produced => produced.Mappings.Any(mapping =>
+    static bool AssertsUncontrolledOccurrence(SemanticApplication application, SemanticSpecification specification, SemanticCommand command) =>
+        !SemanticSpecificationClock.TryGet(specification, out _) && SemanticProductionSelection.Taken(application, command, specification).Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
         (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
 
@@ -214,7 +214,7 @@ internal static partial class SemanticSpecificationAdmission
         }
 
         if (specification.When is { } when && context.Commands.TryGetValue(when.Command, out var command) &&
-            AssertsUncontrolledOccurrence(specification, command))
+            AssertsUncontrolledOccurrence(context.Application, specification, command))
         {
             return "A command maps $context.occurred from its current clock; fixed event or projected values in a specification cannot assert this occurrence without a supplied time.";
         }

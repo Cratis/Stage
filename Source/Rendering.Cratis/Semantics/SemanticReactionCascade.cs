@@ -35,7 +35,7 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
             return false;
         }
 
-        var taken = SemanticProductionSelection.Taken(command, specification);
+        var taken = SemanticProductionSelection.Taken(context.Application, command, specification);
         var triggers = taken.Select(produced => (Produced: produced, Append: Append(context, specification, command, produced)))
             .Where(item => item.Append is not null)
             .SelectMany(item => SemanticReactionSpecification.Candidates(context, item.Append!).Where(candidate => candidate.Fires).Select(candidate => (item.Append, Selection: candidate)))

@@ -3,33 +3,35 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
-using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Comparison;
 
 namespace Cratis.Stage.Specifications.Commands;
 
 internal static class SemanticRuleEvaluation
 {
-    internal static string? FirstFailure(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null)
-        => Failures(command, specification, concepts, composites).FirstOrDefault()?.Message;
+    internal static string? FirstFailure(SemanticCommand command, SemanticSpecification specification, SemanticApplication application)
+        => Failures(command, specification, application).FirstOrDefault()?.Message;
 
-    internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null) =>
-        RuleFailures(command, specification, concepts, composites).Concat(RequirementFailures(command, specification, dateTypes: SemanticDateOrdering.Participating(concepts, command)));
+    internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, SemanticApplication application) =>
+        RuleFailures(command, specification, application).Concat(RequirementFailures(command, specification, dateTypes: SemanticDateComparisons.Participants(application, command)));
 
-    internal static IEnumerable<SemanticValidationFailure> RuleFailures(SemanticCommand command, SemanticSpecification specification, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites = null)
+    internal static IEnumerable<SemanticValidationFailure> RuleFailures(SemanticCommand command, SemanticSpecification specification, SemanticApplication application)
     {
         var values = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
-        var dateTypes = SemanticDateOrdering.Participating(concepts, command);
+        var dateTypes = SemanticDateComparisons.Participants(application, command);
         foreach (var rule in command.Validations)
         {
-            var dateRule = dateTypes.TryGetValue(rule.Property, out var primitive) && SemanticDateOrdering.IsComparison(rule.Kind);
-            if (!(dateRule ? SemanticDateOrdering.Satisfies(rule, values[rule.Property], primitive) : Satisfies(rule, values[rule.Property])))
+            // Date comparison rules are chronological and a null value passes; the reference check delegates every other rule.
+            var check = dateTypes.TryGetValue(rule.Property, out var primitive)
+                ? SemanticDateComparisons.Check(rule, values[rule.Property], primitive)
+                : SemanticValidationRules.Check(rule, values[rule.Property]);
+            if (!Satisfied(check))
             {
-                yield return new(rule.Message ?? (dateRule ? SemanticDateOrdering.DefaultMessage(rule) : Message(rule, values[rule.Property], "A required value is empty.")), rule.Severity);
+                yield return new(rule.Message ?? (rule.Kind == SemanticValidationRuleKind.NotEmpty ? "A required value is empty." : check.Message), rule.Severity);
             }
         }
 
-        foreach (var failure in ConceptFailures(command, values, concepts, composites))
+        foreach (var failure in ConceptFailures(command, values, application.Concepts, application.Types))
         {
             yield return failure;
         }
@@ -55,15 +57,17 @@ internal static class SemanticRuleEvaluation
         _ => throw new UnsupportedSemanticMapping()
     };
 
-    internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => SemanticValidationRules.Check(rule, value).Status switch
+    internal static bool Satisfies(SemanticValidationRule rule, SemanticValue value) => Satisfied(SemanticValidationRules.Check(rule, value));
+
+    internal static string Message(SemanticValidationRule rule, SemanticValue value, string empty) =>
+        rule.Kind == SemanticValidationRuleKind.NotEmpty ? rule.Message ?? empty : SemanticValidationRules.Check(rule, value).Message;
+
+    static bool Satisfied(SemanticRuleCheck check) => check.Status switch
     {
         SemanticRuleStatus.Satisfied => true,
         SemanticRuleStatus.Failed => false,
         _ => throw new UnsupportedSemanticMapping()
     };
-
-    internal static string Message(SemanticValidationRule rule, SemanticValue value, string empty) =>
-        rule.Kind == SemanticValidationRuleKind.NotEmpty ? rule.Message ?? empty : SemanticValidationRules.Check(rule, value).Message;
 
     static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticCommand command, Dictionary<SemanticId, SemanticValue> values, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites)
     {
@@ -76,12 +80,13 @@ internal static class SemanticRuleEvaluation
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes)
     {
+        if (dateTypes?.ContainsKey(comparison.Left.Property) == true)
+        {
+            return SemanticConditionEvaluator.Evaluate(comparison, values, dateTypes, reads);
+        }
+
         var left = Operand(comparison.Left, values, reads);
         var right = Operand(comparison.Right, values, reads);
-        if (dateTypes is not null && dateTypes.TryGetValue(comparison.Left.Property, out var primitive))
-        {
-            return SemanticDateOrdering.Holds(SemanticDateOrdering.Compare(left, right, primitive), comparison.Operator);
-        }
         if (comparison.Operator == SemanticComparisonOperator.Equal) return SemanticExpectationComparer.AreEqual(left, right);
         if (comparison.Operator == SemanticComparisonOperator.NotEqual) return !SemanticExpectationComparer.AreEqual(left, right);
         if (left is not SemanticNumberValue a || right is not SemanticNumberValue b) throw new UnsupportedSemanticMapping();

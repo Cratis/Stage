@@ -11,6 +11,7 @@ using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
@@ -105,6 +106,19 @@ public class when_compiling_generated_name_matrix
             .. model.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context))
         ];
     });
+
+    [Theory]
+    [InlineData("GenerateValue")]
+    [InlineData("New")]
+    [InlineData("NotSet")]
+    [InlineData("Value")]
+    public void should_compile_generation_bodies_with_reserved_rule_names(string rule)
+    {
+        var loaded = generation_rule_model.Load(generation_rule_model.TargetBody, rule);
+        var plan = opaque_policy_model.Plan(loaded);
+        Assert.True(plan.Success, opaque_policy_model.Errors(plan));
+        Assert.Empty(RenderedOutput.Errors(opaque_policy_model.Files(plan)));
+    }
 
     public static TheoryData<string, string> TypeRows
     {

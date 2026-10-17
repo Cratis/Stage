@@ -323,9 +323,9 @@ internal static partial class PureTransitionAdmission
             $"{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
     }
 
-    // Shared by every pure body role: the text must be one complete block without directives,
-    // CR or forbidden syntax, and may type-test only the named generated types.
-    internal static (BlockSyntax? Block, Verdict? Rejection) ParseBody(string body, IReadOnlySet<string> generatedNames, string role)
+    // Every body must remain one complete block without directives or CR. Pure roles additionally
+    // refuse forbidden syntax and type tests outside the named generated types.
+    internal static (BlockSyntax? Block, Verdict? Rejection) ParseBody(string body, IReadOnlySet<string> generatedNames, string role, bool enforcePurity = true)
     {
         // PlannedArtifact.CreateText normalizes CR even inside verbatim literals. Refuse it so
         // the published body is exactly the text analysed here.
@@ -341,6 +341,8 @@ internal static partial class PureTransitionAdmission
         {
             return (null, Reject("STAGE-ESM-019", $"The {role} body is not a complete C# statement block."));
         }
+
+        if (!enforcePurity) return (block, null);
 
         var forbidden = block.DescendantNodesAndSelf().FirstOrDefault(IsForbiddenNode);
         if (forbidden is not null)

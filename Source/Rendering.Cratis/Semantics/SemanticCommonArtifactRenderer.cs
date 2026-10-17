@@ -128,6 +128,7 @@ internal static class SemanticCommonArtifactRenderer
         var value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
         var parameters = usesContext ? $"{builder.Type(new("Cratis.Concepts", "GenerationContext", 0, ReferenceContext.Type))} context" : string.Empty;
         builder.Line($"public static {Identifiers.ToPascalCase(concept.Name)} New({parameters}) => new({value});").BlankLine();
+        SemanticGenerationRendering.RenderBody(builder, concept, context);
     }
 
     static void RenderValidator(CSharpCodeBuilder builder, SemanticConcept concept, string name, string rootNamespace)

@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Specs;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication.given;
 using Xunit;
 
@@ -89,6 +90,18 @@ public class when_building_the_generated_screen_composition_application(when_bui
                 throw new InvalidOperationException(string.Join(Environment.NewLine, plan.Diagnostics.Select(_ => $"{_.Code}: {_.Message}")));
             }
 
+            var generation = generation_rule_model.Load(generation_rule_model.TargetBody);
+            var generationPlan = CratisRendering.Plan(
+                generation.Model,
+                generation.Plan,
+                new(Contracts.Rendering.ArtifactRenderScopeKind.Application, generation.Model.Application.Id),
+                _options,
+                generation.ImplementationRequirements,
+                generation.ImplementationContents,
+                generation.AttachmentDiagnostics,
+                generation.TypedContextDescriptors);
+            Assert.True(generationPlan.Success, opaque_policy_model.Errors(generationPlan));
+
             var kept = Environment.GetEnvironmentVariable(KeepVariable);
             _keep = !string.IsNullOrWhiteSpace(kept);
             _application = _keep ? Path.GetFullPath(kept!) : SpecTemporaryRoot.NewPath("stage-generated-react");
@@ -99,6 +112,10 @@ public class when_building_the_generated_screen_composition_application(when_bui
 
             Directory.CreateDirectory(_application);
             Write(plan, _application);
+            var generationArtifact = generationPlan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("TenantOrderId.cs", StringComparison.Ordinal));
+            var generationPath = Path.Combine(_application, generationArtifact.RelativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(generationPath)!);
+            File.WriteAllBytes(generationPath, [.. generationArtifact.Bytes]);
         }
 
         async Task Because()

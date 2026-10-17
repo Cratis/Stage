@@ -29,21 +29,38 @@ public record StageRoutes(
     /// </summary>
     public IReadOnlyDictionary<string, string> CommandSchemas { get; init; } = new Dictionary<string, string>();
 
-    internal static StageRoutes For(StageSceneRoutes routes, EventModel model) => new(routes.CommandRoutes, routes.QueryRoutes)
-    {
-        Diagnostics = routes.Diagnostics,
-        CommandSchemas = StageModelWalker.Slices(model)
+    internal static StageRoutes For(StageSceneRoutes routes, EventModel model) => Create(routes,
+        StageModelWalker.Slices(model)
             .Where(located => located.Slice.Command is not null)
-            .GroupBy(located => located.Slice.Command!.Name, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First().Slice.Command!.Schema, StringComparer.Ordinal)
-    };
+            .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", located.Slice.Command.Schema)));
 
-    internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model) => new(routes.CommandRoutes, routes.QueryRoutes)
+    internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model) => Create(routes,
+        SemanticModelWalker.Slices(model)
+            .SelectMany(located => located.Slice.Commands.Select(command =>
+                ($"{located.TypeNamespace}.{command.Name}", CommandFormSchemas.For(model.Application, command.Properties)))));
+
+    static StageRoutes Create(StageSceneRoutes routes, IEnumerable<(string Identity, string Schema)> metadata)
     {
-        Diagnostics = routes.Diagnostics,
-        CommandSchemas = SemanticModelWalker.Slices(model)
-            .SelectMany(located => located.Slice.Commands)
-            .GroupBy(command => command.Name, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => CommandFormSchemas.For(model.Application, group.First().Properties), StringComparer.Ordinal)
-    };
+        var schemas = metadata.ToDictionary(entry => entry.Identity, entry => entry.Schema, StringComparer.Ordinal);
+        foreach (var group in schemas.ToArray().GroupBy(entry => StageRouteCandidates.SimpleName(entry.Key), StringComparer.Ordinal))
+        {
+            var matches = group.ToArray();
+            if (matches.Length == 1)
+            {
+                schemas[group.Key] = matches[0].Value;
+            }
+        }
+
+        // Arc names command endpoints Execute<full type name>. Publish the modeled identity that scene elements carry,
+        // not the endpoint operation name; unrelated Host POST operations have no modeled command schema.
+        var commands = schemas.Keys
+            .Where(identity => routes.QualifiedCommandRoutes.ContainsKey($"Execute{identity}"))
+            .ToDictionary(identity => identity, identity => routes.QualifiedCommandRoutes[$"Execute{identity}"], StringComparer.Ordinal);
+        foreach (var route in routes.CommandRoutes.Where(entry => schemas.ContainsKey(entry.Key)))
+        {
+            commands.TryAdd(route.Key, route.Value);
+        }
+
+        return new(commands, routes.QueryRoutes) { Diagnostics = routes.Diagnostics, CommandSchemas = schemas };
+    }
 }

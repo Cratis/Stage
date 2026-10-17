@@ -217,7 +217,7 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
 
 function StageCommandAction({ element, interactions }: RegisteredProps) {
     const label = text(element, 'label', text(element, 'command'));
-    const command = registeredCommand(text(element, 'command'));
+    const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;

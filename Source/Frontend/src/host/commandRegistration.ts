@@ -10,8 +10,13 @@ import type { StageRoutes } from '../stageRoutes';
 export function registerStageCommands(routes: StageRoutes): void {
     for (const [name, route] of Object.entries(routes.commands)) {
         const schema = routes.commandSchemas?.[name];
-        if (!schema) throw new Error(`Command metadata for '${name}' is missing; Stage cannot register its proxy.`);
-        registerCommand(name, commandTypeFor(route, schema));
+        if (!schema) {
+            console.warn(`Command metadata for '${name}' is missing; Stage cannot register its proxy.`);
+            continue;
+        }
+        const command = commandTypeFor(route, schema);
+        registerCommand(name, command);
+        registerCommand(route.replace(/^\//, ''), command);
     }
 }
 

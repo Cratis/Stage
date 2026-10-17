@@ -76,6 +76,8 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
     /// </remarks>
     public IReadOnlyDictionary<string, string> CommandRoutes => _commandRoutes.Value.Routes;
 
+    internal IReadOnlyDictionary<string, string> QualifiedCommandRoutes => _commandRoutes.Value.QualifiedRoutes;
+
     /// <summary>
     /// Gets the route each modeled query is read from, by query name.
     /// </summary>
@@ -162,7 +164,7 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
             diagnostics.Add($"{method} '{name.Key}' is ambiguous between {string.Join(", ", answering.Select(operation => operation.Identity).Order(StringComparer.Ordinal))}; it is not resolved by name.");
         }
 
-        return new(routes, diagnostics);
+        return new(routes, diagnostics, operations.ToDictionary(operation => operation.Identity, operation => operation.Route, StringComparer.Ordinal));
     }
 
     static SceneElements.SceneElement WithRoute(SceneElements.SceneElement element, IReadOnlyList<StageRouteCandidate> candidates, ILogger logger)
@@ -286,5 +288,5 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
         public Func<string, bool>? Equivalent { get; init; }
     }
 
-    sealed record NamedRoutes(IReadOnlyDictionary<string, string> Routes, IReadOnlyList<string> Diagnostics);
+    sealed record NamedRoutes(IReadOnlyDictionary<string, string> Routes, IReadOnlyList<string> Diagnostics, IReadOnlyDictionary<string, string> QualifiedRoutes);
 }

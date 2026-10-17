@@ -331,7 +331,7 @@ function StageScope({ scene, routeState, strings, navigation, themes, shellSetti
             {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
             <ColorSchemeMirror />
             <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
-                <StageInteractions activity={activity} routes={routeState.routes} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
+                <StageInteractions activity={activity} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
                     {children}
                 </StageInteractions>
             </StageDataProvider>
@@ -341,7 +341,6 @@ function StageScope({ scene, routeState, strings, navigation, themes, shellSetti
 
 interface StageInteractionsProps {
     activity: string;
-    routes: ReturnType<typeof useStageRouteState>['routes'];
     routesReady: boolean;
     scene: StageSceneApplication;
     setActivity: (activity: string) => void;
@@ -349,7 +348,7 @@ interface StageInteractionsProps {
     children: ReactNode;
 }
 
-function StageInteractions({ activity, routes, routesReady, scene, setActivity, strings, children }: StageInteractionsProps) {
+function StageInteractions({ activity, routesReady, scene, setActivity, strings, children }: StageInteractionsProps) {
     const data = useStageData();
     const navigation = useSceneNavigation();
     const executeCommand = useStageCommandExecutor();

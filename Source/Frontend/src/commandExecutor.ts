@@ -8,9 +8,16 @@ import { resolveCommand } from '@cratis/scene.components';
 import type { StageCommandOutcome } from './StageCommandOutcome';
 
 /** Resolves only native Arc command proxies; unrelated registry entries cannot execute. */
-export function registeredCommand(name: string): (new () => Command) | undefined {
-    const candidate = resolveCommand(name);
-    return isCommand(candidate) ? candidate : undefined;
+export function registeredCommand(name: string, typeName?: string, route?: string): (new () => Command) | undefined {
+    for (const identity of [typeName, route?.replace(/^\//, ''), name]) {
+        if (!identity) continue;
+        const candidate = resolveCommand(identity);
+        if (!isCommand(candidate)) continue;
+        // Generated bindings use simple names. A planned route still must select that same proxy.
+        if (identity === name && route && new candidate().route.replace(/^\//, '') !== route.replace(/^\//, '')) continue;
+        return candidate;
+    }
+    return undefined;
 }
 
 function isCommand(candidate: unknown): candidate is new () => Command {

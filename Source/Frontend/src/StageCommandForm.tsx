@@ -45,7 +45,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const schema = useMemo(() => schemaProperties(element), [element]);
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
-    const commandType = form ? registeredCommand(form.command) : undefined;
+    const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
     const initialValues = useMemo(() => initialCommandValues(fields, data.parameters), [fields, data.parameters]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);

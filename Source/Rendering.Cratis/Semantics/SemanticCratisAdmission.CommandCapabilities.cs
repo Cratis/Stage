@@ -72,7 +72,11 @@ internal static partial class SemanticCratisAdmission
         {
             var property = command.Properties.Single(property => property.Id == rule.Property);
             var label = rule.Name ?? rule.Kind.ToString();
-            if (rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation)
+            if (rule.Kind == SemanticValidationRuleKind.RulePredicate)
+            {
+                ValidateRuleBody(context, rule, command.Id, property, diagnostics);
+            }
+            else if (rule.Kind == SemanticValidationRuleKind.CodeValidation)
             {
                 diagnostics.Add(CommandCapability(command, $"validation '{label}' on property '{property.Name}' has implementation body '{rule.RequirementId}' that cannot be rendered: {ValidationBodyReason}"));
             }

@@ -158,6 +158,16 @@ includes possible reaction effects without evaluating runtime guards. Reducer re
 capability; validation refusals carry Command. This does not change live-world history rebuilding or the
 renderer's implementation-body admission.
 
+The renderer admits verified pure C# Boolean named rule bodies on commands and concepts,
+using generated app-local contexts and Arc validators without a Screenplay runtime dependency.
+The context supplies `Artifact`, `Value`, `Property` and `IsWholeArtifact`; command shapes exclude
+server-generated properties. `Tenant`, `CausedBy` and `Occurred` reads are refused with
+`STAGE-ESM-015`, not supplied from ambient state. Authored messages and severities are preserved,
+and every failed rule blocks the command regardless of severity. Missing bodies fail
+`STAGE-ESM-020`, envelope or compile errors `STAGE-ESM-019`, descriptor mismatches
+`STAGE-ESM-021`, and forbidden pure-body symbols `STAGE-ESM-022`. Optional validated concepts
+with body rules remain refused, as do code-validation iterators (`STAGE-ESM-005`).
+
 V26's Date/DateTime comparisons in command requirements, `produces when` and validation rules execute in the
 semantic Host and specification executor, including through concepts. DateTime compares UTC ticks and requires
 an explicit input offset or `Z` after authorization; Date compares calendar days. `then` expectations remain

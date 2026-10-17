@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -287,7 +288,14 @@ internal static class SemanticStateChangeArtifactRenderer
             var property = command.Properties.Single(_ => _.Id == rule.Property);
             var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
             var wrapped = property.Type.Kind == SemanticTypeReferenceKind.Concept && !raw.Contains(property.Id);
-            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context));
+            if (SemanticValidationContextRuntime.IsBody(rule))
+            {
+                SemanticValidationContextRuntime.RenderRule(builder, context, rule, command.Id, property);
+            }
+            else
+            {
+                SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context));
+            }
         }
 
         foreach (var id in constrained)

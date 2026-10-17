@@ -45,10 +45,9 @@ public class when_verifying_implementation_attachments : Specification
                   amount rule Positive message "Positive amount required"
                     file Rules/Positive.cs
                 produces OrderPlaced
-                  orderId = orderId
+                  for orderId
                   amount = amount
               event OrderPlaced
-                orderId Uuid
                 amount Decimal
         """;
 
@@ -64,7 +63,8 @@ public class when_verifying_implementation_attachments : Specification
 
     async Task Because() => _loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
 
-    [Fact] async Task should_emit_no_typed_contexts_for_a_slice_when_other_slices_have_a_reducer_rule_and_policy()
+    [Fact]
+    async Task should_emit_no_typed_contexts_for_a_slice_when_other_slices_have_a_reducer_rule_and_policy()
     {
         const string policy = """
             policy Access
@@ -99,7 +99,8 @@ public class when_verifying_implementation_attachments : Specification
         Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath.StartsWith("TypedContexts/", StringComparison.Ordinal));
     }
 
-    [Fact] async Task should_require_a_policy_descriptor_for_each_authorized_use_site()
+    [Fact]
+    async Task should_require_a_policy_descriptor_for_each_authorized_use_site()
     {
         const string policySource = """
             policy Access
@@ -127,13 +128,15 @@ public class when_verifying_implementation_attachments : Specification
             diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("use site", StringComparison.Ordinal));
     }
 
-    [Fact] void should_carry_the_inline_body_by_requirement_identity()
+    [Fact]
+    void should_carry_the_inline_body_by_requirement_identity()
     {
         var requirement = _loaded.ImplementationRequirements.Single();
         _loaded.ImplementationContents[requirement.RequirementId].ShouldContain("Nothing to order");
     }
 
-    [Fact] void should_carry_ready_descriptors_with_the_same_model_revision()
+    [Fact]
+    void should_carry_ready_descriptors_with_the_same_model_revision()
     {
         var descriptor = _loaded.TypedContextDescriptors.Single();
         descriptor.RequirementId.ShouldEqual(_loaded.ImplementationRequirements.Single().RequirementId);
@@ -150,7 +153,8 @@ public class when_verifying_implementation_attachments : Specification
             _loaded.TypedContextDescriptors).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005");
     }
 
-    [Fact] void should_reject_a_descriptor_from_another_model_revision()
+    [Fact]
+    void should_reject_a_descriptor_from_another_model_revision()
     {
         var model = ExecutableSemanticModel.Create(
             _loaded.Model.LanguageVersion,
@@ -191,7 +195,8 @@ public class when_verifying_implementation_attachments : Specification
             diagnostic.Message.Contains("role, context version", StringComparison.Ordinal));
     }
 
-    [Fact] void should_reject_a_descriptor_with_no_matching_compiler_requirement()
+    [Fact]
+    void should_reject_a_descriptor_with_no_matching_compiler_requirement()
     {
         var descriptor = _loaded.TypedContextDescriptors.Single() with { RequirementId = "unrelated" };
         CratisRendering.Plan(
@@ -205,7 +210,8 @@ public class when_verifying_implementation_attachments : Specification
             [descriptor]).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021");
     }
 
-    [Fact] void should_collect_target_and_descriptor_diagnostics_together()
+    [Fact]
+    void should_collect_target_and_descriptor_diagnostics_together()
     {
         var descriptor = _loaded.TypedContextDescriptors.Single();
         var member = descriptor.Members[0];
@@ -229,7 +235,8 @@ public class when_verifying_implementation_attachments : Specification
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021");
     }
 
-    [Fact] void should_diagnose_an_unknown_runtime_token_without_falling_back_to_dynamic()
+    [Fact]
+    void should_diagnose_an_unknown_runtime_token_without_falling_back_to_dynamic()
     {
         var descriptor = _loaded.TypedContextDescriptors.Single();
         var member = descriptor.Members[0];
@@ -254,7 +261,8 @@ public class when_verifying_implementation_attachments : Specification
         plan.Artifacts.ShouldBeEmpty();
     }
 
-    [Fact] void should_reject_the_missing_body_with_its_requirement_identity()
+    [Fact]
+    void should_reject_the_missing_body_with_its_requirement_identity()
     {
         var requirement = _loaded.ImplementationRequirements.Single();
         var plan = Render(_loaded.ImplementationContents.Remove(requirement.RequirementId));
@@ -262,7 +270,8 @@ public class when_verifying_implementation_attachments : Specification
         plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-020").Message.ShouldContain(requirement.RequirementId);
     }
 
-    [Fact] void should_reject_a_stale_body_with_its_requirement_identity()
+    [Fact]
+    void should_reject_a_stale_body_with_its_requirement_identity()
     {
         var requirement = _loaded.ImplementationRequirements.Single();
         var plan = Render(_loaded.ImplementationContents.SetItem(requirement.RequirementId, "return true;"));
@@ -270,7 +279,8 @@ public class when_verifying_implementation_attachments : Specification
         plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-020").Message.ShouldContain(requirement.RequirementId);
     }
 
-    [Fact] async Task should_load_a_file_body_from_the_model_root()
+    [Fact]
+    async Task should_load_a_file_body_from_the_model_root()
     {
         await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), FileSource);
         Directory.CreateDirectory(Path.Combine(_folder, "Rules"));
@@ -278,12 +288,14 @@ public class when_verifying_implementation_attachments : Specification
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         var requirement = loaded.ImplementationRequirements.Single();
         loaded.ImplementationContents[requirement.RequirementId].ShouldEqual("return context.Value > 0;");
-        var plan = Render(loaded);
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005");
+        var plan = CratisRendering.Plan(loaded.Model, loaded.Plan, Scope(loaded), new("Orders", "Orders"), loaded.ImplementationRequirements, loaded.ImplementationContents, loaded.AttachmentDiagnostics, loaded.TypedContextDescriptors);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        plan.Artifacts.ShouldContain(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("return context.Value > 0;", StringComparison.Ordinal));
         plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-020");
     }
 
-    [Fact] void should_keep_code_validation_rejected_when_the_body_is_verified()
+    [Fact]
+    void should_keep_code_validation_rejected_when_the_body_is_verified()
     {
         var plan = Render(_loaded.ImplementationContents);
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005" &&
@@ -294,7 +306,8 @@ public class when_verifying_implementation_attachments : Specification
         plan.Artifacts.ShouldBeEmpty();
     }
 
-    [Fact] void should_reject_model_validation_without_any_envelope()
+    [Fact]
+    void should_reject_model_validation_without_any_envelope()
     {
         var plan = CratisRendering.Plan(_loaded.Model, _loaded.Plan, Scope(_loaded), new("Orders", "Orders"), [], []);
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020" &&
@@ -302,7 +315,8 @@ public class when_verifying_implementation_attachments : Specification
         plan.Artifacts.ShouldBeEmpty();
     }
 
-    [Fact] void should_reject_orphan_duplicate_and_default_envelopes()
+    [Fact]
+    void should_reject_orphan_duplicate_and_default_envelopes()
     {
         Render(_loaded.ImplementationContents.Add("orphan", "body")).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020");
         CratisRendering.Plan(
@@ -323,7 +337,8 @@ public class when_verifying_implementation_attachments : Specification
             .Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020");
     }
 
-    [Fact] void should_accept_init_properties_on_a_plain_request()
+    [Fact]
+    void should_accept_init_properties_on_a_plain_request()
     {
         var request = new ArtifactRenderRequest(
             _loaded.Model, _loaded.Plan, CratisRendering.CreateProfile("Orders", new("Orders", "Orders")), Scope(_loaded))
@@ -336,7 +351,8 @@ public class when_verifying_implementation_attachments : Specification
         plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-020");
     }
 
-    [Fact] async Task should_reject_a_file_edited_after_loading()
+    [Fact]
+    async Task should_reject_a_file_edited_after_loading()
     {
         var loaded = await LoadFileBody("return context.Value > 0;");
         var requirement = loaded.ImplementationRequirements.Single();
@@ -346,7 +362,8 @@ public class when_verifying_implementation_attachments : Specification
             diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains(requirement.RequirementId, StringComparison.Ordinal));
     }
 
-    [Fact] async Task should_report_missing_file_and_its_loader_reason()
+    [Fact]
+    async Task should_report_missing_file_and_its_loader_reason()
     {
         var loaded = await LoadFileBody(null);
         loaded.ImplementationRequirements.Single().AttachmentResolution.ShouldEqual(SemanticAttachmentResolution.UnresolvedFile);
@@ -355,7 +372,8 @@ public class when_verifying_implementation_attachments : Specification
         Render(loaded).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains(code, StringComparison.Ordinal));
     }
 
-    [Fact] async Task should_refuse_an_out_of_root_file()
+    [Fact]
+    async Task should_refuse_an_out_of_root_file()
     {
         await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), FileSource.Replace("Rules/Positive.cs", "../x.cs", StringComparison.Ordinal));
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
@@ -363,7 +381,8 @@ public class when_verifying_implementation_attachments : Specification
         Render(loaded).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains("PLAY0430", StringComparison.Ordinal));
     }
 
-    [Fact] async Task should_refuse_a_symlinked_file()
+    [Fact]
+    async Task should_refuse_a_symlinked_file()
     {
         Directory.CreateDirectory(Path.Combine(_folder, "Rules"));
         await File.WriteAllTextAsync(Path.Combine(_folder, "real.cs"), "return true;");
@@ -384,10 +403,12 @@ public class when_verifying_implementation_attachments : Specification
         var requirement = loaded.ImplementationRequirements.Single();
         loaded.ImplementationContents[requirement.RequirementId].ShouldEqual(text);
         requirement.ContentHash.ShouldEqual(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text))).ToLowerInvariant());
-        Render(loaded).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005");
+        CratisRendering.Plan(loaded.Model, loaded.Plan, Scope(loaded), new("Orders", "Orders"), loaded.ImplementationRequirements, loaded.ImplementationContents, loaded.AttachmentDiagnostics, loaded.TypedContextDescriptors)
+            .Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-022");
     }
 
-    [Fact] async Task should_list_concept_validation_requirement_ids_in_005()
+    [Fact]
+    async Task should_list_concept_validation_requirement_ids_in_005()
     {
         const string source = "concept Label : String\n  validate\n    ```csharp\n    yield return \"Invalid label\";\n    ```\n" + Source;
         await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source);
@@ -396,7 +417,8 @@ public class when_verifying_implementation_attachments : Specification
             diagnostic.Message.Contains(loaded.ImplementationRequirements.Single(requirement => requirement.Role == SemanticImplementationRole.ConceptValidation).RequirementId, StringComparison.Ordinal));
     }
 
-    [Fact] async Task should_reject_a_verified_reducer_without_its_descriptor_with_021()
+    [Fact]
+    async Task should_reject_a_verified_reducer_without_its_descriptor_with_021()
     {
         const string source = """
             module Billing

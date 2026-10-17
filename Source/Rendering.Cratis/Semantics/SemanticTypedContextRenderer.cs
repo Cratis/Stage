@@ -94,7 +94,7 @@ internal static class SemanticTypedContextRenderer
         {
             if (context.Commands.TryGetValue(id, out var command))
             {
-                if (!SameProperties(properties, command.Properties)) throw Rejected($"Shape '{id}' differs from command properties.");
+                if (!SameProperties(properties, descriptor.Role == SemanticImplementationRole.RulePredicate ? [.. command.Properties.Where(property => !property.IsGenerated)] : command.Properties)) throw Rejected($"Shape '{id}' differs from command properties.");
                 return SliceType(id, command.Name);
             }
             if (context.Events.TryGetValue(id, out var @event))

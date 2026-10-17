@@ -122,10 +122,7 @@ public static class SemanticRunAdmission
         var collidingType = plan.Model.Application.Types.FirstOrDefault(type =>
             !GeneratedPascalCase.RecordMembersAreUnique(type.Name, type.Properties.Select(property => property.Name)));
         if (collidingType is not null) return Block(StageExecutionCapability.Command, collidingType.Id, "Type property names collide in generated C#.");
-        var reducer = slices.SelectMany(slice => slice.Reducers).FirstOrDefault();
-        if (reducer is not null) return Block(StageExecutionCapability.Projection, reducer.ReadModel, "Reducer implementation bodies cannot be executed by Stage.");
-        var opaqueConcept = plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Validations.Any(rule => OpaqueRule(rule.Kind)));
-        if (opaqueConcept is not null) return Block(StageExecutionCapability.Command, opaqueConcept.Id, "Validation implementation bodies cannot be executed by Stage.");
+        if (SemanticImplementationReach.ForSpecification(plan, specification) is { } implementation) return implementation;
         if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Given read-model state cannot be seeded into the per-run projection scenario.");
         if (specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty))
         {
@@ -162,10 +159,6 @@ public static class SemanticRunAdmission
             {
                 return Block(StageExecutionCapability.Command, producedContract.Id, "Event property names collide in generated C#.");
             }
-        }
-        if (!command.CodeValidations.IsEmpty || command.Validations.Any(rule => OpaqueRule(rule.Kind)))
-        {
-            return Block(StageExecutionCapability.Command, command.Id, "Validation implementation bodies cannot be executed by Stage.");
         }
         var valueContext = new SemanticApplicationContext(plan);
         var valueRefusal = command.Properties.Select(property => SemanticValueShapeAdmission.Refusal(valueContext, property.Type)).FirstOrDefault(refusal => refusal is not null);
@@ -218,9 +211,14 @@ public static class SemanticRunAdmission
     public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact) =>
         SemanticRunProjectionAdmission.CheckFact(plan, fact);
 
-    // Live commands cannot consume pinned fixtures, so the Host refuses generation implementation bodies.
-    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticCommand command, IEnumerable<SemanticConcept> concepts) =>
-        CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, concepts).Select(Feature));
+    // Live commands cannot consume pinned generation fixtures. Other bodies refuse only their reachable commands.
+    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command)
+    {
+        var features = CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, plan.Model.Application.Concepts).Select(Feature));
+        var refusal = SemanticImplementationReach.ForCommand(plan, command);
+
+        return refusal is null ? features : features.Append(new(command.Id.ToString(), "command", refusal.Capability.ToString(), refusal.Details));
+    }
 
     // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
     // Keep non-event triggers, opaque bodies and unsupported context mappings refused in both engines.
@@ -257,9 +255,6 @@ public static class SemanticRunAdmission
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
         feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
-
-    static bool OpaqueRule(SemanticValidationRuleKind kind) =>
-        kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
 
     static bool SupportedRule(SemanticValidationRuleKind kind) => kind is
         SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or

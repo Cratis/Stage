@@ -99,7 +99,7 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRunti
                 return Faulted();
             }
 
-            if (UnsupportedImplementation() is { } unsupported)
+            if (UnsupportedImplementation(query: query) is { } unsupported)
             {
                 return unsupported;
             }
@@ -128,15 +128,9 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRunti
         }
     }
 
-    static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
-        feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
-
-    static bool OpaqueRule(SemanticValidationRuleKind kind) =>
-        kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
-
     SemanticUnsupported Faulted() => new(_world, SemanticExecutionCapability.Unknown, FaultReason!);
 
-    SemanticUnsupported? UnsupportedImplementation(SemanticCommand? command = null)
+    SemanticUnsupported? UnsupportedImplementation(SemanticCommand? command = null, SemanticKeyedQuery? query = null)
     {
         // Match Host model admission even for runtimes created directly, before evaluating or settling any command.
         if (Plan.Commands.Values.SelectMany(SemanticVersionFeatures.UnsupportedReadRequirements).FirstOrDefault() is { } feature)
@@ -144,19 +138,12 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRunti
             return new(_world, SemanticExecutionCapability.Command, $"{feature.Code}: {feature.Message}");
         }
 
-        var slices = Plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices);
-        if (slices.SelectMany(slice => slice.Reducers).Any())
-        {
-            return new(_world, SemanticExecutionCapability.Projection, "Reducer implementation bodies cannot be executed by Stage.");
-        }
+        var refusal = command is null ? null : SemanticImplementationReach.ForCommand(Plan, command);
+        if (refusal is null && query is not null) refusal = SemanticImplementationReach.ForQuery(Plan, query);
+        if (refusal is null) return null;
+        var capability = Enum.TryParse<SemanticExecutionCapability>(refusal.Capability.ToString(), out var parsed) ? parsed : SemanticExecutionCapability.Unknown;
 
-        if (Plan.Model.Application.Concepts.Any(concept => concept.Validations.Any(rule => OpaqueRule(rule.Kind))) ||
-            (command is not null && (!command.CodeValidations.IsEmpty || command.Validations.Any(rule => OpaqueRule(rule.Kind)))))
-        {
-            return new(_world, SemanticExecutionCapability.Command, "Validation implementation bodies cannot be executed by Stage.");
-        }
-
-        return null;
+        return new(_world, capability, refusal.Details);
     }
 
     void InitializeWorld()

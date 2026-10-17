@@ -29,7 +29,7 @@ internal static class SemanticRunReactionAdmission
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
 
-    static (HashSet<SemanticId> Events, HashSet<SemanticId> Commands, SemanticUnsupportedCapability? Blocker) Reachable(
+    internal static (HashSet<SemanticId> Events, HashSet<SemanticId> Commands, SemanticUnsupportedCapability? Blocker) Reachable(
         SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> initial, bool includeRejected = false)
     {
         var reachable = initial.ToHashSet();

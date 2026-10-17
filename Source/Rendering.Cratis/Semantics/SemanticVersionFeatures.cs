@@ -118,6 +118,16 @@ internal static class SemanticVersionFeatures
     internal const string DateOrdering = "STAGE-ESM-046";
 
     /// <summary>
+    /// The code for single-instance queries by composite key parts, which the renderer cannot look up until Chronicle#4265.
+    /// </summary>
+    internal const string KeyPartsLookup = "STAGE-ESM-047";
+
+    /// <summary>
+    /// The code for read models with several key parts and their parts projection keys, which the renderer does not render yet.
+    /// </summary>
+    internal const string CompositeReadModelKeys = "STAGE-ESM-048";
+
+    /// <summary>
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
@@ -132,7 +142,8 @@ internal static class SemanticVersionFeatures
         (model.LanguageVersion == LanguageVersion.V23 && model.SemanticVersion == SemanticVersion.V23) ||
         (model.LanguageVersion == LanguageVersion.V24 && model.SemanticVersion == SemanticVersion.V24) ||
         (model.LanguageVersion == LanguageVersion.V25 && model.SemanticVersion == SemanticVersion.V25) ||
-        (model.LanguageVersion == LanguageVersion.V26 && model.SemanticVersion == SemanticVersion.V26);
+        (model.LanguageVersion == LanguageVersion.V26 && model.SemanticVersion == SemanticVersion.V26) ||
+        (model.LanguageVersion == LanguageVersion.V27 && model.SemanticVersion == SemanticVersion.V27);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -191,6 +202,38 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> RoutesInApplication(SemanticApplication application) =>
         (application.EventSources.IsDefault ? [] : application.EventSources).Select(source => new SemanticVersionFeature(
             Routes, StageExecutionCapability.IdentityAllocation, source.Id, "eventsource", "Named event sources and streams are not yet supported by the Cratis ESM planner."));
+
+    /// <summary>
+    /// Finds the ESM v27 composite read-model keys of one slice the renderer refuses; the Host runs them.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <param name="readModels">The application's indexed read models, which a projection may target across slices.</param>
+    /// <returns>One refusal per composite-keyed read model, parts-keyed projection and query by key parts, in model order.</returns>
+    public static IEnumerable<SemanticVersionFeature> CompositeKeysInSlice(SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticReadModel> readModels)
+    {
+        foreach (var readModel in slice.ReadModels.Where(HasCompositeKey))
+        {
+            yield return new(CompositeReadModelKeys, StageExecutionCapability.Projection, readModel.Id, "read model", $"Read model '{readModel.Name}' has several key parts (ESM v27); the Cratis renderer does not render composite read-model keys yet.");
+        }
+
+        foreach (var projection in slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.ReadModel &&
+            readModels.TryGetValue(projection.ReadModel, out var target) && HasCompositeKey(target)))
+        {
+            yield return new(CompositeReadModelKeys, StageExecutionCapability.Projection, projection.Id, "projection", $"Projection '{projection.Name}' keys its read model by parts (ESM v27); the Cratis renderer does not render parts projection keys yet.");
+        }
+
+        foreach (var query in slice.Queries.Where(query => !query.KeyParts.IsDefaultOrEmpty))
+        {
+            yield return new(KeyPartsLookup, StageExecutionCapability.Query, query.Id, "query", $"Query '{query.Name}' looks up one instance by key parts (ESM v27); Chronicle cannot look up a read model by a composite key until Chronicle#4265.");
+        }
+    }
+
+    /// <summary>
+    /// Checks whether a read model is identified by several key parts.
+    /// </summary>
+    /// <param name="readModel">The read model.</param>
+    /// <returns>Whether the read model has two or more key parts.</returns>
+    public static bool HasCompositeKey(SemanticReadModel readModel) => readModel.Properties.Count(property => property.IsIdentifier) > 1;
 
     /// <summary>
     /// Finds the structural automation and public-event constructs of one slice.

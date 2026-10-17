@@ -65,6 +65,11 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         _byId = byId;
         _filters = filters ?? [];
         Parameters = byId ? new QueryParameters { { query?.Argument?.Name ?? "id", typeof(string) } } : [];
+        foreach (var part in query?.KeyParts ?? [])
+        {
+            Parameters.Add(part.Name, typeof(string));
+        }
+
         foreach (var filter in query?.Filters ?? [])
         {
             Parameters.Add(filter.Name, typeof(string));
@@ -172,6 +177,14 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
 
     SemanticValue Key(QueryContext context)
     {
+        if (_query is { KeyParts.IsDefaultOrEmpty: false })
+        {
+            return SemanticQueryKeys.FromParts(
+                _query,
+                name => context.Arguments?.TryGetValue(name, out var part) == true ? part?.ToString() : null,
+                _runtime.Plan.Model.Application);
+        }
+
         if (_query?.Argument is not { } argument)
         {
             return SemanticValue.Null;
@@ -217,7 +230,10 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
 
     object Convert(SemanticReadModelInstance instance)
     {
-        var id = SemanticJsonValues.ToObject(instance.Key)?.ToString() ?? string.Empty;
+        // A composite key has no single value; its identity is the object of its named parts.
+        var id = SemanticQueryKeys.IsComposite(_model)
+            ? SemanticQueryKeys.ToText(instance.Key, _model, _runtime.Plan.Model.Application)
+            : SemanticJsonValues.ToObject(instance.Key)?.ToString() ?? string.Empty;
         var result = (DynamicReadModel)JsonSerializer.Deserialize(JsonSerializer.Serialize(new { Id = id }), ReadModelType)!;
         foreach (var property in instance.Values)
         {

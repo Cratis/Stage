@@ -48,7 +48,9 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
                     var modeledNames = located.Slice.Queries.Select(query => ModelNaming.ToIdentifier(query.Name)).ToHashSet(StringComparer.Ordinal);
                     var byIdName = $"Get{name}ById";
                     var allName = $"All{ModelNaming.Pluralize(name)}";
-                    if (!modeledNames.Contains(byIdName))
+
+                    // A read model with several key parts has no single id, so it gets no conventional by-id lookup.
+                    if (!modeledNames.Contains(byIdName) && !SemanticQueryKeys.IsComposite(readModel))
                     {
                         _performers.Add(new SemanticRuntimeQueryPerformer(type, byIdName, located.CanonicalLocation, runtime, readModel, null, context, true));
                     }

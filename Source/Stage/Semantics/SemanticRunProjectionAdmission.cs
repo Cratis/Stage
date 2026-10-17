@@ -53,7 +53,7 @@ internal static class SemanticRunProjectionAdmission
             if (!plan.Queries.TryGetValue(assertion.Query, out var query) ||
                 query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
                 !plan.ReadModels.TryGetValue(query.ReadModel, out var model) ||
-                model.Properties.SingleOrDefault(property => property.IsIdentifier)?.Id != query.KeyProperty ||
+                model.Properties.Where(property => property.IsIdentifier).Select(property => (SemanticId?)property.Id).ToArray() is not [var identifier] || identifier != query.KeyProperty ||
                 plan.Projections.Values.All(projection => projection.ReadModel != query.ReadModel))
             {
                 return new(StageExecutionCapability.Query, assertion.Query.ToString(), "Only optional snapshot queries by read-model identifier are admitted.");
@@ -114,6 +114,10 @@ internal static class SemanticRunProjectionAdmission
                 @event.Properties.Any(property => !ChronicleEventPropertyNameIsSafe.Check(property.Name))))
         {
             return "An event property name collides with Chronicle expression syntax.";
+        }
+        if (readModel.Properties.Count(property => property.IsIdentifier) > 1)
+        {
+            return $"Read model '{readModel.Name}' has several key parts (ESM v27 composite read-model keys); the per-run projection scenario seeds and looks up instances by one event-source key, so it cannot run composite read-model keys yet.";
         }
         if (readModel.Properties.Count(property => property.IsIdentifier) != 1 || readModel.Properties.Any(property =>
             property.Type.IsCollection || property.Type.IsOptional || property.Type.Kind is not (SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept)))

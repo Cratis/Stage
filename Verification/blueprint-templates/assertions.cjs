@@ -56,7 +56,12 @@ async function audit(page) {
         const axe = window.axe;
         const wcag = await axe.run(document.body, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, rules: { region: { enabled: false } } });
         const landmarks = await axe.run(document.body, { runOnly: { type: 'rule', values: rules } });
-        return [...wcag.violations, ...landmarks.violations].map(violation => `${violation.id}: ${violation.nodes.map(node => node.target.join(' ')).slice(0, 4).join(', ')}`);
+        const describe = node => {
+            const data = node.any?.find(check => check.data?.contrastRatio)?.data;
+            const detail = data ? ` [${data.fgColor} on ${data.bgColor}, ${data.contrastRatio}:1, needs ${data.expectedContrastRatio}]` : '';
+            return `${node.target.join(' ')}${detail} ${node.html.slice(0, 120)}`;
+        };
+        return [...wcag.violations, ...landmarks.violations].map(violation => `${violation.id}: ${violation.nodes.map(describe).slice(0, 4).join(', ')}`);
     }, landmarkRules);
 }
 

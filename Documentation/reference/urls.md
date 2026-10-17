@@ -10,6 +10,11 @@ the Chronicle Workbench, all on `9090`. Everything below assumes it was publishe
 docker run --rm -p 9090:9090 -v "$PWD":/eventmodel cratis/stage:latest
 ```
 
+The semantic engine is the default. Its admitted API surface and in-process read-model browser are described
+under [Semantic execution](../docker/index.md#opt-in-to-semantic-execution). The legacy EventModel surface below
+remains available with `Stage__Runtime__Engine=eventmodel` (or `--engine=eventmodel` on the Host executable).
+That engine is deprecated, logs one warning at startup, and will be removed in Stage v6.
+
 Nothing needs to be discovered by hand — start at the Scalar reference and click.
 
 ## Start here

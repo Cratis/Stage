@@ -122,12 +122,12 @@ The host separates **hosting** defaults from **deployment** configuration:
 Anything Chronicle-related can also be set with the kernel's own environment variables
 (`Cratis__Chronicle__…`), which is how the entrypoint pins in-memory storage and the Workbench.
 
-## Default-engine command validation
+## Legacy-engine command validation
 
-Without `Stage__Runtime__Engine=semantic`, the EventModel engine enforces this subset of
+With `Stage__Runtime__Engine=eventmodel`, the legacy EventModel engine enforces this subset of
 command-level declarative `validate` rules:
 
-| Rule | Default-engine behavior |
+| Rule | Legacy-engine behavior |
 |---|---|
 | `not empty` | Rejects missing or null values, blank text and empty collections. Nested object paths such as `customer.address.name` are resolved through the payload. |
 | `min` / `max` with a numeric literal | Inclusive value bounds on numbers (including decimals); inclusive UTF-16 length bounds on text. |
@@ -140,18 +140,22 @@ Rules on paths that cross a collection are skipped, including `not empty` on `li
 scalar rules cannot express element validation. Use `lines not empty` to require a nonempty collection.
 Numeric bounds and comparisons skip values that are neither numbers nor text (booleans, objects and collections).
 
-The default engine **drops**, rather than partially enforces, `all >` and `all >=`, equality and
+The legacy engine **drops**, rather than partially enforces, `all >` and `all >=`, equality and
 inequality (`==` / `!=`), checksums, ordinal text rules (`contains`, `not contains`, `starts with`,
 `ends with`), named rules, inline code validation, and rules with non-literal
 operands (including property references, `today` and named match patterns such as `email`). It does
 not turn a collection quantifier into a scalar comparison. Dropped rules do not reject a command;
-compilation alone does not mean the default engine enforces all modeled validation. Use semantic
+compilation alone does not mean the legacy engine enforces all modeled validation. Use semantic
 execution for its admitted rule forms and inspect its admission report for unsupported constructs.
 An unknown rule kind refuses the model.
 
 ## Opt in to semantic execution
 
-By default the host runs the existing EventModel engine. That engine refuses named event sources, streams
+The host uses the semantic engine by default. To keep the legacy EventModel behavior, set
+`Stage__Runtime__Engine=eventmodel` or pass `--engine=eventmodel` to the Host executable.
+The EventModel engine is **deprecated**: it logs one warning at startup and will be removed in Stage v6.
+The SpecRunner retains `structural` as its default; this Host default does not change its report format.
+The legacy engine refuses named event sources, streams
 and event-source routes with `STAGE-ESM-030`, before registering anything with Chronicle. The host stays
 in refused mode: `/stage/status` reports `state: "unsupported"` and `/api/**` returns HTTP 501.
 Both engines also refuse public-event publication (`STAGE-ESM-032`), foreign events and `source events`
@@ -228,8 +232,8 @@ see [Concept compliance rendering](../reference/compliance-rendering.md).
 The semantic engine executes command routes, registers named sources and streams with Chronicle on every
 connect, and checks stored routes during world reconstruction. Routed specification runs are still refused
 with `STAGE-ESM-030`, as are routes in the structural SpecRunner and EventModel engine.
-Set `Stage__Runtime__Engine=semantic` to use the Screenplay executable semantic model (ESM)
-for command decisions and keyed snapshot queries:
+The default engine uses the Screenplay executable semantic model (ESM) for command decisions and keyed
+snapshot queries. `Stage__Runtime__Engine=semantic` selects it explicitly:
 
 ```bash
 docker run --rm -p 9090:9090 -p 35000:35000 \
@@ -238,7 +242,7 @@ docker run --rm -p 9090:9090 -p 35000:35000 \
     cratis/stage:latest
 ```
 
-The opt-in engine evaluates validation, requirements, authorization, conditional production and constraints
+The semantic engine evaluates validation, requirements, authorization, conditional production and constraints
 before accepting a command. Accepted facts are appended to Chronicle as one batch; a failed append does not
 commit the in-process read-model state. `GET /stage/semantic/admission` lists the model's admitted and
 unsupported artifacts. `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
@@ -266,7 +270,7 @@ Do not treat a successful rebuild as proof that another client could not append 
 After rebuild, an external append detected before a command faults the runtime instead of committing
 against stale state. The semantic engine does not register Chronicle projection mirrors: its read models
 are available through Stage's in-process queries, not as projection views in the Chronicle Workbench.
-For admitted, unrouted models, the default EventModel engine continues to register its own Chronicle projections. Commands that require
+For admitted, unrouted models, the legacy EventModel engine continues to register its own Chronicle projections. Commands that require
 allocation of a new event-source identity return `Unsupported(IdentityAllocation)`; explicitly name a
 `produces … for` destination to make them executable. Unsupported event revisions or duplicate event names
 put the running host in refused mode (`state: "unsupported"` and HTTP 501 for `/api/**`). The semantic engine runs modeled specifications through the shared executor on request, with fresh isolated state rather than the live world or Chronicle log (see below). Scene synthesis still uses the legacy presentation converter, but that converter is
@@ -281,7 +285,7 @@ model without appending facts. Semantic queries require a modeled snapshot looku
 queries read the in-process world, not Chronicle projections. If an append's outcome cannot be established, Stage faults the session and returns `Unsupported(World)` for subsequent commands and queries; `/stage/status` then reports `unsupported`. Restart rebuilds from the Chronicle log only when its
 history passes the same strict admission checks.
 
-The sandbox constructs caller identities from Arc's unsigned `x-ms-client-principal` request headers. Clients that can reach the host can forge those headers; modeled authorization is not a security boundary here. Restrict access at a trusted proxy and keep the session private. An anonymous semantic caller has empty audit identity fields (`subject`, `name`, `userName`), not an invented `unknown` identity; the default EventModel path omits those identity values entirely.
+The sandbox constructs caller identities from Arc's unsigned `x-ms-client-principal` request headers. Clients that can reach the host can forge those headers; modeled authorization is not a security boundary here. Restrict access at a trusted proxy and keep the session private. An anonymous semantic caller has empty audit identity fields (`subject`, `name`, `userName`), not an invented `unknown` identity; the legacy EventModel path omits those identity values entirely.
 
 ### Browse read models in a semantic session
 
@@ -373,7 +377,7 @@ seconds, including queued time). The same keys can be set in deployment configur
 
 `GET /stage/semantic/admission` marks
 specifications admitted by that executor as `supported`, and reports the missing capability and details for
-those it refuses, without blocking the live model. The default EventModel engine does not expose this route.
+those it refuses, without blocking the live model. The legacy EventModel engine does not expose this route.
 The `/stage/status`, `/stage/scene` and runner `results.json` schemas are unchanged.
 
 ## Behind a reverse proxy

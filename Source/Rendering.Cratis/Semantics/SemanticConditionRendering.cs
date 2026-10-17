@@ -20,6 +20,7 @@ internal static class SemanticConditionRendering
         SemanticComparison comparison => Enum.IsDefined(comparison.Operator) &&
             CanRender(comparison.Left, properties, context) && CanRender(comparison.Right, properties, context) &&
             CanCompareNamedValues(comparison, properties, context, numericOrderingOnly) &&
+            CanCompareUuids(comparison, properties, context) &&
             (!numericOrderingOnly || comparison.Operator is SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual ||
                 (IsNumeric(comparison.Left, properties, context) && IsNumeric(comparison.Right, properties, context))),
         _ => false
@@ -62,6 +63,19 @@ internal static class SemanticConditionRendering
             NamedOperandsMatch(comparison, left, right);
     }
 
+    static bool CanCompareUuids(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    {
+        var left = IsUuid(comparison.Left, properties, context);
+        var right = IsUuid(comparison.Right, properties, context);
+        if (!left && !right) return true;
+
+        return (left || IsCanonicalUuidLiteral(comparison.Left)) && (right || IsCanonicalUuidLiteral(comparison.Right));
+    }
+
+    static bool IsCanonicalUuidLiteral(SemanticConditionOperand operand) =>
+        !operand.Property.IsSet && operand.Value is SemanticTextValue text &&
+        Guid.TryParseExact(text.Value, "D", out var guid) && string.Equals(guid.ToString("D", CultureInfo.InvariantCulture), text.Value, StringComparison.Ordinal);
+
     static bool NamedOperandsMatch(SemanticComparison comparison, SemanticConcept? left, SemanticConcept? right)
     {
         if (left is not null && right is not null) return left.Id == right.Id;
@@ -77,8 +91,9 @@ internal static class SemanticConditionRendering
     static string Comparison(SemanticComparison comparison, SemanticConditionRenderingContext context)
     {
         var concept = ComparisonConcept(comparison, context);
-        var left = ComparisonOperand(comparison.Left, concept, context);
-        var right = ComparisonOperand(comparison.Right, concept, context);
+        var uuid = IsUuid(comparison.Left, context.Properties, context.Application) || IsUuid(comparison.Right, context.Properties, context.Application);
+        var left = ComparisonOperand(comparison.Left, concept, uuid, context);
+        var right = ComparisonOperand(comparison.Right, concept, uuid, context);
         var symbol = ComparisonSymbol(comparison.Operator);
 
         return IsNumeric(comparison.Left, context.Properties, context.Application) ? $"({left} {symbol} {right})" :
@@ -96,10 +111,18 @@ internal static class SemanticConditionRendering
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison)
     };
 
-    static string ComparisonOperand(SemanticConditionOperand operand, SemanticConcept? concept, SemanticConditionRenderingContext context) =>
-        concept is not null && !operand.Property.IsSet
-            ? new SemanticTypeSystem(context.Application).Value(operand.Value!, SemanticTypeReference.ForConcept(concept.Id))
+    static string ComparisonOperand(SemanticConditionOperand operand, SemanticConcept? concept, bool uuid, SemanticConditionRenderingContext context)
+    {
+        if (operand.Property.IsSet) return Operand(operand, context);
+        if (concept is not null) return new SemanticTypeSystem(context.Application).Value(operand.Value!, SemanticTypeReference.ForConcept(concept.Id));
+
+        return uuid
+            ? new SemanticTypeSystem(context.Application).Value(operand.Value!, SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Uuid))
             : Operand(operand, context);
+    }
+
+    static bool IsUuid(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context) =>
+        operand.Property.IsSet && Primitive(operand, properties, context) == SemanticPrimitiveType.Uuid;
 
     static bool IsNumeric(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context) =>
         Primitive(operand, properties, context) is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;

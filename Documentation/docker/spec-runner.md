@@ -33,8 +33,11 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.199.0, admits exact ESM v1–v21 and v23–v26
-version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions, including v22 and v27, with `STAGE-ESM-016`.
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.204.0, admits exact ESM v1–v21 and v23–v27
+version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions, including v22, with `STAGE-ESM-016`.
+At v27 a specification that projects into a read model with several `key` parts records `Unsupported(Projection)`,
+naming ESM v27 composite read-model keys: the per-run scenario seeds and looks up instances by one event-source key.
+The semantic Host runs such read models; the legacy structural runner refuses them with `STAGE-ESM-048`.
 At v26 the semantic executor runs chronological Date/DateTime command requirements, conditional productions
 and validation rules (including concepts). DateTime equality compares UTC ticks; Date compares calendar days.
 Participating DateTime inputs without an explicit offset or `Z` reject after authorization, before other input

@@ -161,7 +161,6 @@ internal static class SemanticVersionFeatures
     public static IEnumerable<SemanticVersionFeature> InApplication(SemanticApplication application) =>
         (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
-        .Concat(ReactionBatchesInApplication(application))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(DescribedHandlersInCommand))
         .Concat(RoutesInApplication(application))
         .Concat(application.Concepts.SelectMany(concept => UnknownValidationRules(concept.Validations, concept.Id, "concept", concept.Name)))
@@ -169,7 +168,7 @@ internal static class SemanticVersionFeatures
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
 
     /// <summary>
-    /// Finds an application-wide reaction production boundary no Stage engine preserves yet.
+    /// Finds an application-wide reaction production boundary the renderer does not preserve yet. The executor and Host enforce it, so it is not an application-level refusal.
     /// </summary>
     /// <param name="application">The semantic application.</param>
     /// <returns>The refused reaction production mode.</returns>

@@ -8,9 +8,9 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_set
 
 public class a_projected_reaction : a_reaction_plan
 {
-    protected void CompileProjected(string payload = "item", string expected = "then readmodel Marker\n  item = \"one\"", string shape = "flat", string destination = "", string? reaction = null)
+    protected void CompileProjected(string payload = "item", string expected = "then readmodel Marker\n  item = \"one\"", string shape = "flat", string destination = "", string? reaction = null, ReactionScenario? scenario = null)
     {
-        Compile(reaction ?? $"reaction Worker\n  when Started\n    item\n    produces Followed\n{destination}\n      item = {payload}", expected);
+        Compile(reaction ?? $"reaction Worker\n  when Started\n    item\n    produces Followed\n{destination}\n      item = {payload}", expected, scenario);
         var module = _plan.Model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();

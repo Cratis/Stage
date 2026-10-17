@@ -46,7 +46,7 @@ unsupported capability. Rendered Chronicle reactors run eventually and retry fai
 Structural refusals exit `1` without writing results;
 semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.206.0, admits exact ESM v1–v27
 version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v28 and later) with `STAGE-ESM-016`.
-A v22 model with `reaction batches atomic` is admitted and records `Unsupported` with `STAGE-ESM-043` until atomic batches execute.
+A v22 model with `reaction batches atomic` executes each direct-production batch all-or-none; see [Atomic reaction batches](#atomic-reaction-batches).
 At v27 a specification that projects into a read model with several `key` parts records `Unsupported(Projection)`,
 naming ESM v27 composite read-model keys: the per-run scenario seeds and looks up instances by one event-source key.
 The semantic Host runs such read models; the legacy structural runner refuses them with `STAGE-ESM-048`.
@@ -143,6 +143,22 @@ Reaction-triggering commands are split into a command half and a reaction half o
 invoke-only reaction (rejections only when the triggering command cannot reject on its own); other
 reaction-triggering commands, invoked-command empty-effect cases and no-observer appends also require
 a settlement/log-delta harness and are refused. See the [renderer support matrix](../guides/build-renderer-target.md#admit-target-semantics-before-emission).
+
+## Atomic reaction batches
+
+With `reaction batches atomic` (ESM v22+), the semantic executor validates every direct production of
+one trigger occurrence before appending any of them. A selected refusal branch's productions form their
+own atomic unit. A mapping failure, constraint violation, projection refusal or insufficient remaining
+fact budget appends none of that unit; earlier successful units remain. Invoked commands are separate
+units, not part of the trigger's direct-production batch. Constraint refusals preserve the authored message
+and constraint name.
+
+Property-value claims reserved within a batch remain reserved even if their owner changes value later
+in that batch. Repeating a value for the same owner is allowed; an event-occurrence release can reopen
+its owner's cycle. Models without the declaration keep legacy per-fact reaction execution, including
+successful prefixes before a later production fails. The [live semantic Host](index.md#opt-in-to-semantic-execution)
+retains its stricter whole-command rollback boundary. The renderer still refuses atomic-batch models with
+`STAGE-ESM-043`.
 
 ## Invocation refusal branches
 

@@ -436,6 +436,23 @@ or the dialog template) and executes it through the host. An item's `presentatio
 Themes are the blueprint's (`Scene Default Light` and `Scene Default Dark`). The active theme's colour scheme is
 mirrored onto the document root so PrimeReact overlays, which are portalled to `body`, follow it.
 
+## Profile inputs the target cannot honor
+
+A `ui profile` that activates a package the target does not render, selects a layout, theme or root template that does not
+exist, or names packages that cannot be used together would publish an application with a different shell or unstyled
+components. `CratisRendering.ResolveProfileInputs(scene, approvedPackages)` resolves every profile with the Scene engine's own
+`RenderPlanner` and returns one `CratisProfileInputFinding` for each input the target cannot honor, so a renderer consumer
+refuses before it writes or generates anything. The CLI and Studio call it, so a changed profile input is refused the same way in both.
+
+| Code | A profile input that |
+| --- | --- |
+| `STAGE-PROFILE-001` | activates a package the target does not render and no approved package set supplies |
+| `STAGE-PROFILE-002` | selects a layout neither the application nor an active package declares |
+| `STAGE-PROFILE-003` | names packages that cannot be used together (incompatible theme, missing or conflicting dependency, dependency cycle) |
+| `STAGE-PROFILE-004` | selects a theme the application does not declare |
+| `STAGE-PROFILE-005` | names a root template that cannot be the shell (missing, blueprint not installed, version pin unsatisfied, no content outlet) |
+| `STAGE-PROFILE-006` | references a blueprint, version or template the approved blueprint does not provide |
+
 ## When the model declares no screens
 
 A model with no `screen` still renders. The Stage synthesizes one screen per slice that carries a command or a

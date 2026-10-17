@@ -20,7 +20,7 @@ internal sealed class SemanticRunReads(SemanticRuntimeTypes types)
     {
         var application = context.Plan.Model.Application;
         var command = context.Command;
-        var rules = SemanticRuleEvaluation.RuleFailures(command, context.Specification, application.Concepts, application.Types).ToArray();
+        var rules = SemanticRuleEvaluation.RuleFailures(command, context.Specification, application).ToArray();
         if (!command.Reads.IsDefaultOrEmpty)
         {
             // Protected requirements must never run before property/concept rules and required presence.
@@ -28,7 +28,7 @@ internal sealed class SemanticRunReads(SemanticRuntimeTypes types)
             if (Resolve(context) is { } missing) return [missing];
         }
 
-        return rules.Concat(SemanticRuleEvaluation.RequirementFailures(command, context.Specification, _values, SemanticDateOrdering.Participating(application.Concepts, command)));
+        return rules.Concat(SemanticRuleEvaluation.RequirementFailures(command, context.Specification, _values, SemanticDateComparisons.Participants(application, command)));
     }
 
     SemanticValidationFailure? Resolve(SemanticRunContext context)

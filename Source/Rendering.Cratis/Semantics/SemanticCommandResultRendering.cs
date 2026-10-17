@@ -15,6 +15,9 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="locals">The command's shared Handle name allocator.</param>
 internal sealed partial class SemanticCommandResultRendering(SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals locals)
 {
+    // Arc refuses a compared DateTime input without an offset or Z after authorization, with the reference evaluator's message.
+    const string ExplicitOffset = "[property: global::Cratis.Arc.Commands.ExplicitOffset] ";
+
     readonly SemanticTypeSystem _types = new(context);
     readonly SemanticCommandCompliance _compliance = new(context);
 
@@ -48,7 +51,9 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     {
         var destination = DestinationProperty;
         var providesSource = destination is { IsGenerated: false };
-        var parameters = string.Join(", ", Inputs.Select(property => $"{_compliance.InputAttribute(property.Type)}{_types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
+        var marked = SemanticDateComparisonAdmission.Marked(context.Application, command);
+        var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
+        var parameters = string.Join(", ", Inputs.Select(property => $"{(marked.Contains(property.Id) ? ExplicitOffset : string.Empty)}{_compliance.InputAttribute(property.Type)}{InputType(property, raw)} {Identifiers.ToPascalCase(property.Name)}"));
         var name = Identifiers.ToPascalCase(command.Name);
         builder.Attribute(SemanticAuthorizationAttributes.For(command, context))
             .OpenBlock($"public record {name}({parameters}){(providesSource ? " : global::Cratis.Chronicle.Events.ICanProvideEventSourceId" : string.Empty)}");
@@ -84,6 +89,11 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
             .Line($"public record {name}Response({string.Join(", ", fields)});")
             .BlankLine();
     }
+
+    // A compared DateTime property typed through a concept binds as the concept's DateTimeOffset, which Arc's marker supports.
+    string InputType(SemanticProperty property, IReadOnlySet<SemanticId> raw) => raw.Contains(property.Id)
+        ? _types.Primitive(SemanticPrimitiveType.DateTime) + (property.Type.IsOptional ? "?" : string.Empty)
+        : _types.Type(property.Type);
 
     void RenderCheckedHandle(CSharpCodeBuilder builder, ResultExpression result, Action? renderEvents = null)
     {
@@ -156,7 +166,15 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         _ => null
     };
 
-    string SourceValue(SemanticId source) => PropertyValue(command.Properties.Single(property => property.Id == source));
+    // A raw-bound DateTime concept converts back explicitly, so a checked result never needs two user-defined conversions.
+    string SourceValue(SemanticId source)
+    {
+        var property = command.Properties.Single(property => property.Id == source);
+
+        return SemanticDateComparisonAdmission.Raw(context.Application, command).Contains(property.Id)
+            ? $"(({_types.Type(property.Type)}){PropertyValue(property)})"
+            : PropertyValue(property);
+    }
 
     sealed record ResultExpression(string Type, string Value);
 }

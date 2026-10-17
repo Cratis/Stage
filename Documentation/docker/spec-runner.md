@@ -57,8 +57,9 @@ validation, including reaction invocations. Specification `then` matching remain
 with opaque validation reports `Unsupported` at run admission, before execution. The Host also refuses opaque
 validation before authorization and input validation. Unlike both Stage paths, the reference checks authorization,
 then offsets, then opaque validation: an offset-less input combined with opaque validation returns `Validation`
-in the reference but `Unsupported` in Stage. `Unsupported` never counts as a pass. The renderer and legacy engines
-refuse date comparisons with `STAGE-ESM-046`; date three-way conformance awaits renderer support.
+in the reference but `Unsupported` in Stage. `Unsupported` never counts as a pass. The renderer
+render date comparisons, and the legacy engines refuse them with `STAGE-ESM-046`. Date three-way conformance
+covers the canonical corpus in all source forms.
 The semantic executor runs protected command reads, including reaction-invoked commands. After authorization and
 property/concept rules, it projects the prior facts through Chronicle's in-memory read-model scenario and requires
 each declared view at its key. Event-source-keyed removal and recreation are preserved. Absence rejects validation
@@ -74,7 +75,7 @@ Without the preamble, command reads still fail binding with `PLAY0271` and the r
 At v20 it executes rules on generated concepts. A failing fixture is a contract rejection with
 `Generated fixture '<property>' fails concept '<Concept>' rules`, not the rule's authored input-validation message.
 Each supplied fixture is checked for shape and rules before the next fixture or a missing fixture.
-Generated concept rules render at every severity; the pinned Arc 22.109.0 runtime rejects any failing generated rule as a server generation defect.
+Generated concept rules render at every severity; the pinned Arc 22.112.0 runtime rejects any failing generated rule as a server generation defect.
 Explicit concept generation, not the schema version, activates strategy shape checks and generated-source freshness;
 implicit-UUID-only models remain unguarded at later versions. A generated concept with rules still requires its fixture's canonical strategy shape.
 See [Generated values](../reference/generated-values-rendering.md#rules-on-generated-concepts) for rendering refusals and Host exception behavior.

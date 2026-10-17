@@ -8,7 +8,6 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
 using Cratis.Stage.Semantics;
-using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_executing;
@@ -17,7 +16,24 @@ public class and_an_external_append_changed_the_tail : a_semantic_runtime
 {
     SemanticExecutionResult _result = null!;
 
-    void Establish() => ((ISemanticFactTail)_appender).Tail().Returns(0UL);
+    a_semantic_fact_log _log = null!;
+
+    async Task Establish()
+    {
+        var outside = await _runtime.Execute(
+            _command,
+            new Dictionary<string, JsonElement>
+            {
+                ["projectId"] = JsonSerializer.SerializeToElement("3fa85f64-5717-4562-b3fc-2c963f66afa7"),
+                ["name"] = JsonSerializer.SerializeToElement("Outside")
+            },
+            new ClaimsPrincipal(),
+            new(DateTimeOffset.UtcNow, "owner", "Owner", "owner"),
+            true);
+        _log = new();
+        _log.Facts.AddRange(((SemanticAccepted)outside).Facts);
+        _runtime = _log.Runtime(_runtime.Plan, SemanticWorld.Empty);
+    }
 
     async Task Because() => _result = await _runtime.Execute(
         _command,
@@ -30,7 +46,8 @@ public class and_an_external_append_changed_the_tail : a_semantic_runtime
         new(DateTimeOffset.UtcNow, "owner", "Owner", "owner"),
         false);
 
-    [Fact] void should_fault_the_runtime() => _result.ShouldBeOfExactType<SemanticUnsupported>();
-    [Fact] void should_explain_the_external_change() => ((ISemanticRuntimeStatus)_runtime).FaultReason.ShouldContain("outside this session");
-    [Fact] void should_not_append_a_fact() => ((IAppendSemanticFacts)_appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
+    [Fact] void should_accept_against_the_extended_world() => _result.ShouldBeOfExactType<SemanticAccepted>();
+    [Fact] void should_keep_the_runtime_usable() => ((ISemanticRuntimeStatus)_runtime).FaultReason.ShouldBeNull();
+    [Fact] void should_preserve_the_outside_fact() => _result.World.Facts.Length.ShouldEqual(2);
+    [Fact] void should_guard_the_durable_pre_batch_world() => _log.Attempts.Single().Tail.ShouldEqual(0UL);
 }

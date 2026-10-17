@@ -56,7 +56,7 @@ public class when_checking_date_ordering : Specification
         var input = value is null ? SemanticValue.Null : SemanticValue.Text(value);
         var values = command.Properties.Select(property => new SemanticPropertyValue(property.Id, property.Name == "id" ? SemanticValue.Text("window") : input)).ToImmutableArray();
         var fixture = new SemanticSpecification(default, "Rules", [], [], new(command.Id, values), [], [], [], []);
-        var failures = SemanticRuleEvaluation.RuleFailures(command, fixture, plan.Model.Application.Concepts).ToArray();
+        var failures = SemanticRuleEvaluation.RuleFailures(command, fixture, plan.Model.Application).ToArray();
         var reference = new SemanticEvaluator().Execute(plan, SemanticWorld.Empty, SemanticExecutionRequest.Create(command.Id, values, []));
         if (reference is SemanticRejected rejected)
         {

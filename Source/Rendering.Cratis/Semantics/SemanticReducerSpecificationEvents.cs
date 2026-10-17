@@ -16,11 +16,12 @@ internal static class SemanticReducerSpecificationEvents
             Equals(given.EventSource?.Value, expected.Key))];
 
     internal static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> Replay(
+        SemanticApplication application,
         SemanticSpecification specification,
         SemanticSpecificationReadModel expected,
         SemanticReducer reducer,
         SemanticCommand command) =>
-        [.. SemanticProductionSelection.Taken(command, specification).Select((produced, index) => (Produced: produced,
+        [.. SemanticProductionSelection.Taken(application, command, specification).Select((produced, index) => (Produced: produced,
                 Expected: specification.ThenEventsInAnyOrder
                     ? specification.ThenEvents.Single(_ => _.EventContract == produced.EventContract)
                     : specification.ThenEvents[index]))

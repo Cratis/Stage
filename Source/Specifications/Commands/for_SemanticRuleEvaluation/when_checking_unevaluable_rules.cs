@@ -18,7 +18,7 @@ public class when_checking_unevaluable_rules : given.a_not_empty_rule
     public void should_refuse_execution_and_generated_fixtures_even_for_absence(SemanticValidationRuleKind kind, string? pattern)
     {
         var rule = new SemanticValidationRule(default, kind, pattern is null ? null : SemanticValue.Text(pattern), null);
-        var concept = _concepts.Single() with { Validations = [rule] };
+        var concept = _application.Concepts.Single() with { Validations = [rule] };
         SemanticValidationRules.Check(rule, SemanticValue.Null).Status.ShouldEqual(SemanticRuleStatus.NotEvaluable);
         Catch.Exception(() => SemanticRuleEvaluation.Satisfies(rule, SemanticValue.Null)).ShouldBeOfExactType<UnsupportedSemanticMapping>();
         Catch.Exception(() => SemanticGenerationShapes.GeneratedFailure(concept, "name", SemanticValue.Null)).ShouldBeOfExactType<InvalidSemanticContract>();

@@ -8,6 +8,7 @@ namespace Cratis.Stage.Specifications.Commands.for_SemanticRuleEvaluation;
 
 public class when_matching_a_trailing_newline : Specification
 {
+    SemanticApplication _application = null!;
     SemanticCommand _command = null!;
     SemanticSpecification _specification = null!;
     string? _failure;
@@ -20,11 +21,12 @@ public class when_matching_a_trailing_newline : Specification
         var compilation = new SemanticModelCompiler().Compile("Codes", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
         var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _application = plan.Model.Application;
         _command = plan.Commands.Values.Single();
         _specification = plan.Specifications.Values.Single();
     }
 
-    void Because() => _failure = SemanticRuleEvaluation.FirstFailure(_command, _specification, []);
+    void Because() => _failure = SemanticRuleEvaluation.FirstFailure(_command, _specification, _application);
 
     [Fact] void should_reject_the_trailing_newline() => _failure.ShouldNotBeNull();
 }

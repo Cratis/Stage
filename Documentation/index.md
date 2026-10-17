@@ -196,12 +196,11 @@ Screens, layouts, forms, and other frontend/UI artifacts remain outside this bac
 ### Runtime host
 
 The `cratis/stage` container starts Arc, an in-memory Chronicle kernel, OpenAPI/Scalar, and the modeled API surface.
-A runtime command evaluates its `produces` mappings, appends the resulting facts to Chronicle, and echoes its
-payload in Arc's command result. Modeled command validation and authorization are not yet enforced by this runtime
-path.
-
-Queries currently fail closed. Stage does not yet receive an executable query authorization contract, so modeled
-query performers deny access and return no data rather than exposing projected documents under invented semantics.
+The semantic engine is the default: it evaluates admitted validation, authorization and production mappings,
+appends accepted facts to Chronicle, and serves keyed snapshot queries from its in-process world. Unsupported
+constructs refuse execution rather than silently dropping behavior. See [Semantic execution](docker/index.md#opt-in-to-semantic-execution)
+for the admitted subset and limitations. Set `Stage__Runtime__Engine=eventmodel` to retain the deprecated legacy
+runtime. It logs one warning at startup and will be removed in Stage v6.
 
 ### Specification runner
 
@@ -224,7 +223,7 @@ The [Cratis CLI](/cli/reference/run) wraps this in `cratis run`, so you rarely t
 
 | What                     | Image / package                 | Purpose                                                                                                          |
 | ------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| The Stage host           | `cratis/stage`                  | Disposable partial runtime with Arc, Chronicle, OpenAPI, command fact appending, and fail-closed queries.        |
+| The Stage host           | `cratis/stage`                  | Disposable semantic runtime with Arc, Chronicle, OpenAPI, command fact appending, and keyed snapshot queries.        |
 | The specification runner | `cratis/stage-specrunner`       | Run-to-completion model-level specification verification.                                                        |
 | The renderer             | `Cratis.Stage.Rendering.Cratis` | Pure ESM artifact planning for the first complete backend vertical, plus the syntax-based compatibility renderer. |
 | The contracts            | `Cratis.Stage.Contracts`        | Internal/tooling seams and specification results produced from compiled Screenplay syntax.                       |

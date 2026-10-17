@@ -8,7 +8,6 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
 using Cratis.Stage.Semantics;
-using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_executing;
@@ -51,9 +50,8 @@ public class with_a_negated_policy : Specification
                   event ReportCounted
                     owner Int optional
             """);
-        var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
-        ((ISemanticFactTail)appender).Tail().Returns(ulong.MaxValue);
-        _runtime = SemanticRuntimeHosting.Create(_plan, appender);
+        // A real log: its tail advances after the accepted command, so the later refusal settles against it.
+        _runtime = new a_semantic_fact_log().Runtime(_plan, SemanticWorld.Empty);
     }
 
     async Task Because()

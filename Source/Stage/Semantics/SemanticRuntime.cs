@@ -16,7 +16,7 @@ namespace Cratis.Stage.Semantics;
 /// Maintains the isolated semantic world for one Stage session.
 /// </summary>
 [IgnoreConvention]
-internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus, IDisposable
+internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus, IDisposable
 {
     static readonly TimeSpan _appendTimeout = TimeSpan.FromSeconds(15);
     readonly IAppendSemanticFacts _appender;
@@ -47,6 +47,8 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
     /// <inheritdoc/>
     public string? FaultReason { get; private set; }
 
+    internal ISemanticFactReader? FactReader { get; init; }
+
     /// <inheritdoc/>
     public void Dispose() => _gate.Dispose();
 
@@ -72,95 +74,9 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 return unsupported;
             }
 
-            var expectedTail = _knownTail;
-            var result = Settle(Evaluate(command, payload, principal, occurrence), validateOnly, occurrence);
-            if (!validateOnly && result is SemanticAccepted accepted)
-            {
-                if (_appender is not ISemanticFactTail tail)
-                {
-                    FaultReason = "The fact appender cannot verify Chronicle's event-log tail.";
-                    return Faulted();
-                }
+            var decision = Prepare(command, payload, principal, occurrence);
 
-                ulong before;
-                try
-                {
-                    before = await tail.Tail().WaitAsync(_appendTimeout);
-                }
-                catch (Exception exception)
-                {
-                    FaultReason = $"Cannot read the event-log tail before append: {exception.Message}";
-                    return Faulted();
-                }
-
-                if (before != expectedTail)
-                {
-                    FaultReason = $"The event-log tail changed outside this session ({expectedTail} -> {before}).";
-                    return Faulted();
-                }
-
-                try
-                {
-                    if (accepted.Facts.Length > 0)
-                    {
-                        if (_appender is IAppendSemanticFactsAtTail guarded)
-                        {
-                            await guarded.Append(accepted.Facts, occurrence, expectedTail).WaitAsync(_appendTimeout);
-                        }
-                        else
-                        {
-                            // Legacy custom appenders retain their preflight tail check, but cannot close the
-                            // external-append race without implementing the guarded capability.
-                            await _appender.Append(accepted.Facts, occurrence).WaitAsync(_appendTimeout);
-                        }
-                    }
-                    else
-                    {
-                        // No append reaches Chronicle to enforce a scope; do not report a stale world as current.
-                        var after = await tail.Tail().WaitAsync(_appendTimeout);
-                        if (after != before)
-                        {
-                            FaultReason = $"The event-log tail changed outside this session ({before} -> {after}).";
-                            return Faulted();
-                        }
-                    }
-                }
-                catch (SemanticFactTailChanged exception)
-                {
-                    FaultReason = $"The event-log tail changed outside this session ({before} -> {exception.ActualTail}).";
-                    return Faulted();
-                }
-                catch (Exception exception)
-                {
-                    try
-                    {
-                        var after = await tail.Tail().WaitAsync(_appendTimeout);
-                        if (after != before || exception is not ProducedEventConstraintRejected)
-                        {
-                            FaultReason = $"Append outcome is unknown (tail {before} -> {after}): {exception.Message}";
-                        }
-                    }
-                    catch (Exception tailFailure)
-                    {
-                        FaultReason = $"Append outcome is unknown; the event-log tail cannot be read: {tailFailure.Message}";
-                    }
-
-                    if (FaultReason is not null)
-                    {
-                        return Faulted();
-                    }
-
-                    throw;
-                }
-
-                _world = accepted.World;
-                if (accepted.Facts.Length > 0)
-                {
-                    _knownTail = before == ulong.MaxValue ? (ulong)accepted.Facts.Length - 1 : before + (ulong)accepted.Facts.Length;
-                }
-            }
-
-            return result;
+            return validateOnly ? decision(_world) : await Commit(decision, occurrence);
         }
         finally
         {
@@ -256,22 +172,19 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
         _worldProvider = null;
     }
 
-    SemanticExecutionResult Settle(SemanticExecutionResult evaluated, bool validateOnly, SemanticCommandOccurrence occurrence)
+    SemanticExecutionResult Settle(SemanticAccepted accepted, SemanticCommandOccurrence occurrence, out bool invokedCommands)
     {
-        if (validateOnly || evaluated is not SemanticAccepted accepted)
-        {
-            return evaluated;
-        }
-
-        var settlement = new SemanticReactionSettlement(new ReactionEvaluator(this, _evaluator, occurrence));
+        var evaluator = new ReactionEvaluator(this, _evaluator, occurrence);
+        var settlement = new SemanticReactionSettlement(evaluator);
         var result = settlement.Settle(Plan, accepted.World, accepted.Facts, occurrence.Occurred);
+        invokedCommands = evaluator.InvokedCommands;
 
         return result is SemanticAccepted settled
             ? accepted with { World = settled.World, Facts = accepted.Facts.AddRange(settled.Facts) }
             : result with { World = _world };
     }
 
-    SemanticExecutionResult Evaluate(SemanticCommand command, IReadOnlyDictionary<string, JsonElement> payload, ClaimsPrincipal principal, SemanticCommandOccurrence occurrence)
+    Func<SemanticWorld, SemanticExecutionResult> Prepare(SemanticCommand command, IReadOnlyDictionary<string, JsonElement> payload, ClaimsPrincipal principal, SemanticCommandOccurrence occurrence)
     {
         var unknown = payload.Keys.FirstOrDefault(key => command.Properties.Where(property => !property.IsGenerated).All(property => !string.Equals(property.Name, key, StringComparison.OrdinalIgnoreCase)));
         try
@@ -283,13 +196,18 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 Occurrence = occurrence,
                 GeneratedValues = SemanticGeneratedValues.For(command, Plan.Model, occurrence.Occurred)
             };
-            var result = _evaluator.Execute(Plan, _world, request);
-            if (unknown is not null && result is not SemanticRejected { Category: SemanticRejectionCategory.Unauthorized })
-            {
-                return new SemanticRejected(_world, SemanticRejectionCategory.Contract, null, $"Unknown command property '{unknown}'.");
-            }
+            var decision = _evaluator.Decide(Plan, _world, request);
 
-            return SemanticGeneratedValues.ReportDefect(command, Plan.Model.Application, result);
+            return world =>
+            {
+                var result = decision.Commit(world);
+                if (unknown is not null && result is not SemanticRejected { Category: SemanticRejectionCategory.Unauthorized })
+                {
+                    return new SemanticRejected(world, SemanticRejectionCategory.Contract, null, $"Unknown command property '{unknown}'.");
+                }
+
+                return SemanticGeneratedValues.ReportDefect(command, Plan.Model.Application, result);
+            };
         }
         catch (UnsupportedSemanticValue exception)
         {
@@ -301,16 +219,19 @@ internal sealed class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus
                 Occurrence = occurrence,
                 GeneratedValues = SemanticGeneratedValues.For(command, Plan.Model, occurrence.Occurred)
             });
-            return authorization is SemanticRejected { Category: SemanticRejectionCategory.Unauthorized } or SemanticUnsupported
-                ? authorization
-                : new SemanticRejected(_world, SemanticRejectionCategory.Contract, null, exception.Message);
+            return world => authorization is SemanticRejected { Category: SemanticRejectionCategory.Unauthorized } or SemanticUnsupported
+                ? authorization with { World = world }
+                : new SemanticRejected(world, SemanticRejectionCategory.Contract, null, exception.Message);
         }
     }
 
     sealed class ReactionEvaluator(SemanticRuntime runtime, ISemanticEvaluator evaluator, SemanticCommandOccurrence occurrence) : ISemanticEvaluator
     {
+        internal bool InvokedCommands { get; private set; }
+
         public SemanticExecutionResult Execute(SemanticExecutionPlan plan, SemanticWorld world, SemanticExecutionRequest request)
         {
+            InvokedCommands = true;
             var command = plan.Commands.GetValueOrDefault(request.Command);
             if (runtime.UnsupportedImplementation(command) is { } unsupported)
             {

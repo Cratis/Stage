@@ -43,6 +43,13 @@
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <!-- The corpus conformance matrix runs the internal semantic runtime admission directly, so it exercises the shipped code. -->
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>Cratis.Stage.Conformance.Specs</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="../Stage/Stage.csproj" />
 

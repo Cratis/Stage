@@ -34,6 +34,9 @@ public class when_refusing_historical_event_properties : a_v4_reducer
 
     void Because() => _plan = new CratisArtifactRenderPlanner().Plan(_request);
 
-    [Fact] void should_refuse_historical_property_identities_even_with_the_current_revision() => _plan.Diagnostics.Single().Code.ShouldEqual("STAGE-ESM-025");
+    [Fact] void should_refuse_historical_property_identities_even_with_the_current_revision() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-025").Artifact.ShouldEqual(_event.Id);
+    [Fact] void should_also_refuse_the_evolved_event() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-026").Artifact.ShouldEqual(_event.Id);
+    [Fact] void should_report_the_incompatible_reducer_context() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Artifact == _request.TypedContextDescriptors.Single().OperationId);
+    [Fact] void should_also_report_transition_analysis() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-023" && diagnostic.Artifact == _request.Model.Application.Id).Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Information);
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

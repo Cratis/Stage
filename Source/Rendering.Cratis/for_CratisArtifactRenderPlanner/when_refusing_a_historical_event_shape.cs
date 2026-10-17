@@ -31,8 +31,10 @@ public class when_refusing_a_historical_event_shape : a_v4_reducer
 
     void Because() => _plan = new CratisArtifactRenderPlanner().Plan(_request);
 
-    [Fact] void should_refuse_the_historical_revision_even_with_current_properties() => _plan.Diagnostics.Single().Code.ShouldEqual("STAGE-ESM-025");
-    [Fact] void should_locate_the_event() => _plan.Diagnostics.Single().Artifact.ShouldEqual(_event.Id);
+    [Fact] void should_refuse_the_historical_revision_even_with_current_properties() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-025").Artifact.ShouldEqual(_event.Id);
+    [Fact] void should_also_refuse_the_evolved_event() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-026").Artifact.ShouldEqual(_event.Id);
+    [Fact] void should_report_the_incompatible_reducer_context() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Artifact == _request.TypedContextDescriptors.Single().OperationId);
+    [Fact] void should_also_report_transition_analysis() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-023" && diagnostic.Artifact == _request.Model.Application.Id).Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Information);
     [Fact] void should_emit_no_partial_plan() => _plan.Artifacts.ShouldBeEmpty();
     [Fact] void should_fail_admission() => _plan.Success.ShouldBeFalse();
 }

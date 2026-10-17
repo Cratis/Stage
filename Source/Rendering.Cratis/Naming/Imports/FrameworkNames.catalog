@@ -2,9 +2,9 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	2
-pin	Cratis	22.109.0
-pin	Cratis.Arc.Chronicle.Testing	22.109.0
-pin	Cratis.Arc.MongoDB	22.109.0
+pin	Cratis	22.110.0
+pin	Cratis.Arc.Chronicle.Testing	22.110.0
+pin	Cratis.Arc.MongoDB	22.110.0
 pin	Cratis.Chronicle	19.71.0
 pin	Cratis.Chronicle.AspNetCore	19.71.0
 pin	Cratis.Chronicle.Testing	19.71.0
@@ -19,16 +19,16 @@ pin	xunit.runner.visualstudio	4.0.0
 package	A	Polly.Core	8.4.2
 package	A	Polly.Extensions	8.4.2
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.109.0
-package	AS	Cratis.Arc	22.109.0
-package	AS	Cratis.Arc.Chronicle	22.109.0
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.109.0
-package	AS	Cratis.Arc.Core	22.109.0
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.109.0
-package	AS	Cratis.Arc.MongoDB	22.109.0
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.109.0
-package	AS	Cratis.Arc.Screenplay.Embedded	22.109.0
-package	AS	Cratis.Arc.Swagger	22.109.0
+package	AS	Cratis	22.110.0
+package	AS	Cratis.Arc	22.110.0
+package	AS	Cratis.Arc.Chronicle	22.110.0
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.110.0
+package	AS	Cratis.Arc.Core	22.110.0
+package	AS	Cratis.Arc.Core.CodeAnalysis	22.110.0
+package	AS	Cratis.Arc.MongoDB	22.110.0
+package	AS	Cratis.Arc.ProxyGenerator.Build	22.110.0
+package	AS	Cratis.Arc.Screenplay.Embedded	22.110.0
+package	AS	Cratis.Arc.Swagger	22.110.0
 package	AS	Cratis.Chronicle	19.71.0
 package	AS	Cratis.Chronicle.AspNetCore	19.71.0
 package	AS	Cratis.Chronicle.CodeAnalysis	19.71.0
@@ -133,8 +133,8 @@ package	AS	protobuf-net.Core	3.2.56
 package	AS	protobuf-net.Grpc	1.3.14
 package	AS	protobuf-net.Grpc.Reflection	1.3.14
 package	AS	protobuf-net.Reflection	3.2.52
-package	S	Cratis.Arc.Chronicle.Testing	22.109.0
-package	S	Cratis.Arc.Testing	22.109.0
+package	S	Cratis.Arc.Chronicle.Testing	22.110.0
+package	S	Cratis.Arc.Testing	22.110.0
 package	S	Cratis.Chronicle.Testing	19.71.0
 package	S	Cratis.Orleans	1.16.3
 package	S	Cratis.Orleans.Storage	1.16.3
@@ -2132,6 +2132,7 @@ type	AS	Cratis.Arc.Authorization	IAuthorizationRequestContext	interface
 type	AS	Cratis.Arc.Authorization	ICurrentPrincipalAccessor	interface
 type	AS	Cratis.Arc.Authorization	ICurrentPrincipalOverride	interface
 type	AS	Cratis.Arc.Authorization	IFallbackAuthorizationEvaluator	interface
+type	AS	Cratis.Arc.Authorization	IResourceFreeRequirement	interface
 type	AS	Cratis.Arc.Authorization	ISystemExecution	interface
 type	AS	Cratis.Arc.Authorization	InvalidAuthorizationConfiguration	class
 type	AS	Cratis.Arc.Authorization	RolesAttribute	attribute
@@ -2302,6 +2303,8 @@ type	AS	Cratis.Arc.Commands	CommandValidator`1	class
 type	AS	Cratis.Arc.Commands	ConflictingReadProtection	class
 type	AS	Cratis.Arc.Commands	DecisionReadCouldNotBeAcquired	class
 type	AS	Cratis.Arc.Commands	DefaultKeyForCommandResolver	class
+type	AS	Cratis.Arc.Commands	ExplicitOffsetAttribute	attribute
+type	AS	Cratis.Arc.Commands	ExplicitOffsetRequiresDateTimeOrDateTimeOffset	class
 type	AS	Cratis.Arc.Commands	GeneratedValue	class
 type	AS	Cratis.Arc.Commands	GeneratedValueFactories	static
 type	AS	Cratis.Arc.Commands	GeneratedValueFreshness	enum
@@ -2353,6 +2356,7 @@ type	AS	Cratis.Arc.Commands	NoCommandContextAvailable	class
 type	AS	Cratis.Arc.Commands	ProtectedDecisionsRequireCommandAwareReader	class
 type	AS	Cratis.Arc.Commands	ReadProtectionAttribute	attribute
 type	AS	Cratis.Arc.Commands	ReadProtectionMode	enum
+type	AS	Cratis.Arc.Commands	ValueRequiresExplicitOffset	class
 type	AS	Cratis.Arc.Commands.Filters	AuthorizationFilter	class
 type	AS	Cratis.Arc.Commands.Filters	DataAnnotationValidationFilter	class
 type	AS	Cratis.Arc.Commands.Filters	FluentValidationFilter	class

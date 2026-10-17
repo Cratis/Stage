@@ -26,14 +26,14 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("d3b52adf28b8aade4ef94fd31725299df36eccfa80631b1977ca1eb57064f78a");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("b2f38ddf43baf90799e3340cc1d2ecd844bc9d234b2ed9b7044d397ce73ccd50");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("edfb9261b01739afcf5047f732140dddb8f1ccbc8e4802d6b031fa5947a16e8d");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("80c58df2dead2d947aca2f7e7fa84e9f5535fd51ccff55f81b9547ff5dca286b");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("3515b639a2a3fdea89f7e958e954f181d987bb23aeeeb81b6d6e4e08c2b82c3e");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
         // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-        _plan.TargetVersion.Replace("22.109.0", "22.87.0", StringComparison.Ordinal),
+        _plan.TargetVersion.Replace("22.110.0", "22.87.0", StringComparison.Ordinal),
         _plan.Renderer,
         _plan.RendererVersion,
         _plan.ApplicationName,
@@ -57,7 +57,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         }
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.109.0", "22.87.0", StringComparison.Ordinal)
+            ? previous.Replace("22.110.0", "22.87.0", StringComparison.Ordinal)
             : previous;
     }
 }

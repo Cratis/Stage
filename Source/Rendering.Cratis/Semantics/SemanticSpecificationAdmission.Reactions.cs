@@ -189,9 +189,6 @@ internal static partial class SemanticSpecificationAdmission
         return CanRenderSpecification(context, lowered, reactionInvocation: true) ? null : RejectionReason(context, lowered);
     }
 
-    internal static bool IsReactionConstraintTarget(SemanticApplicationContext context, SemanticId @event) =>
-        context.Constraints.Any(selected => selected.Constraint.Targets.Any(target => target.EventContract == @event) || selected.Constraint.ReleasedBy.Contains(@event));
-
     static bool UsesReactionContext(SemanticReaction reaction, SemanticId source) => reaction.Triggers.Any(trigger => trigger.Source == source &&
         (SemanticReactionProductions.For(trigger).Any(produced => produced.Destination is SemanticEventContextExpression || produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)) ||
         trigger.Invokes.Any(invocation => invocation.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression))));

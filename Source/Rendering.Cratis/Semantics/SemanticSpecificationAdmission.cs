@@ -68,6 +68,9 @@ internal static partial class SemanticSpecificationAdmission
         return EventReactionTriggers(context).Any(trigger => SemanticProductionSelection.Taken(command, specification).Any(produced => produced.EventContract == trigger.Source));
     }
 
+    internal static bool IsReactionConstraintTarget(SemanticApplicationContext context, SemanticId @event) =>
+        context.Constraints.Any(selected => selected.Constraint.Targets.Any(target => target.EventContract == @event) || selected.Constraint.ReleasedBy.Contains(@event));
+
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&

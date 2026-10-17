@@ -24,7 +24,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "8795d2593233385096e9ed483d3d3c490c5de1b866b7081d979d7b1fd1a330ac";
+    const string Digest = "9e6e5da28f71df10714eedd8633f31f79504daef6b94183105e6d7838f126ba3";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -64,7 +64,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307
         Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props 900ae100870381b3736d24453553707268ae1cf9cabb115224be7a25c60d72ef 1098
+        Directory.Packages.props 969b29a5bdea717d8f06b5f39a9728ff47a958a8fc8f13a2ab21c169d7e43710 1098
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
         README.md 2bed375a9bda95aa35cf3d523c58d79efd60f865ccf42ba3abb5a1117b928288 1732
@@ -96,7 +96,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         """;
 
     static readonly string Manifest = QualifiedManifest
-        .Replace("Directory.Packages.props 969b29a5bdea717d8f06b5f39a9728ff47a958a8fc8f13a2ab21c169d7e43710 1098", "Directory.Packages.props fd70eccd2635216aa7aca03c95a02a05add49ba3c7d4ab27bb1af386842ffb54 1098", StringComparison.Ordinal)
+        .Replace("Directory.Packages.props 969b29a5bdea717d8f06b5f39a9728ff47a958a8fc8f13a2ab21c169d7e43710 1098", "Directory.Packages.props d8a81980ec57c7bb7b89814e27d5774b187273627393af4a1207c44ee005c204 1098", StringComparison.Ordinal)
         .Replace("docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259", "docker-compose.yml 749a78bd0dd54a4397f48184a66b6fc98a1c1e59e2085798dbaa2e9bdd3d14d7 259", StringComparison.Ordinal)
         .Replace(".editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689", ".editorconfig 4cf0d1389cef373e18920c4fddb10948553e3c171badb2de66399717f870df76 741", StringComparison.Ordinal)
         .Replace("Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726", "Common/CommentId.cs 090339b5965d73ed60cb7e6b62bd8bfb9addfdc778f49ecb129d294a63c0b119 662", StringComparison.Ordinal)
@@ -167,7 +167,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
             plan.Renderer,
             plan.RendererVersion,
             plan.ApplicationName,
-            [.. plan.Artifacts.Select(PreviousChronicle).Select(PreviousArc)],
+            [.. plan.Artifacts.Select(PreviousChronicle)],
             plan.Diagnostics).ShouldEqual("5e823e61f9552a1f3cda239d0c0d4b9e506be65066641353883385e2142ba8ba");
     }
 
@@ -197,13 +197,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     static PlannedArtifact PreviousChronicle(PlannedArtifact artifact) =>
         artifact.RelativePath.Equals("Directory.Packages.props", StringComparison.Ordinal) || artifact.RelativePath.Equals("docker-compose.yml", StringComparison.Ordinal)
-            ? PlannedArtifact.CreateText(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("19.74.2", "19.71.0", StringComparison.Ordinal), artifact.Sources)
-            : artifact;
-
-    // The Chronicle-only baseline predates main's Arc upgrade; keep that historical digest unchanged.
-    static PlannedArtifact PreviousArc(PlannedArtifact artifact) =>
-        artifact.RelativePath.Equals("Directory.Packages.props", StringComparison.Ordinal)
-            ? PlannedArtifact.CreateText(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("22.112.0", "22.109.0", StringComparison.Ordinal), artifact.Sources)
+            ? PlannedArtifact.CreateText(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("19.74.2", "19.71.0", StringComparison.Ordinal).Replace("22.112.0", "22.109.0", StringComparison.Ordinal), artifact.Sources)
             : artifact;
 
     static string[] Pinned() => [.. Manifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim())];

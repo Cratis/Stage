@@ -34,7 +34,7 @@ package	AS	Cratis.Chronicle.AspNetCore	19.74.2
 package	AS	Cratis.Chronicle.CodeAnalysis	19.74.2
 package	AS	Cratis.Chronicle.Connections	19.74.2
 package	AS	Cratis.Fundamentals	7.25.0
-package	AS	Cratis.Metrics.Roslyn	7.24.0
+package	AS	Cratis.Metrics.Roslyn	7.25.0
 package	AS	Cratis.Screenplay	4.203.0
 package	AS	Cratis.Screenplay.Contexts	4.203.0
 package	AS	DnsClient	1.8.0

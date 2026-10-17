@@ -26,9 +26,8 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    // Stale Arc-only pins: regenerate both digests for the combined Arc 22.112.0 and Scene 4.68.2 plan.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("2c94eaf1540d5be4ae12bb2b53c5ef602666934ebc9bda165745f4068156ad0f");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("5579787037968a28083f91f587408aafc2ef1f67570af09fe2ec024527c1edef");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("db8e32286e188e96fbeb69662cbe00c141da0918c9bbc8e2bd7bd66256350a35");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("d8a968967f2aed7ed617da8a73afbc93c7bc202285cb2f3da3731c2450eb60cc");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("3515b639a2a3fdea89f7e958e954f181d987bb23aeeeb81b6d6e4e08c2b82c3e");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(

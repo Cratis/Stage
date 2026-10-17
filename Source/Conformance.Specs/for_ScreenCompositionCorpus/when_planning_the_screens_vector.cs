@@ -24,8 +24,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    // Stale Arc-only pin: regenerate for the combined Arc 22.112.0 and Scene 4.68.2 plan.
-    const string Digest = "4dce5f703cdd63a2dad61805651845bc708d683e1c353efc493c9082c4f53b30";
+    const string Digest = "8795d2593233385096e9ed483d3d3c490c5de1b866b7081d979d7b1fd1a330ac";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689

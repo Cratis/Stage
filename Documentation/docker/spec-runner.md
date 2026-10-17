@@ -25,10 +25,21 @@ producing events before invoking commands. Given events establish history withou
 An invocation uses the declared system roles, or no caller; it never inherits `given caller`, and system
 claims remain unknown. Invoked generated commands require unavailable deterministic fixtures and return
 `Unsupported` for `IdentityAllocation`. More than 1000 new facts returns `Unsupported` for `Reaction`.
-A command specification with a millisecond-aligned `given clock` (no earlier than the Unix epoch) runs with that
-instant as the command occurrence. Clock, application, startup and shutdown triggers, opaque bodies, `when clock`,
-clocks on reaction specifications (and, in this executor, any clock in a model with reactions) and trigger/capture specifications remain refused with `STAGE-ESM-024`; unsupported `$context.causedBy.*` mappings retain `STAGE-ESM-013`.
-A production mapping `$context.occurred` without `given clock` rejects the scenario instead of inventing time.
+Command, direct-append and named-redelivery specifications accept a millisecond-aligned `given clock` no earlier
+than the Unix epoch. Offset-bearing source clocks normalize to canonical UTC. That authored instant supplies
+`$context.occurred` throughout reaction productions, cascades, invocation arguments, invoked commands and
+refusal productions, formatted as UTC round-trip text such as `2027-03-04T08:00:00.1230000Z`.
+Without `given clock`, a reached reaction production using `$context.occurred` rejects with
+`Reaction '<name>' uses $context, which needs the scenario's 'given clock'.` An invocation argument using it
+rejects with `An execution expression is unresolved in its declared root scope.` A false `where` skips these
+evaluations. The executor never substitutes wall time or its injectable clock for a missing reaction occurrence.
+This time-only fixture supplies no audit identity, including under `runs as system`: reaction mappings of
+`$eventSourceId` (or `$eventContext.eventSourceId`) and `$context.causedBy.*` retain `STAGE-ESM-013`.
+The spelling `$context.eventSourceId` is rejected by the compiler.
+Clock, application, startup and shutdown triggers, opaque bodies, `when clock` and trigger/capture specifications
+remain refused with `STAGE-ESM-024`. Generated backend occurrence mappings remain supported, but
+context-dependent generated reaction specifications retain `STAGE-ESM-011`, and clocks on generated
+append/redelivery specifications retain `STAGE-ESM-024`; renderer clock fixtures remain command-only.
 The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.md#opt-in-to-semantic-execution),
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
@@ -107,8 +118,9 @@ reaction. The semantic executor applies that reaction's observer filter and `whe
 input again or delivering givens to sibling reactions. It then settles all observers of newly produced facts,
 including invoked commands and downstream cascades. A nonzero given position selects that occurrence,
 not the first event of the same contract. An unhandled invocation refusal can be asserted with `then error`.
-Existing context, clock, generated-value and projection capability limits still apply; redelivery is not replay
-or a guarantee of exactly-once external effects.
+An authored `given clock` supplies the redelivery occurrence, not a timestamp from the selected given event.
+The same instant reaches new effects and cascades. Audit-identity, generated-value and projection capability
+limits still apply; redelivery is not replay or a guarantee of exactly-once external effects.
 
 `then no events` asserts an empty new-fact set on a successful run. For commands it counts all command and
 cascade facts. For redelivery it counts only new effects, not givens. For `when append` it excludes exactly the
@@ -143,7 +155,8 @@ Warning-only rejections, contract defects, unsupported capabilities and infrastr
 are not catchable business refusals.
 
 A branch either acknowledges without new facts or appends its declared productions through ordinary
-constraint and projection checks. It then skips the remaining invocations of that trigger, not sibling
+constraint and projection checks, using the same authored occurrence as its triggering invocation.
+It then skips the remaining invocations of that trigger, not sibling
 triggers, other reactions or queued cascades. Earlier committed facts remain. A rejected branch append
 ends the scenario; it is not offered to a later refusal branch. Invocations still use the reaction's own
 system identity or no caller, never the fixture caller. Cancellation and the 1000-new-fact limit remain

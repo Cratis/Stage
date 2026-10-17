@@ -17,8 +17,8 @@ public class when_refusing_an_evolved_event : a_v4_reducer
     void Because() => _plan = new CratisArtifactRenderPlanner().Plan(_request);
 
     [Fact] void should_retain_the_v4_model() => _request.Model.SemanticVersion.ShouldEqual(SemanticVersion.V4);
-    [Fact] void should_refuse_without_migration_rendering() => _plan.Diagnostics.Single().Code.ShouldEqual("STAGE-ESM-026");
-    [Fact] void should_locate_the_evolved_event() => _plan.Diagnostics.Single().Artifact.ShouldEqual(_event.Id);
+    [Fact] void should_refuse_without_migration_rendering() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-026").Artifact.ShouldEqual(_event.Id);
+    [Fact] void should_also_report_transition_analysis() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-023" && diagnostic.Artifact == _request.Model.Application.Id).Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Information);
     [Fact] void should_emit_no_event_or_reducer_artifacts() => _plan.Artifacts.ShouldBeEmpty();
     [Fact] void should_refuse_the_reducer_dependency_outside_the_selected_slice()
     {
@@ -26,7 +26,8 @@ public class when_refusing_an_evolved_event : a_v4_reducer
         var reducer = context.SelectedSlices().Single(located => !located.Slice.Reducers.IsEmpty);
         var request = _request with { Scope = new(ArtifactRenderScopeKind.Slice, reducer.Slice.Id) };
         var plan = new CratisArtifactRenderPlanner().Plan(request);
-        plan.Diagnostics.Single().Code.ShouldEqual("STAGE-ESM-026");
+        plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-026").Artifact.ShouldEqual(_event.Id);
+        plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-023").Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Information);
         plan.Artifacts.ShouldBeEmpty();
     }
 }

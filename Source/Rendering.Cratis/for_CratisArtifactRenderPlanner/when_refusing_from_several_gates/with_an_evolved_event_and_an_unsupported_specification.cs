@@ -20,12 +20,15 @@ public class with_an_evolved_event_and_an_unsupported_specification : given.a_co
         var declarations = string.Join('\n', Enumerable.Range(1, 2).Select(revision =>
             $"      event ProjectRegistered generation {revision}\n        projectId ProjectId\n        name ProjectName"));
         var source = Source.Replace("      event ProjectRegistered\n        projectId ProjectId\n        name ProjectName", declarations, StringComparison.Ordinal)
-            .Replace("      specification RegisteringAProject\n", """
+            .Replace(
+                "      specification RegisteringAProject\n",
+                """
                       specification RegisteringAProject
                         given readmodel ProjectSummary
                           projectId = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                           name = "Screenplay"
-                """ + "\n", StringComparison.Ordinal);
+                """ + "\n",
+                StringComparison.Ordinal);
         var model = CompileEvolvedModel(source);
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
@@ -42,6 +45,7 @@ public class with_an_evolved_event_and_an_unsupported_specification : given.a_co
         var form = Corpus.SourceForms.Single(candidate => candidate.Name == "single");
         var catalog = SemanticIdentityCatalogSerializer.Deserialize(form.IdentityCatalogBytes.AsSpan());
         form = form with { Documents = [form.Documents.Single() with { Bytes = [.. Encoding.UTF8.GetBytes(source)] }] };
+
         // Bootstrap the current addresses, then advance the persisted catalog without replacing its identities.
         var current = Compile(form with
         {

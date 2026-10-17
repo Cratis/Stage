@@ -25,6 +25,7 @@ internal static partial class SemanticCratisAdmission
         IReadOnlyList<LocatedSemanticSlice> slices)
     {
         var diagnostics = new List<ArtifactRenderDiagnostic>();
+
         // Standalone admission callers still need the version gates; the planner has already run them.
         if (!SemanticVersionFeatures.Supports(context.Request.Model))
         {

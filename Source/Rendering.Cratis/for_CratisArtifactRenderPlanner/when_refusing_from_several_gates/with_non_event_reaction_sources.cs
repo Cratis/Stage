@@ -46,7 +46,9 @@ public class with_non_event_reaction_sources : Specification
                 .SetValue(reaction.Triggers.Single(), model.Application.Id);
         }
 
-        var request = new ArtifactRenderRequest(model, execution,
+        var request = new ArtifactRenderRequest(
+            model,
+            execution,
             CratisRendering.CreateProfile(model.Application.Name, new("Reactions", "Reactions")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id)) { ImplementationRequirements = default };
         var plan = new CratisArtifactRenderPlanner().Plan(request);

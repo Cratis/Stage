@@ -23,7 +23,7 @@ public class with_the_same_missing_body_refused_by_two_gates : Specification
         _request = new(loaded.Model, loaded.Plan, CratisRendering.CreateProfile(loaded.Model.Application.Name, new("Orders", "Orders")), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {
             ImplementationRequirements = loaded.ImplementationRequirements,
-            ImplementationContents = ImmutableDictionary<string, string>.Empty,
+            ImplementationContents = [],
             TypedContextDescriptors = loaded.TypedContextDescriptors
         };
         var concept = loaded.Model.Application.Concepts.Single();

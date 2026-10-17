@@ -46,6 +46,7 @@ internal static class SemanticHost
         if (surface is not null)
         {
             SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, WorldProvider(() => world));
+            builder.Services.AddSingleton<ISemanticFactReader, SemanticFactReader>();
             builder.Services.AddSingleton<ISpecificationRunProcess, SpecificationRunProcess>();
             builder.Services.AddSingleton(SemanticSpecificationProcessOptions.FromConfiguration(builder.Configuration));
             builder.Services.AddSingleton<DynamicTypeFactory>();

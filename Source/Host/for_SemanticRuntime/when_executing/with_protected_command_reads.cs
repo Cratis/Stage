@@ -10,8 +10,8 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
+using Cratis.Stage.Host.for_SemanticRuntime.given;
 using Cratis.Stage.Semantics;
-using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_executing;
@@ -20,22 +20,13 @@ public class with_protected_command_reads : Specification
 {
     SemanticExecutionPlan _plan = null!;
     ISemanticRuntime _runtime = null!;
-    IAppendSemanticFacts _appender = null!;
-    ulong _tail;
+    a_semantic_fact_log _log = null!;
 
     void Establish()
     {
         _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Plan!;
-        _appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
-        _tail = ulong.MaxValue;
-        ((ISemanticFactTail)_appender).Tail().Returns(_ => _tail);
-        _appender.Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>()).Returns(call =>
-        {
-            var count = (ulong)call.Arg<IReadOnlyList<SemanticFact>>().Count;
-            _tail = _tail == ulong.MaxValue ? count - 1 : _tail + count;
-            return Task.CompletedTask;
-        });
-        _runtime = SemanticRuntimeHosting.Create(_plan, _appender);
+        _log = new();
+        _runtime = _log.Runtime(_plan, SemanticWorld.Empty);
     }
 
     void Destroy() => ((IDisposable)_runtime).Dispose();
@@ -53,7 +44,7 @@ public class with_protected_command_reads : Specification
             rejected.Details.ShouldEqual("Current 'missing' does not exist.");
             rejected.World.Facts.ShouldBeEmpty();
         }
-        await _appender.DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
+        _log.Attempts.ShouldBeEmpty();
     }
 
     [Fact]
@@ -95,16 +86,70 @@ public class with_protected_command_reads : Specification
     }
 
     [Fact]
-    public async Task should_fault_on_even_an_irrelevant_outside_append()
+    public async Task should_preserve_an_irrelevant_outside_append_without_faulting()
     {
         await Store("original");
-        _tail++;
+        var destination = SemanticValue.Text("unrelated");
+        _log.Facts.Add(_log.Facts.Single() with
+        {
+            Destination = destination,
+            Context = new(new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text), destination))
+        });
+        var accepted = Assert.IsType<SemanticAccepted>(await Execute("Consume", new { id = "target", sourceId = "reference" }));
+        accepted.World.Facts.Length.ShouldEqual(3);
+        accepted.Facts.Single().Values.Single().Value.ShouldEqual(SemanticValue.Text("original"));
+        ((ISemanticRuntimeStatus)_runtime).FaultReason.ShouldBeNull();
+        _log.Attempts[^1].Tail.ShouldEqual(1UL);
+        (await Execute("Consume", new { id = "another", sourceId = "reference" })).ShouldBeOfExactType<SemanticAccepted>();
+    }
+
+    [Fact]
+    public async Task should_conflict_only_the_stale_decision_and_allow_a_new_one()
+    {
+        await Store("original");
+        _log.Facts.Add(_log.Facts.Single() with
+        {
+            Values = [new(_log.Facts.Single().Values.Single().TargetProperty, SemanticValue.Text("changed"))]
+        });
+        var conflict = Assert.IsType<SemanticConflict>(await Execute("Consume", new { id = "target", sourceId = "reference" }));
+        conflict.Category.ShouldEqual(SemanticConflictCategory.DecisionStateChanged);
+        conflict.World.Facts.Length.ShouldEqual(2);
+        _log.Writes.ShouldEqual(1);
+        var next = Assert.IsType<SemanticAccepted>(await Execute("Consume", new { id = "target", sourceId = "reference" }));
+        next.Facts.Single().Values.Single().Value.ShouldEqual(SemanticValue.Text("changed"));
+        ((ISemanticRuntimeStatus)_runtime).FaultReason.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_recommit_the_same_decision_after_a_definite_guard_loss(bool relevant)
+    {
+        await Store("original");
+        _log.BeforeAppend = () =>
+        {
+            _log.BeforeAppend = null;
+            var destination = SemanticValue.Text(relevant ? "reference" : "other");
+            _log.Facts.Add(_log.Facts.Single() with
+            {
+                Destination = destination,
+                Context = new(new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text), destination))
+            });
+        };
         var result = await Execute("Consume", new { id = "target", sourceId = "reference" });
-        result.ShouldBeOfExactType<SemanticUnsupported>();
-        ((ISemanticRuntimeStatus)_runtime).FaultReason.ShouldContain("outside this session");
-        result.World.Facts.Length.ShouldEqual(1);
-        await _appender.Received(1).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
-        (await Execute("Consume", new { id = "target", sourceId = "reference" })).ShouldBeOfExactType<SemanticUnsupported>();
+        if (relevant)
+        {
+            result.ShouldBeOfExactType<SemanticConflict>();
+            _log.Attempts.Count.ShouldEqual(2);
+        }
+        else
+        {
+            result.ShouldBeOfExactType<SemanticAccepted>();
+            _log.Attempts.Count.ShouldEqual(3);
+            _log.Attempts[^1].Tail.ShouldEqual(1UL);
+            _log.Attempts[^1].Facts.Single().Values.Single().ShouldEqual(_log.Attempts[^2].Facts.Single().Values.Single());
+        }
+        ((ISemanticRuntimeStatus)_runtime).FaultReason.ShouldBeNull();
     }
 
     [Fact]

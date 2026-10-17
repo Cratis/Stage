@@ -18,9 +18,10 @@ internal static class SemanticImplementationReach
         var (events, _, blocker) = SemanticRunReactionAdmission.Reachable(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
         if (blocker is not null) return blocker;
 
-        // Match command admission: an expected refusal must not hide an opaque invoked command.
-        var (_, commands, commandBlocker) = SemanticRunReactionAdmission.Reachable(plan, specification, [], includeRejected: true);
+        // Match command admission: an expected refusal must not hide an opaque invoked command or a reducer its events feed.
+        var (rejectedEvents, commands, commandBlocker) = SemanticRunReactionAdmission.Reachable(plan, specification, [], includeRejected: true);
         if (commandBlocker is not null) return commandBlocker;
+        events.UnionWith(rejectedEvents);
         if (specification.When is { } when) commands.Add(when.Command);
         var queries = specification.ThenQueries.Select(assertion => assertion.Query).ToHashSet();
         var readModels = specification.ThenReadModels.Select(assertion => assertion.ReadModel)

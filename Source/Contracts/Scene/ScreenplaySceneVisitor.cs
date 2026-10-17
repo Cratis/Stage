@@ -43,7 +43,8 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         var uiProfiles = syntax.UiProfiles?.SelectMany(UiProfileConverter.Convert).ToList() ?? [];
         var themes = syntax.Themes?.Select(ThemeConverter.Convert).ToList() ?? [];
         var scope = BehaviorScope.For(syntax, _findings);
-        var layouts = ConvertLayouts(syntax, scope);
+        var diagnostics = new ConversionDiagnostics();
+        var layouts = ConvertLayouts(syntax, scope, diagnostics);
 
         var screenTemplates = new List<SceneScreens.ScreenTemplate>();
         var dialogTemplates = new List<SceneScreens.DialogTemplate>();
@@ -52,12 +53,12 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         foreach (var module in syntax.Modules)
         {
             screenTemplates.AddRange((module.ScreenTemplates ?? []).Select(template =>
-                ScreenTemplateConverter.Convert(template, scope) with
+                ScreenTemplateConverter.Convert(template, scope, diagnostics) with
                 {
                     Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
                 }));
             dialogTemplates.AddRange((module.DialogTemplates ?? []).Select(template =>
-                DialogTemplateConverter.Convert(template, scope) with
+                DialogTemplateConverter.Convert(template, scope, diagnostics) with
                 {
                     Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
                 }));
@@ -76,14 +77,15 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
             TemplateReferences = TemplateReferenceConverter.Collect(syntax),
             SampleDataPacks = SampleDataConverter.Packs(syntax),
             BlueprintSampleDataPacks = SampleDataConverter.BlueprintPacks(syntax),
-            RuntimeIssues = runtime.Issues
+            RuntimeIssues = runtime.Issues,
+            ConversionDiagnostics = diagnostics.All
         };
     }
 
-    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope)
+    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics diagnostics)
     {
         var layouts = (syntax.Layouts ?? [])
-            .Select(layout => LayoutConverter.Convert(layout) with
+            .Select(layout => LayoutConverter.Convert(layout, diagnostics) with
             {
                 Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
             })

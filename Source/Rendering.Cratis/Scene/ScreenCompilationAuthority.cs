@@ -69,6 +69,11 @@ internal static class ScreenCompilationAuthority
         }
 
         var translated = new ScreenplaySceneVisitor().Visit(compiled.Value!);
+        var errors = translated.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
+        if (errors.Length > 0)
+        {
+            throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
+        }
 
         return JsonNode.Parse(CanonicalSceneJson.Serialize(translated))!["screens"]!.AsArray();
     }

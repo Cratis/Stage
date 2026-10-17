@@ -91,36 +91,69 @@ internal sealed class SemanticRunReactions(
     async Task<SemanticRunReactionFailure?> Effects(SemanticReaction reaction, SemanticReactionTrigger trigger, SemanticReactionCause cause, CancellationToken cancellationToken)
     {
         if (trigger.Where is not null && !SemanticRunReactionExpressions.Matches(trigger.Where, cause.Values)) return null;
-        foreach (var produced in trigger.Produces)
-        {
-            if (await Produce(reaction, produced, cause, cancellationToken) is { } failure) return failure;
-        }
+        if (await ProduceAll(reaction, trigger.Produces, cause, cancellationToken) is { } produceFailure) return produceFailure;
         foreach (var invocation in trigger.Invokes)
         {
             var outcome = await invoke(Invocation(reaction, invocation, cause.Values), !invocation.OnRefused.IsEmpty);
             if (outcome.Failure is null) continue;
             var branch = outcome.Refusal is { } refusal ? invocation.OnRefused.FirstOrDefault(refusal.Matches) : null;
             if (branch is null) return SemanticRunReactionFailure.Complete(outcome.Failure);
-            foreach (var produced in branch.Produces)
-            {
-                if (await Produce(reaction, produced, cause, cancellationToken, outcome.Refusal) is { } failure) return failure;
-            }
+            if (await ProduceAll(reaction, branch.Produces, cause, cancellationToken, outcome.Refusal) is { } branchFailure) return branchFailure;
             break;
         }
 
         return null;
     }
 
-    async Task<SemanticRunReactionFailure?> Produce(SemanticReaction reaction, SemanticProducedEvent produced, SemanticReactionCause cause, CancellationToken cancellationToken, SemanticInvocationRefusalOutcome? refusal = null)
+    // A batch is one trigger occurrence's direct productions, or one selected refusal branch's productions. Invoked commands stay separate units.
+    async Task<SemanticRunReactionFailure?> ProduceAll(SemanticReaction reaction, IEnumerable<SemanticProducedEvent> productions, SemanticReactionCause cause, CancellationToken cancellationToken, SemanticInvocationRefusalOutcome? refusal = null)
     {
-        if (produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression))
+        var produced = productions.ToArray();
+        if (plan.Model.Application.ReactionProductionMode is null)
         {
-            return SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.");
-        }
-        var (fact, destination) = Build(produced, cause, refusal);
+            foreach (var item in produced)
+            {
+                if (ContextGuard(reaction, item) is { } guard) return guard;
+                var (fact, destination) = Build(item, cause, refusal);
+                if (await Append(fact, destination, cancellationToken) is { } failure) return failure;
+            }
 
-        return await Append(fact, destination, cancellationToken);
+            return null;
+        }
+
+        // Atomic: build every candidate, then validate the whole batch, and only then append. Nothing is appended before the last check passes.
+        if (produced.Length == 0) return null;
+        var candidates = new List<(SemanticSpecificationEvent Fact, SemanticValue Destination)>();
+        foreach (var item in produced)
+        {
+            if (ContextGuard(reaction, item) is { } guard) return guard;
+            candidates.Add(Build(item, cause, refusal));
+        }
+        if (context.Facts.Count - historyCount + candidates.Count > MaximumFacts) return FactLimit();
+        var claims = new SemanticReactionBatchClaims(plan, [.. context.Facts.Select((item, index) => new SemanticConstraintEvaluator.Fact(item.EventContract, context.Destinations[index], item.Values))]);
+        foreach (var (fact, destination) in candidates)
+        {
+            if (claims.Validate(new(fact.EventContract, destination, fact.Values)) is { } violation)
+            {
+                return SemanticRunReactionFailure.Reject(SemanticConstraintEvaluator.Message(violation), violation.Name);
+            }
+        }
+        foreach (var (fact, _) in candidates)
+        {
+            if (SemanticRunAdmission.CheckProjectionFact(plan, fact) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
+        }
+        foreach (var (fact, destination) in candidates)
+        {
+            await context.Append(fact, destination, cancellationToken);
+        }
+
+        return null;
     }
+
+    static SemanticRunReactionFailure? ContextGuard(SemanticReaction reaction, SemanticProducedEvent produced) =>
+        produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)
+            ? SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.")
+            : null;
 
     (SemanticSpecificationEvent Fact, SemanticValue Destination) Build(SemanticProducedEvent produced, SemanticReactionCause cause, SemanticInvocationRefusalOutcome? refusal)
     {

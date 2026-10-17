@@ -14,14 +14,15 @@ description: Look up what the corpus conformance spec compares, how to read conf
 | `host` | `SemanticRuntimeAdmission` (internal; the Host grants this assembly `InternalsVisibleTo` in Debug) | Every admission entry is supported |
 | `renderer` | `CratisRendering.Plan` (planner only, no generated build) | The plan has no error diagnostic |
 
-The loader outcome is its own column. A model the loader refuses reads `refused:STAGE-PLAN-004(<issue kinds>)`, for example `refused:STAGE-PLAN-004(UnsupportedQuery+UnsupportedAffectedCardinality)`. The three surfaces then still run on the partial plan, `SemanticExecutionPlan.Compile(model, [])`, so each refuses per artifact instead of hiding behind the loader. Only when even the partial plan does not compile are they `n/a:not-loaded`.
+The loader outcome is its own column. A model the loader refuses has outcome `refused` and one record per distinct `(STAGE-PLAN-004, issue kind, full artifact identity)`. Several unsupported validation rules or projection transitions can share that identity. The loader uses set semantics: it keeps one fingerprint and writes its occurrence count plus all distinct details, ordered ordinally, to the details sidecar. The three surfaces still run on the partial plan, `SemanticExecutionPlan.Compile(model, [])`, so each refuses per artifact instead of hiding behind the loader. Only when even the partial plan does not compile are they `n/a:not-loaded`.
 
 The renderer column alone renames the application. The ESM goldens carry a prose application name (`Canonical Golden Application`), and the Cratis scaffold requires a C# identifier, so it throws on the name before it reads a single construct. The renderer column therefore runs a copy of the model whose application is named after the vector; every other construct is unchanged. The loader, executor and host columns use the model as the corpus ships it.
 
 Every cell is one of:
 
 - `supported`
-- `refused:<what>[+<what>]`, where `<what>` is a `STAGE-…` code or `capability:<Name>[<reason key>]` when only the capability types the refusal. The executor appends `@<construct>` (the last eight characters of the construct id) and the host appends `@<construct kind>`. The renderer appends `@<artifact>` with the **full** textual semantic ID from each diagnostic. Distinct artifacts sharing one code remain separate fingerprints; moving or adding a refusal on another artifact changes the cell.
+- `refused`, with a `refusals` array containing the exact fingerprints and dispositions described below
+- `expected-refusal`, when the corpus itself expects an unsupported executor result; these cells are exempt from tracking and must carry no records
 - `n/a:no-specifications`, only for a vector whose plan has no specifications
 - `n/a:not-loaded`, when no plan exists at all
 - `gap:<what>`, which always fails: an exception, an untyped refusal, a partial result, duplicate, unknown or missing executor result IDs against the plan's exact specification ID set (even without corpus expectations), a corpus expectation that matches no result, or a render that blocked yet emitted artifacts
@@ -30,23 +31,42 @@ Every cell is one of:
 
 Vectors are found by reflection over the corpus assembly: every public static `CanonicalCorpusVector` property, and every full ESM golden (`EsmGoldenVectors.V<n>`, plus the extension vectors). The spec fails if the count drops below `minimumVectorCount`, if `corpusVersion` differs from the resolved package, or if a corpus type yields no vector and is not listed in `excludedTypes` with a reason.
 
-## Every refusal has an issue
+## Every refusal has one disposition
 
-Every `refused` cell carries `"issue": <number>`, the Stage issue that tracks lifting that refusal. The spec fails on a refused cell whose `issue` is `null`; `reason` is an optional note. A refusal with no issue is a missing issue, not an exemption: file the issue, then write its number.
+A `refused` cell has one record per fingerprint in `refusals`. Each record contains:
+
+| Field | Contract |
+| --- | --- |
+| `code` | A typed `STAGE-…` code, or `capability:<Name>[<reason key>]` when only the capability types the refusal |
+| `kind` | Loader plan-issue kind or Host admission-entry kind; omitted for executor and renderer |
+| `artifact` | Full artifact identity, never a shortened hash, kind, name, prefix, or wildcard |
+| `issue` | Positive integer identifying the Stage issue that tracks this exact refusal |
+| `byDesign` | Non-blank reason for an explicitly allowed invalid fixture, instead of `issue` |
+
+The executor collapses repeated refusals across specifications only when they share the same code and full construct identity. The Host keeps every artifact and kind, including separate specification artifacts. Renderer fingerprints retain the full semantic ID from each diagnostic.
+
+Matching is ordinal and exact on `(vector, surface, code, kind, artifact)`. A record on another vector or surface grants no coverage. Changing a code, kind, or artifact reports both `unrecorded-refusal` and `stale-record`; duplicates report `duplicate-record`. Empty or wildcard record artifacts report `code-only-record`. Missing observed artifacts report `refusal-without-artifact`.
+
+Every record needs exactly one disposition. A null or non-positive issue without a reason reports `missing-disposition`; supplying both fields reports `conflicting-disposition`. Issue 500 may track only `STAGE-ESM-011`. Records on supported, n/a, gap, or expected-refusal cells fail as `records-on-unrefused-cell`.
+
+The loader rejects legacy cell-level `issue`, `issueRefusals`, and `byDesign` fields, unknown fields, duplicate fields, and non-integer issue values with schema diagnostics. There is no compatibility fallback to cell-level ownership.
 
 ### Refusals that are correct by design
 
-The one exception is a refusal that is the right answer because the corpus input is intentionally invalid. Renderer cells list exact `{ "code", "artifact", "reason" }` entries in `byDesign`. The artifact is the full semantic ID, not a kind, name, prefix or shortened hash.
+`byDesign` is allowed only for the renderer's `STAGE-ESM-019` on `GenerationFixturesCorpus.V21`'s intentionally invalid `TenantOrderId` fixture, artifact `sem1:25bdf5d2a8f97601c41d6bc30d4da1d2fd4123e1ebf894d79f96b9103b85caf4`. It requires a non-blank reason. Another artifact, vector, or surface reports `unauthorized-by-design`, even if the code is identical. A Stage limitation is not an invalid fixture; it needs an issue.
 
-- Every actual renderer code/artifact pair must be covered either by the cell's issue and an exact `{ "code", "artifact" }` entry in `issueRefusals`, or by a `byDesign` entry. An issue number alone does not cover another artifact. When all fingerprints are by design, `issue` is `null`.
-- A `byDesign` entry needs a non-empty `reason` and must belong to the harness's explicit invalid-artifact allow-list. The allow-list contains only ESM-019 on `GenerationFixturesCorpus.V21`'s intentionally invalid `TenantOrderId` generation fixture. It does not exempt ESM-019 on any other artifact, and #500 covers only the separately listed ESM-011 render-abort fingerprints.
-- Use `byDesign` only when the corpus input is intentionally invalid, such as a fixture that exists to be rejected. A limitation of Stage is never by design; it gets an issue.
-- The list can only shrink: an entry whose exact code/artifact pair no longer appears in the actual outcome fails as an unnecessary by-design entry, even when its code still occurs on another artifact. Stale issue-coverage entries fail too.
+When an exempt artifact no longer appears, its record becomes stale and must be removed.
 
 ## Update the table
 
-1. Run the spec. The failure message names each vector, column, expected and actual outcome.
-2. If the change is intended, write the actual table: `CRATIS_STAGE_WRITE_CONFORMANCE_MATRIX=/tmp/matrix.json dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Debug --filter FullyQualifiedName~for_CanonicalCorpusConformance`
-3. Copy the file over `conformance-matrix.json`. A cell whose outcome is unchanged keeps its `issue` and `reason`. A new refusal is written with `"issue": null`. Renderer `issueRefusals` and `byDesign` entries are kept only while their exact code/artifact pairs are still in the outcome.
-4. Replace each `null` with the tracking Stage issue number (unless every fingerprint is explicitly by design). For renderer cells, also list the exact code/artifact pairs that issue covers in `issueRefusals`. The spec rejects uncovered actual fingerprints.
-5. Review the diff. A refusal that became `supported` is the change you wanted to see.
+1. Run the Debug specs. Failure messages name the vector, surface, and affected fingerprint or outcome.
+2. Capture the actual table into an existing ignored work directory:
+
+   ```bash
+   CRATIS_STAGE_WRITE_CONFORMANCE_MATRIX="$PWD/.ai-work/matrix.json" dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Debug --no-build --filter FullyQualifiedName~when_running_every_canonical_vector
+   ```
+
+   This writes `matrix.json` and `matrix.details.json`. The sidecar contains the full observed details for diagnosis; details never enter the matrix. The run still validates the checked-in expectations, so writing an actual table is not a passing verdict.
+3. Review changed outcomes and fingerprints before replacing `conformance-matrix.json`. The writer carries a disposition only from one identical prior `(vector, surface, fingerprint)` record. A new or ambiguous fingerprint gets `"issue": null`, even if another artifact has the same code or the cell outcome is unchanged.
+4. Replace each null with the issue that covers that exact refusal, or the authorized by-design reason. Do not infer coverage from another record in the cell.
+5. Rebuild to copy the reviewed matrix into the test output directory, then rerun the specs. Removed refusals must leave no stale records.

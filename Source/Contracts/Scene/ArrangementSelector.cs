@@ -21,6 +21,33 @@ namespace Cratis.Stage.Contracts.Scene;
 public static class ArrangementSelector
 {
     /// <summary>
+    /// Identifies an arrangement type that cannot be selected.
+    /// </summary>
+    public const string DiagnosticCode = "STAGE-SCENE-ARRANGEMENT-003";
+
+    /// <summary>
+    /// Tries to select an arrangement without throwing for an unknown arrangement type.
+    /// </summary>
+    /// <param name="structure">The owning structure.</param>
+    /// <param name="slot">The owning slot, or null for a macro arrangement.</param>
+    /// <param name="arrangement">The arrangement to select.</param>
+    /// <param name="sizeClass">The target size class.</param>
+    /// <param name="selection">The selection, or null for a missing freeform variant or unsupported type.</param>
+    /// <returns>False only for an unsupported arrangement type; a missing freeform variant returns true.</returns>
+    public static bool TrySelect(
+        string structure,
+        string? slot,
+        SceneLayouts.Arrangement arrangement,
+        SceneSizeClasses.SizeClass sizeClass,
+        out ArrangementSelection? selection)
+    {
+        selection = null;
+        if (arrangement is not (SceneLayouts.FlowArrangement or SceneLayouts.FreeformSlotArrangement or SceneLayouts.FreeformArrangement)) return false;
+        selection = Select(structure, slot, arrangement, sizeClass);
+        return true;
+    }
+
+    /// <summary>
     /// Selects the arrangement that applies at a size class.
     /// </summary>
     /// <param name="structure">The name of the layout, screen template or dialog template the arrangement belongs to.</param>

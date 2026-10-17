@@ -40,7 +40,50 @@ public static class SliceConverter
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
         IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
-        string featurePath)
+        string featurePath) => ConvertCore(slice, schema, eventPropertyTypes, eventProperties, featurePath, null);
+
+    /// <summary>
+    /// Converts a slice while collecting unsupported projection constructs.
+    /// </summary>
+    /// <param name="slice">The slice to convert.</param>
+    /// <param name="schema">The schema synthesizer.</param>
+    /// <param name="eventPropertyTypes">The global event property type map.</param>
+    /// <param name="featurePath">The owning feature path.</param>
+    /// <param name="diagnostics">The append-only diagnostic collector.</param>
+    /// <returns>The slice, retaining read models whose projections were omitted.</returns>
+    public static Slice Convert(
+        ScreenplaySyntax.SliceSyntax slice,
+        SchemaSynthesizer schema,
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        string featurePath,
+        ConversionDiagnostics diagnostics) =>
+        Convert(slice, schema, eventPropertyTypes, new Dictionary<string, IReadOnlyList<KeyValuePair<string, string>>>(StringComparer.Ordinal), featurePath, diagnostics);
+
+    /// <summary>
+    /// Converts a slice while collecting unsupported projection constructs and resolving automatic mappings.
+    /// </summary>
+    /// <param name="slice">The slice to convert.</param>
+    /// <param name="schema">The schema synthesizer.</param>
+    /// <param name="eventPropertyTypes">The global event property type map.</param>
+    /// <param name="eventProperties">The properties declared by each event.</param>
+    /// <param name="featurePath">The owning feature path.</param>
+    /// <param name="diagnostics">The append-only diagnostic collector.</param>
+    /// <returns>The slice, retaining read models whose projections were omitted.</returns>
+    public static Slice Convert(
+        ScreenplaySyntax.SliceSyntax slice,
+        SchemaSynthesizer schema,
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
+        string featurePath,
+        ConversionDiagnostics diagnostics) => ConvertCore(slice, schema, eventPropertyTypes, eventProperties, featurePath, diagnostics);
+
+    static Slice ConvertCore(
+        ScreenplaySyntax.SliceSyntax slice,
+        SchemaSynthesizer schema,
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
+        string featurePath,
+        ConversionDiagnostics? diagnostics)
     {
         var slicePath = $"{featurePath}.{slice.Name}";
         var command = slice.Commands.FirstOrDefault();
@@ -51,7 +94,8 @@ public static class SliceConverter
             MapType(slice.Type),
             EventConverter.Convert(slice.Events, slice.Constraints, schema, slicePath),
             command is not null ? CommandConverter.Convert(command, schema, slicePath) : null,
-            ConvertReadModel(slice, schema, eventPropertyTypes, eventProperties, slicePath),
+            diagnostics is null ? ConvertReadModel(slice, schema, eventPropertyTypes, eventProperties, slicePath)
+                : ReadModelConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, slicePath, diagnostics),
             [.. slice.Specifications.Select(specification => SpecificationConverter.Convert(specification, slicePath))]);
     }
 

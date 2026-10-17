@@ -479,7 +479,8 @@ properties are server-owned and are not proxy inputs. `commandResponseKinds` des
 return metadata so proxies preserve strings, numbers, booleans and records. Commands without a declared return retain
 the host's object echo. Commands register under their full type identity and route, with simple-name aliases only for unambiguous names.
 Missing schema metadata produces a console warning and leaves that command unregistered; other commands and the
-live UI remain available. This metadata does not add schemas to the scene
+live UI remain available. If `/stage/routes` cannot be loaded, Stage warns and renders the scene without registered
+commands. This metadata does not add schemas to the scene
 document of an application without toolbar slice references. Query reads still use the Stage query transport.
 
 ## When the model declares no screens

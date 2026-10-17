@@ -52,9 +52,7 @@ async function start() {
             registerStageCommands(routes);
         }
     } catch (reason) {
-        root.setAttribute('role', 'alert');
-        root.textContent = reason instanceof Error ? reason.message : String(reason);
-        return;
+        console.warn('Stage command routes could not be loaded; rendering without registered commands.', reason);
     }
     const source = { ...httpStageSource, routes: async () => routes };
 

@@ -166,7 +166,15 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         _ => null
     };
 
-    string SourceValue(SemanticId source) => PropertyValue(command.Properties.Single(property => property.Id == source));
+    // A raw-bound DateTime concept converts back explicitly, so a checked result never needs two user-defined conversions.
+    string SourceValue(SemanticId source)
+    {
+        var property = command.Properties.Single(property => property.Id == source);
+
+        return SemanticDateComparisonAdmission.Raw(context.Application, command).Contains(property.Id)
+            ? $"(({_types.Type(property.Type)}){PropertyValue(property)})"
+            : PropertyValue(property);
+    }
 
     sealed record ResultExpression(string Type, string Value);
 }

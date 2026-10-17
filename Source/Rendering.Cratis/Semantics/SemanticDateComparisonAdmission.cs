@@ -56,6 +56,11 @@ internal static class SemanticDateComparisonAdmission
             {
                 yield return Refusal(command, property, "Arc names the failing member in camel case, so its refusal message would not match the reference evaluator's");
             }
+            else if (property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true })
+            {
+                // An absent DateTimeOffset has no conversion to an absent concept; Arc#3350 would let the concept bind directly.
+                yield return Refusal(command, property, $"optional concept '{context.Concepts[property.Type.Target].Name}' cannot bind as a DateTimeOffset with Arc's explicit-offset marker and convert back to the concept (Arc#3350)");
+            }
             else if (property.Type.Kind == SemanticTypeReferenceKind.Concept && Unbindable(context.Concepts[property.Type.Target]) is { } reason)
             {
                 yield return Refusal(command, property, $"concept '{context.Concepts[property.Type.Target].Name}' {reason}, so it cannot bind as a DateTimeOffset with Arc's explicit-offset marker");

@@ -164,14 +164,16 @@ Divergences and refusals (`STAGE-ESM-046`, naming the property):
 
 - A compared DateTime property typed through a concept binds as a plain `DateTimeOffset`, because Arc's marker
   supports only `DateTime` and `DateTimeOffset`; it converts to the concept where an event or rule uses it. A concept
-  with compliance, or a property whose name is not camel case (Arc names the member in camel case), is refused.
-  Pending Arc ask: a marker for concept-wrapped dates.
+  with compliance, an optional concept-typed compared DateTime (an absent `DateTimeOffset` has no conversion back to
+  an absent concept), or a property whose name is not camel case (Arc names the member in camel case), is refused.
+  Pending Arc ask: a marker for concept-wrapped dates (Cratis/Arc#3350).
 - For a command with an authorization policy, an unauthorized caller sending an unbindable date body gets
   `Validation`, not 403. Stage renders native named Arc policies, and Arc's resource-free evaluation covers only
   ASP.NET requirements. See [command input binding](https://github.com/Cratis/Arc/blob/main/Documentation/backend/csharp/commands/input-binding.md)
   and Cratis/Arc#3341.
 - Rendered `then` expectations compare DateTime values as instants, while the reference compares spelling; the
   binder already requires expected event values to match the produced spelling.
+- A comparison whose operand comes from a protected command read is not rendered for dates and stays refused.
 - The legacy engines still refuse these comparisons with `STAGE-ESM-046`.
 
 V27 admits read models with several `key` parts. The semantic Host runs them end to end: `parts` projection keys

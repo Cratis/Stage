@@ -315,7 +315,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var types = new SemanticTypeSystem(context);
         var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
         var optionalType = property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true, IsCollection: false } &&
-            primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean
+            primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date
                 ? types.Type(property.Type)
                 : null;
         var enumOperand = property.Type.Kind == SemanticTypeReferenceKind.Concept && !context.Concepts[property.Type.Target].Values.IsEmpty

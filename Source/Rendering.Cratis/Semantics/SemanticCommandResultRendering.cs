@@ -21,15 +21,22 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     readonly SemanticTypeSystem _types = new(context);
     readonly SemanticCommandCompliance _compliance = new(context);
 
+    /// <summary>
+    /// Gets the command's protected decision reads.
+    /// </summary>
+    internal SemanticDecisionReadRendering Reads { get; } = new(command, context, locals);
+
     IEnumerable<SemanticProperty> Inputs => command.Properties.Where(property => !property.IsGenerated);
 
+    // A command that only decides still names the stream it decides for, so Arc's analyzers see a keyed command.
     SemanticProperty? DestinationProperty
     {
         get
         {
             var destination = command.Produces.IsEmpty ? null : SemanticDestinations.Of(command, command.Produces[0]) as SemanticResolvedExpression;
 
-            return command.Properties.SingleOrDefault(property => property.Id == destination?.Target);
+            return command.Properties.SingleOrDefault(property => property.Id == destination?.Target) ??
+                (Reads.HasReads && command.Produces.IsEmpty && command.Response is null ? command.Properties.FirstOrDefault(property => property.IsIdentifier && !property.IsGenerated) : null);
         }
     }
 
@@ -65,7 +72,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
             RenderConditionalHandle(builder, wrappedEvent);
             return;
         }
-        if (command.Response is null && command.Properties.All(property => !property.IsGenerated))
+        if (!Reads.HasReads && command.Response is null && command.Properties.All(property => !property.IsGenerated))
         {
             renderEventOnly();
             return;
@@ -93,14 +100,24 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         var routing = new SemanticCommandRouteRendering(command, context, locals);
         routing.StreamId();
         var routeResult = $"global::OneOf.OneOf<{result.Type}, global::Cratis.Arc.Validation.ValidationResult>";
-        builder.OpenBlock($"public {(routing.HasChecks ? routeResult : result.Type)} Handle({Parameters()})");
+        var checkedResult = routing.HasChecks || Reads.HasReads;
+        builder.OpenBlock($"public {(checkedResult ? routeResult : result.Type)} Handle({Parameters()})");
+        if (Reads.HasReads)
+        {
+            // The decision is read first, so a missing view wins over every requirement; requirements then run in model order.
+            Reads.RenderAbsenceGuards(builder, routeResult);
+            foreach (var requirement in command.Requirements)
+            {
+                SemanticRequirementRendering.RenderGuard(builder, requirement, command, context, Reads.Scope, routeResult);
+            }
+        }
         if (routing.HasChecks) routing.RenderChecks(builder, routeResult);
         if (HasOccurrence)
         {
             builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
         }
         renderEvents?.Invoke();
-        builder.Line($"return {(routing.HasChecks ? $"{routeResult}.FromT0({result.Value})" : result.Value)};").EndBlock();
+        builder.Line($"return {(checkedResult ? $"{routeResult}.FromT0({result.Value})" : result.Value)};").EndBlock();
     }
 
     // Stage renders generated-value freshness itself (explicit concurrency scopes from ESM v15, unguarded below), so
@@ -110,7 +127,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         var generated = command.Properties.Where(property => property.IsGenerated).Select(property =>
             $"[global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute({CSharpCodeBuilder.StringLiteral(property.Name)}, Freshness = global::Cratis.Arc.Commands.GeneratedValueFreshness.Unguarded)] {_types.Type(property.Type)} {PropertyValue(property)}");
 
-        return string.Join(", ", generated.Concat(HasOccurrence ? [$"global::Cratis.Arc.IOperationContextAccessor {locals.Name("operation")}"] : []));
+        return string.Join(", ", Reads.Parameters().Concat(generated).Concat(HasOccurrence ? [$"global::Cratis.Arc.IOperationContextAccessor {locals.Name("operation")}"] : []));
     }
 
     ResultExpression HandleResult(Func<SemanticProducedEvent, string> wrappedEvent)
@@ -125,6 +142,9 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
 
     ResultExpression Events(Func<SemanticProducedEvent, string> wrappedEvent)
     {
+        // A decision-only command commits nothing, yet Arc still validates the reads it declared.
+        if (command.Produces.IsEmpty) return new(ConditionalEventsType, "[]");
+
         if (SemanticGeneratedFreshness.Destinations(command, context).Any())
         {
             return new(SemanticGeneratedFreshness.ResultType, SemanticGeneratedFreshness.Events(new(command, context, wrappedEvent, locals)));

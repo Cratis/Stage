@@ -13,16 +13,17 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static class SemanticConditionRendering
 {
-    internal static bool CanRender(SemanticCondition condition, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, bool numericOrderingOnly = false, bool dates = false) => condition switch
+    internal static bool CanRender(SemanticCondition condition, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, bool numericOrderingOnly = false, bool dates = false, SemanticReadScope? reads = null) => condition switch
     {
         SemanticLogicalCondition logical => Enum.IsDefined(logical.Operator) &&
-            CanRender(logical.Left, properties, context, numericOrderingOnly, dates) && CanRender(logical.Right, properties, context, numericOrderingOnly, dates),
+            CanRender(logical.Left, properties, context, numericOrderingOnly, dates, reads) && CanRender(logical.Right, properties, context, numericOrderingOnly, dates, reads),
         SemanticComparison comparison => Enum.IsDefined(comparison.Operator) &&
-            CanRender(comparison.Left, properties, context) && CanRender(comparison.Right, properties, context) &&
+            CanRender(comparison.Left, properties, context, reads) && CanRender(comparison.Right, properties, context, reads) &&
+            !ComparesReadDate(comparison, properties, context, reads) &&
             (DateComparison(comparison, properties, context) is not null ? dates || !numericOrderingOnly :
-                CanCompareNamedValues(comparison, properties, context, numericOrderingOnly) &&
+                CanCompareNamedValues(comparison, properties, context, numericOrderingOnly, reads) &&
                 (!numericOrderingOnly || comparison.Operator is SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual ||
-                    (IsNumeric(comparison.Left, properties, context) && IsNumeric(comparison.Right, properties, context)))),
+                    (IsNumeric(comparison.Left, properties, context, reads) && IsNumeric(comparison.Right, properties, context, reads)))),
         _ => false
     };
 
@@ -33,7 +34,10 @@ internal static class SemanticConditionRendering
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticCondition), condition.GetType().Name)
     };
 
-    static bool CanRender(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    static SemanticProperty? Resolve(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticReadScope? reads) =>
+        operand.Read is { } read ? reads?.Property(read, operand.Property) : properties.FirstOrDefault(_ => _.Id == operand.Property);
+
+    static bool CanRender(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, SemanticReadScope? reads)
     {
         if (!operand.Property.IsSet)
         {
@@ -41,22 +45,22 @@ internal static class SemanticConditionRendering
                 (operand.Value is SemanticTextValue text && !text.Value.Any(_ => char.IsControl(_) || char.IsSurrogate(_)));
         }
 
-        var property = properties.FirstOrDefault(_ => _.Id == operand.Property);
+        var property = Resolve(operand, properties, reads);
         return property?.Type is { IsCollection: false, IsOptional: false, Kind: not SemanticTypeReferenceKind.CompositeType } type &&
             (type.Kind != SemanticTypeReferenceKind.Concept ||
              context.Concepts.ContainsKey(type.Target));
     }
 
-    static SemanticConcept? NamedConcept(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    static SemanticConcept? NamedConcept(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, SemanticReadScope? reads)
     {
-        var type = properties.FirstOrDefault(property => property.Id == operand.Property)?.Type;
+        var type = Resolve(operand, properties, reads)?.Type;
         return type?.Kind == SemanticTypeReferenceKind.Concept && context.Concepts.TryGetValue(type.Target, out var concept) && !concept.Values.IsEmpty ? concept : null;
     }
 
-    static bool CanCompareNamedValues(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, bool numericOrderingOnly)
+    static bool CanCompareNamedValues(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, bool numericOrderingOnly, SemanticReadScope? reads)
     {
-        var left = NamedConcept(comparison.Left, properties, context);
-        var right = NamedConcept(comparison.Right, properties, context);
+        var left = NamedConcept(comparison.Left, properties, context, reads);
+        var right = NamedConcept(comparison.Right, properties, context, reads);
         if (left is null && right is null) return true;
         if (numericOrderingOnly) return false;
         return comparison.Operator is SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual &&
@@ -73,7 +77,7 @@ internal static class SemanticConditionRendering
         !operand.Property.IsSet && operand.Value is SemanticTextValue text && concept.Values.Contains(text.Value, StringComparer.Ordinal);
 
     static SemanticConcept? ComparisonConcept(SemanticComparison comparison, SemanticConditionRenderingContext context) =>
-        NamedConcept(comparison.Left, context.Properties, context.Application) ?? NamedConcept(comparison.Right, context.Properties, context.Application);
+        NamedConcept(comparison.Left, context.Properties, context.Application, context.Reads) ?? NamedConcept(comparison.Right, context.Properties, context.Application, context.Reads);
 
     static string Comparison(SemanticComparison comparison, SemanticConditionRenderingContext context)
     {
@@ -88,7 +92,7 @@ internal static class SemanticConditionRendering
         var right = ComparisonOperand(comparison.Right, concept, context);
         var symbol = ComparisonSymbol(comparison.Operator);
 
-        return IsNumeric(comparison.Left, context.Properties, context.Application) ? $"({left} {symbol} {right})" :
+        return IsNumeric(comparison.Left, context.Properties, context.Application, context.Reads) ? $"({left} {symbol} {right})" :
             $"({(comparison.Operator == SemanticComparisonOperator.NotEqual ? "!" : string.Empty)}global::System.Object.Equals({left}, {right}))";
     }
 
@@ -105,6 +109,7 @@ internal static class SemanticConditionRendering
     /// <returns>The shared Date or DateTime primitive, or null when the comparison is not chronological.</returns>
     static SemanticPrimitiveType? DateComparison(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
     {
+        if (comparison.Left.Read is not null || comparison.Right.Read is not null) return null;
         if (!comparison.Left.Property.IsSet || DateProperty(comparison.Left.Property, properties, context) is not { } primitive) return null;
         if (comparison.Right.Property.IsSet)
         {
@@ -113,6 +118,12 @@ internal static class SemanticConditionRendering
 
         return comparison.Right.Value is SemanticTextValue text && SemanticDateLiteral.IsCanonical(text.Value, primitive) ? primitive : null;
     }
+
+    // A protected read is not a command input; ordering its dates is not rendered, so such a comparison stays refused.
+    static bool ComparesReadDate(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, SemanticReadScope? reads) =>
+        (comparison.Left.Read is not null || comparison.Right.Read is not null) &&
+        new[] { comparison.Left, comparison.Right }.Any(operand => operand.Property.IsSet &&
+            Primitive(operand, properties, context, reads) is SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime);
 
     static SemanticPrimitiveType? DateProperty(SemanticId id, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
     {
@@ -147,12 +158,12 @@ internal static class SemanticConditionRendering
             ? new SemanticTypeSystem(context.Application).Value(operand.Value!, SemanticTypeReference.ForConcept(concept.Id))
             : Operand(operand, context);
 
-    static bool IsNumeric(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context) =>
-        Primitive(operand, properties, context) is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;
+    static bool IsNumeric(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, SemanticReadScope? reads) =>
+        Primitive(operand, properties, context, reads) is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;
 
-    static SemanticPrimitiveType Primitive(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context) =>
+    static SemanticPrimitiveType Primitive(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, SemanticReadScope? reads) =>
         operand.Property.IsSet
-            ? SemanticValidationRendering.UnderlyingPrimitive(properties.Single(_ => _.Id == operand.Property).Type, context)
+            ? SemanticValidationRendering.UnderlyingPrimitive(Resolve(operand, properties, reads)!.Type, context)
             : operand.Value switch
             {
                 SemanticTextValue => SemanticPrimitiveType.Text,
@@ -160,9 +171,23 @@ internal static class SemanticConditionRendering
                 _ => SemanticPrimitiveType.DecimalNumber
             };
 
-    static string Operand(SemanticConditionOperand operand, SemanticConditionRenderingContext context) => operand.Property.IsSet
-        ? PropertyOperand(context.Properties.Single(_ => _.Id == operand.Property), context)
-        : LiteralOperand(operand.Value);
+    static string Operand(SemanticConditionOperand operand, SemanticConditionRenderingContext context)
+    {
+        if (!operand.Property.IsSet) return LiteralOperand(operand.Value);
+
+        return operand.Read is { } read
+            ? ReadOperand(read, operand.Property, context)
+            : PropertyOperand(context.Properties.Single(_ => _.Id == operand.Property), context);
+    }
+
+    static string ReadOperand(string read, SemanticId id, SemanticConditionRenderingContext context)
+    {
+        var scope = context.Reads ?? throw UnsupportedSemanticRendering.For(nameof(SemanticConditionOperand.Read), read);
+        var property = scope.Property(read, id) ?? throw UnsupportedSemanticRendering.For(nameof(SemanticConditionOperand.Read), read);
+        var value = $"{scope.Local(read)}.{Identifiers.ToPascalCase(property.Name)}";
+
+        return property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Application.Concepts[property.Type.Target].Values.IsEmpty ? $"{value}.Value" : value;
+    }
 
     static string PropertyOperand(SemanticProperty property, SemanticConditionRenderingContext context)
     {

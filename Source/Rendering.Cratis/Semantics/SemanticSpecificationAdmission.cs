@@ -60,6 +60,20 @@ internal static partial class SemanticSpecificationAdmission
         SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions)
             .SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event);
 
+    internal static bool CommandTriggersReaction(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (specification.When is not { } action) return false;
+        if (!context.Commands.TryGetValue(action.Command, out var command)) return false;
+
+        return EventReactionTriggers(context).Any(trigger => SemanticProductionSelection.Taken(context.Application, command, specification).Any(produced => produced.EventContract == trigger.Source));
+    }
+
+    internal static bool IsReactionConstraintTarget(SemanticApplicationContext context, SemanticId @event) =>
+        context.Constraints.Any(selected => selected.Constraint.Targets.Any(target => target.EventContract == @event) || selected.Constraint.ReleasedBy.Contains(@event));
+
+    internal static bool TriggerValuesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
+        CommandValuesMatch(context, specification, command);
+
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
@@ -91,6 +105,12 @@ internal static partial class SemanticSpecificationAdmission
         {
             if (CommandTriggersReaction(context, specification))
             {
+                if (SemanticReactionCascade.TryLower(context, specification, out var cascade))
+                {
+                    ValidateCascade(context, cascade, diagnostics);
+                    continue;
+                }
+
                 diagnostics.Add(new(
                     "STAGE-ESM-011",
                     ArtifactRenderDiagnosticSeverity.Error,
@@ -102,12 +122,13 @@ internal static partial class SemanticSpecificationAdmission
         }
     }
 
-    static bool CommandTriggersReaction(SemanticApplicationContext context, SemanticSpecification specification)
+    static void ValidateCascade(SemanticApplicationContext context, SemanticReactionCascade cascade, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (specification.When is not { } action) return false;
-        if (!context.Commands.TryGetValue(action.Command, out var command)) return false;
-
-        return EventReactionTriggers(context).Any(trigger => SemanticProductionSelection.Taken(context.Application, command, specification).Any(produced => produced.EventContract == trigger.Source));
+        ValidateReactionAppend(context, cascade.Reaction, diagnostics);
+        if (cascade.Trigger is { } trigger && !CanRenderSpecification(context, trigger))
+        {
+            diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{cascade.Reaction.Name}' cannot render: its triggering command specification cannot be preserved ({RejectionReason(context, trigger)}).", cascade.Reaction.Id));
+        }
     }
 
     static bool ProtectedQuerySourcesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command)

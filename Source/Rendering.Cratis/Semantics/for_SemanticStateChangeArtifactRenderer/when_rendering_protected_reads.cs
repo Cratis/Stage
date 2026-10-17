@@ -1,0 +1,42 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System.Text;
+using Cratis.Screenplay.CanonicalCorpus;
+using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Screenplay.Semantics.Serialization;
+using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
+using Xunit;
+
+namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticStateChangeArtifactRenderer;
+
+public class when_rendering_protected_reads : Specification
+{
+    const string Union = "global::OneOf.OneOf<global::Cratis.Chronicle.EventSequences.EventForEventSourceId, global::Cratis.Arc.Validation.ValidationResult>";
+    string _code = null!;
+
+    void Because()
+    {
+        var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ProtectedReads", "ProtectedReads"));
+        _code = string.Join("\n", plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+    }
+
+    [Fact] void should_protect_the_command_that_reads() => Declaration("Consume").ShouldContain("[global::Cratis.Arc.Commands.ReadProtectionAttribute(global::Cratis.Arc.Commands.ReadProtectionMode.On)]");
+    [Fact] void should_not_protect_a_command_without_reads() => Declaration("Store").ShouldNotContain("ReadProtection");
+    [Fact] void should_look_the_view_up_by_its_key() => _code.ShouldContain("[global::Cratis.Arc.Commands.LookUpByAttribute(nameof(Consume.SourceId))] global::ProtectedReads.Storage.Decisions.State.Current? current");
+    [Fact] void should_guard_absence_with_the_reference_message() => _code.ShouldContain("if (current is null) return " + Union + ".FromT1(global::Cratis.Arc.Validation.ValidationResult.Error(\"Current '\" + SourceId + \"' does not exist.\"));");
+    [Fact] void should_guard_absence_before_the_requirement() => _code.IndexOf("current is null", StringComparison.Ordinal).ShouldBeLessThan(_code.IndexOf("The stored value must not be empty.", StringComparison.Ordinal));
+    [Fact] void should_guard_the_requirement_inside_handle() => _code.ShouldContain("if (!(!global::System.Object.Equals(current.Value, \"\"))) return " + Union + ".FromT1(global::Cratis.Arc.Validation.ValidationResult.Error(\"The stored value must not be empty.\"));");
+    [Fact] void should_map_the_read_path_into_the_event() => _code.ShouldContain("new global::ProtectedReads.Storage.Decisions.Use.Taken(current.Value)");
+    [Fact] void should_move_the_requirement_out_of_the_validator() => _code.ShouldNotContain("RuleFor(_ => _).Must(command => ");
+    [Fact] void should_commit_nothing_for_a_decision_without_an_outcome() => _code.ShouldContain(".FromT0([])");
+
+    string Declaration(string command)
+    {
+        var start = _code.IndexOf($"public record {command}(", StringComparison.Ordinal);
+
+        return _code[Math.Max(0, start - 400)..start];
+    }
+}

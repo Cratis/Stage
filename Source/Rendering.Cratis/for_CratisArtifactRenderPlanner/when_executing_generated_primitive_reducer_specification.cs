@@ -49,8 +49,7 @@ public class when_executing_generated_primitive_reducer_specification : a_genera
         {
             RenderApplication(CreatePlan(self));
 
-            // The required keyed query's primitive Guid argument triggers Arc's unrelated ARC0015 analyzer.
-            var build = await Run("primitive-reducer-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "-p:NoWarn=ARC0015%3BCS7022", "--nologo");
+            var build = await Run("primitive-reducer-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "-p:NoWarn=CS7022", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("primitive-reducer-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
             Assert.Contains("Passed!", test, StringComparison.Ordinal);

@@ -38,5 +38,6 @@ internal static partial class SemanticCratisAdmission
             names.Any(candidate => Identifiers.ToPascalCase(candidate) == name) || context.NamespacePaths.Contains(namespaceName);
     }
 
-    static bool HasCommandOutcome(SemanticCommand command) => !command.Produces.IsEmpty || command.Response is not null;
+    // A command with protected reads may only decide: Arc still validates the reads it declared, and nothing is committed.
+    static bool HasCommandOutcome(SemanticCommand command) => !command.Produces.IsEmpty || command.Response is not null || !command.Reads.IsDefaultOrEmpty;
 }

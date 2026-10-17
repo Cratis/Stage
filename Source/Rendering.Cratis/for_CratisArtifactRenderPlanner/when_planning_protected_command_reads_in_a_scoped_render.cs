@@ -15,11 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// <summary>
 /// A slice-scoped render of a protected-reads model, including a slice that declares no command of its own.
 /// </summary>
-/// <remarks>
-/// The protected read mode belongs to the application, so a scoped render must refuse it even when the selected
-/// slice only invokes a protected command elsewhere; otherwise the invoked command would run without its reads.
-/// </remarks>
-public class when_refusing_protected_command_reads_in_a_scoped_render : Specification
+public class when_planning_protected_command_reads_in_a_scoped_render : Specification
 {
     static readonly ExecutableSemanticModel _model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
 
@@ -29,12 +25,12 @@ public class when_refusing_protected_command_reads_in_a_scoped_render : Specific
 
     [Theory]
     [MemberData(nameof(Slices))]
-    void should_refuse_the_application_boundary_without_emitting_artifacts(int index)
+    void should_plan_without_refusing_the_decision_boundary(int index)
     {
         var slice = SemanticVersionFeatures.Slices(_model.Application).ElementAt(index).Id;
         var plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan!, new(ArtifactRenderScopeKind.Slice, slice), new("ProtectedReads", "ProtectedReads"));
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-044" && diagnostic.Artifact == _model.Application.Id);
-        plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
-        plan.Artifacts.ShouldBeEmpty();
+        plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code is "STAGE-ESM-044" or "STAGE-ESM-016");
+        plan.Success.ShouldBeTrue();
+        plan.Artifacts.ShouldNotBeEmpty();
     }
 }

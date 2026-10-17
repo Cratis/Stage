@@ -218,6 +218,13 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         cancellationToken.ThrowIfCancellationRequested();
 
         var failure = CommandOutcome(run, result, allowed, priorFacts);
+        if (failure is null && context.HandlerBodyReached && command.Handler is { } handler)
+        {
+            failure = Unsupported(run.Slice, run.Expected, new(
+                StageExecutionCapability.ImplementationBody,
+                command.Id.ToString(),
+                $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target."));
+        }
         var refusal = collectRefusalDetails && !allowed && !result.HasExceptions && !result.IsAuthorized && context.Facts.Count == priorFacts
             ? new SemanticInvocationRefusalOutcome("authorization", [], SemanticRejection.Unauthorized.Message) : null;
 
@@ -274,11 +281,11 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             return new(Unsupported(slice, expected, new(StageExecutionCapability.IdentityAllocation, context.Command.Id.ToString(), "An accepted command requires an explicit destination.")));
         }
 
-        return CommandAppendOutcome(run, collectRefusalDetails);
+        return context.Command.Handler is null ? CommandAppendOutcome(run, collectRefusalDetails) : null;
     }
 
     static bool NeedsExplicitDestination(SemanticRunContext context) =>
-        context.Specification.When!.EventSource is null && context.Command.Destination?.Value is null && context.Command.Produces.Where(context.Holds).Any(produced => produced.Destination is null);
+        context.Command.Handler is null && context.Specification.When!.EventSource is null && context.Command.Destination?.Value is null && context.Command.Produces.Where(context.Holds).Any(produced => produced.Destination is null);
 
     static SemanticInvocationOutcome? CommandAppendOutcome(SemanticCommandRun run, bool collectRefusalDetails)
     {

@@ -40,6 +40,7 @@ public static class SemanticRunAdmission
         var events = slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Id);
 
         return SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
+            .Except(slices.SelectMany(slice => slice.Commands).SelectMany(SemanticVersionFeatures.DescribedHandlersInCommand))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
             .Distinct().Select(Feature);
     }
@@ -50,7 +51,9 @@ public static class SemanticRunAdmission
     /// <param name="command">The command.</param>
     /// <returns>The precise capability refusals.</returns>
     public static IEnumerable<SemanticAdmissionFeature> CommandFeatures(SemanticCommand command) =>
-        SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)).Select(Feature);
+        SemanticVersionFeatures.InCommand(command)
+            .Except(SemanticVersionFeatures.RoutesInCommand(command))
+            .Except(SemanticVersionFeatures.DescribedHandlersInCommand(command)).Select(Feature);
 
     /// <summary>
     /// Finds later-version assertions in a specification.
@@ -152,7 +155,7 @@ public static class SemanticRunAdmission
         }
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
         if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, command.Id, "Command property names collide in generated C#.");
-        foreach (var emitted in command.Produces)
+        foreach (var emitted in command.Handler is null ? command.Produces : [])
         {
             if (plan.Events.TryGetValue(emitted.EventContract, out var producedContract) &&
                 !GeneratedPascalCase.EventMembersAreUnique(producedContract.Name, producedContract.Properties.Select(property => property.Name)))
@@ -165,6 +168,17 @@ public static class SemanticRunAdmission
         if (valueRefusal is not null)
         {
             return Block(StageExecutionCapability.Command, command.Id, valueRefusal);
+        }
+
+        // A described handler determines its own productions. Only history can be projected before its body is reached.
+        if (command.Handler is not null)
+        {
+            if (command.Validations.Any(rule => !SupportedRule(rule.Kind)))
+            {
+                return Block(StageExecutionCapability.Command, command.Id, "A command validation rule is not admitted.");
+            }
+
+            return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
         }
 
         // The reference projects given events while establishing the world, and produced facts only when the command
@@ -239,9 +253,12 @@ public static class SemanticRunAdmission
         var feature = SemanticVersionFeatures.InApplication(plan.Model.Application)
             .Except(SemanticVersionFeatures.TriggersInApplication(plan.Model.Application))
             .Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
+            .Except(slices.SelectMany(slice => slice.Commands).SelectMany(SemanticVersionFeatures.DescribedHandlersInCommand))
             .Concat(slices.SelectMany(slice => RunSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
             .Concat(RunSpecificationFeatures(specification))
-            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command)))
+            .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command)
+                .Except(SemanticVersionFeatures.RoutesInCommand(command))
+                .Except(SemanticVersionFeatures.DescribedHandlersInCommand(command)))
             .FirstOrDefault();
         return feature is null ? SemanticRunReactionAdmission.CheckCommands(plan, specification) : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }

@@ -75,7 +75,7 @@ internal static partial class SemanticCratisAdmission
     }
 
     static bool HasRenderableProductionCondition(SemanticProducedEvent produced, SemanticCommand command, SemanticApplicationContext context) =>
-        produced.When is null || SemanticConditionRendering.CanRender(produced.When, command.Properties, context, numericOrderingOnly: true);
+        produced.When is null || SemanticConditionRendering.CanRender(produced.When, command.Properties, context, numericOrderingOnly: true, dates: true);
 
     static bool HasValidatedConcept(SemanticApplicationContext context, SemanticTypeReference type, HashSet<SemanticId> visited) =>
         type.Kind switch

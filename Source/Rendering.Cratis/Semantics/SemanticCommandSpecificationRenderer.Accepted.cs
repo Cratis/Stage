@@ -118,7 +118,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var context = scope.Context;
         var types = scope.Types;
         var @event = context.Events[expected.EventContract];
-        var produced = SemanticProductionSelection.Taken(scope.Command, scope.Specification)[index];
+        var produced = SemanticProductionSelection.Taken(scope.Context.Application, scope.Command, scope.Specification)[index];
         if (generated.DestinationNeedsCommon(produced) ||
             PropertyValuesNeedCommon(@event.Properties, expected.Values))
         {
@@ -189,7 +189,7 @@ internal static partial class SemanticCommandSpecificationRenderer
 
             return EventPropertyPredicate(property, value, types, index);
         });
-        var produced = SemanticProductionSelection.Taken(scope.Command, scope.Specification).First(_ => _.EventContract == expected.EventContract);
+        var produced = SemanticProductionSelection.Taken(scope.Context.Application, scope.Command, scope.Specification).First(_ => _.EventContract == expected.EventContract);
         var identity = SemanticDestinations.ForSpecification(scope.Specification, scope.Command, produced);
         var source = $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}";
         if (SemanticTypeSystem.ValueNeedsCommon(identity.Value, identity.Type))

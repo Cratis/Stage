@@ -9,11 +9,11 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip;
 
-// Arc's generator does not yet recover a nullable read-model parameter carrying [LookUpBy], nor the command-level
-// read-protection preamble. The shape is agreed on Cratis/Arc#3298; until then recovery is pending, not asserted.
+// Arc 22.112.0 recovers the reads, but its recovered source does not compile back to an executable model yet
+// (performer query, handler intents): Cratis/Stage#515.
 public class when_recovering_protected_command_reads : given.a_rendered_application
 {
-    const string Pending = "Arc#3298";
+    const string Pending = "Cratis/Stage#515";
 
     protected override string Source => ProtectedCommandReadsCorpus.V25.SourceForms.Single(form => form.Name == "single").Documents.Single().Text;
     void Because() => Generate();

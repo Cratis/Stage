@@ -34,7 +34,7 @@ internal static class SemanticQuerySpecificationRenderer
         var readModel = context.ReadModels[query.ReadModel];
         var projection = context.Projections.Values.Single(_ => _.ReadModel == readModel.Id);
         var command = specification.When is null ? null : context.Commands[specification.When.Command];
-        var replay = command is null ? [] : SemanticProjectionSpecificationEvents.Replay(specification, projection, command);
+        var replay = command is null ? [] : SemanticProjectionSpecificationEvents.Replay(context.Application, specification, projection, command);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";

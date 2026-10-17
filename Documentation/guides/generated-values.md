@@ -115,7 +115,7 @@ Success=True artifacts=17 scaffold=40
 Publication check: Compatible { }
 ```
 
-`Success=True` means no diagnostic has error severity. The publication check compares the plan with the files already in the output folder and refuses changes that would break them, such as an event type id change (`STAGE-EVENT-002`). The program writes nothing unless the result is `Compatible`, which it is for an empty folder. A real publisher also has to protect hand-edited files; see [Build a renderer target](build-renderer-target.md). The rendered project pins Arc 22.109.0 and Chronicle 19.71.0. The slice artifacts land in these files, next to the 40 scaffold files:
+`Success=True` means no diagnostic has error severity. The publication check compares the plan with the files already in the output folder and refuses changes that would break them, such as an event type id change (`STAGE-EVENT-002`). The program writes nothing unless the result is `Compatible`, which it is for an empty folder. A real publisher also has to protect hand-edited files; see [Build a renderer target](build-renderer-target.md). The rendered project pins Arc 22.112.0 and Chronicle 19.71.0. The slice artifacts land in these files, next to the 40 scaffold files:
 
 ```text title="Planned slice artifacts"
 Common/ApiKey.cs

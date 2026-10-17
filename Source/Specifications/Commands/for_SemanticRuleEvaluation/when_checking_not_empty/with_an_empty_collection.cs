@@ -6,7 +6,7 @@ namespace Cratis.Stage.Specifications.Commands.for_SemanticRuleEvaluation.when_c
 public class with_an_empty_collection : given.a_not_empty_rule
 {
     void Establish() => Prepare("[]", collection: true);
-    void Because() => _failure = SemanticRuleEvaluation.FirstFailure(_command, _specification, _concepts);
+    void Because() => _failure = SemanticRuleEvaluation.FirstFailure(_command, _specification, _application);
 
     [Fact] void should_reject_with_the_authored_message() => _failure.ShouldEqual("Name is required");
 }

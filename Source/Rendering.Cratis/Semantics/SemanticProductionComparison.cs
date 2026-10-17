@@ -21,13 +21,13 @@ internal static class SemanticProductionComparison
 
     internal static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, (Func<Exception> Nonnumeric, Func<Exception> Unknown) errors, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes = null)
     {
+        if (dateTypes?.ContainsKey(comparison.Left.Property) == true)
+        {
+            return SemanticConditionEvaluator.Evaluate(comparison, values, dateTypes);
+        }
+
         var left = Operand(comparison.Left, values);
         var right = Operand(comparison.Right, values);
-
-        if (dateTypes is not null && dateTypes.TryGetValue(comparison.Left.Property, out var primitive))
-        {
-            return SemanticDateOrdering.Holds(SemanticDateOrdering.Compare(left!, right!, primitive), comparison.Operator);
-        }
 
         return comparison.Operator switch
         {

@@ -8,7 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
-import { StageAction, StageCommandForm, StageTable } from './stageComponents';
+import { StageTable } from './stageComponents';
+import { RegisteredAction as StageAction, RegisteredForm as StageCommandForm } from './testing/commands';
 import { dataChanged, StageDataProvider, useStageData, useStageQuery } from './stageData';
 import { element } from './testElements';
 

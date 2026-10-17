@@ -3,8 +3,8 @@
 
 import type { InvocationResult, SliceCommandField, SliceInvoker } from '@cratis/scene.react';
 import { schemaPropertiesOf } from './StageCommandForm';
-import { executeStageCommand } from './stageCommands';
-import type { StageRoutes } from './stageRoutes';
+import { registeredCommand } from './commandExecutor';
+import type { StageCommandOutcome } from './StageCommandOutcome';
 
 /**
  * The fields of a command, for the task dialog a toolbar slice button opens. They are what the command's schema declares -
@@ -34,20 +34,19 @@ function humanize(name: string): string {
  * it, exactly as an action or a form posts it, and the application's own validation results come back to the dialog against the
  * fields they name. A successful command refreshes what the screen shows.
  *
- * @param routes What the Stage registered, once it is known; undefined while it is still loading.
+ * @param executeCommand Executes a registered Arc proxy with the host's configuration.
  * @param routesReady Whether the lookup has finished, so a command with no route is not-registered rather than not-yet.
  * @param refreshAfterCommand Called after a command succeeds.
  */
-export function createStageSliceInvoker(routes: StageRoutes | undefined, routesReady: boolean, refreshAfterCommand: () => void): SliceInvoker {
+export function createStageSliceInvoker(executeCommand: (name: string, values: Record<string, unknown>) => Promise<StageCommandOutcome>, routesReady: boolean, refreshAfterCommand: () => void): SliceInvoker {
     return {
         invoke: async (sliceId, payload, command): Promise<InvocationResult> => {
             const name = command ?? sliceId.slice(sliceId.lastIndexOf('.') + 1);
-            const route = routes?.commands[name];
-            if (!route) {
+            if (!registeredCommand(name)) {
                 return { succeeded: false, message: routesReady ? `The modeled command “${name}” is not registered by this Stage.` : `The modeled command “${name}” is waiting for Stage routes.` };
             }
 
-            const outcome = await executeStageCommand(name, route, payload);
+            const outcome = await executeCommand(name, payload);
             if (outcome.isSuccess) refreshAfterCommand();
             return {
                 succeeded: outcome.isSuccess,

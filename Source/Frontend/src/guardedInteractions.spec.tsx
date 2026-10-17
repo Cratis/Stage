@@ -14,6 +14,7 @@ import { bindDataSources } from './stageDataSources';
 import { guardPath } from './stageGuards';
 import { doubleClickWindow } from './stageRowInteractions';
 import { element } from './testElements';
+import { registerTestCommand, commandResult } from './testing/commands';
 
 const workItemId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
 const routes = {
@@ -43,6 +44,7 @@ function details(action: SceneElement): SceneElement {
 }
 
 function withData(ui: ReactElement) {
+    for (const [name, route] of Object.entries(routes.commands)) registerTestCommand(name, route, { workItemId: { type: 'string' } });
     globalThis.location.hash = `#/WorkItemDetails?workItemId=${workItemId}`;
     return render(
         <PrimeReactProvider>
@@ -53,7 +55,7 @@ function withData(ui: ReactElement) {
 
 function respond(status: string) {
     const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-        if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => ({ isSuccess: true, validationResults: [] }) });
+        if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
         if (String(input).startsWith('api/get-work-item')) return Promise.resolve({ ok: true, json: async () => ({ data: { workItemId, status } }) });
         return Promise.resolve({ ok: false, json: async () => ({}) });
     });
@@ -91,7 +93,7 @@ describe('a guarded action', () => {
 
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [route, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
-        expect(String(route)).toBe('/api/close-work-item');
+        expect(String(route)).toBe('http://localhost:3000/api/close-work-item');
         expect(init?.body).toBe(JSON.stringify({ workItemId }));
         await waitFor(() => expect(globalThis.location.hash).toBe('#/WorkItemList'));
     });
@@ -112,7 +114,7 @@ describe('a guarded action', () => {
 
         fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
 
-        await waitFor(() => expect(fetched.mock.calls.some(([route, init]) => init?.method === 'POST' && String(route) === '/api/reopen-work-item')).toBe(true));
+        await waitFor(() => expect(fetched.mock.calls.some(([route, init]) => init?.method === 'POST' && String(route) === 'http://localhost:3000/api/reopen-work-item')).toBe(true));
     });
 
     it('stays disabled with the diagnostic when its guard cannot be evaluated', async () => {

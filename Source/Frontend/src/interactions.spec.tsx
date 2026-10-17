@@ -7,6 +7,7 @@ import { InteractionActionKind, InteractionTriggerKind } from '@cratis/scene.mod
 import { PrimeReactProvider } from '@primereact/core/config';
 import { stageTheme } from './stageTheme';
 import { App } from './App';
+import { registerTestCommand, commandResult } from './testing/commands';
 
 const sceneWithAnInteraction = {
     layouts: [],
@@ -50,7 +51,7 @@ const routes = { commands: { CancelInvoice: '/api/invoicing/invoices/cancel-invo
 function respond(url: string) {
     if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(sceneWithAnInteraction) } as Response);
     if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve(routes) } as Response);
-    return Promise.resolve({ ok: true, json: () => Promise.resolve({ isSuccess: true }) } as Response);
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(commandResult()) } as Response);
 }
 
 const navigationScene = {
@@ -130,6 +131,7 @@ describe('when a modeled interaction is clicked', () => {
     // The end of the whole chain: a `.play` document said `on click / execute CancelInvoice`, and clicking the
     // rendered button posts to the route this Stage registered for that command. Everything else is plumbing.
     it('should post the modeled command to the route the Stage registered', async () => {
+        registerTestCommand('CancelInvoice', routes.commands.CancelInvoice);
         const fetched = vi.fn((input: RequestInfo | URL) => respond(String(input)));
         vi.stubGlobal('fetch', fetched);
 
@@ -139,7 +141,7 @@ describe('when a modeled interaction is clicked', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Cancel invoice' }));
 
         await waitFor(() => expect(fetched).toHaveBeenCalledWith(
-            '/api/invoicing/invoices/cancel-invoice/cancel-invoice',
+            new URL('http://localhost:3000/api/invoicing/invoices/cancel-invoice/cancel-invoice'),
             expect.objectContaining({ method: 'POST' })));
     });
 
@@ -227,11 +229,12 @@ describe('when a modeled interaction is clicked', () => {
             const url = String(input);
             if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(formScene) } as Response);
             if (url === 'stage/routes') return new Promise<Response>(resolve => { loadRoutes = resolve; });
-            return Promise.resolve({ ok: true, json: () => Promise.resolve({ isSuccess: true }) } as Response);
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(commandResult()) } as Response);
         }));
 
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
         expect(await screen.findByText(/waiting for Stage routes/)).toBeDefined();
+        registerTestCommand('RegisterOrder', '/api/orders/register', { orderNumber: { type: 'string' } });
         loadRoutes?.({ ok: true, json: () => Promise.resolve({ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }) } as Response);
 
         expect(await screen.findByLabelText('Order #')).toBeDefined();

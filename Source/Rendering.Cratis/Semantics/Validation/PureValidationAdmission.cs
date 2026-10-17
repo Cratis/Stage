@@ -55,7 +55,18 @@ internal static class PureValidationAdmission
                 return Reject("STAGE-ESM-021", $"Internal validation analysis compilation error: {detail}");
             return Reject("STAGE-ESM-019", $"Validation body {PureTransitionAdmission.SourceLocation(requirement, body, error.Location.SourceSpan.Start - offset)}: {detail}");
         }
-        return PureTransitionAdmission.Walk(model, method.Body, descriptor, context.RootNamespace);
+        var verdict = PureTransitionAdmission.Walk(model, method.Body, descriptor, context.RootNamespace);
+        if (!verdict.Accepted || !SemanticValidationContextRuntime.IsIterator(descriptor)) return verdict;
+        return VerifyRenderedBody(compilation, tree, context, descriptor, body) ?? verdict;
+    }
+
+    // Keep original-body purity and source locations, then compile the exact invariant rewrite that will be emitted.
+    static PureTransitionAdmission.Verdict? VerifyRenderedBody(CSharpCompilation compilation, SyntaxTree original, SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, string body)
+    {
+        var rendered = CSharpSyntaxTree.ParseText(SemanticValidationContextRuntime.RenderBodies(context, [(descriptor, body)]).Content, (CSharpParseOptions)original.Options);
+        var error = compilation.ReplaceSyntaxTree(original, rendered).GetDiagnostics().FirstOrDefault(diagnostic =>
+            diagnostic.Severity == DiagnosticSeverity.Error || (diagnostic.Severity == DiagnosticSeverity.Warning && !diagnostic.IsSuppressed));
+        return error is null ? null : Reject("STAGE-ESM-019", $"Rendered validation body does not compile after invariant interpolation: {error.Id}: {error.GetMessage(CultureInfo.InvariantCulture)}");
     }
 
     static PureTransitionAdmission.Verdict Reject(string code, string reason) => new(code, reason, [], []);

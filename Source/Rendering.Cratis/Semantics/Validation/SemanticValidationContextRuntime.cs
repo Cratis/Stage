@@ -64,7 +64,10 @@ internal static class SemanticValidationContextRuntime
         var code = $"namespace {context.CommonNamespace} {{ {string.Join('\n', declarations)} }}\n";
         foreach (var command in context.Commands.Values)
         {
-            code += $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(command.Id).Path)} {{ public record {Identifiers.ToPascalCase(command.Name)}({Parameters(command.Properties.Where(property => !property.IsGenerated))}); }}\n";
+            var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
+            var inputs = command.Properties.Where(property => !property.IsGenerated).Select(property =>
+                $"{SemanticCommandResultRendering.InputType(property, raw, types)} {Identifiers.ToPascalCase(property.Name)}");
+            code += $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(command.Id).Path)} {{ public record {Identifiers.ToPascalCase(command.Name)}({string.Join(", ", inputs)}); }}\n";
         }
         return code;
 

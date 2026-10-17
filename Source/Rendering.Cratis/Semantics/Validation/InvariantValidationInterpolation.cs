@@ -15,6 +15,7 @@ internal sealed class InvariantValidationInterpolation : CSharpSyntaxRewriter
 {
     public override SyntaxNode? VisitInterpolatedStringExpression(InterpolatedStringExpressionSyntax node)
     {
+        if (node.Contents.All(content => content is InterpolatedStringTextSyntax)) return node;
         var rewritten = (InterpolatedStringExpressionSyntax)base.VisitInterpolatedStringExpression(node)!;
 
         // A global:: alias in an interpolation hole needs parentheses: otherwise ':' starts its format clause.

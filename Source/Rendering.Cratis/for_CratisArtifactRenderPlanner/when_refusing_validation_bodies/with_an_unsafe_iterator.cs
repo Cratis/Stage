@@ -27,6 +27,17 @@ public class with_an_unsafe_iterator : Specification
     }
 
     [Theory]
+    [InlineData("yield return null;")]
+    [InlineData("const string message = $\"{\"constant\"}\"; yield return message;")]
+    void should_refuse_bodies_that_do_not_compile_with_the_emitted_nonnullable_signature_and_rewrite(string body)
+    {
+        var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.IteratorCommand(body)));
+        Assert.False(plan.Success);
+        Assert.Empty(plan.Artifacts);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019");
+    }
+
+    [Theory]
     [InlineData("Tenant")]
     [InlineData("CausedBy")]
     [InlineData("Occurred")]

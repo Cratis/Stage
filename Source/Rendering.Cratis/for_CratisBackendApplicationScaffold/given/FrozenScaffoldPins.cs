@@ -3,6 +3,7 @@
 
 #if DEBUG
 using System.Text;
+using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 
@@ -66,9 +67,13 @@ internal static class FrozenScaffoldPins
         return text.Replace($"cratis/chronicle:{profile.ChronicleImageVersion}-development", $"cratis/chronicle:{(previous ? "19.55.2" : "19.71.0")}-development", StringComparison.Ordinal);
     }
 
-    internal static string Digest(ArtifactRenderPlan plan, IEnumerable<PlannedArtifact>? artifacts = null) => ArtifactRenderPlan.ComputeDigest(
-        plan.Target, TargetVersion, plan.Renderer, plan.RendererVersion, plan.ApplicationName,
-        [.. (artifacts ?? plan.Artifacts).Select(Normalize)], plan.Diagnostics);
+    internal static string Digest(ArtifactRenderPlan plan, IEnumerable<PlannedArtifact>? artifacts = null)
+    {
+        plan.TargetVersion.ShouldEqual(CratisBackendApplicationScaffoldProfile.Current.CratisPackageVersion);
+        return ArtifactRenderPlan.ComputeDigest(
+            plan.Target, TargetVersion, plan.Renderer, plan.RendererVersion, plan.ApplicationName,
+            [.. (artifacts ?? plan.Artifacts).Select(Normalize)], plan.Diagnostics);
+    }
 
     internal static PlannedArtifact Normalize(PlannedArtifact artifact) => artifact.Kind == PlannedArtifactKind.Text
         ? PlannedArtifact.CreateText(artifact.RelativePath, Normalize(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())), artifact.Sources)

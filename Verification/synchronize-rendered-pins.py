@@ -5,6 +5,7 @@
 """Synchronize emitted npm pins with published releases and Stage's central Arc pin."""
 
 import argparse
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -12,13 +13,17 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = Path("Source/Rendering.Cratis/Scaffolding/CratisFrontendPackageSet.cs")
 MANIFEST = Path("Source/Frontend/package.json")
+LOCKFILE = MANIFEST.with_name("package-lock.json")
+CATALOG = Path("Source/Rendering.Cratis/Naming/Imports/FrameworkNames.catalog")
+PROJECT = "Source/Rendering.Cratis/Rendering.Cratis.csproj"
 STABLE = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\Z")
 SCENE = ("blueprint.default", "components", "engine", "model", "primereact", "react")
 REQUIRED = {"@cratis/arc", "@cratis/arc.react", "@cratis/components", "@cratis/fundamentals",
@@ -70,8 +75,13 @@ def validate(manifest, arc):
 
 class CommandFailed(RuntimeError):
     def __init__(self, error):
-        super().__init__(f"Command failed: {error}; {error.stderr or ''}")
-        self.code = error.returncode if error.returncode in (1, 2) else 2
+        super().__init__(f"Command failed: {error}; {error.stdout or ''}; {error.stderr or ''}")
+        if error.cmd[0] == "npm":
+            # npm uses exit 1 for both dependency defects and an unavailable registry.
+            defect = re.search(r"\b(?:ERESOLVE|EJSONPARSE|EINVALIDPACKAGENAME|EINVALIDTAGNAME)\b", error.stderr or "")
+            self.code = 1 if defect else 2
+        else:
+            self.code = error.returncode if error.returncode in (1, 2) else 2
 
 
 def run(command, **kwargs):
@@ -122,6 +132,34 @@ def frontend_profile(source, pins):
     return source[:match.start(2)] + body + source[match.end(2):]
 
 
+@contextmanager
+def pin_transaction(root):
+    # npm and the catalog generator write in place. Roll back the complete bounded
+    # output set on failure, including partial writes and newly created files.
+    originals = {root / path: (root / path).read_bytes() if (root / path).exists() else None
+                 for path in (MANIFEST, LOCKFILE, PROFILE, CATALOG)}
+    try:
+        yield
+    except BaseException:
+        for path, content in originals.items():
+            if content is None:
+                path.unlink(missing_ok=True)
+            elif not path.exists() or path.read_bytes() != content:
+                path.write_bytes(content)
+        raise
+
+
+def regenerate_catalog(root):
+    command = ["dotnet", "test", PROJECT, "--configuration", "Debug", "-m:3"]
+    # The embedded OLD catalog cannot be checked against the NEW profile yet.
+    # Generate only, then embed the result in a new build before validating all specs.
+    environment = {key: value for key, value in os.environ.items() if key != "STAGE_WRITE_FRAMEWORK_NAME_CATALOG"}
+    run([*command, "--filter", "FullyQualifiedName~for_FrameworkNameCatalog.when_generating_from_the_restored_scaffold"],
+        cwd=root, env={**environment, "STAGE_WRITE_FRAMEWORK_NAME_CATALOG": "1"})
+    run(["dotnet", "build", PROJECT, "--configuration", "Debug", "-m:3"], cwd=root, env=environment)
+    run([*command, "--no-build", "--filter", "FullyQualifiedName~for_FrameworkNameCatalog"], cwd=root, env=environment)
+
+
 def synchronize(root):
     if not shutil.which("npm"):
         raise RuntimeError("npm is unavailable; install Node/npm before synchronizing rendered pins")
@@ -142,15 +180,14 @@ def synchronize(root):
         if content.count(token) != 1:
             raise ValueError(f"{MANIFEST}: expected exactly one token for {name}")
         content = content.replace(token, f'"{name}": "{version}"')
-    manifest_path.write_text(content)
-    profile_path.write_text(profile)
-    run(["npm", "install", "--package-lock-only", "--prefix", "Source/Frontend"], cwd=root)
-    run(["dotnet", "test", "Source/Rendering.Cratis/Rendering.Cratis.csproj", "--configuration", "Debug",
-         "--filter", "FullyQualifiedName~for_FrameworkNameCatalog"], cwd=root,
-        env={**os.environ, "STAGE_WRITE_FRAMEWORK_NAME_CATALOG": "1"})
-    validate(json.loads(manifest_path.read_text()), arc_version(packages.read_bytes()))
-    if frontend_profile(profile_path.read_text(), cratis_pins(updated)) != profile_path.read_text():
-        raise ValueError(f"{PROFILE}: emitted npm pins drifted during synchronization")
+    with pin_transaction(root):
+        manifest_path.write_text(content)
+        profile_path.write_text(profile)
+        run(["npm", "install", "--package-lock-only", "--prefix", "Source/Frontend"], cwd=root, capture_output=True)
+        regenerate_catalog(root)
+        validate(json.loads(manifest_path.read_text()), arc_version(packages.read_bytes()))
+        if frontend_profile(profile_path.read_text(), cratis_pins(updated)) != profile_path.read_text():
+            raise ValueError(f"{PROFILE}: emitted npm pins drifted during synchronization")
     count = len(cratis_pins(updated))
     changed = sum(version != cratis_pins(manifest)[name] for name, version in cratis_pins(updated).items())
     print(f"PASS: checked {count} npm pins, updated {changed}; synchronized emitted profile, lockfile and framework-name catalog")
@@ -197,12 +234,73 @@ class RenderedPinSynchronization(unittest.TestCase):
             candidate(self.manifest, self.arc, Mock(side_effect=RuntimeError("npm unavailable")))
         self.assertEqual(json.dumps(self.manifest), original)
 
+    def test_npm_failure_restores_every_output(self):
+        self.assert_failed_transaction("npm")
+
+    def test_catalog_failure_restores_every_output(self):
+        self.assert_failed_transaction("dotnet")
+
+    def assert_failed_transaction(self, failing_tool):
+        with tempfile.TemporaryDirectory(prefix="pin-self-test-", dir=ROOT / ".ai-work") as directory:
+            root = Path(directory)
+            paths = (Path("Directory.Packages.props"), MANIFEST, LOCKFILE, PROFILE, CATALOG)
+            for path in paths:
+                (root / path).parent.mkdir(parents=True, exist_ok=True)
+                (root / path).write_bytes((ROOT / path).read_bytes())
+            before = {path: (root / path).read_bytes() for path in paths}
+            updated = json.loads(json.dumps(self.manifest))
+            updated["dependencies"]["@cratis/components"] = "99.0.1"
+
+            def fail(command, **kwargs):
+                (root / LOCKFILE).write_text("partial npm lockfile")
+                if command[0] == failing_tool:
+                    (root / CATALOG).write_text("partial catalog")
+                    raise CommandFailed(subprocess.CalledProcessError(1, command, stderr="ENETUNREACH"))
+
+            with patch.dict(synchronize.__globals__, candidate=Mock(return_value=updated),
+                            run=Mock(side_effect=fail)), patch("shutil.which", return_value="npm"):
+                with self.assertRaises(CommandFailed):
+                    synchronize(root)
+            self.assertEqual({path: (root / path).read_bytes() for path in paths}, before)
+
+    def test_rollback_removes_new_outputs(self):
+        with tempfile.TemporaryDirectory(prefix="pin-self-test-", dir=ROOT / ".ai-work") as directory:
+            root = Path(directory)
+            (root / MANIFEST).parent.mkdir(parents=True)
+            with self.assertRaises(RuntimeError):
+                with pin_transaction(root):
+                    (root / LOCKFILE).write_text("new partial lockfile")
+                    raise RuntimeError("npm unavailable")
+            self.assertFalse((root / LOCKFILE).exists())
+
+    def test_catalog_is_embedded_before_validation(self):
+        runner = Mock()
+        with patch.dict(regenerate_catalog.__globals__, run=runner):
+            regenerate_catalog(ROOT)
+        calls = runner.call_args_list
+        self.assertEqual(len(calls), 3)
+        self.assertIn("FullyQualifiedName~for_FrameworkNameCatalog.when_generating_from_the_restored_scaffold", calls[0].args[0])
+        self.assertEqual(calls[0].kwargs["env"]["STAGE_WRITE_FRAMEWORK_NAME_CATALOG"], "1")
+        self.assertEqual(calls[1].args[0][:2], ["dotnet", "build"])
+        self.assertIn("--no-build", calls[2].args[0])
+        self.assertIn("FullyQualifiedName~for_FrameworkNameCatalog", calls[2].args[0])
+        for call in calls[1:]:
+            self.assertNotIn("STAGE_WRITE_FRAMEWORK_NAME_CATALOG", call.kwargs["env"])
+
+    def test_npm_registry_failure_is_unavailable_not_a_defect(self):
+        for command in (["npm", "view", "@cratis/arc"], ["npm", "install"]):
+            error = subprocess.CalledProcessError(1, command, stderr="npm error code ENETUNREACH")
+            self.assertEqual(CommandFailed(error).code, 2)
+        defect = subprocess.CalledProcessError(1, ["npm", "install"], stderr="npm error code ERESOLVE")
+        self.assertEqual(CommandFailed(defect).code, 1)
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--self-test", action="store_true", help="Plant and detect drift offline; do not synchronize")
     args = parser.parse_args()
     if args.self_test:
+        (ROOT / ".ai-work").mkdir(exist_ok=True)
         result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(RenderedPinSynchronization))
         print(f"Checked {result.testsRun} synchronization regressions")
         return 0 if result.wasSuccessful() else 1

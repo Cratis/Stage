@@ -75,7 +75,7 @@ Without the preamble, command reads still fail binding with `PLAY0271` and the r
 At v20 it executes rules on generated concepts. A failing fixture is a contract rejection with
 `Generated fixture '<property>' fails concept '<Concept>' rules`, not the rule's authored input-validation message.
 Each supplied fixture is checked for shape and rules before the next fixture or a missing fixture.
-Generated concept rules render at every severity; the pinned Arc 22.112.0 runtime rejects any failing generated rule as a server generation defect.
+Generated concept rules render at every severity; the pinned Arc runtime rejects any failing generated rule as a server generation defect.
 Explicit concept generation, not the schema version, activates strategy shape checks and generated-source freshness;
 implicit-UUID-only models remain unguarded at later versions. A generated concept with rules still requires its fixture's canonical strategy shape.
 See [Generated values](../reference/generated-values-rendering.md#rules-on-generated-concepts) for rendering refusals and Host exception behavior.
@@ -131,7 +131,7 @@ omitting event expectations in an older model does not acquire this assertion.
 
 This execution support is broader than generated specifications. Rendered redelivery supports one event
 trigger on the named reaction: either direct productions or one command invocation supported by the existing
-command harness. Stage pins Chronicle 19.74.2 and records every given through `ReactorScenario.History`,
+command harness. Stage uses its central Chronicle pin and records every given through `ReactorScenario.History`,
 then calls `Redeliver` on the selected occurrence. Its original sequence identity, context and stream route
 are reused; history is not delivered to sibling reactions and the input is not appended again.
 

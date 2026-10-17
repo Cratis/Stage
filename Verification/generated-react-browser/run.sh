@@ -15,7 +15,12 @@ set -uo pipefail
 application=${1:?usage: run.sh <application directory> <result json path>}
 result=${2:?usage: run.sh <application directory> <result json path>}
 harness=$(cd "$(dirname "$0")" && pwd)
-chronicle_image=${STAGE_GENERATED_REACT_CHRONICLE_IMAGE:-cratis/chronicle:19.74.2-development}
+# The kernel the generated application pins in its own docker-compose.yml, unless overridden.
+chronicle_image=${STAGE_GENERATED_REACT_CHRONICLE_IMAGE:-$(grep -oE 'cratis/chronicle:[^[:space:]"]+' "$application/docker-compose.yml" 2>/dev/null | head -n 1)}
+if [ -z "$chronicle_image" ]; then
+    echo "run.sh: no cratis/chronicle image in $application/docker-compose.yml and STAGE_GENERATED_REACT_CHRONICLE_IMAGE is not set" >&2
+    exit 2
+fi
 container="stage-generated-react-$$"
 port=${STAGE_GENERATED_REACT_PORT:-19371}
 host_pid=""

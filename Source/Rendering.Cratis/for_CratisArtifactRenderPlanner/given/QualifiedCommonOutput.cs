@@ -7,6 +7,7 @@ using System.Text;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold.given;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
@@ -34,7 +35,7 @@ internal static class QualifiedCommonOutput
 
     internal static string BeforePlacement(string text) => text.Replace(Placement, string.Empty, StringComparison.Ordinal);
 
-    internal static string Digest(ExecutableSemanticModel model, ArtifactRenderPlan plan, CratisRenderingOptions options) => ArtifactRenderPlan.ComputeDigest(
-        plan.Target, plan.TargetVersion, plan.Renderer, plan.RendererVersion, plan.ApplicationName, Restore(model, plan, options), plan.Diagnostics);
+    internal static string Digest(ExecutableSemanticModel model, ArtifactRenderPlan plan, CratisRenderingOptions options) =>
+        FrozenScaffoldPins.Digest(plan, Restore(model, plan, options));
 }
 #endif

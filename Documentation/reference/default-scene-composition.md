@@ -89,13 +89,12 @@ Command registration and command form behavior are unchanged. Bindings and Scene
 
 ## Package and verification boundary
 
-The emitted frontend pins the Scene family at exact **4.2.0** for this contract, Components **4.14.0**
-for native form actions, and Fundamentals **7.19.8**. The generated backend uses Arc **22.112.0** (Fundamentals **7.25.0**);
-the frontend uses Arc **22.58.2**, including Arc React's form custom-validation gate. The generated backend
-references Cratis.Chronicle **19.71.0** explicitly to match the runtime image **19.71.0-development**,
-instead of relying on the client the Cratis metapackage brings transitively. Stage's own central
-Chronicle/Host image and Scene NuGet tooling pins are separate from this generated profile; they currently use
-Chronicle **19.71.0** and Scene **4.68.2**.
+The emitted frontend takes exact Cratis package pins from Stage's `Source/Frontend/package.json`, including
+Scene, Components, Fundamentals and Arc React's form custom-validation gate. The generated backend takes its
+NuGet pins from Stage's `Directory.Packages.props` at build time. Frontend and backend Arc use the same release.
+The generated backend references Cratis.Chronicle explicitly to match its development kernel image, instead of
+relying on the client the Cratis metapackage brings transitively. Stage's package-update workflow synchronizes
+the npm pins, emitted frontend package set, Host kernel image and framework-name catalog.
 Published Components **4.14.0** and Scene **4.2.0** provide the command-form Guid/submit UI contract;
 native build and specification checks do not prove browser functionality.
 

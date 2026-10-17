@@ -23,8 +23,9 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
     [Fact] void should_not_keep_rows_for_vectors_that_no_longer_exist() => Assert.True(fixture.RowsWithoutVectors.Count == 0, $"Matrix rows without a vector: {string.Join(", ", fixture.RowsWithoutVectors)}.");
     [Fact] void should_have_no_gap_on_any_surface() => Assert.True(fixture.Gaps.Count == 0, $"{fixture.Gaps.Count} gaps (exception, untyped refusal, partial or silent outcome):{Environment.NewLine}{string.Join(Environment.NewLine, fixture.Gaps)}");
     [Fact] void should_match_the_expected_outcome_of_every_cell() => Assert.True(fixture.Mismatches.Count == 0, $"{fixture.Mismatches.Count} cells differ from conformance-matrix.json:{Environment.NewLine}{string.Join(Environment.NewLine, fixture.Mismatches)}");
-    [Fact] void should_not_keep_unnecessary_by_design_entries() => Assert.True(fixture.UnnecessaryByDesign.Count == 0, $"Unnecessary by-design entries (the code no longer appears in the actual outcome):{Environment.NewLine}{string.Join(Environment.NewLine, fixture.UnnecessaryByDesign)}");
-    [Fact] void should_track_every_refusal() => Assert.True(fixture.UntrackedRefusals.Count == 0, $"Refused cells without a tracking issue number:{Environment.NewLine}{string.Join(Environment.NewLine, fixture.UntrackedRefusals)}");
+    [Fact] void should_load_only_the_per_refusal_schema() => Assert.True(fixture.Expected.SchemaProblems.Count == 0, string.Join(Environment.NewLine, fixture.Expected.SchemaProblems));
+    [Fact] void should_record_every_refusal_exactly() => Assert.True(fixture.RecordProblems.Count == 0, string.Join(Environment.NewLine, fixture.RecordProblems));
+    [Fact] void should_give_every_refusal_one_disposition() => Assert.True(fixture.DispositionProblems.Count == 0, string.Join(Environment.NewLine, fixture.DispositionProblems));
 
     public class context
     {
@@ -33,10 +34,10 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
             Expected = expected_conformance_table.Load();
             CorpusVersion = canonical_corpus_vectors.CorpusAssembly.GetName().Version!.ToString(3);
             var vectors = canonical_corpus_vectors.All;
-            var actual = new Dictionary<string, IReadOnlyDictionary<conformance_surface, string>>();
+            var actual = new Dictionary<string, IReadOnlyDictionary<conformance_surface, conformance_observation>>();
             foreach (var vector in vectors)
             {
-                var cells = new Dictionary<conformance_surface, string>();
+                var cells = new Dictionary<conformance_surface, conformance_observation>();
                 foreach (var surface in Enum.GetValues<conformance_surface>())
                 {
                     cells[surface] = conformance_outcomes.Execute(surface, vector).GetAwaiter().GetResult();
@@ -49,13 +50,14 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
             Console.WriteLine($"Canonical corpus conformance: {Actual.Count} vectors from Cratis.Screenplay.CanonicalCorpus {CorpusVersion}.");
             foreach (var surface in Enum.GetValues<conformance_surface>())
             {
-                var cells = Actual.Values.Select(row => row[surface]).ToArray();
-                Console.WriteLine($"  {surface}: {cells.Count(cell => cell == "supported")} supported, {cells.Count(cell => cell.StartsWith("refused:", StringComparison.Ordinal))} refused, {cells.Count(cell => cell.StartsWith("expected-refusal:", StringComparison.Ordinal))} expected-refusal, {cells.Count(cell => cell.StartsWith("n/a:", StringComparison.Ordinal))} n/a, {cells.Count(cell => cell.StartsWith("gap:", StringComparison.Ordinal))} gap.");
+                var cells = Actual.Values.Select(row => row[surface].Outcome).ToArray();
+                Console.WriteLine($"  {surface}: {cells.Count(cell => cell == "supported")} supported, {cells.Count(cell => cell == "refused")} refused, {cells.Count(cell => cell == "expected-refusal")} expected-refusal, {cells.Count(cell => cell.StartsWith("n/a:", StringComparison.Ordinal))} n/a, {cells.Count(cell => cell.StartsWith("gap:", StringComparison.Ordinal))} gap.");
             }
 
             if (Environment.GetEnvironmentVariable(expected_conformance_table.WriteActualVariable) is { Length: > 0 } path)
             {
                 File.WriteAllText(path, expected_conformance_table.Render(Expected, CorpusVersion, Actual));
+                File.WriteAllText(Path.ChangeExtension(path, ".details.json"), expected_conformance_table.RenderDetails(Actual));
             }
         }
 
@@ -63,7 +65,7 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
 
         public string CorpusVersion { get; }
 
-        public IReadOnlyDictionary<string, IReadOnlyDictionary<conformance_surface, string>> Actual { get; }
+        public IReadOnlyDictionary<string, IReadOnlyDictionary<conformance_surface, conformance_observation>> Actual { get; }
 
         public IReadOnlyList<int> MissingGoldenVersions => [.. Cratis.Screenplay.CanonicalCorpus.EsmGoldenVectors.Versions
             .Where(version => !Actual.ContainsKey($"{nameof(Cratis.Screenplay.CanonicalCorpus.EsmGoldenVectors)}.V{version}"))];
@@ -74,35 +76,24 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
 
         public IReadOnlyList<string> RowsWithoutVectors => [.. Expected.Vectors.Keys.Where(name => !Actual.ContainsKey(name))];
 
-        public IReadOnlyList<string> Gaps => [.. Cells().Where(cell => cell.Actual.StartsWith("gap:", StringComparison.Ordinal)).Select(cell => $"  {cell.Vector} / {cell.Surface}: {cell.Actual}")];
+        public IReadOnlyList<string> Gaps => [.. Cells().Where(cell => cell.Actual.Outcome.StartsWith("gap:", StringComparison.Ordinal)).Select(cell => $"  {cell.Vector} / {cell.Surface}: {cell.Actual.Outcome}")];
 
-        // A vector without a row is reported by VectorsWithoutRows; a row that lacks a surface key is a mismatch, never a skipped cell.
+        // A missing surface is never silently skipped.
         public IReadOnlyList<string> Mismatches => [.. Cells()
-            .Where(cell => !cell.Actual.StartsWith("gap:", StringComparison.Ordinal) && Expected.Vectors.ContainsKey(cell.Vector))
-            .Select(cell => (cell.Vector, cell.Surface, cell.Actual, Expected: ExpectedFor(cell.Vector, cell.Surface)))
-            .Where(cell => cell.Expected is null || !(cell.Surface == conformance_surface.Renderer
-                ? renderer_refusals.Matches(cell.Expected.Outcome, cell.Actual)
-                : cell.Expected.Outcome == cell.Actual))
-            .Select(cell => $"  {cell.Vector} / {cell.Surface}: expected {cell.Expected?.Outcome ?? "<no cell in the row>"}, actual {cell.Actual}")];
+            .Where(cell => ExpectedFor(cell.Vector, cell.Surface) is null)
+            .Select(cell => $"{cell.Vector} / {cell.Surface}: missing expected cell"),
+            .. Problems.Where(problem => problem.Contains(": changed-outcome(", StringComparison.Ordinal))];
 
-        public IReadOnlyList<string> UntrackedRefusals => [
-            .. Expected.Vectors.SelectMany(vector => vector.Value.Select(cell => (Vector: vector.Key, Surface: cell.Key, Cell: cell.Value)))
-                .Where(cell => cell.Surface != conformance_surface.Renderer && cell.Cell.Outcome.StartsWith("refused:", StringComparison.Ordinal) && cell.Cell.Issue is null)
-                .Select(cell => $"  {cell.Vector} / {cell.Surface}: {cell.Cell.Outcome}"),
-            .. RendererCoverageProblems
-        ];
+        public IReadOnlyList<string> RecordProblems => [.. Problems.Where(problem => !IsDisposition(problem) && !problem.Contains(": changed-outcome(", StringComparison.Ordinal))];
+        public IReadOnlyList<string> DispositionProblems => [.. Problems.Where(IsDisposition)];
 
-        // Coverage checks actual fingerprints, not just the expected code set. A same-code refusal on a new artifact is untracked.
-        IReadOnlyList<string> RendererCoverageProblems => [.. Actual.SelectMany(vector =>
-            ExpectedFor(vector.Key, conformance_surface.Renderer) is { } expected
-                ? renderer_refusals.CoverageProblems(vector.Key, expected, vector.Value[conformance_surface.Renderer])
-                    .Select(problem => $"  {vector.Key} / Renderer: {problem}")
-                : [])];
+        IReadOnlyList<string> Problems => [.. Cells().SelectMany(cell => ExpectedFor(cell.Vector, cell.Surface) is { } expected
+            ? refusal_dispositions.Problems(cell.Vector, cell.Surface, expected, cell.Actual) : [])];
 
-        public IReadOnlyList<string> UnnecessaryByDesign => [.. RendererCoverageProblems
-            .Where(problem => problem.Contains("unnecessary by-design entry", StringComparison.Ordinal))];
+        static bool IsDisposition(string problem) => problem.Contains("disposition(", StringComparison.Ordinal) ||
+            problem.Contains(": unauthorized-by-design(", StringComparison.Ordinal) || problem.Contains(": issue-500-only-tracks-", StringComparison.Ordinal);
 
-        IEnumerable<(string Vector, conformance_surface Surface, string Actual)> Cells() =>
+        IEnumerable<(string Vector, conformance_surface Surface, conformance_observation Actual)> Cells() =>
             Actual.SelectMany(row => row.Value.Select(cell => (Vector: row.Key, Surface: cell.Key, Actual: cell.Value)));
 
         expected_conformance_cell? ExpectedFor(string vector, conformance_surface surface) =>

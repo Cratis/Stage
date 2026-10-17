@@ -14,18 +14,15 @@ using Cratis.Stage.Specifications;
 
 namespace Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.given;
 
-// Reduces what a surface did with a vector to one cell: `supported`, `refused:<what>[+<what>]`, `n/a:<why>` or `gap:<what>`.
-// <what> is `<code>@<construct>`: a typed STAGE code, or `capability:<Name>` when only the capability types the refusal, followed by the
-// construct that was refused, so a refusal that moves to another construct changes the cell. Anything untyped is a gap.
+// Observes each surface without reducing full artifact identities to cell-level code or kind sets.
 public static partial class conformance_outcomes
 {
     const string Supported = "supported";
     const string NoSpecifications = "n/a:no-specifications";
     const string NotLoaded = "n/a:not-loaded";
-    const string ExpectedRefusal = "expected-refusal:";
-    const string LoaderRefusal = "STAGE-PLAN-004";
+    const string ExpectedRefusal = "expected-refusal";
 
-    public static async Task<string> Execute(conformance_surface surface, conformance_vector vector)
+    public static async Task<conformance_observation> Execute(conformance_surface surface, conformance_vector vector)
     {
         try
         {
@@ -37,7 +34,7 @@ public static partial class conformance_outcomes
             // The model loader refuses a plan with issues, but the surfaces still run on the partial plan, as the golden-vector specs admit it.
             if (SemanticExecutionPlan.Compile(vector.Model, []).Plan is not { } plan)
             {
-                return NotLoaded;
+                return conformance_observation.WithoutRefusals(NotLoaded);
             }
 
             return surface switch
@@ -49,35 +46,34 @@ public static partial class conformance_outcomes
         }
         catch (Exception exception)
         {
-            return $"gap:threw({exception.GetType().Name}: {exception.Message})";
+            return conformance_observation.WithoutRefusals($"gap:threw({exception.GetType().Name}: {exception.Message})");
         }
     }
 
-    [GeneratedRegex(@"^(STAGE-[A-Z]+-\d+):", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"^(?<code>STAGE-[A-Z]+-\d+):", RegexOptions.ExplicitCapture, 1000)]
     private static partial Regex TypedCode { get; }
 
-    static string Loader(conformance_vector vector)
+    static conformance_observation Loader(conformance_vector vector)
     {
         var compiled = SemanticExecutionPlan.Compile(vector.Model);
         var issues = compiled.Issues.ToArray();
         if (compiled.Plan is not null && issues.Length == 0)
         {
-            return Supported;
+            return conformance_observation.WithoutRefusals(Supported);
         }
 
-        var kinds = new SortedSet<string>(issues.Select(issue => issue.Kind.ToString()), StringComparer.Ordinal);
-        return kinds.Count == 0 ? "gap:loader-refused-without-issues" : $"refused:{LoaderRefusal}({string.Join("+", kinds)})";
+        return loader_refusals.Observe(issues.Select(issue => (issue.Kind.ToString(), issue.Artifact.ToString(), issue.Details)));
     }
 
-    static async Task<string> Executor(conformance_vector vector, SemanticExecutionPlan plan)
+    static async Task<conformance_observation> Executor(conformance_vector vector, SemanticExecutionPlan plan)
     {
         var report = await new SemanticSpecificationExecutor().Run(plan, new([.. plan.Specifications.Keys]), new());
-        var codes = new SortedSet<string>(StringComparer.Ordinal);
-        var expectedRefusals = new SortedSet<string>(StringComparer.Ordinal);
+        var codes = new Dictionary<refusal_fingerprint, string>();
+        var expectedRefusals = new Dictionary<refusal_fingerprint, string>();
         var problems = new SortedSet<string>(StringComparer.Ordinal);
         if (plan.Specifications.Count == 0)
         {
-            return report.Results.Count == 0 ? NoSpecifications : "gap:results-without-specifications";
+            return conformance_observation.WithoutRefusals(report.Results.Count == 0 ? NoSpecifications : "gap:results-without-specifications");
         }
 
         problems.UnionWith(executor_result_ids.Problems(
@@ -105,10 +101,10 @@ public static partial class conformance_outcomes
                     break;
                 case SemanticSpecificationOutcome.Unsupported when result.Unsupported is { } expected && expectation is { Outcome: SemanticExecutionOutcomeKind.Unsupported }:
                     // The corpus itself says this specification is unsupported, so the refusal is the expected result, not a gap to track.
-                    expectedRefusals.Add($"{CodeOrCapability(expected.Details, expected.Capability.ToString())}@{Short(expected.Construct)}");
+                    expectedRefusals[new(CodeOrCapability(expected.Details, expected.Capability.ToString()), null, expected.Construct ?? "none")] = expected.Details;
                     break;
                 case SemanticSpecificationOutcome.Unsupported when result.Unsupported is { } unsupported:
-                    codes.Add($"{CodeOrCapability(unsupported.Details, unsupported.Capability.ToString())}@{Short(unsupported.Construct)}");
+                    codes[new(CodeOrCapability(unsupported.Details, unsupported.Capability.ToString()), null, unsupported.Construct ?? "none")] = unsupported.Details;
                     break;
                 case SemanticSpecificationOutcome.Unsupported:
                     problems.Add("untyped-refusal");
@@ -120,13 +116,13 @@ public static partial class conformance_outcomes
         }
 
         return codes.Count == 0 && problems.Count == 0 && expectedRefusals.Count > 0
-            ? $"{ExpectedRefusal}{string.Join("+", expectedRefusals)}"
+            ? new(ExpectedRefusal, [.. expectedRefusals.Keys], expectedRefusals)
             : Classify(codes, problems);
     }
 
-    static string Host(SemanticExecutionPlan plan)
+    static conformance_observation Host(SemanticExecutionPlan plan)
     {
-        var refused = new SortedSet<string>(StringComparer.Ordinal);
+        var refused = new Dictionary<refusal_fingerprint, string>();
         var problems = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var entry in new SemanticRuntimeAdmission(plan).Entries.Where(entry => entry.Status != Supported))
         {
@@ -134,8 +130,7 @@ public static partial class conformance_outcomes
             var capability = entry.Capability ?? string.Empty;
             if (TypedCode.IsMatch(details) || capability.Length > 0)
             {
-                // Recorded per construct kind, so a refusal that moves to another kind changes the cell.
-                refused.Add($"{CodeOrCapability(details, capability)}@{entry.Kind}");
+                refused[new(CodeOrCapability(details, capability), entry.Kind, entry.Artifact)] = details;
             }
             else
             {
@@ -146,7 +141,7 @@ public static partial class conformance_outcomes
         return Classify(refused, problems);
     }
 
-    static string Renderer(conformance_vector vector, SemanticExecutionPlan plan)
+    static conformance_observation Renderer(conformance_vector vector, SemanticExecutionPlan plan)
     {
         var name = vector.Name.Replace('.', '_').Replace('[', '_').Replace("]", string.Empty, StringComparison.Ordinal);
 
@@ -162,7 +157,7 @@ public static partial class conformance_outcomes
         var source = conformance_source_bodies.Compile(vector);
         if (source.Problem is not null)
         {
-            return $"gap:{source.Problem}";
+            return conformance_observation.WithoutRefusals($"gap:{source.Problem}");
         }
 
         var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id);
@@ -172,7 +167,7 @@ public static partial class conformance_outcomes
         var rendered = source.Loaded is { } loaded
             ? CratisRendering.Plan(loaded.Model, loaded.Plan, scope, new(name, name), loaded.ImplementationRequirements, loaded.ImplementationContents, loaded.AttachmentDiagnostics, loaded.TypedContextDescriptors)
             : CratisRendering.Plan(model, plan, scope, new(name, name));
-        var codes = new SortedSet<string>(StringComparer.Ordinal);
+        var codes = new Dictionary<refusal_fingerprint, string>();
         var problems = new SortedSet<string>(StringComparer.Ordinal);
         if (rendered.Success)
         {
@@ -193,7 +188,7 @@ public static partial class conformance_outcomes
         {
             if (TypedCode.IsMatch(diagnostic.Code + ":"))
             {
-                codes.Add(new renderer_refusal(diagnostic.Code, diagnostic.Artifact.ToString()).ToString());
+                codes[new(diagnostic.Code, null, diagnostic.Artifact.ToString())] = diagnostic.Message;
             }
             else
             {
@@ -209,24 +204,29 @@ public static partial class conformance_outcomes
         return Classify(codes, problems);
     }
 
-    // Construct ids are long content hashes; the last eight characters tell constructs apart in a human-diffable table.
-    static string Short(string? construct) => construct is null ? "none" : construct.Length > 8 ? construct[^8..] : construct;
-
     // A refusal typed by a STAGE code is that code. One typed only by its capability also carries a short reason key (the first words of
     // its details), so a different reason under the same capability changes the cell.
     static string CodeOrCapability(string details, string capability) =>
-        TypedCode.Match(details) is { Success: true } match ? match.Groups[1].Value : $"capability:{capability}[{ReasonKey(details)}]";
+        TypedCode.Match(details) is { Success: true } match ? match.Groups["code"].Value : $"capability:{capability}[{ReasonKey(details)}]";
 
     static string ReasonKey(string details) =>
         string.Join('-', NonWord.Replace(details, " ").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(5)).ToLowerInvariant();
 
-    [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*$", RegexOptions.ExplicitCapture, 1000)]
     private static partial Regex IdentifierName { get; }
 
     [GeneratedRegex(@"[^A-Za-z0-9]+", RegexOptions.None, 1000)]
     private static partial Regex NonWord { get; }
 
-    static string Classify(SortedSet<string> codes, SortedSet<string> problems) =>
-        problems.Count > 0 ? $"gap:{string.Join("+", problems)}" : codes.Count == 0 ? Supported : $"refused:{string.Join("+", codes)}";
+    static conformance_observation Classify(Dictionary<refusal_fingerprint, string> codes, SortedSet<string> problems)
+    {
+        var outcome = codes.Count == 0 ? Supported : "refused";
+        if (problems.Count > 0)
+        {
+            outcome = $"gap:{string.Join('+', problems)}";
+        }
+
+        return new(outcome, [.. codes.Keys.OrderBy(key => key.ToString(), StringComparer.Ordinal)], codes);
+    }
 }
 #endif

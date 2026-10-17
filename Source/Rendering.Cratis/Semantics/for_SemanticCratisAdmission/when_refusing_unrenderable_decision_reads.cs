@@ -19,7 +19,7 @@ public class when_refusing_unrenderable_decision_reads
     static string Corpus => ProtectedCommandReadsCorpus.V25.SourceForms.Single(form => form.Name == "single").Documents.Single().Text;
 
     [Theory]
-    [InlineData("a read path in an append-time constraint target", "constraint")]
+    [InlineData("an event under an append-time constraint", "constraint")]
     [InlineData("generated-value freshness scopes", "freshness")]
     public void should_name_the_reason_with_the_decision_read_code(string reason, string shape)
     {
@@ -28,7 +28,7 @@ public class when_refusing_unrenderable_decision_reads
 
         plan.Success.ShouldBeFalse();
         refusals.ShouldNotBeEmpty();
-        refusals.ShouldEachConformTo(diagnostic => diagnostic.Message.Contains("Command '", StringComparison.Ordinal));
+        refusals.ShouldEachConformTo(diagnostic => diagnostic.Message.Contains("Command '", StringComparison.Ordinal) && diagnostic.Message.Contains(reason, StringComparison.Ordinal));
         plan.Artifacts.ShouldBeEmpty();
     }
 

@@ -44,8 +44,8 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         foreach (var command in syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Commands))
         {
-            var dates = command.Properties.Where(property => IsDate(property.Type.Name) ||
-                syntax.Concepts.Any(concept => concept.Name == property.Type.Name && IsDate(concept.Type))).Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+            var dates = TypedProperties(command, syntax, IsDate);
+            var uuids = TypedProperties(command, syntax, IsUuid);
             var blocks = command.Validations.OfType<DeclarativeValidateSyntax>().ToArray();
             var compared = blocks.SelectMany(block => block.Rules).Where(rule =>
                     rule.Rule is ValidationRuleKind.Equal or ValidationRuleKind.NotEqual or ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or ValidationRuleKind.LessThan or ValidationRuleKind.LessThanOrEqual &&
@@ -57,6 +57,12 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
                 throw new InvalidEventModel(
                     command.Location.Path ?? "<source>",
                     [$"STAGE-ESM-046: Command '{command.Name}' compares date property '{date}'; the legacy engines cannot preserve chronological comparisons."]);
+            }
+            if (compared.FirstOrDefault(uuids.Contains) is { } uuid)
+            {
+                throw new InvalidEventModel(
+                    command.Location.Path ?? "<source>",
+                    [$"STAGE-ESM-049: Command '{command.Name}' compares Uuid property '{uuid}' (ESM v28 Uuid equality); the legacy engines cannot preserve canonical Uuid comparisons."]);
             }
             if (command.Handler is { Implementation: not null, File: null, Code: null })
             {
@@ -180,6 +186,12 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
     }
 
     static bool IsDate(string type) => type == "Date" || type == "DateTime";
+
+    static bool IsUuid(string type) => type == "Uuid";
+
+    static HashSet<string> TypedProperties(CommandSyntax command, ApplicationSyntax syntax, Func<string, bool> isType) =>
+        command.Properties.Where(property => isType(property.Type.Name) ||
+            syntax.Concepts.Any(concept => concept.Name == property.Type.Name && isType(concept.Type))).Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
 
     static IEnumerable<string> ComparedProperties(ConditionSyntax condition) => condition switch
     {

@@ -6,29 +6,35 @@ import { PropertyDescriptor } from '@cratis/arc/reflection';
 import { registerCommand } from '@cratis/scene.components';
 import type { StageRoutes } from '../stageRoutes';
 
+type LiveCommandRoutes = StageRoutes & {
+    /** JSON response kinds from the modeled responses. Commands without a declared response echo objects. */
+    commandResponseKinds?: Record<string, string>;
+};
+
 /** Registers the live host's commands before rendering. Generated apps register generated proxies instead. */
-export function registerStageCommands(routes: StageRoutes): void {
+export function registerStageCommands(routes: LiveCommandRoutes): void {
     for (const [name, route] of Object.entries(routes.commands)) {
         const schema = routes.commandSchemas?.[name];
         if (!schema) {
             console.warn(`Command metadata for '${name}' is missing; Stage cannot register its proxy.`);
             continue;
         }
-        const command = commandTypeFor(route, schema);
+        const command = commandTypeFor(route, schema, routes.commandResponseKinds?.[name]);
         registerCommand(name, command);
         registerCommand(route.replace(/^\//, ''), command);
     }
 }
 
-function commandTypeFor(route: string, schema: string): new () => Command {
+function commandTypeFor(route: string, schema: string, responseKind?: string): new () => Command {
     const descriptors = descriptorsFor(schema);
+    const responseType = responseKind === 'string' ? String : responseKind === 'number' ? Number : responseKind === 'boolean' ? Boolean : Object;
     return class StageNativeCommand extends Command {
         readonly route = route.replace(/^\//, '');
         readonly propertyDescriptors = descriptors;
         get requestParameters(): string[] { return []; }
 
         constructor() {
-            super(Object, false);
+            super(responseType, false);
             const values: Record<string, unknown> = {};
             for (const descriptor of descriptors) {
                 Object.defineProperty(this, descriptor.name, {

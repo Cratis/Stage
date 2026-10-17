@@ -474,7 +474,10 @@ and exceptions remain failed outcomes and do not refresh the screen or expose a 
 
 The live Stage registers equivalent route-backed proxies before its first render. Both live engines expose
 `commandSchemas` alongside `commands` and `queries` at `/stage/routes`: a map from command name to its JSON schema
-string, including commands used only by interactions or guarded alternatives. Commands register under their full type identity and route, with simple-name aliases only for unambiguous names.
+string, including commands used only by interactions or guarded alternatives. In the semantic engine, generated
+properties are server-owned and are not proxy inputs. `commandResponseKinds` describes the response from the modeled
+return metadata so proxies preserve strings, numbers, booleans and records. Commands without a declared return retain
+the host's object echo. Commands register under their full type identity and route, with simple-name aliases only for unambiguous names.
 Missing schema metadata produces a console warning and leaves that command unregistered; other commands and the
 live UI remain available. This metadata does not add schemas to the scene
 document of an application without toolbar slice references. Query reads still use the Stage query transport.

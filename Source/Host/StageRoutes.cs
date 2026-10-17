@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
@@ -29,25 +30,44 @@ public record StageRoutes(
     /// </summary>
     public IReadOnlyDictionary<string, string> CommandSchemas { get; init; } = new Dictionary<string, string>();
 
+    /// <summary>
+    /// Gets each command's JSON response kind, derived from its modeled response; commands without one echo an object.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> CommandResponseKinds { get; init; } = new Dictionary<string, string>();
+
     internal static StageRoutes For(StageSceneRoutes routes, EventModel model) => Create(routes,
         StageModelWalker.Slices(model)
             .Where(located => located.Slice.Command is not null)
-            .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", located.Slice.Command.Schema)));
+            .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", located.Slice.Command.Schema, "object")));
 
     internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model) => Create(routes,
         SemanticModelWalker.Slices(model)
             .SelectMany(located => located.Slice.Commands.Select(command =>
-                ($"{located.TypeNamespace}.{command.Name}", CommandFormSchemas.For(model.Application, command.Properties)))));
+                ($"{located.TypeNamespace}.{command.Name}",
+                    CommandFormSchemas.For(model.Application, command.Properties.Where(property => !property.IsGenerated)),
+                    ResponseKind(model.Application, command)))));
 
-    static StageRoutes Create(StageSceneRoutes routes, IEnumerable<(string Identity, string Schema)> metadata)
+    static string ResponseKind(SemanticApplication application, SemanticCommand command)
     {
-        var schemas = metadata.ToDictionary(entry => entry.Identity, entry => entry.Schema, StringComparer.Ordinal);
+        if (command.Response is not SemanticScalarCommandResponse response) return "object";
+        var property = command.Properties.Single(property => property.Id == response.Source);
+        using var schema = JsonDocument.Parse(CommandFormSchemas.For(application, [property]));
+        var kind = schema.RootElement.GetProperty("properties").GetProperty(property.Name).GetProperty("type").GetString()!;
+        return kind == "integer" ? "number" : kind;
+    }
+
+    static StageRoutes Create(StageSceneRoutes routes, IEnumerable<(string Identity, string Schema, string ResponseKind)> metadata)
+    {
+        var entries = metadata.ToArray();
+        var schemas = entries.ToDictionary(entry => entry.Identity, entry => entry.Schema, StringComparer.Ordinal);
+        var responses = entries.ToDictionary(entry => entry.Identity, entry => entry.ResponseKind, StringComparer.Ordinal);
         foreach (var group in schemas.ToArray().GroupBy(entry => StageRouteCandidates.SimpleName(entry.Key), StringComparer.Ordinal))
         {
             var matches = group.ToArray();
             if (matches.Length == 1)
             {
                 schemas[group.Key] = matches[0].Value;
+                responses[group.Key] = responses[matches[0].Key];
             }
         }
 
@@ -61,6 +81,6 @@ public record StageRoutes(
             commands.TryAdd(route.Key, route.Value);
         }
 
-        return new(commands, routes.QueryRoutes) { Diagnostics = routes.Diagnostics, CommandSchemas = schemas };
+        return new(commands, routes.QueryRoutes) { Diagnostics = routes.Diagnostics, CommandSchemas = schemas, CommandResponseKinds = responses };
     }
 }

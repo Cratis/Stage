@@ -34,5 +34,7 @@ public class when_describing_commands_without_toolbar_slices : for_SemanticHost.
 
     [Fact] void should_keep_schemas_out_of_the_scene_without_toolbar_slices() => _scene.CommandSchemas.ShouldBeNull();
     [Fact] void should_expose_the_same_schemas_from_both_live_engines() => JsonSerializer.Serialize(_semantic.CommandSchemas).ShouldEqual(JsonSerializer.Serialize(_legacy.CommandSchemas));
+    [Fact] void should_describe_object_echo_responses_in_both_engines() => JsonSerializer.Serialize(_semantic.CommandResponseKinds).ShouldEqual(JsonSerializer.Serialize(_legacy.CommandResponseKinds));
+    [Fact] void should_preserve_the_legacy_object_echo() => _legacy.CommandResponseKinds["RegisterProject"].ShouldEqual("object");
     [Fact] void should_describe_the_guarded_command_even_without_a_form() => _semantic.CommandSchemas["RegisterProject"].ShouldContain("\"properties\"");
 }

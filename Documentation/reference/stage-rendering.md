@@ -169,6 +169,21 @@ includes possible reaction effects without evaluating runtime guards. Reducer re
 capability; validation refusals carry Command. This does not change live-world history rebuilding or the
 renderer's implementation-body admission.
 
+The renderer admits verified pure C# Boolean named rule bodies and code-validation iterators on commands and concepts,
+using generated app-local contexts and Arc validators without a Screenplay runtime dependency.
+The context supplies `Artifact`, `Value`, `Property` and `IsWholeArtifact`; command shapes exclude
+server-generated properties. `Tenant`, `CausedBy` and `Occurred` reads are refused with
+`STAGE-ESM-015`, not supplied from ambient state. Authored messages and severities are preserved,
+and every failed rule blocks the command regardless of severity. Missing bodies fail
+`STAGE-ESM-020`, envelope or compile errors `STAGE-ESM-019`, descriptor mismatches
+`STAGE-ESM-021`, and forbidden pure-body symbols `STAGE-ESM-022`. Optional validated concepts
+with body rules remain refused. Iterator bodies emit `IEnumerable<string>` methods wired through `.Custom(...)`,
+adding an error for each yielded message in order. Only iterator validation roles admit `yield return` and
+interpolation; each interpolation is emitted through `FormattableString.Invariant`, including number and
+`DateTimeOffset` formatting, so messages do not depend on the host culture. Holes must use audited scalar
+formatting types and pure expressions; arbitrary object formatting and all other forbidden constructs remain refused.
+Boolean rules, reducers and policies still refuse interpolation and iterator syntax.
+
 V26's Date/DateTime comparisons in command requirements, `produces when` and validation rules execute in the
 semantic Host and specification executor, including through concepts. DateTime compares UTC ticks and requires
 an explicit input offset or `Z` after authorization; Date compares calendar days. `then` expectations remain

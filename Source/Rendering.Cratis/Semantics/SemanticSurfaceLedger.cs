@@ -123,9 +123,9 @@ internal static class SemanticSurfaceLedger
 
         // Message includes localized $strings keys only with a validated catalog; missing default keys block as STAGE-ESM-018.
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
-        Add(entries, "SemanticValidationRule", rejected("STAGE-ESM-005"), "Name RequirementId");
-        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum Contains NotContains StartsWith EndsWith");
-        Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown RulePredicate CodeValidation");
+        Add(entries, "SemanticValidationRule", rendered, "Name RequirementId");
+        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum Contains NotContains StartsWith EndsWith RulePredicate CodeValidation");
+        Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
         // State change: one or more commands with mapped events and portable When conditions in declaration order. Tags preserve
@@ -135,8 +135,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCommand", rendered, "Route");
         Add(entries, "SemanticCommand", rejected(SemanticVersionFeatures.PendingCommandHandler), "Handler");
         Add(entries, "SemanticCommandHandler", rejected(SemanticVersionFeatures.PendingCommandHandler), "RequirementId ResultVersion");
-        Add(entries, "SemanticCommand", rejected("STAGE-ESM-005"), "CodeValidations");
-        Add(entries, "SemanticCodeValidation", rejected("STAGE-ESM-005"), "RequirementId");
+        Add(entries, "SemanticCommand", rendered, "CodeValidations");
+        Add(entries, "SemanticCodeValidation", rendered, "RequirementId");
         Add(entries, "SemanticCommandRoute", rendered, "Source Stream StreamId StreamIdParts");
         Add(entries, "SemanticCommandRoutePart", rendered, "Part Value");
         Add(entries, "SemanticEventSource", rendered, "Id IdentifierType Name SourceKind Streams");
@@ -145,7 +145,7 @@ internal static class SemanticSurfaceLedger
 
         // The render request now carries compiler requirements and resolved bodies by requirement id.
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
-        // admitted through the closed-compilation pure gate; opaque validation still cannot receive RuleContext.Occurred.
+        // admitted through the closed-compilation pure gate; validation bodies refuse ambient context reads.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticImplementationRequirement", rejected(SemanticVersionFeatures.PendingCommandHandler), "Hints IsProvisional IsAmbiguous");
         Add(entries, "SemanticAttachmentResolution", ignored("Resolved and unresolved attachments retain whole-envelope verification (STAGE-ESM-020)."), "Resolved UnresolvedFile");

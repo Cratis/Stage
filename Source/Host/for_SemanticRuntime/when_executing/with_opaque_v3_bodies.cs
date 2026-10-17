@@ -45,10 +45,7 @@ public class with_opaque_v3_bodies : a_semantic_runtime
         });
         _conceptQuery = await Execute(slice => slice, application => application with
         {
-            Concepts = [.. application.Concepts.Select(value => value.Id == concept.Id ? value with
-            {
-                Validations = [new(default, SemanticValidationRuleKind.RulePredicate, null, null) { Name = "CheckQueryConcept", RequirementId = "query-concept-body" }]
-            } : value)]
+            Concepts = [.. application.Concepts.Select(value => value.Id == concept.Id ? WithQueryBody(value) : value)]
         }, query: true);
         _unrelatedQuery = await Execute(slice => slice with { Commands = [slice.Commands.Single() with { CodeValidations = [new("unused-command-body")] }] }, query: true);
         var readModel = _runtime.Plan.ReadModels.Values.First();
@@ -126,4 +123,9 @@ public class with_opaque_v3_bodies : a_semantic_runtime
             ? await ((ISemanticRuntime)runtime!).Query(plan.Queries.Values.Single(), SemanticValue.Text("00000000-0000-0000-0000-000000000001"), principal)
             : await ((ISemanticRuntime)runtime!).Execute(plan.Commands.Values.Single(), new Dictionary<string, JsonElement>(), principal, new(DateTimeOffset.UtcNow, "subject", "name", "user"), true);
     }
+
+    static SemanticConcept WithQueryBody(SemanticConcept concept) => concept with
+    {
+        Validations = [new(default, SemanticValidationRuleKind.RulePredicate, null, null) { Name = "CheckQueryConcept", RequirementId = "query-concept-body" }]
+    };
 }

@@ -138,12 +138,12 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRunti
             return new(_world, SemanticExecutionCapability.Command, $"{feature.Code}: {feature.Message}");
         }
 
-        var refusal = command is not null ? SemanticImplementationReach.ForCommand(Plan, command)
-            : query is not null ? SemanticImplementationReach.ForQuery(Plan, query) : null;
+        var refusal = command is null ? null : SemanticImplementationReach.ForCommand(Plan, command);
+        if (refusal is null && query is not null) refusal = SemanticImplementationReach.ForQuery(Plan, query);
+        if (refusal is null) return null;
+        var capability = Enum.TryParse<SemanticExecutionCapability>(refusal.Capability.ToString(), out var parsed) ? parsed : SemanticExecutionCapability.Unknown;
 
-        return refusal is null ? null : new(_world,
-            Enum.TryParse<SemanticExecutionCapability>(refusal.Capability.ToString(), out var capability) ? capability : SemanticExecutionCapability.Unknown,
-            refusal.Details);
+        return new(_world, capability, refusal.Details);
     }
 
     void InitializeWorld()

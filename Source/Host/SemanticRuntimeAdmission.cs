@@ -50,6 +50,7 @@ internal sealed class SemanticRuntimeAdmission
             {
                 var entry = Refused(feature);
                 entries.Add(entry);
+
                 // An implementation body refuses only this command, not the live model.
                 if (!feature.Details.StartsWith($"{SemanticImplementationReach.Code}:", StringComparison.Ordinal)) blocking.Add(entry);
                 continue;

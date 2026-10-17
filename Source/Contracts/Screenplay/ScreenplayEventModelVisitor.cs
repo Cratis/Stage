@@ -75,7 +75,8 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         var errors = conversion.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
         if (errors.Length > 0)
         {
-            throw new InvalidEventModel(syntax.Location.Path ?? "<source>", errors.Select(error => $"{error.Code}: {error.Message}"));
+            throw new InvalidEventModel(syntax.Location.Path ?? "<source>", errors.Select(error =>
+                $"{error.Code} {error.Path} {error.Location.Path ?? "<source>"}({error.Location.Line},{error.Location.Column}): {error.Message}"));
         }
 
         return conversion.Model;

@@ -17,4 +17,6 @@ public class and_a_projection_is_unsupported : a_slice_with_projections
     [Fact] void should_preserve_the_legacy_refusal() => _error.ShouldBeOfExactType<InvalidEventModel>();
     [Fact] void should_include_the_diagnostic_code() => _error!.Message.ShouldContain("STAGE-PROJECTION-001");
     [Fact] void should_include_the_construct() => _error!.Message.ShouldContain("projection sequence 'audit'");
+    [Fact] void should_include_the_owning_slice() => _error!.Message.ShouldContain("Store.Browsing.Listing");
+    [Fact] void should_include_the_source_location() => _error!.Message.ShouldContain("items.play(5,9)");
 }

@@ -68,7 +68,7 @@ internal static class ScreenCompilationAuthority
             throw new InvalidArtifactRenderContract("Screen partitions cannot compile their retained Scene source authority.");
         }
 
-        var translated = new ScreenplaySceneVisitor().Visit(compiled.Value!);
+        var translated = new ScreenplaySceneVisitor().Convert(compiled.Value!);
         var errors = translated.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
         if (errors.Length > 0)
         {

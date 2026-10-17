@@ -6,7 +6,7 @@ using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Xunit;
 
-namespace Cratis.Stage.Contracts.Scene.for_ScreenplaySceneVisitor.when_visiting;
+namespace Cratis.Stage.Contracts.Scene.for_ScreenplaySceneVisitor.when_converting;
 
 public class and_a_layout_arrangement_cannot_convert : Specification
 {
@@ -18,7 +18,7 @@ public class and_a_layout_arrangement_cannot_convert : Specification
         var arrangement = new ArrangementSyntax(ArrangementMode.Flow, location, new ArrangementContainerSyntax((ArrangementContainerKind)99, [], location));
         var layout = new LayoutSyntax("Shell", [new SlotSyntax("content", null, location)], location, arrangement);
         var application = new ApplicationSyntax([], [], [], [], location) { Layouts = [layout, layout with { Name = "Other", Arrangement = null }] };
-        _result = new ScreenplaySceneVisitor().Visit(application);
+        _result = new ScreenplaySceneVisitor().Convert(application);
     }
 
     [Fact] void should_keep_every_layout() => _result.Layouts.Count.ShouldEqual(2);

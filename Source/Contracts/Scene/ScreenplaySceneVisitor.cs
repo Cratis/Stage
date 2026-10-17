@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using SceneContributionPoints = Cratis.Scene.Model.ContributionPoints;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneModel = Cratis.Scene.Model.Interactions;
@@ -37,7 +38,27 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     public IReadOnlyList<RenderFinding> Findings => _findings;
 
     /// <inheritdoc/>
+    /// <exception cref="InvalidEventModel">The application contains arrangement conversion errors.</exception>
     public SceneApplication Visit(ScreenplaySyntax.ApplicationSyntax syntax)
+    {
+        var scene = Convert(syntax);
+        var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
+        if (errors.Length > 0)
+        {
+            throw new InvalidEventModel(syntax.Location.Path ?? "<source>", errors.Select(error =>
+                $"{error.Code} {error.Path} {error.Location.Path ?? "<source>"}({error.Location.Line},{error.Location.Column}): {error.Message}"));
+        }
+
+        return scene;
+    }
+
+    /// <summary>
+    /// Converts an application while retaining diagnostics for omitted arrangement constructs.
+    /// Other unsupported Scene constructs remain subject to their existing admission checks.
+    /// </summary>
+    /// <param name="syntax">The application to convert.</param>
+    /// <returns>The translated Scene with arrangement conversion diagnostics.</returns>
+    public SceneApplication Convert(ScreenplaySyntax.ApplicationSyntax syntax)
     {
         new UiSyntaxAdmission().VisitApplication(syntax);
         var uiProfiles = syntax.UiProfiles?.SelectMany(UiProfileConverter.Convert).ToList() ?? [];

@@ -70,9 +70,10 @@ carries only the first projection. Existing converter overloads keep their throw
 `ScreenplayEventModelVisitor.Visit` refuses errors with `InvalidEventModel`, including their codes and messages.
 Other legacy engine admission checks still apply to both visitor entry points.
 
-`ScreenplaySceneVisitor.Visit` records arrangement conversion diagnostics in
-`SceneApplication.ConversionDiagnostics`. Unsupported nodes and containers lose their subtree; invalid sizes
-omit the affected placement, override or variant. Supported siblings remain. These diagnostics are not Scene
+`ScreenplaySceneVisitor.Convert` records arrangement conversion diagnostics in
+`SceneApplication.ConversionDiagnostics`. The existing `Visit` entry point still refuses Error diagnostics with
+`InvalidEventModel`, naming their code, owning path and source location. Unsupported nodes and containers lose
+their subtree; invalid sizes omit the affected placement, override or variant. Supported siblings remain. These diagnostics are not Scene
 JSON members, so keep them alongside the translated Scene when importing. The Cratis renderer refuses Error
 conversion diagnostics before creating a profile; warnings alone do not refuse it.
 

@@ -60,6 +60,17 @@
              need not install this exact patch of the SDK pack. Never bind against a newer pack. -->
         <PackageReference Include="Microsoft.NETCore.App.Ref" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
+    <!--
+        Generation binding uses only an embedded metadata image, never a renderer runtime dependency. A direct reference
+        overrides the transitive one, so Debug keeps Fundamentals' compile and runtime assets for the specs (which compile
+        rendered code against the real Cratis assemblies), while Release takes nothing but the package path.
+    -->
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <PackageReference Include="Cratis.Fundamentals" GeneratePathProperty="true" ExcludeAssets="analyzers" PrivateAssets="all" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+        <PackageReference Include="Cratis.Fundamentals" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+    </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
         <EmbeddedResource Include="for_SemanticTypedContextRenderer/Vectors/*.json" />
@@ -103,12 +114,15 @@
              PureTransitionAdmission.ReferencePackVersion and Directory.Packages.props.
              WithCulture prevents System.IO.dll from becoming a spurious IO satellite assembly. -->
         <EmbeddedResource Include="$(PkgMicrosoft_NETCore_App_Ref)/ref/net10.0/*.dll" LogicalName="PureTransitionReferences.$(PureTransitionReferencePackVersion).%(Filename)%(Extension)" WithCulture="false" />
+        <EmbeddedResource Include="$(PkgCratis_Fundamentals)/lib/net10.0/Cratis.Fundamentals.dll" LogicalName="GenerationReferences.Cratis.Fundamentals.dll" WithCulture="false" />
     </ItemGroup>
     <!-- The SDK already loads these analyzers from its framework pack; loading the NuGet
          copy a second time makes the regex generator emit duplicate partial members. -->
     <Target Name="RemoveDuplicateReferencePackAnalyzers" BeforeTargets="CoreCompile">
         <ItemGroup>
             <Analyzer Remove="$(PkgMicrosoft_NETCore_App_Ref)/analyzers/dotnet/cs/*.dll" />
+            <!-- Fundamentals is metadata-only here; do not run its type-discovery generator. -->
+            <Analyzer Remove="$(PkgCratis_Fundamentals)/analyzers/dotnet/cs/*.dll" />
         </ItemGroup>
     </Target>
     <ItemGroup>

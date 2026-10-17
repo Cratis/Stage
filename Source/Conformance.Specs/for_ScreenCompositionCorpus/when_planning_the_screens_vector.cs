@@ -24,7 +24,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "5e823e61f9552a1f3cda239d0c0d4b9e506be65066641353883385e2142ba8ba";
+    const string Digest = "b22624faef6610e47149b5553036b8b2c0d5d56c14906c21be0b47c3937864cc";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -96,6 +96,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         """;
 
     static readonly string Manifest = QualifiedManifest
+        .Replace("Directory.Packages.props 969b29a5bdea717d8f06b5f39a9728ff47a958a8fc8f13a2ab21c169d7e43710 1098", "Directory.Packages.props fd70eccd2635216aa7aca03c95a02a05add49ba3c7d4ab27bb1af386842ffb54 1098", StringComparison.Ordinal)
+        .Replace("docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259", "docker-compose.yml 749a78bd0dd54a4397f48184a66b6fc98a1c1e59e2085798dbaa2e9bdd3d14d7 259", StringComparison.Ordinal)
         .Replace(".editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689", ".editorconfig 4cf0d1389cef373e18920c4fddb10948553e3c171badb2de66399717f870df76 741", StringComparison.Ordinal)
         .Replace("Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726", "Common/CommentId.cs 090339b5965d73ed60cb7e6b62bd8bfb9addfdc778f49ecb129d294a63c0b119 662", StringComparison.Ordinal)
         .Replace("Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733", "Common/WorkItemId.cs 59ca162d48ce6b922cdf7176b53d85e5c5bac0e61b65da86d5f03858bb103cef 669", StringComparison.Ordinal);
@@ -104,12 +106,12 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_confine_changes_to_common_files_and_using_placement(string form)
+    public void should_confine_changes_to_common_files_using_placement_and_chronicle_pins(string form)
     {
         var source = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
         var planned = Plan(source.Documents, source.IdentityCatalogBytes.AsSpan(), carryScene: false);
         var restored = QualifiedCommonOutput.Restore(planned.Model, planned.Plan, new(ApplicationName, ApplicationName));
-        var actual = restored.Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
+        var actual = restored.Select(PreviousChronicle).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
         var expected = QualifiedManifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim()).ToArray();
         Assert.True(actual.SequenceEqual(expected), string.Join('\n', actual.Except(expected)));
     }
@@ -139,6 +141,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         var plan = planned.Plan;
         ArtifactRenderPlan.ComputeDigest(
             plan.Target,
+
             // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
             plan.TargetVersion.Replace("22.109.0", "22.87.0", StringComparison.Ordinal),
             plan.Renderer,
@@ -155,16 +158,31 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Theory]
     [MemberData(nameof(Forms))]
+    public void should_change_only_chronicle_pins_from_the_previous_plan(string form)
+    {
+        var plan = PlanOf(form);
+        ArtifactRenderPlan.ComputeDigest(
+            plan.Target,
+            plan.TargetVersion,
+            plan.Renderer,
+            plan.RendererVersion,
+            plan.ApplicationName,
+            [.. plan.Artifacts.Select(PreviousChronicle)],
+            plan.Diagnostics).ShouldEqual("5e823e61f9552a1f3cda239d0c0d4b9e506be65066641353883385e2142ba8ba");
+    }
+
+    [Theory]
+    [MemberData(nameof(Forms))]
     public void should_plan_the_same_bytes_as_the_folder_form(string form) =>
         PlanOf(form).Artifacts.Select(artifact => Convert.ToHexString(artifact.Bytes.AsSpan())).ShouldEqual(PlanOf("folder").Artifacts.Select(artifact => Convert.ToHexString(artifact.Bytes.AsSpan())));
 
     [Fact] void should_cover_every_source_form() => Forms.Count.ShouldEqual(4);
 
-    // The previous frozen plan predates the Chronicle 19.71.0 and backend Arc 22.109.0 scaffold pins. CPM now keeps
+    // The previous frozen plan predates the Chronicle 19.74.2 and backend Arc 22.109.0 scaffold pins. CPM now keeps
     // those pins in Directory.Packages.props; frontend files may already name 22.100.1 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.68.2", "4.22.1", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.74.2", "19.55.2", StringComparison.Ordinal).Replace("4.68.2", "4.22.1", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
             ? previous.Replace("22.109.0", "22.87.0", StringComparison.Ordinal)
@@ -176,6 +194,11 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     static string PreviousNames(string text) => text
         .Replace("_a_work_item", "_awork_item", StringComparison.Ordinal)
         .Replace("adding_a_comment", "adding_acomment", StringComparison.Ordinal);
+
+    static PlannedArtifact PreviousChronicle(PlannedArtifact artifact) =>
+        artifact.RelativePath.Equals("Directory.Packages.props", StringComparison.Ordinal) || artifact.RelativePath.Equals("docker-compose.yml", StringComparison.Ordinal)
+            ? PlannedArtifact.CreateText(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("19.74.2", "19.71.0", StringComparison.Ordinal), artifact.Sources)
+            : artifact;
 
     static string[] Pinned() => [.. Manifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim())];
 

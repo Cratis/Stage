@@ -5,9 +5,9 @@ scaffold	2
 pin	Cratis	22.109.0
 pin	Cratis.Arc.Chronicle.Testing	22.109.0
 pin	Cratis.Arc.MongoDB	22.109.0
-pin	Cratis.Chronicle	19.71.0
-pin	Cratis.Chronicle.AspNetCore	19.71.0
-pin	Cratis.Chronicle.Testing	19.71.0
+pin	Cratis.Chronicle	19.74.2
+pin	Cratis.Chronicle.AspNetCore	19.74.2
+pin	Cratis.Chronicle.Testing	19.74.2
 pin	Cratis.Specifications	4.1.1
 pin	Cratis.Specifications.XUnit	4.1.1
 pin	Microsoft.NET.Test.Sdk	18.10.1
@@ -29,12 +29,12 @@ package	AS	Cratis.Arc.MongoDB	22.109.0
 package	AS	Cratis.Arc.ProxyGenerator.Build	22.109.0
 package	AS	Cratis.Arc.Screenplay.Embedded	22.109.0
 package	AS	Cratis.Arc.Swagger	22.109.0
-package	AS	Cratis.Chronicle	19.71.0
-package	AS	Cratis.Chronicle.AspNetCore	19.71.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.71.0
-package	AS	Cratis.Chronicle.Connections	19.71.0
+package	AS	Cratis.Chronicle	19.74.2
+package	AS	Cratis.Chronicle.AspNetCore	19.74.2
+package	AS	Cratis.Chronicle.CodeAnalysis	19.74.2
+package	AS	Cratis.Chronicle.Connections	19.74.2
 package	AS	Cratis.Fundamentals	7.25.0
-package	AS	Cratis.Metrics.Roslyn	7.24.0
+package	AS	Cratis.Metrics.Roslyn	7.25.0
 package	AS	Cratis.Screenplay	4.181.0
 package	AS	Cratis.Screenplay.Contexts	4.181.0
 package	AS	DnsClient	1.8.0
@@ -135,7 +135,7 @@ package	AS	protobuf-net.Grpc.Reflection	1.3.14
 package	AS	protobuf-net.Reflection	3.2.52
 package	S	Cratis.Arc.Chronicle.Testing	22.109.0
 package	S	Cratis.Arc.Testing	22.109.0
-package	S	Cratis.Chronicle.Testing	19.71.0
+package	S	Cratis.Chronicle.Testing	19.74.2
 package	S	Cratis.Orleans	1.16.3
 package	S	Cratis.Orleans.Storage	1.16.3
 package	S	Cratis.Orleans.Storage.MongoDB	1.16.3
@@ -1920,6 +1920,7 @@ namespace	S	OrleansCodeGen.Cratis.Chronicle.DevelopmentTools
 namespace	S	OrleansCodeGen.Cratis.Chronicle.EventSequences
 namespace	S	OrleansCodeGen.Cratis.Chronicle.EventSequences.Migrations
 namespace	S	OrleansCodeGen.Cratis.Chronicle.EventSequences.Placement
+namespace	S	OrleansCodeGen.Cratis.Chronicle.EventStores
 namespace	S	OrleansCodeGen.Cratis.Chronicle.EventTypes
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Events
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Events.Constraints
@@ -12536,7 +12537,7 @@ base	AS	Cratis.Chronicle.Connections.ConnectionId	Cratis.Concepts.ConceptAs`1	De
 base	AS	Cratis.Chronicle.Connections.ConnectionLifecycle	System.Object	Connected ConnectionId Disconnected IsConnected OnConnected OnDisconnected	-
 base	AS	Cratis.Chronicle.Connections.ConnectionTimedOut	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.ConnectionUnavailable	System.Exception	-	-
-base	AS	Cratis.Chronicle.Connections.ConnectionWatchdog	System.Object	NotifyKeepAlive Start	-
+base	AS	Cratis.Chronicle.Connections.ConnectionWatchdog	System.Object	NotifyKeepAlive RequestReconnect Start	-
 base	AS	Cratis.Chronicle.Connections.CorrelationIdClientInterceptor	Grpc.Core.Interceptors.Interceptor	AsyncClientStreamingCall AsyncDuplexStreamingCall AsyncServerStreamingCall AsyncUnaryCall BlockingUnaryCall CorrelationIdMetadataKey	-
 base	AS	Cratis.Chronicle.Connections.CorrelationIdServerInterceptor	Grpc.Core.Interceptors.Interceptor	ClientStreamingServerHandler DuplexStreamingServerHandler ServerStreamingServerHandler UnaryServerHandler	-
 base	AS	Cratis.Chronicle.Connections.DisconnectedClient	System.Exception	-	-
@@ -12612,7 +12613,7 @@ base	AS	Cratis.Chronicle.EventSources.EventSourcesNotSupported	System.Exception	
 base	AS	Cratis.Chronicle.EventSources.EventStream	System.Object	Concurrency Deconstruct Description EqualityContract Equals EventStreamType GetHashCode Name PrintMembers ToString	-
 base	AS	Cratis.Chronicle.EventSources.EventStreamDoesNotBelongToEventSource	System.Exception	-	-
 base	AS	Cratis.Chronicle.EventSources.UnknownEventSource	System.Exception	-	-
-base	AS	Cratis.Chronicle.EventStore	System.Object	Connection Constraints DiscoverAll Discovery EventLog EventSources EventTypes ExternalServices FailedPartitions GetEventSequence GetNamespaces Identities Jobs Name Namespace Observers PII Patterns Projections Reactors ReadModelReactors ReadModels Reducers RegisterAll Registration Seeding Subscriptions UnitOfWorkManager Webhooks	-
+base	AS	Cratis.Chronicle.EventStore	System.Object	Connection Constraints DiscoverAll Discovery EventLog EventSources EventTypes ExternalServices FailedPartitions GetEventSequence GetNamespaces Identities Jobs Name Namespace Observers PII Patterns Projections Reactors ReadModelReactors ReadModels Reducers RegisterAll Registration RemoveNamespace Seeding Subscriptions UnitOfWorkManager Webhooks	-
 base	AS	Cratis.Chronicle.EventStoreName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers System	-
 base	AS	Cratis.Chronicle.EventStoreNamespaceName	Cratis.Concepts.ConceptAs`1	Deconstruct Default EqualityContract Equals GetHashCode NotSet PrintMembers	-
 base	AS	Cratis.Chronicle.EventStoreSubscriptions.EventStoreSubscriptionBuilder	System.Object	Build WithEventType WithGenerationDelivery	-

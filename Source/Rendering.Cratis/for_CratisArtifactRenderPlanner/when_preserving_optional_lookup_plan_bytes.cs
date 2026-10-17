@@ -26,12 +26,26 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("867a49947706f0aa70785447e82eca376c2a8fe514971eb9689f7509951859f5");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("2746fa20c0a6d277ef2145c0a019e47ae5674ce037fe98df13905a2d3c3dc60a");
+    [Fact] void should_confine_changes_to_common_using_placement_and_chronicle_pins() => PreviousChronicleDigest(restoreCommon: true).ShouldEqual("867a49947706f0aa70785447e82eca376c2a8fe514971eb9689f7509951859f5");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => _plan.Digest.ShouldEqual("e034c6edbe63045b3273e624fc6bed4ac27a99f1fbe8db93dbf54b7fff7e3e31");
+    [Fact] void should_change_only_chronicle_pins_from_the_previous_plan() => PreviousChronicleDigest(restoreCommon: false).ShouldEqual("2746fa20c0a6d277ef2145c0a019e47ae5674ce037fe98df13905a2d3c3dc60a");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("3515b639a2a3fdea89f7e958e954f181d987bb23aeeeb81b6d6e4e08c2b82c3e");
+
+    string PreviousChronicleDigest(bool restoreCommon) => ArtifactRenderPlan.ComputeDigest(
+        _plan.Target,
+        _plan.TargetVersion,
+        _plan.Renderer,
+        _plan.RendererVersion,
+        _plan.ApplicationName,
+        [.. (restoreCommon ? QualifiedCommonOutput.Restore(_model, _plan, new("InvoiceApp", "Invoices")) : _plan.Artifacts)
+            .Select(artifact => artifact.RelativePath.Equals("Directory.Packages.props", StringComparison.Ordinal) || artifact.RelativePath.Equals("docker-compose.yml", StringComparison.Ordinal)
+                ? PlannedArtifact.CreateText(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("19.74.2", "19.71.0", StringComparison.Ordinal), artifact.Sources)
+                : artifact)],
+        _plan.Diagnostics);
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
+
         // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
         _plan.TargetVersion.Replace("22.109.0", "22.87.0", StringComparison.Ordinal),
         _plan.Renderer,
@@ -48,7 +62,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // CPM keeps the backend Arc pins in Directory.Packages.props; frontend files may use the same version independently.
     static string PreviousRealization(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.68.2", "4.22.1", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.74.2", "19.55.2", StringComparison.Ordinal).Replace("4.68.2", "4.22.1", StringComparison.Ordinal);
         if (relativePath.EndsWith("Lookup.cs", StringComparison.Ordinal))
         {
             // Restore the frozen #350 primitive query signature and conversion, not the read-model property.

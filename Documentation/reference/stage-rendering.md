@@ -68,7 +68,7 @@ StateView and Automation slices use this layout; no `IReducerFor<T>` companion i
 Observer source and stream filters are attributes on the model. Tenant translation,
 occurrence time, checked sequence conversion, immutable inputs, deletion, and exact
 event-source identity checks retain the classic semantics. The scaffold pins Chronicle
-19.71.0 and Arc 22.109.0 for this generated surface.
+19.74.2 and Arc 22.109.0 for this generated surface.
 
 Self-mode admission checks the same record and query signatures used for rendering,
 so model properties and query names participate in pure-body binding. Rendering and

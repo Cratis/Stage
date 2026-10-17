@@ -116,7 +116,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
 
     static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> Replay(SemanticSpecification specification, SemanticReadModel readModel, SemanticApplicationContext context) =>
         specification.When is { } when
-            ? SemanticProjectionSpecificationEvents.Replay(specification, context.Projections.Values.Single(projection => projection.ReadModel == readModel.Id), context.Commands[when.Command])
+            ? SemanticProjectionSpecificationEvents.Replay(context.Application, specification, context.Projections.Values.Single(projection => projection.ReadModel == readModel.Id), context.Commands[when.Command])
             : [];
 
     static IEnumerable<string> Seeds(SemanticSpecification specification, SemanticSpecificationQueryResult expected, bool routedReplay, SemanticApplicationContext context)

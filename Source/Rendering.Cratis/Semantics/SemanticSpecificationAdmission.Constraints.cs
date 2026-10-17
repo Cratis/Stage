@@ -20,7 +20,7 @@ internal static partial class SemanticSpecificationAdmission
         var command = context.Commands[specification.When.Command];
         var error = specification.ThenErrors[0];
         var matches = context.Constraints.Select(_ => _.Constraint)
-            .Where(constraint => SemanticProductionSelection.Taken(command, specification).Any(produced => constraint.Targets.Any(target => target.EventContract == produced.EventContract)) &&
+            .Where(constraint => SemanticProductionSelection.Taken(context.Application, command, specification).Any(produced => constraint.Targets.Any(target => target.EventContract == produced.EventContract)) &&
                 (error.Code == constraint.Name ||
                 (error.Code is null && error.Message == MessageFor(constraint) &&
                     specification.GivenEvents.Any(given => constraint.Targets.Any(target => target.EventContract == given.EventContract)))))
@@ -105,7 +105,7 @@ internal static partial class SemanticSpecificationAdmission
         }
 
         var constraint = context.Constraints.Select(_ => _.Constraint).SingleOrDefault(_ => _.Name == error.Code);
-        if (constraint is null || !SemanticProductionSelection.Taken(command, specification).Any(produced => constraint.Targets.Any(target => target.EventContract == produced.EventContract)))
+        if (constraint is null || !SemanticProductionSelection.Taken(context.Application, command, specification).Any(produced => constraint.Targets.Any(target => target.EventContract == produced.EventContract)))
         {
             return false;
         }

@@ -14,12 +14,13 @@ public class with_version_envelope_specification_and_scene_refusals : given.a_co
 
     void Establish()
     {
-        var specification = _registerProject.Specifications.First();
-        _specification = specification.Id;
-        _request = WithGuard(WithChange(_registerProject with
-        {
-            Specifications = [specification with { ThenAbsentReadModels = [new(_projectLookup.ReadModels.Single().Id, SemanticValue.Text("one"))] }]
-        })) with { ImplementationRequirements = default };
+        var source = Source.Replace("      specification RejectingAnEmptyProjectName", """
+                        then no readmodel ProjectSummary for "4fa85f64-5717-4562-b3fc-2c963f66afa7"
+                      specification RejectingAnEmptyProjectName
+                """, StringComparison.Ordinal);
+        _request = WithGuard(WithSource(source)) with { ImplementationRequirements = default };
+        _specification = _request.Model.Application.Modules.Single().Features.Single().Slices
+            .SelectMany(slice => slice.Specifications).Single(specification => specification.Name == "RegisteringAProject").Id;
     }
 
     void Because() => _plan = _planner.Plan(_request);

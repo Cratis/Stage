@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Reflection;
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Xunit;
@@ -11,14 +13,14 @@ public class with_an_unhandled_type_after_an_envelope_refusal : given.a_collecti
 {
     void Establish()
     {
-        var command = _registerProject.Commands.Single();
-        _request = WithGuard(WithChange(_registerProject with
-        {
-            Commands = [command with
-            {
-                Properties = [.. command.Properties.Select(property => property with { Type = property.Type with { Kind = (SemanticTypeReferenceKind)999 } })]
-            }]
-        })) with { ImplementationRequirements = default };
+        // Fault injection: simulate a future compiler's type variant after compiling a valid fixture.
+        // Use an event property: command admission calls TypeExists for produced event properties.
+        var @event = _registerProject.Events.Single();
+        var properties = @event.Properties.Select(property => property.Name == "name"
+            ? property with { Type = property.Type with { Kind = (SemanticTypeReferenceKind)999 } }
+            : property).ToImmutableArray();
+        typeof(SemanticEventContract).GetField("<Properties>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(@event, properties);
+        _request = WithGuard(_request) with { ImplementationRequirements = default };
     }
 
     void Because() => _plan = _planner.Plan(_request);

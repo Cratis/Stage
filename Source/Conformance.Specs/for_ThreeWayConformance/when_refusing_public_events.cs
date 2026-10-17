@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.CanonicalCorpus;
+using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
@@ -33,6 +34,8 @@ public class when_refusing_public_events : Specification
     [Fact] void should_keep_the_frozen_reference_outcome() => _reference.Execution.Kind.ShouldEqual(PublicEventsCorpus.V9.SpecificationExpectations.Single().Outcome);
     [Fact] void should_refuse_stage_execution() => _stage.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
     [Fact] void should_name_the_translation_refusal() => _stage.Results.Single().Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_refuse_rendering_by_construct() => _rendered.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-032", "STAGE-ESM-033"]);
+    [Fact] void should_refuse_rendering_by_construct() => _rendered.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-001", "STAGE-ESM-011", "STAGE-ESM-024", "STAGE-ESM-032", "STAGE-ESM-033"]);
+    [Fact] void should_also_refuse_the_translate_slice_shapes() => _rendered.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-001").Select(diagnostic => diagnostic.Artifact).ShouldContainOnly([.. _plan.Model.Application.Modules.Single().Features.Single().Slices.Where(slice => slice.Kind == SemanticSliceKind.Translate).Select(slice => slice.Id)]);
+    [Fact] void should_also_refuse_the_public_event_projection_specification() => _rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == _plan.Specifications.Keys.Single());
     [Fact] void should_emit_no_generated_specifications_or_other_artifacts() => _rendered.Artifacts.ShouldBeEmpty();
 }

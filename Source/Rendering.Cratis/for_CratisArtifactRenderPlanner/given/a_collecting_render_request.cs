@@ -1,7 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Cratis.Screenplay.Semantics;
+using System.Text;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
@@ -10,13 +11,15 @@ public class a_collecting_render_request : a_register_project_render_request
 {
     protected ArtifactRenderPlan _plan = null!;
 
-    protected ArtifactRenderRequest WithChange(SemanticSlice changed)
+    protected ArtifactRenderRequest WithSource(string source)
     {
-        var application = _model.Application with
-        {
-            Modules = [_module with { Features = [_feature with { Slices = [.. _feature.Slices.Select(slice => slice.Id == changed.Id ? changed : slice)] }] }]
-        };
-        return _request with { Model = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, application) };
+        var form = Corpus.SourceForms.Single(candidate => candidate.Name == "single");
+        var document = form.Documents.Single();
+        var model = Compile(form with { Documents = [document with { Bytes = [.. Encoding.UTF8.GetBytes(source)] }] }).Model;
+        var execution = SemanticExecutionPlan.Compile(model);
+        Xunit.Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
+
+        return _request with { Model = model, ExecutionPlan = execution.Plan! };
     }
 
     protected ArtifactRenderRequest WithGuard(ArtifactRenderRequest request)

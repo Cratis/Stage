@@ -38,7 +38,8 @@ public class when_refusing_the_canonical_public_events_corpus : Specification
     [InlineData("STAGE-ESM-032")]
     [InlineData("STAGE-ESM-033")]
     public void should_refuse_each_kind_of_construct(string code) => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == code);
-    [Fact] void should_also_report_transition_analysis() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-023" && diagnostic.Artifact == _model.Application.Id).Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Information);
+    [Fact] void should_have_no_reducer_bodies_to_analyze() => _model.Application.Modules.SelectMany(Slices).SelectMany(slice => slice.Reducers).ShouldBeEmpty();
+    [Fact] void should_not_claim_reducer_transition_analysis() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-023");
     [Fact] void should_admit_the_version_pair() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
     [Fact] void should_not_publish_a_partial_plan() => _plan.Success.ShouldBeFalse();
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();

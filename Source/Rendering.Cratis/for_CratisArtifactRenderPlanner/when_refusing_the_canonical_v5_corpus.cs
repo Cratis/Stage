@@ -30,7 +30,8 @@ public class when_refusing_the_canonical_v5_corpus : Specification
     void Because() => _plan = new CratisArtifactRenderPlanner().Plan(_request);
 
     [Fact] void should_load_v5() => _request.Model.SemanticVersion.ShouldEqual(SemanticVersion.V5);
-    [Fact] void should_admit_the_version_but_refuse_each_absence_assertion() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-027", "STAGE-ESM-011"]);
+    [Fact] void should_admit_the_version_but_refuse_each_absence_assertion() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-027", "STAGE-ESM-011", "STAGE-ESM-017"]);
+    [Fact] void should_also_refuse_the_removal_only_projection() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Artifact == _request.Model.Application.Modules.Single().Features.Single().Slices.Single().Projections.Single().Id);
     [Fact] void should_name_every_absence_specification() => _plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-027").Select(diagnostic => diagnostic.Artifact).ShouldContainOnly([.. AbsenceSpecifications()]);
     [Fact] void should_also_collect_specification_admission() => _plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-011").Select(diagnostic => diagnostic.Artifact).ShouldContainOnly([.. AbsenceSpecifications()]);
     [Fact] void should_not_publish_a_partial_plan() => _plan.Success.ShouldBeFalse();
@@ -38,7 +39,7 @@ public class when_refusing_the_canonical_v5_corpus : Specification
     [Fact] void should_refuse_through_semantic_admission_as_well()
     {
         var context = new SemanticApplicationContext(_request, new("Absence", "Absence"));
-        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-027", "STAGE-ESM-011"]);
+        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-027", "STAGE-ESM-011", "STAGE-ESM-017"]);
     }
 
     IEnumerable<SemanticId> AbsenceSpecifications() => _request.Model.Application.Modules.SelectMany(module => module.Features)

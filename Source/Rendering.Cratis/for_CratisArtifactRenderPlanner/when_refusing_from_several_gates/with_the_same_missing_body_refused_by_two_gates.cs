@@ -20,7 +20,7 @@ public class with_the_same_missing_body_refused_by_two_gates : Specification
     void Establish()
     {
         var loaded = given.generation_rule_model.Load();
-        _request = new(loaded.Model, loaded.Plan, CratisRendering.CreateProfile("Orders", new("Orders", "Orders")), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
+        _request = new(loaded.Model, loaded.Plan, CratisRendering.CreateProfile(loaded.Model.Application.Name, new("Orders", "Orders")), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {
             ImplementationRequirements = loaded.ImplementationRequirements,
             ImplementationContents = ImmutableDictionary<string, string>.Empty,

@@ -24,26 +24,41 @@ internal static partial class SemanticCratisAdmission
         SemanticApplicationContext context,
         IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        // Keep the audited surface available in Release as well as in the Debug-only specifications.
-        _ = SemanticSurfaceLedger.Entries;
         var diagnostics = new List<ArtifactRenderDiagnostic>();
-        if (!PassesPreconditions(context, slices, diagnostics))
+
+        // Standalone admission callers still need the version gates; the planner has already run them.
+        if (!SemanticVersionFeatures.Supports(context.Request.Model))
         {
+            diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", context.Application.Id));
             return [.. diagnostics];
         }
 
-        ValidateStrings(context, slices, diagnostics);
-        ValidateMatchPatterns(context, slices, diagnostics);
-        ValidateTypes(context, diagnostics);
-        ValidateCompliance(context, diagnostics);
-        ValidateConstraints(context, slices, diagnostics);
-        ValidateGeneratedTypeNames(context, slices, diagnostics);
-        ValidateEventTypeIdentities(context, slices, diagnostics);
+        diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
+        Evaluate(context, slices, diagnostics);
+        return [.. diagnostics];
+    }
+
+    internal static void Evaluate(
+        SemanticApplicationContext context,
+        IReadOnlyList<LocatedSemanticSlice> slices,
+        List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        // Keep the audited surface available in Release as well as in the Debug-only specifications.
+        _ = SemanticSurfaceLedger.Entries;
+        PassesPreconditions(context, slices, diagnostics);
+
+        Collect(() => ValidateStrings(context, slices, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => ValidateMatchPatterns(context, slices, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => ValidateTypes(context, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => ValidateCompliance(context, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => ValidateConstraints(context, slices, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => ValidateGeneratedTypeNames(context, slices, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => ValidateEventTypeIdentities(context, slices, diagnostics), context.Application.Id, diagnostics);
 
         var analysedBodies = 0;
         foreach (var located in slices)
         {
-            analysedBodies += ValidateSlice(context, located, diagnostics);
+            Collect(() => analysedBodies += ValidateSlice(context, located, diagnostics), located.Slice.Id, diagnostics);
         }
 
         if (slices.Any(_ => !_.Slice.Reducers.IsEmpty))
@@ -54,8 +69,6 @@ internal static partial class SemanticCratisAdmission
                 $"{analysedBodies} transition bodies analysed.",
                 context.Request.Model.Application.Id));
         }
-
-        return [.. diagnostics];
     }
 
     /// <summary>
@@ -124,28 +137,31 @@ internal static partial class SemanticCratisAdmission
             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
             selfReducing: context.SelfReducing);
 
-    static bool PassesPreconditions(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
+    static void PassesPreconditions(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        var model = context.Request.Model;
-        if (!SemanticVersionFeatures.Supports(model))
-        {
-            diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", model.Application.Id));
-            return false;
-        }
-
-        diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
-        diagnostics.AddRange(SemanticDateComparisonAdmission.Verify(context, slices));
-        return diagnostics.Count == 0 &&
-            Passes(diagnostics, () => ValidateEventRevisions(context, slices, diagnostics)) &&
-            Passes(diagnostics, () => ValidateReservedNamespace(context, slices, diagnostics)) &&
-            Passes(diagnostics, () => ValidateEventSourceRoutes(context, slices, diagnostics)) &&
-            Passes(diagnostics, () => ValidateWholeNumberLiterals(context, slices, diagnostics));
+        // These checks refuse target capabilities, not the model's indexed structure. Current event
+        // shapes remain available after a migration refusal, so independent body/spec checks can run.
+        Collect(() => diagnostics.AddRange(SemanticDateComparisonAdmission.Verify(context, slices)), context.Application.Id, diagnostics);
+        Collect(() => ValidateEventRevisions(context, slices, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => ValidateReservedNamespace(context, slices, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => ValidateEventSourceRoutes(context, slices, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => ValidateWholeNumberLiterals(context, slices, diagnostics), context.Application.Id, diagnostics);
     }
 
-    static bool Passes(List<ArtifactRenderDiagnostic> diagnostics, Action validate)
+    static void Collect(Action validate, SemanticId artifact, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        validate();
-        return diagnostics.Count == 0;
+        try
+        {
+            validate();
+        }
+        catch (UnsupportedSemanticRendering exception)
+        {
+            diagnostics.Add(Error(exception.Code, exception.Message, artifact));
+        }
+        catch (InvalidTypedContext exception)
+        {
+            diagnostics.Add(Error("STAGE-ESM-021", exception.Message, artifact));
+        }
     }
 
     static void ValidateReservedNamespace(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
@@ -180,10 +196,11 @@ internal static partial class SemanticCratisAdmission
             diagnostics.Add(Error("STAGE-ESM-012", $"Event '{@event.Name}' has property names that collide in generated C#.", @event.Id));
         }
 
-        var analysedBodies = ValidateReducers(context, located.Slice, diagnostics);
-        ValidateSliceKind(context, located.Slice, diagnostics);
-        ValidateCallerFixtures(located.Slice, diagnostics);
-        SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics);
+        var analysedBodies = 0;
+        Collect(() => analysedBodies = ValidateReducers(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
+        Collect(() => ValidateSliceKind(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
+        Collect(() => ValidateCallerFixtures(located.Slice, diagnostics), located.Slice.Id, diagnostics);
+        Collect(() => SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
 
         return analysedBodies;
     }

@@ -56,6 +56,17 @@ internal sealed class SemanticRuntimeAdmission
                 continue;
             }
 
+            if (command.Handler is { } handler)
+            {
+                entries.Add(new(
+                    command.Id.ToString(),
+                    "command",
+                    "unsupported",
+                    nameof(SemanticExecutionCapability.ImplementationBody),
+                    $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target."));
+                continue;
+            }
+
             var problem = command.Produces.Any(produced => produced.Destination is null && command.Destination?.Value is null)
                 ? "A produced fact requires an allocated destination."
                 : null;

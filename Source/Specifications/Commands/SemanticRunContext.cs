@@ -41,6 +41,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal DateTimeOffset? AuthoredOccurrence => OccurrenceOf(specification);
     internal string Tenant => options.Tenant;
     internal SemanticExecutionResponse? Response { get; private set; }
+    internal bool HandlerBodyReached { get; set; }
 
     // An absent authored fixture must stay absent in semantic reactions, regardless of the injectable storage clock.
     internal static DateTimeOffset? OccurrenceOf(SemanticSpecification fixture) =>

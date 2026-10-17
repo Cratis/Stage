@@ -138,7 +138,7 @@ internal static class SemanticVersionFeatures
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
     public static bool Supports(ExecutableSemanticModel model) =>
-        EsmSchemaV21Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
+        EsmSchemaV22Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
         (model.LanguageVersion == LanguageVersion.V23 && model.SemanticVersion == SemanticVersion.V23) ||
         (model.LanguageVersion == LanguageVersion.V24 && model.SemanticVersion == SemanticVersion.V24) ||
         (model.LanguageVersion == LanguageVersion.V25 && model.SemanticVersion == SemanticVersion.V25) ||

@@ -167,8 +167,9 @@ Clock, application, startup and shutdown triggers and opaque reaction bodies sti
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.206.0 and admits exact ESM v1–v21 and v23–v27 version pairs; unaudited
-language/semantic versions, including v22, refuse the whole model with `STAGE-ESM-016` before registration or execution.
+The semantic engine uses Screenplay 4.206.0 and admits exact ESM v1–v27 version pairs; unaudited
+language/semantic versions (v28 and later, mixed or noncanonical pairs) refuse the whole model with `STAGE-ESM-016` before registration or execution.
+A v22 model that uses `reaction batches atomic` is admitted and refused with `STAGE-ESM-043` until atomic batches execute.
 At v27 the semantic engine runs read models with several `key` parts: instances that differ in one part stay apart,
 `parts` projection keys create and remove only the instance whose parts all match, list queries filter on any part,
 and a single-instance query by parts takes one parameter per part, validated against its concept like a single key.

@@ -50,6 +50,11 @@ public class with_opaque_bodies : a_command_only_plan
     [Fact] void should_report_rule_predicate_as_unsupported_command() => _predicate!.Capability.ShouldEqual(StageExecutionCapability.Command);
     [Fact] void should_report_concept_code_validation_as_unsupported_command() => _concept!.Capability.ShouldEqual(StageExecutionCapability.Command);
     [Fact] void should_report_reducer_as_unsupported_projection() => _reducer!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+    [Fact] void should_identify_the_command_code_body() => _code!.Details.ShouldContain("STAGE-IMPL-003: Command 'RegisterProject' validation 'code-body'");
+    [Fact] void should_identify_the_command_predicate_body() => _predicate!.Details.ShouldContain("STAGE-IMPL-003: Command 'RegisterProject' validation 'predicate-body'");
+    [Fact] void should_identify_the_concept_body() => _concept!.Details.ShouldContain("concept-body");
+    [Fact] void should_report_the_concept_body_code() => _concept!.Details.ShouldContain("STAGE-IMPL-003: Concept '");
+    [Fact] void should_identify_the_reducer_body() => _reducer!.Details.ShouldContain("STAGE-IMPL-003: Reducer 'ProjectReducer' transition 'reducer-body'");
 
     SemanticUnsupportedCapability? Check(Func<SemanticSlice, SemanticSlice> change, Func<SemanticApplication, SemanticApplication>? changeApplication = null)
     {

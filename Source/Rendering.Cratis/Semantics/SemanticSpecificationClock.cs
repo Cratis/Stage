@@ -7,12 +7,12 @@ using Cratis.Screenplay.Semantics;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Admits authored command clocks that Arc and Chronicle can preserve exactly.
+/// Validates authored occurrence clocks without broadening the generated command-clock contract.
 /// </summary>
 internal static class SemanticSpecificationClock
 {
     /// <summary>
-    /// Reads a canonical UTC command clock with millisecond precision.
+    /// Reads a generated command scenario's canonical UTC clock at or after the Unix epoch with millisecond precision.
     /// </summary>
     /// <param name="specification">The specification.</param>
     /// <param name="instant">The admitted occurrence time.</param>
@@ -21,8 +21,29 @@ internal static class SemanticSpecificationClock
     {
         instant = default;
 
-        return specification.When is not null && specification.WhenClock is null &&
-            specification.GivenClock is { } clock &&
+        return specification.When is not null && specification.WhenClock is null && TryParse(specification.GivenClock, out instant);
+    }
+
+    /// <summary>
+    /// Reads the authored occurrence clock for an independent command, append or redelivery scenario.
+    /// </summary>
+    /// <param name="specification">The specification with exactly one supported action and no capture fixtures.</param>
+    /// <param name="instant">The canonical UTC occurrence, at or after the Unix epoch with millisecond precision.</param>
+    /// <returns>Whether the scenario supplies an admitted clock; absence never supplies the current time.</returns>
+    internal static bool TryGetOccurrence(SemanticSpecification specification, out DateTimeOffset instant)
+    {
+        instant = default;
+        var actions = (specification.When is not null ? 1 : 0) + (specification.WhenAppended is not null ? 1 : 0) + (specification.WhenRedelivered is not null ? 1 : 0);
+
+        return actions == 1 && specification.WhenClock is null && specification.WhenTrigger is null &&
+            specification.WhenCapture is null && specification.GivenCaptures.IsDefaultOrEmpty && TryParse(specification.GivenClock, out instant);
+    }
+
+    static bool TryParse(string? clock, out DateTimeOffset instant)
+    {
+        instant = default;
+
+        return clock is not null &&
             DateTimeOffset.TryParseExact(
                 clock,
                 "yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'",

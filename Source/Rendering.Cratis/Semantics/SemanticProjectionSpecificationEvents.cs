@@ -13,23 +13,25 @@ internal static class SemanticProjectionSpecificationEvents
     /// <summary>
     /// Gets the facts to replay in production order. Admission rejects ambiguous unordered duplicates.
     /// </summary>
+    /// <param name="application">The semantic application declaring the concepts.</param>
     /// <param name="specification">The admitted specification.</param>
     /// <param name="projection">The projected read model.</param>
     /// <param name="command">The command producing the facts.</param>
     /// <returns>The produced and expected occurrences in replay order.</returns>
     internal static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> Replay(
+        SemanticApplication application,
         SemanticSpecification specification,
         SemanticProjection projection,
         SemanticCommand command)
     {
         if (projection.Scope is null)
         {
-            var produced = SemanticProductionSelection.Taken(command, specification).Single(_ => _.EventContract == projection.Transitions.Single().EventContract);
+            var produced = SemanticProductionSelection.Taken(application, command, specification).Single(_ => _.EventContract == projection.Transitions.Single().EventContract);
             var expected = specification.ThenEvents.Single(_ => _.EventContract == produced.EventContract);
             return [(produced, expected)];
         }
 
-        return [.. SemanticProductionSelection.Taken(command, specification).Select((produced, index) => (produced,
+        return [.. SemanticProductionSelection.Taken(application, command, specification).Select((produced, index) => (produced,
             specification.ThenEventsInAnyOrder
                 ? specification.ThenEvents.Single(_ => _.EventContract == produced.EventContract)
                 : specification.ThenEvents[index]))];

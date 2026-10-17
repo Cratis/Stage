@@ -19,7 +19,7 @@ public class when_selecting_canonical_generated_productions : Specification
         foreach (var specification in plan.Specifications.Values.Where(specification => specification.ThenErrors.IsEmpty))
         {
             var reference = (SemanticAccepted)new SemanticSpecificationRunner().Run(plan, specification.Id).Execution;
-            var taken = SemanticProductionSelection.Taken(plan.Commands[specification.When!.Command], specification);
+            var taken = SemanticProductionSelection.Taken(plan.Model.Application, plan.Commands[specification.When!.Command], specification);
             _matches.Add(taken.Select(produced => produced.EventContract).SequenceEqual(reference.Facts.Select(fact => fact.EventContract)));
         }
     }

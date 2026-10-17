@@ -49,7 +49,7 @@ internal sealed record SemanticReactionSpecification(SemanticReaction Reaction, 
 
         // Generated invocation operands have no pins; the lowered specification's generation gate refuses them.
         if (command.Properties.Any(property => property.IsGenerated && conditionProperties.Contains(property.Id))) return command.Produces;
-        return SemanticProductionSelection.Taken(command, Lower(specification, context));
+        return SemanticProductionSelection.Taken(context.Application, command, Lower(specification, context));
     }
 
     internal static SemanticValue Evaluate(SemanticExpression expression, SemanticSpecificationAppend append) => expression switch

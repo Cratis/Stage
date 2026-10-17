@@ -55,7 +55,8 @@ produced-event mappings use that projected state. Non-Error requirements on prot
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
 Join removals, parent keys, children and nested projection scopes remain refused.
-The renderer still refuses protected reads with `STAGE-ESM-044`. The structural engine refuses the same preamble,
+The renderer renders protected reads and refuses only the shapes it cannot preserve with `STAGE-ESM-044`
+(see [Protected reads rendering](../reference/protected-reads-rendering.md)). The structural engine refuses the preamble,
 exits `1` and writes no results file.
 Without the preamble, command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
 At v20 it executes rules on generated concepts. A failing fixture is a contract rejection with
@@ -124,7 +125,9 @@ Generated empty-effect specifications support admitted commands and single-hop p
 including excluded `where` or observer filters on appends and redeliveries. Redelivery requires explicit given
 sources and portable stream identities. Fan-out on the named reaction, deeper cascades, constraints,
 read-model/query expectations and redelivery with invocation refusal branches retain `STAGE-ESM-011`.
-Reaction-triggering commands, invoked-command empty-effect cases and no-observer appends also require
+Reaction-triggering commands are split into a command half and a reaction half only for one event firing one
+invoke-only reaction (rejections only when the triggering command cannot reject on its own); other
+reaction-triggering commands, invoked-command empty-effect cases and no-observer appends also require
 a settlement/log-delta harness and are refused. See the [renderer support matrix](../guides/build-renderer-target.md#admit-target-semantics-before-emission).
 
 ## Invocation refusal branches

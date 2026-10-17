@@ -192,9 +192,11 @@ internal static class SemanticStateViewArtifactRenderer
             return;
         }
 
+        // Arc's analyzers flag a raw string or Guid parameter that the method converts to an event source id, so declare the id itself.
+        var raw = query.Argument.Type.Kind == SemanticTypeReferenceKind.Primitive && query.Argument.Type.Primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid;
         documentation.ExpressionMember(
-            $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argument.Parameter})",
-            $"await readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){argument.Name})");
+            $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {(raw ? $"global::Cratis.Chronicle.Events.EventSourceId {argument.Name}" : argument.Parameter)})",
+            $"await readModels.GetInstanceById<{readModelName}>({(raw ? argument.Name : $"(global::Cratis.Chronicle.Events.EventSourceId){argument.Name}")})");
     }
 
     static void RenderCollectionQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types)

@@ -244,7 +244,7 @@ internal static partial class PureTransitionAdmission
             "global using System.IO; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks; " +
             (context.Application.Concepts.IsEmpty && context.Application.Types.IsEmpty ? string.Empty : $"using {context.CommonNamespace}; ") +
             "namespace Cratis.Concepts { public record ConceptAs<T>(T Value); } " +
-            "namespace Cratis.Chronicle.Events { public class EventContext {} public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue); } " +
+            "namespace Cratis.Chronicle.Events { public class EventContext {} public record EventSourceId(string Value) : global::Cratis.Concepts.ConceptAs<string>(Value); public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue); } " +
             "namespace Cratis.Chronicle.Reducers { public interface IReducerFor<T> {} } " +
             "namespace Cratis.Arc.Authorization {} namespace Cratis.Arc.Queries.ModelBound {} " +
             "namespace Cratis.Arc.Commands.ModelBound {} namespace Cratis.Arc.Validation {} namespace Cratis.Chronicle.EventSequences {} " +

@@ -38,6 +38,7 @@ internal static partial class SemanticCratisAdmission
         ValidateCommandRules(context, command, diagnostics);
         ValidateCommandRequirements(context, command, diagnostics);
         ValidateOptionalCommandConcepts(context, command, diagnostics);
+        ValidateDecisionReads(context, command, diagnostics);
         if (!HasCommandOutcome(command))
         {
             diagnostics.Add(CommandCapability(command, "has no outcome; Stage cannot emit a handler without a produced event or response. Add a produces or returns clause."));
@@ -141,7 +142,7 @@ internal static partial class SemanticCratisAdmission
     {
         foreach (var (requirement, index) in command.Requirements.Select((requirement, index) => (requirement, index)))
         {
-            var properties = string.Join(", ", RequirementProperties(requirement.Condition, command));
+            var properties = string.Join(", ", RequirementProperties(requirement.Condition, command, context));
             var label = $"requirement #{index + 1} ({properties})";
             if (!SemanticRequirementRendering.CanRender(requirement, command, context))
             {
@@ -173,7 +174,7 @@ internal static partial class SemanticCratisAdmission
 
     static string ConditionRenderingReason(SemanticCondition condition, SemanticCommand command, SemanticApplicationContext context)
     {
-        var referenced = RequirementProperties(condition, command);
+        var referenced = RequirementProperties(condition, command, context);
         var hasNamedValues = command.Properties.Any(property => IsNamedValueRequirementProperty(property, referenced, context));
         return hasNamedValues
             ? "named-value conditions support only equality and inequality over required scalar properties, against a declared member or a property of the same concept. Optional operands, collections, different concepts, and ordering remain unsupported (Cratis/Stage#420)."
@@ -187,12 +188,22 @@ internal static partial class SemanticCratisAdmission
         return !context.Concepts[property.Type.Target].Values.IsEmpty;
     }
 
-    static IEnumerable<string> RequirementProperties(SemanticCondition condition, SemanticCommand command) => condition switch
+    static IEnumerable<string> RequirementProperties(SemanticCondition condition, SemanticCommand command, SemanticApplicationContext context) => condition switch
     {
-        SemanticLogicalCondition logical => RequirementProperties(logical.Left, command).Concat(RequirementProperties(logical.Right, command)).Distinct(StringComparer.Ordinal),
-        SemanticComparison comparison => command.Properties.Where(property => property.Id == comparison.Left.Property || property.Id == comparison.Right.Property).Select(property => property.Name),
+        SemanticLogicalCondition logical => RequirementProperties(logical.Left, command, context).Concat(RequirementProperties(logical.Right, command, context)).Distinct(StringComparer.Ordinal),
+        SemanticComparison comparison => command.Properties.Where(property => (comparison.Left.Read is null && property.Id == comparison.Left.Property) || (comparison.Right.Read is null && property.Id == comparison.Right.Property))
+            .Select(property => property.Name)
+            .Concat(ReadOperandLabels(comparison, command, context)),
         _ => ["unsupported condition"]
     };
+
+    static IEnumerable<string> ReadOperandLabels(SemanticComparison comparison, SemanticCommand command, SemanticApplicationContext context)
+    {
+        var scope = new SemanticReadScope(command, context);
+
+        return new[] { comparison.Left, comparison.Right }.Where(operand => operand.Read is not null)
+            .Select(operand => scope.Property(operand.Read!, operand.Property) is { } property ? $"{operand.Read}.{property.Name}" : $"{operand.Read}.?");
+    }
 
     static void ValidateOptionalCommandConcepts(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {

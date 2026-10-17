@@ -19,8 +19,9 @@ internal static class SemanticRunReactionExpressions
         [SemanticComparisonOperator.LessThanOrEqual] = (left, right) => left <= right
     };
 
-    internal static SemanticValue Evaluate(SemanticExpression expression, IReadOnlyDictionary<SemanticId, SemanticValue> values, SemanticInvocationRefusalOutcome? refusal = null) => expression switch
+    internal static SemanticValue Evaluate(SemanticExpression expression, IReadOnlyDictionary<SemanticId, SemanticValue> values, SemanticInvocationRefusalOutcome? refusal = null, DateTimeOffset? occurred = null) => expression switch
     {
+        SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } when occurred is { } instant => SemanticValue.Text(instant.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)),
         SemanticRefusalExpression member when refusal is not null => refusal.ValueOf(member.Member),
         SemanticValueExpression literal => literal.Value,
         SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } property when values.TryGetValue(property.Target, out var value) => value,

@@ -65,8 +65,21 @@ A newly registered reactor catches up from the existing event log. `[OnceOnly]` 
 The in-memory executor runs event-reaction specifications without building a generated application.
 Given events establish history without firing reactions. Direct-append then-events describe only the
 reaction effects; command then-events include the initiating command's facts and all cascading effects.
-Clock fixtures and clock/trigger/capture actions remain unsupported; an `$context.occurred` production
-without a scenario clock is a contract rejection.
+An authored `given clock` supplies `$context.occurred` for command, direct-append and named-redelivery
+specifications, including cascading productions, invocation arguments, invoked commands and refusal
+productions. Offset-bearing source clocks normalize to canonical UTC; the instant must be at or after the
+Unix epoch and millisecond-aligned. Mapped values use UTC round-trip text, for example
+`2027-03-04T08:00:00.1230000Z`. Redelivery uses this scenario clock, not a timestamp from given history.
+
+No authored clock means no reaction occurrence: the executor never substitutes its injectable clock or
+wall time. A reached production mapping rejects with `Reaction '<name>' uses $context, which needs the
+scenario's 'given clock'.`; an invocation argument using the missing occurrence instead rejects with
+`An execution expression is unresolved in its declared root scope.` A false `where` skips evaluation.
+Refusal branches reuse the same occurrence; the first matching branch wins, and a failed branch production
+is not offered to a later branch. The clock supplies time only: `runs as system` does not manufacture audit
+identity, and `$eventSourceId` (also spelled `$eventContext.eventSourceId`) and `$context.causedBy.*`
+retain `STAGE-ESM-013`. `$context.eventSourceId` is not a valid reaction mapping.
+Clock/trigger/capture actions and scheduling triggers remain unsupported.
 
 Stage renders single-hop `when append` reaction specifications through `ReactorScenario`. Givens establish history and are not delivered to the reactor. A production-only scenario checks the exact effect count, payloads, destinations and all three unrouted metadata values (`EventSourceType.Default`, `EventStreamType.All`, `EventStreamId.Default`), with assignment matching for any-order expectations. An invocation scenario executes the one returned command through `CommandScenario`, reading the system identity from the reactor's attribute rather than forwarding `given caller`. Screenplay requires an outcome: a `when append` specification always asserts the reaction's produced events or the invoked command's outcome.
 
@@ -74,18 +87,23 @@ Append fixtures may carry an explicit source and route. A sourceless append uses
 
 The generated `CommandScenario` does not settle reactions, whereas the reference does. When a command specification produces exactly one event that fires exactly one invoke-only reaction, Stage splits it: an accepted specification becomes a command half that asserts the triggering events and a `ReactorScenario` half that appends the triggering event and asserts the rest; a rejected specification becomes only the reaction half, and only when the triggering command cannot reject on its own (no validations, requirements, decision reads, routes, authorization, generated values, constrained or constraint-releasing products, rule-carrying concepts, and matching input values). Every other command specification whose command produces an event subscribed to by an event reaction stays refused with `STAGE-ESM-011`. The split is not atomic: the reference rejects the whole command when the invoked command rejects, while a rendered application commits the triggering command and its reactor fails afterwards.
 
+Generated backend `$context.occurred` mappings remain supported through `EventContext.Occurred`, but
+context-dependent generated reaction specifications retain `STAGE-ESM-011`. Authored clocks on generated
+append/redelivery specifications additionally retain `STAGE-ESM-024`; the renderer's clock fixture support
+remains command-only. Independent executor support does not broaden that generated scenario contract.
+
 Render admission, generated Debug compilation, generated specifications and live execution are separate results. Build and test the generated project rather than treating a published render as runtime evidence. Live verification requires a Chronicle kernel and the generated Arc host wiring, including its reactor result handlers.
 
 ## Limits and diagnostics
 
 | Diagnostic | Refused shape |
 | --- | --- |
-| `STAGE-ESM-024` | Clock, application, startup and shutdown triggers; opaque reaction bodies; captures and Translate slices; clock/trigger/capture specifications |
+| `STAGE-ESM-024` | Clock, application, startup and shutdown triggers; opaque reaction bodies; captures and Translate slices; clock/trigger/capture actions; generated append/redelivery specifications with clock fixtures |
 | `STAGE-ESM-034` | `runs as` invoking a claim-reading or opaque authorization gate; all `runs as` on legacy syntax paths |
 | `STAGE-ESM-035` | Reaction `from` on legacy syntax paths only; use the semantic planner |
 | `STAGE-ESM-030` | Reserved stored source or stream names in observer filters |
 | `STAGE-ESM-037` | Events and commands returned by one handler, whether authored in one trigger or separate triggers on the same event in one reaction |
-| `STAGE-ESM-013` | Reaction mappings of `$context.causedBy.*` or `$context.eventSourceId` |
+| `STAGE-ESM-013` | Reaction mappings of `$context.causedBy.*`, `$eventSourceId` or `$eventContext.eventSourceId` |
 | `STAGE-ESM-039` | Conditions, destinations or mappings that cannot retain their modeled meaning; incomplete event mappings or a reaction without an event subscription |
 | `STAGE-ESM-012` | Reactor names or handler names that collide with generated C# declarations or slice files |
 | `STAGE-ESM-011` | Append specifications outside the single-hop subset above; command specifications that cascade into reactions |
@@ -95,7 +113,7 @@ Render admission, generated Debug compilation, generated specifications and live
 
 Conditions cannot use optional, composite, collection or enum-valued operands; ordering requires numbers. Property mappings must retain the exact source and target type. Commands, projections, reducers and queries declared in an Automation slice retain their existing admission limits. Query-only and projection-only surfaces are checked like StateView slices, not silently omitted. For a flat projection, every reaction production of its observed event must explicitly target the same value mapped into the payload key. An omitted `for` uses the triggering event source and does not prove that equality. This check includes producers outside the selected render scope. Personal and secret concepts cannot supply append identities; use a surrogate destination and keep the protected value in the payload.
 
-Stage pins Arc **22.112.0**, whose `EventsAndCommandsResultHandler` can return events and commands from one handler. Stage still refuses that shape with `STAGE-ESM-037`: the handler appends the events before it runs the commands, so a refused command fails the partition, and Chronicle's redelivery appends the same events again. Screenplay's reference and the Stage Host settle a reaction all or nothing. Splitting the effects into two reactors would avoid the duplicates but still commit the events when the command is refused. Stage lifts 037 once reactor appends are idempotent across redelivery ([Chronicle#4809](https://github.com/Cratis/Chronicle/issues/4809), [Arc#3207](https://github.com/Cratis/Arc/issues/3207)). Per-production route overrides retain `STAGE-ESM-036`; Screenplay already refuses reaction production routes during binding.
+Stage's pinned Arc release supplies `EventsAndCommandsResultHandler`, which can return events and commands from one handler. Stage still refuses that shape with `STAGE-ESM-037`: the handler appends the events before it runs the commands, so a refused command fails the partition, and Chronicle's redelivery appends the same events again. Screenplay's reference and the Stage Host settle a reaction all or nothing. Splitting the effects into two reactors would avoid the duplicates but still commit the events when the command is refused. Stage lifts 037 once reactor appends are idempotent across redelivery ([Chronicle#4809](https://github.com/Cratis/Chronicle/issues/4809), [Arc#3207](https://github.com/Cratis/Arc/issues/3207)). Per-production route overrides retain `STAGE-ESM-036`; Screenplay already refuses reaction production routes during binding.
 
 Scoped rendering may reference an invoked command or triggering event in an unselected slice, as it does for cross-slice event references. Include those dependencies when compiling the application.
 

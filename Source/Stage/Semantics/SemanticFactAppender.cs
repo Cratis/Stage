@@ -30,7 +30,7 @@ public interface IAppendSemanticFacts
 }
 
 /// <summary>
-/// Appends semantic facts only if the event-log tail still matches the tail captured before evaluation.
+/// Appends semantic facts only if the event-log tail still matches the durable pre-batch world.
 /// The built-in Chronicle appender supports this capability; legacy custom appenders need not implement it.
 /// </summary>
 public interface IAppendSemanticFactsAtTail
@@ -101,7 +101,7 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
 
     async Task AppendCore(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ChronicleSequences.EventSourceConcurrencyScope? scope)
     {
-        if (facts.Count == 0)
+        if (facts.Count == 0 && scope is null)
         {
             return;
         }

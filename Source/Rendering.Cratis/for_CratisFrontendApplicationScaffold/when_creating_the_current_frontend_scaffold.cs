@@ -38,6 +38,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_end_every_input_with_exactly_one_line_feed_byte() => _first.All(EndsWithExactlyOneLineFeed).ShouldBeTrue();
     [Fact] void should_reject_a_missing_request_with_the_project_exception() => Catch.Exception(() => new CratisFrontendApplicationScaffold().Create(null!)).ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
     [Fact] void should_pin_every_dependency_exactly() => DependencyVersions().ShouldEqual(ExpectedDependencyVersions());
+    [Fact] void should_keep_emitted_npm_arc_on_the_nuget_arc_release() => PackageJson().RootElement.GetProperty("dependencies").GetProperty("@cratis/arc").GetString().ShouldEqual(CratisBackendApplicationScaffoldProfile.Current.CratisPackageVersion);
 
     /// <summary>
     /// The shell declares what a composed screen imports.
@@ -108,17 +109,17 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         '|',
         new[]
         {
-            "@cratis/arc=22.58.2",
-            "@cratis/arc.react=22.58.2",
-            "@cratis/arc.vite=22.58.2",
-            "@cratis/components=4.26.2",
-            "@cratis/fundamentals=7.22.8",
-            "@cratis/scene.blueprint.default=4.68.2",
-            "@cratis/scene.components=4.68.2",
-            "@cratis/scene.engine=4.68.2",
-            "@cratis/scene.model=4.68.2",
-            "@cratis/scene.primereact=4.68.2",
-            "@cratis/scene.react=4.68.2",
+            $"@cratis/arc={CratisFrontendPackageSet.Current.ArcPackageVersion}",
+            $"@cratis/arc.react={CratisFrontendPackageSet.Current.ArcReactPackageVersion}",
+            $"@cratis/arc.vite={CratisFrontendPackageSet.Current.ArcVitePackageVersion}",
+            $"@cratis/components={CratisFrontendPackageSet.Current.ComponentsPackageVersion}",
+            $"@cratis/fundamentals={CratisFrontendPackageSet.Current.FundamentalsPackageVersion}",
+            $"@cratis/scene.blueprint.default={CratisFrontendPackageSet.Current.ScenePackageVersion}",
+            $"@cratis/scene.components={CratisFrontendPackageSet.Current.ScenePackageVersion}",
+            $"@cratis/scene.engine={CratisFrontendPackageSet.Current.ScenePackageVersion}",
+            $"@cratis/scene.model={CratisFrontendPackageSet.Current.ScenePackageVersion}",
+            $"@cratis/scene.primereact={CratisFrontendPackageSet.Current.ScenePackageVersion}",
+            $"@cratis/scene.react={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             "@primereact/core=11.2.0",
             "@primereact/headless=11.2.0",
             "@primereact/hooks=11.2.0",

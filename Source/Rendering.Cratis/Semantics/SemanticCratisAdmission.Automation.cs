@@ -50,7 +50,7 @@ internal static partial class SemanticCratisAdmission
         {
             diagnostics.Add(Error("STAGE-ESM-012", $"Reaction '{reaction.Name}' has event handler names that collide in generated C#.", reaction.Id));
         }
-        foreach (var trigger in reaction.Triggers.Where(trigger => !ReactionTriggerIsRenderable(context, trigger)))
+        foreach (var trigger in reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && !ReactionTriggerIsRenderable(context, trigger)))
         {
             diagnostics.Add(Error("STAGE-ESM-039", $"Reaction '{reaction.Name}' cannot be rendered without changing its condition, destination or mappings.", reaction.Id));
         }
@@ -61,16 +61,18 @@ internal static partial class SemanticCratisAdmission
         ReactionHandlerMatchesClass(context, reaction) || ReactionHandlerNamesCollide(context, reaction);
 
     static bool ReactionHandlerMatchesClass(SemanticApplicationContext context, SemanticReaction reaction) =>
-        reaction.Triggers.GroupBy(trigger => trigger.Source).Any(group =>
+        reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && context.Events.ContainsKey(trigger.Source))
+            .GroupBy(trigger => trigger.Source).Any(group =>
             GeneratedPascalCase.From(context.Events[group.Key].Name) == GeneratedPascalCase.From(reaction.Name));
 
     static bool ReactionHandlerNamesCollide(SemanticApplicationContext context, SemanticReaction reaction) =>
-        reaction.Triggers.Select(trigger => trigger.Source).Distinct().Select(id => GeneratedPascalCase.From(context.Events[id].Name))
+        reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && context.Events.ContainsKey(trigger.Source))
+            .Select(trigger => trigger.Source).Distinct().Select(id => GeneratedPascalCase.From(context.Events[id].Name))
             .GroupBy(name => name, StringComparer.Ordinal).Any(group => group.Count() > 1);
 
     static bool ReactionTriggerIsRenderable(SemanticApplicationContext context, SemanticReactionTrigger trigger)
     {
-        var source = context.Events[trigger.Source];
+        if (!context.Events.TryGetValue(trigger.Source, out var source)) return false;
 
         return ReactionConditionIsRenderable(context, source, trigger.Where) &&
             trigger.Produces.All(produced => CanRenderProduction(context, source, produced)) &&

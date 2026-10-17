@@ -109,7 +109,7 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
     [Fact] void should_emit_the_clean_command() => _plans.TrueForAll(plan => plan.Clean.Artifacts.Any(artifact => artifact.RelativePath == "Projects/Registration/RegisterProject/RegisterProject.cs")).ShouldBeTrue();
     [Fact] void should_not_emit_the_unselected_sibling() => _plans.SelectMany(plan => plan.Clean.Artifacts).Any(artifact => artifact.RelativePath.StartsWith("Projects/Registration/Unsupported/", StringComparison.Ordinal)).ShouldBeFalse();
     [Fact] void should_refuse_the_offending_slice_in_every_model() => _plans.TrueForAll(plan => !plan.Refused.Success).ShouldBeTrue();
-    [Fact] void should_report_only_the_expected_refusal() => _plans.TrueForAll(plan => plan.Refused.Diagnostics.Length > 0 && plan.Refused.Diagnostics.All(diagnostic => diagnostic.Code == plan.Code)).ShouldBeTrue();
-    [Fact] void should_name_the_offending_declaration() => _plans.TrueForAll(plan => plan.Refused.Diagnostics.Any(diagnostic => diagnostic.Artifact == plan.Artifact)).ShouldBeTrue();
+    [Fact] void should_report_the_expected_refusal() => _plans.TrueForAll(plan => plan.Refused.Diagnostics.Any(diagnostic => diagnostic.Code == plan.Code && diagnostic.Artifact == plan.Artifact)).ShouldBeTrue();
+    [Fact] void should_also_collect_absence_specification_admission() => _plans.Single(plan => plan.Code == "STAGE-ESM-027").Refused.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == _plans.Single(plan => plan.Code == "STAGE-ESM-027").Artifact);
     [Fact] void should_emit_no_partial_artifacts_for_the_offending_slice() => _plans.SelectMany(plan => plan.Refused.Artifacts).ShouldBeEmpty();
 }

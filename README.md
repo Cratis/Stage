@@ -101,12 +101,13 @@ Application scope adds exactly eight deterministic backend scaffold artifacts: `
 `Directory.Build.targets`, `Directory.Packages.props`, the project and solution files, `Program.cs`,
 `appsettings.json`, and `docker-compose.yml`. The local MSBuild and central-package boundaries isolate the generated
 application from parent repositories. `Program.cs` remains active in Debug beside inline generated specifications;
-the project locally suppresses only their expected CS7022 entry-point warning. The profile pins .NET 10,
-Cratis/Arc 22.112.0 (Fundamentals 7.25.0), the verified specification dependencies, an explicit Cratis.Chronicle 19.71.0 client
-reference, and `cratis/chronicle:19.71.0-development`. The explicit client reference keeps the client matched to the
-image instead of relying on the metapackage's transitive Chronicle 19.39.1. Rendered applications disable reverse
-code-to-model extraction because their source `.play` model is authoritative. The frontend scaffold
-uses the same Arc era with Components 4.14.0, Scene 4.2.0, and Fundamentals 7.19.8. It emits no repository
+the project locally suppresses only their expected CS7022 entry-point warning. The profile pins .NET 10 and the
+Cratis/Arc, Cratis.Chronicle and test package versions Stage itself builds with (`Directory.Packages.props`), plus the
+matching `cratis/chronicle:<version>-development` image. The explicit client reference keeps the client matched to the
+image instead of relying on the metapackage's transitive Chronicle dependency. Rendered applications disable reverse
+code-to-model extraction because their source `.play` model is authoritative. The frontend scaffold pins the
+`@cratis/*` packages the Stage frontend builds with (`Source/Frontend/package.json`), with Arc on the same version as
+the backend. It emits no repository
 marker, floating version, random identifier, or destination-specific value.
 
 `CratisRendering.PlanScaffold(...)` produces a buildable first-run application without a model render.

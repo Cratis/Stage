@@ -4,6 +4,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
 using Xunit;
 
@@ -23,13 +24,13 @@ public class when_freezing_the_emitted_frontend_bytes : a_current_frontend_scaff
         foreach (var input in _first.Where(input => !IsRuntime(PathOf(input))))
         {
             hash.AppendData(Encoding.UTF8.GetBytes(input.Name));
-            hash.AppendData(input.Bytes.AsSpan());
+            hash.AppendData(Encoding.UTF8.GetBytes(FrozenScaffoldPins.Normalize(PathOf(input), Text(input))));
         }
 
         _digest = Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    [Fact] void should_freeze_the_complete_frontend_shell_with_the_arc_22582_and_scene_4682_contract() => _digest.ShouldEqual("9e6c98226d88f6d3e61b27bf1462c80dc53bcfa8c04822b54c8335a5947e3832");
+    [Fact] void should_freeze_the_complete_frontend_shell_independently_of_package_releases() => _digest.ShouldEqual("f11ae4b0d08eb86bc790ac5af653bad9f5276aa0b65c9c51f96c6e57e3f5f77d");
 
     [Fact] void should_preserve_the_previous_entry_point_bytes_except_for_the_optional_stage_import() =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(PreviousFrontendEntryPoint.Restore(".frontend/main.tsx", Content(".frontend/main.tsx"))))).ShouldEqual("f1be33ab4c4b17540e101e671276f76ac33b0b9f79f1cd536f2f1cf5eb235d65");

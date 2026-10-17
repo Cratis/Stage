@@ -11,10 +11,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cratis/arc": "22.58.2",
-    "@cratis/arc.react": "22.58.2",
-    "@cratis/components": "4.26.2",
-    "@cratis/fundamentals": "7.22.8",
+    "@cratis/arc": "22.112.1",
+    "@cratis/arc.react": "22.112.1",
+    "@cratis/components": "4.29.0",
+    "@cratis/fundamentals": "7.25.1",
     "@cratis/scene.blueprint.default": "4.68.2",
     "@cratis/scene.components": "4.68.2",
     "@cratis/scene.engine": "4.68.2",

@@ -7,6 +7,7 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using FluentValidation;
 using Xunit;
 
@@ -36,7 +37,7 @@ public class when_planning_the_register_project_application : a_register_project
     [Fact] void should_be_publishable() => _first.Success.ShouldBeTrue();
     [Fact] void should_include_the_resolved_scaffold() => _first.Artifacts.Any(_ => _.RelativePath == "Projects.csproj").ShouldBeTrue();
     [Fact] void should_include_the_resolved_frontend_shell() => _first.Artifacts.Any(_ => _.RelativePath == "package.json").ShouldBeTrue();
-    [Fact] void should_pin_the_frontend_packages_the_shell_mounts() => Content("package.json").ShouldContain("\"@cratis/arc\": \"22.58.2\"");
+    [Fact] void should_pin_the_frontend_packages_the_shell_mounts() => Content("package.json").ShouldContain($"\"@cratis/arc\": \"{CratisBackendApplicationScaffoldProfile.Current.FrontendPackageSet.ArcPackageVersion}\"");
     [Fact] void should_mount_the_arc_provider_in_the_planned_shell() => Content(".frontend/main.tsx").ShouldContain("<Arc>");
     [Fact] void should_serve_the_bundled_frontend_from_the_planned_host() => Content("Program.cs").ShouldContain("MapFallbackToFile(\"/index.html\")");
     [Fact] void should_render_the_identifier_concept() => Content("Common/ProjectId.cs").ShouldContain("EventSourceId<global::System.Guid>");

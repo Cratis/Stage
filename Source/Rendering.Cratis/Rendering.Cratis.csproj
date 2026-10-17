@@ -128,4 +128,27 @@
     <ItemGroup>
         <ProjectReference Include="../Contracts/Contracts.csproj" />
     </ItemGroup>
+    <!-- The emitted NuGet pins come from the same evaluated CPM items as Stage's build, in both configurations. -->
+    <Target Name="GenerateScaffoldPackageVersions" BeforeTargets="CoreCompile">
+        <ItemGroup>
+            <_ScaffoldPackage Include="Cratis" Constant="Cratis" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Arc.MongoDB" Constant="ArcMongoDB" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.MongoDB')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Arc.Chronicle.Testing" Constant="ArcChronicleTesting" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.Chronicle.Testing')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Specifications" Constant="Specifications" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Specifications.XUnit" Constant="SpecificationsXUnit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications.XUnit')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Microsoft.NET.Test.Sdk" Constant="TestSdk" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.NET.Test.Sdk')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="NSubstitute" Constant="NSubstitute" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'NSubstitute')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="xunit" Constant="Xunit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="xunit.runner.visualstudio" Constant="XunitRunner" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit.runner.visualstudio')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
+        </ItemGroup>
+        <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"
+               Text="Required scaffold PackageVersion '%(_ScaffoldPackage.Identity)' is missing from Directory.Packages.props." />
+        <WriteLinesToFile File="$(IntermediateOutputPath)ScaffoldPackageVersions.g.cs" Overwrite="true" WriteOnlyWhenDifferent="true"
+                          Lines="// &lt;auto-generated /&gt;;namespace Cratis.Stage.Rendering.Cratis.Scaffolding%3B;internal static class ScaffoldPackageVersions {;@(_ScaffoldPackage->'internal const string %(Constant) = &quot;%(PinVersion)&quot;%3B');}" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)ScaffoldPackageVersions.g.cs" />
+            <FileWrites Include="$(IntermediateOutputPath)ScaffoldPackageVersions.g.cs" />
+        </ItemGroup>
+    </Target>
 </Project>

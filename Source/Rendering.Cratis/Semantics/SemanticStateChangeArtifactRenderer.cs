@@ -269,6 +269,7 @@ internal static class SemanticStateChangeArtifactRenderer
             .Where(id => !command.Properties.Any(property => property.Id == id && property.IsGenerated) &&
                 !command.Validations.Any(rule => rule.Property == id && rule.Kind == SemanticValidationRuleKind.NotEmpty))
             .ToArray();
+
         // A protected command evaluates its requirements inside Handle, with the decision reads, not in the parameterless validator.
         var requirements = command.Reads.IsDefaultOrEmpty ? command.Requirements : [];
         if (command.Validations.IsEmpty && requirements.IsEmpty && constrained.Length == 0)

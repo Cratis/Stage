@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// Renders the protected decision reads of a command as Arc read-protected Handle parameters and absence guards.
 /// </summary>
 /// <remarks>
-/// Arc resolves each nullable read-model parameter through <c>[LookUpBy]</c> and guards the first event it reads.
+/// Arc resolves each nullable read-model parameter through its LookUpBy attribute and guards the first event it reads.
 /// Absence is rendered explicitly, because Arc's own refusal of a missing read model is not a validation failure
 /// and does not carry the reference message.
 /// </remarks>

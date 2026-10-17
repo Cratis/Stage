@@ -22,3 +22,5 @@
   href: protected-reads-rendering.md
 - name: Plan artifacts from Screenplay sources
   href: plan-from-sources.md
+- name: Canonical corpus conformance
+  href: corpus-conformance.md

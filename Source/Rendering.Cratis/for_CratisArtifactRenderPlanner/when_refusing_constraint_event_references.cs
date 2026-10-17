@@ -45,7 +45,7 @@ public class when_refusing_constraint_event_references : Specification
         // The ESM contract admits cross-slice constraints, including foreign releasing events that the source binder restricts.
         var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application);
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Slice, selected.Id), new("Contracts", "Contracts"));
-        plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly([code]);
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == code && diagnostic.Artifact == (reference == "target" ? target.Id : foreign.Id));
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
     }

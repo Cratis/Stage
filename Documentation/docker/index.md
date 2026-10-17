@@ -167,7 +167,7 @@ Clock, application, startup and shutdown triggers and opaque reaction bodies sti
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.204.0 and admits exact ESM v1–v21 and v23–v27 version pairs; unaudited
+The semantic engine uses Screenplay 4.206.0 and admits exact ESM v1–v21 and v23–v27 version pairs; unaudited
 language/semantic versions, including v22, refuse the whole model with `STAGE-ESM-016` before registration or execution.
 At v27 the semantic engine runs read models with several `key` parts: instances that differ in one part stay apart,
 `parts` projection keys create and remove only the instance whose parts all match, list queries filter on any part,
@@ -192,10 +192,18 @@ required view must exist at its declared key. Absence rejects validation with `C
 conditions; produced-event mappings can read the stored view values. `/validate` also reports required absence.
 Protected commands with non-Error requirement severities remain refused with `STAGE-ESM-045` until Screenplay defines their severity semantics.
 This includes reaction-invoked commands: model admission and the runtime refuse before evaluating reads or requirements or appending facts.
-As an interim safety boundary, any outside append faults the session before committing an accepted command,
-including an unrelated append. This is stricter than the reference's dependency-scoped conflicts; Stage cannot
-commit a stale protected decision. Reference conflict semantics await the public decide/commit API in
-[Screenplay #833](https://github.com/Cratis/Screenplay/issues/833).
+The Host decides against the session world, reads outside facts through the current log tail, then commits
+against that extended world. Only a later fact matching a protected read's key and event contracts conflicts;
+the command returns a concurrency violation without faulting the session. Unrelated facts remain in the
+commit-time world, where constraints and projections run. Outside facts do not trigger reaction settlement again.
+The complete root and reaction batch is written atomically against the durable pre-batch tail, including a
+guarded empty write for a successful command with no facts. If that guard definitively rejects the write,
+the Host can retry the same decision, with its generated values unchanged, only if settlement invoked no
+commands. An invoked command prevents automatic retry; the operation returns a concurrency violation.
+Repeated tail movement also returns a conflict after eight attempts. An unknown write outcome is never
+retried or reported as success: the session faults until it can be reconstructed. Unreadable or unsupported
+outside history also faults the session. Legacy custom appenders without fact-reading or guarded-write
+capabilities retain their conservative safety checks.
 The Cratis renderer renders protected reads as Arc read protection (see [Protected reads rendering](../reference/protected-reads-rendering.md)),
 refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The legacy engines still refuse the preamble with the same code; without it,
 command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.

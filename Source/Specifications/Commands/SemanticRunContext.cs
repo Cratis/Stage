@@ -28,6 +28,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
 {
     readonly List<SemanticSpecificationEvent> _facts = parent?._facts ?? [];
     readonly List<SemanticValue> _destinations = parent?._destinations ?? [];
+    readonly List<DateTimeOffset?> _occurrences = parent?._occurrences ?? [];
     SemanticFixtureRoute? _commandRoute;
 
     internal SemanticRunReads Reads { get; } = new(runtimeTypes);
@@ -37,7 +38,8 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal SemanticExecutionPlan Plan => plan;
     internal IReadOnlyList<SemanticSpecificationEvent> Facts => _facts;
     internal IReadOnlyList<SemanticValue> Destinations => _destinations;
-    internal DateTimeOffset Occurred => options.Clock.GetUtcNow();
+    internal IReadOnlyList<DateTimeOffset?> Occurrences => _occurrences;
+    internal DateTimeOffset Occurred => AuthoredOccurrence ?? options.Clock.GetUtcNow();
     internal DateTimeOffset? AuthoredOccurrence => OccurrenceOf(specification);
     internal string Tenant => options.Tenant;
     internal SemanticExecutionResponse? Response { get; private set; }
@@ -95,7 +97,10 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
 
     internal Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken) => Append(fact, fact.EventSource?.Value ?? throw new UnsupportedSemanticMapping(), cancellationToken);
 
-    internal async Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken)
+    internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken) =>
+        Append(fact, destination, AuthoredOccurrence, cancellationToken);
+
+    internal async Task Append(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var instance = runtimeTypes.Materialize(fact);
@@ -107,7 +112,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
             eventStreamType: route is null ? EventStreamType.All : new EventStreamType(route.StreamKind),
             eventStreamId: route?.StreamId is null ? EventStreamId.Default : new EventStreamId(route.StreamId),
             eventSourceType: route is null ? EventSourceType.Default : new EventSourceType(route.SourceKind),
-            occurred: Occurred);
+            occurred: occurred ?? Occurred);
         if (!result.IsSuccess)
         {
             throw new SemanticAppendFailed($"The in-memory append for '{fact.EventContract}' failed: {string.Join(", ", result.Errors)}");
@@ -115,6 +120,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
 
         _facts.Add(fact);
         _destinations.Add(destination);
+        _occurrences.Add(occurred);
     }
 
     internal bool TryResolveRoute(out StreamIdFormatFailure failure)

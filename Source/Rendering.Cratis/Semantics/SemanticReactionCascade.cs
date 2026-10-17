@@ -10,7 +10,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 /// <remarks>
 /// A generated command scenario does not settle reactions. The cascade is preserved by running the triggering command in its own
-/// scenario, and by appending the event it produces to the reactor scenario that executes the invoked command.
+/// scenario, and by appending the event it produces to the reactor scenario that executes the invoked command. A rejected cascade
+/// drops the trigger half, so it is lowered only when the triggering command cannot reject on its own; otherwise it stays refused.
 /// </remarks>
 /// <param name="Reaction">The append specification that runs the reactor and the invoked command.</param>
 /// <param name="Trigger">The triggering command's own specification, or null when the cascade is refused and the original lists no trigger facts.</param>
@@ -47,6 +48,9 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
         var accepted = specification.ThenErrors.IsEmpty;
         if (accepted && specification.ThenEvents.Length < taken.Length) return false;
 
+        // A rejected cascade drops the trigger half, so it is only faithful when the triggering command cannot itself be the one that rejects.
+        if (!accepted && CanReject(context, command)) return false;
+
         var reaction = specification with
         {
             When = null,
@@ -61,6 +65,20 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
 
         return true;
     }
+
+    static bool CanReject(SemanticApplicationContext context, SemanticCommand command) =>
+        !command.Validations.IsDefaultOrEmpty || !command.Requirements.IsDefaultOrEmpty || !command.Reads.IsDefaultOrEmpty ||
+        command.Route is not null || command.Authorization is not null ||
+        command.Produces.Any(produced => produced.Route is not null || SemanticSpecificationAdmission.IsReactionConstraintTarget(context, produced.EventContract)) ||
+        command.Properties.Any(property => CarriesValidation(context, property.Type, []));
+
+    static bool CarriesValidation(SemanticApplicationContext context, SemanticTypeReference type, HashSet<SemanticId> visited) => type.Kind switch
+    {
+        SemanticTypeReferenceKind.Concept => !context.Concepts[type.Target].Validations.IsDefaultOrEmpty,
+        SemanticTypeReferenceKind.CompositeType => visited.Add(type.Target) &&
+            context.Types[type.Target].Properties.Any(property => CarriesValidation(context, property.Type, visited)),
+        _ => false
+    };
 
     static SemanticSpecificationAppend? Append(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command, SemanticProducedEvent produced)
     {

@@ -64,9 +64,13 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
 
     static SemanticSpecificationAppend? Append(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command, SemanticProducedEvent produced)
     {
-        if (produced.Route is not null || command.Route is not null || SemanticDestinations.Of(command, produced) is not SemanticResolvedExpression) return null;
+        if (produced.Route is not null || command.Route is not null || SemanticDestinations.Of(command, produced) is not SemanticResolvedExpression destination) return null;
 
         var inputs = specification.When!.Values.Concat(specification.When.GeneratedValues).ToArray();
+
+        // An unpinned generated destination has no value in the specification, so the cascade cannot be split.
+        var stated = command.Produces.Length == 1 && SemanticDestinations.Explicit(specification).Any();
+        if (!stated && !inputs.Any(input => input.TargetProperty == destination.Target)) return null;
         var values = new List<SemanticPropertyValue>();
         foreach (var property in context.Events[produced.EventContract].Properties)
         {

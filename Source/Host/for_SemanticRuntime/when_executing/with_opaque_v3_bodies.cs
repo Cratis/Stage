@@ -17,6 +17,8 @@ public class with_opaque_v3_bodies : a_semantic_runtime
     SemanticExecutionResult _code = null!;
     SemanticExecutionResult _predicate = null!;
     SemanticExecutionResult _concept = null!;
+    SemanticExecutionResult _conceptQuery = null!;
+    SemanticExecutionResult _unrelatedQuery = null!;
     SemanticExecutionResult _reducer = null!;
     SemanticExecutionResult _reducerQuery = null!;
 
@@ -41,6 +43,14 @@ public class with_opaque_v3_bodies : a_semantic_runtime
                 }]
             } : value)]
         });
+        _conceptQuery = await Execute(slice => slice, application => application with
+        {
+            Concepts = [.. application.Concepts.Select(value => value.Id == concept.Id ? value with
+            {
+                Validations = [new(default, SemanticValidationRuleKind.RulePredicate, null, null) { RequirementId = "query-concept-body" }]
+            } : value)]
+        }, query: true);
+        _unrelatedQuery = await Execute(slice => slice with { Commands = [slice.Commands.Single() with { CodeValidations = [new("unused-command-body")] }] }, query: true);
         var readModel = _runtime.Plan.ReadModels.Values.First();
         SemanticSlice WithReducer(SemanticSlice slice) => slice with
         {
@@ -55,6 +65,14 @@ public class with_opaque_v3_bodies : a_semantic_runtime
     [Fact] void should_report_concept_code_validation_as_unsupported() => (_concept is SemanticUnsupported { Capability: SemanticExecutionCapability.Command }).ShouldBeTrue();
     [Fact] void should_report_reducer_as_unsupported() => (_reducer is SemanticUnsupported { Capability: SemanticExecutionCapability.Projection }).ShouldBeTrue();
     [Fact] void should_report_reducer_queries_as_unsupported() => (_reducerQuery is SemanticUnsupported { Capability: SemanticExecutionCapability.Projection }).ShouldBeTrue();
+    [Fact] void should_identify_the_command_code_body() => ((SemanticUnsupported)_code).Details.ShouldContain("STAGE-IMPL-003: Command 'RegisterProject' validation 'code-body'");
+    [Fact] void should_identify_the_command_predicate_body() => ((SemanticUnsupported)_predicate).Details.ShouldContain("predicate-body");
+    [Fact] void should_identify_the_concept_body() => ((SemanticUnsupported)_concept).Details.ShouldContain("STAGE-IMPL-003: Concept '");
+    [Fact] void should_identify_the_reducer_body() => ((SemanticUnsupported)_reducer).Details.ShouldContain("STAGE-IMPL-003: Reducer 'ProjectReducer' transition 'reducer-body'");
+    [Fact] void should_identify_the_queried_reducer_body() => ((SemanticUnsupported)_reducerQuery).Details.ShouldContain("STAGE-IMPL-003: Reducer 'ProjectReducer' transition 'reducer-body'");
+    [Fact] void should_identify_the_query_parameter_concept_body() => ((SemanticUnsupported)_conceptQuery).Details.ShouldContain("query-concept-body");
+    [Fact] void should_report_the_query_concept_body_code() => ((SemanticUnsupported)_conceptQuery).Details.ShouldContain("STAGE-IMPL-003: Concept '");
+    [Fact] void should_allow_a_query_that_does_not_reach_the_command_body() => _unrelatedQuery.ShouldBeOfExactType<SemanticAccepted>();
 
     [Fact]
     async Task should_report_a_reached_opaque_command_policy_as_unsupported()
@@ -105,7 +123,7 @@ public class with_opaque_v3_bodies : a_semantic_runtime
         using var runtime = SemanticRuntimeHosting.Create(plan, (IAppendSemanticFacts)_appender) as IDisposable;
         var principal = authenticated ? new ClaimsPrincipal(new ClaimsIdentity([], "fixture")) : new ClaimsPrincipal();
         return query
-            ? await ((ISemanticRuntime)runtime!).Query(plan.Queries.Values.Single(), SemanticValue.Text("id"), principal)
+            ? await ((ISemanticRuntime)runtime!).Query(plan.Queries.Values.Single(), SemanticValue.Text("00000000-0000-0000-0000-000000000001"), principal)
             : await ((ISemanticRuntime)runtime!).Execute(plan.Commands.Values.Single(), new Dictionary<string, JsonElement>(), principal, new(DateTimeOffset.UtcNow, "subject", "name", "user"), true);
     }
 }

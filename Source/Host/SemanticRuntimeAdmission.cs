@@ -46,11 +46,12 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var command in plan.Commands.Values)
         {
-            if (SemanticRunAdmission.RuntimeCommandFeatures(command, plan.Model.Application.Concepts).FirstOrDefault() is { } feature)
+            if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command).FirstOrDefault() is { } feature)
             {
                 var entry = Refused(feature);
                 entries.Add(entry);
-                blocking.Add(entry);
+                // An implementation body refuses only this command, not the live model.
+                if (!feature.Details.StartsWith($"{SemanticImplementationReach.Code}:", StringComparison.Ordinal)) blocking.Add(entry);
                 continue;
             }
 
@@ -72,7 +73,8 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var query in plan.Queries.Values)
         {
-            entries.Add(new(query.Id.ToString(), "query", "supported", null, null));
+            var refusal = SemanticImplementationReach.ForQuery(plan, query);
+            entries.Add(new(query.Id.ToString(), "query", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
         }
 
         foreach (var specification in plan.Specifications.Values)

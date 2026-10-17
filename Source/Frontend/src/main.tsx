@@ -14,6 +14,9 @@ import { registerSharedModules } from './sharedModules';
 import { stageTheme } from './stageTheme';
 import { Browser } from './read-models/Browser';
 import { isBrowserPath } from './read-models/path';
+import { httpStageSource, StageSourceProvider } from './stageSource';
+import { registerStageCommands } from './host/commandRegistration';
+import type { StageRoutes } from './stageRoutes';
 
 // PrimeReact 11 verifies a license key at runtime and otherwise renders a permanent "Invalid PrimeUI
 // License" banner over the application. The key itself is the PRIMEUI_LICENSE GitHub secret, the same one
@@ -40,6 +43,21 @@ async function start() {
         return;
     }
 
+    const abort = new AbortController();
+    let routes: StageRoutes | undefined;
+    try {
+        if (!isBrowserPath(window.location.pathname)) {
+            routes = await httpStageSource.routes(abort.signal);
+            if (!routes) throw new Error('Stage routes could not be loaded.');
+            registerStageCommands(routes);
+        }
+    } catch (reason) {
+        root.setAttribute('role', 'alert');
+        root.textContent = reason instanceof Error ? reason.message : String(reason);
+        return;
+    }
+    const source = { ...httpStageSource, routes: async () => routes };
+
     createRoot(root).render(
         <StrictMode>
             <PrimeReactProvider license={primeUiLicense} theme={stageTheme}>
@@ -53,7 +71,9 @@ async function start() {
                           Cratis.Components renders with, live exactly as in a generated application. Approved custom
                           packages add theirs beside it; the Stage's own never lose a name to them.
                         */}
-                        <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />
+                        <StageSourceProvider source={source}>
+                            <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />
+                        </StageSourceProvider>
                     </CratisComponentsProvider>
                 )}
             </PrimeReactProvider>

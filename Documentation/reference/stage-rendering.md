@@ -453,6 +453,20 @@ refuses before it writes or generates anything. The CLI and Studio call it, so a
 | `STAGE-PROFILE-005` | names a root template that cannot be the shell (missing, blueprint not installed, version pin unsatisfied, no content outlet) |
 | `STAGE-PROFILE-006` | references a blueprint, version or template the approved blueprint does not provide |
 
+## Command execution
+
+Forms, guarded actions, interactions and slice task dialogs execute registered Arc `Command` proxies. In rendered
+applications, `src/bindings.ts` registers the generated proxies. Commands honor the enclosing `ArcContext`'s
+microservice, API base path, origin and `httpHeadersCallback`, including identity headers. Only properties declared
+by the proxy are submitted; responses retain the proxy's response type. Validation failures, authorization denials
+and exceptions remain failed outcomes and do not refresh the screen or expose a success response.
+
+The live Stage registers equivalent route-backed proxies before its first render. Both live engines expose
+`commandSchemas` alongside `commands` and `queries` at `/stage/routes`: a map from command name to its JSON schema
+string, including commands used only by interactions or guarded alternatives. Missing schema metadata stops
+startup rather than allowing a proxy to discard command values. This metadata does not add schemas to the scene
+document of an application without toolbar slice references. Query reads still use the Stage query transport.
+
 ## When the model declares no screens
 
 A model with no `screen` still renders. The Stage synthesizes one screen per slice that carries a command or a

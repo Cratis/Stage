@@ -7,6 +7,7 @@ import { PrimeReactProvider } from '@primereact/core/config';
 import { stageTheme } from './stageTheme';
 import type { EffectiveNavItem } from '@cratis/scene.engine';
 import { App } from './App';
+import { registerTestCommand, commandResult } from './testing/commands';
 
 const element = (id: string, componentName: string, properties: Record<string, unknown> = {}, slots: Record<string, unknown[]> = {}) =>
     ({ id, name: id, componentName, properties, slots });
@@ -75,14 +76,15 @@ function respond(payload: unknown, ok = true, status = 200): Promise<Response> {
 
 let posted: { url: string; body: unknown }[];
 
-function stubStage(sceneDocument: unknown = scene, command: (body: unknown) => Promise<Response> = () => respond({ isSuccess: true, isAuthorized: true, isValid: true, hasExceptions: false, validationResults: [], exceptionMessages: [], exceptionStackTrace: '' })) {
+function stubStage(sceneDocument: unknown = scene, command: (body: unknown) => Promise<Response> = () => respond(commandResult())) {
+    registerTestCommand('PlaceOrder', '/api/sales/place-order', { customer: { type: 'string' }, quantity: { type: 'integer' } });
     posted = [];
     vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
         if (url === 'stage/scene') return respond(sceneDocument);
         if (url === 'stage/routes') return respond({ commands: { PlaceOrder: '/api/sales/place-order' }, queries: {} });
         if (url === 'stage/locales') return respond([]);
-        if (url === '/api/sales/place-order' && init?.method === 'POST') {
+        if (url === 'http://localhost:3000/api/sales/place-order' && init?.method === 'POST') {
             const body = JSON.parse(String(init.body));
             posted.push({ url, body });
             return command(body);
@@ -174,14 +176,14 @@ describe('the running Stage with navigation regions', () => {
             fireEvent.change(within(dialog).getByLabelText('Quantity', { exact: false }), { target: { value: '4' } });
             await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit')!); });
 
-            await waitFor(() => expect(posted).toEqual([{ url: '/api/sales/place-order', body: { customer: 'Fjordline AS', quantity: 4 } }]));
+            await waitFor(() => expect(posted).toEqual([{ url: 'http://localhost:3000/api/sales/place-order', body: { customer: 'Fjordline AS', quantity: 4 } }]));
             await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
         });
     });
 
     describe('and the command is rejected by the application', () => {
         it('shows the validation message beside the field and keeps the dialog open', async () => {
-            stubStage(scene, () => respond({ isSuccess: false, isAuthorized: true, isValid: false, hasExceptions: false, validationResults: [{ severity: 3, message: 'Quantity must be positive', members: ['quantity'], state: null }], exceptionMessages: [], exceptionStackTrace: '' }));
+            stubStage(scene, () => respond(commandResult({ isSuccess: false, isValid: false, validationResults: [{ severity: 3, message: 'Quantity must be positive', members: ['quantity'], state: null }] })));
             renderStage();
             fireEvent.click(within(await topbar()).getByText('Sales'));
             fireEvent.click(await screen.findByRole('button', { name: 'New order' }));

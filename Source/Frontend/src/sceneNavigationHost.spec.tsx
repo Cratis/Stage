@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
 import { stageTheme } from './stageTheme';
 import { App } from './App';
+import { registerTestCommand } from './testing/commands';
 
 const element = (id: string, componentName: string, properties: Record<string, unknown> = {}, slots: Record<string, unknown[]> = {}) =>
     ({ id, name: id, componentName, properties, slots });
@@ -69,6 +70,7 @@ const scene = {
 };
 
 function stubScene() {
+    registerTestCommand('RegisterInvoice', '/api/invoices/register');
     vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
         const url = String(input);
         if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(scene) } as Response);

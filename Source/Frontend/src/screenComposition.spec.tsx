@@ -7,6 +7,7 @@ import { PrimeReactProvider } from '@primereact/core/config';
 import { stageTheme } from './stageTheme';
 import { App } from './App';
 import { element } from './testElements';
+import { registerTestCommand } from './testing/commands';
 
 // The two-item master/detail corpus the screens conformance harness drives: the same element ids, the same
 // `data ... by workItemId` declarations, and the routes the Stage registers for it. Each spec below reproduces
@@ -148,6 +149,9 @@ function respond(payload: unknown): Promise<Response> {
 }
 
 function startBackend(): Backend {
+    registerTestCommand('CreateWorkItem', commandRoutes.CreateWorkItem, { workItemId: uuid, title: { type: 'string' } });
+    registerTestCommand('RenameWorkItem', commandRoutes.RenameWorkItem, { workItemId: uuid, title: { type: 'string' } });
+    registerTestCommand('AddComment', commandRoutes.AddComment, { commentId: uuid, workItemId: uuid, text: { type: 'string' } });
     const delays = new Set<string>();
     const backend: Backend = {
         workItems: [{ ...workItemA }, { ...workItemB }],

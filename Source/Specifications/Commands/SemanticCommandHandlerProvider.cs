@@ -36,6 +36,11 @@ internal sealed class SemanticCommandHandlerProvider(IEnumerable<SemanticRunCont
         public async ValueTask<object?> Handle(CommandContext commandContext)
         {
             commandContext.CancellationToken.ThrowIfCancellationRequested();
+            if (context.Command.Handler is not null)
+            {
+                context.HandlerBodyReached = true;
+                return null;
+            }
             foreach (var produced in context.Command.Produces.Where(context.Holds))
             {
                 var (fact, destination) = context.Produce(produced);

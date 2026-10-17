@@ -105,7 +105,12 @@ public enum StageExecutionCapability
     /// <summary>
     /// Blocked semantic plan.
     /// </summary>
-    PlanIssue
+    PlanIssue,
+
+    /// <summary>
+    /// An implementation body that no Stage surface executes.
+    /// </summary>
+    ImplementationBody
 }
 
 /// <summary>

@@ -298,7 +298,11 @@ The output is **not** the legacy Guid-keyed `results.json`. Read it with
 per-spec `Passed`, `Failed`, `Unsupported`, or `Cancelled` outcomes. An unsupported capability carries its
 kind, the offending semantic construct ID and a reason. Do not feed this file to a legacy structural-results
 reader. The process returns `0` after writing the report even when a specification failed or was blocked;
-read its outcomes. Invalid semantic IDs, engine names, or structural-only flags with `--engine semantic` return `2`.
+read its outcomes. The schema remains `stage-spec-run/1` when a reached described command handler reports
+`Unsupported(ImplementationBody)`. Older readers reject the unknown `ImplementationBody` capability name;
+update them before reading these reports. Authorization and validation refusals still execute before the body,
+including reaction-invoked commands; the handler appends no facts.
+Invalid semantic IDs, engine names, or structural-only flags with `--engine semantic` return `2`.
 Missing or invalid catalog/model inputs return `1` with a diagnostic.
 
 A specification case table produces one result per case, named `<Spec>_<Case>`. When a case fails,

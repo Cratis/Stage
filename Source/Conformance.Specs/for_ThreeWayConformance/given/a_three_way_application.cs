@@ -61,7 +61,9 @@ public abstract class a_three_way_application : a_generated_application
             {
                 Assert.Empty(rendered.Artifacts);
                 Assert.NotEmpty(rendered.Diagnostics);
-                Assert.All(rendered.Diagnostics, diagnostic => Assert.StartsWith("STAGE-ESM-", diagnostic.Code));
+                Assert.All(rendered.Diagnostics, diagnostic => Assert.True(
+                    diagnostic.Code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) || diagnostic.Code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal),
+                    diagnostic.Code));
                 differences.Add($"{ApplicationName}: the previously renderable conformance model was blocked: {string.Join(", ", rendered.Diagnostics.Select(diagnostic => diagnostic.Code))}");
             }
 

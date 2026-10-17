@@ -13,15 +13,16 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static class SemanticConditionRendering
 {
-    internal static bool CanRender(SemanticCondition condition, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, bool numericOrderingOnly = false) => condition switch
+    internal static bool CanRender(SemanticCondition condition, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, bool numericOrderingOnly = false, bool dates = false) => condition switch
     {
         SemanticLogicalCondition logical => Enum.IsDefined(logical.Operator) &&
-            CanRender(logical.Left, properties, context, numericOrderingOnly) && CanRender(logical.Right, properties, context, numericOrderingOnly),
+            CanRender(logical.Left, properties, context, numericOrderingOnly, dates) && CanRender(logical.Right, properties, context, numericOrderingOnly, dates),
         SemanticComparison comparison => Enum.IsDefined(comparison.Operator) &&
             CanRender(comparison.Left, properties, context) && CanRender(comparison.Right, properties, context) &&
-            CanCompareNamedValues(comparison, properties, context, numericOrderingOnly) &&
-            (!numericOrderingOnly || comparison.Operator is SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual ||
-                (IsNumeric(comparison.Left, properties, context) && IsNumeric(comparison.Right, properties, context))),
+            (DateComparison(comparison, properties, context) is not null ? dates || !numericOrderingOnly :
+                CanCompareNamedValues(comparison, properties, context, numericOrderingOnly) &&
+                (!numericOrderingOnly || comparison.Operator is SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual ||
+                    (IsNumeric(comparison.Left, properties, context) && IsNumeric(comparison.Right, properties, context)))),
         _ => false
     };
 
@@ -76,6 +77,12 @@ internal static class SemanticConditionRendering
 
     static string Comparison(SemanticComparison comparison, SemanticConditionRenderingContext context)
     {
+        if (DateComparison(comparison, context.Properties, context.Application) is { } date)
+        {
+            // DateOnly and DateTimeOffset order calendar dates and UTC instants at tick precision, as the reference evaluator does.
+            return $"({DateOperand(comparison.Left, date, context)}.CompareTo({DateOperand(comparison.Right, date, context)}) {ComparisonSymbol(comparison.Operator)} 0)";
+        }
+
         var concept = ComparisonConcept(comparison, context);
         var left = ComparisonOperand(comparison.Left, concept, context);
         var right = ComparisonOperand(comparison.Right, concept, context);
@@ -83,6 +90,45 @@ internal static class SemanticConditionRendering
 
         return IsNumeric(comparison.Left, context.Properties, context.Application) ? $"({left} {symbol} {right})" :
             $"({(comparison.Operator == SemanticComparisonOperator.NotEqual ? "!" : string.Empty)}global::System.Object.Equals({left}, {right}))";
+    }
+
+    /// <summary>
+    /// Finds the Date or DateTime primitive of a comparison the reference evaluator orders chronologically.
+    /// </summary>
+    /// <remarks>
+    /// The left operand is a required scalar command property of a Date or DateTime primitive, directly or through a concept.
+    /// The right operand is a required scalar property of the same primitive or a canonical text literal.
+    /// </remarks>
+    /// <param name="comparison">The comparison.</param>
+    /// <param name="properties">The command properties.</param>
+    /// <param name="context">The indexed application.</param>
+    /// <returns>The shared Date or DateTime primitive, or null when the comparison is not chronological.</returns>
+    static SemanticPrimitiveType? DateComparison(SemanticComparison comparison, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    {
+        if (!comparison.Left.Property.IsSet || DateProperty(comparison.Left.Property, properties, context) is not { } primitive) return null;
+        if (comparison.Right.Property.IsSet)
+        {
+            return DateProperty(comparison.Right.Property, properties, context) == primitive ? primitive : null;
+        }
+
+        return comparison.Right.Value is SemanticTextValue text && SemanticDateLiteral.IsCanonical(text.Value, primitive) ? primitive : null;
+    }
+
+    static SemanticPrimitiveType? DateProperty(SemanticId id, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    {
+        var type = properties.FirstOrDefault(property => property.Id == id)?.Type;
+        if (type is null or { IsCollection: true } or { IsOptional: true } or { Kind: SemanticTypeReferenceKind.CompositeType }) return null;
+        if (type.Kind == SemanticTypeReferenceKind.Concept && (!context.Concepts.TryGetValue(type.Target, out var concept) || !concept.Values.IsEmpty)) return null;
+        var primitive = SemanticValidationRendering.UnderlyingPrimitive(type, context);
+
+        return primitive is SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime ? primitive : null;
+    }
+
+    static string DateOperand(SemanticConditionOperand operand, SemanticPrimitiveType primitive, SemanticConditionRenderingContext context)
+    {
+        if (operand.Property.IsSet) return Operand(operand, context);
+
+        return SemanticDateLiteral.Render(((SemanticTextValue)operand.Value!).Value, primitive, type => $"global::System.{type}");
     }
 
     static string ComparisonSymbol(SemanticComparisonOperator comparison) => comparison switch
@@ -122,7 +168,7 @@ internal static class SemanticConditionRendering
     {
         var value = context.Accessor is null ? $"{context.Receiver}.{Identifiers.ToPascalCase(property.Name)}" : context.Accessor(property);
 
-        return property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Application.Concepts[property.Type.Target].Values.IsEmpty ? $"{value}.Value" : value;
+        return property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Raw?.Contains(property.Id) != true && context.Application.Concepts[property.Type.Target].Values.IsEmpty ? $"{value}.Value" : value;
     }
 
     static string LiteralOperand(SemanticValue? value) => value switch

@@ -17,7 +17,7 @@ internal static class SemanticRequirementRendering
 
     internal static void Render(CSharpCodeBuilder builder, SemanticRequirement requirement, SemanticCommand command, SemanticApplicationContext context)
     {
-        var condition = SemanticConditionRendering.Render(requirement.Condition, new(command.Properties, "command", context));
+        var condition = SemanticConditionRendering.Render(requirement.Condition, new(command.Properties, "command", context, Raw: SemanticDateComparisonAdmission.Raw(context.Application, command)));
         var message = requirement.Message ?? "Command requirement was not met.";
         var severity = requirement.Severity switch
         {

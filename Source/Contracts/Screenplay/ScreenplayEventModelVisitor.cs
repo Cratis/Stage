@@ -44,19 +44,30 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         foreach (var command in syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Commands))
         {
-            var dates = command.Properties.Where(property => IsDate(property.Type.Name) ||
-                syntax.Concepts.Any(concept => concept.Name == property.Type.Name && IsDate(concept.Type))).Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+            var dates = TypedProperties(command, syntax, IsDate);
+            var uuids = TypedProperties(command, syntax, IsUuid);
             var blocks = command.Validations.OfType<DeclarativeValidateSyntax>().ToArray();
+            var conditions = blocks.SelectMany(block => block.Requirements ?? []).Select(requirement => requirement.Condition)
+                .Concat(command.Produces.Where(produced => produced.When is not null).Select(produced => produced.When!)).ToArray();
             var compared = blocks.SelectMany(block => block.Rules).Where(rule =>
                     rule.Rule is ValidationRuleKind.Equal or ValidationRuleKind.NotEqual or ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or ValidationRuleKind.LessThan or ValidationRuleKind.LessThanOrEqual &&
                     rule.Value is LiteralExpressionSyntax).Select(rule => rule.Property)
-                .Concat(blocks.SelectMany(block => block.Requirements ?? []).SelectMany(requirement => ComparedProperties(requirement.Condition)))
-                .Concat(command.Produces.Where(produced => produced.When is not null).SelectMany(produced => ComparedProperties(produced.When!)));
+                .Concat(conditions.SelectMany(condition => ComparedProperties(condition)));
             if (compared.FirstOrDefault(dates.Contains) is { } date)
             {
                 throw new InvalidEventModel(
                     command.Location.Path ?? "<source>",
                     [$"STAGE-ESM-046: Command '{command.Name}' compares date property '{date}'; the legacy engines cannot preserve chronological comparisons."]);
+            }
+            var uuidComparisons = blocks.SelectMany(block => block.Rules)
+                .Where(rule => rule.Rule is ValidationRuleKind.Equal or ValidationRuleKind.NotEqual)
+                .SelectMany(rule => rule.Value is PathExpressionSyntax path ? new[] { rule.Property, path.Path } : [rule.Property])
+                .Concat(conditions.SelectMany(condition => ComparedProperties(condition, includeRight: true)));
+            if (compared.Concat(uuidComparisons).FirstOrDefault(uuids.Contains) is { } uuid)
+            {
+                throw new InvalidEventModel(
+                    command.Location.Path ?? "<source>",
+                    [$"STAGE-ESM-049: Command '{command.Name}' compares Uuid property '{uuid}' (ESM v28 Uuid equality); the legacy engines cannot preserve canonical Uuid comparisons."]);
             }
             if (command.Handler is { Implementation: not null, File: null, Code: null })
             {
@@ -181,10 +192,16 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
     static bool IsDate(string type) => type == "Date" || type == "DateTime";
 
-    static IEnumerable<string> ComparedProperties(ConditionSyntax condition) => condition switch
+    static bool IsUuid(string type) => type == "Uuid";
+
+    static HashSet<string> TypedProperties(CommandSyntax command, ApplicationSyntax syntax, Func<string, bool> isType) =>
+        command.Properties.Where(property => isType(property.Type.Name) ||
+            syntax.Concepts.Any(concept => concept.Name == property.Type.Name && isType(concept.Type))).Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+
+    static IEnumerable<string> ComparedProperties(ConditionSyntax condition, bool includeRight = false) => condition switch
     {
-        ComparisonConditionSyntax comparison => [comparison.Left],
-        LogicalConditionSyntax logical => ComparedProperties(logical.Left).Concat(ComparedProperties(logical.Right)),
+        ComparisonConditionSyntax comparison => includeRight && comparison.Right is PathExpressionSyntax path ? [comparison.Left, path.Path] : [comparison.Left],
+        LogicalConditionSyntax logical => ComparedProperties(logical.Left, includeRight).Concat(ComparedProperties(logical.Right, includeRight)),
         _ => []
     };
 

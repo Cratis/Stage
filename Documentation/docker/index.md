@@ -173,8 +173,9 @@ A v22 model that uses `reaction batches atomic` is admitted and refused with `ST
 At v28 the semantic engine runs Uuid `==` and `!=` in command `require` conditions and `produces when` guards, including
 through concepts and protected read paths such as `require Grant.memberId == requestedBy`. Uuids compare ordinally in their
 canonical lowercase hyphenated spelling, and the Host rejects a non-canonical Uuid input (uppercase, braced or unhyphenated)
-before any requirement runs. The renderer renders property and literal comparisons as Guid comparisons and keeps read-path
-operands refused with `STAGE-ESM-044`; the legacy engines refuse every Uuid comparison with `STAGE-ESM-049`.
+before any requirement runs. The renderer renders property, literal and protected read-path comparisons in `require` as Guid comparisons; a read
+path in `produces when` keeps `STAGE-ESM-044`. A rendered application binds Uuid input through Arc, which also accepts
+uppercase or braced spellings. The legacy engines refuse every Uuid comparison with `STAGE-ESM-049`.
 At v27 the semantic engine runs read models with several `key` parts: instances that differ in one part stay apart,
 `parts` projection keys create and remove only the instance whose parts all match, list queries filter on any part,
 and a single-instance query by parts takes one parameter per part, validated against its concept like a single key.

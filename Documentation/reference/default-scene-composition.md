@@ -95,7 +95,7 @@ the frontend uses Arc **22.58.2**, including Arc React's form custom-validation 
 references Cratis.Chronicle **19.71.0** explicitly to match the runtime image **19.71.0-development**,
 instead of relying on the client the Cratis metapackage brings transitively. Stage's own central
 Chronicle/Host image and Scene NuGet tooling pins are separate from this generated profile; they currently use
-Chronicle **19.71.0** and Scene **4.67.0**.
+Chronicle **19.71.0** and Scene **4.68.2**.
 Published Components **4.14.0** and Scene **4.2.0** provide the command-form Guid/submit UI contract;
 native build and specification checks do not prove browser functionality.
 

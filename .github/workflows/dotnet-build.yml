@@ -366,6 +366,9 @@ jobs:
       - name: Run the live domain blueprint scenarios
         run: Verification/live-blueprints/run.sh cratis/stage:ci "$PWD/TestResults/live-blueprints"
 
+      - name: Run the live blueprint template scenarios
+        run: Verification/blueprint-templates/live.sh cratis/stage:ci "$PWD/TestResults/live-blueprint-templates"
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
@@ -375,6 +378,7 @@ jobs:
             TestResults/live-custom-packages
             TestResults/live-navigation
             TestResults/live-blueprints
+            TestResults/live-blueprint-templates
           if-no-files-found: error
           retention-days: 7
 
@@ -444,5 +448,72 @@ jobs:
         with:
           name: generated-react-results
           path: TestResults/generated-react
+          if-no-files-found: error
+          retention-days: 7
+
+  # Renders the default blueprint's MasterDetail, Dashboard and ProfileSettings templates (Verification/blueprint-templates) into a generated React
+  # application, builds it the way its author would and runs the template vector - slots filled, no overflow, layout, accessibility - against it.
+  generated-react-blueprint-templates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Verification/generated-react-browser/package-lock.json
+
+      - name: Render and build the generated application
+        env:
+          STAGE_BLUEPRINT_TEMPLATES_KEEP: ${{ runner.temp }}/generated-blueprint-templates
+        run: >-
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
+          --filter "FullyQualifiedName~when_building_the_blueprint_templates_application"
+          --logger "trx;LogFileName=blueprint-templates.trx" --results-directory ./TestResults/generated-blueprint-templates
+
+      - name: Require the build specification to execute and pass
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          root = ET.parse("TestResults/generated-blueprint-templates/blueprint-templates.trx").getroot()
+          results = root.findall("t:Results/t:UnitTestResult", ns)
+          if len(results) != 5 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 5 passing blueprint template build assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
+          print(f"{len(results)} blueprint template build assertions passed")
+          PY
+
+      - name: Build the generated backend for serving
+        working-directory: ${{ runner.temp }}/generated-blueprint-templates
+        run: dotnet build Workspaces.csproj --configuration Release --nologo
+
+      - name: Install the browser harness
+        working-directory: Verification/generated-react-browser
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run the blueprint template vector against the generated application
+        env:
+          STAGE_GENERATED_REACT_CHRONICLE_IMAGE: cratis/chronicle:19.71.0-development
+          STAGE_GENERATED_REACT_SCENARIO: ${{ github.workspace }}/Verification/blueprint-templates/generated-scenario.cjs
+        run: Verification/generated-react-browser/run.sh "${{ runner.temp }}/generated-blueprint-templates" "$PWD/TestResults/generated-blueprint-templates/browser-result.json"
+
+      - name: Upload build and browser results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-blueprint-templates-results
+          path: TestResults/generated-blueprint-templates
           if-no-files-found: error
           retention-days: 7

@@ -49,7 +49,7 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
         if (accepted && specification.ThenEvents.Length < taken.Length) return false;
 
         // A rejected cascade drops the trigger half, so it is only faithful when the triggering command cannot itself be the one that rejects.
-        if (!accepted && CanReject(context, command)) return false;
+        if (!accepted && (CanReject(context, command) || !SemanticSpecificationAdmission.TriggerValuesMatch(context, specification, command))) return false;
 
         var reaction = specification with
         {
@@ -68,7 +68,7 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
 
     static bool CanReject(SemanticApplicationContext context, SemanticCommand command) =>
         !command.Validations.IsDefaultOrEmpty || !command.Requirements.IsDefaultOrEmpty || !command.Reads.IsDefaultOrEmpty ||
-        command.Route is not null || command.Authorization is not null ||
+        command.Route is not null || command.Authorization is not null || command.Properties.Any(property => property.IsGenerated) ||
         command.Produces.Any(produced => produced.Route is not null || SemanticSpecificationAdmission.IsReactionConstraintTarget(context, produced.EventContract)) ||
         command.Properties.Any(property => CarriesValidation(context, property.Type, []));
 

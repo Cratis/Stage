@@ -12,8 +12,12 @@ internal static class SemanticTypedContextAdmission
 {
     internal const uint SupportedTypedContextContractRevision = 1;
 
-    internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request)
+    internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request) => Verify(request, out _);
+
+    internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request, out ImmutableArray<SemanticTypedContextDescriptor> admitted)
     {
+        admitted = [];
+        var valid = new List<SemanticTypedContextDescriptor>();
         var errors = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
         var owner = request.Model.Application.Id;
         if (request.TypedContextContractRevision != SupportedTypedContextContractRevision)
@@ -49,6 +53,7 @@ internal static class SemanticTypedContextAdmission
                 continue;
             }
 
+            var before = errors.Count;
             if (!descriptor.IsWrapperReady || descriptor.ModelRevision != request.Model.Revision)
             {
                 errors.Add(Error($"Typed context '{descriptor.RequirementId}' for '{descriptor.OperationId}' is not wrapper-ready from this model compilation (revision {request.Model.Revision}).", owner));
@@ -75,7 +80,16 @@ internal static class SemanticTypedContextAdmission
                     errors.Add(Error($"Typed context '{descriptor.RequirementId}' contains duplicate query shapes.", owner));
                 }
             }
+
+            if (errors.Count == before)
+            {
+                valid.Add(descriptor);
+            }
         }
+
+        // Both descriptors of a duplicate use site are unsafe, including the first one encountered.
+        admitted = [.. valid.Where(descriptor => request.TypedContextDescriptors.Count(candidate => candidate is not null &&
+            candidate.RequirementId == descriptor.RequirementId && candidate.OperationId == descriptor.OperationId) == 1)];
 
         // A partial sidecar must not let a bound code body silently fall back to an untyped context.
         if (!request.TypedContextDescriptors.IsEmpty)

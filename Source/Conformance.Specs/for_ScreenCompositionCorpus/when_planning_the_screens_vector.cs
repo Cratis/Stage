@@ -24,6 +24,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
+    // Stale Arc-only pin: regenerate for the combined Arc 22.112.0 and Scene 4.68.2 plan.
     const string Digest = "4dce5f703cdd63a2dad61805651845bc708d683e1c353efc493c9082c4f53b30";
 
     const string QualifiedManifest = """
@@ -87,7 +88,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs f646a742678761c49e10be6d010dfe8f52bb2d0f615348dd724e202e122ed70d 2502
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
-        package.json cc4c8a22b882b883948386d9741dcdb2ad134bf95fa127c1a0674a857e6729b2 1431
+        package.json cf163b81ad765132aba9b813da4416186fcd891b4ec2bf766faef186b0f9cbe7 1431
         scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
         src/stage-scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
@@ -164,7 +165,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // those pins in Directory.Packages.props; frontend files may already name 22.100.1 for unrelated packages.
     static string PreviousPins(string relativePath, string text)
     {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.67.0", "4.22.1", StringComparison.Ordinal);
+        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.68.2", "4.22.1", StringComparison.Ordinal);
 
         return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
             ? previous.Replace("22.112.0", "22.87.0", StringComparison.Ordinal)

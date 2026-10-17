@@ -21,16 +21,16 @@ public class when_planning_concept_date_comparisons : Specification
             slice StateChange Book
               command Book
                 id String identifier
-                day Day?
+                day Day optional
                 at Moment
                 validate
-                  require day > "2026-01-01"
-                  require at >= "2026-01-01T00:00:00Z"
+                  day > "2026-01-01" message "Too early."
+                  at >= "2026-01-01T00:00:00Z" message "Too early."
                 produces Booked
                   for id
+                  at = at
                 returns at
               event Booked
-                day Day?
                 at Moment
         """;
 
@@ -49,6 +49,6 @@ public class when_planning_concept_date_comparisons : Specification
     }
 
     [Fact] void should_render_without_refusals() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
-    [Fact] void should_select_the_optional_date_concept_explicitly_in_its_rule() => _code.ShouldContain("RuleFor<global::Dates.Day?>(_ => _.Day)");
-    [Fact] void should_convert_the_raw_bound_response_back_to_its_concept() => _code.ShouldContain("((global::Dates.Moment)At)");
+    [Fact] void should_select_the_optional_date_concept_explicitly_in_its_rule() => _code.ShouldContain("RuleFor<global::Dates.Common.Day?>(_ => _.Day).Must(value => value is null || value.Value.CompareTo(new global::System.DateOnly(2026, 1, 1)) > 0)");
+    [Fact] void should_convert_the_raw_bound_response_back_to_its_concept() => _code.ShouldContain("((global::Dates.Common.Moment)At)");
 }

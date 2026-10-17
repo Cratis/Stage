@@ -15,7 +15,7 @@ public class when_refusing_date_comparisons : Specification
     [Theory]
     [InlineData("concept Moment : DateTime pii\n", "Moment", "at", "carries compliance")]
     [InlineData("", "DateTime", "from_date", "camel case")]
-    [InlineData("concept Moment : DateTime\n", "Moment?", "at", "optional concept 'Moment'")]
+    [InlineData("concept Moment : DateTime\n", "Moment optional", "at", "optional concept 'Moment'")]
     public void should_refuse_a_compared_datetime_property_arc_cannot_bind_exactly(string declarations, string type, string name, string reason)
     {
         var source = $$"""
@@ -26,7 +26,7 @@ public class when_refusing_date_comparisons : Specification
                     id String identifier
                     {{name}} {{type}}
                     validate
-                      require {{name}} >= "2026-01-01T00:00:00Z"
+                      {{name}} >= "2026-01-01T00:00:00Z" message "Too early."
                     produces Kept
                       for id
                   event Kept

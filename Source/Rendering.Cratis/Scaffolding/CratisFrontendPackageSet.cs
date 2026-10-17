@@ -13,21 +13,19 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// profile, and the frontend era moves on npm publish cadence rather than on the NuGet cadence of the backend pins.
 /// </para>
 /// <para>
-/// It is separate from the versions Stage itself builds with. Those are Stage's own <b>tooling</b> versions - the
-/// packages the Stage repository compiles, tests and ships with - and they follow whatever Stage currently develops
-/// against. The versions here are an <b>emitted era</b>: the versions a generated application is pinned to, chosen so
-/// the generated application stays reproducible long after Stage's own tooling has moved forward.
+/// Shared Cratis packages follow Source/Frontend/package.json, so generated applications use the packages Stage
+/// itself verifies. Each rendered application's exact pins remain reproducible after Stage's tooling moves forward.
 /// </para>
 /// <para>
 /// It is equally separate from the emitted <b>backend</b> pins on <see cref="CratisBackendApplicationScaffoldProfile"/>.
 /// Both describe the same emitted era, but they resolve from different registries and cannot be kept in lockstep by
-/// sharing a single version string: only <c language="json">@cratis/arc</c> and its siblings share the Cratis major with the NuGet
+/// sharing a single version string: only <c language="json">@cratis/arc</c> and its siblings share the exact version with the NuGet
 /// <c language="csharp">Cratis</c> packages, while <c language="json">rxjs</c>, <c language="json">tsyringe</c> and <c language="json">reflect-metadata</c> have no
 /// NuGet counterpart at all.
 /// </para>
 /// <para>
-/// The Scene family is pinned at exact 4.10.0 for shared binding resolvers and typed runtime contracts, released default blueprint, package-owned PrimeReact mapping,
-/// editable keyed lookups, explicit command inputs and identity-aware bindings, with Components 4.14.0 supplying the optional native-form footer. Frontend
+/// The Scene family supplies shared binding resolvers, typed runtime contracts, the default blueprint, package-owned PrimeReact mapping,
+/// editable keyed lookups, explicit command inputs and identity-aware bindings, with Components supplying the optional native-form footer. Frontend
 /// installation and native consumer verification use those published packages as a separate gate;
 /// C# rendering checks alone do not establish it.
 /// </para>
@@ -206,10 +204,10 @@ public sealed class CratisFrontendPackageSet
     /// compiles is the runtime the live Stage was verified with. A specification compares the two.
     /// </remarks>
     internal static CratisFrontendPackageSet Current { get; } = new(
-        "22.58.2",
-        "22.58.2",
-        "22.58.2",
-        "7.22.8",
+        "22.112.1",
+        "22.112.1",
+        "22.112.1",
+        "7.25.1",
         "7.8.2",
         "4.10.0",
         "0.2.2",
@@ -221,8 +219,8 @@ public sealed class CratisFrontendPackageSet
         "6.1.1",
         "19.3.0",
         "19.3.0",
-        "4.26.2",
-        "4.67.0",
+        "4.29.0",
+        "4.68.0",
         "11.2.0",
         "8.0.2",
         "3.0.1",

@@ -47,8 +47,8 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// <para>
     /// A generated application is pinned to the current Cratis release, so someone generating one starts where
     /// the framework is rather than where it was when this profile was last touched. Every version here is an
-    /// exact release, and moving them is a deliberate, reviewed change: the emitted bytes are frozen by
-    /// specification, so a bump cannot happen silently.
+    /// exact release. NuGet versions are generated at build time from Directory.Packages.props, so updating
+    /// Stage's central pins also updates newly rendered applications.
     /// </para>
     /// <para>
     /// The image and the explicitly pinned Chronicle client must match. The Cratis metapackage can depend on an
@@ -59,16 +59,16 @@ public sealed class CratisBackendApplicationScaffoldProfile
     public static CratisBackendApplicationScaffoldProfile Current { get; } = Create(
         CurrentVersion,
         "net10.0",
-        "22.109.0",
-        "22.109.0",
-        "22.109.0",
-        "4.1.1",
-        "4.1.1",
-        "18.10.1",
-        "6.2.0",
-        "2.9.3",
-        "4.0.0",
-        "19.71.0");
+        ScaffoldPackageVersions.Cratis,
+        ScaffoldPackageVersions.ArcMongoDB,
+        ScaffoldPackageVersions.ArcChronicleTesting,
+        ScaffoldPackageVersions.Specifications,
+        ScaffoldPackageVersions.SpecificationsXUnit,
+        ScaffoldPackageVersions.TestSdk,
+        ScaffoldPackageVersions.NSubstitute,
+        ScaffoldPackageVersions.Xunit,
+        ScaffoldPackageVersions.XunitRunner,
+        ScaffoldPackageVersions.Chronicle);
 
     /// <summary>
     /// Gets the scaffold contract version carried by every generated input.
@@ -141,8 +141,8 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// <remarks>
     /// Held as a separate <see cref="CratisFrontendPackageSet"/> rather than as more version properties here, because
     /// the frontend packages resolve from npm on their own publish cadence while the properties above resolve from
-    /// NuGet, and because neither is the same thing as the <b>tooling</b> versions the Stage repository itself builds
-    /// with. All of them are validated by the one exactness rule this type owns, so no emitted era can carry a
+    /// NuGet. Both sets follow Stage's own verified tooling pins. All of them are validated by the one
+    /// exactness rule this type owns, so no emitted era can carry a
     /// wildcard, a range or a prerelease from either registry.
     /// </remarks>
     public CratisFrontendPackageSet FrontendPackageSet { get; }

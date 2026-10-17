@@ -31,20 +31,10 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
         {
             hash.AppendData(Encoding.UTF8.GetBytes(input.Name));
             var text = beforePlacement || previousPins ? QualifiedCommonOutput.BeforePlacement(Text(input)) : Text(input);
-            hash.AppendData(Encoding.UTF8.GetBytes(previousPins ? PreviousPins(input.Name, text) : text));
+            hash.AppendData(Encoding.UTF8.GetBytes(FrozenScaffoldPins.Normalize(input.Name, text, previousPins)));
         }
 
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    // The previous frozen backend predates the Chronicle 19.71.0 and Arc 22.109.0 pins; only the generated backend project
-    // previously carried the scaffold's Arc pin. Central package management now keeps all pins in Directory.Packages.props.
-    static string PreviousPins(string name, string text)
-    {
-        var previous = text.Replace("19.71.0", "19.55.2", StringComparison.Ordinal);
-
-        return name.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.109.0", "22.87.0", StringComparison.Ordinal)
-            : previous;
-    }
 }

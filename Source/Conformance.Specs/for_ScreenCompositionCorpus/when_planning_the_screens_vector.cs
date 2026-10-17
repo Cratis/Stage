@@ -7,6 +7,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.given;
 using Xunit;
@@ -109,7 +110,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         var source = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
         var planned = Plan(source.Documents, source.IdentityCatalogBytes.AsSpan(), carryScene: false);
         var restored = QualifiedCommonOutput.Restore(planned.Model, planned.Plan, new(ApplicationName, ApplicationName));
-        var actual = restored.Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
+        var actual = restored.Select(FrozenScaffoldPins.Normalize).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
         var expected = QualifiedManifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim()).ToArray();
         Assert.True(actual.SequenceEqual(expected), string.Join('\n', actual.Except(expected)));
     }
@@ -122,13 +123,13 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     [MemberData(nameof(Forms))]
     public void should_plan_exactly_the_pinned_ordered_artifacts(string form)
     {
-        var actual = PlanOf(form).Artifacts.Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
+        var actual = PlanOf(form).Artifacts.Select(FrozenScaffoldPins.Normalize).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
         Assert.True(actual.SequenceEqual(Pinned()), string.Join(Environment.NewLine, actual.Except(Pinned())));
     }
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_plan_the_pinned_digest(string form) => PlanOf(form).Digest.ShouldEqual(Digest);
+    public void should_plan_the_pinned_digest(string form) => FrozenScaffoldPins.Digest(PlanOf(form)).ShouldEqual(Digest);
 
     [Theory]
     [MemberData(nameof(Forms))]
@@ -140,7 +141,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         ArtifactRenderPlan.ComputeDigest(
             plan.Target,
             // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
-            plan.TargetVersion.Replace("22.109.0", "22.87.0", StringComparison.Ordinal),
+            "22.87.0",
             plan.Renderer,
             plan.RendererVersion,
             plan.ApplicationName,
@@ -160,16 +161,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Fact] void should_cover_every_source_form() => Forms.Count.ShouldEqual(4);
 
-    // The previous frozen plan predates the Chronicle 19.71.0 and backend Arc 22.109.0 scaffold pins. CPM now keeps
-    // those pins in Directory.Packages.props; frontend files may already name 22.100.1 for unrelated packages.
-    static string PreviousPins(string relativePath, string text)
-    {
-        var previous = PreviousFrontendEntryPoint.Restore(relativePath, text).Replace("19.71.0", "19.55.2", StringComparison.Ordinal).Replace("4.67.0", "4.22.1", StringComparison.Ordinal);
-
-        return relativePath.EndsWith("Directory.Packages.props", StringComparison.Ordinal)
-            ? previous.Replace("22.109.0", "22.87.0", StringComparison.Ordinal)
-            : previous;
-    }
+    static string PreviousPins(string relativePath, string text) =>
+        FrozenScaffoldPins.Normalize(relativePath, PreviousFrontendEntryPoint.Restore(relativePath, text), previous: true);
 
     // The previous frozen plan predates single-letter word splitting in snake-cased names (Cratis/Stage#417), which
     // rendered "AWorkItem" as "awork_item".

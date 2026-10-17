@@ -47,7 +47,7 @@ public class with_opaque_v3_bodies : a_semantic_runtime
         {
             Concepts = [.. application.Concepts.Select(value => value.Id == concept.Id ? value with
             {
-                Validations = [new(default, SemanticValidationRuleKind.RulePredicate, null, null) { RequirementId = "query-concept-body" }]
+                Validations = [new(default, SemanticValidationRuleKind.RulePredicate, null, null) { Name = "CheckQueryConcept", RequirementId = "query-concept-body" }]
             } : value)]
         }, query: true);
         _unrelatedQuery = await Execute(slice => slice with { Commands = [slice.Commands.Single() with { CodeValidations = [new("unused-command-body")] }] }, query: true);

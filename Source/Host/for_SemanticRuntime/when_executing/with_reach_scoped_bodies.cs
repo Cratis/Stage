@@ -6,13 +6,14 @@ using System.Text.Json;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
+using Cratis.Stage.Host.for_SemanticRuntime.given;
 using Cratis.Stage.Semantics;
 using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_executing;
 
-public class with_reach_scoped_bodies : given.a_semantic_runtime
+public class with_reach_scoped_bodies : a_semantic_runtime
 {
     SemanticExecutionPlan _plan = null!;
     SemanticRuntimeAdmission _admission = null!;

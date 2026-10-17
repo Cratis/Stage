@@ -78,7 +78,7 @@ public class a_body_reach_plan : Specification
         {
             Concepts = [application.Concepts.Single() with
             {
-                Validations = [new(default, SemanticValidationRuleKind.RulePredicate, null, null) { RequirementId = "concept-body" }]
+                Validations = [new(default, SemanticValidationRuleKind.RulePredicate, null, null) { Name = "CheckConcept", RequirementId = "concept-body" }]
             }],
             Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(slice => slice with
             {

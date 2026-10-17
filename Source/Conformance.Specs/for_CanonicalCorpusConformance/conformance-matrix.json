@@ -132,15 +132,15 @@
     "EsmGoldenVectors.V1": {
       "loader": { "outcome": "refused", "refusals": [
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedAffectedCardinality", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 501 },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "capability:Command[a-command-validation-rule-is]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": null },
         { "code": "capability:Command[only-scalar-command-and-event]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 441 },
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000046", "issue": 58 },
-        { "code": "capability:Occurrence[only-scalar-appended-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": null },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": null } ] },
+        { "code": "capability:Occurrence[only-scalar-appended-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
+        { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "capability:Command[a-command-validation-rule-is]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058e", "issue": null },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": 441 },
@@ -151,22 +151,22 @@
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 58 },
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fd", "issue": 58 },
         { "code": "capability:IdentityAllocation[a-produced-fact-requires-an]", "kind": "command", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 511 },
-        { "code": "capability:Occurrence[only-scalar-appended-event-values]", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": null },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": null } ] },
+        { "code": "capability:Occurrence[only-scalar-appended-event-values]", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": 441 },
+        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
         { "code": "STAGE-ESM-008", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005b", "issue": 501 },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000061", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000062", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fd", "issue": null },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": 58 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000061", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000062", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 58 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 58 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fd", "issue": 58 },
         { "code": "STAGE-ESM-014", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000028", "issue": 514 },
         { "code": "STAGE-ESM-014", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 514 },
         { "code": "STAGE-ESM-015", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 514 },
@@ -177,8 +177,8 @@
     },
     "EsmGoldenVectors.V10": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -200,7 +200,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -236,7 +236,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -259,8 +259,8 @@
     },
     "EsmGoldenVectors.V11": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -282,7 +282,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -319,7 +319,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -342,8 +342,8 @@
     },
     "EsmGoldenVectors.V12": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -365,7 +365,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -402,7 +402,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -425,8 +425,8 @@
     },
     "EsmGoldenVectors.V13": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -448,7 +448,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -485,7 +485,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -508,8 +508,8 @@
     },
     "EsmGoldenVectors.V14": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -531,7 +531,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -569,7 +569,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -592,8 +592,8 @@
     },
     "EsmGoldenVectors.V15": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -615,7 +615,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -654,7 +654,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -677,8 +677,8 @@
     },
     "EsmGoldenVectors.V16": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -700,7 +700,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -739,7 +739,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -762,8 +762,8 @@
     },
     "EsmGoldenVectors.V17": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -785,7 +785,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -825,7 +825,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -848,8 +848,8 @@
     },
     "EsmGoldenVectors.V18": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -871,7 +871,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -913,7 +913,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -936,8 +936,8 @@
     },
     "EsmGoldenVectors.V19": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -959,7 +959,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -999,7 +999,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1023,15 +1023,15 @@
     "EsmGoldenVectors.V2": {
       "loader": { "outcome": "refused", "refusals": [
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedAffectedCardinality", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 501 },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "capability:Command[a-command-validation-rule-is]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": null },
         { "code": "capability:Command[only-scalar-command-and-event]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 441 },
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000046", "issue": 58 },
-        { "code": "capability:Occurrence[only-scalar-appended-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": null },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": null } ] },
+        { "code": "capability:Occurrence[only-scalar-appended-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
+        { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "capability:Command[a-command-validation-rule-is]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058e", "issue": null },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": 441 },
@@ -1041,22 +1041,22 @@
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 58 },
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 58 },
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fd", "issue": 58 },
-        { "code": "capability:Occurrence[only-scalar-appended-event-values]", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": null },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": null } ] },
+        { "code": "capability:Occurrence[only-scalar-appended-event-values]", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": 441 },
+        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
         { "code": "STAGE-ESM-008", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005b", "issue": 501 },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000061", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000062", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fd", "issue": null },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": 58 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000061", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000062", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 58 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 58 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fd", "issue": 58 },
         { "code": "STAGE-ESM-014", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000028", "issue": 514 },
         { "code": "STAGE-ESM-014", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 514 },
         { "code": "STAGE-ESM-015", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 514 },
@@ -1067,8 +1067,8 @@
     },
     "EsmGoldenVectors.V20": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -1090,7 +1090,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -1130,7 +1130,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1153,8 +1153,8 @@
     },
     "EsmGoldenVectors.V21": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -1176,7 +1176,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -1216,7 +1216,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1239,8 +1239,8 @@
     },
     "EsmGoldenVectors.V22": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -1262,7 +1262,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -1303,7 +1303,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1327,8 +1327,8 @@
     },
     "EsmGoldenVectors.V23": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -1350,7 +1350,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -1392,7 +1392,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1417,8 +1417,8 @@
     },
     "EsmGoldenVectors.V24": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -1440,7 +1440,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -1482,7 +1482,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1535,8 +1535,8 @@
     "EsmGoldenVectors.V3": {
       "loader": { "outcome": "refused", "refusals": [
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedAffectedCardinality", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 501 },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "capability:Projection[reducer-implementation-bodies-cannot-be]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000bb8", "issue": 513 } ] },
@@ -1557,8 +1557,8 @@
     },
     "EsmGoldenVectors.V4": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "capability:Projection[reducer-implementation-bodies-cannot-be]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000bb8", "issue": 513 } ] },
@@ -1580,8 +1580,8 @@
     },
     "EsmGoldenVectors.V5": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "capability:Projection[reducer-implementation-bodies-cannot-be]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000bb8", "issue": 513 } ] },
@@ -1602,8 +1602,8 @@
     },
     "EsmGoldenVectors.V6": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -1620,7 +1620,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -1632,7 +1632,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1642,8 +1642,8 @@
     },
     "EsmGoldenVectors.V7": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -1660,7 +1660,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -1675,7 +1675,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1685,8 +1685,8 @@
     },
     "EsmGoldenVectors.V8": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -1703,7 +1703,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -1728,7 +1728,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1738,8 +1738,8 @@
     },
     "EsmGoldenVectors.V9": {
       "loader": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
-        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": null },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedEventContext", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
+        { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 } ] },
@@ -1759,7 +1759,7 @@
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c52", "issue": 79 },
@@ -1791,7 +1791,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001b58", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bee", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001bf8", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c02", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c03", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c04", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000001c20", "issue": 79 },
@@ -1859,7 +1859,7 @@
       "executor": { "outcome": "supported" },
       "host": { "outcome": "supported" },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-011", "artifact": "sem1:975d6190257007895c061dda0144e6fbb45a7c68e426584e2eea2654f5f2ee30", "issue": null } ] }
+        { "code": "STAGE-ESM-011", "artifact": "sem1:975d6190257007895c061dda0144e6fbb45a7c68e426584e2eea2654f5f2ee30", "issue": 500 } ] }
     },
     "EventRoutesCorpus.V8": {
       "loader": { "outcome": "supported" },
@@ -1932,8 +1932,8 @@
       "executor": { "outcome": "supported" },
       "host": { "outcome": "supported" },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-011", "artifact": "sem1:7a06d9c1be5771f60142129b672672a0eaca472f81f50384528545fa0bfd3ad4", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:db1691f6a348e798508361804bbad619dce0effa7bb029dcffa812601910714d", "issue": null } ] }
+        { "code": "STAGE-ESM-011", "artifact": "sem1:7a06d9c1be5771f60142129b672672a0eaca472f81f50384528545fa0bfd3ad4", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:db1691f6a348e798508361804bbad619dce0effa7bb029dcffa812601910714d", "issue": 14 } ] }
     },
     "NumberLiteralsCorpus.ExactLiteralsV11": {
       "loader": { "outcome": "supported" },
@@ -2003,8 +2003,8 @@
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:9d08fb10fc24cc9b76c8ac3ca89e770298690e0cdfc679e7356052acd897bc10", "issue": 58 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-007", "artifact": "sem1:a3d455c0a686b71dbca21a02d1e7119276077204fc934b9b415c5cbc3f200c88", "issue": 58 },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:524399a8872f6ac6a6a88dfb06ce916edd3d4ec10985591f4e52735b06572fb5", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:9d08fb10fc24cc9b76c8ac3ca89e770298690e0cdfc679e7356052acd897bc10", "issue": null } ] }
+        { "code": "STAGE-ESM-011", "artifact": "sem1:524399a8872f6ac6a6a88dfb06ce916edd3d4ec10985591f4e52735b06572fb5", "issue": 58 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:9d08fb10fc24cc9b76c8ac3ca89e770298690e0cdfc679e7356052acd897bc10", "issue": 58 } ] }
     },
     "QueryValidationCorpus.V18": {
       "loader": { "outcome": "supported" },
@@ -2030,24 +2030,24 @@
         { "code": "STAGE-ESM-024", "kind": "reaction", "artifact": "sem1:a4bb81c55aad5d6082839b916a4fa9bbc3f44bb33feae02abbcf31a8a96e1b5f", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:cbe4a85130d7c4c518af0206bde8cec51751799cd243e54bd0c33159f2c63c28", "issue": 79 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:16a07b5b5d7fda3deff9fc4f544219b7c60b3fe19f951d79220ea40227a55f1e", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:182fc65c0262f892fb967a11f1f8b98bafacdafe7d37b47d761db5393a3f54cb", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:182fc65c0262f892fb967a11f1f8b98bafacdafe7d37b47d761db5393a3f54cb", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:31e9ac46cb4c89e2befb8c65f331e9815cfee7afba14a1c68ed71f03f2154559", "issue": 343 },
         { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:3a829ffd770e18dc85cc1ecca5c121cf437ad54d97113a1edc6983dccc6903a9", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:95eed25fd308f7b074895d55f3169ce68266e2bc022f18c7365b9bb0c52ae2c0", "issue": null },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:e95bcc6e3b88097ed6b714b00463dde09ebb28a65195fafa29d49558ffe310fe", "issue": null },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:ef2515ee64c918e848e50ec9c9720351c8f1fdae1dc99d887392fda543a2aa24", "issue": null },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:95eed25fd308f7b074895d55f3169ce68266e2bc022f18c7365b9bb0c52ae2c0", "issue": 343 },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:e95bcc6e3b88097ed6b714b00463dde09ebb28a65195fafa29d49558ffe310fe", "issue": 343 },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:ef2515ee64c918e848e50ec9c9720351c8f1fdae1dc99d887392fda543a2aa24", "issue": 79 },
         { "code": "STAGE-ESM-024", "kind": "trigger", "artifact": "sem1:f2296f14456126c82c68d2e8d0ecdc7f6c82ae0b20118b2f22f64398ee100fbe", "issue": 343 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-024", "artifact": "sem1:182fc65c0262f892fb967a11f1f8b98bafacdafe7d37b47d761db5393a3f54cb", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:182fc65c0262f892fb967a11f1f8b98bafacdafe7d37b47d761db5393a3f54cb", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:31e9ac46cb4c89e2befb8c65f331e9815cfee7afba14a1c68ed71f03f2154559", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:70705ac12bc8f504df990bb032868f3f6602a189c1b261e216f63e4fe0b1eff1", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:7e649a78b546248801c4e357cb178ee52b3e7b3556e565cbe560a8a49d3c6c1d", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:95eed25fd308f7b074895d55f3169ce68266e2bc022f18c7365b9bb0c52ae2c0", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:95eed25fd308f7b074895d55f3169ce68266e2bc022f18c7365b9bb0c52ae2c0", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:a4bb81c55aad5d6082839b916a4fa9bbc3f44bb33feae02abbcf31a8a96e1b5f", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:a7d3742c31e7b821867d912a7a87d359d82c385cd043855b4af74517c732c411", "issue": 79 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:cbe4a85130d7c4c518af0206bde8cec51751799cd243e54bd0c33159f2c63c28", "issue": 79 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:e95bcc6e3b88097ed6b714b00463dde09ebb28a65195fafa29d49558ffe310fe", "issue": null },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:ef2515ee64c918e848e50ec9c9720351c8f1fdae1dc99d887392fda543a2aa24", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:e95bcc6e3b88097ed6b714b00463dde09ebb28a65195fafa29d49558ffe310fe", "issue": 343 },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:ef2515ee64c918e848e50ec9c9720351c8f1fdae1dc99d887392fda543a2aa24", "issue": 79 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:f2296f14456126c82c68d2e8d0ecdc7f6c82ae0b20118b2f22f64398ee100fbe", "issue": 343 } ] }
     },
     "ReadModelAbsenceCorpus.V5": {
@@ -2066,16 +2066,16 @@
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "kind": "capture", "artifact": "sem1:fa74629697e752c58ded0314b44ac3b28bb9633ac83e7303e09af35bab20ffca", "issue": 79 },
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:365c5e9d0cd6dd5fda3a52f229ec81d01df33dfeab5d1af904b6f4536265d5bf", "issue": 79 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:5aa267c7183204248afbbe9f4145505a392dbeee3b35efdf34eb709267cdd893", "issue": null },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:a02cbe22e0ff2783154087bea303fd24bb2a8cc6b10b82dda9b8e5bcc66dc745", "issue": null },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:a5a8ae5c800f90ed2541fd4f44a998a3b775b4f8f1e5fc9d936c775319e6fbe5", "issue": null },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:f792f35159a6fa61d1ff09ed38bc55a01a793db1b580cb0f4d75a330a02e1b74", "issue": null } ] },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:5aa267c7183204248afbbe9f4145505a392dbeee3b35efdf34eb709267cdd893", "issue": 79 },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:a02cbe22e0ff2783154087bea303fd24bb2a8cc6b10b82dda9b8e5bcc66dc745", "issue": 79 },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:a5a8ae5c800f90ed2541fd4f44a998a3b775b4f8f1e5fc9d936c775319e6fbe5", "issue": 79 },
+        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:f792f35159a6fa61d1ff09ed38bc55a01a793db1b580cb0f4d75a330a02e1b74", "issue": 79 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "artifact": "sem1:365c5e9d0cd6dd5fda3a52f229ec81d01df33dfeab5d1af904b6f4536265d5bf", "issue": 79 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:5aa267c7183204248afbbe9f4145505a392dbeee3b35efdf34eb709267cdd893", "issue": null },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:a02cbe22e0ff2783154087bea303fd24bb2a8cc6b10b82dda9b8e5bcc66dc745", "issue": null },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:a5a8ae5c800f90ed2541fd4f44a998a3b775b4f8f1e5fc9d936c775319e6fbe5", "issue": null },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:f792f35159a6fa61d1ff09ed38bc55a01a793db1b580cb0f4d75a330a02e1b74", "issue": null },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:5aa267c7183204248afbbe9f4145505a392dbeee3b35efdf34eb709267cdd893", "issue": 79 },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:a02cbe22e0ff2783154087bea303fd24bb2a8cc6b10b82dda9b8e5bcc66dc745", "issue": 79 },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:a5a8ae5c800f90ed2541fd4f44a998a3b775b4f8f1e5fc9d936c775319e6fbe5", "issue": 79 },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:f792f35159a6fa61d1ff09ed38bc55a01a793db1b580cb0f4d75a330a02e1b74", "issue": 79 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:fa74629697e752c58ded0314b44ac3b28bb9633ac83e7303e09af35bab20ffca", "issue": 79 } ] }
     },
     "RecoverySpecificationsCorpus.V17": {
@@ -2086,9 +2086,9 @@
         { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "kind": "specification", "artifact": "sem1:77ba8e17b420e8e23334f05fb36964b94169ccd61308a014fa15a720ebe2cb8e", "issue": 511 },
         { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "kind": "specification", "artifact": "sem1:8f059b9ec51acef2f7d26718ae0d829fb86fbf3951ca071108ad8e6cd41b7f4f", "issue": 511 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-011", "artifact": "sem1:77ba8e17b420e8e23334f05fb36964b94169ccd61308a014fa15a720ebe2cb8e", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:8f059b9ec51acef2f7d26718ae0d829fb86fbf3951ca071108ad8e6cd41b7f4f", "issue": null },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:f6ed0e654a53441cf0b0bf9ede9852e05eedc396d7d834c0636153d22e0d55ec", "issue": null } ] }
+        { "code": "STAGE-ESM-011", "artifact": "sem1:77ba8e17b420e8e23334f05fb36964b94169ccd61308a014fa15a720ebe2cb8e", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:8f059b9ec51acef2f7d26718ae0d829fb86fbf3951ca071108ad8e6cd41b7f4f", "issue": 14 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:f6ed0e654a53441cf0b0bf9ede9852e05eedc396d7d834c0636153d22e0d55ec", "issue": 14 } ] }
     },
     "RegisterProjectCorpus.LegacyV1": {
       "loader": { "outcome": "supported" },

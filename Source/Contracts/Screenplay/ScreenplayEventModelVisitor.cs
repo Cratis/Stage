@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Screenplay;
@@ -70,6 +71,25 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
     /// <inheritdoc/>
     public EventModel Visit(ApplicationSyntax syntax)
     {
+        var conversion = Convert(syntax);
+        var errors = conversion.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
+        if (errors.Length > 0)
+        {
+            throw new InvalidEventModel(syntax.Location.Path ?? "<source>", errors.Select(error => $"{error.Code}: {error.Message}"));
+        }
+
+        return conversion.Model;
+    }
+
+    /// <summary>
+    /// Converts an application while retaining diagnostics for omitted projections.
+    /// Other unsupported legacy engine behaviors remain subject to their existing admission checks.
+    /// </summary>
+    /// <param name="syntax">The application to convert.</param>
+    /// <returns>The model and conversion diagnostics.</returns>
+    public EventModelConversion Convert(ApplicationSyntax syntax)
+    {
+        var diagnostics = new ConversionDiagnostics();
         EnsureBehaviorSupported(syntax);
         new ReactionIdentitySyntaxAdmission().VisitApplication(syntax);
         new EventRouteSyntaxAdmission().VisitApplication(syntax);
@@ -95,12 +115,12 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         var collectionId = DeterministicId.From($"model:{modelName}:collection");
 
         var collectionModules = modules
-            .Select(module => ConvertModule(module, modelId, collectionId, schema, eventPropertyTypes, eventProperties))
+            .Select(module => ConvertModule(module, modelId, collectionId, schema, eventPropertyTypes, eventProperties, diagnostics))
             .ToArray();
 
         var collection = new ModuleCollection(collectionId, modelId, collectionModules);
 
-        return new EventModel(modelId, modelName, [collection]);
+        return new(new EventModel(modelId, modelName, [collection]), diagnostics.All);
     }
 
     static Module ConvertModule(
@@ -109,10 +129,11 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         Guid collectionId,
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
-        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties)
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
+        ConversionDiagnostics diagnostics)
     {
         var features = module.Features
-            .Select(feature => ConvertFeature(feature, parentId: null, $"{module.Name}", schema, eventPropertyTypes, eventProperties))
+            .Select(feature => ConvertFeature(feature, parentId: null, $"{module.Name}", schema, eventPropertyTypes, eventProperties, diagnostics))
             .ToArray();
 
         return new Module(DeterministicId.From($"module:{module.Name}"), modelId, collectionId, module.Name, features);
@@ -124,17 +145,18 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         string parentPath,
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
-        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties)
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
+        ConversionDiagnostics diagnostics)
     {
         var featurePath = $"{parentPath}.{feature.Name}";
         var featureId = DeterministicId.From($"feature:{featurePath}");
 
         var subFeatures = feature.Features
-            .Select(sub => ConvertFeature(sub, featureId, featurePath, schema, eventPropertyTypes, eventProperties))
+            .Select(sub => ConvertFeature(sub, featureId, featurePath, schema, eventPropertyTypes, eventProperties, diagnostics))
             .ToArray();
 
         var slices = feature.Slices
-            .Select(slice => SliceConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, featurePath))
+            .Select(slice => SliceConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, featurePath, diagnostics))
             .ToArray();
 
         return new Feature(featureId, feature.Name, parentId, subFeatures, slices);

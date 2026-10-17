@@ -76,8 +76,6 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
     /// </remarks>
     public IReadOnlyDictionary<string, string> CommandRoutes => _commandRoutes.Value.Routes;
 
-    internal IReadOnlyDictionary<string, string> QualifiedCommandRoutes => _commandRoutes.Value.QualifiedRoutes;
-
     /// <summary>
     /// Gets the route each modeled query is read from, by query name.
     /// </summary>
@@ -88,6 +86,8 @@ public sealed class StageSceneRoutes(SceneApplication scene, IServiceProvider se
     /// several distinct operations answer to, which is left out rather than resolved to one of them.
     /// </summary>
     public IReadOnlyList<string> Diagnostics => [.. _commandRoutes.Value.Diagnostics, .. _queryRoutes.Value.Diagnostics];
+
+    internal IReadOnlyDictionary<string, string> QualifiedCommandRoutes => _commandRoutes.Value.QualifiedRoutes;
 
     /// <summary>
     /// Builds the name to route lookup for one verb.

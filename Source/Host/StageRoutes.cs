@@ -35,12 +35,14 @@ public record StageRoutes(
     /// </summary>
     public IReadOnlyDictionary<string, string> CommandResponseKinds { get; init; } = new Dictionary<string, string>();
 
-    internal static StageRoutes For(StageSceneRoutes routes, EventModel model) => Create(routes,
+    internal static StageRoutes For(StageSceneRoutes routes, EventModel model) => Create(
+        routes,
         StageModelWalker.Slices(model)
             .Where(located => located.Slice.Command is not null)
             .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", located.Slice.Command.Schema, "object")));
 
-    internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model) => Create(routes,
+    internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model) => Create(
+        routes,
         SemanticModelWalker.Slices(model)
             .SelectMany(located => located.Slice.Commands.Select(command =>
                 ($"{located.TypeNamespace}.{command.Name}",

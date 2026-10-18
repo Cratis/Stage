@@ -213,6 +213,14 @@ jobs:
       - name: Verify Host kernel and client compatibility pins
         run: python3 Verification/verify-runtime-compatibility.py --self-test
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
       - name: Start pinned Chronicle with bundled MongoDB
         run: |
           image=$(python3 -c 'import pathlib, runpy; policy = runpy.run_path("Verification/verify-runtime-compatibility.py"); print(policy["host_base"](pathlib.Path("Source/Host/Dockerfile").read_text()).group(1))')
@@ -317,6 +325,14 @@ jobs:
           git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 6b32f743afcbeaa0fdeab5b0fa72ab1f40f96e9e
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
       - name: Run generated-name matrix
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
@@ -344,6 +360,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: Verification/generated-react-browser/package-lock.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Publish Host
         run: >-
@@ -406,6 +430,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: Verification/generated-react-browser/package-lock.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Render and build the generated application
         env:
@@ -472,6 +504,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: Verification/generated-react-browser/package-lock.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Render and build the generated application
         env:

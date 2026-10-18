@@ -14,6 +14,9 @@ on:
       - "*.slnx"
       - "global.json"
       - ".github/workflows/warm-nuget-cache.yml"
+  # GitHub evicts caches unused for seven days; a weekly run keeps main's cache alive between dependency changes.
+  schedule:
+    - cron: "37 4 * * 3"
   workflow_dispatch:
 
 permissions:

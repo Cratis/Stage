@@ -30,7 +30,7 @@ public class with_a_wrong_seeded_query_result : a_generated_application
         _error = await Catch.Exception(() => Run("seeded-wrong-test.log", "test", "-c", "Debug", "--no-build"));
     }
 
-    [Fact] void should_fail_the_generated_seeded_query_specification() => _error!.Message.ShouldContain("should_return_the_seeded_read_model");
+    [Fact] void should_fail_the_generated_seeded_query_specification() => _error!.Message.ShouldContain("should_have_name");
     [Fact] void should_report_the_wrong_expectation() => _error!.Message.ShouldContain("Failed");
 }
 #endif

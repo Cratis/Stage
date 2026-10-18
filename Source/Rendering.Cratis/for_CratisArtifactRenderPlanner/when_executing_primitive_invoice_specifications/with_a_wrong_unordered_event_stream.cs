@@ -26,8 +26,8 @@ public class with_a_wrong_unordered_event_stream : a_generated_application
         var matcher = original.IndexOf("var match0 =", StringComparison.Ordinal);
         (matcher >= 0).ShouldBeTrue();
         var suffix = original[matcher..];
-        suffix.Contains("invoice-one", StringComparison.Ordinal).ShouldBeTrue();
-        suffix = suffix.Replace("invoice-one", "invoice-two", StringComparison.Ordinal);
+        suffix.Contains("entry.Event.Context.EventSourceId == _streamReference", StringComparison.Ordinal).ShouldBeTrue();
+        suffix = suffix.Replace("entry.Event.Context.EventSourceId == _streamReference", "entry.Event.Context.EventSourceId == \"invoice-two\"", StringComparison.Ordinal);
         var tampered = original[..matcher] + suffix;
         tampered = tampered.Replace("when_issuing_an_invoice", "when_swapped_sources", StringComparison.Ordinal);
         AddGeneratedSpecification("Billing/Invoicing/Issue/when_swapped_sources.cs", tampered);

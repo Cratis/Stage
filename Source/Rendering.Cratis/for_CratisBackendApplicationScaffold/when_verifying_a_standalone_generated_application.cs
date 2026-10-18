@@ -18,6 +18,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     ProcessResult _debugBuild = null!;
     ProcessResult _debugTest = null!;
     ProcessResult _releaseBuild = null!;
+    ProcessResult _releaseTest = null!;
     ProcessResult _specCompile = null!;
     ProcessResult _webCompile = null!;
     string[] _specSources = null!;
@@ -36,7 +37,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         }
 
         _specSources = [.. plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) &&
-            Text(artifact).StartsWith("#if DEBUG", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath)];
+            Path.GetFileName(artifact.RelativePath).StartsWith("when_", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath)];
         foreach (var artifact in plan.Artifacts)
         {
             var path = Path.Combine(_application.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -47,13 +48,16 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
 
     async Task Because()
     {
-        _debugBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Debug", "--nologo");
+        _debugBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Debug", "-m:3", "--nologo");
         _debugTest = _debugBuild.ExitCode == 0
-            ? await Run("dotnet", "test", "Projects.Specs/Projects.Specs.csproj", "-c", "Debug", "--no-build", "--nologo", "--logger", "trx;LogFileName=generated.trx", "--results-directory", _application.FullName)
+            ? await Run("dotnet", "test", "Projects.Specs/Projects.Specs.csproj", "-c", "Debug", "--no-build", "--nologo", "--logger", "trx;LogFileName=generated.trx", "--results-directory", _application.FullName, "-m:3", "--", "RunConfiguration.MaxCpuCount=3", "xUnit.MaxParallelThreads=3")
             : new(-1, "Debug tests were not run because the Debug build failed.");
         _specCompile = await Run("dotnet", "msbuild", "Projects.Specs/Projects.Specs.csproj", "-getItem:Compile");
         _webCompile = await Run("dotnet", "msbuild", "Projects.csproj", "-getItem:Compile");
-        _releaseBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Release", "--nologo");
+        _releaseBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Release", "-m:3", "--nologo");
+        _releaseTest = _releaseBuild.ExitCode == 0
+            ? await Run("dotnet", "test", "Projects.Specs/Projects.Specs.csproj", "-c", "Release", "--no-build", "--nologo", "--logger", "trx;LogFileName=release.trx", "--results-directory", _application.FullName, "-m:3", "--", "RunConfiguration.MaxCpuCount=3", "xUnit.MaxParallelThreads=3")
+            : new(-1, "Release tests were not run because the Release build failed.");
 
         var docker = await Run("docker", "version", "--format", "{{.Server.Version}}");
         _dockerAvailable = docker.ExitCode == 0;
@@ -94,6 +98,10 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     [Fact] void should_compile_no_generated_specifications_in_the_web_host() => CompileSources(_webCompile).Intersect(_specSources).ShouldBeEmpty();
     [Fact] void should_cover_a_nonempty_set_of_emitted_specification_files() => _specSources.ShouldNotBeEmpty();
     [Fact] void should_build_the_release_host_without_warnings() => FailureOutput(_releaseBuild).ShouldEqual(string.Empty);
+    [Fact] void should_run_the_generated_specifications_in_release() => _releaseTest.ExitCode.ShouldEqual(0);
+    [Fact] void should_execute_a_nonempty_set_of_release_specifications() => ExecutedSpecifications("release.trx").ShouldBeGreaterThan(0);
+    [Fact] void should_pass_every_release_specification() => PassedSpecifications("release.trx").ShouldEqual(ExecutedSpecifications("release.trx"));
+    [Fact] void should_execute_the_same_specifications_in_both_configurations() => ExecutedSpecifications("release.trx").ShouldEqual(ExecutedSpecifications());
     [Fact] void should_record_docker_availability_explicitly() => _dockerEvidence.ShouldNotBeEmpty();
     [Fact] void should_pass_health_when_docker_is_available() => (_dockerAvailable ? _healthEvidence : _dockerEvidence).ShouldEqual(_dockerAvailable ? "GET /healthz returned 200." : _dockerEvidence);
     [Fact] void should_serve_a_read_model_query_immediately_after_the_first_healthy_response_when_docker_is_available() => (_dockerAvailable ? _firstQueryStatus : HttpStatusCode.OK).ShouldEqual(HttpStatusCode.OK);
@@ -110,11 +118,15 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
             .Select(item => Path.GetRelativePath(_application.FullName, item.GetProperty("FullPath").GetString()!).Replace('\\', '/'))];
     }
 
-    int ExecutedSpecifications()
+    int ExecutedSpecifications(string fileName = "generated.trx") => SpecificationCount(fileName, "executed");
+
+    int PassedSpecifications(string fileName) => SpecificationCount(fileName, "passed");
+
+    int SpecificationCount(string fileName, string counter)
     {
-        var results = System.Xml.Linq.XDocument.Load(Path.Combine(_application.FullName, "generated.trx"));
+        var results = System.Xml.Linq.XDocument.Load(Path.Combine(_application.FullName, fileName));
         var counters = results.Descendants().Single(element => element.Name.LocalName == "Counters");
-        return int.Parse(counters.Attribute("executed")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+        return int.Parse(counters.Attribute(counter)!.Value, System.Globalization.CultureInfo.InvariantCulture);
     }
 
     async Task<string> VerifyHealth()

@@ -15,7 +15,7 @@ public class with_a_unique_value(context fixture) : IClassFixture<context>
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_generated_specs() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_execute_violation_and_nonviolating_cases() => fixture.Results.Length.ShouldEqual(11);
+    [Fact] void should_execute_violation_and_nonviolating_cases() => fixture.Results.Length.ShouldEqual(13);
 
     public class context : a_generated_invoice_application
     {

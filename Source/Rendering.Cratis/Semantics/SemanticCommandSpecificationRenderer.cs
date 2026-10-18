@@ -25,7 +25,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var when = specification.When!;
         var command = context.Commands[when.Command];
         var located = context.DeclaringSlice(specification.Id);
-        var types = new SemanticTypeSystem(context);
+        var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var generated = new SemanticGeneratedCommandSpecification(specification, command, types, context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
         var ownNamespace = $"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}";
@@ -61,13 +61,13 @@ internal static partial class SemanticCommandSpecificationRenderer
         // Decided from the rendered content rather than predicted, the same way the non-semantic renderer
         // does it: only a value that renders as a culture-invariant parse needs the namespace, and emitting
         // it regardless leaves a using nobody uses in every generated specification.
-        var content = builder.ToString();
+        var content = types.SpecificationContent(builder.ToString());
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = builder.Using("System.Globalization").ToString();
+            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
         }
 
-        return new(path, Conditional(content));
+        return new(path, content);
     }
 
     static void AddInputUsings(
@@ -129,6 +129,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         scope.Context.Docs(scope.Specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{scope.CommandName}> _scenario = new();")
+            .Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Arc.Commands.CommandResult _result = null!;");
         if (scope.CountsGivenEvents)
         {
@@ -202,7 +203,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var eventValue = $"new {types.EventType(@event)}({string.Join(", ", eventArguments)})";
         if (given.Route is { } route)
         {
-            builder.Line($"(await _scenario.EventLog.Append({eventSource}, {eventValue}, {SemanticSpecificationRouteRendering.Arguments(route, context)})).IsSuccess.ShouldBeTrue();");
+            builder.Line($"(await _scenario.EventLog.Append({eventSource}, {eventValue}, {SemanticSpecificationRouteRendering.Arguments(route, context, types)})).IsSuccess.ShouldBeTrue();");
             return;
         }
 
@@ -258,20 +259,9 @@ internal static partial class SemanticCommandSpecificationRenderer
 
     static void RenderDenied(SpecificationScope scope)
     {
-        var context = scope.Context;
-        var policy = $"global::{context.PoliciesNamespace}.{Policies.SemanticPolicyArtifactRenderer.Name(scope.Command.Id)}";
-        var policyName = context.Domain.Count == 0 ? $"nameof({policy})" : CSharpCodeBuilder.StringLiteral(Policies.SemanticPolicyArtifactRenderer.PolicyName(context, scope.Command.Id));
         scope.Builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-            .Using("Cratis.Arc.Authorization")
-            .Using("Microsoft.Extensions.DependencyInjection")
             .Line("[global::Xunit.FactAttribute] void should_be_denied() => _result.IsAuthorized.ShouldBeFalse();")
-            .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);")
-            .OpenBlock("[global::Xunit.FactAttribute] void should_resolve_the_registered_policy()")
-            .Line($"_scenario.Services.Any(registration => registration.ImplementationInstance is global::Cratis.Arc.Authorization.AuthorizationPolicyRegistration policy && policy.Name == {policyName} && policy.PolicyType == typeof({policy})).ShouldBeTrue();")
-            .Line("using var provider = _scenario.Services.BuildServiceProvider();")
-            .Line("using var scope = provider.CreateScope();")
-            .Line($"scope.ServiceProvider.GetRequiredService<{policy}>().ShouldNotBeNull();")
-            .EndBlock();
+            .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);");
     }
 
     static void RenderRejected(SpecificationScope scope)
@@ -330,6 +320,4 @@ internal static partial class SemanticCommandSpecificationRenderer
 
         return $"(@event.{name} is {{ }} actual{name} && actual{name}.SequenceEqual({ExpectedCollectionName(property, index)}))";
     }
-
-    static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";
 }

@@ -151,7 +151,7 @@ internal static partial class SemanticCratisAdmission
     }
 
     static bool ReactionCollectionValueMatches(SemanticApplicationContext context, SemanticValue value, SemanticTypeReference type) =>
-        value is SemanticArrayValue array && array.Values.All(element => ReactionValueMatches(context, element, type with { IsCollection = false }));
+        value is SemanticArrayValue array && array.Values.All(element => ReactionValueMatches(context, element, type with { IsCollection = false, IsOptional = false }));
 
     static bool ReactionCompositeValueMatches(SemanticApplicationContext context, SemanticValue value, SemanticTypeReference type) =>
         value is SemanticCompositeValue composite &&

@@ -14,7 +14,7 @@ public class with_multiple_produced_events(context fixture) : IClassFixture<cont
 {
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
-    [Fact] void should_run_eight_assertions() => fixture.Results.Length.ShouldEqual(8);
+    [Fact] void should_run_sixteen_assertions() => fixture.Results.Length.ShouldEqual(16);
     [Fact] void should_pass_every_assertion() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
 
     public class context : a_generated_invoice_application

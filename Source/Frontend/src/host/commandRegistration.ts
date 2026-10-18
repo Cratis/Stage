@@ -4,7 +4,7 @@
 import { Command } from '@cratis/arc/commands';
 import { PropertyDescriptor } from '@cratis/arc/reflection';
 import { registerCommand } from '@cratis/scene.components';
-import type { StageRoutes } from '../stageRoutes';
+import type { StageRoutes } from '@cratis/stage.runtime';
 
 type LiveCommandRoutes = StageRoutes & {
     /** JSON response kinds from the modeled responses. Commands without a declared response echo objects. */

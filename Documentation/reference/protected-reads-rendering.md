@@ -59,8 +59,9 @@ Do not combine a read with:
 
 - a read path in a `produces when` condition or destination;
 - a read-path mapping to an optional, collection, composite or differently typed event property (the reference yields null for a missing value, which Arc cannot express faithfully);
-- a generated-value event-source destination (freshness scopes), because the interaction with Arc's explicit scopes is unproven;
-- an event that is a target of an append-time constraint.
+- a generated-value event-source destination (freshness scopes), because the interaction with Arc's explicit scopes is unproven.
+
+A command may combine reads with an event under an append-time constraint. The failure order is a missing read first, then the requirements, then the constraint; the three-way conformance specification `when_comparing_protected_reads_with_constraints` compares the reference evaluator, the Stage executor and the rendered application.
 
 The renderer refuses each of these with `STAGE-ESM-044`, and the message names the reason. Non-Error requirements on protected commands remain refused with `STAGE-ESM-045`. The legacy syntax renderer, Host and structural specification runner refuse the preamble with `STAGE-ESM-044`.
 

@@ -14,8 +14,9 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "types": ["vite/client", "chai/register-should"]
   },
-  "include": ["src"],
+  "include": ["src", "Runtime/src/vite-env.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

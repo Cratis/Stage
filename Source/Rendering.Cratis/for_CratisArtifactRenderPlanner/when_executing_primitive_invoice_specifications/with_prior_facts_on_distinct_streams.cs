@@ -15,7 +15,7 @@ public class with_prior_facts_on_distinct_streams(context fixture) : IClassFixtu
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_all_generated_assertions() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_run_four_assertions() => fixture.Results.Length.ShouldEqual(4);
+    [Fact] void should_run_six_assertions() => fixture.Results.Length.ShouldEqual(6);
 
     public class context : a_generated_invoice_application
     {

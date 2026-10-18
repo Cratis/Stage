@@ -54,12 +54,12 @@ public class when_recording_declaring_slice_sources
 
     public static TheoryData<string, string> Models => new()
     {
-        { when_rendering_scoped_projections.ScopedSource, "526f862d0de7d59386ad6883ec31b8d85e4310db7ea9df373f1e61cc74ac16f6" },
-        { QuerySource, "97fa5b90bc77390ecf540ba65874c98123adbe826a4a5b0e4f6d3da30dce1ae1" },
-        { DeniedQuerySource(), "6b699c9814d8c5a3b9a4ecae23981a886408cf9cb116e0b6af194c3b8b0d4ec3" },
-        { a_reaction_specification.ProductionSource, "c865e969c777d53bfe134ef4be802d4aa0f312f186d4b7d2d8eadfca85ee5e19" },
-        { a_redelivery_specification.RedeliverySource, "185e704ba171ebc3b8c9dd58816684bd055d6a540506d3c61a97096a7ad8be9b" },
-        { a_specification_case_table.Source, "b95e27b77aba9efbb451ad8ed303e48633ce0497586aa51a5d3746e5815df7ef" }
+        { when_rendering_scoped_projections.ScopedSource, "e5f1bb30f72bca24c534f617464c455709377733626682767915fe590c99333f" },
+        { QuerySource, "cc622d2c2b7a6030342c3c823adba47c96f08f2504a545e1f035cbd0c15b7ce8" },
+        { DeniedQuerySource(), "422877b8623baaed91b83953a94ecaf9974349a9cf75be9a23a1552ad2729b42" },
+        { a_reaction_specification.ProductionSource, "c99cb46e0b410e2648760d34d223d49acd9019b16bcca4001bfa7c3cbb9338bd" },
+        { a_redelivery_specification.RedeliverySource, "7f140178f427dd6ee77eafa6d36878ea0d5915eade1951810c94604b2f7e4e72" },
+        { a_specification_case_table.Source, "8a601707cf7d2d1398524cce07a5eb2c4fa43675cd986afe71a001f836a9a8d0" }
     };
 
     public static IEnumerable<object[]> Sources => Models.Select(row => new[] { row[0] });

@@ -19,7 +19,6 @@ public class when_refusing_unrenderable_decision_reads
     static string Corpus => ProtectedCommandReadsCorpus.V25.SourceForms.Single(form => form.Name == "single").Documents.Single().Text;
 
     [Theory]
-    [InlineData("an event under an append-time constraint", "constraint")]
     [InlineData("generated-value freshness scopes", "freshness")]
     public void should_name_the_reason_with_the_decision_read_code(string reason, string shape)
     {
@@ -68,6 +67,14 @@ public class when_refusing_unrenderable_decision_reads
         var plan = CratisRendering.Plan(changed, SemanticExecutionPlan.Compile(changed).Plan!, new(ArtifactRenderScopeKind.Application, changed.Application.Id), new("InvoiceApp", "Invoices"));
 
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-044" && diagnostic.Artifact == command.Id);
+    }
+
+    [Fact]
+    public void should_admit_reads_on_a_command_producing_a_constrained_event()
+    {
+        var plan = invoice_model.Plan(invoice_model.Compile(Variant("constraint")));
+
+        plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-044");
     }
 
     [Fact]

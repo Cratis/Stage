@@ -21,12 +21,27 @@ on:
       - "*.targets"
       - "*.slnx"
       - "global.json"
+      - "**/[Nn]u[Gg]et.[Cc]onfig"
+      - "**/packages.lock.json"
       - ".github/workflows/dotnet-build.yml"
       - ".github/spec-shards.py"
+      - ".github/spec-shard-timings.json"
       - ".github/test_spec_shards.py"
+      - ".github/workflows/warm-nuget-cache.yml"
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify Host kernel and client compatibility pins
+        run: python3 Verification/verify-runtime-compatibility.py --self-test
+
   dotnet-build:
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -45,7 +60,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
           restore-keys: |
             nuget-${{ runner.os }}-
 
@@ -55,9 +70,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: Source/Frontend/package-lock.json
-
-      - name: Verify Host kernel and client compatibility pins
-        run: python3 Verification/verify-runtime-compatibility.py --self-test
 
       - name: Verify container entrypoint supervision
         run: python3 Verification/verify-stage-entrypoint.py
@@ -83,7 +95,9 @@ jobs:
 
       - name: Require every solution test project to be sharded
         id: spec-coverage
-        run: python3 .github/spec-shards.py guard
+        # The dedicated blueprint-template lane below runs in every workflow run.
+        # If it becomes conditional, pass this flag only when that lane is enabled.
+        run: python3 .github/spec-shards.py guard --blueprint-templates-lane
 
       # Artifacts are an intra-run handoff, unlike immutable commit-keyed caches, whose failed saves
       # can poison a rerun. Tar preserves executable permissions and the original project layout.
@@ -116,7 +130,7 @@ jobs:
 
   specs:
     name: specs (${{ matrix.name }})
-    needs: [dotnet-build]
+    needs: [preflight, dotnet-build]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -136,7 +150,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
           restore-keys: |
             nuget-${{ runner.os }}-
 
@@ -179,23 +193,25 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Preserve the original build check as an aggregate: it must fail if compilation/packaging or
-  # any spec shard fails or is skipped. The independent live/generated probe checks stay separate.
+  # Preserve the original build check as an aggregate: it must fail if preflight, compilation/packaging
+  # or any spec shard fails or is skipped. The independent live/generated probe checks stay separate.
   build:
-    needs: [dotnet-build, specs]
+    needs: [preflight, dotnet-build, specs]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Require build and every spec shard to succeed
+      - name: Require preflight, build and every spec shard to succeed
         env:
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           BUILD_RESULT: ${{ needs.dotnet-build.result }}
           SPECS_RESULT: ${{ needs.specs.result }}
-        run: test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success
+        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success
 
   # Live persistence is a separate gate: the ordinary Debug suite skips live execution of these probes
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
   reducer-mongo:
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -208,8 +224,13 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Verify Host kernel and client compatibility pins
-        run: python3 Verification/verify-runtime-compatibility.py --self-test
+      - name: Restore NuGet packages (only the build job saves this cache)
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Start pinned Chronicle with bundled MongoDB
         run: |
@@ -296,6 +317,7 @@ jobs:
   # names whose generated C# does not compile or serialize. It takes about as long as the rest of the
   # suite, so it runs next to the build job instead of inside it.
   generated-name-matrix:
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -315,6 +337,14 @@ jobs:
           git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 6b32f743afcbeaa0fdeab5b0fa72ab1f40f96e9e
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
+      - name: Restore NuGet packages (only the build job saves this cache)
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
       - name: Run generated-name matrix
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
@@ -324,6 +354,7 @@ jobs:
   # handing it the approved package set and the package's browser build as `cratis run --package-set` does. A browser asserts
   # the live Stage loaded the package at runtime and rendered its component, and refused to render when the package is missing.
   live-custom-packages:
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -342,6 +373,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: Verification/generated-react-browser/package-lock.json
+
+      - name: Restore NuGet packages (only the build job saves this cache)
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Publish Host
         run: >-
@@ -386,6 +425,7 @@ jobs:
   # would (Debug backend with its proxies and generated specifications, npm install, frontend build), then serves it
   # on its own backend against the pinned Chronicle kernel and runs the browser scenarios used against a live Stage.
   generated-react:
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -404,6 +444,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: Verification/generated-react-browser/package-lock.json
+
+      - name: Restore NuGet packages (only the build job saves this cache)
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Render and build the generated application
         env:
@@ -452,6 +500,7 @@ jobs:
   # Renders the default blueprint's MasterDetail, Dashboard and ProfileSettings templates (Verification/blueprint-templates) into a generated React
   # application, builds it the way its author would and runs the template vector - slots filled, no overflow, layout, accessibility - against it.
   generated-react-blueprint-templates:
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -470,6 +519,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: Verification/generated-react-browser/package-lock.json
+
+      - name: Restore NuGet packages (only the build job saves this cache)
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
       - name: Render and build the generated application
         env:

@@ -44,9 +44,13 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.206.0, admits exact ESM v1–v27
-version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v28 and later) with `STAGE-ESM-016`.
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.206.0, admits exact ESM v1–v28
+version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v29 and later) with `STAGE-ESM-016`.
 A v22 model with `reaction batches atomic` executes each direct-production batch all-or-none; see [Atomic reaction batches](#atomic-reaction-batches).
+At v28 the semantic executor runs Uuid `==` and `!=` in command requirements and `produces when` guards, including protected
+read paths, with the reference evaluator's results: Uuids compare ordinally in canonical lowercase hyphenated spelling, and a
+non-canonical Uuid input is rejected before the requirement runs. The legacy structural runner refuses Uuid comparisons with
+`STAGE-ESM-049`.
 At v27 a specification that projects into a read model with several `key` parts records `Unsupported(Projection)`,
 naming ESM v27 composite read-model keys: the per-run scenario seeds and looks up instances by one event-source key.
 The semantic Host runs such read models; the legacy structural runner refuses them with `STAGE-ESM-048`.

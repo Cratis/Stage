@@ -25,8 +25,18 @@ public static class LayoutConverter
     /// </summary>
     /// <param name="layout">The <see cref="ScreenplaySyntax.LayoutSyntax"/> to convert.</param>
     /// <returns>The converted <see cref="SceneLayouts.Layout"/>.</returns>
-    public static SceneLayouts.Layout Convert(ScreenplaySyntax.LayoutSyntax layout) =>
-        new(layout.Name, SlotConverter.Convert(layout.Slots), ArrangementConverter.Convert(layout.Arrangement))
+    public static SceneLayouts.Layout Convert(ScreenplaySyntax.LayoutSyntax layout) => Convert(layout, null);
+
+    /// <summary>
+    /// Converts a layout while collecting arrangement omissions.
+    /// </summary>
+    /// <param name="layout">The layout to convert.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <returns>The converted layout.</returns>
+    public static SceneLayouts.Layout Convert(ScreenplaySyntax.LayoutSyntax layout, ConversionDiagnostics? diagnostics) =>
+        new(layout.Name, SlotConverter.Convert(layout.Slots), diagnostics is null
+            ? ArrangementConverter.Convert(layout.Arrangement)
+            : ArrangementConverter.Convert(layout.Arrangement, diagnostics, layout.Name))
         {
             Metadata = CompositionConverter.Metadata(layout.TemplateType, layout.Category, layout.RestrictsScopes, layout.Scopes, layout.SliceKinds),
             Outlets = [.. layout.Outlets.Select(outlet => new SceneScreens.Outlet(outlet.Name))]

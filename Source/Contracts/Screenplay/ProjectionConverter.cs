@@ -13,6 +13,65 @@ namespace Cratis.Stage.Contracts.Screenplay;
 public static class ProjectionConverter
 {
     /// <summary>
+    /// Identifies an unsupported projection sequence.
+    /// </summary>
+    public const string SequenceDiagnosticCode = "STAGE-PROJECTION-001";
+
+    /// <summary>
+    /// Identifies an unsupported projection variant.
+    /// </summary>
+    public const string VariantDiagnosticCode = "STAGE-PROJECTION-002";
+
+    /// <summary>
+    /// Identifies an unsupported projection block.
+    /// </summary>
+    public const string BlockDiagnosticCode = "STAGE-PROJECTION-003";
+
+    /// <summary>
+    /// Identifies an unsupported mapping.
+    /// </summary>
+    public const string MappingDiagnosticCode = "STAGE-PROJECTION-004";
+
+    /// <summary>
+    /// Identifies an unsupported expression.
+    /// </summary>
+    public const string ExpressionDiagnosticCode = "STAGE-PROJECTION-005";
+
+    /// <summary>
+    /// Identifies an unsupported key.
+    /// </summary>
+    public const string KeyDiagnosticCode = "STAGE-PROJECTION-006";
+
+    /// <summary>
+    /// Identifies an unsupported automatic mapping mode.
+    /// </summary>
+    public const string AutoMapDiagnosticCode = "STAGE-PROJECTION-007";
+
+    /// <summary>
+    /// Identifies an additional projection omitted by the single-projection contract.
+    /// </summary>
+    public const string AdditionalProjectionDiagnosticCode = "STAGE-PROJECTION-008";
+
+    /// <summary>
+    /// Converts a whole projection, reporting every unsupported construct instead of returning a partial definition.
+    /// </summary>
+    /// <param name="projection">The projection to convert.</param>
+    /// <param name="diagnostics">The append-only diagnostic collector.</param>
+    /// <param name="path">The owning slice path.</param>
+    /// <returns>The definition, or null if this projection contains an unsupported construct.</returns>
+    public static ProjectionDefinition? Convert(ProjectionSyntax projection, ConversionDiagnostics diagnostics, string path)
+    {
+        var omissions = new ConversionDiagnostics();
+        new ProjectionConversionAdmission(omissions, path).VisitProjection(projection);
+        foreach (var diagnostic in omissions.All)
+        {
+            diagnostics.Report(diagnostic);
+        }
+
+        return omissions.HasErrors ? null : Convert(projection);
+    }
+
+    /// <summary>
     /// Converts a projection declaration into its Stage definition.
     /// </summary>
     /// <param name="projection">The projection to convert.</param>

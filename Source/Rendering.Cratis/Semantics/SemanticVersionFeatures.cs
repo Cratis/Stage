@@ -128,6 +128,11 @@ internal static class SemanticVersionFeatures
     internal const string CompositeReadModelKeys = "STAGE-ESM-048";
 
     /// <summary>
+    /// The code for Uuid comparisons, which the legacy syntax engine cannot keep the meaning of.
+    /// </summary>
+    internal const string UuidComparisons = "STAGE-ESM-049";
+
+    /// <summary>
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
@@ -138,12 +143,7 @@ internal static class SemanticVersionFeatures
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
     public static bool Supports(ExecutableSemanticModel model) =>
-        EsmSchemaV22Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
-        (model.LanguageVersion == LanguageVersion.V23 && model.SemanticVersion == SemanticVersion.V23) ||
-        (model.LanguageVersion == LanguageVersion.V24 && model.SemanticVersion == SemanticVersion.V24) ||
-        (model.LanguageVersion == LanguageVersion.V25 && model.SemanticVersion == SemanticVersion.V25) ||
-        (model.LanguageVersion == LanguageVersion.V26 && model.SemanticVersion == SemanticVersion.V26) ||
-        (model.LanguageVersion == LanguageVersion.V27 && model.SemanticVersion == SemanticVersion.V27);
+        EsmSchemaV28Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.

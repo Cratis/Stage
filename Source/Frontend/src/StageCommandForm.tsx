@@ -5,8 +5,7 @@ import { useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
-import { Command } from '@cratis/arc/commands';
-import { PropertyDescriptor } from '@cratis/arc/reflection';
+import { registeredCommand, commandOutcome } from './commandExecutor';
 import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField } from '@cratis/components/CommandForm';
 import { useStageData } from './stageData';
@@ -22,7 +21,6 @@ interface NativeFormProperties {
     command: string;
     label: string;
     fields: FormField[];
-    route?: string;
     generationMode: FormGenerationMode;
     layout?: CommandFormLayout;
 }
@@ -40,8 +38,6 @@ interface JsonSchemaDefinition {
     format?: unknown;
 }
 
-type StageCommandConstructor = new () => Command<StageCommandContent, object>;
-
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
 export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
@@ -49,19 +45,17 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const schema = useMemo(() => schemaProperties(element), [element]);
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
-    const route = form?.route ?? (form ? data.routes?.commands[form.command] : undefined);
+    const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
     const initialValues = useMemo(() => initialCommandValues(fields, data.parameters), [fields, data.parameters]);
-    const commandSignature = useMemo(() => route ? commandSignatureFor(route, fields, schema, initialValues) : '', [route, fields, schema, initialValues]);
-    const commandType = useMemo(() => route ? commandTypeFor(route, fields, schema, initialValues) : undefined, [route, commandSignature]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
     const [messages, setMessages] = useState<string[]>([]);
 
     if (!form) return <p className='stage-note'>This form is missing its command metadata.</p>;
-    if (!route && !data.routesReady) return <p className='stage-note'>The modeled command “{form.command}” is waiting for Stage routes.</p>;
-    if (!route || !commandType) return <p className='stage-note'>The modeled command “{form.command}” is not registered by this Stage.</p>;
+    if (!commandType && !data.routesReady) return <p className='stage-note'>The modeled command “{form.command}” is waiting for Stage routes.</p>;
+    if (!commandType) return <p className='stage-note'>The modeled command “{form.command}” is not registered by this Stage.</p>;
     if (fields.length === 0 && !hasSchemaMetadata && element.properties.parameterless !== true) {
         return <UnsupportedForm form={form} messages={[`The modeled command “${form.command}” has no form fields or schema metadata, so Stage will not submit an empty command body.`]} />;
     }
@@ -79,7 +73,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
                 onValidationFailure={validation => setMessages(validation.map(_ => _.message))}
                 onException={exceptionMessages => setMessages(exceptionMessages)}
-                onFailed={result => setMessages(messagesFromResult(result))}
+                onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
                 onSuccess={() => {
                     setMessages([]);
                     data.refreshAfterCommand();
@@ -110,7 +104,6 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
         command,
         label: text(element, 'label', command),
         fields,
-        route: text(element, 'route') || undefined,
         generationMode: generationModeFor(element.properties.generationMode),
         layout: layoutFor(element.properties.layout),
     };
@@ -236,56 +229,6 @@ function argumentMapping(element: ExternalComponent, fields: FormField[]): Argum
         members.has((argument as ArgumentMapping).name));
 }
 
-function commandSignatureFor(route: string, fields: FormField[], schema: SchemaProperty[], initialValues: StageCommandContent): string {
-    const schemaByName = new Map(schema.map(property => [property.name, property]));
-    return JSON.stringify({
-        route: route.replace(/^\//, ''),
-        initialValues,
-        fields: fields.map(field => {
-            const property = field.sourceProperty ?? field.name;
-            const schemaProperty = schemaByName.get(property);
-            return {
-                name: field.name,
-                sourceProperty: field.sourceProperty,
-                property,
-                type: schemaProperty?.type ?? 'text',
-                required: schemaProperty?.required ?? true,
-            };
-        }),
-    });
-}
-
-function commandTypeFor(route: string, fields: FormField[], schema: SchemaProperty[], initialValues: StageCommandContent): StageCommandConstructor {
-    const descriptors = fields.map(field => {
-        const property = field.sourceProperty ?? field.name;
-        const schemaProperty = schema.find(_ => _.name === property);
-        return new PropertyDescriptor(property, constructorFor(schemaProperty?.type), !(schemaProperty?.required ?? true));
-    });
-
-    return class StageNativeCommand extends Command<StageCommandContent, object> {
-        readonly route = route.replace(/^\//, '');
-        readonly propertyDescriptors = descriptors;
-        get requestParameters(): string[] { return []; }
-
-        constructor() {
-            super(Object, false);
-            (this as unknown as { _values: StageCommandContent })._values = { ...initialValues };
-            for (const descriptor of descriptors) {
-                Object.defineProperty(this, descriptor.name, {
-                    configurable: true,
-                    enumerable: true,
-                    get: () => (this as unknown as { _values: StageCommandContent })._values?.[descriptor.name],
-                    set: value => {
-                        const target = this as unknown as { _values: StageCommandContent };
-                        target._values = { ...(target._values ?? {}), [descriptor.name]: value };
-                        this.propertyChanged(descriptor.name);
-                    },
-                });
-            }
-        }
-    };
-}
-
 function generationModeFor(value: unknown): FormGenerationMode {
     return value === FormGenerationMode.Manual ? FormGenerationMode.Manual : FormGenerationMode.Auto;
 }
@@ -348,28 +291,12 @@ function widthToCss(width: FormWidth | undefined): string | undefined {
     }
 }
 
-function constructorFor(type: SchemaProperty['type'] | undefined) {
-    switch (type) {
-        case 'number': return Number;
-        case 'boolean': return Boolean;
-        case 'date': return Date;
-        default: return String;
-    }
-}
-
 function requiredMessage(fields: FormField[], schema: SchemaProperty[], fieldName: string, value: unknown): string | undefined {
     const field = fields.find(_ => (_.sourceProperty ?? _.name) === fieldName);
     const property = schema.find(_ => _.name === fieldName);
     if (!(property?.required ?? true)) return undefined;
     if (value === undefined || value === null || value === '') return `${field?.label ?? fieldName} is required`;
     return undefined;
-}
-
-function messagesFromResult(result: { validationResults: { message: string }[]; exceptionMessages: string[] }): string[] {
-    return [
-        ...result.validationResults.map(_ => _.message),
-        ...result.exceptionMessages,
-    ];
 }
 
 function unsupportedSchemaMessagesFor(fields: FormField[], schema: SchemaProperty[]): string[] {

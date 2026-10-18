@@ -22,7 +22,7 @@ trap cleanup EXIT
 
 [ -d "$here/../generated-react-browser/node_modules/playwright" ] || { echo "could not run: run 'npm ci' in generated-react-browser first"; exit 2; }
 
-docker run --detach --name "$container" --publish "127.0.0.1:$port:9090" --volume "$here/model:/eventmodel:ro" "$image" >/dev/null \
+docker run --detach --name "$container" --publish "127.0.0.1:$port:9090" --env Stage__Runtime__Engine=eventmodel --volume "$here/model:/eventmodel:ro" "$image" >/dev/null \
     || { echo "could not run: the Stage image $image did not start"; exit 2; }
 ready=false
 for _ in $(seq 1 90); do

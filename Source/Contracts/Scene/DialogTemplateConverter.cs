@@ -34,11 +34,20 @@ public static class DialogTemplateConverter
     /// <param name="template">The <see cref="ScreenplaySyntax.DialogTemplateSyntax"/> to convert.</param>
     /// <param name="behaviors">What a <c language="csharp">uses</c> clause inside the template's content resolves against.</param>
     /// <returns>The converted <see cref="SceneScreens.DialogTemplate"/>.</returns>
-    public static SceneScreens.DialogTemplate Convert(ScreenplaySyntax.DialogTemplateSyntax template, BehaviorScope? behaviors) =>
+    public static SceneScreens.DialogTemplate Convert(ScreenplaySyntax.DialogTemplateSyntax template, BehaviorScope? behaviors) => Convert(template, behaviors, null);
+
+    /// <summary>
+    /// Converts a dialog template while collecting arrangement omissions.
+    /// </summary>
+    /// <param name="template">The template to convert.</param>
+    /// <param name="behaviors">The behavior scope.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <returns>The converted template.</returns>
+    public static SceneScreens.DialogTemplate Convert(ScreenplaySyntax.DialogTemplateSyntax template, BehaviorScope? behaviors, ConversionDiagnostics? diagnostics) =>
         new(
             template.Name,
             SlotConverter.Convert(template.Slots),
-            ArrangementConverter.Convert(template.Arrangement),
+            diagnostics is null ? ArrangementConverter.Convert(template.Arrangement) : ArrangementConverter.Convert(template.Arrangement, diagnostics, template.Name),
             CompositionConverter.Content(template.Name, template.Content, behaviors),
             template.DisplayName,
             template.Description)

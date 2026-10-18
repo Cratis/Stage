@@ -76,6 +76,12 @@ public record SceneApplication(
     public IReadOnlyList<SceneRuntimeIssue> RuntimeIssues { get; init; } = [];
 
     /// <summary>
+    /// Gets source constructs omitted during conversion. Errors prevent rendering, but importers may retain the partial contract.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<ConversionDiagnostic> ConversionDiagnostics { get; init; } = [];
+
+    /// <summary>
     /// Gets the JSON schema of every modeled command, by command name, which a toolbar slice's task dialog reads its fields from. Set where the
     /// semantic model is known - a live Stage and the generated Stage runtime document - and absent from the canonical document.
     /// </summary>

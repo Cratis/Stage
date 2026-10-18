@@ -15,12 +15,26 @@ namespace Cratis.Stage.Specifications.Types;
 /// <param name="plan">The semantic contract plan.</param>
 internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
 {
+    static readonly Dictionary<SemanticPrimitiveType, Type> _clrTypes = new()
+    {
+        [SemanticPrimitiveType.Uuid] = typeof(Guid),
+        [SemanticPrimitiveType.Text] = typeof(string),
+        [SemanticPrimitiveType.WholeNumber] = typeof(long),
+        [SemanticPrimitiveType.DecimalNumber] = typeof(decimal),
+        [SemanticPrimitiveType.Boolean] = typeof(bool),
+        [SemanticPrimitiveType.Date] = typeof(DateOnly),
+        [SemanticPrimitiveType.DateTime] = typeof(DateTimeOffset)
+    };
+
     readonly DynamicTypeFactory _factory = new();
     readonly Dictionary<SemanticId, Type> _events = [];
     readonly Dictionary<SemanticId, Type> _commands = [];
     readonly Dictionary<SemanticId, Type> _readModels = [];
 
-    internal static object? ConvertValue(SemanticValue value, Type target) => value switch
+    internal static object? ConvertValue(SemanticValue value, Type target) =>
+        ConvertUnderlying(value, Nullable.GetUnderlyingType(target) ?? target);
+
+    internal static object? ConvertUnderlying(SemanticValue value, Type target) => value switch
     {
         SemanticNullValue => null,
         SemanticTextValue text when target == typeof(Guid) => Guid.Parse(text.Value),
@@ -87,16 +101,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         var primitive = reference.Kind == SemanticTypeReferenceKind.Concept
             ? plan.Model.Application.Concepts.Single(concept => concept.Id == reference.Target).Primitive
             : reference.Primitive;
-        return primitive switch
-        {
-            SemanticPrimitiveType.Uuid => typeof(Guid),
-            SemanticPrimitiveType.Text => typeof(string),
-            SemanticPrimitiveType.WholeNumber => typeof(long),
-            SemanticPrimitiveType.DecimalNumber => typeof(decimal),
-            SemanticPrimitiveType.Boolean => typeof(bool),
-            SemanticPrimitiveType.Date => typeof(DateOnly),
-            SemanticPrimitiveType.DateTime => typeof(DateTimeOffset),
-            _ => typeof(object)
-        };
+        var type = _clrTypes.GetValueOrDefault(primitive, typeof(object));
+        return reference.IsOptional && type.IsValueType ? typeof(Nullable<>).MakeGenericType(type) : type;
     }
 }

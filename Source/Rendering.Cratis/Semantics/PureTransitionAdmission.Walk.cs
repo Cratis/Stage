@@ -170,6 +170,8 @@ internal static partial class PureTransitionAdmission
 
         Compilation Compilation => model.Compilation;
 
+        bool IsValidationIterator => descriptor.Role is SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation;
+
         public Verdict Accepted() => new(
             null,
             null,
@@ -179,7 +181,15 @@ internal static partial class PureTransitionAdmission
             [.. Descendants(root).SelectMany(operation => BoundMembers(operation, model)).Where(IsAuditedMember).Select(AuditedSignature).Distinct(StringComparer.Ordinal)]);
 
         public Verdict? Visit(IOperation operation) =>
-            TypeRejection(operation) ?? StructureRejection(operation) ?? SymbolRejection(operation);
+            InterpolationRejection(operation) ?? TypeRejection(operation) ?? StructureRejection(operation) ?? SymbolRejection(operation);
+
+        static Verdict? InterpolationRejection(IOperation operation) =>
+            operation is IInterpolationOperation hole && !SafeInterpolationType(hole.Expression.Type)
+                ? Forbid($"Interpolation of '{hole.Expression.Type?.ToDisplayString()}' is outside the pure allowlist.")
+                : null;
+
+        static bool SafeInterpolationType(ITypeSymbol? type) =>
+            SafeValueType(type) || NameIs(type?.ToDisplayString() ?? string.Empty, "System.DateTimeOffset", "System.TimeSpan");
 
         static Verdict? EnumFieldRejection(IOperation operation) => operation switch
         {
@@ -242,18 +252,19 @@ internal static partial class PureTransitionAdmission
                 : null;
         }
 
-        // Only the named, audited operation shapes are admitted. Unknown Roslyn kinds fail closed.
-        static Verdict? KindRejection(IOperation operation) =>
-            _admittedOperations.Contains(operation.Kind)
-                ? null
-                : Forbid($"Operation '{operation.Kind}' on '{operation.Type?.ToDisplayString()}' is outside the pure allowlist.");
-
         static Verdict? ProviderRejection(IOperation operation) => operation switch
         {
             IInvocationOperation invocation when UsesNonInvariantProvider(invocation) =>
                 Forbid($"Symbol '{invocation.TargetMethod.ToDisplayString()}' requires CultureInfo.InvariantCulture."),
             _ => null
         };
+
+        // Only the named, audited operation shapes are admitted. Unknown Roslyn kinds fail closed.
+        Verdict? KindRejection(IOperation operation) =>
+            _admittedOperations.Contains(operation.Kind) ||
+            (IsValidationIterator && operation.Kind is OperationKind.YieldReturn or OperationKind.InterpolatedString or OperationKind.InterpolatedStringText or OperationKind.Interpolation)
+                ? null
+                : Forbid($"Operation '{operation.Kind}' on '{operation.Type?.ToDisplayString()}' is outside the pure allowlist.");
 
         Verdict? TypeRejection(IOperation operation) =>
             ForbiddenRejection(operation) ??

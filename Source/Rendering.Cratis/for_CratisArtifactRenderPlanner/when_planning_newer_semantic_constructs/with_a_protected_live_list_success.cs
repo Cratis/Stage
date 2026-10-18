@@ -21,5 +21,5 @@ public class with_a_protected_live_list_success : Specification
     }
 
     [Fact] void should_admit_the_protected_live_list_success_scenario() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_emit_the_collection_assertion() => _plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("should_return_the_expected_rows", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_emit_the_collection_assertion() => _plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("should_return_the_expected_count", StringComparison.Ordinal)).ShouldBeTrue();
 }

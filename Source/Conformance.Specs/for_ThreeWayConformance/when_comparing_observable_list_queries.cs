@@ -23,7 +23,7 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
     [Fact] void should_pass_each_correct_generated_expectation() => fixture.GeneratedCorrect.ShouldContainOnly("Passed", "Passed", "Passed", "Passed");
     [Fact] void should_fail_each_wrong_generated_expectation() => fixture.GeneratedWrong.ShouldContainOnly("Failed", "Failed", "Failed", "Failed");
     [Fact] void should_compare_all_four_query_shapes() => fixture.GeneratedCorrect.Length.ShouldEqual(4);
-    [Fact] void should_fail_wrong_generated_rows_as_assertions() => fixture.WrongFailures.All(message => message.Contains("Assert.True() Failure", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_fail_wrong_generated_rows_as_assertions() => fixture.WrongFailures.All(message => message.Contains("Assert.Equal() Failure", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_push_filtered_updates_in_process() => fixture.PushOutcome.ShouldEqual("Passed");
 
     public class context : a_generated_application
@@ -56,12 +56,14 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
             var results = trx.Descendants(ns + "UnitTestResult").ToArray();
             GeneratedCorrect = Outcomes(results, "when_correct");
             GeneratedWrong = Outcomes(results, "when_wrong");
-            WrongFailures = [.. results.Where(result => ((string)result.Attribute("testName")!).Contains("when_wrong", StringComparison.Ordinal)).Select(result => result.Descendants(ns + "Message").Single().Value)];
+            WrongFailures = [.. results.Where(result => ((string)result.Attribute("testName")!).Contains("when_wrong", StringComparison.Ordinal) && (string)result.Attribute("outcome")! == "Failed").Select(result => result.Descendants(ns + "Message").Single().Value)];
             PushOutcome = Outcomes(results, "should_push_matching_rows_and_exclude_other_rows").Single();
         }
 
         static string[] Outcomes(IEnumerable<XElement> results, string name) =>
-            [.. results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).Select(result => (string)result.Attribute("outcome")!)];
+            [.. results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal))
+                .GroupBy(result => ((string)result.Attribute("testName")!)[..((string)result.Attribute("testName")!).LastIndexOf('.')])
+                .Select(group => group.All(result => (string)result.Attribute("outcome")! == "Passed") ? "Passed" : "Failed")];
 
         static ExecutableSemanticModel Model()
         {

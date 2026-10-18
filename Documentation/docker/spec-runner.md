@@ -66,8 +66,12 @@ render date comparisons, and the legacy engines refuse them with `STAGE-ESM-046`
 covers the canonical corpus in all source forms.
 The semantic executor runs protected command reads, including reaction-invoked commands. After authorization and
 property/concept rules, it projects the prior facts through Chronicle's in-memory read-model scenario and requires
-each declared view at its key. Event-source-keyed removal and recreation are preserved. Absence rejects validation
-before all requirements and generation, with `<View> '<key>' does not exist.` Read-backed requirements and
+each declared view at its key. Event-source-keyed removal and recreation are preserved. Empty, whitespace-only,
+exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject before projection lookup, even if an
+instance is stored at that key. These refused keys and absent views reject validation before all requirements and
+generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
+to protected reads; command identifiers keep their existing behavior. The Host still delegates to the pinned
+Screenplay 4.206.0 evaluator, which predates this refused-key check. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.

@@ -83,7 +83,9 @@ jobs:
 
       - name: Require every solution test project to be sharded
         id: spec-coverage
-        run: python3 .github/spec-shards.py guard
+        # The dedicated blueprint-template lane below runs in every workflow run.
+        # If it becomes conditional, pass this flag only when that lane is enabled.
+        run: python3 .github/spec-shards.py guard --blueprint-templates-lane
 
       # Artifacts are an intra-run handoff, unlike immutable commit-keyed caches, whose failed saves
       # can poison a rerun. Tar preserves executable permissions and the original project layout.

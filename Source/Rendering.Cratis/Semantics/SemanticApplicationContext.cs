@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -123,6 +124,11 @@ internal sealed class SemanticApplicationContext
     /// Gets specifications by semantic identity.
     /// </summary>
     public IReadOnlyDictionary<SemanticId, SemanticSpecification> Specifications { get; }
+
+    /// <summary>
+    /// Gets specification identities explicitly omitted from this render.
+    /// </summary>
+    public ImmutableHashSet<SemanticId> RefusedSpecifications { get; set; } = [];
 
     /// <summary>
     /// Gets concept identities used as modeled runtime identifiers.

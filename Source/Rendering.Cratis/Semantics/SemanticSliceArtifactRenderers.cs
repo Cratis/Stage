@@ -27,7 +27,7 @@ internal static class SemanticSliceArtifactRenderers
         SemanticApplicationContext context)
     {
         yield return slice;
-        foreach (var specification in located.Slice.Specifications)
+        foreach (var specification in located.Slice.Specifications.Where(specification => !context.RefusedSpecifications.Contains(specification.Id)))
         {
             foreach (var file in SemanticSpecificationArtifactRenderer.Render(specification, context))
             {

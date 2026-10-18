@@ -224,7 +224,8 @@ public sealed class ArtifactRenderPlan
         SemanticRevision semanticRevision,
         ImmutableArray<PlannedArtifact> artifacts,
         ImmutableArray<ArtifactRenderDiagnostic> diagnostics,
-        ImmutableArray<ArtifactImplementationGap> implementationGaps)
+        ImmutableArray<ArtifactImplementationGap> implementationGaps,
+        ImmutableArray<ArtifactRenderRefusal> refusals)
     {
         Target = target;
         TargetVersion = targetVersion;
@@ -235,6 +236,7 @@ public sealed class ArtifactRenderPlan
         Artifacts = artifacts;
         Diagnostics = diagnostics;
         ImplementationGaps = implementationGaps;
+        Refusals = refusals;
     }
 
     /// <summary>
@@ -300,7 +302,24 @@ public sealed class ArtifactRenderPlan
     /// <summary>
     /// Gets the output-only SHA-256 digest, excluding the semantic revision.
     /// </summary>
-    public string Digest => ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics, ImplementationGaps);
+    public string Digest => ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics, ImplementationGaps, Refusals);
+
+    /// <summary>
+    /// Gets omitted artifacts in ordinal semantic-identity order.
+    /// </summary>
+    public ImmutableArray<ArtifactRenderRefusal> Refusals { get; }
+
+    /// <summary>
+    /// Gets the distinct rendering outcome. Partial plans retain their errors and are not successful.
+    /// </summary>
+    public ArtifactRenderOutcome Outcome
+    {
+        get
+        {
+            if (Success) return ArtifactRenderOutcome.Complete;
+            return !Refusals.IsEmpty && !Artifacts.IsEmpty ? ArtifactRenderOutcome.Partial : ArtifactRenderOutcome.Refused;
+        }
+    }
 
     /// <summary>
     /// Gets a value indicating whether the plan is complete and publishable.
@@ -333,7 +352,24 @@ public sealed class ArtifactRenderPlan
         ArtifactRenderRequest request,
         ImmutableArray<PlannedArtifact> artifacts,
         ImmutableArray<ArtifactRenderDiagnostic> diagnostics,
-        ImmutableArray<ArtifactImplementationGap> implementationGaps)
+        ImmutableArray<ArtifactImplementationGap> implementationGaps) => Create(request, artifacts, diagnostics, implementationGaps, []);
+
+    /// <summary>
+    /// Creates a plan with explicit omitted-artifact refusals, preserving the original diagnostics.
+    /// </summary>
+    /// <param name="request">The resolved request.</param>
+    /// <param name="artifacts">The rendered artifacts.</param>
+    /// <param name="diagnostics">The original diagnostics.</param>
+    /// <param name="implementationGaps">The implementation gaps.</param>
+    /// <param name="refusals">The omitted artifacts and their refusal codes.</param>
+    /// <returns>The deterministic plan.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The metadata is malformed or a rendered source was refused.</exception>
+    public static ArtifactRenderPlan Create(
+        ArtifactRenderRequest request,
+        ImmutableArray<PlannedArtifact> artifacts,
+        ImmutableArray<ArtifactRenderDiagnostic> diagnostics,
+        ImmutableArray<ArtifactImplementationGap> implementationGaps,
+        ImmutableArray<ArtifactRenderRefusal> refusals)
     {
         if (request is null || request.Model is null || request.ExecutionPlan is null || request.Profile is null || request.Scope is null ||
             request.ExecutionPlan.Revision != request.Model.Revision || !ScopeMatches(request) ||
@@ -359,6 +395,12 @@ public sealed class ArtifactRenderPlan
         }
 
         var normalizedGaps = ValidateImplementationGaps(implementationGaps, normalized);
+        var normalizedRefusals = ArtifactRenderRefusalDigest.Normalize(refusals);
+        var refusedIds = normalizedRefusals.Select(refusal => refusal.Artifact).ToHashSet();
+        if (normalized.Any(artifact => artifact.Sources.Any(refusedIds.Contains)))
+        {
+            throw new InvalidArtifactRenderContract("A rendered artifact cannot realize a refused semantic identity.");
+        }
 
         return new(
             request.Profile.Target,
@@ -375,7 +417,8 @@ public sealed class ArtifactRenderPlan
                     .ThenBy(_ => _.Artifact.ToString(), StringComparer.Ordinal)
                     .ThenBy(_ => _.Message, StringComparer.Ordinal)
             ],
-            normalizedGaps)
+            normalizedGaps,
+            normalizedRefusals)
         {
             Scope = request.Scope,
             AdditionalScopes = request.AdditionalScopes
@@ -424,7 +467,33 @@ public sealed class ArtifactRenderPlan
         string applicationName,
         ImmutableArray<PlannedArtifact> artifacts,
         ImmutableArray<ArtifactRenderDiagnostic> diagnostics,
-        ImmutableArray<ArtifactImplementationGap> implementationGaps)
+        ImmutableArray<ArtifactImplementationGap> implementationGaps) =>
+        ComputeDigest(target, targetVersion, renderer, rendererVersion, applicationName, artifacts, diagnostics, implementationGaps, []);
+
+    /// <summary>
+    /// Computes the output digest, adding refusals-v1 only when refusals are nonempty.
+    /// </summary>
+    /// <param name="target">The target identity.</param>
+    /// <param name="targetVersion">The target version.</param>
+    /// <param name="renderer">The renderer identity.</param>
+    /// <param name="rendererVersion">The renderer version.</param>
+    /// <param name="applicationName">The application name.</param>
+    /// <param name="artifacts">The output artifacts.</param>
+    /// <param name="diagnostics">The output diagnostics.</param>
+    /// <param name="implementationGaps">The implementation gaps.</param>
+    /// <param name="refusals">The omitted-artifact refusals.</param>
+    /// <returns>The lowercase SHA-256 digest.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The metadata is malformed.</exception>
+    public static string ComputeDigest(
+        string target,
+        string targetVersion,
+        string renderer,
+        string rendererVersion,
+        string applicationName,
+        ImmutableArray<PlannedArtifact> artifacts,
+        ImmutableArray<ArtifactRenderDiagnostic> diagnostics,
+        ImmutableArray<ArtifactImplementationGap> implementationGaps,
+        ImmutableArray<ArtifactRenderRefusal> refusals)
     {
         // Length-prefixed fields keep arbitrary diagnostic text and artifact names unambiguous.
         using var stream = new MemoryStream();
@@ -455,6 +524,7 @@ public sealed class ArtifactRenderPlan
             writer.Write(diagnostic.Message);
         }
         ArtifactImplementationGapDigest.Write(writer, implementationGaps);
+        ArtifactRenderRefusalDigest.Write(writer, refusals);
         writer.Flush();
 
         return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();

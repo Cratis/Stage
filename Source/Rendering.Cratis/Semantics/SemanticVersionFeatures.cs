@@ -98,7 +98,7 @@ internal static class SemanticVersionFeatures
     internal const string UnsupportedValidation = "STAGE-ESM-042";
 
     /// <summary>
-    /// The code for atomic reaction batches, whose production boundary no Stage engine preserves yet.
+    /// The code for atomic reaction batch shapes whose production boundary the Cratis renderer cannot preserve.
     /// </summary>
     internal const string AtomicReactionBatches = "STAGE-ESM-043";
 
@@ -168,15 +168,27 @@ internal static class SemanticVersionFeatures
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
 
     /// <summary>
-    /// Finds an application-wide reaction production boundary the renderer does not preserve yet. The executor and Host enforce it, so it is not an application-level refusal.
+    /// Finds atomic reaction batch shapes the renderer cannot preserve. One returned collection is one append batch.
     /// </summary>
     /// <param name="application">The semantic application.</param>
-    /// <returns>The refused reaction production mode.</returns>
-    public static IEnumerable<SemanticVersionFeature> ReactionBatchesInApplication(SemanticApplication application)
+    /// <param name="slice">The selected slice.</param>
+    /// <returns>The refused reaction batch shapes.</returns>
+    public static IEnumerable<SemanticVersionFeature> ReactionBatchesInSlice(SemanticApplication application, SemanticSlice slice)
     {
-        if (application.ReactionProductionMode is { } mode)
+        if (application.ReactionProductionMode is not SemanticReactionProductionMode.Atomic) yield break;
+
+        foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
         {
-            yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, application.Id, "application", $"Application '{application.Name}' declares reaction batches {mode.ToString().ToLowerInvariant()} (ESM v22); Stage does not preserve that production boundary yet (Cratis/Stage#422).");
+            foreach (var group in reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event).GroupBy(trigger => trigger.Source)
+                .Where(group => group.Count(trigger => !trigger.Produces.IsDefaultOrEmpty) > 1))
+            {
+                yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Atomic reaction '{reaction.Name}' has multiple same-event production triggers for '{group.Key}'; they would share one append batch instead of retaining separate trigger batches.");
+            }
+            if (reaction.Triggers.SelectMany(trigger => trigger.Produces)
+                .Any(produced => produced.Route is not null))
+            {
+                yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Atomic reaction '{reaction.Name}' has routed direct productions; routed batches and stream closing are not covered by Screenplay's atomic batch contract yet (Cratis/Screenplay#770).");
+            }
         }
     }
 

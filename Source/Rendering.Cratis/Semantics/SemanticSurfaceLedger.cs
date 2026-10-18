@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.204.0; exact ESM v1–v21, v23–v27 pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.204.0; exact ESM v1–v27 pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -89,8 +89,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "EventContractRevision", ignored("Revision validity and lineage ordering are guaranteed by Screenplay."), "IsValid");
         Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
-        Add(entries, "SemanticApplication", rejected(SemanticVersionFeatures.AtomicReactionBatches), "ReactionProductionMode");
-        Add(entries, "SemanticReactionProductionMode", rejected(SemanticVersionFeatures.AtomicReactionBatches), "Atomic");
+
+        // Atomic batches use the existing event collection return. Multiple same-event production triggers
+        // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved.
+        Add(entries, "SemanticApplication", rendered, "ReactionProductionMode");
+        Add(entries, "SemanticReactionProductionMode", rendered, "Atomic");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
         Add(entries, "SemanticFeature", rendered, "Features Id Name Slices");
         Add(entries, "SemanticSlice", rendered, "Commands Constraints Events Id Kind Name Projections Queries ReadModels Specifications Reducers Reactions");

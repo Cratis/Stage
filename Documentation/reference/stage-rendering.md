@@ -54,6 +54,51 @@ these refusals as unsupported capabilities: `/stage/status` reports `unsupported
 HTTP 501 rather than executing an unconditional action. If such a guard reaches the frontend runtime anyway, the
 action is shown disabled with the diagnostic and never executes.
 
+## Conversion diagnostics
+
+Importers can retain the supported parts of a model without treating an unsupported projection or arrangement
+as an exception. `ScreenplayEventModelVisitor.Convert(ApplicationSyntax)` returns an `EventModelConversion`
+with `Model` and `Diagnostics`. The additive `ProjectionConverter`, `ReadModelConverter`, `SliceConverter`
+and `ArrangementConverter` overloads accept a `ConversionDiagnostics` collector. Each diagnostic carries
+`Code`, `Severity`, `Construct`, `Path`, `Location` and `Message`; `ToDiagnostic()` converts it to a Screenplay
+diagnostic. `All` preserves reporting order, and `HasErrors` distinguishes errors from warnings.
+
+An unsupported projection is omitted as a whole, not partially translated. Its read model remains, with
+`Projection = null` and `UnconvertedProjectionName` naming the omission. Other slices, commands, events and
+specifications remain available. Additional projections receive a warning because a Stage read-model definition
+carries only the first projection. Existing converter overloads keep their throwing behavior;
+`ScreenplayEventModelVisitor.Visit` stops at the first unsupported projection with the original
+`InvalidEventModel` from `SliceConverter`, preserving its message.
+Other legacy engine admission checks still apply to both visitor entry points.
+
+`ScreenplaySceneVisitor.Convert` records arrangement conversion diagnostics in
+`SceneApplication.ConversionDiagnostics`. The existing `Visit` entry point uses the original throwing path,
+stopping at the first invalid arrangement with `UnknownArrangementNode`, `UnknownArrangementContainerKind`,
+`UnknownSizeClassName` or `FormatException` as appropriate. Unsupported nodes and containers lose
+their subtree; invalid sizes omit the affected placement, override or variant. Supported siblings remain. These diagnostics are not Scene
+JSON members, so keep them alongside the translated Scene when importing. The Cratis renderer refuses Error
+conversion diagnostics before creating a profile; warnings alone do not refuse it.
+
+| Code | Severity | Construct |
+| --- | --- | --- |
+| `STAGE-PROJECTION-001` | Error | Projection sequence |
+| `STAGE-PROJECTION-002` | Error | Projection variant |
+| `STAGE-PROJECTION-003` | Error | Unsupported projection block |
+| `STAGE-PROJECTION-004` | Error | Unsupported projection mapping, including its property |
+| `STAGE-PROJECTION-005` | Error | Unsupported projection expression |
+| `STAGE-PROJECTION-006` | Error | Unsupported projection key |
+| `STAGE-PROJECTION-007` | Error | Unsupported automap mode |
+| `STAGE-PROJECTION-008` | Warning | Additional projection not converted |
+| `STAGE-SCENE-ARRANGEMENT-001` | Error | Unsupported arrangement node |
+| `STAGE-SCENE-ARRANGEMENT-002` | Error | Unsupported container kind |
+| `STAGE-SCENE-ARRANGEMENT-003` | Render finding | Unsupported Scene arrangement type |
+| `STAGE-SCENE-ARRANGEMENT-004` | Error | Invalid placement size or unknown size class |
+
+`ArrangementSelector.TrySelect` returns `false` for an unsupported arrangement type. `RenderPlanner` reports
+`ArrangementUnsupported` (value `20`) with `STAGE-SCENE-ARRANGEMENT-003` instead of throwing. A known freeform
+arrangement missing the target size-class variant remains a separate missing-variant finding. Package catalog
+failures continue to use the existing render findings.
+
 ## Generated C# self-reducing read models
 
 Artifact planning can opt a confirmed new application into self-reducing read models.

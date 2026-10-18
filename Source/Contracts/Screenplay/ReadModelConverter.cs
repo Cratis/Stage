@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
 using Cratis.Stage.Contracts.Projections;
@@ -51,7 +52,50 @@ public static class ReadModelConverter
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
         IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
-        string slicePath)
+        string slicePath) => ConvertCore(slice, schema, eventPropertyTypes, eventProperties, slicePath, null);
+
+    /// <summary>
+    /// Keeps the read model while reporting projections that cannot be converted.
+    /// </summary>
+    /// <param name="slice">The slice to build from.</param>
+    /// <param name="schema">The schema synthesizer.</param>
+    /// <param name="eventPropertyTypes">The global event property type map.</param>
+    /// <param name="slicePath">The owning slice path.</param>
+    /// <param name="diagnostics">The append-only diagnostic collector.</param>
+    /// <returns>The read model, or null when no projection or query is declared.</returns>
+    public static ReadModelDefinition? Convert(
+        SliceSyntax slice,
+        SchemaSynthesizer schema,
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        string slicePath,
+        ConversionDiagnostics diagnostics) =>
+        Convert(slice, schema, eventPropertyTypes, new Dictionary<string, IReadOnlyList<KeyValuePair<string, string>>>(StringComparer.Ordinal), slicePath, diagnostics);
+
+    /// <summary>
+    /// Keeps the read model while reporting projections that cannot be converted, resolving automatic mappings.
+    /// </summary>
+    /// <param name="slice">The slice to build from.</param>
+    /// <param name="schema">The schema synthesizer.</param>
+    /// <param name="eventPropertyTypes">The global event property type map.</param>
+    /// <param name="eventProperties">The properties declared by each event.</param>
+    /// <param name="slicePath">The owning slice path.</param>
+    /// <param name="diagnostics">The append-only diagnostic collector.</param>
+    /// <returns>The read model, or null when no projection or query is declared.</returns>
+    public static ReadModelDefinition? Convert(
+        SliceSyntax slice,
+        SchemaSynthesizer schema,
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
+        string slicePath,
+        ConversionDiagnostics diagnostics) => ConvertCore(slice, schema, eventPropertyTypes, eventProperties, slicePath, diagnostics);
+
+    static ReadModelDefinition? ConvertCore(
+        SliceSyntax slice,
+        SchemaSynthesizer schema,
+        IReadOnlyDictionary<string, string> eventPropertyTypes,
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
+        string slicePath,
+        ConversionDiagnostics? diagnostics)
     {
         var queries = slice.Queries.ToArray();
 
@@ -71,14 +115,33 @@ public static class ReadModelConverter
             ?? slice.Name;
 
         var properties = CollectProperties(projection, queries, eventPropertyTypes, eventProperties);
+        var jsonSchema = schema.ForReadModel(properties);
+
+        foreach (var additional in projections.Skip(1))
+        {
+            diagnostics?.Report(new(
+                ProjectionConverter.AdditionalProjectionDiagnosticCode,
+                DiagnosticSeverity.Warning,
+                $"additional projection '{additional.Name}'",
+                slicePath,
+                additional.Location,
+                $"Additional projection '{additional.Name}' was not converted; a read-model definition carries only the first projection."));
+        }
+
+        ProjectionDefinition? definition = null;
+        if (projection is not null)
+        {
+            definition = diagnostics is null ? ProjectionConverter.Convert(projection) : ProjectionConverter.Convert(projection, diagnostics, slicePath);
+        }
 
         return new ReadModelDefinition(
             DeterministicId.From($"{slicePath}.readmodel.{name}"),
             name,
-            schema.ForReadModel(properties),
-            projection is not null ? ProjectionConverter.Convert(projection) : null)
+            jsonSchema,
+            definition)
         {
             SelectedProjectionName = projection?.Name,
+            UnconvertedProjectionName = projection is not null && definition is null ? projection.Name : null,
             IgnoredProjectionNames = [.. projections.Skip(1).Select(ignored => ignored.Name)],
             Queries = [.. queries
                 .Where(query => string.Equals(query.ReturnType.Name, name, StringComparison.Ordinal))

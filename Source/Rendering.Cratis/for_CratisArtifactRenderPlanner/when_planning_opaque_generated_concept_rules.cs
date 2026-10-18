@@ -40,10 +40,10 @@ public class when_planning_opaque_generated_concept_rules : Specification
         _specification = _model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Review").Specifications.Single();
     }
 
-    void Because() => _result = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("GeneratedConceptRules", "GeneratedConceptRules"), _requirements, _contents, [], _descriptors);
+    void Because() => _result = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Slice, _model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Review").Id), new("GeneratedConceptRules", "GeneratedConceptRules"), _requirements, _contents, [], _descriptors);
 
-    [Fact] void should_refuse_the_plan_without_throwing() => _result.Success.ShouldBeFalse();
-    [Fact] void should_not_publish_partial_artifacts() => _result.Artifacts.ShouldBeEmpty();
-    [Fact] void should_keep_the_concept_refusal() => _result.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005" && diagnostic.Artifact == _concept.Id);
-    [Fact] void should_refuse_the_pinned_specification_with_the_concept_and_rule() => _result.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005" && diagnostic.Artifact == _specification.Id && diagnostic.Message.Contains(_concept.Name, StringComparison.Ordinal) && _concept.Validations.All(rule => diagnostic.Message.Contains(rule.RequirementId, StringComparison.Ordinal)));
+    [Fact] void should_render_the_verified_concept_rule() => _result.Success.ShouldBeTrue();
+    [Fact] void should_emit_the_concept_validator() => _result.Artifacts.ShouldContain(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains($"class {_concept.Name}Validator", StringComparison.Ordinal));
+    [Fact] void should_emit_the_pinned_specification() => _result.Artifacts.ShouldContain(artifact => artifact.RelativePath.Contains(Naming.Identifiers.ToSnakeCase(_specification.Name), StringComparison.Ordinal));
+    [Fact] void should_not_refuse_the_body_as_an_unsupported_capability() => _result.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-005");
 }

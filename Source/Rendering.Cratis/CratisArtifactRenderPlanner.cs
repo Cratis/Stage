@@ -11,6 +11,7 @@ using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
+using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -139,6 +140,17 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return CreatePlan(request, [], diagnostics);
         }
         context.RefusedSpecifications = [.. refusals.Select(refusal => refusal.Artifact)];
+
+        var validations = SemanticValidationContextRuntime.Selected(context, slices).ToArray();
+        foreach (var descriptor in validations)
+        {
+            artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderWrapper(context, descriptor)));
+        }
+        if (validations.Length > 0)
+        {
+            artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderBodies(context, validations.Select(descriptor =>
+                (descriptor, context.Request.ImplementationContents[descriptor.RequirementId])))));
+        }
 
         if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)))
         {

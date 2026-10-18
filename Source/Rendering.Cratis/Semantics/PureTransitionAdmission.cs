@@ -325,7 +325,7 @@ internal static partial class PureTransitionAdmission
 
     // Every body must remain one complete block without directives or CR. Pure roles additionally
     // refuse forbidden syntax and type tests outside the named generated types.
-    internal static (BlockSyntax? Block, Verdict? Rejection) ParseBody(string body, IReadOnlySet<string> generatedNames, string role, bool enforcePurity = true)
+    internal static (BlockSyntax? Block, Verdict? Rejection) ParseBody(string body, IReadOnlySet<string> generatedNames, string role, bool enforcePurity = true, bool validationIterator = false)
     {
         // PlannedArtifact.CreateText normalizes CR even inside verbatim literals. Refuse it so
         // the published body is exactly the text analysed here.
@@ -344,7 +344,8 @@ internal static partial class PureTransitionAdmission
 
         if (!enforcePurity) return (block, null);
 
-        var forbidden = block.DescendantNodesAndSelf().FirstOrDefault(IsForbiddenNode);
+        var forbidden = block.DescendantNodesAndSelf().FirstOrDefault(node => IsForbiddenNode(node) &&
+            !(validationIterator && (node.IsKind(SyntaxKind.YieldReturnStatement) || node is InterpolatedStringExpressionSyntax)));
         if (forbidden is not null)
         {
             return (null, Reject("STAGE-ESM-022", $"Forbidden pure construct '{forbidden.Kind()}' on '{ForbiddenSymbol(forbidden, body)}'."));

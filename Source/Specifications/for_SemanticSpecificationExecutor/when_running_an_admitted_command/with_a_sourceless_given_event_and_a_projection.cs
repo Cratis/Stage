@@ -32,6 +32,6 @@ public class with_a_sourceless_given_event_and_a_projection : a_projected_specif
     Task Because() => Run();
 
     [Fact] void should_have_no_event_source_on_the_given_event() => _sourceless.ShouldBeTrue();
-    [Fact] void should_still_refuse_the_projection_that_needs_a_typed_source() => _result.Unsupported.ShouldNotBeNull();
+    [Fact] void should_still_refuse_the_projection_that_needs_a_typed_source() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
     [Fact] void should_not_pass() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
 }

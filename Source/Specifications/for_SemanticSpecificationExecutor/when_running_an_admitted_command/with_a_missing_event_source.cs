@@ -21,5 +21,6 @@ public class with_a_missing_event_source : a_command_only_plan
     }
 
     [Fact] void should_not_block_identity_allocation() => _report.Results.Single().Unsupported.ShouldBeNull();
-    [Fact] void should_agree_with_the_reference() => _report.Results.Single().Outcome.ShouldEqual(_reference.Passed ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed);
+    [Fact] void should_pass_in_the_reference() => _reference.Passed.ShouldBeTrue();
+    [Fact] void should_agree_with_the_reference() => _report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
 }

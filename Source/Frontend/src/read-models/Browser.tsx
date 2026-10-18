@@ -4,7 +4,7 @@
 import { Button } from 'primereact/button';
 import { useBrowser } from './useBrowser';
 import './browser.css';
-import '../app.css';
+import '@cratis/stage.runtime/styles.css';
 
 function json(value: unknown): string {
     if (value === undefined) return '';

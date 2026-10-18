@@ -17,5 +17,5 @@ public class with_seeded_read_model : a_command_only_plan
         _report = await new SemanticSpecificationExecutor().Run(plan, new([seeded.Id]), new());
     }
 
-    [Fact] void should_block_seeded_read_models() => _report.Results.Single().Unsupported!.Capability.ShouldEqual(StageExecutionCapability.GivenReadModel);
+    [Fact] void should_accept_seeded_state_without_a_projection() => _report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
 }

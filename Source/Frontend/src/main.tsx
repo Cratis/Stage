@@ -8,15 +8,13 @@ import 'primeicons/primeicons.css';
 import '@cratis/scene.primereact/primeReactTheme.css';
 import { CratisComponentsProvider } from '@cratis/components';
 import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
-import { App } from './App';
+import { App, StageSourceProvider, stageTheme, type StageRoutes } from '@cratis/stage.runtime';
 import { StagePackagesFailed, loadStagePackages } from './stagePackages';
 import { registerSharedModules } from './sharedModules';
-import { stageTheme } from './stageTheme';
 import { Browser } from './read-models/Browser';
 import { isBrowserPath } from './read-models/path';
-import { httpStageSource, StageSourceProvider } from './stageSource';
+import { httpStageSource } from './httpStageSource';
 import { registerStageCommands } from './host/commandRegistration';
-import type { StageRoutes } from './stageRoutes';
 
 // PrimeReact 11 verifies a license key at runtime and otherwise renders a permanent "Invalid PrimeUI
 // License" banner over the application. The key itself is the PRIMEUI_LICENSE GitHub secret, the same one

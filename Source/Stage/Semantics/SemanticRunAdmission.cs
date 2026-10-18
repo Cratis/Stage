@@ -97,7 +97,6 @@ public static class SemanticRunAdmission
         var collidingType = plan.Model.Application.Types.FirstOrDefault(type => !RuntimePropertyNamesAreUnique(type.Properties));
         if (collidingType is not null) return Block(StageExecutionCapability.Command, collidingType.Id, "Type property names are not unique under case-insensitive runtime JSON binding.");
         if (SemanticImplementationReach.ForSpecification(plan, specification) is { } implementation) return implementation;
-        if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Given read-model state cannot be seeded into the per-run projection scenario.");
         if (specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty))
         {
             return Block(StageExecutionCapability.Authorization, specification.Id, "An unauthenticated caller cannot carry roles or claims; Arc supplies an empty guest principal.");

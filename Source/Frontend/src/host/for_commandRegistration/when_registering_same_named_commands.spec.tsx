@@ -4,10 +4,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, chai, describe, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core';
-import { registeredCommand } from '../../commandExecutor';
-import { StageCommandForm } from '../../StageCommandForm';
-import { element } from '../../testElements';
-import { commandResult } from '../../testing/commands';
+import { registeredCommand } from '@cratis/stage.runtime';
+import { StageCommandForm } from '@cratis/stage.runtime';
+import { element } from '../../../Runtime/src/testElements';
+import { commandResult } from '../../../Runtime/src/testing/commands';
 import { registerStageCommands } from '../commandRegistration';
 
 const should = chai.should();

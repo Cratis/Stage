@@ -135,7 +135,7 @@ internal static class SemanticReadModelSpecificationRenderer
             content = builder.Using("System.Globalization").ToString();
         }
 
-        return new(path, Conditional(content));
+        return new(path, content);
     }
 
     static CSharpCodeBuilder Builder(
@@ -151,8 +151,6 @@ internal static class SemanticReadModelSpecificationRenderer
             .Using("Xunit")
             .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(readModel.Id).Path));
     }
-
-    static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";
 
     static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> ReplayOf(
         SemanticApplication application,

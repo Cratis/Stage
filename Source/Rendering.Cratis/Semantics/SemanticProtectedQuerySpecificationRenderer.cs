@@ -85,7 +85,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             content = builder.Using("System.Globalization").ToString();
         }
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), $"#if DEBUG\n{content}\n#endif\n");
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), content);
     }
 
     static void UseEventNamespaces(CSharpCodeBuilder builder, IEnumerable<SemanticId> events, string queryNamespace, SemanticApplicationContext context)

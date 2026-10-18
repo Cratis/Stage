@@ -67,7 +67,7 @@ internal static partial class SemanticCommandSpecificationRenderer
             content = builder.Using("System.Globalization").ToString();
         }
 
-        return new(path, Conditional(content));
+        return new(path, content);
     }
 
     static void AddInputUsings(
@@ -330,6 +330,4 @@ internal static partial class SemanticCommandSpecificationRenderer
 
         return $"(@event.{name} is {{ }} actual{name} && actual{name}.SequenceEqual({ExpectedCollectionName(property, index)}))";
     }
-
-    static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";
 }

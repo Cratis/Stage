@@ -63,7 +63,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         RenderRefusalOutcome(builder, specification, context, types);
         builder.BlankLine().ExpressionMember("public void Dispose()", "_scenario.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), $"#if DEBUG\n{builder}\n#endif\n");
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), builder.ToString());
     }
 
     static void RenderRefusalOutcome(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types)

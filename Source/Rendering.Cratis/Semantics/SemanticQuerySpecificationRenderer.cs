@@ -134,7 +134,7 @@ internal static class SemanticQuerySpecificationRenderer
             content = builder.Using("System.Globalization").ToString();
         }
 
-        return new(path, Conditional(content));
+        return new(path, content);
     }
 
     /// <summary>
@@ -202,7 +202,7 @@ internal static class SemanticQuerySpecificationRenderer
             content = builder.Using("System.Globalization").ToString();
         }
 
-        return new(path, Conditional(content));
+        return new(path, content);
     }
 
     static void RenderScenario(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName)
@@ -278,8 +278,6 @@ internal static class SemanticQuerySpecificationRenderer
         });
         return string.Join(" && ", CountAssertion(query, expected).Concat(resultPredicates));
     }
-
-    static string Conditional(string content) => $"#if DEBUG\n{content}\n#endif\n";
 
     sealed record CollectionExpectation(string ReadModelName, string Arguments, string Predicate);
 }

@@ -81,7 +81,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         }
         builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), $"#if DEBUG\n{builder}\n#endif\n");
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), builder.ToString());
     }
 
     static string Argument(string name, string value) => $"[{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(name))}] = {value}";

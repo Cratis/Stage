@@ -37,53 +37,20 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     public IReadOnlyList<RenderFinding> Findings => _findings;
 
     /// <inheritdoc/>
-    public SceneApplication Visit(ScreenplaySyntax.ApplicationSyntax syntax)
-    {
-        new UiSyntaxAdmission().VisitApplication(syntax);
-        var uiProfiles = syntax.UiProfiles?.SelectMany(UiProfileConverter.Convert).ToList() ?? [];
-        var themes = syntax.Themes?.Select(ThemeConverter.Convert).ToList() ?? [];
-        var scope = BehaviorScope.For(syntax, _findings);
-        var layouts = ConvertLayouts(syntax, scope);
+    public SceneApplication Visit(ScreenplaySyntax.ApplicationSyntax syntax) => Convert(syntax, null);
 
-        var screenTemplates = new List<SceneScreens.ScreenTemplate>();
-        var dialogTemplates = new List<SceneScreens.DialogTemplate>();
-        var screens = new List<SceneScreens.Screen>();
+    /// <summary>
+    /// Converts an application while retaining diagnostics for omitted arrangement constructs.
+    /// Other unsupported Scene constructs remain subject to their existing admission checks.
+    /// </summary>
+    /// <param name="syntax">The application to convert.</param>
+    /// <returns>The translated Scene with arrangement conversion diagnostics.</returns>
+    public SceneApplication Convert(ScreenplaySyntax.ApplicationSyntax syntax) => Convert(syntax, new ConversionDiagnostics());
 
-        foreach (var module in syntax.Modules)
-        {
-            screenTemplates.AddRange((module.ScreenTemplates ?? []).Select(template =>
-                ScreenTemplateConverter.Convert(template, scope) with
-                {
-                    Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
-                }));
-            dialogTemplates.AddRange((module.DialogTemplates ?? []).Select(template =>
-                DialogTemplateConverter.Convert(template, scope) with
-                {
-                    Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
-                }));
-            ConvertModuleScreens(module, layouts[0].Name, screens, scope);
-        }
-
-        var runtime = new SceneRuntimeAdmission();
-        runtime.VisitApplication(syntax);
-
-        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, screens)
-        {
-            Exposures = [.. (syntax.Exposures ?? []).Select(CompositionConverter.Exposure)],
-            InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],
-            Navigation = NavigationConverter.Convert(syntax),
-            Structure = scope.Structure ?? StructureConverter.Convert(syntax),
-            TemplateReferences = TemplateReferenceConverter.Collect(syntax),
-            SampleDataPacks = SampleDataConverter.Packs(syntax),
-            BlueprintSampleDataPacks = SampleDataConverter.BlueprintPacks(syntax),
-            RuntimeIssues = runtime.Issues
-        };
-    }
-
-    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope)
+    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics? diagnostics)
     {
         var layouts = (syntax.Layouts ?? [])
-            .Select(layout => LayoutConverter.Convert(layout) with
+            .Select(layout => LayoutConverter.Convert(layout, diagnostics) with
             {
                 Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
             })
@@ -140,5 +107,49 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         {
             ConvertFeatureScreens(subFeature, hierarchy, layoutName, forms, screens, scope, inheritedHere, moduleContributions);
         }
+    }
+
+    SceneApplication Convert(ScreenplaySyntax.ApplicationSyntax syntax, ConversionDiagnostics? diagnostics)
+    {
+        new UiSyntaxAdmission().VisitApplication(syntax);
+        var uiProfiles = syntax.UiProfiles?.SelectMany(UiProfileConverter.Convert).ToList() ?? [];
+        var themes = syntax.Themes?.Select(ThemeConverter.Convert).ToList() ?? [];
+        var scope = BehaviorScope.For(syntax, _findings);
+        var layouts = ConvertLayouts(syntax, scope, diagnostics);
+
+        var screenTemplates = new List<SceneScreens.ScreenTemplate>();
+        var dialogTemplates = new List<SceneScreens.DialogTemplate>();
+        var screens = new List<SceneScreens.Screen>();
+
+        foreach (var module in syntax.Modules)
+        {
+            screenTemplates.AddRange((module.ScreenTemplates ?? []).Select(template =>
+                ScreenTemplateConverter.Convert(template, scope, diagnostics) with
+                {
+                    Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
+                }));
+            dialogTemplates.AddRange((module.DialogTemplates ?? []).Select(template =>
+                DialogTemplateConverter.Convert(template, scope, diagnostics) with
+                {
+                    Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
+                }));
+            ConvertModuleScreens(module, layouts[0].Name, screens, scope);
+        }
+
+        var runtime = new SceneRuntimeAdmission();
+        runtime.VisitApplication(syntax);
+
+        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, screens)
+        {
+            Exposures = [.. (syntax.Exposures ?? []).Select(CompositionConverter.Exposure)],
+            InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],
+            Navigation = NavigationConverter.Convert(syntax),
+            Structure = scope.Structure ?? StructureConverter.Convert(syntax),
+            TemplateReferences = TemplateReferenceConverter.Collect(syntax),
+            SampleDataPacks = SampleDataConverter.Packs(syntax),
+            BlueprintSampleDataPacks = SampleDataConverter.BlueprintPacks(syntax),
+            RuntimeIssues = runtime.Issues,
+            ConversionDiagnostics = diagnostics?.All ?? []
+        };
     }
 }

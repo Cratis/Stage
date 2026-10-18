@@ -10,6 +10,7 @@ import { Button } from 'primereact/button';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm } from './StageCommandForm';
+import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
 import { useRowInteractions } from './stageRowInteractions';
@@ -215,15 +216,10 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
 }
 
 function StageCommandAction({ element, interactions }: RegisteredProps) {
-    const data = useStageData();
     const label = text(element, 'label', text(element, 'command'));
+    const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
 
-    // The same resolution a command form uses: the route the element was planned with, then the route the
-    // running application registered the command under. Neither means the action stays disabled.
-    const command = text(element, 'command');
-    const route = text(element, 'route') || (command ? data.routes?.commands[command] ?? '' : '');
-
-    if (!route) {
+    if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 

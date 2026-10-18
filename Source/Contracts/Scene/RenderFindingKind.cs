@@ -129,5 +129,10 @@ public enum RenderFindingKind
     /// A <c language="csharp">template blueprint</c> reference names a blueprint the catalog does not have, a version of it the reference
     /// does not accept, or a template the blueprint does not ship. Rendering it would silently show a screen with no template.
     /// </summary>
-    TemplateReferenceUnresolved = 19
+    TemplateReferenceUnresolved = 19,
+
+    /// <summary>
+    /// An arrangement type is not supported by the pinned Scene evaluators.
+    /// </summary>
+    ArrangementUnsupported = 20
 }

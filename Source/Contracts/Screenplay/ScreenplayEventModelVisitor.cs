@@ -44,19 +44,30 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         foreach (var command in syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Commands))
         {
-            var dates = command.Properties.Where(property => IsDate(property.Type.Name) ||
-                syntax.Concepts.Any(concept => concept.Name == property.Type.Name && IsDate(concept.Type))).Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+            var dates = TypedProperties(command, syntax, IsDate);
+            var uuids = TypedProperties(command, syntax, IsUuid);
             var blocks = command.Validations.OfType<DeclarativeValidateSyntax>().ToArray();
+            var conditions = blocks.SelectMany(block => block.Requirements ?? []).Select(requirement => requirement.Condition)
+                .Concat(command.Produces.Where(produced => produced.When is not null).Select(produced => produced.When!)).ToArray();
             var compared = blocks.SelectMany(block => block.Rules).Where(rule =>
                     rule.Rule is ValidationRuleKind.Equal or ValidationRuleKind.NotEqual or ValidationRuleKind.GreaterThan or ValidationRuleKind.GreaterThanOrEqual or ValidationRuleKind.LessThan or ValidationRuleKind.LessThanOrEqual &&
                     rule.Value is LiteralExpressionSyntax).Select(rule => rule.Property)
-                .Concat(blocks.SelectMany(block => block.Requirements ?? []).SelectMany(requirement => ComparedProperties(requirement.Condition)))
-                .Concat(command.Produces.Where(produced => produced.When is not null).SelectMany(produced => ComparedProperties(produced.When!)));
+                .Concat(conditions.SelectMany(condition => ComparedProperties(condition)));
             if (compared.FirstOrDefault(dates.Contains) is { } date)
             {
                 throw new InvalidEventModel(
                     command.Location.Path ?? "<source>",
                     [$"STAGE-ESM-046: Command '{command.Name}' compares date property '{date}'; the legacy engines cannot preserve chronological comparisons."]);
+            }
+            var uuidComparisons = blocks.SelectMany(block => block.Rules)
+                .Where(rule => rule.Rule is ValidationRuleKind.Equal or ValidationRuleKind.NotEqual)
+                .SelectMany(rule => rule.Value is PathExpressionSyntax path ? new[] { rule.Property, path.Path } : [rule.Property])
+                .Concat(conditions.SelectMany(condition => ComparedProperties(condition, includeRight: true)));
+            if (compared.Concat(uuidComparisons).FirstOrDefault(uuids.Contains) is { } uuid)
+            {
+                throw new InvalidEventModel(
+                    command.Location.Path ?? "<source>",
+                    [$"STAGE-ESM-049: Command '{command.Name}' compares Uuid property '{uuid}' (ESM v28 Uuid equality); the legacy engines cannot preserve canonical Uuid comparisons."]);
             }
             if (command.Handler is { Implementation: not null, File: null, Code: null })
             {
@@ -68,7 +79,17 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
     }
 
     /// <inheritdoc/>
-    public EventModel Visit(ApplicationSyntax syntax)
+    public EventModel Visit(ApplicationSyntax syntax) => Convert(syntax, null).Model;
+
+    /// <summary>
+    /// Converts an application while retaining diagnostics for omitted projections.
+    /// Other unsupported legacy engine behaviors remain subject to their existing admission checks.
+    /// </summary>
+    /// <param name="syntax">The application to convert.</param>
+    /// <returns>The model and conversion diagnostics.</returns>
+    public EventModelConversion Convert(ApplicationSyntax syntax) => Convert(syntax, new ConversionDiagnostics());
+
+    static EventModelConversion Convert(ApplicationSyntax syntax, ConversionDiagnostics? diagnostics)
     {
         EnsureBehaviorSupported(syntax);
         new ReactionIdentitySyntaxAdmission().VisitApplication(syntax);
@@ -95,12 +116,12 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         var collectionId = DeterministicId.From($"model:{modelName}:collection");
 
         var collectionModules = modules
-            .Select(module => ConvertModule(module, modelId, collectionId, schema, eventPropertyTypes, eventProperties))
+            .Select(module => ConvertModule(module, modelId, collectionId, schema, eventPropertyTypes, eventProperties, diagnostics))
             .ToArray();
 
         var collection = new ModuleCollection(collectionId, modelId, collectionModules);
 
-        return new EventModel(modelId, modelName, [collection]);
+        return new(new EventModel(modelId, modelName, [collection]), diagnostics?.All ?? []);
     }
 
     static Module ConvertModule(
@@ -109,10 +130,11 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         Guid collectionId,
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
-        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties)
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
+        ConversionDiagnostics? diagnostics)
     {
         var features = module.Features
-            .Select(feature => ConvertFeature(feature, parentId: null, $"{module.Name}", schema, eventPropertyTypes, eventProperties))
+            .Select(feature => ConvertFeature(feature, parentId: null, $"{module.Name}", schema, eventPropertyTypes, eventProperties, diagnostics))
             .ToArray();
 
         return new Module(DeterministicId.From($"module:{module.Name}"), modelId, collectionId, module.Name, features);
@@ -124,17 +146,20 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
         string parentPath,
         SchemaSynthesizer schema,
         IReadOnlyDictionary<string, string> eventPropertyTypes,
-        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties)
+        IReadOnlyDictionary<string, IReadOnlyList<KeyValuePair<string, string>>> eventProperties,
+        ConversionDiagnostics? diagnostics)
     {
         var featurePath = $"{parentPath}.{feature.Name}";
         var featureId = DeterministicId.From($"feature:{featurePath}");
 
         var subFeatures = feature.Features
-            .Select(sub => ConvertFeature(sub, featureId, featurePath, schema, eventPropertyTypes, eventProperties))
+            .Select(sub => ConvertFeature(sub, featureId, featurePath, schema, eventPropertyTypes, eventProperties, diagnostics))
             .ToArray();
 
         var slices = feature.Slices
-            .Select(slice => SliceConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, featurePath))
+            .Select(slice => diagnostics is null
+                ? SliceConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, featurePath)
+                : SliceConverter.Convert(slice, schema, eventPropertyTypes, eventProperties, featurePath, diagnostics))
             .ToArray();
 
         return new Feature(featureId, feature.Name, parentId, subFeatures, slices);
@@ -181,10 +206,16 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
     static bool IsDate(string type) => type == "Date" || type == "DateTime";
 
-    static IEnumerable<string> ComparedProperties(ConditionSyntax condition) => condition switch
+    static bool IsUuid(string type) => type == "Uuid";
+
+    static HashSet<string> TypedProperties(CommandSyntax command, ApplicationSyntax syntax, Func<string, bool> isType) =>
+        command.Properties.Where(property => isType(property.Type.Name) ||
+            syntax.Concepts.Any(concept => concept.Name == property.Type.Name && isType(concept.Type))).Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+
+    static IEnumerable<string> ComparedProperties(ConditionSyntax condition, bool includeRight = false) => condition switch
     {
-        ComparisonConditionSyntax comparison => [comparison.Left],
-        LogicalConditionSyntax logical => ComparedProperties(logical.Left).Concat(ComparedProperties(logical.Right)),
+        ComparisonConditionSyntax comparison => includeRight && comparison.Right is PathExpressionSyntax path ? [comparison.Left, path.Path] : [comparison.Left],
+        LogicalConditionSyntax logical => ComparedProperties(logical.Left, includeRight).Concat(ComparedProperties(logical.Right, includeRight)),
         _ => []
     };
 

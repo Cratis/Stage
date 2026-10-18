@@ -12,5 +12,5 @@ public class when_selecting_empty_engine : Specification
 
     void Because() => _selected = StageRuntimeEngineSelection.Read(["--engine=  "]);
 
-    [Fact] void should_use_the_default_eventmodel_engine() => _selected.ShouldEqual(StageRuntimeEngine.EventModel);
+    [Fact] void should_use_the_default_semantic_engine() => _selected.ShouldEqual(StageRuntimeEngine.Semantic);
 }

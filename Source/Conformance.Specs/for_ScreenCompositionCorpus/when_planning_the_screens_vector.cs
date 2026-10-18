@@ -25,32 +25,33 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "063c099b40315806abc4ce4c50d9ea065949785d56c0080e17c64346ace98615";
+    const string Digest = "5b122bff7b70ab72e0ad5be82c16e24f98b9ef452d9694a6fe116e07dc4d1960";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx e4dc56b56e3e3855a1fdeedf2c14c131db52853c73f87b3b28d51b30a0e361b7 2723
-        .frontend/stage/App.tsx 12169599231660c97494a1f08b2ab32bb89f2069b957246f92da206eb56998ea 24239
+        .frontend/stage/App.tsx d9bbc204b1d76d8bb2576c0e435e5f5cc0606dde40a99a5eae8d03e20493e61c 24245
         .frontend/stage/StageChrome.tsx 1c40eddd9cd9cbac5efb89902a83265f0c2bd2b82338f828f2e667486709e6c7 8172
-        .frontend/stage/StageCommandForm.tsx 07c4a176399590ee73a3ef5ce96d3389995f2f36204b8d08faa7903c061a2a81 22785
-        .frontend/stage/StageGuardedAction.tsx 8c950711a7cd89ddd11191f846bf5230da93cf2a31a450976ff22d26e6210c5e 6921
+        .frontend/stage/StageCommandForm.tsx 7ff18df7147b3575c8bdb50fc8233c0a2122dbc0e5c0b1af62972c50a1e1d213 19571
+        .frontend/stage/StageCommandOutcome.ts 6bc76712e0956c9a3bcab9c915f991e60cbbbce1ed7397cdfb1334d6def4ffae 475
+        .frontend/stage/StageGuardedAction.tsx d1cd7555a0a29b23b848fc35dfea93c45c430a5e1d9bda5f03993a48112d8261 7008
         .frontend/stage/StageShellSettings.tsx c2e9eae4cf842185f9b76862b51886012ead363e60b79d000d15c6a38b5b3f1d 2442
         .frontend/stage/app.css b40e04c8475164eff7c08b96ddb498363e05f012493551a1c9296c02092098ea 3429
         .frontend/stage/blueprint.ts db274de54a199b005b1f396494487b4ded49ef348da20a8a3f0edbf16481aa3c 7733
+        .frontend/stage/commandExecutor.ts db2ea17ffc5dc63288c5d37e4c95f36e3b5dc84e0a53d9cf55813cf2ff2b6d09 3607
         .frontend/stage/navigationTree.ts b07b69a65ad734b534cc865355e210c938aa0832057483e4ccdfbd04545fdfc3 7290
-        .frontend/stage/stageCommands.ts 48d56bfa7efb1ac14806a71ede7eba498e8ee29212ca159f81317b58621d9f41 2039
-        .frontend/stage/stageComponents.tsx 0353eada936a391eea64b83f0097089090cb7fcf2bb2ad9f5d94b21d4d8aae3e 13750
+        .frontend/stage/stageComponents.tsx 8b4a617ed1ec108fa15553fa5af6f6d3ac71f045358419da1226f29efd52f11b 13539
         .frontend/stage/stageData.tsx d47040fee417d01d666e0bafb10a52e8c3bdc44ea06b05af2a7e8dfd9f06578d 18535
         .frontend/stage/stageDataSources.ts ade1a9a757ec28de294254bcb59ee95df1e03d047036e9281915665c0d19d888 4645
         .frontend/stage/stageGuards.ts d3caad28af719787f1007a8824898c86e6a4ac2eba863c36c4afaaae45b4cdf1 9330
         .frontend/stage/stageNavigation.ts 46fc13d64e68d906f47a2c4fb92ade4ed61535b3ec63ca40624d4fe2c9437633 2529
         .frontend/stage/stageNavigationModel.ts 69dd3672424cf10888c0ef8d37df2550224acafbadaf97a15bea19f7e877998c 2874
-        .frontend/stage/stageRoutes.ts 7d85720c1d04fbf81da0bb6a287b67a58fa5ec6e275f04595250c16cc4b9a348 1792
+        .frontend/stage/stageRoutes.ts 70633ea648cdff28ac304be3868d0e08110bb58e3978e56e79eda6761f82cdbc 1950
         .frontend/stage/stageRowInteractions.ts 11d46c9b7e3dc182feb9629eb21d3d5b181b4119d3a03c4e565b814bfc2caf6f 3600
         .frontend/stage/stageShell.ts 50351f398890c157b6f9799a6f05e541f02f7caac68d97f50522ba55cbeeddc7 7284
-        .frontend/stage/stageSlices.ts 308e2d06c0571d98a13fecb4bac2549d2ccd2949e6bd8ffa1e71c7b308a30a31 3452
+        .frontend/stage/stageSlices.ts 7f98d9ced1f63719209ffbfbee3a3335258c06204982ca116c5c80956ae626bd 3477
         .frontend/stage/stageSource.ts 0d8df29508315a5d17abe3bcf928bef4a1b05f1115395bfbe3356c3df7569817 4127
         .frontend/stage/stageTheme.ts 41c903960761179212feba27f3e3352666c54a6364b3b0a2223589e028df4398 1097
         .frontend/stage/useStrings.ts 7e9b26328e986b05f504ed40ae0656236d023b01ea4a1bf790220dd2f2309e17 2449
@@ -151,7 +152,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("5663e0a4100191286afb9d991f813bb364c91d85feca83abdcba9dd60dabd5e1");
+            plan.Diagnostics).ShouldEqual("ea8ce7ba4cfe4261dc5935453acf20ee0a78daa4d1f20a576daf707c051dc755");
     }
 
     [Theory]

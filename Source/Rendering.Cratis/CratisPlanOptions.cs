@@ -24,6 +24,11 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     public ImplementationGapMode ImplementationGaps { get; init; } = ImplementationGapMode.Refuse;
 
     /// <summary>
+    /// Gets the refusal policy. RenderAround permits only supported specification omissions.
+    /// </summary>
+    public ArtifactRefusalMode Refusals { get; init; } = ArtifactRefusalMode.Refuse;
+
+    /// <summary>
     /// Gets the caller's complete Cratis profile for source and scaffold planning, or null to use the default profile.
     /// The profile must match the application names and omit domain placement, which is owned by <see cref="Domain"/>.
     /// Scaffold-only planning includes its strings catalog but reports Scene output as application-scope only.

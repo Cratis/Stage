@@ -23,6 +23,11 @@ public record ReadModelDefinition(
     public string? SelectedProjectionName { get; init; }
 
     /// <summary>
+    /// Gets the selected projection omitted because its constructs could not be converted faithfully.
+    /// </summary>
+    public string? UnconvertedProjectionName { get; init; }
+
+    /// <summary>
     /// Gets the names of the slice's other Screenplay projections, in declaration order, which were not converted.
     /// Empty when no projections were ignored or their source is unknown.
     /// </summary>

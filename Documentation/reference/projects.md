@@ -11,6 +11,10 @@ stage ./eventmodel          # the folder, as one application
 stage ./eventmodel/app.play # one file, on its own
 ```
 
+The Host uses the semantic engine by default. Pass `--engine=eventmodel` to the Host executable or set
+`Stage__Runtime__Engine=eventmodel` to keep the deprecated legacy engine. It logs one warning at startup and
+will be removed in Stage v6. The SpecRunner retains `structural` as its default.
+
 ## What Stage does with the folder
 
 1. **Discovers** every `.play` file beneath the folder, recursively — the glob is `**/*.play`, so nesting is

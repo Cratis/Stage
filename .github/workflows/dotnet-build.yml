@@ -235,20 +235,22 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Preserve the original build check as an aggregate: it must fail if preflight, compilation/packaging
-  # or any spec shard fails or is skipped. The independent live/generated probe checks stay separate.
+  # Preserve the original build check as an aggregate: it must fail if preflight, compilation/packaging,
+  # any spec shard or the standalone generated-application spec (moved out of the shards) fails or is
+  # skipped. The independent live/generated probe checks stay separate.
   build:
-    needs: [preflight, dotnet-build, specs, routing]
+    needs: [preflight, dotnet-build, specs, routing, standalone-generated-application]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Require preflight, build and every spec shard to succeed
+      - name: Require preflight, build, every spec shard and the standalone application spec to succeed
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           BUILD_RESULT: ${{ needs.dotnet-build.result }}
           SPECS_RESULT: ${{ needs.specs.result }}
-        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success
+          STANDALONE_RESULT: ${{ needs.standalone-generated-application.result }}
+        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success && test "$STANDALONE_RESULT" = success
 
   # Live persistence is a separate gate: the ordinary Debug suite skips live execution of these probes
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
@@ -393,6 +395,66 @@ jobs:
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
         run: dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Debug --filter "FullyQualifiedName~when_compiling_generated_name_matrix"
+
+  # Renders an application, then builds and tests it in Debug and Release and serves it against the pinned
+  # Chronicle image. That one class took longer than every other spec in its Rendering shard together, so it
+  # runs next to the build job instead of setting the shard time. spec-shards.py excludes it from every shard.
+  standalone-generated-application:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Same toolchain the Rendering shards gave this spec before it moved here.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore NuGet packages (only the build job saves this cache)
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Build, test and serve the standalone generated application
+        run: >-
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
+          --filter "FullyQualifiedName~when_verifying_a_standalone_generated_application"
+          --logger "trx;LogFileName=standalone-generated-application.trx" --results-directory ./TestResults/standalone-generated-application
+
+      # A zero exit from dotnet test can mean that nothing ran, or that assertions were skipped.
+      - name: Require every standalone application assertion to execute and pass
+        run: |
+          python3 .github/spec-shards.py require-executed TestResults/standalone-generated-application/standalone-generated-application.trx
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          root = ET.parse("TestResults/standalone-generated-application/standalone-generated-application.trx").getroot()
+          results = root.findall("t:Results/t:UnitTestResult", ns)
+          if len(results) != 14 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 14 passing standalone application assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
+          print(f"{len(results)} standalone application assertions passed")
+          PY
+
+      - name: Upload spec results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-generated-application-results
+          path: TestResults/standalone-generated-application
+          if-no-files-found: error
+          retention-days: 7
 
   # Builds the Stage image the way publish.yml does and starts it against a model whose ui profile names a custom package,
   # handing it the approved package set and the package's browser build as `cratis run --package-set` does. A browser asserts

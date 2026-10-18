@@ -28,7 +28,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             builder.Line($"[global::Xunit.FactAttribute] void should_preserve_destination_{index + 1}() => _reactor.ProducedEvents[{index}].EventSourceId.ShouldEqual((global::Cratis.Chronicle.Events.EventSourceId){source});")
                 .Line($"[global::Xunit.FactAttribute] void should_preserve_source_type_{index + 1}() => _reactor.ProducedEvents[{index}].EventSourceType.ShouldEqual(global::Cratis.Chronicle.Events.EventSourceType.Default);")
                 .Line($"[global::Xunit.FactAttribute] void should_preserve_stream_type_{index + 1}() => _reactor.ProducedEvents[{index}].EventStreamType.ShouldEqual(global::Cratis.Chronicle.Events.EventStreamType.All);")
-                .Line($"[global::Xunit.FactAttribute] void should_preserve_stream_id_{index + 1}() => _reactor.ProducedEvents[{index}].EventStreamId.ShouldEqual(global::Cratis.Chronicle.Events.EventStreamId.Default);");
+                .Line($"[global::Xunit.FactAttribute] void should_preserve_stream_id_{index + 1}() => _reactor.ProducedEvents[{index}].EventStreamId.ShouldEqual((global::Cratis.Chronicle.Events.EventStreamId)global::Cratis.Chronicle.Events.EventStreamId.Default);");
         }
         if (specification.ThenEventsInAnyOrder)
         {

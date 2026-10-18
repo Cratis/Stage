@@ -36,8 +36,17 @@ evaluations. The executor never substitutes wall time or its injectable clock fo
 This time-only fixture supplies no audit identity, including under `runs as system`: reaction mappings of
 `$eventSourceId` (or `$eventContext.eventSourceId`) and `$context.causedBy.*` retain `STAGE-ESM-013`.
 The spelling `$context.eventSourceId` is rejected by the compiler.
-Clock, application, startup and shutdown triggers, opaque bodies, `when clock` and trigger/capture specifications
-remain refused with `STAGE-ESM-024`. Generated backend occurrence mappings remain supported, but
+The executor also runs `when trigger` specifications for application, startup and shutdown triggers, and
+`when clock` specifications that advance a canonical `given clock` to a later instant. A fired trigger takes its
+values from the fixture and its occurrence from `given clock`; each reaction declaring a matching trigger fires
+in reaction order and its effects settle like an event reaction. Advancing the clock fires every interval and
+schedule occurrence due in the window after `given clock` up to and including `when clock`: intervals are
+multiples of their period counted from the Unix epoch, schedules are UTC times of day with an optional day of the
+week or month. Occurrences fire in instant order, then reaction order, then trigger declaration order, and each
+supplies its own instant as `$context.occurred` to its productions, cascades and invocations. More than 10,000
+occurrences in one advance returns `Unsupported`. Opaque trigger bodies and capture specifications remain refused
+with `STAGE-ESM-024`, and the live semantic Host and rendered applications still refuse clock, application,
+startup and shutdown triggers. Generated backend occurrence mappings remain supported, but
 context-dependent generated reaction specifications retain `STAGE-ESM-011`, and clocks on generated
 append/redelivery specifications retain `STAGE-ESM-024`; renderer clock fixtures remain command-only.
 The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.md#opt-in-to-semantic-execution),

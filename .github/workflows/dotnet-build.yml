@@ -21,9 +21,13 @@ on:
       - "*.targets"
       - "*.slnx"
       - "global.json"
+      - "**/[Nn]u[Gg]et.[Cc]onfig"
+      - "**/packages.lock.json"
       - ".github/workflows/dotnet-build.yml"
       - ".github/spec-shards.py"
+      - ".github/spec-shard-timings.json"
       - ".github/test_spec_shards.py"
+      - ".github/workflows/warm-nuget-cache.yml"
 
 jobs:
   dotnet-build:
@@ -45,7 +49,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
           restore-keys: |
             nuget-${{ runner.os }}-
 
@@ -136,7 +140,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
           restore-keys: |
             nuget-${{ runner.os }}-
 

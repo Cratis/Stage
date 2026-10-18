@@ -40,8 +40,9 @@ internal sealed class SemanticCommandRouteRendering(SemanticCommand command, Sem
     /// <remarks>
     /// Arc 22.112.1 CommandTransactionAppender.ResolveDefinition takes the wrapper's EventSource and
     /// EventStream together and inherits nothing of the command's definition. ResolveRouting replaces the
-    /// stream id only when the wrapper's differs from EventStreamId.Default, so a keyed override always sets it and
-    /// an unkeyed override under a keyed command route is refused by STAGE-ESM-036 before rendering.
+    /// stream id only when the wrapper's differs from EventStreamId.Default, so a keyed override sets it from its own
+    /// wrapper. An unkeyed override under a keyed command route, and a literal "Default" stream id, are not proven
+    /// equivalent and are refused by STAGE-ESM-036 before rendering.
     /// </remarks>
     internal IEnumerable<string> Override(SemanticProducedEvent produced, int index)
     {
@@ -57,15 +58,20 @@ internal sealed class SemanticCommandRouteRendering(SemanticCommand command, Sem
     }
 
     /// <summary>
-    /// Collects the checked stream id parts of the command route and every override, in render order.
+    /// Collects the checked stream id parts of every override and then the command route.
     /// </summary>
+    /// <remarks>
+    /// The executor resolves every production override before the command route (SemanticRunContext.TryResolveRoute), so
+    /// the first refused part reports the same property in the generated Handle().
+    /// </remarks>
     internal void Collect()
     {
-        StreamId();
         foreach (var (produced, index) in command.Produces.Select((produced, index) => (produced, index)))
         {
             _ = Override(produced, index).ToArray();
         }
+
+        StreamId();
     }
 
     internal void RenderChecks(CSharpCodeBuilder builder, string result)

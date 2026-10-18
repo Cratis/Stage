@@ -61,5 +61,6 @@ public class when_rendering_production_routes : Specification
     [Fact] void should_render_the_override_stream() => _code.ShouldContain("EventStream = ");
     [Fact] void should_render_the_override_stream_id_from_its_own_local() => _code.ShouldContain("EventStreamId = production1StreamIdPart0");
     [Fact] void should_check_the_override_stream_id() => _code.ShouldContain("TryText(Period, out var production1StreamIdPart0)");
+    [Fact] void should_check_the_override_stream_id_before_the_command_route() => _code.IndexOf("out var production1StreamIdPart0", StringComparison.Ordinal).ShouldBeLessThan(_code.IndexOf("out var streamIdPart0", StringComparison.Ordinal));
     [Fact] void should_refuse_an_unkeyed_override_under_a_keyed_command_route() => _unkeyedCodes.ShouldContain("STAGE-ESM-036");
 }

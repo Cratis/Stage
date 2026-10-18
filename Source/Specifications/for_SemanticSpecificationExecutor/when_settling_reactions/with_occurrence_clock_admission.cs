@@ -19,6 +19,7 @@ public class with_occurrence_clock_admission : given.a_reaction_plan
     [InlineData("command")]
     [InlineData("append")]
     [InlineData("redelivery")]
+    [InlineData("trigger")]
     public void should_admit_only_the_independent_occurrence_clock_without_relaxing_renderer_clocks(string action)
     {
         var fixture = WithAction(action);
@@ -37,7 +38,7 @@ public class with_occurrence_clock_admission : given.a_reaction_plan
     [InlineData("not a clock")]
     public void should_preserve_canonical_range_and_precision_refusals_for_every_supported_action(string clock)
     {
-        foreach (var action in new[] { "command", "append", "redelivery" })
+        foreach (var action in new[] { "command", "append", "redelivery", "trigger" })
         {
             var fixture = WithAction(action) with { GivenClock = clock };
             SemanticSpecificationClock.TryGetOccurrence(fixture, out _).ShouldBeFalse();
@@ -48,16 +49,39 @@ public class with_occurrence_clock_admission : given.a_reaction_plan
     [Theory]
     [InlineData("query")]
     [InlineData("clock")]
-    [InlineData("trigger")]
     [InlineData("capture")]
     [InlineData("given-capture")]
     [InlineData("mixed")]
-    public void should_not_admit_non_event_actions_or_ambiguous_actions(string action)
+    public void should_not_admit_non_occurrence_actions_or_ambiguous_actions(string action)
     {
         var fixture = WithAction(action);
         SemanticSpecificationClock.TryGetOccurrence(fixture, out _).ShouldBeFalse();
         if (action != "mixed") SemanticRunAdmission.SpecificationFeatures(fixture).Single().Capability.ShouldEqual(nameof(StageExecutionCapability.Time));
     }
+
+    [Theory]
+    [InlineData("command")]
+    [InlineData("mixed")]
+    [InlineData("capture")]
+    [InlineData("given-capture")]
+    public void should_not_mistake_other_actions_for_automatic_actions(string action) => SemanticSpecificationClock.TryGetAutomaticAction(WithAction(action), out _, out _).ShouldBeFalse();
+
+    [Fact]
+    public void should_admit_a_trigger_without_inventing_an_occurrence()
+    {
+        SemanticSpecificationClock.TryGetAutomaticAction(WithAction("trigger") with { GivenClock = null }, out var from, out var to).ShouldBeTrue();
+        from.ShouldBeNull();
+        to.ShouldBeNull();
+    }
+
+    [Fact]
+    public void should_admit_a_canonical_clock_window() => SemanticSpecificationClock.TryGetAutomaticAction(WithAction("clock") with { WhenClock = "2027-03-04T09:00:00.0000000Z" }, out _, out _).ShouldBeTrue();
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("2027-03-04T08:00:00.1230001Z")]
+    [InlineData("2027-03-04T09:00:00Z")]
+    public void should_refuse_a_clock_advance_without_a_canonical_given_clock(string? clock) => SemanticSpecificationClock.TryGetAutomaticAction(WithAction("clock") with { GivenClock = clock }, out _, out _).ShouldBeFalse();
 
     [Fact]
     public void should_keep_an_absent_clock_absent() => SemanticSpecificationClock.TryGetOccurrence(WithAction("append") with { GivenClock = null }, out _).ShouldBeFalse();

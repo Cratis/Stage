@@ -25,7 +25,7 @@ internal static class SemanticSpecificationClock
     }
 
     /// <summary>
-    /// Reads the authored occurrence clock for an independent command, append or redelivery scenario.
+    /// Reads the authored occurrence clock for an independent command, append, redelivery or trigger scenario.
     /// </summary>
     /// <param name="specification">The specification with exactly one supported action and no capture fixtures.</param>
     /// <param name="instant">The canonical UTC occurrence, at or after the Unix epoch with millisecond precision.</param>
@@ -33,11 +33,37 @@ internal static class SemanticSpecificationClock
     internal static bool TryGetOccurrence(SemanticSpecification specification, out DateTimeOffset instant)
     {
         instant = default;
-        var actions = (specification.When is not null ? 1 : 0) + (specification.WhenAppended is not null ? 1 : 0) + (specification.WhenRedelivered is not null ? 1 : 0);
-
-        return actions == 1 && specification.WhenClock is null && specification.WhenTrigger is null &&
+        return Actions(specification) == 1 && specification.WhenClock is null &&
             specification.WhenCapture is null && specification.GivenCaptures.IsDefaultOrEmpty && TryParse(specification.GivenClock, out instant);
     }
+
+    /// <summary>
+    /// Validates a single trigger action or a canonical clock advance, without admitting captures.
+    /// </summary>
+    /// <param name="specification">The automatic action fixture.</param>
+    /// <param name="from">The given clock, or null for a trigger without a clock.</param>
+    /// <param name="to">The target clock, or null for a trigger.</param>
+    /// <returns>Whether the automatic action is admitted.</returns>
+    internal static bool TryGetAutomaticAction(SemanticSpecification specification, out DateTimeOffset? from, out DateTimeOffset? to)
+    {
+        from = to = null;
+        if (Actions(specification) != 1 || specification.WhenCapture is not null || !specification.GivenCaptures.IsDefaultOrEmpty) return false;
+        if (specification.GivenClock is not null)
+        {
+            if (!TryParse(specification.GivenClock, out var given)) return false;
+            from = given;
+        }
+        if (specification.WhenTrigger is not null) return true;
+        if (from is null || !TryParse(specification.WhenClock, out var target) || target <= from) return false;
+        to = target;
+
+        return true;
+    }
+
+    static int Actions(SemanticSpecification specification) =>
+        (specification.When is not null ? 1 : 0) + (specification.WhenAppended is not null ? 1 : 0) +
+        (specification.WhenRedelivered is not null ? 1 : 0) + (specification.WhenTrigger is not null ? 1 : 0) +
+        (specification.WhenClock is not null ? 1 : 0) + (specification.WhenCapture is not null ? 1 : 0);
 
     static bool TryParse(string? clock, out DateTimeOffset instant)
     {

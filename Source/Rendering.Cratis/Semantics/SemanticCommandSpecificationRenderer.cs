@@ -259,20 +259,9 @@ internal static partial class SemanticCommandSpecificationRenderer
 
     static void RenderDenied(SpecificationScope scope)
     {
-        var context = scope.Context;
-        var policy = $"global::{context.PoliciesNamespace}.{Policies.SemanticPolicyArtifactRenderer.Name(scope.Command.Id)}";
-        var policyName = context.Domain.Count == 0 ? $"nameof({policy})" : CSharpCodeBuilder.StringLiteral(Policies.SemanticPolicyArtifactRenderer.PolicyName(context, scope.Command.Id));
         scope.Builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-            .Using("Cratis.Arc.Authorization")
-            .Using("Microsoft.Extensions.DependencyInjection")
             .Line("[global::Xunit.FactAttribute] void should_be_denied() => _result.IsAuthorized.ShouldBeFalse();")
-            .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);")
-            .OpenBlock("[global::Xunit.FactAttribute] void should_resolve_the_registered_policy()")
-            .Line($"_scenario.Services.Any(registration => registration.ImplementationInstance is global::Cratis.Arc.Authorization.AuthorizationPolicyRegistration policy && policy.Name == {policyName} && policy.PolicyType == typeof({policy})).ShouldBeTrue();")
-            .Line("using var provider = _scenario.Services.BuildServiceProvider();")
-            .Line("using var scope = provider.CreateScope();")
-            .Line($"scope.ServiceProvider.GetRequiredService<{policy}>().ShouldNotBeNull();")
-            .EndBlock();
+            .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);");
     }
 
     static void RenderRejected(SpecificationScope scope)

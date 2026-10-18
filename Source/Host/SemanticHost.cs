@@ -3,6 +3,7 @@
 
 using Cratis.Arc.Commands;
 using Cratis.Chronicle;
+using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
@@ -94,7 +95,7 @@ internal static class SemanticHost
         app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
         app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
 
-        MapSceneEndpoints(app, scene!, modelPath);
+        MapSceneEndpoints(app, scene!, modelPath, loaded.Model);
         app.MapFallbackToFile("index.html");
         await app.StartAsync();
         try
@@ -154,7 +155,7 @@ internal static class SemanticHost
         context => HttpMethods.IsGet(context.Request.Method) && context.Request.Path == "/read-models/",
         branch => branch.Run(context => Results.Redirect($"../read-models{context.Request.QueryString}").ExecuteAsync(context)));
 
-    internal static void MapSceneEndpoints(WebApplication app, SceneApplication scene, string modelPath)
+    internal static void MapSceneEndpoints(WebApplication app, SceneApplication scene, string modelPath, ExecutableSemanticModel model)
     {
         var routes = new StageSceneRoutes(scene, app.Services, app.Logger);
         var strings = new StageStrings(modelPath);
@@ -162,7 +163,7 @@ internal static class SemanticHost
         // The EventModel visitor names the application after its first modeled module (or EventModel
         // when none is declared), rather than after the source folder used by the semantic compiler.
         app.MapGet("/stage/scene", () => Results.Json(routes.Scene.ForRuntime(), StageSceneJson.Options));
-        app.MapGet("/stage/routes", () => Results.Json(new StageRoutes(routes.CommandRoutes, routes.QueryRoutes) { Diagnostics = routes.Diagnostics }, StageJson.Options));
+        app.MapGet("/stage/routes", () => Results.Json(StageRoutes.For(routes, model), StageJson.Options));
         app.MapGet("/stage/locales", () => Results.Json(strings.Locales(), StageJson.Options));
         app.MapGet("/stage/strings/{locale}", (string locale) => Results.Json(strings.Dictionary(locale), StageJson.Options));
     }

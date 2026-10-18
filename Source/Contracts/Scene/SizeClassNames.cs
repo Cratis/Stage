@@ -13,6 +13,24 @@ namespace Cratis.Stage.Contracts.Scene;
 public static class SizeClassNames
 {
     /// <summary>
+    /// Tries to parse a declared width class, rejecting undefined numeric enum values.
+    /// </summary>
+    /// <param name="name">The name as authored.</param>
+    /// <param name="value">The parsed class.</param>
+    /// <returns>Whether the name identifies a supported class.</returns>
+    public static bool TryParseWidth(string name, out WidthSizeClass value) =>
+        Enum.TryParse(name, ignoreCase: true, out value) && Enum.IsDefined(value);
+
+    /// <summary>
+    /// Tries to parse a declared height class, rejecting undefined numeric enum values.
+    /// </summary>
+    /// <param name="name">The name as authored.</param>
+    /// <param name="value">The parsed class.</param>
+    /// <returns>Whether the name identifies a supported class.</returns>
+    public static bool TryParseHeight(string name, out HeightSizeClass value) =>
+        Enum.TryParse(name, ignoreCase: true, out value) && Enum.IsDefined(value);
+
+    /// <summary>
     /// Parses a size class name as a <see cref="WidthSizeClass"/>.
     /// </summary>
     /// <param name="name">The size class name to parse.</param>

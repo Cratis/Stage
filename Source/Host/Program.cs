@@ -82,6 +82,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+if (engine == StageRuntimeEngine.EventModel)
+{
+    StageRuntimeEngineLogging.Deprecated(app.Logger, StageRuntimeEngineSelection.Name(engine));
+}
 app.UseForwardedHeaders();
 if (!warmMode)
 {
@@ -179,7 +183,7 @@ app.MapGet("/stage/scene", () => Results.Json(sceneRoutes.Scene.ForRuntime(), St
 // Served alongside the scene rather than folded into it, because it answers a question about the running
 // application rather than describing what the document says.
 app.MapGet("/stage/routes", () => Results.Json(
-    new StageRoutes(sceneRoutes.CommandRoutes, sceneRoutes.QueryRoutes) { Diagnostics = sceneRoutes.Diagnostics },
+    StageRoutes.For(sceneRoutes, model),
     StageJson.Options));
 
 // The locales at least one .strings file next to the model declares, and the merged dictionary for one

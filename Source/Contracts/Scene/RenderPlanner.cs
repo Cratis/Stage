@@ -94,9 +94,11 @@ public static class RenderPlanner
             : ScreenTemplateResolver.Resolve(layout, application.ScreenTemplates);
 
         var arrangements = DeclaredArrangements(layout, application)
-            .Select(declaredArrangement => (
-                Name: Name(declaredArrangement.Structure, declaredArrangement.Slot),
-                Selection: ArrangementSelector.Select(declaredArrangement.Structure, declaredArrangement.Slot, declaredArrangement.Arrangement, sizeClass)))
+            .Select(declaredArrangement =>
+            {
+                var supported = ArrangementSelector.TrySelect(declaredArrangement.Structure, declaredArrangement.Slot, declaredArrangement.Arrangement, sizeClass, out var selected);
+                return (Name: Name(declaredArrangement.Structure, declaredArrangement.Slot), Selection: selected, Supported: supported, Type: declaredArrangement.Arrangement.GetType().Name);
+            })
             .ToList();
 
         return new RenderPlan(
@@ -116,7 +118,11 @@ public static class RenderPlanner
                 .. RenderFindings.ForTheme(profile, theme, target),
                 .. RenderFindings.ForComponents(components.Where(component => component.Resolution is null).Select(component => component.Name), target),
                 .. RenderFindings.ForScreenTemplates(screenTemplates, target),
-                .. RenderFindings.ForSizeClass(arrangements.Where(arrangement => arrangement.Selection is null).Select(arrangement => arrangement.Name), sizeClass, target),
+                .. RenderFindings.ForSizeClass(arrangements.Where(arrangement => arrangement.Supported && arrangement.Selection is null).Select(arrangement => arrangement.Name), sizeClass, target),
+                .. arrangements.Where(arrangement => !arrangement.Supported).Select(arrangement => new RenderFinding(
+                    RenderFindingKind.ArrangementUnsupported,
+                    arrangement.Name,
+                    $"{ArrangementSelector.DiagnosticCode}: arrangement {arrangement.Type} cannot be selected for '{target}'.")),
             ])
         {
             Shell = shell

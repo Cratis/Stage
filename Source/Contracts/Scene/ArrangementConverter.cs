@@ -1,91 +1,180 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
+using Cratis.Screenplay.Diagnostics;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
+using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
-/// Converts a compiled Screenplay <see cref="ScreenplaySyntax.ArrangementSyntax"/> into a
-/// <see cref="SceneLayouts.Arrangement"/> - part of Cratis/Stage#37.
+/// Converts the slot arrangements shared by layouts, screen templates and dialog templates.
 /// </summary>
-/// <remarks>
-/// <para>
-/// <c language="csharp">arrangement</c> works identically on all three slot-bearing Screenplay declarations - the application's
-/// <c language="csharp">layout</c>, a <c language="csharp">screen template</c> and a <c language="csharp">dialog template</c> - so all three converters share this
-/// one conversion. It arranges the declaring structure's own named slots relative to each other, which is why
-/// it produces the slot-referencing <see cref="SceneLayouts.FlowSlotLeaf"/>/<see cref="SceneLayouts.SlotPlacement"/>
-/// leaves rather than element leaves.
-/// </para>
-/// <para>
-/// A <c language="csharp">place</c> marked <c language="csharp">hidden</c> is excluded from its variant's placements entirely -
-/// <see cref="SceneLayouts.SlotPlacement"/> has no hidden flag, so "hidden in this variant" is represented as
-/// "absent from this variant". A flow slot leaf's fixed <c language="csharp">width</c>/<c language="csharp">height</c> is a known, deliberate gap:
-/// <see cref="SceneLayouts.FlowNode"/> carries only <c language="csharp">Grow</c> and <c language="csharp">Span</c>, so a fixed size on a leaf is
-/// not carried through.
-/// </para>
-/// </remarks>
 public static class ArrangementConverter
 {
     /// <summary>
-    /// Converts a <see cref="ScreenplaySyntax.ArrangementSyntax"/> into a <see cref="SceneLayouts.Arrangement"/>.
+    /// Identifies an unsupported arrangement node.
     /// </summary>
-    /// <param name="arrangement">The <see cref="ScreenplaySyntax.ArrangementSyntax"/> to convert, or <see langword="null"/> when the structure declares none.</param>
-    /// <returns>The converted <see cref="SceneLayouts.Arrangement"/>, or <see langword="null"/> when there is nothing to arrange.</returns>
-    public static SceneLayouts.Arrangement? Convert(ScreenplaySyntax.ArrangementSyntax? arrangement) =>
-        arrangement switch
-        {
-            { Mode: ScreenplaySyntax.ArrangementMode.Flow, Root: not null } => ConvertFlow(arrangement),
-            { Mode: ScreenplaySyntax.ArrangementMode.Freeform, Variants: not null } => ConvertFreeform(arrangement.Variants),
-            _ => null,
-        };
+    public const string NodeDiagnosticCode = "STAGE-SCENE-ARRANGEMENT-001";
 
-    static SceneLayouts.FlowArrangement ConvertFlow(ScreenplaySyntax.ArrangementSyntax arrangement) =>
-        new(ConvertNode(arrangement.Root!), [.. (arrangement.Overrides ?? []).Select(ConvertOverride)]);
+    /// <summary>
+    /// Identifies an unsupported container kind.
+    /// </summary>
+    public const string ContainerDiagnosticCode = "STAGE-SCENE-ARRANGEMENT-002";
 
-    static SceneLayouts.FlowOverride ConvertOverride(ScreenplaySyntax.ArrangementOverrideSyntax @override) =>
-        new(
-            @override.Width is null ? null : SizeClassNames.ParseWidth(@override.Width),
-            @override.Height is null ? null : SizeClassNames.ParseHeight(@override.Height),
-            ConvertNode(@override.Root));
+    /// <summary>
+    /// Identifies an invalid size or size class.
+    /// </summary>
+    public const string SizeDiagnosticCode = "STAGE-SCENE-ARRANGEMENT-004";
 
-    static SceneLayouts.FlowNode ConvertNode(ScreenplaySyntax.ArrangementNodeSyntax node) =>
-        node switch
-        {
-            ScreenplaySyntax.ArrangementSlotSyntax slot => new SceneLayouts.FlowSlotLeaf(slot.Name) { Grow = slot.GrowFactor ?? (slot.Grow ? 1 : null), Span = slot.Span },
-            ScreenplaySyntax.ArrangementContainerSyntax container => ConvertContainer(container),
-            _ => throw new UnknownArrangementNode(node.GetType().Name),
-        };
+    /// <summary>
+    /// Converts an arrangement using the legacy throwing behavior.
+    /// </summary>
+    /// <param name="arrangement">The arrangement, or null when none is declared.</param>
+    /// <returns>The converted arrangement, or null.</returns>
+    public static SceneLayouts.Arrangement? Convert(ScreenplaySyntax.ArrangementSyntax? arrangement) => new Conversion(null, string.Empty).Convert(arrangement);
 
-    static SceneLayouts.FlowContainer ConvertContainer(ScreenplaySyntax.ArrangementContainerSyntax container)
+    /// <summary>
+    /// Converts an arrangement, omitting unsupported subtrees and reporting their source locations.
+    /// </summary>
+    /// <param name="arrangement">The arrangement, or null when none is declared.</param>
+    /// <param name="diagnostics">The append-only diagnostic collector.</param>
+    /// <param name="structure">The owning layout or template.</param>
+    /// <returns>The arrangement with supported subtrees, or null if its root cannot be converted.</returns>
+    public static SceneLayouts.Arrangement? Convert(ScreenplaySyntax.ArrangementSyntax? arrangement, ConversionDiagnostics diagnostics, string structure) =>
+        new Conversion(diagnostics, structure).Convert(arrangement);
+
+    sealed class Conversion(ConversionDiagnostics? diagnostics, string structure)
     {
-        var children = container.Children.Select(ConvertNode).ToList();
-        var gap = container.Gap ?? 0;
-
-        // Flat (no explicit row/column/grid nesting) has no Scene.Model counterpart - stacking vertically
-        // (a column) is the closest match to how an unordered group of slots typically reads on a page.
-        // A container weighs and spans inside its parent exactly as a slot does - `grid ... grow` and `row grow 1.5`.
-        return container.Kind switch
+        public SceneLayouts.Arrangement? Convert(ScreenplaySyntax.ArrangementSyntax? arrangement) => arrangement switch
         {
-            ScreenplaySyntax.ArrangementContainerKind.Row => new SceneLayouts.FlowRow { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span },
-            ScreenplaySyntax.ArrangementContainerKind.Column => new SceneLayouts.FlowColumn { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span },
-            ScreenplaySyntax.ArrangementContainerKind.Grid => new SceneLayouts.FlowGrid { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span, Columns = container.Columns, Rows = container.Rows },
-            ScreenplaySyntax.ArrangementContainerKind.Flat => new SceneLayouts.FlowColumn { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span },
-            _ => throw new UnknownArrangementContainerKind(container.Kind),
+            { Mode: ScreenplaySyntax.ArrangementMode.Flow, Root: not null } => Flow(arrangement),
+            { Mode: ScreenplaySyntax.ArrangementMode.Freeform, Variants: not null } => new SceneLayouts.FreeformSlotArrangement([.. arrangement.Variants.Select(Variant).OfType<SceneLayouts.FreeformSlotVariant>()]),
+            _ => null
         };
+
+        SceneLayouts.FlowArrangement? Flow(ScreenplaySyntax.ArrangementSyntax arrangement)
+        {
+            var root = Node(arrangement.Root!);
+            var overrides = (arrangement.Overrides ?? []).Select(Override).OfType<SceneLayouts.FlowOverride>().ToArray();
+            return root is null ? null : new(root, overrides);
+        }
+
+        SceneLayouts.FlowOverride? Override(ScreenplaySyntax.ArrangementOverrideSyntax syntax)
+        {
+            var validWidth = Width(syntax.Width, syntax.Location, out var width);
+            var validHeight = Height(syntax.Height, syntax.Location, out var height);
+            var root = Node(syntax.Root);
+            return validWidth && validHeight && root is not null ? new(width, height, root) : null;
+        }
+
+        SceneLayouts.FlowNode? Node(ScreenplaySyntax.ArrangementNodeSyntax node)
+        {
+            switch (node)
+            {
+                case ScreenplaySyntax.ArrangementSlotSyntax slot:
+                    return new SceneLayouts.FlowSlotLeaf(slot.Name) { Grow = slot.GrowFactor ?? (slot.Grow ? 1 : null), Span = slot.Span };
+                case ScreenplaySyntax.ArrangementContainerSyntax container:
+                    return Container(container);
+                default:
+                    if (diagnostics is null) throw new UnknownArrangementNode(node.GetType().Name);
+                    Report(NodeDiagnosticCode, $"arrangement node {node.GetType().Name}", node.Location);
+                    return null;
+            }
+        }
+
+        SceneLayouts.FlowContainer? Container(ScreenplaySyntax.ArrangementContainerSyntax container)
+        {
+            var children = container.Children.Select(Node).OfType<SceneLayouts.FlowNode>().ToList();
+            var gap = container.Gap ?? 0;
+
+            // Flat has no Scene counterpart; preserve the legacy column translation.
+            SceneLayouts.FlowContainer? converted = container.Kind switch
+            {
+                ScreenplaySyntax.ArrangementContainerKind.Row => new SceneLayouts.FlowRow { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span },
+                ScreenplaySyntax.ArrangementContainerKind.Column or ScreenplaySyntax.ArrangementContainerKind.Flat => new SceneLayouts.FlowColumn { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span },
+                ScreenplaySyntax.ArrangementContainerKind.Grid => new SceneLayouts.FlowGrid { Gap = gap, Children = children, Grow = container.Grow, Span = container.Span, Columns = container.Columns, Rows = container.Rows },
+                _ => null
+            };
+            if (converted is not null) return converted;
+            if (diagnostics is null) throw new UnknownArrangementContainerKind(container.Kind);
+            Report(ContainerDiagnosticCode, $"arrangement container kind {container.Kind}", container.Location);
+            return null;
+        }
+
+        SceneLayouts.FreeformSlotVariant? Variant(ScreenplaySyntax.VariantSyntax variant)
+        {
+            var validWidth = Width(variant.Width, variant.Location, out var width);
+            var validHeight = Height(variant.Height, variant.Location, out var height);
+            var places = variant.Places.Where(place => !place.Hidden).Select(Placement).OfType<SceneLayouts.SlotPlacement>().ToArray();
+            return validWidth && validHeight ? new(new(width!.Value, height!.Value), places) : null;
+        }
+
+        SceneLayouts.SlotPlacement? Placement(ScreenplaySyntax.PlaceSyntax place)
+        {
+            var validWidth = Size(place.SizeWidth, place.Location, out var width);
+            var validHeight = Size(place.SizeHeight, place.Location, out var height);
+            return validWidth && validHeight ? new(place.SlotName, place.X ?? 0, place.Y ?? 0, width, height) : null;
+        }
+
+        bool Size(string? text, SourceLocation location, out double size)
+        {
+            size = 0;
+            if (text is null || text == "fill") return true;
+            if (diagnostics is null)
+            {
+                size = double.Parse(text);
+                return true;
+            }
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out size) && double.IsFinite(size)) return true;
+            Report(SizeDiagnosticCode, $"arrangement size '{text}'", location);
+            return false;
+        }
+
+        bool Width(string? text, SourceLocation location, out SceneSizeClasses.WidthSizeClass? width)
+        {
+            width = null;
+            if (text is null) return true;
+            if (diagnostics is null)
+            {
+                width = SizeClassNames.ParseWidth(text);
+                return true;
+            }
+            if (SizeClassNames.TryParseWidth(text, out var parsed))
+            {
+                width = parsed;
+                return true;
+            }
+            Report(SizeDiagnosticCode, $"size class '{text}'", location);
+            return false;
+        }
+
+        bool Height(string? text, SourceLocation location, out SceneSizeClasses.HeightSizeClass? height)
+        {
+            height = null;
+            if (text is null) return true;
+            if (diagnostics is null)
+            {
+                height = SizeClassNames.ParseHeight(text);
+                return true;
+            }
+            if (SizeClassNames.TryParseHeight(text, out var parsed))
+            {
+                height = parsed;
+                return true;
+            }
+            Report(SizeDiagnosticCode, $"size class '{text}'", location);
+            return false;
+        }
+
+        void Report(string code, string construct, SourceLocation location) => diagnostics!.Report(new(
+            code,
+            DiagnosticSeverity.Error,
+            construct,
+            structure,
+            location,
+            $"Unsupported {construct} was omitted from arrangement '{structure}'."));
     }
-
-    static SceneLayouts.FreeformSlotArrangement ConvertFreeform(IEnumerable<ScreenplaySyntax.VariantSyntax> variants) =>
-        new([.. variants.Select(ConvertVariant)]);
-
-    static SceneLayouts.FreeformSlotVariant ConvertVariant(ScreenplaySyntax.VariantSyntax variant) =>
-        new(
-            new(SizeClassNames.ParseWidth(variant.Width), SizeClassNames.ParseHeight(variant.Height)),
-            [.. variant.Places.Where(place => !place.Hidden).Select(ConvertPlacement)]);
-
-    static SceneLayouts.SlotPlacement ConvertPlacement(ScreenplaySyntax.PlaceSyntax place) =>
-        new(place.SlotName, place.X ?? 0, place.Y ?? 0, ParseSize(place.SizeWidth), ParseSize(place.SizeHeight));
-
-    static double ParseSize(string? size) => size is null || size == "fill" ? 0 : double.Parse(size);
 }

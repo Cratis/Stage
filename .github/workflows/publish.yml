@@ -119,8 +119,18 @@ jobs:
       - name: Set the Stage release version
         run: npm version "$RELEASE_VERSION" --no-git-tag-version --workspace @cratis/stage.runtime
 
-      - name: Publish runtime package with provenance
-        run: npm publish --access public --provenance --workspace @cratis/stage.runtime
+      - name: Publish runtime package with provenance unless already published
+        run: |
+          lookup_error="$RUNNER_TEMP/stage-runtime-npm-view.log"
+          if existing_version=$(npm view "@cratis/stage.runtime@$RELEASE_VERSION" version 2>"$lookup_error"); then
+            test "$existing_version" = "$RELEASE_VERSION"
+            echo "@cratis/stage.runtime@$RELEASE_VERSION is already published; skipping npm publish."
+          elif grep -qE '^npm (ERR!|error) code E404$' "$lookup_error"; then
+            npm publish --access public --provenance --workspace @cratis/stage.runtime
+          else
+            cat "$lookup_error" >&2
+            exit 1
+          fi
 
   publish-dotnet-packages:
     if: needs.release.outputs.publish == 'true'

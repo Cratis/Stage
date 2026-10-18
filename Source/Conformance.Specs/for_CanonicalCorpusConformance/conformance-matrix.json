@@ -60,14 +60,13 @@
     "CompositeReadModelKeysCorpus.V27": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "refused", "refusals": [
-        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "artifact": "sem1:9353b58507ec7cdf2cc372210d0c8324ec7508ce53067fc45891d22a886f1ab6", "issue": 511 },
         { "code": "capability:Projection[read-model-paymenttotals-has-several]", "artifact": "sem1:e872452ddf7f34e9b0d9a7768f9f44440d99cfee32b05e92c5223beaf5f15e57", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "kind": "specification", "artifact": "sem1:af3a6a565ea366d6ac2d4da3cd9c02290138c4747225f1418ef7fce20edf6630", "issue": 511 },
         { "code": "capability:Projection[read-model-paymenttotals-has-several]", "kind": "specification", "artifact": "sem1:58d85c37cd592048bde2916955aef4dbdb59f35ab9778e2ef26d539581ae4d39", "issue": 512 },
         { "code": "capability:Projection[read-model-paymenttotals-has-several]", "kind": "specification", "artifact": "sem1:6493a85a719da36461bd80988cb1bb54ec4d2e023a965d46ac246eafbdee6927", "issue": 512 },
         { "code": "capability:Projection[read-model-paymenttotals-has-several]", "kind": "specification", "artifact": "sem1:8a7b8750c96596ae18478b5b455f0a47cd5129cbc714f3bb15331c3e6ab017e9", "issue": 512 },
         { "code": "capability:Projection[read-model-paymenttotals-has-several]", "kind": "specification", "artifact": "sem1:9b79e5a7517213406adbaff34f26a71a0ca837a53c3b7954ceb503d863793f2d", "issue": 512 },
+        { "code": "capability:Projection[read-model-paymenttotals-has-several]", "kind": "specification", "artifact": "sem1:af3a6a565ea366d6ac2d4da3cd9c02290138c4747225f1418ef7fce20edf6630", "issue": 512 },
         { "code": "capability:Projection[read-model-paymenttotals-has-several]", "kind": "specification", "artifact": "sem1:bd21b2798c4878ad8d2a9aef595978c99631ea4e77aee2ea9acdca9edd60b7c7", "issue": 512 },
         { "code": "capability:Projection[read-model-paymenttotals-has-several]", "kind": "specification", "artifact": "sem1:ee4476e9d11426212a7614bc393e19728fad4148f22492f50291f86b7d22c1d6", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [

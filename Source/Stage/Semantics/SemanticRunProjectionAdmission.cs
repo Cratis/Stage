@@ -174,9 +174,9 @@ internal static class SemanticRunProjectionAdmission
             {
                 return rejection;
             }
-            if (readModel.Properties.Length == 1 && scope.From.Any(from => from.Mappings.IsEmpty))
+            if (readModel.Properties.All(property => property.IsIdentifier || property.Type.IsOptional) && scope.From.Any(from => from.Mappings.IsEmpty))
             {
-                return "A mapping-free identifier-only from block does not materialize a Chronicle read model.";
+                return "A mapping-free from block on a read model without required properties does not materialize a Chronicle read model.";
             }
             if (scope.Every is { SubscribesToAllEvents: true }
                 ? reachable.Any(eventContract => !ScopedKeysMatch(plan, specification, eventContract, identifier.Type))

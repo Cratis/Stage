@@ -11,6 +11,8 @@ public class a_projection_with_optional_properties : a_command_only_plan
 {
     protected virtual bool MapValues => false;
 
+    protected virtual bool OnlyOptional => false;
+
     protected void Configure()
     {
         var application = _originalModel.Application;
@@ -25,13 +27,15 @@ public class a_projection_with_optional_properties : a_command_only_plan
         var properties = types.Select((type, index) => new SemanticProperty(
             SemanticId.Parse($"sem1:{index + 1000:x64}"), $"optional{type}", SemanticTypeReference.ForPrimitive(type) with { IsOptional = true }, false)).ToArray();
         var eventProperties = properties.Select((property, index) => property with { Id = SemanticId.Parse($"sem1:{index + 2000:x64}"), Type = property.Type with { IsOptional = false } }).Take(MapValues ? properties.Length : 0).ToArray();
+        var kept = readModel.Properties.Where(property => !OnlyOptional || property.IsIdentifier).ToArray();
+        var keptIds = kept.Select(property => property.Id).ToHashSet();
         var updatedModel = readModel with
         {
-            Properties = [.. readModel.Properties, .. properties]
+            Properties = [.. kept, .. properties]
         };
         var assertion = _original.ThenReadModels.Single() with
         {
-            Values = [.. _original.ThenReadModels.Single().Values, .. properties.Select((property, index) => new SemanticPropertyValue(property.Id, MapValues ? values[index] : SemanticValue.Null))]
+            Values = [.. _original.ThenReadModels.Single().Values.Where(value => keptIds.Contains(value.TargetProperty)), .. properties.Select((property, index) => new SemanticPropertyValue(property.Id, MapValues ? values[index] : SemanticValue.Null))]
         };
         var updatedProjection = projection with
         {
@@ -39,7 +43,7 @@ public class a_projection_with_optional_properties : a_command_only_plan
             {
                 From = [.. projection.Scope!.From.Select(root => root with
                 {
-                    Mappings = [.. root.Mappings, .. eventProperties.Select((property, index) => new SemanticProjectionMapping([properties[index].Id], SemanticProjectionOperation.Set, new SemanticProjectionEventProperty([property.Id])))]
+                    Mappings = [.. root.Mappings.Where(_ => !OnlyOptional), .. eventProperties.Select((property, index) => new SemanticProjectionMapping([properties[index].Id], SemanticProjectionOperation.Set, new SemanticProjectionEventProperty([property.Id])))]
                 })]
             }
         };

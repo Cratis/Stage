@@ -4,6 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { BindingExpression } from '@cratis/scene.model';
+import { ServerSentEventQueryConnection } from '@cratis/arc/queries';
 import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
 import { guardPath } from './stageGuards';
@@ -259,6 +260,31 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
 
         setLoading(true);
         setError('');
+
+        // A live query is subscribed to rather than read: the server pushes a new result whenever its read model
+        // changes, so a list shows what a command - issued from this client or any other - did without a refresh.
+        if (isLiveRoute(request.route)) {
+            const connection = new ServerSentEventQueryConnection<unknown>(new URL(withoutLiveMarker(url), globalThis.location.href));
+            connection.connect(result => {
+                if (latest.current !== sequence || abort.signal.aborted) return;
+                const failure = queryFailure(result);
+                if (failure) {
+                    setRows([]);
+                    setError(failure);
+                } else {
+                    setRows(normalizeRows(result));
+                    setError('');
+                }
+
+                setLoading(false);
+            });
+
+            return () => {
+                abort.abort();
+                connection.disconnect();
+            };
+        }
+
         fetch(url, { headers: { Accept: 'application/json' }, signal: abort.signal })
             .then(async response => {
                 if (!response.ok) throw new Error(`The query answered ${response.status}.`);
@@ -409,6 +435,33 @@ function routeWithArguments(route: string, queryArguments: Record<string, unknow
 
     const serialized = parameters.toString();
     return serialized ? `${path}?${serialized}` : path;
+}
+
+/** The marker a generated application puts on the route of a query the model declares `observable`. */
+const liveMarker = 'waitForFirstResult';
+
+function isLiveRoute(route: string): boolean {
+    return new URLSearchParams(route.split('?')[1] ?? '').get(liveMarker) === 'true';
+}
+
+function withoutLiveMarker(url: string): string {
+    const [path, query = ''] = url.split('?');
+    const parameters = new URLSearchParams(query);
+    parameters.delete(liveMarker);
+    const serialized = parameters.toString();
+    return serialized ? `${path}?${serialized}` : path;
+}
+
+// What a result that carries no rows says about why: a denied or invalid subscription ends rather than retrying.
+function queryFailure(result: unknown): string {
+    if (!isRecord(result)) return '';
+    if (result.isAuthorized === false) return 'The query answered 403.';
+    if (result.isValid === false || result.hasExceptions === true) {
+        const messages = Array.isArray(result.exceptionMessages) ? result.exceptionMessages.filter(message => typeof message === 'string') : [];
+        return messages.length > 0 ? messages.join(' ') : 'The query could not be answered.';
+    }
+
+    return '';
 }
 
 function normalizeRows(payload: unknown): Record<string, unknown>[] {

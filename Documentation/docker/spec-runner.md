@@ -73,20 +73,22 @@ then offsets, then opaque validation: an offset-less input combined with opaque 
 in the reference but `Unsupported` in Stage. `Unsupported` never counts as a pass. The renderer
 render date comparisons, and the legacy engines refuse them with `STAGE-ESM-046`. Date three-way conformance
 covers the canonical corpus in all source forms.
-The semantic executor runs protected command reads, including reaction-invoked commands. After authorization and
-property/concept rules, it projects the prior facts through Chronicle's in-memory read-model scenario and requires
-each declared view at its key. Event-source-keyed removal and recreation are preserved. Empty, whitespace-only,
+The semantic executor and Host run protected command reads, including reaction-invoked commands. After authorization and
+property/concept rules, both require each declared view at its key in the projected prior facts.
+Event-source-keyed removal and recreation are preserved. Empty, whitespace-only,
 exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject before projection lookup, even if an
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
 generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
-to protected reads; command identifiers keep their existing behavior. The Host still delegates to the pinned
-Screenplay 4.206.0 evaluator, which predates this refused-key check. Read-backed requirements and
+to protected reads; command identifiers keep their existing behavior. The Host delegates to the pinned
+Screenplay 4.209.0 evaluator with the same refused-key checks. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
 Join removals, parent keys, children and nested projection scopes remain refused.
 The renderer renders protected reads and refuses only the shapes it cannot preserve with `STAGE-ESM-044`
-(see [Protected reads rendering](../reference/protected-reads-rendering.md)). The structural engine refuses the preamble,
+(see [Protected reads rendering](../reference/protected-reads-rendering.md)). Generated applications do not yet enforce
+the refused-key checks; the six canonical refused-key specifications remain known renderer differences.
+The structural engine refuses the preamble,
 exits `1` and writes no results file.
 Without the preamble, command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
 At v20 it executes rules on generated concepts. A failing fixture is a contract rejection with

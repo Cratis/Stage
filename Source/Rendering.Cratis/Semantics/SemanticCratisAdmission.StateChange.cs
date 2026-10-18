@@ -42,7 +42,8 @@ internal static partial class SemanticCratisAdmission
             var declaration = duplicates.Length == 0
                 ? $"type name '{command.Name}'"
                 : $"properties [{string.Join(", ", duplicates.Select(name => $"'{command.Name}.{name}'"))}]";
-            diagnostics.Add(Error("STAGE-ESM-012", $"Command '{command.Name}' cannot render in generated C#: {declaration} collide with generated members.", command.Id));
+            var collision = duplicates.Length == 0 ? "collides with a generated member" : "collide with each other";
+            diagnostics.Add(Error("STAGE-ESM-012", $"Command '{command.Name}' cannot render in generated C#: {declaration} {collision}.", command.Id));
             return;
         }
 

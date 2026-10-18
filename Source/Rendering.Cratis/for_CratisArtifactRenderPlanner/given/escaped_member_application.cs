@@ -58,9 +58,9 @@ internal static class escaped_member_application
             "TextForm",
             "Text",
             null,
-            [new("text", null, null, "Identity", null), new("handle", "selection.value", null, "Value", null)],
+            [new("text", null, null, "Identity", null), new("valueInput", "handle", null, "Value", null)],
             SceneForms.FormGenerationMode.Manual,
-            new SceneForms.CommandFormLayout([], [new("handle", 1, 1, null, 1, null)], null, null));
+            new SceneForms.CommandFormLayout([], [new("valueInput", 1, 1, null, 1, null)], null, null));
         var action = new SceneElements.ExternalComponent
         {
             Id = "submit", Name = "submit", ComponentName = "core:action",

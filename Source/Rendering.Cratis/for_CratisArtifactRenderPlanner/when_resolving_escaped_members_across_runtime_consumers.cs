@@ -68,13 +68,16 @@ public class when_resolving_escaped_members_across_runtime_consumers : a_generat
         schema["required"]!.AsArray().Select(value => value!.GetValue<string>()).ShouldContainOnly("text_", "handle_");
         var screen = runtime["screens"]!.AsArray().Single()!;
         var form = screen["slotContent"]!["forms"]!.AsArray().Single()!["properties"]!;
-        form["fields"]!.AsArray().Select(field => field!["name"]!.GetValue<string>()).ShouldContainOnly("text_", "handle_");
-        form["fields"]![0]!["sourceProperty"]!.GetValue<string>().ShouldEqual("text");
-        form["fields"]![1]!["sourceProperty"]!.GetValue<string>().ShouldEqual("selection.value");
-        form["layout"]!["placements"]![0]!["field"]!.GetValue<string>().ShouldEqual("handle_");
+        form["fields"]!.AsArray().Select(field => field!["name"]!.GetValue<string>()).ShouldContainOnly("text_", "valueInput");
+        Assert.Null(form["fields"]![0]!["sourceProperty"]);
+        form["fields"]![1]!["sourceProperty"]!.GetValue<string>().ShouldEqual("handle_");
+        form["layout"]!["placements"]![0]!["field"]!.GetValue<string>().ShouldEqual("valueInput");
         var action = screen["slotContent"]![DefaultLayout.ContentSlotName]!.AsArray()[0]!["properties"]!;
         action["arguments"]!.AsObject().Single().Key.ShouldEqual("handle_");
-        action["fields"]!.AsArray().Select(field => field!["name"]!.GetValue<string>()).ShouldContainOnly("text_", "handle_");
+        action["fields"]!.AsArray().Select(field => (field!["sourceProperty"] ?? field["name"])!.GetValue<string>()).ShouldContainOnly("text_", "handle_");
+        Assert.Null(action["fields"]![0]!["sourceProperty"]);
+        var toolbar = screen["slotContent"]![DefaultLayout.ContentSlotName]!.AsArray()[1]!;
+        toolbar["slots"]!["items"]![0]!["properties"]!["slice"]!.GetValue<string>().ShouldEqual("FollowUp");
 
         // The live semantic Host still accepts the source contract; it must not inherit generated CLR escapes.
         var semantic = invoice_model.Compile(escaped_member_application.Source);

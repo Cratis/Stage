@@ -19,15 +19,14 @@ internal static class GeneratedSceneMemberNames
         }
         else if (node is JsonObject value)
         {
-            foreach (var key in new[] { "name", "field" })
+            // Scene sourceProperty is a command-member alias, not a read-side population path.
+            // Population is supplied separately by interaction/form argument source bindings.
+            foreach (var key in new[] { "name", "field", "sourceProperty" })
             {
                 if (Text(value, key) is not { } path) continue;
                 var emitted = Path(path, names);
                 if (emitted == path) continue;
                 value[key] = emitted;
-
-                // An implicit population source belongs to the unchanged read model, not the escaped command.
-                if (key == "name" && value["sourceProperty"] is null) value["sourceProperty"] = path;
             }
             foreach (var (_, child) in value) Fields(child, names);
         }

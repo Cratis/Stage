@@ -340,8 +340,9 @@ A plain GET can return HTTP 202 until the subject emits. Use `?waitForFirstResul
 to wait for the first result (HTTP 200), or `Accept: text/event-stream` to receive SSE
 `data:` frames as the collection changes. Generated `src/stage.ts` routes include
 `waitForFirstResult=true`, so list screens do not mistake a pending result for an empty list.
-They still fetch one result and refresh after commands; browser SSE push and Host streaming
-are not implemented. The Host continues to serve one-shot arrays, even for `observable` queries.
+The runtime frontend subscribes to those routes over SSE, so list screens update when another
+client's command changes the data. The Host streams live (`observable`) queries; snapshot queries
+still fetch one result and refresh after commands.
 
 Without `observable`, a list query renders as `Task<IEnumerable<ReadModel>>` using
 `GetInstances` and in-memory filtering. Snapshot lookup arguments retain their concept types.

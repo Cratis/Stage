@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { render, screen } from '@testing-library/react';
+import { render, screen } from './testing/render';
 import { ExternalComponent, HorizontalAlignment, VerticalAlignment, Visibility } from '@cratis/scene.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';

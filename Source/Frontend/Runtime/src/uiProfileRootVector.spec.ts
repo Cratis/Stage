@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest';
 import type { Screen } from '@cratis/scene.model';
 import type { ApplicationDocument } from '@cratis/scene.blueprint.default';
 import { effectiveShellOf } from '@cratis/scene.blueprint.default';
-import scene from '../../Conformance.Specs/for_UiProfileRootVector/uiprofile-root.scene.json';
-import expected from '../../Conformance.Specs/for_UiProfileRootVector/uiprofile-root.shells.json';
+import scene from '../../../Conformance.Specs/for_UiProfileRootVector/uiprofile-root.scene.json';
+import expected from '../../../Conformance.Specs/for_UiProfileRootVector/uiprofile-root.shells.json';
 
 // The `uiprofile-root` conformance vector: the corpus' ui-profile-root-positive document, as Stage's converter translates it
 // (`Source/Conformance.Specs/for_UiProfileRootVector`), resolved to an effective shell by the TypeScript engine. The .NET spec holds

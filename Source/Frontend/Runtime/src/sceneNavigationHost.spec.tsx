@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from './testing/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
 import { stageTheme } from './stageTheme';

@@ -38,7 +38,7 @@ internal static partial class SemanticSpecificationAdmission
     {
         if (type.IsCollection && value is SemanticArrayValue array)
         {
-            return array.Values.All(element => HasCompleteValue(context, type with { IsCollection = false }, element));
+            return array.Values.All(element => HasCompleteValue(context, type with { IsCollection = false, IsOptional = false }, element));
         }
         if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
         {

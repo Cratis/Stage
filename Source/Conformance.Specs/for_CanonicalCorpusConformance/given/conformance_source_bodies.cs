@@ -37,7 +37,7 @@ public static class conformance_source_bodies
             return (null, "source-form-differs-from-esm-bytes");
         }
 
-        // The partial plan, as every surface uses: the strict plan does not exist for a model the loader refuses.
+        // Match the partial-plan policy used by the loader and each execution surface.
         if (SemanticExecutionPlan.Compile(model, []).Plan is not { } plan)
         {
             return (null, null);

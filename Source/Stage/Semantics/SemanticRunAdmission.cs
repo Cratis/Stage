@@ -153,7 +153,7 @@ public static class SemanticRunAdmission
             return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
         }
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
-        if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, command.Id, "Command property names collide in generated C#.");
+        if (CommandPlanRefusal(plan, command) is { } commandRefusal) return commandRefusal;
         foreach (var emitted in command.Handler is null ? command.Produces : [])
         {
             if (plan.Events.TryGetValue(emitted.EventContract, out var producedContract) &&
@@ -267,6 +267,12 @@ public static class SemanticRunAdmission
 
         return null;
     }
+
+    static SemanticUnsupportedCapability? CommandPlanRefusal(SemanticExecutionPlan plan, SemanticCommand command) =>
+        SemanticPlanAdmission.Check(plan, command.Id) ??
+        (GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name))
+            ? null
+            : new(StageExecutionCapability.Command, command.Id.ToString(), "Command property names collide in generated C#."));
 
     // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
     // Keep non-event triggers, opaque bodies and unsupported context mappings refused in both engines.

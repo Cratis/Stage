@@ -46,7 +46,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         UseEventNamespaces(builder, [.. replay.Select(_ => _.Produced.EventContract), .. specification.GivenEvents.Select(given => given.EventContract)], queryNamespace, context);
 
         var routedReplay = specification.GivenEvents.Any(given => given.Route is not null) ||
-            SemanticSpecificationRouteRendering.ForCommand(specification, context) is not null;
+            SemanticSpecificationRouteRendering.RoutesCommand(specification, context);
         if (routedReplay)
         {
             builder.Using("Cratis.Chronicle.Testing.ReadModels");
@@ -137,11 +137,11 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         if (specification.When is { } action)
         {
             var command = context.Commands[action.Command];
-            var route = SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context, types);
             foreach (var (produced, eventExpectation) in replay)
             {
                 var @event = context.Events[produced.EventContract];
                 var source = SemanticDestinations.ForSpecification(specification, command, produced);
+                var route = SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context, produced), context, types);
                 var arguments = @event.Properties.Select(property =>
                     types.Value(eventExpectation.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
                 yield return $"{seed}.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){route}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));";

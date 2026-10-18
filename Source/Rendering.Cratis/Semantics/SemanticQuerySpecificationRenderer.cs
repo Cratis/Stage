@@ -97,7 +97,7 @@ internal static class SemanticQuerySpecificationRenderer
             var source = SemanticDestinations.ForSpecification(specification, command!, produced);
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line(SeedEvent(query, types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type), $"new {types.EventType(@event)}({string.Join(", ", arguments)})", SemanticSpecificationRouteRendering.ForCommand(specification, context), context, types));
+            builder.Line(SeedEvent(query, types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type), $"new {types.EventType(@event)}({string.Join(", ", arguments)})", SemanticSpecificationRouteRendering.ForCommand(specification, context, produced), context, types));
         }
 
         if (query.Cardinality == SemanticQueryCardinality.Many)

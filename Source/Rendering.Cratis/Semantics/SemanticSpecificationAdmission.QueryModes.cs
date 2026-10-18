@@ -83,7 +83,7 @@ internal static partial class SemanticSpecificationAdmission
                 return "A protected snapshot collection success needs a collection-aware query scenario GetInstances store; Arc 22.87 forwards GetInstances to the inner store rather than its seeded events and pinned rows.";
             }
             var routedReplay = specification.GivenEvents.Any(given => given.Route is not null) ||
-                SemanticSpecificationRouteRendering.ForCommand(specification, context) is not null;
+                SemanticSpecificationRouteRendering.RoutesCommand(specification, context);
             if (routedReplay && !HasReadablePinnedKey(context, query.ReadModel))
             {
                 return "A protected live collection with routed replay pins rows that need a readable Key, Subject or Id; Arc 22.87 cannot observe unkeyed pinned read models.";

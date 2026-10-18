@@ -15,7 +15,7 @@ public class and_scene_constructs_are_unsupported : Specification
     [InlineData("trigger", "STAGE-SCENE-BEHAVIOR-001")]
     [InlineData("trigger-kind", "STAGE-SCENE-BEHAVIOR-001")]
     [InlineData("interval", "STAGE-SCENE-BEHAVIOR-002")]
-    [InlineData("action", "STAGE-SCENE-ACTION-001")]
+    [InlineData("action", "STAGE-SCENE-ACTION-003")]
     [InlineData("notification", "STAGE-SCENE-ACTION-002")]
     [InlineData("destination", "STAGE-SCENE-CONTRIBUTION-001")]
     [InlineData("profile-size", "STAGE-SCENE-PROFILE-001")]

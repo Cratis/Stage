@@ -28,7 +28,7 @@ public class and_a_continuation_is_unsupported : Specification
         var result = InteractionActionConverter.Convert(action, diagnostics, "Register.onClick")!;
 
         result.OnSuccess.Concat(result.OnFailure).Concat(result.OnResult).Count().ShouldEqual(1);
-        diagnostics.All.Single().Code.ShouldEqual("STAGE-SCENE-ACTION-001");
+        diagnostics.All.Single().Code.ShouldEqual("STAGE-SCENE-ACTION-003");
         diagnostics.All.Single().Location.ShouldEqual(location);
         diagnostics.All.Single().Path.ShouldEqual("Register.onClick");
         Catch.Exception(() => InteractionActionConverter.Convert(action)).ShouldBeOfExactType<UnknownInteractionAction>();

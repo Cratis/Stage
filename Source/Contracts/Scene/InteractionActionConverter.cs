@@ -60,7 +60,7 @@ public static class InteractionActionConverter
                 ScreenplaySyntax.OpenDialogActionSyntax or ScreenplaySyntax.CloseDialogActionSyntax or ScreenplaySyntax.RefreshQueryActionSyntax or
                 ScreenplaySyntax.SetStateActionSyntax or ScreenplaySyntax.NotifyActionSyntax or ScreenplaySyntax.ConfirmActionSyntax or
                 ScreenplaySyntax.RaiseTriggerActionSyntax => null,
-            _ => "STAGE-SCENE-ACTION-001"
+            _ => "STAGE-SCENE-ACTION-003"
         };
         if (code is not null)
         {

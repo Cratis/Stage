@@ -71,11 +71,18 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
     /// <param name="specification">The specification.</param>
-    /// <returns>Whether every expected error is a literal message the triggering command declares and no command a reaction invokes declares.</returns>
+    /// <returns>Whether the caller is denied by the triggering command's authorization, or every expected error is a literal message the triggering command declares and no command a reaction invokes declares.</returns>
     internal static bool IsRejectedByTrigger(SemanticApplicationContext context, SemanticSpecification specification)
     {
-        if (specification.When is not { } action || specification.ThenErrors.IsEmpty || !specification.ThenEvents.IsEmpty ||
-            specification.ThenErrors.Any(error => error.Code is not null || error.Message is null) || !context.Commands.TryGetValue(action.Command, out var command))
+        if (specification.When is not { } action || !specification.ThenEvents.IsEmpty || !context.Commands.TryGetValue(action.Command, out var command))
+        {
+            return false;
+        }
+
+        // The caller is denied before the command runs, so no event is appended and no reaction is set off.
+        if (specification.ThenDenied) return command.Authorization is not null;
+
+        if (specification.ThenErrors.IsEmpty || specification.ThenErrors.Any(error => error.Code is not null || error.Message is null))
         {
             return false;
         }

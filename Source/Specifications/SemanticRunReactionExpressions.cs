@@ -36,17 +36,47 @@ internal static class SemanticRunReactionExpressions
         _ => throw new InvalidSemanticContract("Unknown condition node or operator.")
     };
 
-    internal static void Validate(SemanticExecutionPlan plan, SemanticValue value, SemanticTypeReference type, string description)
+    internal static void Validate(SemanticExecutionPlan plan, SemanticValue value, SemanticTypeReference type, string description) =>
+        Validate(plan, value, type, description, 0);
+
+    static void Validate(SemanticExecutionPlan plan, SemanticValue value, SemanticTypeReference type, string description, int depth)
     {
+        if (depth >= 64) throw new InvalidSemanticContract("A semantic value exceeds the canonical maximum depth of 64.");
         if (value is SemanticNullValue)
         {
             if (!type.IsOptional) throw new InvalidSemanticContract($"A null {description} is incompatible with a required target.");
             return;
         }
-        if (type.IsCollection || type.Kind == SemanticTypeReferenceKind.CompositeType) throw new UnsupportedSemanticMapping();
+        if (type.IsCollection) throw new UnsupportedSemanticMapping();
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType)
+        {
+            ValidateObject(plan, value, type, description, depth);
+            return;
+        }
         var concept = ConceptOf(plan, type);
         if (!IsCompatible(value, concept?.Primitive ?? type.Primitive)) throw new InvalidSemanticContract($"A {description} is incompatible with its target type.");
         if (!IsDeclaredValue(concept, value)) throw new InvalidSemanticContract($"A {description} targets an enumeration concept but is not a declared value.");
+    }
+
+    static void ValidateObject(SemanticExecutionPlan plan, SemanticValue value, SemanticTypeReference type, string description, int depth)
+    {
+        var definition = plan.Model.Application.Types.SingleOrDefault(candidate => candidate.Id == type.Target);
+        if (value is not SemanticCompositeValue composite || definition is null)
+        {
+            throw new InvalidSemanticContract($"A {description} is incompatible with its composite target type.");
+        }
+        var declared = definition.Properties.ToDictionary(property => property.Id);
+        var assigned = new HashSet<SemanticId>();
+        foreach (var member in composite.Properties)
+        {
+            if (!assigned.Add(member.TargetProperty)) throw new InvalidSemanticContract($"Composite value property '{member.TargetProperty}' is duplicated.");
+            if (!declared.TryGetValue(member.TargetProperty, out var property)) throw new InvalidSemanticContract($"Composite value property '{member.TargetProperty}' is unknown for '{definition.Name}'.");
+            Validate(plan, member.Value, property.Type, $"property '{property.Name}' of {description}", depth + 1);
+        }
+        if (definition.Properties.Any(property => !property.Type.IsOptional && !assigned.Contains(property.Id)))
+        {
+            throw new InvalidSemanticContract($"A {description} is missing one or more required properties of '{definition.Name}'.");
+        }
     }
 
     static SemanticConcept? ConceptOf(SemanticExecutionPlan plan, SemanticTypeReference type) =>

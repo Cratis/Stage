@@ -291,6 +291,21 @@ internal static class SemanticWorldRebuilder
         return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
     }
 
+    static ImmutableArray<SemanticPropertyValue> CompositeValues(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
+    {
+        if (!MatchesSchema(json, properties))
+        {
+            throw new SemanticWorldRebuildRefused("Chronicle content does not match its semantic property schema.");
+        }
+
+        // Composite absence and supplied order are semantic data, not missing top-level event columns.
+        return [.. json.EnumerateObject().Select(member =>
+        {
+            var property = properties.Single(property => property.Name == member.Name);
+            return new SemanticPropertyValue(property.Id, Value(member.Value, property.Type, application));
+        })];
+    }
+
     // Every stored name is declared exactly once and appears once. Chronicle may omit an absent optional value
     // (it does for protected concepts), so only optional properties may be missing.
     static bool MatchesSchema(JsonElement json, ImmutableArray<SemanticProperty> properties)
@@ -330,7 +345,7 @@ internal static class SemanticWorldRebuilder
         if (type.Kind == SemanticTypeReferenceKind.CompositeType && json.ValueKind == JsonValueKind.Object)
         {
             var composite = application.Types.Single(candidate => candidate.Id == type.Target);
-            return SemanticValue.Composite(Values(json, composite.Properties, application));
+            return SemanticValue.Composite(CompositeValues(json, composite.Properties, application));
         }
 
         var concept = type.Kind == SemanticTypeReferenceKind.Concept

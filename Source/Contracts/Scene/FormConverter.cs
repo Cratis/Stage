@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using SceneCommon = Cratis.Scene.Model.Common;
 using SceneModel = Cratis.Scene.Model.Forms;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
@@ -39,6 +40,21 @@ public static class FormConverter
             [.. form.Fields.Select(ConvertField)],
             ScreenplayRichSyntax.GenerationMode(form),
             ScreenplayRichSyntax.Layout(form));
+
+    /// <summary>
+    /// Converts a form while omitting an unsupported population source.
+    /// </summary>
+    /// <param name="form">The form to convert.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <param name="path">The owning form path.</param>
+    /// <returns>The form with its supported fields and population source.</returns>
+    public static SceneModel.Form Convert(ScreenplaySyntax.FormSyntax form, ConversionDiagnostics? diagnostics, string path)
+    {
+        if (diagnostics is null || form.Populate is null or ScreenplaySyntax.FormPopulateViaQuerySyntax or ScreenplaySyntax.FormPopulateFromItemSyntax) return Convert(form);
+        var construct = $"form populate source {form.Populate.GetType().Name}";
+        diagnostics.Report(new("STAGE-SCENE-FORM-001", DiagnosticSeverity.Error, construct, path, form.Populate.Location, $"Unsupported {construct} was omitted from '{path}'."));
+        return Convert(form with { Populate = null });
+    }
 
     static SceneModel.PopulateSource? ConvertPopulateSource(ScreenplaySyntax.FormPopulateSource? populate) =>
         populate switch

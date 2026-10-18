@@ -61,7 +61,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
 
     internal static string Canonical(SemanticValue value, SemanticTypeReference type, SemanticApplicationContext context)
     {
-        if (SemanticValueShapeAdmission.Refusal(context, type) is not null) throw new UnsupportedSemanticMapping();
+        if (SemanticValueShapeAdmission.PayloadRefusal(context, type) is not null) throw new UnsupportedSemanticMapping();
         if (value is SemanticNullValue) return "null";
         if (type.IsCollection && value is SemanticArrayValue array)
         {

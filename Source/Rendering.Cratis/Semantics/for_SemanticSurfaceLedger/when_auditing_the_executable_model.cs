@@ -114,7 +114,7 @@ public class when_auditing_the_executable_model : Specification
     [Theory]
     [InlineData("SemanticApplication.ReactionProductionMode")]
     [InlineData("SemanticReactionProductionMode.Atomic")]
-    public void should_keep_atomic_reaction_batches_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-043"));
+    public void should_render_atomic_reaction_batches(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData("SemanticApplication.CommandReadMode")]

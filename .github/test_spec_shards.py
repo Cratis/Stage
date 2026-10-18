@@ -45,10 +45,15 @@ class SpecShardsTests(unittest.TestCase):
         workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
         lane = workflow.split("  generated-react-blueprint-templates:\n", 1)[1]
         dedicated_filter = re.search(r'--filter "([^"]+)"', lane)[1]
-        name = SHARDS["PLANNER"] + "." + SHARDS["BLUEPRINT_TEMPLATES_FIXTURE"] + ".should_pass"
-        self.assertIn("spec-shards.py guard --blueprint-templates-lane", workflow)
+        name = SHARDS["NAMESPACE"] + ".for_GeneratedReactApplication." + SHARDS["BLUEPRINT_TEMPLATES_FIXTURE"] + ".should_pass"
+        self.assertIn("BLUEPRINT_TEMPLATES_LANE: ${{ needs.routing.outputs.generated-react-blueprint-templates }}", workflow)
+        guard_script = re.search(r'          args=\(\)\n.*?          python3 \.github/spec-shards.py guard "\$\{args\[@\]\}"', workflow, re.DOTALL)[0]
+        guard_script = guard_script.replace('python3 .github/spec-shards.py guard', 'printf "%s\\n"')
         for dedicated_lane in (False, True):
             with self.subTest(dedicated_lane=dedicated_lane):
+                invocation = subprocess.run(["bash", "-c", guard_script], check=True, capture_output=True, text=True,
+                                            env={"BLUEPRINT_TEMPLATES_LANE": str(dedicated_lane).lower()})
+                self.assertEqual("--blueprint-templates-lane" if dedicated_lane else "", invocation.stdout.strip())
                 shards = SHARDS["matrix"](blueprint_templates_lane=dedicated_lane)["include"]
                 selected = sum(self.matches_filter(name, shard["filter"])
                                for shard in shards if SHARDS["RENDERING"] in shard["projects"])

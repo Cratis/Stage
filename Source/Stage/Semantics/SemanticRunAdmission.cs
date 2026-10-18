@@ -138,14 +138,14 @@ public static class SemanticRunAdmission
         {
             if (!plan.Events.TryGetValue(appended.EventContract, out var appendedContract)) return Block(StageExecutionCapability.PlanIssue, appended.EventContract, "The appended event is not in the plan.");
             if (!GeneratedPascalCase.EventMembersAreUnique(appendedContract.Name, appendedContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, appendedContract.Id, "Event property names collide in generated C#.");
-            if (appendedContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Occurrence, appended.EventContract, "Only scalar appended event values are admitted.");
+            if (EventValueRefusal(plan, appendedContract, "Only scalar appended event values are admitted.") is { } appendedRefusal) return Block(StageExecutionCapability.Occurrence, appended.EventContract, appendedRefusal);
         }
         foreach (var given in specification.GivenEvents)
         {
             if (given.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, given.EventContract, "Given events require an explicit event source.");
             if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
             if (!GeneratedPascalCase.EventMembersAreUnique(givenContract.Name, givenContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, givenContract.Id, "Event property names collide in generated C#.");
-            if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");
+            if (EventValueRefusal(plan, givenContract, "Only scalar Given event values are admitted.") is { } givenRefusal) return Block(StageExecutionCapability.Command, given.EventContract, givenRefusal);
         }
         if (specification.WhenAppended is not null) return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
         if (specification.When is not { } when)
@@ -153,7 +153,7 @@ public static class SemanticRunAdmission
             return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
         }
         if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
-        if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, command.Id, "Command property names collide in generated C#.");
+        if (CommandPlanRefusal(plan, command) is { } commandRefusal) return commandRefusal;
         foreach (var emitted in command.Handler is null ? command.Produces : [])
         {
             if (plan.Events.TryGetValue(emitted.EventContract, out var producedContract) &&
@@ -190,9 +190,10 @@ public static class SemanticRunAdmission
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
         if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
-        if (command.Produces.Any(produced => !plan.Events.TryGetValue(produced.EventContract, out var eventContract) || eventContract.Properties.Any(property => !Scalar(property.Type))))
+        foreach (var production in command.Produces)
         {
-            return Block(StageExecutionCapability.Command, command.Id, "Only scalar command and event values are admitted.");
+            if (!plan.Events.TryGetValue(production.EventContract, out var eventContract)) return Block(StageExecutionCapability.Command, command.Id, "The produced event is not in the plan.");
+            if (EventValueRefusal(plan, eventContract, "Only scalar command and event values are admitted.") is { } eventRefusal) return Block(StageExecutionCapability.Command, command.Id, eventRefusal);
         }
 
         if (command.Validations.Any(rule => !SupportedRule(rule.Kind)))
@@ -267,6 +268,12 @@ public static class SemanticRunAdmission
         return null;
     }
 
+    static SemanticUnsupportedCapability? CommandPlanRefusal(SemanticExecutionPlan plan, SemanticCommand command) =>
+        SemanticPlanAdmission.Check(plan, command.Id) ??
+        (GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name))
+            ? null
+            : new(StageExecutionCapability.Command, command.Id.ToString(), "Command property names collide in generated C#."));
+
     // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
     // Keep non-event triggers, opaque bodies and unsupported context mappings refused in both engines.
     static IEnumerable<SemanticVersionFeature> LiveSliceFeatures(SemanticSlice slice) =>
@@ -321,18 +328,14 @@ public static class SemanticRunAdmission
         SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or
         SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual;
 
-    static bool Scalar(SemanticTypeReference type)
+    static string? EventValueRefusal(SemanticExecutionPlan plan, SemanticEventContract eventContract, string collectionRefusal)
     {
-        if (type.IsCollection)
+        var context = new SemanticApplicationContext(plan);
+        foreach (var property in eventContract.Properties)
         {
-            return false;
+            if (SemanticValueShapeAdmission.PayloadRefusal(context, property.Type) is { } refusal) return refusal;
+            if (SemanticValueShapeAdmission.Closure(context, property.Type).Any(member => member.Type.IsCollection)) return collectionRefusal;
         }
-
-        return type.Kind switch
-        {
-            SemanticTypeReferenceKind.Concept => true,
-            SemanticTypeReferenceKind.Primitive => type.Primitive != SemanticPrimitiveType.Unknown,
-            _ => false
-        };
+        return null;
     }
 }

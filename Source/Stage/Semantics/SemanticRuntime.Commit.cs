@@ -86,6 +86,8 @@ internal sealed partial class SemanticRuntime
                 _knownTail = before == ulong.MaxValue ? (ulong)settled.Facts.Length - 1 : before + (ulong)settled.Facts.Length;
             }
 
+            PublishChange();
+
             return settled;
         }
 
@@ -127,6 +129,7 @@ internal sealed partial class SemanticRuntime
 
             _world = accepted.World;
             _knownTail = through;
+            PublishChange();
 
             return true;
         }

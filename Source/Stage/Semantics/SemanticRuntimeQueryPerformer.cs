@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Security.Claims;
 using System.Text.Json;
 using Cratis.Arc.Queries;
 using Cratis.Arc.Validation;
@@ -132,22 +133,61 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
     /// <inheritdoc/>
     public async ValueTask<object?> Perform(QueryContext context)
     {
+        var http = _context.HttpContext;
+        var principal = http?.User ?? new();
+        var answer = await Evaluate(context, principal, http);
+        if (_query?.Delivery != SemanticQueryDelivery.Live || _runtime is not ISemanticWorldChanges changes)
+        {
+            return answer;
+        }
+
+        // A later answer is produced long after this request, so it reads with the caller captured now and has no
+        // response left to annotate.
+        Func<Task<object?>> read = async () => await Evaluate(context, principal, null);
+        var many = _query.Cardinality == SemanticQueryCardinality.Many;
+        var answerType = many ? typeof(IEnumerable<>).MakeGenericType(ReadModelType) : ReadModelType;
+
+        return typeof(SemanticRuntimeQueryPerformer)
+            .GetMethod(nameof(Live), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .MakeGenericMethod(answerType)
+            .Invoke(this, [changes, read, many ? ToTypedArray(answer) : answer, many]);
+    }
+
+    // Arc streams what an ISubject<T> emits and types it by T, so the subject is built over the read model type the
+    // way a rendered C# query declares it rather than over object.
+    SemanticLiveQuery<T> Live<T>(ISemanticWorldChanges changes, Func<Task<object?>> read, T initial, bool many) =>
+        new(changes, async () => (T)(many ? ToTypedArray(await read()) : (await read())!), initial);
+
+    Array ToTypedArray(object? answer)
+    {
+        var items = (object[])answer!;
+        var typed = Array.CreateInstance(ReadModelType, items.Length);
+        for (var index = 0; index < items.Length; index++)
+        {
+            typed.SetValue(items[index], index);
+        }
+
+        return typed;
+    }
+
+    async ValueTask<object?> Evaluate(QueryContext context, ClaimsPrincipal principal, HttpContext? http)
+    {
         if (_runtime is ISemanticRuntimeStatus { FaultReason: { } reason })
         {
-            throw UnsupportedWorld(reason);
+            throw UnsupportedWorld(reason, http);
         }
 
         var argumentName = _query?.Argument?.Name ?? "id";
         var key = context.Arguments?.TryGetValue(argumentName, out var value) == true ? value?.ToString() : null;
         if (_query is not null)
         {
-            var result = await Query(context, _query);
+            var result = await Query(context, _query, principal);
             return result switch
             {
                 SemanticAccepted accepted when _query.Cardinality == SemanticQueryCardinality.Many => accepted.Queries.Single().Results.Select(Convert).ToArray(),
                 SemanticAccepted accepted => accepted.Queries.Single().Results.FirstOrDefault() is { } instance ? Convert(instance) : null,
                 SemanticRejected rejected => throw new SemanticQueryRejected(rejected.Details),
-                SemanticUnsupported unsupported => throw Unsupported(unsupported),
+                SemanticUnsupported unsupported => throw Unsupported(unsupported, http),
                 _ => throw new SemanticQueryRejected("Semantic query did not complete.")
             };
         }
@@ -155,7 +195,7 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         var snapshot = await _runtime.ReadModels(_model.Id);
         if (_runtime is ISemanticRuntimeStatus { FaultReason: { } fault })
         {
-            throw UnsupportedWorld(fault);
+            throw UnsupportedWorld(fault, http);
         }
 
         IReadOnlyList<object> instances = [.. snapshot.Select(Convert)];
@@ -194,14 +234,9 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         return SemanticQueryKeys.From(text, argument.Type, _runtime.Plan.Model.Application);
     }
 
-    Task<SemanticExecutionResult> Query(QueryContext context, SemanticKeyedQuery query)
-    {
-        var principal = _context.HttpContext?.User ?? new();
-
-        return query.Filters.IsDefaultOrEmpty
+    Task<SemanticExecutionResult> Query(QueryContext context, SemanticKeyedQuery query, ClaimsPrincipal principal) => query.Filters.IsDefaultOrEmpty
             ? _runtime.Query(query, Key(context), principal)
             : _runtime.Query(query, Key(context), principal, Filters(context));
-    }
 
     ImmutableArray<SemanticQueryFilterValue> Filters(QueryContext context) =>
         [.. _query!.Filters.Where(filter => context.Arguments?.ContainsKey(filter.Name) == true)
@@ -209,15 +244,15 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
                 filter.Id,
                 SemanticQueryKeys.From(context.Arguments![filter.Name]?.ToString(), filter.Type, _runtime.Plan.Model.Application)))];
 
-    SemanticQueryUnsupported UnsupportedWorld(string reason) => UnsupportedResponse("World", reason);
+    SemanticQueryUnsupported UnsupportedWorld(string reason, HttpContext? http) => UnsupportedResponse("World", reason, http);
 
-    SemanticQueryUnsupported Unsupported(SemanticUnsupported unsupported) => UnsupportedResponse(
-        unsupported.Capability == SemanticExecutionCapability.Unknown ? "World" : unsupported.Capability.ToString(), unsupported.Details);
+    SemanticQueryUnsupported Unsupported(SemanticUnsupported unsupported, HttpContext? http) => UnsupportedResponse(
+        unsupported.Capability == SemanticExecutionCapability.Unknown ? "World" : unsupported.Capability.ToString(), unsupported.Details, http);
 
-    SemanticQueryUnsupported UnsupportedResponse(string capability, string details)
+    SemanticQueryUnsupported UnsupportedResponse(string capability, string details, HttpContext? http)
     {
         var artifact = _query?.Id.ToString() ?? _model.Id.ToString();
-        if (_context.HttpContext is { } context)
+        if (http is { } context)
         {
             context.Items[SemanticRuntimeMarkers.Unsupported] = true;
             context.Items[SemanticRuntimeMarkers.UnsupportedMessage] = $"Unsupported({capability}) {artifact}: {details}";

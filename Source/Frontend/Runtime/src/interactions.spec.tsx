@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from './testing/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InteractionActionKind, InteractionTriggerKind } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core/config';
@@ -172,7 +172,8 @@ describe('when a modeled interaction is clicked', () => {
         }));
 
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
-        fireEvent.click(await screen.findByRole('button', { name: 'Open details' }));
+        const details = await screen.findByRole('button', { name: 'Open details' });
+        await act(async () => { fireEvent.click(details); });
 
         expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
     });

@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { ExternalComponent } from '@cratis/scene.model';
-import { registerStageCommands } from '../host/commandRegistration';
+import { registerStageCommands } from '../../../src/host/commandRegistration';
 import { StageCommandForm } from '../StageCommandForm';
 import { StageAction } from '../stageComponents';
 import { useStageData } from '../stageData';

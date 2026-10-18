@@ -7,9 +7,12 @@
 from collections import Counter
 import contextlib
 import io
+from itertools import product
 import json
 from pathlib import Path
+import re
 import runpy
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -37,6 +40,52 @@ class SpecShardsTests(unittest.TestCase):
             for partition in partitions[:-1] for prefix in partition)
         self.assertEqual(expected, shards[-1]["filter"])
         self.assertTrue(all(shard["filter"].startswith(SHARDS["EXCLUSIONS"]) for shard in shards))
+
+    def test_blueprint_templates_run_exactly_once_with_or_without_the_dedicated_lane(self):
+        workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
+        lane = workflow.split("  generated-react-blueprint-templates:\n", 1)[1]
+        dedicated_filter = re.search(r'--filter "([^"]+)"', lane)[1]
+        name = SHARDS["PLANNER"] + "." + SHARDS["BLUEPRINT_TEMPLATES_FIXTURE"] + ".should_pass"
+        self.assertIn("spec-shards.py guard --blueprint-templates-lane", workflow)
+        for dedicated_lane in (False, True):
+            with self.subTest(dedicated_lane=dedicated_lane):
+                shards = SHARDS["matrix"](blueprint_templates_lane=dedicated_lane)["include"]
+                selected = sum(self.matches_filter(name, shard["filter"])
+                               for shard in shards if SHARDS["RENDERING"] in shard["projects"])
+                self.assertEqual(0 if dedicated_lane else 1, selected)
+                self.assertEqual(1, selected + int(dedicated_lane and self.matches_filter(name, dedicated_filter)))
+
+    @staticmethod
+    def matches_filter(name, expression):
+        # Shard filters are an AND of clauses, each containing one or more OR terms.
+        def matches(term):
+            operator, value = re.fullmatch(r"FullyQualifiedName(!?~)(.+)", term.strip("()")).groups()
+            contains = value.casefold() in name.casefold()
+            return not contains if operator == "!~" else contains
+
+        return all(any(matches(term) for term in clause.split("|")) for clause in expression.split("&"))
+
+    def test_preflight_gates_build_specs_and_probes_and_cannot_be_hidden_by_the_aggregate(self):
+        workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
+        sections = re.split(r"^  ([\w-]+):\n", workflow.split("jobs:\n", 1)[1], flags=re.MULTILINE)
+        jobs = dict(zip(sections[1::2], sections[2::2]))
+        command = "python3 Verification/verify-runtime-compatibility.py --self-test"
+        self.assertEqual(1, workflow.count(command))
+        self.assertIn(command, jobs["preflight"])
+        self.assertNotIn("setup-dotnet", jobs["preflight"])
+        for name in ("dotnet-build", "specs", "reducer-mongo", "generated-name-matrix",
+                     "live-custom-packages", "generated-react", "generated-react-blueprint-templates", "build"):
+            self.assertRegex(jobs[name], r"needs: (?:\[[^\]\n]*)?preflight\b")
+        aggregate = jobs["build"]
+        self.assertIn("if: always()", aggregate)
+        for variable, job in (("PREFLIGHT_RESULT", "preflight"), ("BUILD_RESULT", "dotnet-build"), ("SPECS_RESULT", "specs")):
+            self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)
+        check = re.search(r"run: (test .+)", aggregate)[1]
+        for results in product(("success", "failure", "skipped", "cancelled"), repeat=3):
+            with self.subTest(results=results):
+                environment = dict(zip(("PREFLIGHT_RESULT", "BUILD_RESULT", "SPECS_RESULT"), results))
+                self.assertEqual(all(result == "success" for result in results),
+                                 subprocess.run(["sh", "-c", check], env=environment).returncode == 0)
 
     def test_nested_namespaces_are_owned_by_one_prefix(self):
         root = "Cratis.Stage.Rendering.Cratis.for_Planner."

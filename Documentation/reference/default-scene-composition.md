@@ -89,6 +89,14 @@ Command registration and command form behavior are unchanged. Bindings and Scene
 
 ## Package and verification boundary
 
+Stage's live frontend is an npm workspace root at `Source/Frontend`. The host consumes the runtime workspace
+at `Source/Frontend/Runtime` as `@cratis/stage.runtime`; its React, Arc, Scene and Components dependencies are
+peers pinned to the host's versions so contexts and registries are shared. `npm test --prefix Source/Frontend`
+runs both host and runtime specifications, and `npm run build --prefix Source/Frontend` builds the package
+before the host, keeping the host output at `Source/Frontend/dist` for the Stage image.
+The runtime package is published at the Stage release version before NuGet publication. Generated applications
+still receive the embedded runtime sources in this release; their output and dependency shape are unchanged.
+
 The emitted frontend takes exact Cratis package pins from Stage's `Source/Frontend/package.json`, including
 Scene, Components, Fundamentals and Arc React's form custom-validation gate. The generated backend takes its
 NuGet pins from Stage's `Directory.Packages.props` at build time. Frontend and backend Arc use the same release.

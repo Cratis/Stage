@@ -12,10 +12,11 @@
 FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend
 WORKDIR /frontend
 COPY Source/Frontend/package.json Source/Frontend/package-lock.json ./
+COPY Source/Frontend/Runtime/package.json ./Runtime/package.json
 RUN npm ci
 COPY Source/Frontend/ ./
 # The frontend specs are type-checked by `npm run build`, and sceneEnumerationNaming.spec.ts imports the checked-in
-# enumeration map from Source/Conformance.Specs (two directories above src/). Mirror that location in this stage.
+# enumeration map from Source/Conformance.Specs (three directories above Runtime/src/). Mirror that location in this stage.
 COPY Source/Conformance.Specs/for_SceneEnumerationNaming/scene-model-enumerations.json /Conformance.Specs/for_SceneEnumerationNaming/scene-model-enumerations.json
 COPY Source/Conformance.Specs/for_UiProfileRootVector/uiprofile-root.scene.json Source/Conformance.Specs/for_UiProfileRootVector/uiprofile-root.shells.json /Conformance.Specs/for_UiProfileRootVector/
 
@@ -36,7 +37,7 @@ RUN npm run build
 # Stage is built against have to be the same version, or the two drift apart silently between releases.
 # Keep the DEVELOPMENT kernel flavor and its shell/apt/tini runtime; the bare-version image is chiseled.
 # Verification/verify-runtime-compatibility.py enforces the release version and required development flavor.
-FROM cratis/chronicle:19.78.0-development
+FROM cratis/chronicle:19.83.0-development
 
 # The Chronicle base image bundles MongoDB (its default storage backend, an ~800MB install). The Stage runs
 # fully in-memory, so purge it to keep the image database-free. The purge is guarded so it is a no-op on

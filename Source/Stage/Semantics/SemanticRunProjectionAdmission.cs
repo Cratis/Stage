@@ -52,10 +52,10 @@ internal static class SemanticRunProjectionAdmission
     {
         var emptyQuery = specification.When is null && specification.WhenAppended is null && specification.GivenEvents.IsEmpty &&
             specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
-        if (!emptyQuery && FilteredQueryRejection(specification) is { } filtered) return filtered;
 
         var reachable = reachableEvents.ToHashSet();
         var requested = plan.Projections.Values.Where(value =>
+            specification.GivenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenAbsentReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenQueries.Any(query => plan.Queries.TryGetValue(query.Query, out var target) && target.ReadModel == value.ReadModel) ||
@@ -74,11 +74,26 @@ internal static class SemanticRunProjectionAdmission
             }
         }
 
+        foreach (var seed in specification.GivenReadModels.GroupBy(seed => (seed.ReadModel, seed.Key)).Select(group => group.Last()))
+        {
+            if (!plan.ReadModels.TryGetValue(seed.ReadModel, out var model))
+            {
+                return new(StageExecutionCapability.GivenReadModel, seed.ReadModel.ToString(), "The seeded read model is not in the plan.");
+            }
+            if (plan.Projections.Values.Any(projection => projection.ReadModel == seed.ReadModel) &&
+                (model.Properties.Any(property => seed.Values.All(value => value.TargetProperty != property.Id || value.Value is SemanticNullValue)) ||
+                    !seed.Values.Any(value => value.TargetProperty == model.Properties.Single(property => property.IsIdentifier).Id && SameScalar(value.Value, seed.Key))))
+            {
+                return new(StageExecutionCapability.GivenReadModel, seed.ReadModel.ToString(), "A projected read-model seed requires every scalar property and an identifier equal to its key; partial state cannot preserve property presence through the concrete scenario.");
+            }
+        }
+
         var assertedModels = specification.ThenReadModels.Select(assertion => assertion.ReadModel)
             .Concat(specification.ThenAbsentReadModels.Select(assertion => assertion.ReadModel));
         foreach (var readModel in assertedModels)
         {
-            if (!plan.ReadModels.ContainsKey(readModel) || plan.Projections.Values.All(projection => projection.ReadModel != readModel))
+            if (!plan.ReadModels.ContainsKey(readModel) ||
+                (plan.Projections.Values.All(projection => projection.ReadModel != readModel) && specification.GivenReadModels.All(seed => seed.ReadModel != readModel)))
             {
                 return new(StageExecutionCapability.Projection, readModel.ToString(), "The asserted read model has no projection in this run.");
             }
@@ -87,10 +102,11 @@ internal static class SemanticRunProjectionAdmission
         {
             if (emptyQuery && plan.Queries.ContainsKey(assertion.Query)) continue;
             if (!plan.Queries.TryGetValue(assertion.Query, out var query) ||
-                query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
                 !plan.ReadModels.TryGetValue(query.ReadModel, out var model) ||
-                model.Properties.Where(property => property.IsIdentifier).Select(property => (SemanticId?)property.Id).ToArray() is not [var identifier] || identifier != query.KeyProperty ||
-                plan.Projections.Values.All(projection => projection.ReadModel != query.ReadModel))
+                (!query.KeyParts.IsDefaultOrEmpty && query.KeyParts.Length > 1) ||
+                (query.Filters.IsEmpty && (query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
+                    model.Properties.Where(property => property.IsIdentifier).Select(property => (SemanticId?)property.Id).ToArray() is not [var identifier] || identifier != query.KeyProperty)) ||
+                (plan.Projections.Values.All(projection => projection.ReadModel != query.ReadModel) && specification.GivenReadModels.All(seed => seed.ReadModel != query.ReadModel)))
             {
                 return new(StageExecutionCapability.Query, assertion.Query.ToString(), "Only optional snapshot queries by read-model identifier are admitted.");
             }
@@ -105,13 +121,6 @@ internal static class SemanticRunProjectionAdmission
     static bool QueryParametersAreUnique(SemanticKeyedQuery query) =>
         GeneratedPascalCase.QueryParametersAreUnique((query.Argument is null ? Enumerable.Empty<string>() : [query.Argument.Name])
             .Concat(query.Filters.Select(filter => filter.Name)));
-
-    static SemanticUnsupportedCapability? FilteredQueryRejection(SemanticSpecification specification)
-    {
-        var filtered = specification.ThenQueries.FirstOrDefault(assertion => !assertion.Filters.IsDefaultOrEmpty);
-
-        return filtered is null ? null : new(StageExecutionCapability.Query, filtered.Query.ToString(), "STAGE-ESM-010: Equality query filter assertions cannot be executed by the per-run projection scenario.");
-    }
 
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {

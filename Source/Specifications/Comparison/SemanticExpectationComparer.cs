@@ -93,8 +93,7 @@ internal static class SemanticExpectationComparer
         for (var index = 0; index < expected.ThenQueries.Length; index++)
         {
             var query = expected.ThenQueries[index];
-            var readModel = plan.Queries[query.Query].ReadModel;
-            var rows = projected.Where(row => row.ReadModel == readModel && AreEqual(row.Key, query.Key)).ToArray();
+            var rows = SemanticRunQueries.Select(plan, query, projected);
             if (rows.Length != query.Results.Length || query.Results.Any(result => !MatchesState(result, rows, query.Exactly)))
             {
                 failures.Add($"Query result at index {index} expected {query.Results.Length} row(s) with matching values, got {rows.Length}.");

@@ -110,6 +110,6 @@ internal static class SemanticValidationContextRuntime
     static string PropertyPath(SemanticApplicationContext context, SemanticProperty? property)
     {
         if (property is null) return string.Empty;
-        return context.MemberNames.Property(property) == Identifiers.ToPascalCase(property.Name) ? property.Name : context.MemberNames.ProxyProperty(property);
+        return context.MemberNames.WireProperty(property);
     }
 }

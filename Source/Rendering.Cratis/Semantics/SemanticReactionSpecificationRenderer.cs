@@ -49,7 +49,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             .Line("using var system = identity is null ? null : new global::Cratis.Arc.Authorization.SystemExecution(accessor).AsSystem([.. identity.Roles]);")
             .Line("_result = await _scenario.Execute(command);")
             .EndBlock().BlankLine();
-        var values = new ValueScope(scope.Types, "command", "_expected_command");
+        var values = new ValueScope(scope.Types, scope.Context.MemberNames, "command", "_expected_command");
         var fields = scope.Command.Properties.Where(property => !property.IsGenerated).Select(property =>
             (property, scope.Specification.When!.Values.Single(value => value.TargetProperty == property.Id).Value)).ToArray();
         RenderExpectedCollections(builder, fields, values);
@@ -124,7 +124,7 @@ internal static partial class SemanticReactionSpecificationRenderer
 
     static string ValuePredicate(SemanticProperty property, SemanticValue value, ValueScope scope)
     {
-        var name = Identifiers.ToPascalCase(property.Name);
+        var name = scope.Names.Property(property);
         var member = $"{scope.Variable}.{name}";
         if (value is SemanticNullValue) return $"{member} is null";
 
@@ -142,7 +142,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         }
     }
 
-    sealed record ValueScope(SemanticTypeSystem Types, string Variable, string Prefix)
+    sealed record ValueScope(SemanticTypeSystem Types, GeneratedMemberNames Names, string Variable, string Prefix)
     {
         internal string CollectionName(SemanticProperty property) => $"{Prefix}_{Identifiers.ToSnakeCase(property.Name)}";
     }

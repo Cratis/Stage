@@ -34,6 +34,16 @@ internal sealed class GeneratedMemberNames
 
     internal string Query(SemanticKeyedQuery query) => _queries[query.Id];
 
+    internal string PropertyPath(IEnumerable<SemanticProperty> properties, string path)
+    {
+        var segments = path.Split('.');
+        var property = properties.Single(property => string.Equals(property.Name, segments[0], StringComparison.OrdinalIgnoreCase));
+        return string.Join('.', new[] { Property(property) }.Concat(segments.Skip(1).Select(Identifiers.ToPascalCase)));
+    }
+
+    internal string WireProperty(SemanticProperty property) => Property(property) == Identifiers.ToPascalCase(property.Name)
+        ? property.Name : ProxyProperty(property);
+
     internal string ProxyProperty(SemanticProperty property)
     {
         var member = Property(property);

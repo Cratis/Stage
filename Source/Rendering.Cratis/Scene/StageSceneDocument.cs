@@ -50,8 +50,14 @@ internal static class StageSceneDocument
                 group => group.Key,
                 group =>
                 {
-                    var schema = CommandFormSchemas.For(context.Application, group.First().Properties);
-                    return new Command(schema, CanonicalSceneJson.ToNode(CommandFormSchemas.Fields(schema))!.AsArray());
+                    var properties = group.First().Properties;
+
+                    // Contracts serves semantic Host names. Only this generated application's transport uses CLR escapes.
+                    var names = properties.ToDictionary(property => property.Name, context.MemberNames.WireProperty, StringComparer.Ordinal);
+                    var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }));
+                    var fields = CanonicalSceneJson.ToNode(CommandFormSchemas.Fields(CommandFormSchemas.For(context.Application, properties)))!.AsArray();
+                    GeneratedSceneMemberNames.Fields(fields, names);
+                    return new Command(schema, fields, names);
                 },
                 StringComparer.Ordinal);
 
@@ -76,6 +82,7 @@ internal static class StageSceneDocument
             }
         }
 
+        GeneratedSceneMemberNames.Arguments(document, commands.ToDictionary(pair => pair.Key, pair => pair.Value.Names, StringComparer.Ordinal));
         return CanonicalSceneJson.Write(document);
     }
 
@@ -127,9 +134,17 @@ internal static class StageSceneDocument
     static JsonObject Enrich(JsonObject form, IReadOnlyDictionary<string, Command> commands)
     {
         var enriched = form.DeepClone().AsObject();
-        if (Count(enriched["fields"]) == 0 && Text(enriched, "forCommand") is { } name && commands.TryGetValue(name, out var command))
+        if (Text(enriched, "forCommand") is { } name && commands.TryGetValue(name, out var command))
         {
-            enriched["fields"] = command.Fields.DeepClone();
+            if (Count(enriched["fields"]) == 0)
+            {
+                enriched["fields"] = command.Fields.DeepClone();
+            }
+            else
+            {
+                GeneratedSceneMemberNames.Fields(enriched["fields"], command.Names);
+            }
+            GeneratedSceneMemberNames.Fields(enriched["layout"], command.Names);
         }
 
         return enriched;
@@ -226,5 +241,5 @@ internal static class StageSceneDocument
     static string? Text(JsonObject node, string name) =>
         node[name] is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 
-    sealed record Command(string Schema, JsonArray Fields);
+    sealed record Command(string Schema, JsonArray Fields, IReadOnlyDictionary<string, string> Names);
 }

@@ -38,8 +38,11 @@ internal static partial class SemanticCratisAdmission
         if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name)))
         {
             var duplicates = command.Properties.GroupBy(property => Identifiers.ToPascalCase(property.Name), StringComparer.OrdinalIgnoreCase)
-                .Where(group => group.Count() > 1).SelectMany(group => group.Select(property => property.Name));
-            diagnostics.Add(Error("STAGE-ESM-012", $"Command '{command.Name}' cannot render in generated C#: its type name or properties [{string.Join(", ", duplicates.Select(name => $"'{name}'"))}] collide.", command.Id));
+                .Where(group => group.Count() > 1).SelectMany(group => group.Select(property => property.Name)).ToArray();
+            var declaration = duplicates.Length == 0
+                ? $"type name '{command.Name}'"
+                : $"properties [{string.Join(", ", duplicates.Select(name => $"'{command.Name}.{name}'"))}]";
+            diagnostics.Add(Error("STAGE-ESM-012", $"Command '{command.Name}' cannot render in generated C#: {declaration} collide with generated members.", command.Id));
             return;
         }
 

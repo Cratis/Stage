@@ -64,7 +64,7 @@ describe('composing a screen in the default blueprint', () => {
         expect(stageShellOf(scene).diagnostics.map(diagnostic => diagnostic.subject)).toContain('CustomShell');
     });
 
-    it('preserves template chrome and screen content in the same authored slot', () => {
+    it('replaces the template\'s seeded content for a slot the screen fills', () => {
         const templated = screen('Orders', 'Workspace');
         const composed = compose({
             layouts: [],
@@ -72,7 +72,18 @@ describe('composing a screen in the default blueprint', () => {
             screens: [templated],
         }, templated);
         const template = slot(composed, 'content')[0];
-        expect(slot(template, 'body').map(_ => _.id)).toEqual(['template-title', 'Orders-body']);
+        expect(slot(template, 'body').map(_ => _.id)).toEqual(['Orders-body']);
+    });
+
+    it('keeps the template\'s seeded content for a slot the screen does not fill', () => {
+        const templated = screen('Orders', 'Workspace');
+        const composed = compose({
+            layouts: [],
+            screenTemplates: [{ name: 'Workspace', slots: [], arrangement: undefined, content: { body: [element('template-title', 'core:title')], header: [element('template-header', 'core:title')] } }],
+            screens: [templated],
+        }, templated);
+        const template = slot(composed, 'content')[0];
+        expect(slot(template, 'header').map(_ => _.id)).toEqual(['template-header']);
     });
 
     it('adds native command forms with Scene 4.12 geometry to the composed screen content', () => {
@@ -109,7 +120,7 @@ describe('composing a screen that fills a domain blueprint template', () => {
     it('places the screen in the template the approved blueprint brought', () => {
         const template = slot(compose([crmLeadList]), 'content')[0];
         expect(template.componentName).toBe('Scene:template');
-        expect(slot(template, 'body').map(_ => _.id)).toEqual(['crm-lead-list-title', 'Leads-body']);
+        expect(slot(template, 'body').map(_ => _.id)).toEqual(['Leads-body']);
     });
 
     it('does not find the template when no blueprint brought it', () => {

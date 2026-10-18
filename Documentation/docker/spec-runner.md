@@ -177,8 +177,8 @@ Property-value claims reserved within a batch remain reserved even if their owne
 in that batch. Repeating a value for the same owner is allowed; an event-occurrence release can reopen
 its owner's cycle. Models without the declaration keep legacy per-fact reaction execution, including
 successful prefixes before a later production fails. The [live semantic Host](index.md#opt-in-to-semantic-execution)
-retains its stricter whole-command rollback boundary. The renderer still refuses atomic-batch models with
-`STAGE-ESM-043`.
+retains its stricter whole-command rollback boundary. For what the Cratis renderer emits, and the atomic shapes it
+still refuses with `STAGE-ESM-043`, see [Atomic batch rendering](../reference/reaction-rendering.md#atomic-batch-rendering).
 
 ## Invocation refusal branches
 

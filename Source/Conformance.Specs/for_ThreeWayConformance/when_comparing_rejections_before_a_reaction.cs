@@ -18,7 +18,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// <param name="output">The test output.</param>
 public class when_comparing_rejections_before_a_reaction(when_comparing_rejections_before_a_reaction.context fixture, ITestOutputHelper output) : IClassFixture<when_comparing_rejections_before_a_reaction.context>
 {
-    const int SpecificationCount = 1;
+    const int SpecificationCount = 2;
 
     [Fact] void should_compare_every_specification() => fixture.Outcomes.Length.ShouldEqual(SpecificationCount);
     [Fact] void should_match_all_three_executions() => ThreeWayOutcomes.Report(fixture, output);
@@ -28,6 +28,8 @@ public class when_comparing_rejections_before_a_reaction(when_comparing_rejectio
     public class context : a_three_way_application
     {
         const string Source = """
+            policy IsGardener
+              require role "Gardener"
             module Plants
               feature Approval
                 slice StateChange Placing
@@ -37,6 +39,7 @@ public class when_comparing_rejections_before_a_reaction(when_comparing_rejectio
                   command PlacePlant
                     id String identifier
                     name String
+                    authorize IsGardener
                     validate
                       name not empty message "A plant needs a name."
                     produces PlantPlaced
@@ -44,10 +47,21 @@ public class when_comparing_rejections_before_a_reaction(when_comparing_rejectio
                       id = id
                       name = name
                   specification PlacingAnUnnamedPlant
+                    given caller
+                      authenticated
+                      role "Gardener"
                     when PlacePlant
                       id = "plant"
                       name = ""
                     then error "A plant needs a name."
+                  specification PlacingAsAVisitor
+                    given caller
+                      authenticated
+                      role "Visitor"
+                    when PlacePlant
+                      id = "plant"
+                      name = "Fern"
+                    then denied
                 slice StateChange Watering
                   event PlantWatered
                   command WaterPlant

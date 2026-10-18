@@ -24,6 +24,7 @@ public class a_specification_endpoint : Specification
     protected string _body = null!;
     protected SemanticSpecificationRunReport Report => SemanticSpecificationRunReportFile.Read(_body)!;
     protected virtual bool Seeded => false;
+    protected virtual string Source => specification_plan.Source(Seeded);
     protected virtual bool Refused => false;
     protected virtual bool LiveRegistrationRefused => false;
     private protected virtual ISpecificationRunProcess Process => new SpecificationRunProcess();
@@ -37,7 +38,7 @@ public class a_specification_endpoint : Specification
         _directory = Path.Combine(Path.GetTempPath(), $"stage-host-spec-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_directory);
         _modelPath = Path.Combine(_directory, "Projects.play");
-        await File.WriteAllTextAsync(_modelPath, specification_plan.Source(Seeded));
+        await File.WriteAllTextAsync(_modelPath, Source);
         _plan = (await SemanticModelLoader.LoadFromPathAsync(_modelPath)).Plan;
         _hostEventStore = Substitute.For<IEventStore>();
         var builder = WebApplication.CreateBuilder();

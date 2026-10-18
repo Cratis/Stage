@@ -60,11 +60,11 @@ public static class ArrangementConverter
         SceneLayouts.FlowArrangement flow => new ScreenplaySyntax.ArrangementSyntax(
             ScreenplaySyntax.ArrangementMode.Flow,
             SourceLocation.Start,
-            ToSyntax(flow.Root),
+            ToRootSyntax(flow.Root),
             [.. (flow.Overrides ?? []).Select(over => new ScreenplaySyntax.ArrangementOverrideSyntax(
                 over.Width?.ToString().ToLowerInvariant(),
                 over.Height?.ToString().ToLowerInvariant(),
-                ToSyntax(over.Root),
+                ToRootSyntax(over.Root),
                 SourceLocation.Start))],
             null),
         SceneLayouts.FreeformSlotArrangement freeform => new ScreenplaySyntax.ArrangementSyntax(
@@ -86,6 +86,13 @@ public static class ArrangementConverter
                 SourceLocation.Start))]),
         _ => null
     };
+
+    // The Screenplay text states the nodes of a root without a container of its own, and reading it back wraps them in a plain column, so a plain column root is written as
+    // its children. Any other root is written as it is and read back inside that column.
+    static ScreenplaySyntax.ArrangementNodeSyntax ToRootSyntax(SceneLayouts.FlowNode root) =>
+        root is SceneLayouts.FlowColumn { Gap: 0, Grow: null, Span: null } column
+            ? new ScreenplaySyntax.ArrangementContainerSyntax(ScreenplaySyntax.ArrangementContainerKind.Flat, [.. column.Children.Select(ToSyntax)], SourceLocation.Start)
+            : new ScreenplaySyntax.ArrangementContainerSyntax(ScreenplaySyntax.ArrangementContainerKind.Flat, [ToSyntax(root)], SourceLocation.Start);
 
     static string? SizeText(double size) => size == 0 ? "fill" : size.ToString(CultureInfo.InvariantCulture);
 

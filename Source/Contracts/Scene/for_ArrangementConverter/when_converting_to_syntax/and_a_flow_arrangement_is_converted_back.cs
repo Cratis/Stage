@@ -19,7 +19,6 @@ public class and_a_flow_arrangement_is_converted_back : Specification
     void Establish() => _arrangement = new(
         new FlowColumn
         {
-            Gap = 8,
             Children =
             [
                 new FlowSlotLeaf("topbar"),

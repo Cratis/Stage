@@ -157,6 +157,7 @@ public static partial class CratisRendering
     /// differs. An application with no approved packages plans exactly what it planned before.
     /// </remarks>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the options, strings input or approved packages are invalid.</exception>
+    /// <exception cref="InvalidArtifactRenderContract">The Scene contains conversion errors.</exception>
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
@@ -172,6 +173,11 @@ public static partial class CratisRendering
 
         if (scene is not null)
         {
+            var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
+            if (errors.Length > 0)
+            {
+                throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
+            }
             Contracts.Scene.SceneRuntimeAdmission.RequireSupported(scene);
         }
 

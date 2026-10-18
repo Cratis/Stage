@@ -16,7 +16,6 @@ internal static class SemanticRunProjectionAdmission
     {
         var emptyQuery = specification.When is null && specification.WhenAppended is null && specification.GivenEvents.IsEmpty &&
             specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
-        if (!emptyQuery && FilteredQueryRejection(specification) is { } filtered) return filtered;
 
         var reachable = reachableEvents.ToHashSet();
         var requested = plan.Projections.Values.Where(value =>
@@ -67,9 +66,10 @@ internal static class SemanticRunProjectionAdmission
         {
             if (emptyQuery && plan.Queries.ContainsKey(assertion.Query)) continue;
             if (!plan.Queries.TryGetValue(assertion.Query, out var query) ||
-                query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
                 !plan.ReadModels.TryGetValue(query.ReadModel, out var model) ||
-                model.Properties.Where(property => property.IsIdentifier).Select(property => (SemanticId?)property.Id).ToArray() is not [var identifier] || identifier != query.KeyProperty ||
+                (!query.KeyParts.IsDefaultOrEmpty && query.KeyParts.Length > 1) ||
+                (query.Filters.IsEmpty && (query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
+                    model.Properties.Where(property => property.IsIdentifier).Select(property => (SemanticId?)property.Id).ToArray() is not [var identifier] || identifier != query.KeyProperty)) ||
                 (plan.Projections.Values.All(projection => projection.ReadModel != query.ReadModel) && specification.GivenReadModels.All(seed => seed.ReadModel != query.ReadModel)))
             {
                 return new(StageExecutionCapability.Query, assertion.Query.ToString(), "Only optional snapshot queries by read-model identifier are admitted.");
@@ -111,13 +111,6 @@ internal static class SemanticRunProjectionAdmission
     static bool QueryParametersAreUnique(SemanticKeyedQuery query) =>
         GeneratedPascalCase.QueryParametersAreUnique((query.Argument is null ? Enumerable.Empty<string>() : [query.Argument.Name])
             .Concat(query.Filters.Select(filter => filter.Name)));
-
-    static SemanticUnsupportedCapability? FilteredQueryRejection(SemanticSpecification specification)
-    {
-        var filtered = specification.ThenQueries.FirstOrDefault(assertion => !assertion.Filters.IsDefaultOrEmpty);
-
-        return filtered is null ? null : new(StageExecutionCapability.Query, filtered.Query.ToString(), "STAGE-ESM-010: Equality query filter assertions cannot be executed by the per-run projection scenario.");
-    }
 
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {

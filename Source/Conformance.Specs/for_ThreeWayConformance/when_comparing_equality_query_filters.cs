@@ -18,7 +18,9 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
 {
     [Fact] void should_pass_the_correct_reference_expectation() => fixture.ReferencePassed.ShouldBeTrue();
     [Fact] void should_fail_the_wrong_reference_expectation() => fixture.WrongReferencePassed.ShouldBeFalse();
-    [Fact] void should_preserve_the_stage_filter_refusal() => fixture.StageResults.All(result => result.Outcome == SemanticSpecificationOutcome.Unsupported && result.Unsupported!.Capability == StageExecutionCapability.Query).ShouldBeTrue();
+    [Fact] void should_pass_the_stage_filtered_query_assertion() => fixture.StageResults[0].Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_fail_the_stage_wrong_row_assertion() => fixture.StageResults[1].Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
+    [Fact] void should_exclude_null_properties_in_the_stage_assertion() => fixture.StageResults[2].Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_build_the_generated_application_without_warnings() => fixture.Warnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_the_generated_filtered_query_specification() => fixture.CorrectOutcome.ShouldEqual("Passed");
     [Fact] void should_fail_the_generated_wrong_row_specification() => fixture.WrongOutcome.ShouldEqual("Failed");
@@ -64,7 +66,14 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
             ReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[0].Id).Passed;
             WrongReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[1].Id).Passed;
             OptionalPropertyReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[2].Id).Passed;
-            StageResults = [.. (await new SemanticSpecificationExecutor().Run(plan, new([.. seeded.Select(specification => specification.Id)]), new())).Results];
+            // Seed-only models preserve optional-property presence without a concrete Chronicle projection.
+            var stageApplication = application with
+            {
+                Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(value => value.Id == slice.Id ? value with { Specifications = [.. seeded], Projections = [] } : value)] }] }]
+            };
+            var stageModel = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, stageApplication);
+            var stagePlan = SemanticExecutionPlan.Compile(stageModel).Plan!;
+            StageResults = [.. (await new SemanticSpecificationExecutor().Run(stagePlan, new([.. seeded.Select(specification => specification.Id)]), new())).Results];
             AddGeneratedSpecification("QueryFilters.cs", a_query_filter_model.OptionalPropertyProbe);
             Warnings = BuildWarnings(await Run("query-filters-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
             await Run("query-filters-test.log", true, "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=query-filters.trx", "--results-directory", _evidence.FullName);

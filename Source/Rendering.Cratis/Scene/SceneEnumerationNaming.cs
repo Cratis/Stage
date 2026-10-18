@@ -25,6 +25,7 @@ public sealed class SceneEnumerationNaming : JsonConverterFactory
     public static readonly IReadOnlySet<string> PascalCased = new HashSet<string>(StringComparer.Ordinal)
     {
         "ColorScheme",
+        "CornerStyle",
         "Dock",
         "FlowContainerKind",
         "GridUnitType",
@@ -32,6 +33,7 @@ public sealed class SceneEnumerationNaming : JsonConverterFactory
         "HorizontalAlignment",
         "InteractionActionKind",
         "InteractionTriggerKind",
+        "LogoKind",
         "NotificationLevel",
         "Orientation",
         "PackageKind",

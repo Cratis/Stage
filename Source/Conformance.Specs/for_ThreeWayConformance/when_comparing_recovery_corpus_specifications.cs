@@ -19,17 +19,17 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 public class when_comparing_recovery_corpus_specifications : Specification
 {
     [Fact]
-    public async Task should_compare_unmodified_corpus_with_named_executor_exclusions_and_render_refusals()
+    public async Task should_compare_unmodified_corpus_including_sourceless_givens_and_render_refusals()
     {
         var corpus = RecoverySpecificationsCorpus.V17;
         var model = SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan());
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
         plan.Specifications.Values.Select(specification => specification.Name).ShouldContainOnly(["RedeliveryCascade", "FilteredRedelivery", "NothingFollowsAppend"]);
         plan.Specifications.Count.ShouldEqual(corpus.SpecificationExpectations.Length);
-        // These unmodified members omit given sources; Stage cannot seed their Chronicle history.
-        string[] executorExclusions = ["RedeliveryCascade", "FilteredRedelivery"];
+        // These unmodified members omit given sources; the reference establishes them at the null destination and so does Stage.
+        string[] sourcelessGivens = ["RedeliveryCascade", "FilteredRedelivery"];
         plan.Specifications.Values.Where(specification => specification.GivenEvents.Any(given => given.EventSource is null))
-            .Select(specification => specification.Name).ShouldContainOnly(executorExclusions);
+            .Select(specification => specification.Name).ShouldContainOnly(sourcelessGivens);
         foreach (var expectation in corpus.SpecificationExpectations)
         {
             var specification = plan.Specifications[expectation.Specification];
@@ -38,19 +38,10 @@ public class when_comparing_recovery_corpus_specifications : Specification
             Assert.True(reference.Passed, $"{specification.Name}: {string.Join(';', reference.Failures)}");
             reference.Execution.Kind.ShouldEqual(expectation.Outcome);
             reference.Execution.World.Facts.Length.ShouldEqual(expectation.WorldFactCount!.Value);
-            if (executorExclusions.Contains(specification.Name))
-            {
-                stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-                stage.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.IdentityAllocation);
-                stage.Unsupported.Details.ShouldEqual("Given events require an explicit event source.");
-            }
-            else
-            {
-                Assert.True(stage.Outcome == SemanticSpecificationOutcome.Passed, $"{specification.Name}: {stage.Unsupported?.Details} {string.Join(';', stage.Failures)}");
-                var accepted = (SemanticAccepted)reference.Execution;
-                Assert.Equal(accepted.Facts.Select(fact => fact.EventContract.ToString()), stage.Trace!.Facts.Select(fact => fact.EventContract));
-                Assert.Equal(accepted.Facts.Select(fact => fact.Route), stage.Trace.Facts.Select(fact => fact.Route));
-            }
+            Assert.True(stage.Outcome == SemanticSpecificationOutcome.Passed, $"{specification.Name}: {stage.Unsupported?.Details} {string.Join(';', stage.Failures)}");
+            var accepted = (SemanticAccepted)reference.Execution;
+            Assert.Equal(accepted.Facts.Select(fact => fact.EventContract.ToString()), stage.Trace!.Facts.Select(fact => fact.EventContract));
+            Assert.Equal(accepted.Facts.Select(fact => fact.Route), stage.Trace.Facts.Select(fact => fact.Route));
 
             // Every member runs on the reference and has a tested executor outcome and render refusal.
             var selected = a_recovery_plan.WithSpecification(model, specification);

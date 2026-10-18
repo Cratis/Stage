@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
@@ -18,6 +19,21 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </remarks>
 public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
 {
+    readonly ConversionDiagnostics? _diagnostics;
+
+    /// <summary>
+    /// Creates an admission check with legacy throwing behavior.
+    /// </summary>
+    public UiSyntaxAdmission()
+    {
+    }
+
+    /// <summary>
+    /// Creates an admission check that reports unsupported UI members.
+    /// </summary>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    public UiSyntaxAdmission(ConversionDiagnostics? diagnostics) => _diagnostics = diagnostics;
+
     /// <inheritdoc/>
     public override void VisitNode(SyntaxNode node)
     {
@@ -28,7 +44,9 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
         };
         if (member is not null)
         {
-            throw new UnsupportedUiSyntax(member, node.Location);
+            if (_diagnostics is null) throw new UnsupportedUiSyntax(member, node.Location);
+            var path = node is DialogTemplateSyntax template ? template.Name : node.GetType().Name;
+            _diagnostics.Report(new(UnsupportedUiSyntax.DiagnosticCode, DiagnosticSeverity.Error, member, path, node.Location, $"Unsupported {member} was omitted from '{path}'."));
         }
     }
 }

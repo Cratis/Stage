@@ -25,6 +25,6 @@ public class when_admitting_the_v22_golden_vector : Specification
 
     [Fact] void should_read_the_full_v22_vector() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V22);
     [Fact] void should_not_refuse_the_audited_version() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
-    [Fact] void should_refuse_atomic_reaction_batches() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-043");
+    [Fact] void should_not_refuse_the_atomic_mode_itself() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-043" && diagnostic.Artifact == _model.Application.Id);
     [Fact] void should_emit_no_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

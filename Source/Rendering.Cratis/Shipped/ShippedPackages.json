@@ -238,6 +238,8 @@
     ],
     "layouts": [
       "AppShell",
+      "DashboardShell",
+      "MinimalShell",
       "FullPage"
     ],
     "screenTemplates": [

@@ -50,6 +50,43 @@ public static class CommandFormSchemas
     }
 
     /// <summary>
+    /// Creates a command schema while reporting unsupported semantic types instead of throwing.
+    /// </summary>
+    /// <param name="application">The semantic application.</param>
+    /// <param name="properties">The command properties.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <param name="path">The owning command path.</param>
+    /// <param name="location">The source location supplied by the caller.</param>
+    /// <returns>The complete schema, or null if any type cannot be translated.</returns>
+    public static string? For(SemanticApplication application, IEnumerable<SemanticProperty> properties, ConversionDiagnostics? diagnostics, string path, SourceLocation location)
+    {
+        if (diagnostics is null) return For(application, properties);
+        var all = properties.ToArray();
+        var omissions = new List<(string Code, string Construct, string Path)>();
+        foreach (var concept in application.Concepts.Where(concept => concept.Values.IsEmpty && !Supported(concept.Primitive)))
+        {
+            omissions.Add(("STAGE-SCENE-SCHEMA-002", $"concept primitive {concept.Primitive}", $"{path}.{concept.Name}"));
+        }
+        foreach (var property in all)
+        {
+            if (property.Type.Kind is not (SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept or SemanticTypeReferenceKind.CompositeType))
+            {
+                omissions.Add(("STAGE-SCENE-SCHEMA-001", $"command property type {property.Type.Kind}", $"{path}.{property.Name}"));
+            }
+            else if (property.Type.Kind == SemanticTypeReferenceKind.Primitive && !Supported(property.Type.Primitive))
+            {
+                omissions.Add(("STAGE-SCENE-SCHEMA-002", $"command property primitive {property.Type.Primitive}", $"{path}.{property.Name}"));
+            }
+        }
+        foreach (var omission in omissions)
+        {
+            diagnostics.Report(new(omission.Code, DiagnosticSeverity.Error, omission.Construct, omission.Path, location, $"Command schema '{path}' was omitted because of unsupported {omission.Construct}."));
+        }
+
+        return omissions.Count == 0 ? For(application, all) : null;
+    }
+
+    /// <summary>
     /// Gets the form fields a command schema implies, one per property, labeled by its words.
     /// </summary>
     /// <param name="schema">The JSON schema text.</param>
@@ -76,6 +113,8 @@ public static class CommandFormSchemas
             return [];
         }
     }
+
+    static bool Supported(SemanticPrimitiveType primitive) => primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime;
 
     static string PrimitiveName(SemanticPrimitiveType primitive) => primitive switch
     {

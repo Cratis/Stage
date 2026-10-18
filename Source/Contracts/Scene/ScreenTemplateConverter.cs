@@ -49,11 +49,11 @@ public static class ScreenTemplateConverter
             template.FitsSlot,
             SlotConverter.Convert(template.Slots),
             diagnostics is null ? ArrangementConverter.Convert(template.Arrangement) : ArrangementConverter.Convert(template.Arrangement, diagnostics, template.Name),
-            CompositionConverter.Content(template.Name, template.Content, behaviors),
+            CompositionConverter.Content(template.Name, template.Content, behaviors, diagnostics),
             template.DisplayName,
             template.Description)
         {
-            Metadata = WithRootRole(template, CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes, template.SliceKinds)),
+            Metadata = WithRootRole(template, CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes, template.SliceKinds, diagnostics, template.Name, template.Location)),
             Outlets = [.. template.Outlets.Select(outlet => new SceneScreens.Outlet(outlet.Name))]
         };
 

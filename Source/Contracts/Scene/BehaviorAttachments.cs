@@ -82,7 +82,28 @@ public static class BehaviorAttachments
         IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> declared,
         string subject,
         ICollection<RenderFinding> findings,
-        Func<string, IReadOnlyList<string>?>? enumerationOf)
+        Func<string, IReadOnlyList<string>?>? enumerationOf) =>
+        Convert(inline, used, declared, subject, findings, enumerationOf, null);
+
+    /// <summary>
+    /// Resolves attachments while collecting unsupported interaction constructs.
+    /// </summary>
+    /// <param name="inline">The inline behaviors.</param>
+    /// <param name="used">The named behavior references.</param>
+    /// <param name="declared">The named declarations.</param>
+    /// <param name="subject">The owning attachment path.</param>
+    /// <param name="findings">The unresolved-reference findings.</param>
+    /// <param name="enumerationOf">The enumeration members for guard fields.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <returns>The resolved behaviors.</returns>
+    public static IReadOnlyList<SceneModel.Behavior> Convert(
+        IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
+        IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
+        IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> declared,
+        string subject,
+        ICollection<RenderFinding> findings,
+        Func<string, IReadOnlyList<string>?>? enumerationOf,
+        ConversionDiagnostics? diagnostics)
     {
         var attached = new List<(SourceLocation Location, ScreenplaySyntax.BehaviorSyntax Behavior)>();
 
@@ -110,7 +131,7 @@ public static class BehaviorAttachments
             .. attached
                 .OrderBy(entry => entry.Location.Line)
                 .ThenBy(entry => entry.Location.Column)
-                .Select(entry => BehaviorConverter.Convert(entry.Behavior, enumerationOf))
+                .Select(entry => BehaviorConverter.Convert(entry.Behavior, enumerationOf, diagnostics, subject))
         ];
     }
 }

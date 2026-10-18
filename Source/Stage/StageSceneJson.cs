@@ -25,6 +25,7 @@ public static class StageSceneJson
     public static readonly IReadOnlySet<string> PascalCasedEnumerations = new HashSet<string>(StringComparer.Ordinal)
     {
         "ColorScheme",
+        "CornerStyle",
         "Dock",
         "FlowContainerKind",
         "GridUnitType",
@@ -32,6 +33,7 @@ public static class StageSceneJson
         "HorizontalAlignment",
         "InteractionActionKind",
         "InteractionTriggerKind",
+        "LogoKind",
         "NotificationLevel",
         "Orientation",
         "PackageKind",

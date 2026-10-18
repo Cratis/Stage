@@ -28,8 +28,10 @@ public class with_given_project_events_and_a_subset_read_model : Specification
     }
 
     [Fact] void should_admit_subset_read_model_expectations() => _success.ShouldBeTrue();
-    [Fact] void should_seed_the_given_event_on_its_own_source() => _command.ShouldContain("ForEventSource(new global::Invoices.Common.ProjectId(global::System.Guid.Parse(\"4fa85f64-5717-4562-b3fc-2c963f66afa7\")))");
-    [Fact] void should_select_the_expected_project_among_multiple_instances() => _projection.ShouldContain("InstanceForEventSourceId(new global::Invoices.Common.ProjectId(global::System.Guid.Parse(\"3fa85f64-5717-4562-b3fc-2c963f66afa6\")))");
+    [Fact] void should_declare_the_given_event_source() => _command.ShouldContain("ProjectId _projectId = new global::Invoices.Common.ProjectId(global::System.Guid.Parse(\"4fa85f64-5717-4562-b3fc-2c963f66afa7\"))");
+    [Fact] void should_declare_the_expected_project_source() => _projection.ShouldContain("ProjectId _projectId2 = new global::Invoices.Common.ProjectId(global::System.Guid.Parse(\"3fa85f64-5717-4562-b3fc-2c963f66afa6\"))");
+    [Fact] void should_seed_the_given_event_on_its_own_source() => _command.ShouldContain("ForEventSource(_projectId).Events(");
+    [Fact] void should_select_the_expected_project_among_multiple_instances() => _projection.ShouldContain("InstanceForEventSourceId(_projectId2)!.ProjectId.ShouldEqual(_projectId2)");
     [Fact] void should_assert_only_the_authored_project_property() => _projection.ShouldNotContain("should_project_name");
     [Fact] void should_seed_the_query_from_projected_events() => _query.ShouldContain("Returns(_scenario.InstanceForEventSourceId");
     [Fact] void should_not_mock_the_expected_result_as_the_actual_state() => _query.ShouldNotContain("Returns(_expected)");

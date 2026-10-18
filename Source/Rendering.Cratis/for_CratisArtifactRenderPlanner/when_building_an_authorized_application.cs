@@ -63,6 +63,6 @@ public class when_building_an_authorized_application : a_generated_invoice_appli
 
     [Fact] void should_build_debug_without_warnings() => DebugWarnings.ShouldBeEmpty();
     [Fact] void should_build_release_without_warnings() => ReleaseWarnings.ShouldBeEmpty();
-    [Fact] void should_run_generated_specs() => Results.Select(result => result.Outcome).ShouldContainOnly(["Passed", "Passed", "Passed", "Passed", "Passed", "Passed"]);
+    [Fact] void should_run_generated_specs() => Results.Select(result => result.Outcome).ShouldContainOnly(["Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed"]);
 }
 #endif

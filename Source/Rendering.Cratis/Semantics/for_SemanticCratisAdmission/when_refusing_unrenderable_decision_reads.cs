@@ -70,6 +70,14 @@ public class when_refusing_unrenderable_decision_reads
     }
 
     [Fact]
+    public void should_admit_reads_on_a_command_producing_a_constrained_event()
+    {
+        var plan = invoice_model.Plan(invoice_model.Compile(Variant("constraint")));
+
+        plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-044");
+    }
+
+    [Fact]
     public void should_admit_a_decision_without_an_outcome()
     {
         var plan = invoice_model.Plan(invoice_model.Compile(Corpus));
@@ -89,8 +97,10 @@ public class when_refusing_unrenderable_decision_reads
         return model;
     }
 
-    static string Variant(string shape) => shape == "freshness"
-        ? Corpus.Replace(Generation, "concept Receipt : Uuid\n  generate uuidv7\n", StringComparison.Ordinal)
+    static string Variant(string shape) => shape switch
+    {
+        "constraint" => Corpus.Replace("      event Taken\n", "      constraint UniqueTaken\n        unique value on Taken\n      event Taken\n", StringComparison.Ordinal),
+        _ => Corpus.Replace(Generation, "concept Receipt : Uuid\n  generate uuidv7\n", StringComparison.Ordinal)
             .Replace("        sourceId String\n        reads Current by sourceId\n        validate\n", "        sourceId String\n        receipt Receipt generated\n        reads Current by sourceId\n        validate\n", StringComparison.Ordinal)
-        : Corpus;
+    };
 }

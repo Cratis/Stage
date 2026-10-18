@@ -41,9 +41,6 @@ internal static partial class SemanticCratisAdmission
         {
             diagnostics.Add(DecisionRead(command, "combines protected reads with generated-value freshness scopes; Arc's explicit scope must cover the reads and that interaction is unproven. Declare the reads on a command without generated event-source destinations."));
         }
-
-        // ProtectedCommandReadRaceVectors proves protected reads and append-time constraints separately (#557).
-        // A simultaneous read conflict and uniqueness collision has no corpus-defined precedence yet (Cratis/Screenplay#919).
     }
 
     static ArtifactRenderDiagnostic DecisionRead(SemanticCommand command, string reason) =>

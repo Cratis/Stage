@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static class SemanticSpecificationRouteRendering
 {
-    internal static string Predicate(SemanticSpecificationEvent expected, SemanticApplicationContext context, string entry)
+    internal static string Predicate(SemanticSpecificationEvent expected, SemanticApplicationContext context, string entry, SemanticTypeSystem? types = null)
     {
         if (expected.Unrouted)
         {
@@ -26,19 +26,19 @@ internal static class SemanticSpecificationRouteRendering
 
         return $" && {entry}.Event.Context.EventSourceType == {CSharpCodeBuilder.StringLiteral(source.SourceKind)}" +
             $" && {entry}.Event.Context.EventStreamType == {SemanticEventSourceArtifactRenderer.StreamReference(source, stream, context)}" +
-            $" && {entry}.Event.Context.EventStreamId == {StreamId(route, context)}";
+            $" && {entry}.Event.Context.EventStreamId == {StreamId(route, context, types)}";
     }
 
-    internal static string Arguments(SemanticFixtureRoute route, SemanticApplicationContext context)
+    internal static string Arguments(SemanticFixtureRoute route, SemanticApplicationContext context, SemanticTypeSystem? types = null)
     {
         var source = context.Application.EventSources.Single(source => source.Id == route.Source);
         var stream = source.Streams.Single(stream => stream.Id == route.Stream);
 
-        return $"eventSourceType: {CSharpCodeBuilder.StringLiteral(source.SourceKind)}, eventStreamType: {SemanticEventSourceArtifactRenderer.StreamReference(source, stream, context)}, eventStreamId: {StreamId(route, context)}";
+        return $"eventSourceType: {CSharpCodeBuilder.StringLiteral(source.SourceKind)}, eventStreamType: {SemanticEventSourceArtifactRenderer.StreamReference(source, stream, context)}, eventStreamId: {StreamId(route, context, types)}";
     }
 
-    internal static string Seed(SemanticFixtureRoute? route, SemanticApplicationContext context) =>
-        route is null ? string.Empty : $".OnStream({Arguments(route, context)})";
+    internal static string Seed(SemanticFixtureRoute? route, SemanticApplicationContext context, SemanticTypeSystem? types = null) =>
+        route is null ? string.Empty : $".OnStream({Arguments(route, context, types)})";
 
     internal static SemanticFixtureRoute? ForCommand(SemanticSpecification specification, SemanticApplicationContext context)
     {
@@ -64,18 +64,18 @@ internal static class SemanticSpecificationRouteRendering
             : stream.StreamIdParts.All(part => Scalar(part.Type, route.StreamIdParts.Single(value => value.Part == part.Name).Value, context) is not null);
     }
 
-    static string StreamId(SemanticFixtureRoute route, SemanticApplicationContext context)
+    static string StreamId(SemanticFixtureRoute route, SemanticApplicationContext context, SemanticTypeSystem? types)
     {
         var source = context.Application.EventSources.Single(source => source.Id == route.Source);
         var stream = source.Streams.Single(stream => stream.Id == route.Stream);
-        if (stream.StreamIdType is { } type) return Scalar(type, route.StreamId!, context)!;
+        if (stream.StreamIdType is { } type) return Scalar(type, route.StreamId!, context, types)!;
         if (stream.StreamIdParts.IsDefaultOrEmpty) return "global::Cratis.Chronicle.Events.EventStreamId.Default";
-        var parts = stream.StreamIdParts.Select(part => Scalar(part.Type, route.StreamIdParts.Single(value => value.Part == part.Name).Value, context));
+        var parts = stream.StreamIdParts.Select(part => Scalar(part.Type, route.StreamIdParts.Single(value => value.Part == part.Name).Value, context, types));
 
         return $"global::{context.RootNamespace}.GeneratedEventSources.StreamIds.Composite({string.Join(", ", parts)})";
     }
 
-    static string? Scalar(SemanticTypeReference type, SemanticValue value, SemanticApplicationContext context)
+    static string? Scalar(SemanticTypeReference type, SemanticValue value, SemanticApplicationContext context, SemanticTypeSystem? types = null)
     {
         var primitive = type.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[type.Target].Primitive : type.Primitive;
         var helper = $"global::{context.RootNamespace}.GeneratedEventSources.StreamIds";
@@ -85,7 +85,8 @@ internal static class SemanticSpecificationRouteRendering
                 // Like literal command routes, text is validated without normalization during planning.
                 return CSharpCodeBuilder.StringLiteral(formatted!);
             case (SemanticPrimitiveType.Uuid, SemanticTextValue uuid) when SemanticStreamIdFormatter.TryFormatUuidText(uuid.Value, out var formatted, out _):
-                return $"{helper}.Uuid(global::System.Guid.Parse({CSharpCodeBuilder.StringLiteral(formatted!)}))";
+                var expression = types?.Value(new SemanticTextValue(formatted!), SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Uuid)) ?? $"global::System.Guid.Parse({CSharpCodeBuilder.StringLiteral(formatted!)})";
+                return $"{helper}.Uuid({expression})";
             case (SemanticPrimitiveType.WholeNumber, SemanticNumberValue number) when decimal.Truncate(number.Value) == number.Value &&
                 SemanticStreamIdFormatter.TryFormatInteger(new BigInteger(number.Value), true, out var formatted, out _):
                 // Like literal command routes, preserve the canonical identity validated during planning.

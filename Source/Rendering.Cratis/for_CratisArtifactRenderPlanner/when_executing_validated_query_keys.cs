@@ -15,7 +15,7 @@ public class when_executing_validated_query_keys(when_executing_validated_query_
     [Fact] void should_build_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_accept_valid_keys_and_reject_out_of_rule_lookup_and_filter_keys() => fixture.Results.ShouldContain("Passed!");
     [Fact] void should_render_concept_keys_in_companion_query_calls() => Assert.All(fixture.CompanionSources, source => source.ShouldContain("new global::Invoices.Common.InvoiceId(\"invoice-one\")"));
-    [Fact] void should_execute_all_three_companion_query_specifications() => fixture.CompanionOutcomes.ShouldContainOnly("Passed", "Passed", "Passed");
+    [Fact] void should_execute_all_three_companion_query_specifications() => fixture.CompanionOutcomes.ShouldContainOnly("Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed");
 
     public class context : a_generated_application
     {

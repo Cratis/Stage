@@ -82,6 +82,8 @@ internal static class SemanticVersionFeatures
     /// </summary>
     internal const string ProductionRoutes = "STAGE-ESM-036";
 
+    const string ArcDefaultStreamId = "Default";
+
     /// <summary>
     /// The code for a reaction trigger that both produces events and invokes commands.
     /// </summary>
@@ -524,6 +526,10 @@ internal static class SemanticVersionFeatures
             command.Produces.Any(produced => produced.Route is { } route && !IsKeyed(route)))
         {
             yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with an unkeyed stream under a keyed command route, so Arc would append it to the command's stream id.");
+        }
+        else if (command.Produces.Any(produced => produced.Route is { StreamId: SemanticValueExpression { Value: SemanticTextValue { Value: ArcDefaultStreamId } } }))
+        {
+            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with the literal stream id '{ArcDefaultStreamId}', which Arc treats as EventStreamId.Default and replaces with the command's stream id.");
         }
     }
 

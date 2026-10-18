@@ -4,6 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { BindingExpression } from '@cratis/scene.model';
+import { Globals } from '@cratis/arc';
 import { ServerSentEventQueryConnection } from '@cratis/arc/queries';
 import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
@@ -238,6 +239,7 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const [loading, setLoading] = useState(false);
     const [localRefresh, setLocalRefresh] = useState(0);
     const latest = useRef(0);
+    const liveOpen = useRef(false);
     const ready = request.ready ?? true;
     const active = !!request.route && ready;
     const argumentsKey = JSON.stringify(request.arguments ?? {});
@@ -261,48 +263,88 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
         setLoading(true);
         setError('');
 
+        const read = () => {
+            fetch(url, { headers: { Accept: 'application/json' }, signal: abort.signal })
+                .then(async response => {
+                    if (!response.ok) throw new Error(`The query answered ${response.status}.`);
+                    return response.json() as Promise<unknown>;
+                })
+                .then(payload => {
+                    if (latest.current !== sequence || abort.signal.aborted) return;
+                    setRows(normalizeRows(payload));
+                    setError('');
+                })
+                .catch(reason => {
+                    if (latest.current !== sequence || abort.signal.aborted) return;
+                    setRows([]);
+                    setError(reason instanceof Error ? reason.message : String(reason));
+                })
+                .finally(() => {
+                    if (latest.current === sequence && !abort.signal.aborted) setLoading(false);
+                });
+        };
+
         // A live query is subscribed to rather than read: the server pushes a new result whenever its read model
         // changes, so a list shows what a command - issued from this client or any other - did without a refresh.
         if (isLiveRoute(request.route)) {
+            liveOpen.current = true;
             const connection = new ServerSentEventQueryConnection<unknown>(new URL(withoutLiveMarker(url), globalThis.location.href));
-            connection.connect(result => {
-                if (latest.current !== sequence || abort.signal.aborted) return;
-                const failure = queryFailure(result);
-                if (failure) {
-                    setRows([]);
-                    setError(failure);
-                } else {
-                    setRows(normalizeRows(result));
-                    setError('');
+
+            // A subscription the server refuses or drops never reaches the result callback: the connection only logs
+            // it. Reading the route once asks the server why, and shows the answer the way a snapshot query does.
+            let fellBack = false;
+            const fallBack = () => {
+                if (fellBack || latest.current !== sequence || abort.signal.aborted) return;
+                fellBack = true;
+                liveOpen.current = false;
+                connection.disconnect();
+                read();
+            };
+
+            const previous = Globals.eventSourceFactory;
+            if (!previous && typeof EventSource === 'undefined') {
+                fallBack();
+            } else {
+                let source: EventSource | undefined;
+                Globals.eventSourceFactory = address => (source = previous ? previous(address) : new EventSource(address));
+                try {
+                    connection.connect(result => {
+                        if (latest.current !== sequence || abort.signal.aborted) return;
+                        const failure = queryFailure(result);
+                        if (failure) {
+                            setRows([]);
+                            setError(failure);
+                        } else {
+                            setRows(normalizeRows(result));
+                            setError('');
+                        }
+
+                        setLoading(false);
+                    });
+                } finally {
+                    Globals.eventSourceFactory = previous;
                 }
 
-                setLoading(false);
-            });
+                const opened = source as EventSource | undefined;
+                if (opened) {
+                    const logged = opened.onerror;
+                    opened.onerror = function (this: EventSource, event: Event) {
+                        logged?.call(this, event);
+                        if (opened.readyState === eventSourceClosed) fallBack();
+                    };
+                } else {
+                    fallBack();
+                }
+            }
 
             return () => {
                 abort.abort();
+                liveOpen.current = false;
                 connection.disconnect();
             };
         }
 
-        fetch(url, { headers: { Accept: 'application/json' }, signal: abort.signal })
-            .then(async response => {
-                if (!response.ok) throw new Error(`The query answered ${response.status}.`);
-                return response.json() as Promise<unknown>;
-            })
-            .then(payload => {
-                if (latest.current !== sequence || abort.signal.aborted) return;
-                setRows(normalizeRows(payload));
-                setError('');
-            })
-            .catch(reason => {
-                if (latest.current !== sequence || abort.signal.aborted) return;
-                setRows([]);
-                setError(reason instanceof Error ? reason.message : String(reason));
-            })
-            .finally(() => {
-                if (latest.current === sequence && !abort.signal.aborted) setLoading(false);
-            });
+        read();
 
         return () => abort.abort();
     }, [active, argumentsKey, localRefresh, publishResult, request.name, request.route, request.scope]);
@@ -310,6 +352,9 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     useEffect(() => {
         if (refreshVersion === 0) return;
         if (refreshQueryName && refreshQueryName !== request.name && refreshQueryName !== request.scope) return;
+
+        // An open stream already carries every change, so a refresh must not tear it down and reopen it.
+        if (liveOpen.current) return;
         setLocalRefresh(current => current + 1);
     }, [refreshQueryName, refreshVersion, request.name, request.scope]);
 
@@ -329,7 +374,7 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
         });
     }, [active, argumentsKey, error, loading, publishResult, request.name, request.route, request.scope, rows]);
 
-    return { rows, loading, error, refresh: () => setLocalRefresh(current => current + 1) };
+    return { rows, loading, error, refresh: () => { if (!liveOpen.current) setLocalRefresh(current => current + 1); } };
 }
 
 export function dataChanged() {
@@ -439,6 +484,9 @@ function routeWithArguments(route: string, queryArguments: Record<string, unknow
 
 /** The marker a generated application puts on the route of a query the model declares `observable`. */
 const liveMarker = 'waitForFirstResult';
+
+/** The `readyState` of an `EventSource` the browser gave up on: a refused or failed subscription, not a retry. */
+const eventSourceClosed = 2;
 
 function isLiveRoute(route: string): boolean {
     return new URLSearchParams(route.split('?')[1] ?? '').get(liveMarker) === 'true';

@@ -21,6 +21,7 @@ public class live_projects : Specification
 {
     static readonly TimeSpan _deadline = TimeSpan.FromSeconds(10);
 
+    internal a_semantic_fact_log _log = null!;
     protected ISemanticRuntime _runtime = null!;
     protected IQueryPerformer _performer = null!;
     SemanticRuntimeQueryPerformerProvider _provider = null!;
@@ -83,7 +84,8 @@ public class live_projects : Specification
         var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
         _register = plan.Commands.Values.Single(command => command.Name == "RegisterProject");
         _tag = plan.Commands.Values.Single(command => command.Name == "TagProject");
-        _runtime = new a_semantic_fact_log().Runtime(plan, SemanticWorld.Empty);
+        _log = new();
+        _runtime = _log.Runtime(plan, SemanticWorld.Empty);
         _provider = new([_runtime], [new DynamicTypeFactory()], [new HttpContextAccessor { HttpContext = new DefaultHttpContext() }]);
     }
 
@@ -94,6 +96,13 @@ public class live_projects : Specification
     }
 
     protected Task Register(string id, string name) => Execute(_register, ("projectId", id), ("name", name));
+
+    protected Task<SemanticExecutionResult> TryRegister(string id, string name) => _runtime.Execute(
+        _register,
+        new Dictionary<string, JsonElement> { ["projectId"] = JsonSerializer.SerializeToElement(id), ["name"] = JsonSerializer.SerializeToElement(name) },
+        new ClaimsPrincipal(),
+        new(DateTimeOffset.UtcNow, "subject", "name", "user"),
+        false);
 
     protected Task Tag(string id, string label) => Execute(_tag, ("tagId", id), ("label", label));
 

@@ -22,7 +22,7 @@ internal sealed partial class SemanticRuntime
                 return initial;
             }
 
-            FaultReason = "The fact appender cannot verify Chronicle's event-log tail.";
+            Fault("The fact appender cannot verify Chronicle's event-log tail.");
             return Faulted();
         }
 
@@ -60,7 +60,7 @@ internal sealed partial class SemanticRuntime
                 }
                 else if (await tail.Tail().WaitAsync(_appendTimeout) != before)
                 {
-                    FaultReason = "The event-log tail changed outside this session; the legacy appender cannot guard an empty batch.";
+                    Fault("The event-log tail changed outside this session; the legacy appender cannot guard an empty batch.");
                     return Faulted();
                 }
             }
@@ -94,6 +94,13 @@ internal sealed partial class SemanticRuntime
         return TailConflict();
     }
 
+    // A fault changes every answer the world gives, so live subscriptions must hear it and fail closed.
+    void Fault(string reason)
+    {
+        FaultReason = reason;
+        PublishChange();
+    }
+
     SemanticConflict TailConflict() => new(_world, SemanticConflictCategory.DecisionStateChanged, "The event-log tail changed before the settled batch could be persisted.");
 
     async Task<bool> Refresh(ISemanticFactTail tail)
@@ -108,7 +115,7 @@ internal sealed partial class SemanticRuntime
 
             if (FactReader is null || through == ulong.MaxValue || (_knownTail != ulong.MaxValue && through < _knownTail))
             {
-                FaultReason = $"The event-log tail changed outside this session ({_knownTail} -> {through}) and cannot be extended safely.";
+                Fault($"The event-log tail changed outside this session ({_knownTail} -> {through}) and cannot be extended safely.");
                 return false;
             }
 
@@ -116,14 +123,14 @@ internal sealed partial class SemanticRuntime
             var facts = await FactReader.Read(from, through).WaitAsync(_appendTimeout);
             if ((ulong)facts.Length != through - from + 1)
             {
-                FaultReason = "The outside event-log suffix could not be read completely.";
+                Fault("The outside event-log suffix could not be read completely.");
                 return false;
             }
 
             var extended = _evaluator.ExtendWorld(Plan, _world, facts);
             if (extended is not SemanticAccepted accepted)
             {
-                FaultReason = $"The outside event-log suffix cannot extend the semantic world: {extended}";
+                Fault($"The outside event-log suffix cannot extend the semantic world: {extended}");
                 return false;
             }
 
@@ -135,7 +142,7 @@ internal sealed partial class SemanticRuntime
         }
         catch (Exception exception)
         {
-            FaultReason = $"Cannot read the event-log tail or outside facts before append: {exception.Message}";
+            Fault($"Cannot read the event-log tail or outside facts before append: {exception.Message}");
             return false;
         }
     }
@@ -150,11 +157,11 @@ internal sealed partial class SemanticRuntime
                 System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception).Throw();
             }
 
-            FaultReason = $"Append outcome is unknown (tail {before} -> {after}): {exception.Message}";
+            Fault($"Append outcome is unknown (tail {before} -> {after}): {exception.Message}");
         }
         catch (Exception tailFailure) when (!ReferenceEquals(tailFailure, exception))
         {
-            FaultReason = $"Append outcome is unknown; the event-log tail cannot be read: {tailFailure.Message}";
+            Fault($"Append outcome is unknown; the event-log tail cannot be read: {tailFailure.Message}");
         }
 
         return Faulted();

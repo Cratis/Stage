@@ -38,7 +38,7 @@ public static class LayoutConverter
             ? ArrangementConverter.Convert(layout.Arrangement)
             : ArrangementConverter.Convert(layout.Arrangement, diagnostics, layout.Name))
         {
-            Metadata = CompositionConverter.Metadata(layout.TemplateType, layout.Category, layout.RestrictsScopes, layout.Scopes, layout.SliceKinds),
+            Metadata = CompositionConverter.Metadata(layout.TemplateType, layout.Category, layout.RestrictsScopes, layout.Scopes, layout.SliceKinds, diagnostics, layout.Name, layout.Location),
             Outlets = [.. layout.Outlets.Select(outlet => new SceneScreens.Outlet(outlet.Name))]
         };
 }

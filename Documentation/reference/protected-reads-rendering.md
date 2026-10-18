@@ -59,8 +59,9 @@ Do not combine a read with:
 
 - a read path in a `produces when` condition or destination;
 - a read-path mapping to an optional, collection, composite or differently typed event property (the reference yields null for a missing value, which Arc cannot express faithfully);
-- a generated-value event-source destination (freshness scopes), because the interaction with Arc's explicit scopes is unproven;
-- an event that is a target of an append-time constraint.
+- a generated-value event-source destination (freshness scopes), because the interaction with Arc's explicit scopes is unproven.
+
+A command may read and still produce an event under an append-time constraint. The generated command keeps its read checks and the Chronicle constraint. Which refusal wins when a read conflict and a uniqueness collision happen in the same commit is not defined by the reference yet ([Screenplay#919](https://github.com/Cratis/Screenplay/issues/919)).
 
 The renderer refuses each of these with `STAGE-ESM-044`, and the message names the reason. Non-Error requirements on protected commands remain refused with `STAGE-ESM-045`. The legacy syntax renderer, Host and structural specification runner refuse the preamble with `STAGE-ESM-044`.
 
@@ -73,7 +74,7 @@ Outcomes match the reference evaluator for every specification in the canonical 
 | `/validate` | Reports read absence and requirement failures | Arc's validate endpoint does not run `Handle`, so it reports neither. The Host's `validateOnly` does. |
 | Generation timing | Absence is checked before generation | Generated `Handle` parameters resolve before the absence guard. Generation strategies have no side effects and run unguarded, so the outcome is unchanged. |
 | Failures reported | Lists every failing requirement | Reports only the first failure. The first message is identical. |
-| Race result | `DecisionStateChanged` conflict | Arc returns a validation failure with reason `ConcurrencyViolation` and its own message. No reference vector exists for races ([Screenplay#833](https://github.com/Cratis/Screenplay/issues/833)). |
+| Race result | `DecisionStateChanged` conflict | Arc returns a validation failure with reason `ConcurrencyViolation` and its own message. The race vectors that replay a prepared decision against a later log run only in the Host and specification executor; Arc's command API has no prepare/commit step to drive them. |
 | Reactors | A refusal can drive an `on refused` branch | A race is not classified as a refusal, so it is an unclassified failure that retries. |
 | Reactor-invoked commands | One pipeline per invoked command | Production runs them through Arc's command side-effect executor. The generated specification runs `CommandScenario.Execute` directly. |
 | Atomicity of a cascade | A command whose invoked reaction command rejects is rejected as a whole and appends nothing | The rendered application commits the triggering command; the reactor runs eventually and fails later (see [Docker hosting](../docker/index.md)). Generated specifications split the cascade into a reactor scenario and a `Trigger` scenario, and split a rejection only when the triggering command cannot reject on its own. Any other rejected cascade stays refused with `STAGE-ESM-011`. |

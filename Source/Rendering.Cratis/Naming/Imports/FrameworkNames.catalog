@@ -5,9 +5,9 @@ scaffold	2
 pin	Cratis	22.112.1
 pin	Cratis.Arc.Chronicle.Testing	22.112.1
 pin	Cratis.Arc.MongoDB	22.112.1
-pin	Cratis.Chronicle	19.78.0
-pin	Cratis.Chronicle.AspNetCore	19.78.0
-pin	Cratis.Chronicle.Testing	19.78.0
+pin	Cratis.Chronicle	19.83.0
+pin	Cratis.Chronicle.AspNetCore	19.83.0
+pin	Cratis.Chronicle.Testing	19.83.0
 pin	Cratis.Specifications	4.1.1
 pin	Cratis.Specifications.XUnit	4.1.1
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -29,10 +29,10 @@ package	AS	Cratis.Arc.MongoDB	22.112.1
 package	AS	Cratis.Arc.ProxyGenerator.Build	22.112.1
 package	AS	Cratis.Arc.Screenplay.Embedded	22.112.1
 package	AS	Cratis.Arc.Swagger	22.112.1
-package	AS	Cratis.Chronicle	19.78.0
-package	AS	Cratis.Chronicle.AspNetCore	19.78.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.78.0
-package	AS	Cratis.Chronicle.Connections	19.78.0
+package	AS	Cratis.Chronicle	19.83.0
+package	AS	Cratis.Chronicle.AspNetCore	19.83.0
+package	AS	Cratis.Chronicle.CodeAnalysis	19.83.0
+package	AS	Cratis.Chronicle.Connections	19.83.0
 package	AS	Cratis.Fundamentals	7.25.0
 package	AS	Cratis.Metrics.Roslyn	7.25.0
 package	AS	Cratis.Screenplay	4.203.0
@@ -135,10 +135,10 @@ package	AS	protobuf-net.Grpc.Reflection	1.3.14
 package	AS	protobuf-net.Reflection	3.2.52
 package	S	Cratis.Arc.Chronicle.Testing	22.112.1
 package	S	Cratis.Arc.Testing	22.112.1
-package	S	Cratis.Chronicle.Testing	19.78.0
-package	S	Cratis.Orleans	1.20.0
-package	S	Cratis.Orleans.Storage	1.20.0
-package	S	Cratis.Orleans.Storage.MongoDB	1.20.0
+package	S	Cratis.Chronicle.Testing	19.83.0
+package	S	Cratis.Orleans	1.23.0
+package	S	Cratis.Orleans.Storage	1.23.0
+package	S	Cratis.Orleans.Storage.MongoDB	1.23.0
 package	S	Cratis.Specifications	4.1.1
 package	S	Cratis.Specifications.XUnit	4.1.1
 package	S	JsonCons.JmesPath	1.0.0
@@ -3069,6 +3069,7 @@ type	AS	Cratis.Chronicle.EventSequences	EventSequence	class
 type	AS	Cratis.Chronicle.EventSequences	EventSequenceAttribute	attribute
 type	AS	Cratis.Chronicle.EventSequences	EventSequenceEventSourceExtensions	static
 type	AS	Cratis.Chronicle.EventSequences	EventSequenceId	class
+type	AS	Cratis.Chronicle.EventSequences	EventSequenceImmediateAppendRefusalNotSupported	class
 type	AS	Cratis.Chronicle.EventSequences	EventSequenceReadProtectionNotSupported	class
 type	AS	Cratis.Chronicle.EventSequences	EventsWithConcurrencyScopes	class
 type	AS	Cratis.Chronicle.EventSequences	IAppendResult	interface
@@ -3265,6 +3266,8 @@ type	AS	Cratis.Chronicle.Identities	IdentityId	class
 type	AS	Cratis.Chronicle.Identities	IdentityManager	class
 type	AS	Cratis.Chronicle.Jobs	IJobs	interface
 type	AS	Cratis.Chronicle.Jobs	Job	class
+type	AS	Cratis.Chronicle.Jobs	JobCommandRefusal	enum
+type	AS	Cratis.Chronicle.Jobs	JobCommandResult	class
 type	AS	Cratis.Chronicle.Jobs	JobDetails	class
 type	AS	Cratis.Chronicle.Jobs	JobId	class
 type	AS	Cratis.Chronicle.Jobs	JobProgress	class
@@ -3788,6 +3791,9 @@ type	AS	Cratis.Chronicle.Transactions	ExplicitScopeDoesNotCoverReads	class
 type	AS	Cratis.Chronicle.Transactions	IUnitOfWork	interface
 type	AS	Cratis.Chronicle.Transactions	IUnitOfWorkEnrollmentContributor	interface
 type	AS	Cratis.Chronicle.Transactions	IUnitOfWorkManager	interface
+type	AS	Cratis.Chronicle.Transactions	ImmediateAppendRefusal	class
+type	AS	Cratis.Chronicle.Transactions	ImmediateAppendRefusalRequiresOwner	class
+type	AS	Cratis.Chronicle.Transactions	ImmediateAppendRefused	class
 type	AS	Cratis.Chronicle.Transactions	ImmediateAppendWhileReadsAreProtected	class
 type	AS	Cratis.Chronicle.Transactions	NoUnitOfWorkHasBeenStarted	class
 type	AS	Cratis.Chronicle.Transactions	ProtectedUnitOfWorkEventsAfterCompletion	class
@@ -3811,6 +3817,7 @@ type	AS	Cratis.Chronicle.Transactions	UnitOfWorkEffectReceiptAlreadySet	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkEnrollment	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkEnrollmentContributorsNotSupported	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkEnrollmentNotificationFailed	class
+type	AS	Cratis.Chronicle.Transactions	UnitOfWorkImmediateAppendRefusalNotSupported	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkIsAlreadyCommitted	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkIsAlreadyRolledBack	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkIsCompleted	class
@@ -10931,6 +10938,7 @@ type	S	Cratis.Chronicle.Testing.Reactors	RecordedOccurrence	class
 type	S	Cratis.Chronicle.Testing.ReadModels	MultipleInstancesMaterialized	class
 type	S	Cratis.Chronicle.Testing.ReadModels	NoReadModelHandlerFound	class
 type	S	Cratis.Chronicle.Testing.ReadModels	ProjectionDefinitionBuildFailed	class
+type	S	Cratis.Chronicle.Testing.ReadModels	ReadModelAlreadySeeded	class
 type	S	Cratis.Chronicle.Testing.ReadModels	ReadModelDependsOnSubstitutedLayer	class
 type	S	Cratis.Chronicle.Testing.ReadModels	ReadModelScenarioGivenBuilder`1	class
 type	S	Cratis.Chronicle.Testing.ReadModels	ReadModelScenario`1	class
@@ -10962,6 +10970,7 @@ type	S	Cratis.Orleans.Jobs	DrainJobResult+TimedOut	class
 type	S	Cratis.Orleans.Jobs	DrainJobResult+UnknownJobType	class
 type	S	Cratis.Orleans.Jobs	FailedResumingJobSteps	class
 type	S	Cratis.Orleans.Jobs	IJob	interface
+type	S	Cratis.Orleans.Jobs	IJobAdmission	interface
 type	S	Cratis.Orleans.Jobs	IJobDrain	interface
 type	S	Cratis.Orleans.Jobs	IJobObserver	interface
 type	S	Cratis.Orleans.Jobs	IJobRequest	interface
@@ -10978,6 +10987,7 @@ type	S	Cratis.Orleans.Jobs	IJob`1	interface
 type	S	Cratis.Orleans.Jobs	IJobs	interface
 type	S	Cratis.Orleans.Jobs	IJobsManager	interface
 type	S	Cratis.Orleans.Jobs	IJobsManagerKeys	interface
+type	S	Cratis.Orleans.Jobs	JobAdmissionRequest	class
 type	S	Cratis.Orleans.Jobs	JobDetails	class
 type	S	Cratis.Orleans.Jobs	JobDrainStatus	enum
 type	S	Cratis.Orleans.Jobs	JobError	enum
@@ -10993,6 +11003,7 @@ type	S	Cratis.Orleans.Jobs	JobScopes	static
 type	S	Cratis.Orleans.Jobs	JobStateConverter	class
 type	S	Cratis.Orleans.Jobs	JobStatus	enum
 type	S	Cratis.Orleans.Jobs	JobStatusChanged	class
+type	S	Cratis.Orleans.Jobs	JobStepAlreadyHasALiveRun	class
 type	S	Cratis.Orleans.Jobs	JobStepCheckpointDebounce	class
 type	S	Cratis.Orleans.Jobs	JobStepDetails	class
 type	S	Cratis.Orleans.Jobs	JobStepDrainResult	class
@@ -11012,6 +11023,9 @@ type	S	Cratis.Orleans.Jobs	JobStepResult	class
 type	S	Cratis.Orleans.Jobs	JobStepScopes	static
 type	S	Cratis.Orleans.Jobs	JobStepStatus	enum
 type	S	Cratis.Orleans.Jobs	JobStepStatusChanged	class
+type	S	Cratis.Orleans.Jobs	JobStepTestRunExtensions	static
+type	S	Cratis.Orleans.Jobs	JobStepTestRunWasSuperseded	class
+type	S	Cratis.Orleans.Jobs	JobStepTestRun`1	class
 type	S	Cratis.Orleans.Jobs	JobStepThrottle	class
 type	S	Cratis.Orleans.Jobs	JobStepThrottleLogMessages	static
 type	S	Cratis.Orleans.Jobs	JobStepType	class
@@ -11041,6 +11055,7 @@ type	S	Cratis.Orleans.Jobs	PrepareJobStepError	enum
 type	S	Cratis.Orleans.Jobs	RemoveJobError	enum
 type	S	Cratis.Orleans.Jobs	ResumeJobError	class
 type	S	Cratis.Orleans.Jobs	ResumeJobSuccess	enum
+type	S	Cratis.Orleans.Jobs	RetryFailedStepsError	enum
 type	S	Cratis.Orleans.Jobs	StartJobError	enum
 type	S	Cratis.Orleans.Jobs	StartJobStepError	enum
 type	S	Cratis.Orleans.Jobs	StopJobError	enum
@@ -11089,6 +11104,7 @@ type	S	Cratis.Orleans.Storage.Jobs	JobQuery	class
 type	S	Cratis.Orleans.Storage.Jobs	JobState	class
 type	S	Cratis.Orleans.Storage.Jobs	JobStateType	static
 type	S	Cratis.Orleans.Storage.Jobs	JobStepError	enum
+type	S	Cratis.Orleans.Storage.Jobs	JobStepLease	class
 type	S	Cratis.Orleans.Storage.Jobs	JobStepState	class
 type	S	Cratis.Orleans.Storage.Jobs	JobStepStateType	static
 type	S	Cratis.Orleans.Storage.MongoDB	CamelCaseElementNameConvention	class
@@ -12120,8 +12136,8 @@ extensions	S	Cratis.Arc.Testing.Commands	AllowGeneration Clock GeneratedValues P
 extensions	S	Cratis.Chronicle.Testing	RoundDownTicks
 extensions	S	Cratis.Chronicle.Testing.EventSequences	ShouldBeFailed ShouldBeForEventSource ShouldBeSuccessful ShouldHaveAppendedEvent ShouldHaveConcurrencyViolations ShouldHaveConstraintViolation ShouldHaveConstraintViolationFor ShouldHaveConstraintViolations ShouldHaveErrors ShouldHaveEvent ShouldHaveTailSequenceNumber ShouldNotHaveConcurrencyViolations ShouldNotHaveConstraintViolations ShouldNotHaveErrors
 extensions	S	Cratis.Orleans	AddCompleteSerializer AddCratisOrleansSerializers AddLinqCollectionCopier
-extensions	S	Cratis.Orleans.Hosting	AddCratisOrleans AddCratisOrleansJobsRecovery
-extensions	S	Cratis.Orleans.Jobs	AcquiringJobStepSlot AllStepsNotCompletedSuccessfully AlreadyStopped BeginJobScope BeginJobStepScope BeginJobsManagerScope CannotResumeJobBecauseAlreadyRunning CannotResumeJobBecauseCompleted CannotResumeUnpreparedJob ChangingStatus CleaningUpDeadJobs CompletedJobStepIsNoLongerTracked DeletingJob ErrorPreparingJobStep ErrorPreparingJobSteps ErrorResumingJob Failed FailedHandlingCompletedJobStep FailedOnCompleted FailedOnCompletedWhileNoJobSteps FailedPerforming FailedPreparing FailedPreparingJobStep FailedReconcilingProgressFromJobSteps FailedRecordingJobStepAsFailed FailedReportJobStepFailure FailedReportJobStepSuccess FailedReportingJobStepCancelled FailedResumingJob FailedStartingJobStep FailedStartingJobStepsInBackground FailedSubscribingToJobStep FailedToDeleteJob FailedToGetJobSteps FailedToGetJobsForCleanup FailedToGetStepCountForJob FailedToRemoveForJob FailedToRemoveJob FailedToRemoveTerminalJob FailedToRemoveTerminalJobSteps FailedToReportFailure FailedToResumeJobSteps FailedToSetTotalSteps FailedToStopJob FailedToWriteState FailedUnexpectedly FailedUpdatingFailedSteps FailedUpdatingStateAfterHandlingCompletion FailedUpdatingStateAfterHandlingJobStepCompletion FailedUpdatingSuccessfulSteps FailedWritingState FailedWritingStatusChange FinalizingJobLeftRunningAfterAllStepsCompleted FinalizingStoppedJobWithNothingLeftToRun FoundDeadJobs FoundTerminalJobs GetClrTypeForOrThrow GetForOrThrow GetJobsManager GetRequestClrTypeForOrThrow HandleUnexpectedPerformJobStepFailure IgnoringLateStepOutcome JobCannotBeResumed JobCannotBeStoppedIsNotRunning JobCompleted JobCouldNotBeFound JobErrorOccurred JobIsAlreadyBeingRemoved JobIsCompletedAndCannotBeRemovedOrStopped JobIsNotRunning JobStepWasAlreadyStarted NoDeadJobsFound NoJobStepsToStart NotStartingJobStepsForJobThatIsNoLongerPreparing Pausing PerformingWorkFailedPersistState PrepareJobStepsForRunning PreparingJobSteps Rehydrating ReleasingJobStepSlot Removing ReportFailurePerformingWork RestartingStepsStoppedBeforeLastResume Resuming ResumingJob SkippedTerminalJobRemoval SkippingJobDueToStepCountError StartPrepareFailed Starting StartingJob StepFailed StepStopped StepSuccessfullyCompleted Stopping StoppingJob UnableToGetAllJobs UnableToGetJob UnableToGetJobs UnknownError
+extensions	S	Cratis.Orleans.Hosting	AddCratisOrleans AddCratisOrleansJobsRecovery AddJobAdmission
+extensions	S	Cratis.Orleans.Jobs	AcquiringJobStepSlot AllStepsNotCompletedSuccessfully AlreadyStopped BeginJobScope BeginJobStepScope BeginJobsManagerScope BeginTestRun CannotResumeJobBecauseAlreadyRunning CannotResumeJobBecauseCompleted CannotResumeUnpreparedJob ChangingStatus CleaningUpDeadJobs CompletedJobStepIsNoLongerTracked DeletingJob ErrorPreparingJobStep ErrorPreparingJobSteps ErrorResumingJob Failed FailedHandlingCompletedJobStep FailedOnCompleted FailedOnCompletedWhileNoJobSteps FailedPerforming FailedPreparing FailedPreparingJobStep FailedReconcilingProgressFromJobSteps FailedRecordingJobStepAsFailed FailedReportJobStepFailure FailedReportJobStepSuccess FailedReportingJobStepCancelled FailedResumingJob FailedStartingJobStep FailedStartingJobStepsInBackground FailedSubscribingToJobStep FailedToDeleteJob FailedToGetJobSteps FailedToGetJobsForCleanup FailedToGetStepCountForJob FailedToRemoveForJob FailedToRemoveJob FailedToRemoveTerminalJob FailedToRemoveTerminalJobSteps FailedToReportFailure FailedToResumeJobSteps FailedToSetTotalSteps FailedToStopJob FailedToWriteState FailedUnexpectedly FailedUpdatingFailedSteps FailedUpdatingStateAfterHandlingCompletion FailedUpdatingStateAfterHandlingJobStepCompletion FailedUpdatingSuccessfulSteps FailedWritingState FailedWritingStatusChange FinalizingJobLeftRunningAfterAllStepsCompleted FinalizingStoppedJobWithNothingLeftToRun FoundDeadJobs FoundTerminalJobs GetClrTypeForOrThrow GetForOrThrow GetJobsManager GetRequestClrTypeForOrThrow HandleUnexpectedPerformJobStepFailure IgnoringLateStepOutcome JobCannotBeResumed JobCannotBeStoppedIsNotRunning JobCompleted JobCouldNotBeFound JobErrorOccurred JobIsAlreadyBeingRemoved JobIsCompletedAndCannotBeRemovedOrStopped JobIsNotRunning JobNotAdmitted JobStepWasAlreadyStarted NoDeadJobsFound NoJobStepsToStart NotStartingJobStepsForJobThatIsNoLongerPreparing Pausing PerformingWorkFailedPersistState PrepareJobStepsForRunning PreparingJobSteps Rehydrating ReleasingJobStepSlot Removing ReportFailurePerformingWork RestartingStepsStoppedBeforeLastResume Resuming ResumingJob RetryingFailedSteps SkippedTerminalJobRemoval SkippingJobDueToStepCountError StartPrepareFailed Starting StartingJob StepFailed StepStopped StepSuccessfullyCompleted Stopping StoppingJob UnableToGetAllJobs UnableToGetJob UnableToGetJobs UnknownError
 extensions	S	Cratis.Orleans.Jobs.Stages	Current Plan Reconcile StoppedBy
 extensions	S	Cratis.Orleans.Json	DeserializeIfNecessary
 extensions	S	Cratis.Orleans.Serialization	AddConceptSerializer
@@ -12730,6 +12746,7 @@ base	AS	Cratis.Chronicle.EventSequences.EventMetadataReadsNotSupported	System.Ex
 base	AS	Cratis.Chronicle.EventSequences.EventSequence	System.Object	Append AppendMany AppendManyThroughEventSource AppendManyWithNamedTags AppendOperations AppendPrepared AppendPreparedThroughEventSource AppendThroughEventSource AppendWithNamedTags CompleteStream GetClosedStreams GetForEventSourceIdAndEventTypes GetFromSequenceNumber GetMetadataAt GetNextSequenceNumber GetTailSequenceNumber GetTailSequenceNumberForObserver HasEventsFor Id IsStreamCompleted Prepare Redact Revise Transactional VerifyContent _appendedEventsRaised	-
 base	AS	Cratis.Chronicle.EventSequences.EventSequenceAttribute	System.Attribute	Sequence	-
 base	AS	Cratis.Chronicle.EventSequences.EventSequenceId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode Inbox InboxId InboxPrefix IsEventLog Log LogId Outbox OutboxId PrintMembers System SystemId Unspecified UnspecifiedId	-
+base	AS	Cratis.Chronicle.EventSequences.EventSequenceImmediateAppendRefusalNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.EventSequences.EventSequenceReadProtectionNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.EventSequences.IndependentConcurrencyScopeMustBeExplicit	System.Exception	-	-
 base	AS	Cratis.Chronicle.EventSequences.NamedTagsNotSupported	System.Exception	-	-
@@ -12847,6 +12864,7 @@ base	AS	Cratis.Chronicle.Identities.IdentityId	Cratis.Concepts.ConceptAs`1	Decon
 base	AS	Cratis.Chronicle.Identities.IdentityManager	System.Object	Rename	-
 base	AS	Cratis.Chronicle.InvalidNamedTag	System.Exception	-	-
 base	AS	Cratis.Chronicle.Jobs.Job	System.Object	Created Details GetJobSteps Id Progress Status StatusChanges Type	-
+base	AS	Cratis.Chronicle.Jobs.JobCommandResult	System.Object	Accepted Deconstruct EqualityContract Equals GetHashCode PrintMembers Refusal ToString	-
 base	AS	Cratis.Chronicle.Jobs.JobDetails	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
 base	AS	Cratis.Chronicle.Jobs.JobId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
 base	AS	Cratis.Chronicle.Jobs.JobProgress	System.Object	FailedSteps IsCompleted IsStopped Message StoppedSteps SuccessfulSteps TotalSteps	-
@@ -13151,6 +13169,8 @@ base	AS	Cratis.Chronicle.Transactions.DetachedReadWhileReadsAreProtected	System.
 base	AS	Cratis.Chronicle.Transactions.EventEnrollmentOptions	System.Object	ConcurrencyScope DeclaredConcurrency Deconstruct EqualityContract Equals EventSourceType EventStreamId EventStreamType GetHashCode NamedTags Occurred Origin PrintMembers Subject Tags ToString	-
 base	AS	Cratis.Chronicle.Transactions.EventForEventSourceIdWithSequenceNumber	System.Object	Causation Deconstruct EqualityContract Equals Event EventSourceId EventSourceType EventStreamId EventStreamType GetHashCode PrintMembers SequenceNumber ToString	-
 base	AS	Cratis.Chronicle.Transactions.ExplicitScopeDoesNotCoverReads	System.Exception	-	-
+base	AS	Cratis.Chronicle.Transactions.ImmediateAppendRefusalRequiresOwner	System.Exception	-	-
+base	AS	Cratis.Chronicle.Transactions.ImmediateAppendRefused	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.ImmediateAppendWhileReadsAreProtected	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.NoUnitOfWorkHasBeenStarted	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.ProtectedUnitOfWorkEventsAfterCompletion	System.Exception	-	-
@@ -13165,13 +13185,14 @@ base	AS	Cratis.Chronicle.Transactions.ReadProtectionUnitMismatch	System.Exceptio
 base	AS	Cratis.Chronicle.Transactions.ReadRefusedWhileReadsAreProtected	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.ReservedConcurrencyScopeLabel	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.SourceLessReadNotSupported	System.Exception	-	-
-base	AS	Cratis.Chronicle.Transactions.UnitOfWork	System.Object	AddDecisionRead AddEnrollmentContributor AddEvent AddEventWithNamedTags AddEventWithOptions AddEvents AllowReads ClaimDecisionReadCommitOwnership Commit CommitAsOwner CorrelationId Dispose EffectReceipt EnforceReadProtection EnrolContributedRead GetAppendConditions GetAppendErrors GetConcurrencyViolations GetConstraintViolations GetDecisionConflicts GetEvents HasEnrolledDecisionReads IsCompleted IsEnforcingReadProtection IsSuccess OnCompleted Rollback RollbackAsOwner SuspendReadRegions TryGetLastCommittedEventSequenceNumber UseEffectReceipt	-
+base	AS	Cratis.Chronicle.Transactions.UnitOfWork	System.Object	AddDecisionRead AddEnrollmentContributor AddEvent AddEventWithNamedTags AddEventWithOptions AddEvents AllowReads ClaimDecisionReadCommitOwnership Commit CommitAsOwner CorrelationId Dispose EffectReceipt EnforceReadProtection EnrolContributedRead GetAppendConditions GetAppendErrors GetConcurrencyViolations GetConstraintViolations GetDecisionConflicts GetEvents HasEnrolledDecisionReads IsCompleted IsEnforcingReadProtection IsSuccess OnCompleted RefuseImmediateAppends Rollback RollbackAsOwner SuspendReadRegions TryGetLastCommittedEventSequenceNumber UseEffectReceipt	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkBatchEnrollmentNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkCannotSpanEventSequences	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkEffectReceiptAlreadySet	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkEnrollment	System.Object	Deconstruct EqualityContract Equals EventSequenceId EventSourceId Events GetHashCode PrintMembers SuppliedScope ToString	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkEnrollmentContributorsNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkEnrollmentNotificationFailed	System.Exception	-	-
+base	AS	Cratis.Chronicle.Transactions.UnitOfWorkImmediateAppendRefusalNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkIsAlreadyCommitted	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkIsAlreadyRolledBack	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkIsCompleted	System.Exception	-	-
@@ -15725,9 +15746,10 @@ base	S	Cratis.Chronicle.Testing.Reactors.RecordedOccurrence	System.Object	Contex
 base	S	Cratis.Chronicle.Testing.ReadModels.MultipleInstancesMaterialized	System.Exception	-	-
 base	S	Cratis.Chronicle.Testing.ReadModels.NoReadModelHandlerFound	System.Exception	-	-
 base	S	Cratis.Chronicle.Testing.ReadModels.ProjectionDefinitionBuildFailed	System.Exception	-	-
+base	S	Cratis.Chronicle.Testing.ReadModels.ReadModelAlreadySeeded	System.Exception	-	-
 base	S	Cratis.Chronicle.Testing.ReadModels.ReadModelDependsOnSubstitutedLayer	System.Exception	-	-
 base	S	Cratis.Chronicle.Testing.ReadModels.ReadModelScenarioGivenBuilder`1	System.Object	ForEventSource ForEventSourceId	-
-base	S	Cratis.Chronicle.Testing.ReadModels.ReadModelScenario`1	System.Object	ClientArtifactsProvider CollectEventsFor CollectReadModelFor Dispose Given Instance InstanceForEventSourceId Instances ProcessEventsFor ReadModels Services Substitutions WithProjection WithStrictEventSubscription WithStrictFidelity	-
+base	S	Cratis.Chronicle.Testing.ReadModels.ReadModelScenario`1	System.Object	ClientArtifactsProvider CollectEventsFor CollectReadModelFor Dispose Given Instance InstanceForEventSourceId Instances ProcessAppendedEvents ProcessEventsFor ReadModels Services Substitutions WithProjection WithStrictEventSubscription WithStrictFidelity	-
 base	S	Cratis.Chronicle.Testing.ReadModels.ReadModelSourceGivenBuilder`1	System.Object	Events OnStream ReadModel WithTags	-
 base	S	Cratis.Chronicle.Testing.ReadModels.ReadModelSubstitution	System.Object	Consequence Deconstruct EqualityContract Equals GetHashCode Layer PrintMembers Shape ToString	-
 base	S	Cratis.Chronicle.Testing.ReadModels.ReadModelsForTesting	System.Object	DehydrateSession GetInstanceById GetInstances GetSnapshotsById GetWatcherFor Materialized Observe Register Release Watch	-
@@ -15746,6 +15768,7 @@ base	S	Cratis.Orleans.Jobs.JobName	Cratis.Concepts.ConceptAs`1	Deconstruct Equal
 base	S	Cratis.Orleans.Jobs.JobProgress	System.Object	EqualityContract Equals FailedSteps GetHashCode HasFailures IsCompleted IsStopped Message PrintMembers Stages StoppedSteps SuccessfulSteps ToString TotalSteps UnreachableSteps	-
 base	S	Cratis.Orleans.Jobs.JobProgressMessage	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
 base	S	Cratis.Orleans.Jobs.JobStatusChanged	System.Object	EqualityContract Equals ExceptionMessages ExceptionStackTrace GetHashCode Occurred PrintMembers Status ToString	-
+base	S	Cratis.Orleans.Jobs.JobStepAlreadyHasALiveRun	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobStepCheckpointDebounce	System.Object	BatchInterval HasPendingCheckpoint Persisted Report	-
 base	S	Cratis.Orleans.Jobs.JobStepDetails	System.Object	Deconstruct EqualityContract Equals GetHashCode Id Key PrintMembers Request ResultType Stage ToString Type	-
 base	S	Cratis.Orleans.Jobs.JobStepGrainAndRequest	System.Object	Deconstruct EqualityContract Equals GetHashCode Grain PrintMembers Request ToString	-
@@ -15760,9 +15783,10 @@ base	S	Cratis.Orleans.Jobs.JobStepProgress	System.Object	EqualityContract Equals
 base	S	Cratis.Orleans.Jobs.JobStepProgressMessage	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
 base	S	Cratis.Orleans.Jobs.JobStepResult	System.Object	Failed Succeeded TryGetError TryGetFullResult	-
 base	S	Cratis.Orleans.Jobs.JobStepStatusChanged	System.Object	EqualityContract Equals ExceptionMessages ExceptionStackTrace GetHashCode Occurred PrintMembers Status ToString	-
+base	S	Cratis.Orleans.Jobs.JobStepTestRunWasSuperseded	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobStepThrottle	System.Object	AcquireAsync Dispose Release	-
 base	S	Cratis.Orleans.Jobs.JobStepType	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
-base	S	Cratis.Orleans.Jobs.JobStep`3	Cratis.Orleans.Workers.GrainWithBackgroundTask`2	CheckpointAfterEveryBatch CreateCancelledResultFromCurrentState Dispose Drain FlushDebouncedCheckpoint GetJob GetReferenceToSelf GetState Identifier InitializeState JobId JobStepId Name OnActivateAsync OnDeactivateAsync OnJobRemoved OnJobStopped PerformStep PerformWork Prepare PrepareStep ReportFailure ReportStatusChange Start State Stop TryInvokeOnActivation WriteCheckpointDebounced WriteStateAsync	-
+base	S	Cratis.Orleans.Jobs.JobStep`3	Cratis.Orleans.Workers.GrainWithBackgroundTask`2	CheckpointAfterEveryBatch CreateCancelledResultFromCurrentState Dispose Drain FlushDebouncedCheckpoint GetJob GetReferenceToSelf GetState Identifier InitializeState JobId JobStepId Name OnActivateAsync OnDeactivateAsync OnJobRemoved OnJobStopped PerformStep PerformWork Prepare PrepareStep ReportFailure ReportStatusChange Retry Start State Stop TryInvokeOnActivation WriteCheckpointDebounced WriteStateAsync	-
 base	S	Cratis.Orleans.Jobs.JobType	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
 base	S	Cratis.Orleans.Jobs.JobTypeAlreadyExists	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobTypeCanOnlyHaveOneRequestType	System.Exception	-	-
@@ -15770,13 +15794,13 @@ base	S	Cratis.Orleans.Jobs.JobTypeMustHaveARequestType	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobTypeNotAssociatedWithType	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobTypeReadFailed	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobTypes	System.Object	All GetClrTypeFor GetFor GetRequestClrTypeFor Instance	-
-base	S	Cratis.Orleans.Jobs.Job`2	Orleans.Grain`1	AllStepsCompletedSuccessfully CanResume CreateStep GetFailureBehaviorFor GetJobDetails JobId JobKey KeepAfterCompleted KeepAfterCompletedWithFailures OnActivateAsync OnAllStepsCompleted OnBeforeResumingJobSteps OnBeforeStartingJobSteps OnFailedToPrepare OnStepCompletedOrStopped OnStepFailed OnStepStopped OnStepSucceeded OnStopped PrepareSteps Remove Request Resume Start StartStepsInBackground Stop StopAndDrain Storage ThisJob WriteState	-
+base	S	Cratis.Orleans.Jobs.Job`2	Orleans.Grain`1	AllStepsCompletedSuccessfully CanResume CanRetryFailedSteps CreateStep GetActiveSilos GetFailureBehaviorFor GetJobDetails GetStepRetryDelay JobId JobKey KeepAfterCompleted KeepAfterCompletedWithFailures MaxActiveSteps OnActivateAsync OnAllStepsCompleted OnBeforeResumingJobSteps OnBeforeStartingJobSteps OnFailedToPrepare OnStepCompletedOrStopped OnStepFailed OnStepStopped OnStepSucceeded OnStopped PrepareSteps Remove Request Resume RetryFailed ShouldRetryStep Start StartStepsInBackground Stop StopAndDrain Storage ThisJob WriteState	-
 base	S	Cratis.Orleans.Jobs.Jobs	System.Object	Delete Start Stop StopAndDrain	-
-base	S	Cratis.Orleans.Jobs.JobsManager	Orleans.Grain	CleanupDeadJobs Delete GetAllJobs GetJobs GetJobsOfType OnActivateAsync OnDeactivateAsync Rehydrate Resume Start Stop	-
+base	S	Cratis.Orleans.Jobs.JobsManager	Orleans.Grain	CleanupDeadJobs Delete GetAllJobs GetJobs GetJobsOfType OnActivateAsync OnDeactivateAsync Rehydrate Resume RetryFailedSteps Start Stop	-
 base	S	Cratis.Orleans.Jobs.JobsManagerKey	System.Object	Deconstruct EqualityContract Equals GetHashCode Namespace NotSet Parse PrintMembers Scope ToString	-
 base	S	Cratis.Orleans.Jobs.JobsManagerKeys	System.Object	GetKeys	-
-base	S	Cratis.Orleans.Jobs.JobsOptions	System.Object	CleanupCadence DeadJobThreshold GetEffectiveMaxParallelSteps MaxConcurrentCleanup MaxConcurrentRehydration MaxConcurrentStepStarts MaxParallelSteps MaxTerminalJobsPerCleanup StepCheckpointBatchInterval StepCheckpointFlushInterval StepStopTimeout TerminalJobRetention	-
-base	S	Cratis.Orleans.Jobs.NullJob	System.Object	OnStepFailed OnStepStopped OnStepSucceeded Remove Resume Stop	-
+base	S	Cratis.Orleans.Jobs.JobsOptions	System.Object	CleanupCadence DeadJobThreshold GetEffectiveMaxParallelSteps JobWatchdogInterval MaxActiveStepsPerJob MaxConcurrentCleanup MaxConcurrentRehydration MaxConcurrentStepStarts MaxParallelSteps MaxStepAttempts MaxStepDeliveryRetryDelay MaxStepRetryBackoff MaxTerminalJobsPerCleanup StepCheckpointBatchInterval StepCheckpointFlushInterval StepDeliveryMaxAttempts StepDeliveryRetryDelay StepLeaseTimeout StepRetryBackoff StepStopTimeout TerminalJobRetention	-
+base	S	Cratis.Orleans.Jobs.NullJob	System.Object	OnStepFailed OnStepStopped OnStepSucceeded Remove Resume RetryFailed Stop	-
 base	S	Cratis.Orleans.Jobs.PerformJobStepError	System.Object	Cancelled CancelledWithNoResult CancelledWithPartialResult Deconstruct EqualityContract Equals ErrorMessages ExceptionStackTrace Failed FailedWithPartialResult GetHashCode HasPartialResult PartialResult PrintMembers ToString TryGetPartialResult	-
 base	S	Cratis.Orleans.Jobs.ResumeJobError	OneOf.OneOfBase`2	-	-
 base	S	Cratis.Orleans.Jobs.Stages.JobStageProgress	System.Object	EqualityContract Equals FailedSteps GetHashCode HasFailures IsCompleted IsStarted PrintMembers RemainingSteps Stage SuccessfulSteps ToString TotalSteps UnreachableSteps	-
@@ -15800,7 +15824,8 @@ base	S	Cratis.Orleans.StateMachines.UnknownCurrentState	System.Exception	-	-
 base	S	Cratis.Orleans.StateMachines.UnknownStateTypeInStateMachine	System.Exception	-	-
 base	S	Cratis.Orleans.Storage.InMemoryJobsStorage	System.Object	GetFor Reset	-
 base	S	Cratis.Orleans.Storage.Jobs.JobState	System.Object	Created Details DrainPending Id IsPreparingOrRunning Progress Request Status StatusChanges Type	-
-base	S	Cratis.Orleans.Storage.Jobs.JobStepState	System.Object	Id IsPrepared Name Progress Stage Status StatusChanges Type	-
+base	S	Cratis.Orleans.Storage.Jobs.JobStepLease	System.Object	ActivationId Attempt LastHeartbeat Owner	-
+base	S	Cratis.Orleans.Storage.Jobs.JobStepState	System.Object	Attempt Id IsPrepared Lease Name Progress Stage Status StatusChanges Type	-
 base	S	Cratis.Orleans.Storage.JobsStorage	System.Object	Deconstruct EqualityContract Equals GetHashCode JobSteps Jobs PrintMembers ToString	-
 base	S	Cratis.Orleans.Storage.MongoDB.CamelCaseElementNameConvention	System.Object	Apply Name	-
 base	S	Cratis.Orleans.Storage.MongoDB.ConventionPacks	System.Object	EnsureRegistered Provide	-
@@ -15808,7 +15833,7 @@ base	S	Cratis.Orleans.Storage.MongoDB.InvalidDatabaseName	System.Exception	-	-
 base	S	Cratis.Orleans.Storage.MongoDB.Jobs.JobStateClassMap	System.Object	Configure	-
 base	S	Cratis.Orleans.Storage.MongoDB.Jobs.JobStateSerializationProvider	System.Object	GetSerializer	-
 base	S	Cratis.Orleans.Storage.MongoDB.Jobs.JobStateSerializer	MongoDB.Bson.Serialization.Serializers.SerializerBase`1	Deserialize Serialize	-
-base	S	Cratis.Orleans.Storage.MongoDB.Jobs.JobStepStorage	System.Object	CountForJob GetForJob MoveToFailed ObserveForJob Read Remove RemoveAllForJob RemoveAllNonFailedForJob Save	-
+base	S	Cratis.Orleans.Storage.MongoDB.Jobs.JobStepStorage	System.Object	CountByStatus CountForJob GetForJob MoveToFailed ObserveForJob Read Remove RemoveAllForJob RemoveAllNonFailedForJob Save	-
 base	S	Cratis.Orleans.Storage.MongoDB.Jobs.JobStorage	System.Object	GetJob GetJobType GetJobs ObserveJobs Read Remove RemoveTerminal Save	-
 base	S	Cratis.Orleans.Storage.MongoDB.MongoDBJobsStorage	System.Object	GetFor Reset	-
 base	S	Cratis.Orleans.Storage.MongoDB.MongoDBJobsStorageOptions	System.Object	DatabaseNameResolver TransientRetryBaseDelay TransientRetryCount	-

@@ -97,7 +97,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         };
     }
 
-    internal Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken) => Append(fact, fact.EventSource?.Value ?? throw new UnsupportedSemanticMapping(), cancellationToken);
+    internal Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken) => Append(fact, fact.EventSource?.Value ?? SemanticValue.Null, cancellationToken);
 
     internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken) =>
         Append(fact, destination, AuthoredOccurrence, cancellationToken);

@@ -15,7 +15,8 @@ on:
     - cron: "17 3 * * *"
   pull_request:
     # Labels do not trigger skipped required checks. For full coverage:
-    # add ci:full, then re-run the dotnet-build workflow or push
+    # add ci:full, then push or use "Re-run all jobs" on the dotnet-build workflow
+    # ("Re-run failed jobs" does not rerun routing, so it ignores the label)
     types: [opened, synchronize, reopened]
     branches:
       - "**"

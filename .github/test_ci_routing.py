@@ -40,7 +40,7 @@ class RoutingTests(unittest.TestCase):
 
     def test_every_shared_path_selects_every_lane(self):
         for path in ("Directory.Packages.props", "nested/custom.props", "nested/custom.targets",
-                     "Source/Directory.Build.targets", "Source/Directory.Build.rsp", "global.json",
+                     "Source/Directory.Build.targets", "Source/Directory.Build.rsp", "global.json", "NuGet.config", "Source/Host/packages.lock.json",
                      "Source/Contracts/Scene/Screen.cs", "Source/Host/Dockerfile",
                      "Verification/verify-runtime-compatibility.py", "Verification/synchronize-rendered-pins.py",
                      ".github/workflows/publish.yml", ".github/ci-routing.py", ".github/test_spec_shards.py"):
@@ -48,15 +48,18 @@ class RoutingTests(unittest.TestCase):
                 self.assertEqual(ALL, self.select(path))
 
     def test_host_frontend_and_renderer_paths_are_routed_independently(self):
-        self.assertEqual({"reducer-mongo", "live-custom-packages"}, self.select("Source/Host/Program.cs"))
-        self.assertEqual({"live-custom-packages"}, self.select("Source/Frontend/src/main.tsx"))
+        self.assertEqual({"reducer-mongo", "live-custom-packages", "live-blueprints"}, self.select("Source/Host/Program.cs"))
+        # The Host image ships the whole frontend, and both live lanes probe that image.
+        self.assertEqual({"live-custom-packages", "live-blueprints"}, self.select("Source/Frontend/src/main.tsx"))
         for folder in ("Semantics", "Renderers", "Specifications", "Types", "Emission", "Validation", "Authorization", "NewDependency"):
             with self.subTest(folder=folder):
                 self.assertEqual({"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"},
                                  self.select(f"Source/Rendering.Cratis/{folder}/Implementation.cs"))
         self.assertEqual({"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"},
                          self.select("Source/Rendering.Cratis.Scaffolding/Scaffold.cs"))
-        self.assertEqual({"reducer-mongo", "live-custom-packages"}, self.select("Source/Stage/Runtime/Query.cs"))
+        # Specifications (name matrix) references Stage; the Host image compiles it.
+        self.assertEqual({"reducer-mongo", "live-custom-packages", "live-blueprints", "generated-name-matrix"},
+                         self.select("Source/Stage/Runtime/Query.cs"))
 
     def test_live_probe_inputs_and_blueprint_pins(self):
         for folder in ("live-custom-packages", "live-navigation"):
@@ -93,8 +96,78 @@ class RoutingTests(unittest.TestCase):
         reducer = "Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_rendering_a_pure_reducer.cs"
         self.assertIn("generated-name-matrix", self.select(reducer))
 
+    def test_cross_project_build_inputs_select_every_consuming_lane(self):
+        live = {"reducer-mongo", "live-custom-packages", "live-blueprints"}
+        for path, expected in (
+                ("Source/Specifications/Commands/SemanticValueShapeAdmission.cs", live | {"generated-name-matrix"}),
+                ("Source/SpecRunner/Program.cs", live),
+                ("Source/Rendering.Cratis/Naming/GeneratedTypeNames.cs", ALL),
+                ("Source/Rendering.Cratis/Semantics/SemanticVersionFeatures.cs", ALL),
+                ("Source/Stage/Runtime/PortableTenantValues.cs", ALL),
+                ("Samples/Billing/Ledger/Payments/Payments.play", {"reducer-mongo"}),
+                ("Source/Conformance.Specs/for_UiProfileRootVector/uiprofile-root.scene.json",
+                 {"live-custom-packages", "live-blueprints"})):
+            with self.subTest(path=path):
+                self.assertEqual(expected, self.select(path))
+
+    def test_every_linked_or_published_project_input_routes_to_its_consumers(self):
+        # Reads the real project files, so a new cross-folder link can never bypass routing.
+        root = Path(__file__).resolve().parent.parent
+        link = re.compile(r'<(?:ProjectReference|Compile|EmbeddedResource|Content|None)\s+Include="(\.\./[^"]+)"')
+        consumers = {"Source/Host/Host.csproj": {"reducer-mongo", "live-custom-packages", "live-blueprints"},
+                     "Source/Stage/Stage.csproj": {"reducer-mongo", "live-custom-packages", "live-blueprints", "generated-name-matrix"},
+                     "Source/Specifications/Specifications.csproj": {"generated-name-matrix", "reducer-mongo", "live-custom-packages"},
+                     "Source/SpecRunner/SpecRunner.csproj": {"reducer-mongo", "live-custom-packages", "live-blueprints"},
+                     "Source/Rendering.Cratis/Rendering.Cratis.csproj": {"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"}}
+        for project, lanes in consumers.items():
+            folder = Path(project).parent
+            for match in link.findall((root / project).read_text()):
+                for include in match.split(";"):
+                    target = Path(os.path.normpath(folder / include))
+                    candidates = [target.parent / "Linked.cs"] if target.suffix == ".csproj" else \
+                        [path.relative_to(root) for path in root.glob(target.as_posix())]
+                    self.assertTrue(candidates, include)
+                    for candidate in candidates:
+                        with self.subTest(project=project, path=candidate.as_posix()):
+                            self.assertLessEqual(lanes, self.select(candidate.as_posix()))
+        self.assertLessEqual({"reducer-mongo", "live-custom-packages", "live-blueprints"},
+                             self.select("Source/SpecRunner/New.cs"))
+
+    def test_project_inputs_follow_references_links_and_nested_publishes(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            files = {
+                "Source/App/App.csproj": '<ProjectReference Include="../Lib/Lib.csproj" />'
+                                         '<Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../Tool/Tool.csproj&quot;" />',
+                "Source/Lib/Lib.csproj": '<Compile Include="../Other/Shared.cs;../Other/More.cs" />'
+                                         '<EmbeddedResource Include="../Web/src/*.ts" /><Compile Include="Local.cs" />',
+                "Source/Tool/Tool.csproj": '<ProjectReference Include="../App/App.csproj" />',
+            }
+            for name, text in files.items():
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_text(text)
+            self.assertEqual(
+                ("Source/App/**", "Source/Lib/**", "Source/Other/More.cs", "Source/Other/Shared.cs",
+                 "Source/Tool/**", "Source/Web/src/*.ts"),
+                CI["project_inputs"]("Source/App/App.csproj", root=root))
+            self.assertNotIn("Source/App/**", CI["project_inputs"]("Source/Lib/Lib.csproj", root=root))
+
+    def test_image_inputs_cover_copied_sources_but_not_build_stages_or_output(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("Source/Web/index.ts", "Source/Host/app.json", "Source/Data/a.json"):
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_text("{}")
+            (root / "Dockerfile").write_text(
+                "COPY Source/Web/ ./\nCOPY --chown=1 Source/Host/app.json Source/Data /x/\n"
+                "COPY Source/Host/out ./\nCOPY --from=frontend /dist ./wwwroot\nRUN COPY nothing\n")
+            self.assertEqual(("Source/Data/**", "Source/Host/app.json", "Source/Web/**"),
+                             CI["image_inputs"]("Dockerfile", root=root))
+
     def test_multiple_changes_union_lanes_without_prefix_false_positives(self):
-        self.assertEqual({"live-custom-packages", "generated-name-matrix"},
+        self.assertEqual({"live-custom-packages", "live-blueprints", "generated-name-matrix", "reducer-mongo"},
                          self.select("Source/Frontend/src/main.tsx", "Source/Specifications/Executor.cs"))
         self.assertEqual(set(), self.select("Source/Hostile/Program.cs", "docs/global.json.example"))
 
@@ -103,7 +176,7 @@ class RoutingTests(unittest.TestCase):
         responses = ["abc\n", "Source/Host/Old.cs\0Documentation/New.md\0", '{"labels": []}']
         with patch.dict(os.environ, GITHUB_REPOSITORY="Cratis/Stage"), \
                 patch("subprocess.check_output", side_effect=responses) as run:
-            self.assertEqual({"reducer-mongo", "live-custom-packages"}, CI["github_routes"]("pull_request", payload))
+            self.assertEqual({"reducer-mongo", "live-custom-packages", "live-blueprints"}, CI["github_routes"]("pull_request", payload))
         self.assertEqual(["git", "merge-base", "origin/main", "HEAD"], run.call_args_list[0].args[0])
         self.assertEqual(["git", "diff", "--name-only", "--no-renames", "-z", "abc", "HEAD"], run.call_args_list[1].args[0])
         self.assertEqual(["gh", "pr", "view", "562", "--repo", "Cratis/Stage", "--json", "labels"], run.call_args_list[2].args[0])
@@ -142,7 +215,7 @@ class RoutingTests(unittest.TestCase):
         self.assertNotIn("labeled", triggers)
         self.assertIn("group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}", triggers)
         self.assertIn("cancel-in-progress: true", triggers)
-        usage = "add ci:full, then re-run the dotnet-build workflow or push"
+        usage = 'add ci:full, then push or use "Re-run all jobs" on the dotnet-build workflow'
         self.assertIn(usage, triggers)
         self.assertIn(usage, CI["__doc__"])
         self.assertIn("fetch-depth: 0", JOBS["routing"])

@@ -4,7 +4,8 @@
 
 """Select optional CI lanes, require their success, and report failed nightlies.
 
-For a full PR run: add ci:full, then re-run the dotnet-build workflow or push.
+For a full PR run: add ci:full, then push or use "Re-run all jobs" on the dotnet-build workflow
+("Re-run failed jobs" does not rerun routing, so it ignores the label).
 """
 
 import argparse
@@ -12,10 +13,67 @@ from fnmatch import fnmatchcase
 import json
 import os
 from pathlib import Path
+import posixpath
+import re
 import subprocess
 
+ROOT = Path(__file__).resolve().parent.parent
+LINKED_ITEM = re.compile(r'<(?:ProjectReference|Compile|EmbeddedResource|Content|None)\s+Include="([^"]+)"')
+PUBLISHED_PROJECT = re.compile(r'dotnet publish[^\n]*?((?:\.\./)+[\w./-]+\.csproj)')
+
+
+def _relative(base, include):
+    return posixpath.normpath(posixpath.join(base, include.replace("\\", "/").replace("$(MSBuildThisFileDirectory)", "")))
+
+
+def project_inputs(project, own_folder=True, root=ROOT):
+    """Every path a project builds from: referenced and published projects, plus linked files.
+
+    Cross-folder <Compile/EmbeddedResource Include="../..."> links, ProjectReferences and nested
+    `dotnet publish` targets are followed recursively, so a new link routes its lanes automatically.
+    """
+    patterns, seen, pending = set(), set(), [(project, own_folder)]
+    while pending:
+        current, include_folder = pending.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        folder = posixpath.dirname(current)
+        if include_folder:
+            patterns.add(f"{folder}/**")
+        text = (root / current).read_text()
+        includes = [item for match in LINKED_ITEM.findall(text) for item in match.split(";")]
+        for include in includes + PUBLISHED_PROJECT.findall(text):
+            path = _relative(folder, include.strip())
+            if path.endswith(".csproj"):
+                pending.append((path, True))
+            elif not path.startswith(folder + "/"):
+                patterns.add(path)
+    return tuple(sorted(patterns))
+
+
+def image_inputs(dockerfile="Source/Host/Dockerfile", root=ROOT):
+    """Repository sources the Host image copies in (build-stage copies and publish output excluded)."""
+    patterns = set()
+    for line in (root / dockerfile).read_text().splitlines():
+        words = line.split()
+        if not words or words[0] != "COPY" or any(word.startswith("--from") for word in words):
+            continue
+        for source in (word for word in words[1:-1] if not word.startswith("--")):
+            path = source.rstrip("/")
+            if not (root / path).exists():
+                continue  # Build output such as Source/Host/out; its inputs are the Host project's.
+            patterns.add(f"{path}/**" if source.endswith("/") or (root / path).is_dir() else path)
+    return tuple(sorted(patterns))
+
+
+HOST = project_inputs("Source/Host/Host.csproj")
+HOST_IMAGE = tuple(sorted(set(HOST + image_inputs())))
+RENDERER = tuple(sorted(set(project_inputs("Source/Rendering.Cratis/Rendering.Cratis.csproj") + project_inputs(
+    "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj"))))
+
 SHARED = (
-    "*.props", "*.targets", "Source/Directory.Build.*", "global.json",
+    "*.props", "*.targets", "Source/Directory.Build.*", "global.json", "*[Nn]u[Gg]et.[Cc]onfig", "*packages.lock.json",
     "Source/Contracts/**", "Source/Host/Dockerfile",
     "Verification/verify-runtime-compatibility.py", "Verification/synchronize-rendered-pins.py",
     ".github/workflows/**", ".github/*.py",
@@ -26,7 +84,7 @@ NAME_MATRIX = (
     "Source/Rendering.Cratis/**", "Source/Rendering.Cratis.Scaffolding/**",
     "Source/Specifications/**", "Source/**/for_ThreeWayConformance/**",
     "Source/Conformance.Specs/Conformance.Specs.csproj",
-)
+) + RENDERER + project_inputs("Source/Specifications/Specifications.csproj")
 # There is no local Scene blueprint package: its implementation is pinned in the
 # frontend manifests/scaffold, with the shipped catalog and registration below.
 BLUEPRINT_SOURCES = (
@@ -38,17 +96,17 @@ TEMPLATE_RENDERERS = (
     "Source/Rendering.Cratis/**", "Source/Rendering.Cratis.Scaffolding/**",
     "Source/Frontend/Runtime/**", "Source/Frontend/package*.json",
     "Verification/generated-react-browser/**",
-)
+) + RENDERER
+# Both live lanes probe the same published Host image; reducer-mongo runs Host and renderer specs,
+# whose Billing probe reads the Billing sample from disk.
 LANE_PATHS = {
-    "reducer-mongo": tuple(f"Source/{folder}/**" for folder in
-                           ("Host", "Stage", "Rendering.Cratis", "Rendering.Cratis.Scaffolding")),
+    "reducer-mongo": HOST + RENDERER + ("Samples/Billing/**",),
     "live-custom-packages": (
-        "Source/Host/**", "Source/Frontend/**", "Source/Stage/**",
-        "Verification/live-custom-packages/**", "Verification/live-navigation/**",
+        "Source/Frontend/**", "Verification/live-custom-packages/**", "Verification/live-navigation/**",
         "Verification/generated-react-browser/**",
-    ),
+    ) + HOST_IMAGE,
     "live-blueprints": ("Verification/live-blueprints/**", "Verification/blueprint-templates/**",
-                        "Verification/generated-react-browser/**") + BLUEPRINT_SOURCES,
+                        "Verification/generated-react-browser/**") + BLUEPRINT_SOURCES + HOST_IMAGE,
     "generated-name-matrix": NAME_MATRIX,
     "generated-react-blueprint-templates": ("Verification/blueprint-templates/**",) + TEMPLATE_RENDERERS,
 }

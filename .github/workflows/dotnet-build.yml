@@ -185,6 +185,8 @@ jobs:
 
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -261,6 +263,8 @@ jobs:
 
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
 
       - name: Start pinned Chronicle with bundled MongoDB
         run: |
@@ -370,6 +374,8 @@ jobs:
 
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
 
       - name: Run generated-name matrix
         env:
@@ -401,6 +407,8 @@ jobs:
 
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
 
       - name: Build, test and serve the standalone generated application
         run: >-
@@ -463,6 +471,8 @@ jobs:
 
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
 
       - name: Publish Host
         run: >-
@@ -537,6 +547,8 @@ jobs:
 
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
 
       - name: Render and build the generated application
         env:
@@ -608,6 +620,8 @@ jobs:
 
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
 
       - name: Render and build the generated application
         env:

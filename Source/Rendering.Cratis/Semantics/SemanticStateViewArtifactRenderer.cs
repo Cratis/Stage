@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -165,12 +166,17 @@ internal static class SemanticStateViewArtifactRenderer
         SemanticApplicationContext context)
     {
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
-        var methodName = Identifiers.ToPascalCase(query.Name);
+        var methodName = context.MemberNames.Query(query);
         var documentation = context.Docs(query.Id).Render(builder.BlankLine())
             .Attribute(SemanticAuthorizationAttributes.For(query, context));
+        if (methodName != Identifiers.ToPascalCase(query.Name))
+        {
+            var path = GeneratedApiRoutes.QueryPath(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path), Identifiers.ToPascalCase(query.Name));
+            documentation.Attribute($"global::Cratis.Arc.Queries.ModelBound.PathAttribute({CSharpCodeBuilder.StringLiteral(path)})");
+        }
         if (query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live } || !query.Filters.IsDefaultOrEmpty)
         {
-            RenderCollectionQuery(documentation, query, readModel, types);
+            RenderCollectionQuery(documentation, query, readModel, types, context);
             return;
         }
 
@@ -199,7 +205,7 @@ internal static class SemanticStateViewArtifactRenderer
             $"await readModels.GetInstanceById<{readModelName}>({(raw ? argument.Name : $"(global::Cratis.Chronicle.Events.EventSourceId){argument.Name}")})");
     }
 
-    static void RenderCollectionQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types)
+    static void RenderCollectionQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types, SemanticApplicationContext context)
     {
         var observable = query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live };
         var filters = query.Filters.Select(filter => RenderFilter(filter, readModel, types, observable)).ToArray();
@@ -207,7 +213,7 @@ internal static class SemanticStateViewArtifactRenderer
             .Prepend("global::Cratis.Chronicle.ReadModels.IReadModels readModels");
         var predicates = KeyPredicates(query, readModel, types).Concat(filters.Select(filter => filter.Predicate)).ToArray();
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
-        var methodName = Identifiers.ToPascalCase(query.Name);
+        var methodName = context.MemberNames.Query(query);
         var filterExpression = predicates.Length == 0 ? string.Empty : $"instance => {string.Join(" && ", predicates)}";
         var expression = observable
             ? $"readModels.Observe<{readModelName}>({filterExpression})"

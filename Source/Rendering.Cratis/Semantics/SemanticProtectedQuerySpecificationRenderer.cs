@@ -73,7 +73,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             .OpenBlock("async global::System.Threading.Tasks.Task Because()")
             .Line($"var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
             .Line("using var scope = _principalAccessor.BeginScope(principal);")
-            .Line($"_result = await _scenario.Perform(nameof({readModelName}.{Identifiers.ToPascalCase(query.Name)}), new global::Cratis.Arc.Queries.QueryArguments {{ {Arguments(expected, context)} }});")
+            .Line($"_result = await _scenario.Perform(nameof({readModelName}.{context.MemberNames.Query(query)}), new global::Cratis.Arc.Queries.QueryArguments {{ {Arguments(expected, context)} }});")
             .EndBlock().BlankLine();
 
         Write(builder, Assertions(specification, expected, readModelName, context));

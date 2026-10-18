@@ -52,8 +52,17 @@ internal static partial class SemanticCratisAdmission
 
             if (!ReadModelQueryNamesAreUnique(context, slice, readModel))
             {
-                diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' has property or query names that collide in generated C#.", readModel.Id));
+                diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' cannot render in generated C#: properties [{string.Join(", ", readModel.Properties.Select(property => $"'{property.Name}'"))}] or queries [{string.Join(", ", slice.Queries.Where(query => query.ReadModel == readModel.Id).Select(query => $"'{query.Name}' ({string.Join(", ", QueryParameterNames(query))})"))}] collide.", readModel.Id));
                 continue;
+            }
+
+            foreach (var query in slice.Queries.Where(query => query.ReadModel == readModel.Id && context.MemberNames.Query(query) != Identifiers.ToPascalCase(query.Name)))
+            {
+                diagnostics.Add(new(
+                    "STAGE-ESM-050",
+                    ArtifactRenderDiagnosticSeverity.Information,
+                    $"Read model '{readModel.Name}' query '{query.Name}' is emitted as '{context.MemberNames.Query(query)}'; its HTTP route is unchanged.",
+                    query.Id));
             }
 
             if (projection is null)

@@ -41,7 +41,7 @@ internal static class StageModuleRenderer
             .OrderBy(query => query.Name, StringComparer.Ordinal)
             .ThenBy(query => query.Id.ToString(), StringComparer.Ordinal)
             .DistinctBy(query => query.Name, StringComparer.Ordinal)
-            .Select((query, index) => (query.Name, Export: Identifiers.ToPascalCase(query.Name), Module: Module(context, query.Id), Alias: $"__stageQuery{index}"))
+            .Select((query, index) => (query.Name, Export: context.MemberNames.Query(query), Module: Module(context, query.Id), Alias: $"__stageQuery{index}"))
             .ToArray();
 
         var liveQueries = context.Queries.Values

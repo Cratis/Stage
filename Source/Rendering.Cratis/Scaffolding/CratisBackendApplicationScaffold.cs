@@ -118,9 +118,9 @@ public sealed partial class CratisBackendApplicationScaffold
           "Cratis": {
             "Arc": {
               "GeneratedApis": {
-                "RoutePrefix": "api",
+                "RoutePrefix": "{{GeneratedApiRoutes.RoutePrefix}}",
                 "IncludeCommandNameInRoute": false,
-                "SegmentsToSkipForRoute": 1
+                "SegmentsToSkipForRoute": {{GeneratedApiRoutes.SegmentsToSkipForRoute}}
               }
             },
             "Chronicle": {

@@ -186,7 +186,7 @@ internal static class DefaultSceneComposition
     {
         // Arc uses PascalCase CLR members for the proxy and camel-cases them except for leading acronyms.
         // A normalized collision would bind two different semantic values to one native descriptor.
-        var properties = command.Properties.Select(property => (Property: property, Name: ProxyPropertyName(property.Name), Type: Scalar(context, property.Type))).ToArray();
+        var properties = command.Properties.Select(property => (Property: property, Name: context.MemberNames.ProxyProperty(property), Type: Scalar(context, property.Type))).ToArray();
         var collision = properties.GroupBy(_ => _.Name, StringComparer.Ordinal).FirstOrDefault(_ => _.Count() > 1);
         var explicitInputs = properties.All(_ => _.Type is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid);
         var autoInputs = properties.All(_ => _.Type is SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber or

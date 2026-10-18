@@ -51,6 +51,7 @@ internal sealed class SemanticApplicationContext
         Projections = _slices.Values.SelectMany(_ => _.Slice.Projections).ToDictionary(_ => _.Id);
         Reducers = [.. _slices.Values.SelectMany(_ => _.Slice.Reducers)];
         Queries = _slices.Values.SelectMany(_ => _.Slice.Queries).ToDictionary(_ => _.Id);
+        MemberNames = new(Commands.Values, ReadModels.Values, Queries.Values);
         Specifications = _slices.Values.SelectMany(_ => _.Slice.Specifications).ToDictionary(_ => _.Id);
         IdentifierConcepts = FindIdentifierConcepts();
         Constraints = [.. _slices.Values.SelectMany(located => located.Slice.Constraints.Select(constraint => (located.Slice, constraint)))];
@@ -139,6 +140,8 @@ internal sealed class SemanticApplicationContext
     /// Gets every append-time constraint in the application with the slice declaring it.
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
+
+    internal GeneratedMemberNames MemberNames { get; }
 
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 

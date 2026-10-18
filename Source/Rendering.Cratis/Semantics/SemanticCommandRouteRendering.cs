@@ -65,7 +65,7 @@ internal sealed class SemanticCommandRouteRendering(SemanticCommand command, Sem
         }
 
         var property = command.Properties.Single(property => property.Id == ((SemanticResolvedExpression)value).Target);
-        var member = Identifiers.ToPascalCase(property.Name);
+        var member = context.MemberNames.Property(property);
         var expression = type.Kind == SemanticTypeReferenceKind.Concept ? $"{member}.Value" : member;
         if (primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.WholeNumber)
         {

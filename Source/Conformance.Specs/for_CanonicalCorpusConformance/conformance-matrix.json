@@ -3008,8 +3008,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "supported" },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-012", "artifact": "sem1:f4a02f8f95cac739204b8ebe9bfa8decd64917d9121f665701296c4f2afeb3ff", "issue": 502 } ] }
+      "renderer": { "outcome": "supported" }
     },
     "GeneratedConceptRulesCorpus.PortableV20": {
       "loader": { "outcome": "supported" },

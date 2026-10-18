@@ -160,7 +160,7 @@ internal static partial class SemanticCratisAdmission
         var type = Identifiers.ToPascalCase(model.Name);
         if (type == "Reduce" || helpers.Contains(type)) return type;
         var properties = model.Properties.Select(property => Identifiers.ToPascalCase(property.Name));
-        var queries = slice.Queries.Where(query => query.ReadModel == model.Id).Select(query => Identifiers.ToPascalCase(query.Name));
+        var queries = slice.Queries.Where(query => query.ReadModel == model.Id).Select(query => GeneratedPascalCase.QueryMethod(model.Name, model.Properties.Select(property => property.Name), query.Name));
         return properties.FirstOrDefault(name => name == "Reduce" || helpers.Contains(name)) ??
             queries.FirstOrDefault(name => new[] { "Reduce", "BeginReplay", "EndReplay", "BeginReplayPartition", "EndReplayPartition" }.Contains(name, StringComparer.Ordinal) || helpers.Contains(name));
     }

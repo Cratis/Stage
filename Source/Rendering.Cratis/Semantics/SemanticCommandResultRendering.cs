@@ -43,9 +43,9 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     bool HasOccurrence => command.Produces.Any(produced => produced.Mappings.Any(mapping =>
         mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
 
-    internal static string PropertyValue(SemanticProperty property) => property.IsGenerated
+    internal static string PropertyValue(SemanticProperty property, SemanticApplicationContext? application = null) => property.IsGenerated
         ? Identifiers.EscapeKeyword(Identifiers.ToCamelCase(property.Name))
-        : Identifiers.ToPascalCase(property.Name);
+        : application?.MemberNames.Property(property) ?? Identifiers.ToPascalCase(property.Name);
 
     // Command declarations and validation analysis must agree on raw-bound DateTime concept inputs.
     internal static string InputType(SemanticProperty property, IReadOnlySet<SemanticId> raw, SemanticTypeSystem types) => raw.Contains(property.Id)
@@ -58,14 +58,14 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         var providesSource = destination is { IsGenerated: false };
         var marked = SemanticDateComparisonAdmission.Marked(context.Application, command);
         var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
-        var parameters = string.Join(", ", Inputs.Select(property => $"{(marked.Contains(property.Id) ? ExplicitOffset : string.Empty)}{_compliance.InputAttribute(property.Type)}{InputType(property, raw, _types)} {Identifiers.ToPascalCase(property.Name)}"));
+        var parameters = string.Join(", ", Inputs.Select(property => $"{(marked.Contains(property.Id) ? ExplicitOffset : string.Empty)}{_compliance.InputAttribute(property.Type)}{InputType(property, raw, _types)} {context.MemberNames.Property(property)}"));
         var name = Identifiers.ToPascalCase(command.Name);
         builder.Attribute(SemanticAuthorizationAttributes.For(command, context))
             .OpenBlock($"public record {name}({parameters}){(providesSource ? " : global::Cratis.Chronicle.Events.ICanProvideEventSourceId" : string.Empty)}");
         if (providesSource)
         {
             builder.Line("/// <inheritdoc/>")
-                .ExpressionMember("public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId()", _types.EventSourceExpression(PropertyValue(destination!), destination!.Type))
+                .ExpressionMember("public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId()", _types.EventSourceExpression(Value(destination!), destination!.Type))
                 .BlankLine();
         }
     }
@@ -94,6 +94,8 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
             .Line($"public record {name}Response({string.Join(", ", fields)});")
             .BlankLine();
     }
+
+    string Value(SemanticProperty property) => PropertyValue(property, context);
 
     void RenderCheckedHandle(CSharpCodeBuilder builder, ResultExpression result, Action? renderEvents = null)
     {
@@ -125,7 +127,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     string Parameters()
     {
         var generated = command.Properties.Where(property => property.IsGenerated).Select(property =>
-            $"[global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute({CSharpCodeBuilder.StringLiteral(property.Name)}, Freshness = global::Cratis.Arc.Commands.GeneratedValueFreshness.Unguarded)] {_types.Type(property.Type)} {PropertyValue(property)}");
+            $"[global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute({CSharpCodeBuilder.StringLiteral(property.Name)}, Freshness = global::Cratis.Arc.Commands.GeneratedValueFreshness.Unguarded)] {_types.Type(property.Type)} {Value(property)}");
 
         return string.Join(", ", Reads.Parameters().Concat(generated).Concat(HasOccurrence ? [$"global::Cratis.Arc.IOperationContextAccessor {locals.Name("operation")}"] : []));
     }
@@ -172,8 +174,8 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         var property = command.Properties.Single(property => property.Id == source);
 
         return SemanticDateComparisonAdmission.Raw(context.Application, command).Contains(property.Id)
-            ? $"(({_types.Type(property.Type)}){PropertyValue(property)})"
-            : PropertyValue(property);
+            ? $"(({_types.Type(property.Type)}){Value(property)})"
+            : Value(property);
     }
 
     sealed record ResultExpression(string Type, string Value);

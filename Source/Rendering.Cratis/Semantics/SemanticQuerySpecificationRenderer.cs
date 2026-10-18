@@ -103,7 +103,7 @@ internal static class SemanticQuerySpecificationRenderer
 
         if (query.Cardinality == SemanticQueryCardinality.Many)
         {
-            RenderCollectionExpectation(builder, query, new(readModelName, collectionCall, collectionPredicate));
+            RenderCollectionExpectation(builder, query, new(readModelName, collectionCall, collectionPredicate), context);
         }
         else
         {
@@ -117,7 +117,7 @@ internal static class SemanticQuerySpecificationRenderer
             builder.Line($"_readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key})!);")
                 .EndBlock()
                 .BlankLine()
-                .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")
+                .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{context.MemberNames.Query(query)}(_readModels, {key});")
                 .BlankLine()
                 .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({predicate}).ShouldBeTrue();")
                 .Line("public void Dispose() => _scenario.Dispose();")
@@ -190,7 +190,7 @@ internal static class SemanticQuerySpecificationRenderer
             .BlankLine()
             .Line($"void Establish() => _scenario.Given.ForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key}).ReadModel(new {readModelName}({string.Join(", ", values)}));")
             .BlankLine()
-            .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_scenario.ReadModels, {key});")
+            .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{context.MemberNames.Query(query)}(_scenario.ReadModels, {key});")
             .BlankLine()
             .Line($"[global::Xunit.FactAttribute] void should_return_the_seeded_read_model() => ({predicate}).ShouldBeTrue();")
             .Line("public void Dispose() => _scenario.Dispose();")
@@ -220,7 +220,7 @@ internal static class SemanticQuerySpecificationRenderer
                 : $"{readModelName}? _result;");
     }
 
-    static void RenderCollectionExpectation(CSharpCodeBuilder builder, SemanticKeyedQuery query, CollectionExpectation expected)
+    static void RenderCollectionExpectation(CSharpCodeBuilder builder, SemanticKeyedQuery query, CollectionExpectation expected, SemanticApplicationContext context)
     {
         if (!IsLiveList(query))
         {
@@ -228,7 +228,7 @@ internal static class SemanticQuerySpecificationRenderer
         }
         builder.EndBlock()
             .BlankLine()
-            .Line($"async global::System.Threading.Tasks.Task Because() => _results = await {CollectionExecution(query, expected.ReadModelName, expected.Arguments)};")
+            .Line($"async global::System.Threading.Tasks.Task Because() => _results = await {CollectionExecution(query, expected.ReadModelName, expected.Arguments, context)};")
             .BlankLine()
             .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({expected.Predicate}).ShouldBeTrue();")
             .Line("public void Dispose() => _scenario.Dispose();")
@@ -243,9 +243,9 @@ internal static class SemanticQuerySpecificationRenderer
             ? $"(await _scenario.EventLog.Append({source}, {@event}{(route is null ? string.Empty : $", {SemanticSpecificationRouteRendering.Arguments(route, context)}")})).IsSuccess.ShouldBeTrue();"
             : $"await _scenario.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(route, context)}.Events({@event});";
 
-    static string CollectionExecution(SemanticKeyedQuery query, string readModelName, string arguments)
+    static string CollectionExecution(SemanticKeyedQuery query, string readModelName, string arguments, SemanticApplicationContext context)
     {
-        var invocation = $"{readModelName}.{Identifiers.ToPascalCase(query.Name)}({arguments})";
+        var invocation = $"{readModelName}.{context.MemberNames.Query(query)}({arguments})";
         return query.Delivery == SemanticQueryDelivery.Live
             ? $"global::System.Reactive.Threading.Tasks.TaskObservableExtensions.ToTask(global::System.Reactive.Linq.Observable.FirstAsync({invocation}))"
             : invocation;

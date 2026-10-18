@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "tsBuildInfoFile": "../node_modules/.tmp/runtime-specs.tsbuildinfo",
+    "declaration": false,
+    "noEmit": true,
+    "rootDir": "..",
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src", "styledPrimeReact.ts", "styledPrimeReact.spec.ts", "packageBoundary.spec.ts", "vite.config.ts"],
+  "exclude": []
+}

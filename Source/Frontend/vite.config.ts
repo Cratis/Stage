@@ -3,7 +3,7 @@
 
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import { styledPrimeReact } from './styledPrimeReact';
+import { styledPrimeReact } from '@cratis/stage.runtime/vite';
 import { stageSharedModules } from './stageSharedModules';
 
 export default defineConfig({
@@ -20,7 +20,8 @@ export default defineConfig({
     plugins: [styledPrimeReact(), react(), stageSharedModules()],
     test: {
         environment: 'jsdom',
-        setupFiles: ['./src/testSetup.ts'],
+        setupFiles: ['./Runtime/src/testSetup.ts'],
+        exclude: ['Runtime/**', '**/node_modules/**'],
         // Each spec draws a whole application shell and the files run in parallel; a loaded CI runner needs more than the five seconds a test gets by default.
         testTimeout: 20000,
     },

@@ -2,12 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import checkedIn from '../../Conformance.Specs/for_SceneEnumerationNaming/scene-model-enumerations.json';
+import checkedIn from '../../../Conformance.Specs/for_SceneEnumerationNaming/scene-model-enumerations.json';
 
 // The .NET side writes each Scene enumeration the way the TypeScript model spells it, from the checked-in map
 // `Source/Conformance.Specs/for_SceneEnumerationNaming/scene-model-enumerations.json`. That map is only worth anything
 // while it is the installed package's real declarations, so this is where it is held to them.
-const sources = import.meta.glob('/node_modules/@cratis/scene.model/dist/esm/**/*.js', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const sources = import.meta.glob('../../node_modules/@cratis/scene.model/dist/esm/**/*.js', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 function declaredEnumerations(): Record<string, string> {
     const found: Record<string, string> = {};

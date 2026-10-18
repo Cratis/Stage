@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "declaration": true,
+    "rootDir": ".",
+    "outDir": "dist",
+    "composite": true,
+    "tsBuildInfoFile": "../node_modules/.tmp/runtime.tsbuildinfo"
+  },
+  "include": ["src", "styledPrimeReact.ts"],
+  "exclude": ["src/**/*.spec.ts", "src/**/*.spec.tsx", "src/for_*", "src/testing", "src/testSetup.ts", "src/testElements.ts"]
+}

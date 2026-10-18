@@ -112,7 +112,6 @@ public static class SemanticRunAdmission
         }
         foreach (var given in specification.GivenEvents)
         {
-            if (given.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, given.EventContract, "Given events require an explicit event source.");
             if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
             if (EventValueRefusal(plan, givenContract, "Only scalar Given event values are admitted.") is { } givenRefusal) return Block(StageExecutionCapability.Command, given.EventContract, givenRefusal);
         }

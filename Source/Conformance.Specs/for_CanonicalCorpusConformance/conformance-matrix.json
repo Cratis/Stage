@@ -136,7 +136,7 @@
       "executor": { "outcome": "refused", "refusals": [
         { "code": "STAGE-PLAN-004", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
         { "code": "capability:Command[only-scalar-command-and-event]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 441 },
-        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 511 },
+        { "code": "capability:Command[only-scalar-given-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
         { "code": "capability:Occurrence[only-scalar-appended-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
         { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
@@ -151,8 +151,8 @@
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": 441 },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000061", "issue": 441 },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000062", "issue": 441 },
+        { "code": "capability:Command[only-scalar-given-event-values]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": 441 },
         { "code": "capability:IdentityAllocation[a-produced-fact-requires-an]", "kind": "command", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 511 },
-        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": 511 },
         { "code": "capability:Occurrence[only-scalar-appended-event-values]", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": 441 },
         { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
         { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
@@ -2398,12 +2398,11 @@
     "EsmGoldenVectors.V27": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "refused", "refusals": [
-        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "artifact": "sem1:ca74d50a958116fc38353fc838429dd7d550460164df782b92f87a945227e38a", "issue": 511 },
         { "code": "capability:Projection[read-model-totals-has-several]", "artifact": "sem1:30b5757984ca778d7606b2cbdcf9c5ba914db499268ce28b22c26e6ff2cbba82", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "kind": "specification", "artifact": "sem1:6307d6a63e56c1c0d2b1106b01084d28760d7d06529c35774432141866cd6325", "issue": 511 },
         { "code": "capability:Projection[read-model-totals-has-several]", "kind": "specification", "artifact": "sem1:07ca493e7a48f02deac4a45253be4f26000a276a97c7b4ab45bb51bc52853303", "issue": 512 },
-        { "code": "capability:Projection[read-model-totals-has-several]", "kind": "specification", "artifact": "sem1:08495ba965598f99cbd1381b3d12ee9e53dcd32692b4942d335849cbca3e4dbd", "issue": 512 } ] },
+        { "code": "capability:Projection[read-model-totals-has-several]", "kind": "specification", "artifact": "sem1:08495ba965598f99cbd1381b3d12ee9e53dcd32692b4942d335849cbca3e4dbd", "issue": 512 },
+        { "code": "capability:Projection[read-model-totals-has-several]", "kind": "specification", "artifact": "sem1:6307d6a63e56c1c0d2b1106b01084d28760d7d06529c35774432141866cd6325", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-008", "artifact": "sem1:30b5757984ca778d7606b2cbdcf9c5ba914db499268ce28b22c26e6ff2cbba82", "issue": 512 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:8e17c180ba3641e83a73f32ec38363bbe7a0093d67170d5f4b1d25ae1fd063f8", "issue": 501 },
@@ -3209,11 +3208,8 @@
     },
     "RecoverySpecificationsCorpus.V17": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "refused", "refusals": [
-        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "artifact": "sem1:bb1e88497f494cf492fe87d3a7cd72fbce5dd29c11e6854ee925a84ab1ac48bd", "issue": 511 } ] },
-      "host": { "outcome": "refused", "refusals": [
-        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "kind": "specification", "artifact": "sem1:77ba8e17b420e8e23334f05fb36964b94169ccd61308a014fa15a720ebe2cb8e", "issue": 511 },
-        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "kind": "specification", "artifact": "sem1:8f059b9ec51acef2f7d26718ae0d829fb86fbf3951ca071108ad8e6cd41b7f4f", "issue": 511 } ] },
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-011", "artifact": "sem1:77ba8e17b420e8e23334f05fb36964b94169ccd61308a014fa15a720ebe2cb8e", "issue": 14 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:8f059b9ec51acef2f7d26718ae0d829fb86fbf3951ca071108ad8e6cd41b7f4f", "issue": 14 },

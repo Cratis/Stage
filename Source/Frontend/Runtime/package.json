@@ -1,0 +1,54 @@
+{
+  "name": "@cratis/stage.runtime",
+  "version": "0.0.0",
+  "description": "The Cratis Stage application runtime for Arc and Scene",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cratis/Stage.git",
+    "directory": "Source/Frontend/Runtime"
+  },
+  "publishConfig": { "access": "public" },
+  "files": ["dist"],
+  "sideEffects": ["**/*.css"],
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/src/index.d.ts", "import": "./dist/src/index.js" },
+    "./vite": { "types": "./dist/styledPrimeReact.d.ts", "import": "./dist/styledPrimeReact.js" },
+    "./styles.css": "./dist/src/app.css"
+  },
+  "scripts": {
+    "build": "vite build --config vite.library.config.ts && tsc -b --force tsconfig.json tsconfig.specs.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@cratis/arc": "22.112.1",
+    "@cratis/arc.react": "22.112.1",
+    "@cratis/components": "4.29.0",
+    "@cratis/scene.blueprint.default": "4.68.2",
+    "@cratis/scene.components": "4.68.2",
+    "@cratis/scene.engine": "4.68.2",
+    "@cratis/scene.model": "4.68.2",
+    "@cratis/scene.primereact": "4.68.2",
+    "@cratis/scene.react": "4.68.2",
+    "@primereact/ui": "11.2.0",
+    "@primeuix/themes": "3.0.1",
+    "primereact": "11.2.0",
+    "react": "19.3.0",
+    "vite": "8.3.2"
+  },
+  "devDependencies": {
+    "@primereact/core": "11.2.0",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "26.6.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "jsdom": "30.1.2",
+    "react-dom": "19.3.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  }
+}

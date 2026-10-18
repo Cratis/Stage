@@ -166,14 +166,19 @@ Per-production route overrides fail `STAGE-ESM-036` on the semantic engine; the 
 The semantic engine runs event-triggered reactions, including `where`, `runs as`, `from`, productions,
 invocations and cascades. It settles them with the initiating command and appends all facts in one
 tail-guarded batch. A rejected, denied or unsupported settlement refuses the whole command and appends
-nothing. This differs from rendered Chronicle reactors, which run eventually and retry failed partitions.
+nothing, retaining the previously committed world. With `reaction batches atomic`, each trigger occurrence's
+direct productions and each selected refusal branch are atomic units during evaluation; invoked commands
+remain separate units. The live Host still rolls back the **whole initiating command and its cascade** if
+any unit fails, rather than keeping earlier successful units as the reference evaluator does. Models without
+the declaration retain legacy per-fact reaction evaluation and the same Host rollback boundary.
+This differs from rendered Chronicle reactors, which run eventually and retry failed partitions.
 Clock, application, startup and shutdown triggers and opaque reaction bodies still fail `STAGE-ESM-024`
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
 The semantic engine uses Screenplay 4.206.0 and admits exact ESM v1–v28 version pairs; unaudited
 language/semantic versions (v29 and later, mixed or noncanonical pairs) refuse the whole model with `STAGE-ESM-016` before registration or execution.
-A v22 model that uses `reaction batches atomic` is admitted and refused with `STAGE-ESM-043` until atomic batches execute.
+A v22 model that uses `reaction batches atomic` executes atomic production units while retaining the Host's whole-command rollback boundary.
 At v28 the semantic engine runs Uuid `==` and `!=` in command `require` conditions and `produces when` guards, including
 through concepts and protected read paths such as `require Grant.memberId == requestedBy`. Uuids compare ordinally in their
 canonical lowercase hyphenated spelling, and the Host rejects a non-canonical Uuid input (uppercase, braced or unhyphenated)
@@ -224,9 +229,12 @@ the Double safe range; `numbers exact` and arbitrary-precision arithmetic are no
 ESM v12 preserves explicit enum member numbers when rebuilding stored integer values; decisions still compare member names.
 ESM v13 admits concept compliance without changing command decisions or world reconstruction.
 ESM v14 equality query filters execute through the reference evaluator in the Host, including
-optional omission and required-filter rejection. The independent specification executor
-refuses filtered query assertions with `STAGE-ESM-010` rather than ignoring the filters;
-seeded read-model specifications retain the `GivenReadModel` gap.
+optional omission and required-filter rejection. The independent specification executor and Host
+specification admission support equality-filtered assertions over projected and seeded read models.
+Supplied scalar primitive, concept and enum filters combine with `by` using AND; omitted optional
+filters do not narrow. Collection expectations compare rows by read model and key, not order.
+Unrepresentable projection shapes still receive typed refusals. The executor supports complete scalar per-key seeds,
+replacing projected Given history for that key before folding subsequent facts; see [Spec runner](spec-runner.md).
 The semantic Stage Host encrypts personal-data and secret concept values at rest through Chronicle,
 like rendered applications, and releases them on read. Personal-data erasure uses Chronicle's
 key deletion keyed by the event source; explicit subject lineage remains

@@ -11,6 +11,6 @@ public class with_a_validation_implementation_body : given.a_command_model
     void Establish() => _command = _command with { CodeValidations = [new("validate-description")] };
     void Because() => Evaluate();
 
-    [Fact] void should_name_the_body_and_received_at_and_pure_limitations_and_fix() => Messages.ShouldContainOnly(["Command 'IssueInvoice' validation implementation body 'validate-description' cannot be rendered: Arc does not supply RuleContext.Occurred (received-at) to a generated validator, and Stage does not yet enforce the pure capability. Use equivalent declarative validation; implementation bodies are not supported yet (Cratis/Stage#409)."]);
-    [Fact] void should_keep_the_code() => _diagnostics.Single().Code.ShouldEqual("STAGE-ESM-005");
+    [Fact] void should_name_the_unresolved_body() => _diagnostics.Single().Message.ShouldContain("validate-description");
+    [Fact] void should_require_the_implementation_envelope() => _diagnostics.Single().Code.ShouldEqual("STAGE-ESM-020");
 }

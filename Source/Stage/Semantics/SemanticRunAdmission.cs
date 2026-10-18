@@ -126,7 +126,6 @@ public static class SemanticRunAdmission
             !GeneratedPascalCase.RecordMembersAreUnique(type.Name, type.Properties.Select(property => property.Name)));
         if (collidingType is not null) return Block(StageExecutionCapability.Command, collidingType.Id, "Type property names collide in generated C#.");
         if (SemanticImplementationReach.ForSpecification(plan, specification) is { } implementation) return implementation;
-        if (!specification.GivenReadModels.IsEmpty) return Block(StageExecutionCapability.GivenReadModel, specification.GivenReadModels[0].ReadModel, "Given read-model state cannot be seeded into the per-run projection scenario.");
         if (specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty))
         {
             return Block(StageExecutionCapability.Authorization, specification.Id, "An unauthenticated caller cannot carry roles or claims; Arc supplies an empty guest principal.");
@@ -162,6 +161,10 @@ public static class SemanticRunAdmission
             {
                 return Block(StageExecutionCapability.Command, producedContract.Id, "Event property names collide in generated C#.");
             }
+        }
+        if (CommandValidationRefusal(plan, command) is { } validationRefusal)
+        {
+            return Block(StageExecutionCapability.Command, command.Id, validationRefusal);
         }
         var valueContext = new SemanticApplicationContext(plan);
         var valueRefusal = command.Properties.Select(property => SemanticValueShapeAdmission.Refusal(valueContext, property.Type)).FirstOrDefault(refusal => refusal is not null);
@@ -230,8 +233,38 @@ public static class SemanticRunAdmission
     {
         var features = CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, plan.Model.Application.Concepts).Select(Feature));
         var refusal = SemanticImplementationReach.ForCommand(plan, command);
+        if (CommandValidationRefusal(plan, command) is { } validationRefusal)
+        {
+            features = features.Append(new(command.Id.ToString(), "command", nameof(StageExecutionCapability.Command), validationRefusal));
+        }
 
         return refusal is null ? features : features.Append(new(command.Id.ToString(), "command", refusal.Capability.ToString(), refusal.Details));
+    }
+
+    internal static string? CommandValidationRefusal(SemanticExecutionPlan plan, SemanticCommand command)
+    {
+        foreach (var rule in command.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual))
+        {
+            var property = command.Properties.FirstOrDefault(property => property.Id == rule.Property);
+            var description = $"Command '{command.Name}' validation '{rule.Kind}' on property '{property?.Name ?? rule.Property.ToString()}'";
+            if (rule.Operand is not SemanticNumberValue)
+            {
+                return $"{description} requires a numeric operand.";
+            }
+            var type = property?.Type;
+            var primitive = type?.Kind switch
+            {
+                SemanticTypeReferenceKind.Concept => plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Id == type.Target)?.Primitive,
+                SemanticTypeReferenceKind.Primitive => type.Primitive,
+                _ => null
+            };
+            if (type?.IsCollection != true || primitive is not (SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber))
+            {
+                return $"{description} requires a collection of numeric primitives or concepts.";
+            }
+        }
+
+        return null;
     }
 
     // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
@@ -250,9 +283,11 @@ public static class SemanticRunAdmission
     static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
-        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
+        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application)
+            .Except(SemanticVersionFeatures.TriggersInApplication(plan.Model.Application))
+            .Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
             .Except(slices.SelectMany(slice => slice.Commands).SelectMany(SemanticVersionFeatures.DescribedHandlersInCommand))
-            .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
+            .Concat(slices.SelectMany(slice => RunSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
             .Concat(RunSpecificationFeatures(specification))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command)
                 .Except(SemanticVersionFeatures.RoutesInCommand(command))
@@ -261,6 +296,9 @@ public static class SemanticRunAdmission
         return feature is null ? SemanticRunReactionAdmission.CheckCommands(plan, specification) : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
 
+    static IEnumerable<SemanticVersionFeature> RunSliceFeatures(SemanticSlice slice) =>
+        LiveSliceFeatures(slice).Except(SemanticVersionFeatures.NonEventTriggersInSlice(slice));
+
     // Rendering keeps its own absence and append/redelivery clock refusals. The independent executor can
     // compare keyed instances and resolve a validated authored occurrence without a generated reactor scenario.
     static IEnumerable<SemanticVersionFeature> RunSpecificationFeatures(SemanticSpecification specification) =>
@@ -268,7 +306,8 @@ public static class SemanticRunAdmission
             .Except(SemanticVersionFeatures.RoutesInSpecification(specification))
             .Except(SemanticVersionFeatures.RedeliveryInSpecification(specification))
             .Where(feature => feature.Code != SemanticVersionFeatures.Absence &&
-                !(feature.Code == SemanticVersionFeatures.Automation && SemanticSpecificationClock.TryGetOccurrence(specification, out _)));
+                !(feature.Code == SemanticVersionFeatures.Automation && (SemanticSpecificationClock.TryGetOccurrence(specification, out _) ||
+                    SemanticSpecificationClock.TryGetAutomaticAction(specification, out _, out _))));
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
         feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
@@ -279,7 +318,8 @@ public static class SemanticRunAdmission
         SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or
         SemanticValidationRuleKind.LessThanOrEqual or SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or
         SemanticValidationRuleKind.Checksum or SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
-        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or
+        SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual;
 
     static bool Scalar(SemanticTypeReference type)
     {

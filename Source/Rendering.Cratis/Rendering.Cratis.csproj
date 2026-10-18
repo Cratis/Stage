@@ -88,10 +88,12 @@
              Specifications, test helpers and the live entry point stay behind; the generated application has its own. The live-only
              approved package loader and shared React registration (stagePackages.ts, sharedModules.ts) stay behind with it: a
              generated application builds its approved packages in. -->
-        <EmbeddedResource Include="../Frontend/src/*.ts;../Frontend/src/*.tsx;../Frontend/src/*.css"
-                          Exclude="../Frontend/src/*.spec.ts;../Frontend/src/*.spec.tsx;../Frontend/src/testSetup.ts;../Frontend/src/testElements.ts;../Frontend/src/main.tsx;../Frontend/src/stagePackages.ts;../Frontend/src/sharedModules.ts"
+        <EmbeddedResource Include="../Frontend/Runtime/src/*.ts;../Frontend/Runtime/src/*.tsx;../Frontend/Runtime/src/*.css"
+                          Exclude="../Frontend/Runtime/src/*.spec.ts;../Frontend/Runtime/src/*.spec.tsx;../Frontend/Runtime/src/testSetup.ts;../Frontend/Runtime/src/testElements.ts;../Frontend/Runtime/src/index.ts;../Frontend/Runtime/src/stageSource.ts"
                           LogicalName="StageFrontend/stage/%(Filename)%(Extension)" />
-        <EmbeddedResource Include="../Frontend/styledPrimeReact.ts" LogicalName="StageFrontend/styledPrimeReact.ts" />
+        <!-- Preserve the pre-package source's HTTP fallback byte-for-byte until generated apps switch to the package. -->
+        <EmbeddedResource Include="../Frontend/Runtime/embedding/stageSource.ts" LogicalName="StageFrontend/stage/stageSource.ts" />
+        <EmbeddedResource Include="../Frontend/Runtime/styledPrimeReact.ts" LogicalName="StageFrontend/styledPrimeReact.ts" />
     </ItemGroup>
     <ItemGroup>
         <!-- What the Stage frontend's core, PrimeReact and default blueprint declare, generated from their manifests by

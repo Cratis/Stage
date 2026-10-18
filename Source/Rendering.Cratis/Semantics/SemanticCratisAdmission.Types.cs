@@ -24,15 +24,14 @@ internal static partial class SemanticCratisAdmission
 
             ValidateGenerationBody(context, concept, diagnostics);
 
-            if (concept.Validations.Any(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))
+            foreach (var rule in concept.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))
             {
-                diagnostics.Add(Error("STAGE-ESM-005", $"Concept '{concept.Name}' contains validation implementation bodies ({string.Join(", ", concept.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation).Select(rule => rule.RequirementId))}): Arc does not supply RuleContext.Occurred (received-at) to a generated validator, and Stage does not yet enforce the pure capability.", concept.Id));
-                continue;
+                ValidateRuleBody(context, rule, concept.Id, null, diagnostics);
             }
 
             if (concept.Primitive == SemanticPrimitiveType.Unknown ||
                 (concept.Values.Length > 0 && (concept.Primitive != SemanticPrimitiveType.Text || !concept.Validations.IsEmpty)) ||
-                !concept.Validations.All(rule => SemanticValidationRendering.CanRender(rule, context)))
+                !concept.Validations.All(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation || SemanticValidationRendering.CanRender(rule, context)))
             {
                 diagnostics.Add(Error("STAGE-ESM-002", $"Concept '{concept.Name}' uses unsupported values or validation.", concept.Id));
             }

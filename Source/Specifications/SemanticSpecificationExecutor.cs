@@ -164,9 +164,13 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
             return await ExecuteCommand(new(invokedContext, invokedInstance, slice, specification, plan, principal), cancellationToken, collectRefusalDetails);
         });
-        var reactionFailure = specification.WhenRedelivered is { } redelivery
-            ? await reactions.Redeliver(redelivery.Reaction, redelivery.Given, cancellationToken)
-            : await reactions.Settle(cancellationToken);
+        var reactionFailure = specification switch
+        {
+            { WhenRedelivered: { } redelivery } => await reactions.Redeliver(redelivery.Reaction, redelivery.Given, cancellationToken),
+            { WhenTrigger: { } fired } => await reactions.Fire(fired, cancellationToken),
+            { WhenClock: not null } when SemanticSpecificationClock.TryGetAutomaticAction(specification, out var from, out var to) => await reactions.Advance(from!.Value, to!.Value, cancellationToken),
+            _ => await reactions.Settle(cancellationToken)
+        };
         if (reactionFailure is { } failure) return failure.ToRecord(slice, specification);
 
         return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts);
@@ -401,7 +405,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             projected.ToDictionary(row => $"{row.ReadModel}:{SemanticRunContext.Canonical(row.Key)}", row => JsonSerializer.Serialize(row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value)))),
             specification.ThenQueries.Select((query, index) => (query, index)).ToDictionary(
                 entry => $"{entry.index}:{entry.query.Query}:{SemanticRunContext.Canonical(entry.query.Key)}",
-                entry => JsonSerializer.Serialize(projected.Where(row => row.ReadModel == plan.Queries[entry.query.Query].ReadModel && SemanticExpectationComparer.AreEqual(row.Key, entry.query.Key)).Select(row => row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))),
+                entry => JsonSerializer.Serialize(SemanticRunQueries.Select(plan, entry.query, projected).Select(row => row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))),
             null);
         return Settled(slice, specification, failures, trace);
     }

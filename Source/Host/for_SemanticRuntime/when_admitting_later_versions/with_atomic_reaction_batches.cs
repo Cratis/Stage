@@ -21,6 +21,6 @@ public class with_atomic_reaction_batches : Specification
         _admission = new(plan);
     }
 
-    [Fact] void should_refuse_the_application_boundary() => _admission.Blocking.ShouldContain(entry => entry.Kind == "application" && entry.Details!.StartsWith("STAGE-ESM-043:", StringComparison.Ordinal) && entry.Details.Contains("atomic", StringComparison.Ordinal));
+    [Fact] void should_admit_the_application_boundary() => _admission.Blocking.ShouldNotContain(entry => entry.Details!.StartsWith("STAGE-ESM-043:", StringComparison.Ordinal));
     [Fact] void should_admit_the_version() => _admission.Blocking.ShouldNotContain(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
 }

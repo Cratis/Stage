@@ -320,6 +320,14 @@ at an existing checkout elsewhere:
 CHRONICLE_SOURCE_ROOT=/path/to/Chronicle dotnet test -c Debug
 ```
 
+The Rendering.Cratis specs build and test generated applications in their own `dotnet` and `npm` processes. Locally,
+at most a quarter of the processors' worth of those processes run at once (at least one); in CI (`CI=true`) they are
+unlimited. Set `STAGE_MAX_PARALLEL_APP_BUILDS` to choose the limit yourself:
+
+```shell
+STAGE_MAX_PARALLEL_APP_BUILDS=2 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj -c Debug
+```
+
 Release treats warnings as errors. Both Dockerfiles consume prebuilt, framework-dependent publish output;
 `./dockerize.sh` publishes the host and specification runner and then builds both images.
 

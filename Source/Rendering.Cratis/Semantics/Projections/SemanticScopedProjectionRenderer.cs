@@ -244,8 +244,6 @@ internal static class SemanticScopedProjectionRenderer
         }
     }
 
-    sealed record CompositeKey(string TypeName, IReadOnlyList<SemanticProperty> Parts);
-
     static string Literal(SemanticProjectionLiteral literal, System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
     {
         SemanticProperty? target = null;
@@ -273,4 +271,6 @@ internal static class SemanticScopedProjectionRenderer
 
         return string.Join('.', segments);
     }
+
+    sealed record CompositeKey(string TypeName, IReadOnlyList<SemanticProperty> Parts);
 }

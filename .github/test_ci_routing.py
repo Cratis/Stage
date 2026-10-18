@@ -129,9 +129,12 @@ class RoutingTests(unittest.TestCase):
                     self.assertRaises(error):
                 CI["github_routes"]("pull_request", payload)
 
-    def test_workflow_runs_docs_without_label_triggers_and_separates_event_concurrency(self):
+    def test_workflow_skips_docs_without_label_triggers_and_separates_event_concurrency(self):
         triggers = WORKFLOW.split("jobs:\n", 1)[0]
-        self.assertNotIn("paths:", triggers)
+        self.assertIn("paths:", triggers)
+        for path in ('"Source/**"', '".github/ci-routing.py"', '".github/test_ci_routing.py"', '".github/spec-shards.py"'):
+            self.assertIn(path, triggers)
+        self.assertNotIn('"Documentation/**"', triggers)
         self.assertEqual(1, triggers.count("- cron:"))
         self.assertIn("types: [opened, synchronize, reopened]", triggers)
         self.assertNotIn("labeled", triggers)

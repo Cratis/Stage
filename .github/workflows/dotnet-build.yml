@@ -19,6 +19,25 @@ on:
     types: [opened, synchronize, reopened]
     branches:
       - "**"
+    # Changes outside these paths (documentation, other workflows) do not start this workflow,
+    # as before routing existed; inside them, the routing job selects the optional lanes.
+    paths:
+      - "Source/**"
+      - "Samples/**"
+      - "Verification/**"
+      - "*.props"
+      - "*.targets"
+      - "*.slnx"
+      - "global.json"
+      - "**/[Nn]u[Gg]et.[Cc]onfig"
+      - "**/packages.lock.json"
+      - ".github/workflows/dotnet-build.yml"
+      - ".github/spec-shards.py"
+      - ".github/spec-shard-timings.json"
+      - ".github/test_spec_shards.py"
+      - ".github/ci-routing.py"
+      - ".github/test_ci_routing.py"
+      - ".github/workflows/warm-nuget-cache.yml"
 
 jobs:
   routing:

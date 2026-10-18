@@ -398,7 +398,8 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 fact.EventContract.ToString(),
                 fact.EventSource?.Type.Kind == SemanticTypeReferenceKind.Concept ? fact.EventSource.Type.Target.ToString() : fact.EventSource?.Type.Primitive.ToString(),
                 SemanticRunContext.Canonical(destinations[index]),
-                fact.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value)))
+                fact.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(
+                    value.Value, plan.Events[fact.EventContract].Properties.Single(property => property.Id == value.TargetProperty).Type, new SemanticApplicationContext(plan))))
             {
                 Route = SemanticRunRoutes.Format(plan, fact.Route)
             })],

@@ -93,7 +93,19 @@ internal static class SemanticJsonValues
                 throw new UnsupportedSemanticValue($"Unknown composite property '{unknown}'.");
             }
 
-            return SemanticValue.Composite(Bind(properties, members, model));
+            var ambiguous = members.Keys.GroupBy(key => key, StringComparer.OrdinalIgnoreCase).FirstOrDefault(group => group.Count() > 1);
+            if (ambiguous is not null)
+            {
+                throw new UnsupportedSemanticValue($"Ambiguous command property '{ambiguous.Key}'.");
+            }
+
+            // Unlike top-level command properties, omitted composite members stay absent. The reference
+            // validates only supplied members and reports nested concept failures in their supplied order.
+            return SemanticValue.Composite([.. members.Select(member =>
+            {
+                var property = properties.Single(property => string.Equals(property.Name, member.Key, StringComparison.OrdinalIgnoreCase));
+                return new SemanticPropertyValue(property.Id, Bind(member.Value, property.Type, model));
+            })]);
         }
 
         return BindUntyped(value);

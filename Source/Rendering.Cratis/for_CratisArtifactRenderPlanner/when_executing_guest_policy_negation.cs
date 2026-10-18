@@ -19,7 +19,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_executing_guest_policy_negation(context fixture) : IClassFixture<context>
 {
     [Fact] void should_build_debug_and_release_without_warnings() => (fixture.DebugWarnings + fixture.ReleaseWarnings).ShouldBeEmpty();
-    [Fact] void should_run_every_generated_guest_and_authenticated_vector() => fixture.Results.Length.ShouldEqual(36);
+    [Fact] void should_run_every_generated_guest_and_authenticated_vector() => fixture.Results.Length.ShouldEqual(40);
     [Fact] void should_match_the_reference_through_the_generated_pipelines() => fixture.Results.All(result => result.Outcome == "Passed").ShouldBeTrue();
 
     public class context : a_generated_invoice_application

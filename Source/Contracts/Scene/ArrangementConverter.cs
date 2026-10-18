@@ -61,7 +61,7 @@ public static class ArrangementConverter
             ScreenplaySyntax.ArrangementMode.Flow,
             SourceLocation.Start,
             ToSyntax(flow.Root),
-            [.. flow.Overrides.Select(over => new ScreenplaySyntax.ArrangementOverrideSyntax(
+            [.. (flow.Overrides ?? []).Select(over => new ScreenplaySyntax.ArrangementOverrideSyntax(
                 over.Width?.ToString().ToLowerInvariant(),
                 over.Height?.ToString().ToLowerInvariant(),
                 ToSyntax(over.Root),
@@ -79,8 +79,8 @@ public static class ArrangementConverter
                     place.SlotName,
                     SourceLocation.Start,
                     Hidden: false,
-                    X: (int)Math.Round(place.X),
-                    Y: (int)Math.Round(place.Y),
+                    X: (int)Math.Round(place.X, MidpointRounding.AwayFromZero),
+                    Y: (int)Math.Round(place.Y, MidpointRounding.AwayFromZero),
                     SizeWidth: SizeText(place.Width),
                     SizeHeight: SizeText(place.Height)))],
                 SourceLocation.Start))]),
@@ -104,7 +104,7 @@ public static class ArrangementConverter
             },
             [.. container.Children.Select(ToSyntax)],
             SourceLocation.Start,
-            Gap: container.Gap == 0 ? null : (int?)Math.Round((double)container.Gap))
+            Gap: container.Gap == 0 ? null : (int?)Math.Round((double)container.Gap, MidpointRounding.AwayFromZero))
         {
             Grow = container.Grow,
             Span = container.Span,

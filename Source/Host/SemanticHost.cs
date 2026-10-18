@@ -84,7 +84,7 @@ internal static class SemanticHost
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         MapStatus(app, () => RegistrationStatus(world, issues, app.Services, modelName, modelPath), notes);
         SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
-        SemanticReadModelBrowser.Map(app, app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null);
+        SemanticReadModelBrowser.Map(app, app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission);
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();
@@ -228,17 +228,17 @@ internal static class SemanticHost
         MapRefusedApi(app, issues);
     }
 
-    static void MapRefusedApi(WebApplication app, List<StageUnsupportedIssue> issues)
-    {
-        app.MapMethods("/api/{**path}", ["GET", "POST", "PUT", "DELETE", "PATCH", "QUERY"], (HttpContext context, string path) => RefusedResponse(context, issues));
-    }
-
-    static IResult RefusedResponse(HttpContext context, List<StageUnsupportedIssue> issues)
+    internal static IResult RefusedResponse(HttpContext context, List<StageUnsupportedIssue> issues)
     {
         var issue = issues[0];
         context.Response.Headers["Stage-Unsupported-Capability"] = issue.Capability;
         context.Response.Headers["Stage-Unsupported-Artifact"] = issue.Artifact;
 
         return Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented);
+    }
+
+    static void MapRefusedApi(WebApplication app, List<StageUnsupportedIssue> issues)
+    {
+        app.MapMethods("/api/{**path}", ["GET", "POST", "PUT", "DELETE", "PATCH", "QUERY"], (HttpContext context, string path) => RefusedResponse(context, issues));
     }
 }

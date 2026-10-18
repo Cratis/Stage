@@ -12,10 +12,12 @@ internal static class SemanticReadModelBrowser
 {
     internal const string Route = "/stage/read-models";
 
-    internal static void Map(WebApplication app, ISemanticRuntime runtime, Func<bool> ready, Func<HttpContext, IResult?>? refusal = null)
+    internal static void Map(WebApplication app, ISemanticRuntime runtime, Func<bool> ready, Func<HttpContext, IResult?>? refusal = null, SemanticRuntimeAdmission? admission = null)
     {
-        app.MapGet(Route, (Func<HttpContext, Task<IResult>>)(context => List(context, runtime, ready, refusal)));
-        app.MapGet($"{Route}/{{id}}", (HttpContext context, string id) => Detail(context, id, runtime, ready, refusal));
+        var refusedModels = (admission ?? new SemanticRuntimeAdmission(runtime.Plan)).Entries
+            .Where(entry => entry.Kind == "readModel" && entry.Status == "unsupported").ToDictionary(entry => entry.Artifact, StringComparer.Ordinal);
+        app.MapGet(Route, (Func<HttpContext, Task<IResult>>)(context => List(context, runtime, ready, refusal, refusedModels)));
+        app.MapGet($"{Route}/{{id}}", (HttpContext context, string id) => Detail(context, id, runtime, ready, refusal, refusedModels));
     }
 
     internal static void MapEventModel(WebApplication app)
@@ -33,7 +35,7 @@ internal static class SemanticReadModelBrowser
         StageJson.Options,
         statusCode: StatusCodes.Status404NotFound);
 
-    static async Task<IResult> List(HttpContext context, ISemanticRuntime runtime, Func<bool> ready, Func<HttpContext, IResult?>? refusal)
+    static async Task<IResult> List(HttpContext context, ISemanticRuntime runtime, Func<bool> ready, Func<HttpContext, IResult?>? refusal, Dictionary<string, SemanticAdmissionEntry> refusedModels)
     {
         if (Unavailable(context, runtime, ready, refusal) is { } unavailable)
         {
@@ -47,6 +49,17 @@ internal static class SemanticReadModelBrowser
             {
                 foreach (var model in located.Slice.ReadModels)
                 {
+                    if (refusedModels.TryGetValue(model.Id.ToString(), out var refused))
+                    {
+                        models.Add(new
+                        {
+                            id = model.Id.ToString(), model.Name, module = module.Name,
+                            feature = located.Feature, slice = located.Slice.Name,
+                            properties = Properties(model, runtime.Plan.Model.Application), instances = (int?)null,
+                            unsupported = refused
+                        });
+                        continue;
+                    }
                     var instances = await runtime.ReadModels(model.Id);
                     models.Add(new
                     {
@@ -63,7 +76,7 @@ internal static class SemanticReadModelBrowser
         return Fault(runtime) ?? Results.Json(new { readModels = models }, StageJson.Options);
     }
 
-    static async Task<IResult> Detail(HttpContext context, string id, ISemanticRuntime runtime, Func<bool> ready, Func<HttpContext, IResult?>? refusal)
+    static async Task<IResult> Detail(HttpContext context, string id, ISemanticRuntime runtime, Func<bool> ready, Func<HttpContext, IResult?>? refusal, Dictionary<string, SemanticAdmissionEntry> refusedModels)
     {
         if (Unavailable(context, runtime, ready, refusal) is { } unavailable)
         {
@@ -72,6 +85,11 @@ internal static class SemanticReadModelBrowser
         if (!SemanticId.TryParse(id, out var identity) || !runtime.Plan.ReadModels.TryGetValue(identity, out var model))
         {
             return Results.NotFound();
+        }
+
+        if (refusedModels.TryGetValue(identity.ToString(), out var refused))
+        {
+            return SemanticHost.RefusedResponse(context, [new(refused.Capability!, refused.Artifact, refused.Details!)]);
         }
 
         var instances = await runtime.ReadModels(identity);

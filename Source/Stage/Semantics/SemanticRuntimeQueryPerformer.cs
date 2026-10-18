@@ -152,6 +152,11 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
             };
         }
 
+        if (SemanticPlanAdmission.Check(_runtime.Plan, _model.Id) is { } refusal)
+        {
+            throw UnsupportedResponse(refusal.Capability.ToString(), refusal.Details);
+        }
+
         var snapshot = await _runtime.ReadModels(_model.Id);
         if (_runtime is ISemanticRuntimeStatus { FaultReason: { } fault })
         {

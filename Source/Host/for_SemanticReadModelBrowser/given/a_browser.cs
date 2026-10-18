@@ -37,7 +37,7 @@ public class a_browser : a_routed_model
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("browser-model"), "browser-model", "Projects.play", ModelSource);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model, []);
         Assert.True(plan.Success, string.Join("; ", plan.Issues.Select(issue => issue.Details)));
         _facts = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         var tail = ulong.MaxValue;

@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
+using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -130,12 +131,21 @@ internal static partial class SemanticCratisAdmission
             SelectedConstraints(context, slices).Select(selected =>
                 ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
             rendersStringsCatalog: context.Strings is not null,
-            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices),
+            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices).Concat(ValidationTypes(context, slices)),
             commonNamespace: string.Join('.', context.Domain.Append("Common")),
             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
             selfReducing: context.SelfReducing);
+
+    static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
+    {
+        var descriptors = SemanticValidationContextRuntime.Selected(context, slices).ToArray();
+        if (descriptors.Length == 0) yield break;
+        var ns = string.Join('.', context.Domain.Append("TypedContexts"));
+        yield return (ns, "ValidationBodies");
+        foreach (var descriptor in descriptors) yield return (ns, SemanticValidationContextRuntime.Wrapper(descriptor));
+    }
 
     static void PassesPreconditions(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -168,7 +178,7 @@ internal static partial class SemanticCratisAdmission
     {
         // TypedContexts is reserved for reducer and policy runtime tokens and wrappers. A modeled
         // namespace with the same root path can rebind TenantId or Identity in unrelated artifacts.
-        if ((slices.Any(_ => !_.Slice.Reducers.IsEmpty) || UsesOpaquePolicies(context, slices)) && DeclaresTypedContexts(context))
+        if ((slices.Any(_ => !_.Slice.Reducers.IsEmpty) || UsesOpaquePolicies(context, slices) || SemanticValidationContextRuntime.Selected(context, slices).Any()) && DeclaresTypedContexts(context))
         {
             diagnostics.Add(Error("STAGE-ESM-022", "Generated namespace 'TypedContexts' shadows the reserved reducer and policy runtime namespace.", context.Request.Model.Application.Id));
         }

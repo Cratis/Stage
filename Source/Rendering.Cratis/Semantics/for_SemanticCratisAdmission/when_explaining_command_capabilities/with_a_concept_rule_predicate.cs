@@ -30,5 +30,5 @@ public class with_a_concept_rule_predicate : given.a_command_model
     }
 
     [Fact] void should_not_report_a_command_capability_diagnostic() => _diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-005" && diagnostic.Artifact == _command.Id).ShouldBeEmpty();
-    [Fact] void should_keep_the_concept_implementation_diagnostic() => _diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-005" && diagnostic.Artifact == _model.Application.Concepts.Single().Id);
+    [Fact] void should_keep_the_concept_implementation_diagnostic() => _diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Artifact == _model.Application.Concepts.Single().Id);
 }

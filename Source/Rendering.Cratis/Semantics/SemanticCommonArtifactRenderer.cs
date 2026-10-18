@@ -6,6 +6,7 @@ using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Stage.Rendering.Cratis.Renderers;
+using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -104,7 +105,7 @@ internal static class SemanticCommonArtifactRenderer
         }
 
         builder.Line($"public static implicit operator {name}({primitive} value) => new(value);").EndBlock();
-        RenderValidator(builder, concept, name, context.RootNamespace);
+        RenderValidator(builder, concept, name, context);
     }
 
     static bool NeedsFactory(SemanticConcept concept, SemanticApplicationContext context) =>
@@ -131,7 +132,7 @@ internal static class SemanticCommonArtifactRenderer
         SemanticGenerationRendering.RenderBody(builder, concept, context);
     }
 
-    static void RenderValidator(CSharpCodeBuilder builder, SemanticConcept concept, string name, string rootNamespace)
+    static void RenderValidator(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context)
     {
         if (concept.Validations.IsEmpty)
         {
@@ -146,7 +147,14 @@ internal static class SemanticCommonArtifactRenderer
             .OpenBlock($"public {name}Validator()");
         foreach (var rule in concept.Validations)
         {
-            SemanticValidationRendering.Render(builder, rule, "Value", concept.Primitive, false, true, rootNamespace: rootNamespace, typeBuilder: builder);
+            if (SemanticValidationContextRuntime.IsBody(rule))
+            {
+                SemanticValidationContextRuntime.RenderRule(builder, context, rule, concept.Id, null);
+            }
+            else
+            {
+                SemanticValidationRendering.Render(builder, rule, "Value", concept.Primitive, false, true, rootNamespace: context.RootNamespace, typeBuilder: builder);
+            }
         }
 
         builder.EndBlock();

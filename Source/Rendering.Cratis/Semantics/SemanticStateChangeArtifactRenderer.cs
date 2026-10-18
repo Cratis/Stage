@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -89,6 +90,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var results = new SemanticCommandResultRendering(command, context, locals);
 
         var severities = command.Validations.Select(rule => rule.Severity)
+            .Concat(command.CodeValidations.Select(_ => SemanticValidationSeverity.Error))
             .Concat(command.Requirements.Select(requirement => requirement.Severity))
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
@@ -272,7 +274,7 @@ internal static class SemanticStateChangeArtifactRenderer
 
         // A protected command evaluates its requirements inside Handle, with the decision reads, not in the parameterless validator.
         var requirements = command.Reads.IsDefaultOrEmpty ? command.Requirements : [];
-        if (command.Validations.IsEmpty && requirements.IsEmpty && constrained.Length == 0)
+        if (command.Validations.IsEmpty && command.CodeValidations.IsEmpty && requirements.IsEmpty && constrained.Length == 0)
         {
             return;
         }
@@ -287,7 +289,19 @@ internal static class SemanticStateChangeArtifactRenderer
             var property = command.Properties.Single(_ => _.Id == rule.Property);
             var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
             var wrapped = property.Type.Kind == SemanticTypeReferenceKind.Concept && !raw.Contains(property.Id);
-            SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context));
+            if (SemanticValidationContextRuntime.IsBody(rule))
+            {
+                SemanticValidationContextRuntime.RenderRule(builder, context, rule, command.Id, property);
+            }
+            else
+            {
+                SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context));
+            }
+        }
+
+        foreach (var validation in command.CodeValidations)
+        {
+            SemanticValidationContextRuntime.RenderIterator(builder, context, validation.RequirementId, command.Id);
         }
 
         foreach (var id in constrained)

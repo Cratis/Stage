@@ -19,8 +19,9 @@ public class with_a_rule_implementation_and_an_optional_event_property : given.a
 
     void Because() => Evaluate();
 
-    [Fact] void should_report_the_event_and_rule_body_in_one_pass() => Messages.ShouldEqual([
+    [Fact]
+    void should_report_the_event_and_rule_body_in_one_pass() => Messages.ShouldEqual([
         "Command 'IssueInvoice' event 'InvoiceIssued' property 'description' is optional; Cratis events have no optional properties. Make it required (in Studio's model board, tick 'Required' on the property) or remove it.",
-        "Command 'IssueInvoice' validation 'DescriptionIsValid' on property 'description' has implementation body 'description-rule' that cannot be rendered: Arc does not supply RuleContext.Occurred (received-at) to a generated validator, and Stage does not yet enforce the pure capability. Use equivalent declarative validation; implementation bodies are not supported yet (Cratis/Stage#409)."]);
-    [Fact] void should_keep_both_codes() => _diagnostics.ShouldEachConformTo(diagnostic => diagnostic.Code == "STAGE-ESM-005");
+        "Model implementation requirement 'description-rule' has no verified requirement/body."]);
+    [Fact] void should_keep_both_codes() => _diagnostics.Select(diagnostic => diagnostic.Code).ShouldEqual(["STAGE-ESM-005", "STAGE-ESM-020"]);
 }

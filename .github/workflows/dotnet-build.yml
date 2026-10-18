@@ -1,8 +1,8 @@
 name: .NET Build
 
 concurrency:
-  # An unrelated label event must neither start heavy jobs nor cancel an active PR run.
-  group: ${{ github.workflow }}-${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && github.run_id || github.ref }}
+  # Keep scheduled/manual runs independent; newer pushes still cancel older PR runs.
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -14,15 +14,19 @@ on:
   schedule:
     - cron: "17 3 * * *"
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    # Labels do not trigger skipped required checks. For full coverage:
+    # add ci:full, then re-run the dotnet-build workflow or push
+    types: [opened, synchronize, reopened]
     branches:
       - "**"
 
 jobs:
   routing:
-    if: github.event.action != 'labeled' || github.event.label.name == 'ci:full'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       reducer-mongo: ${{ steps.routes.outputs.reducer-mongo }}
       live-custom-packages: ${{ steps.routes.outputs.live-custom-packages }}
@@ -37,6 +41,8 @@ jobs:
 
       - name: Select lanes from the PR merge-base diff or full-run event
         id: routes
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python3 .github/ci-routing.py route
 
   preflight:
@@ -213,7 +219,7 @@ jobs:
   # or any spec shard fails or is skipped. The independent live/generated probe checks stay separate.
   build:
     needs: [preflight, dotnet-build, specs, routing]
-    if: always() && needs.routing.result != 'skipped'
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -608,7 +614,7 @@ jobs:
   # Require this check alongside build: a selected lane/step may not silently skip.
   routed-checks:
     needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates]
-    if: always() && needs.routing.result != 'skipped'
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -2,7 +2,10 @@
 # Copyright (c) Cratis. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-"""Select optional CI lanes, require their success, and report failed nightlies."""
+"""Select optional CI lanes, require their success, and report failed nightlies.
+
+For a full PR run: add ci:full, then re-run the dotnet-build workflow or push.
+"""
 
 import argparse
 from fnmatch import fnmatchcase
@@ -17,18 +20,12 @@ SHARED = (
     "Verification/verify-runtime-compatibility.py", "Verification/synchronize-rendered-pins.py",
     ".github/workflows/**", ".github/*.py",
 )
-# The matrix renders state changes/views/common types/constraints/specifications, compares
-# admission and execution, and compiles/import-rewrites against a restored scaffold.
+# Admission, emission and compilation transitively reach the whole renderer: routing
+# subfolders individually risks silently omitting dependencies as the implementation evolves.
 NAME_MATRIX = (
-    "Source/**/for_ThreeWayConformance/**",
-    "Source/Rendering.Cratis/Naming/**", "Source/Rendering.Cratis/Semantics/**",
-    "Source/Rendering.Cratis/CodeGeneration/**", "Source/Rendering.Cratis/Expressions/**",
-    "Source/Rendering.Cratis/Cratis*.cs", "Source/Rendering.Cratis/Scaffolding/**",
-    "Source/Rendering.Cratis.Scaffolding/**", "Source/Specifications/**",
-    "Source/Rendering.Cratis/for_CratisRenderer/**",
-    "Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/given/**",
-    "Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_rendering_a_pure_reducer.cs",
-    "Source/Conformance.Specs/Conformance.Specs.csproj", "Source/Rendering.Cratis/Rendering.Cratis.csproj",
+    "Source/Rendering.Cratis/**", "Source/Rendering.Cratis.Scaffolding/**",
+    "Source/Specifications/**", "Source/**/for_ThreeWayConformance/**",
+    "Source/Conformance.Specs/Conformance.Specs.csproj",
 )
 # There is no local Scene blueprint package: its implementation is pinned in the
 # frontend manifests/scaffold, with the shipped catalog and registration below.
@@ -38,10 +35,7 @@ BLUEPRINT_SOURCES = (
     "Source/Rendering.Cratis/Scaffolding/CratisFrontendPackageSet.cs",
 )
 TEMPLATE_RENDERERS = (
-    "Source/Rendering.Cratis/Scene/**", "Source/Rendering.Cratis/Scaffolding/**",
-    "Source/Rendering.Cratis/Cratis*.cs", "Source/Rendering.Cratis/Shipped/**",
-    "Source/Rendering.Cratis/for_GeneratedReactApplication/**",
-    "Source/Rendering.Cratis/Rendering.Cratis.csproj", "Source/Rendering.Cratis.Scaffolding/**",
+    "Source/Rendering.Cratis/**", "Source/Rendering.Cratis.Scaffolding/**",
     "Source/Frontend/Runtime/**", "Source/Frontend/package*.json",
     "Verification/generated-react-browser/**",
 )
@@ -73,12 +67,17 @@ def select_lanes(changed_paths, event, labels=()):
 def github_routes(event, payload):
     """Use both sides of renames/deletions relative to the PR merge base, not a path filter."""
     paths = []
+    labels = []
     if event == "pull_request":
         base = payload["pull_request"]["base"]["ref"]
         ancestor = subprocess.check_output(["git", "merge-base", f"origin/{base}", "HEAD"], text=True).strip()
         paths = subprocess.check_output(
             ["git", "diff", "--name-only", "--no-renames", "-z", ancestor, "HEAD"], text=True).split("\0")
-    labels = [label["name"] for label in payload.get("pull_request", {}).get("labels", [])]
+        # Reruns reuse the old event payload; query current labels so ci:full added
+        # after the original event still takes effect. API/parse errors fail routing.
+        current = json.loads(gh("pr", "view", str(payload["number"]),
+                                "--repo", os.environ["GITHUB_REPOSITORY"], "--json", "labels"))
+        labels = [label["name"] for label in current["labels"]]
     return select_lanes(paths, event, labels)
 
 
@@ -147,7 +146,7 @@ def dry_run_table():
         ("docs-only", ["Documentation/guide.md"], "pull_request", []),
         ("Source/Frontend only", ["Source/Frontend/src/main.tsx"], "pull_request", []),
         ("Source/Host only", ["Source/Host/Program.cs"], "pull_request", []),
-        ("Source/Rendering.Cratis only", ["Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.cs"], "pull_request", []),
+        ("Source/Rendering.Cratis only", ["Source/Rendering.Cratis/Renderers/TypeRenderer.cs"], "pull_request", []),
         ("Directory.Packages.props", ["Directory.Packages.props"], "pull_request", []),
         (".github/workflows only", [".github/workflows/publish.yml"], "pull_request", []),
         ("Verification/blueprint-templates only", ["Verification/blueprint-templates/model/templates.play"], "pull_request", []),

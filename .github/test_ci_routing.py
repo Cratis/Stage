@@ -50,9 +50,12 @@ class RoutingTests(unittest.TestCase):
     def test_host_frontend_and_renderer_paths_are_routed_independently(self):
         self.assertEqual({"reducer-mongo", "live-custom-packages"}, self.select("Source/Host/Program.cs"))
         self.assertEqual({"live-custom-packages"}, self.select("Source/Frontend/src/main.tsx"))
-        self.assertEqual({"reducer-mongo", "generated-name-matrix"},
-                         self.select("Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.cs"))
-        self.assertEqual({"reducer-mongo"}, self.select("Source/Rendering.Cratis/Renderers/TypeRenderer.cs"))
+        for folder in ("Semantics", "Renderers", "Specifications", "Types", "Emission", "Validation", "Authorization", "NewDependency"):
+            with self.subTest(folder=folder):
+                self.assertEqual({"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"},
+                                 self.select(f"Source/Rendering.Cratis/{folder}/Implementation.cs"))
+        self.assertEqual({"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"},
+                         self.select("Source/Rendering.Cratis.Scaffolding/Scaffold.cs"))
         self.assertEqual({"reducer-mongo", "live-custom-packages"}, self.select("Source/Stage/Runtime/Query.cs"))
 
     def test_live_probe_inputs_and_blueprint_pins(self):
@@ -94,25 +97,54 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(set(), self.select("Source/Hostile/Program.cs", "docs/global.json.example"))
 
     def test_github_diff_uses_merge_base_and_both_rename_paths(self):
-        payload = {"pull_request": {"base": {"ref": "main"}, "labels": []}}
-        with patch("subprocess.check_output", side_effect=["abc\n", "Source/Host/Old.cs\0Documentation/New.md\0"]) as run:
+        payload = {"number": 562, "pull_request": {"base": {"ref": "main"}, "labels": []}}
+        responses = ["abc\n", "Source/Host/Old.cs\0Documentation/New.md\0", '{"labels": []}']
+        with patch.dict(os.environ, GITHUB_REPOSITORY="Cratis/Stage"), \
+                patch("subprocess.check_output", side_effect=responses) as run:
             self.assertEqual({"reducer-mongo", "live-custom-packages"}, CI["github_routes"]("pull_request", payload))
         self.assertEqual(["git", "merge-base", "origin/main", "HEAD"], run.call_args_list[0].args[0])
         self.assertEqual(["git", "diff", "--name-only", "--no-renames", "-z", "abc", "HEAD"], run.call_args_list[1].args[0])
-        with patch("subprocess.check_output") as run:
-            self.assertEqual(ALL, CI["github_routes"]("schedule", {}))
-            run.assert_not_called()
+        self.assertEqual(["gh", "pr", "view", "562", "--repo", "Cratis/Stage", "--json", "labels"], run.call_args_list[2].args[0])
+        for event in ("schedule", "workflow_dispatch"):
+            with patch("subprocess.check_output") as run:
+                self.assertEqual(ALL, CI["github_routes"](event, {}))
+                run.assert_not_called()
 
-    def test_workflow_runs_docs_and_ignores_unrelated_label_events_without_cancellation(self):
+    def test_reruns_use_current_api_labels_instead_of_stale_event_labels(self):
+        for old, current, expected in (([], [{"name": "patch"}, {"name": "ci:full"}], ALL),
+                                       ([{"name": "ci:full"}], [{"name": "patch"}], set())):
+            payload = {"number": 562, "pull_request": {"base": {"ref": "main"}, "labels": old}}
+            responses = ["abc\n", "Documentation/guide.md\0", json.dumps({"labels": current})]
+            with self.subTest(current=current), patch.dict(os.environ, GITHUB_REPOSITORY="Cratis/Stage"), \
+                    patch("subprocess.check_output", side_effect=responses):
+                self.assertEqual(expected, CI["github_routes"]("pull_request", payload))
+
+    def test_label_lookup_failure_or_malformed_response_fails_routing(self):
+        payload = {"number": 562, "pull_request": {"base": {"ref": "main"}, "labels": []}}
+        for response, error in ((RuntimeError("GitHub unavailable"), RuntimeError),
+                                ("not JSON", ValueError), ("{}", KeyError),
+                                ('{"labels": [{}]}', KeyError)):
+            with self.subTest(response=response), patch.dict(os.environ, GITHUB_REPOSITORY="Cratis/Stage"), \
+                    patch("subprocess.check_output", side_effect=["abc\n", "Documentation/guide.md\0", response]), \
+                    self.assertRaises(error):
+                CI["github_routes"]("pull_request", payload)
+
+    def test_workflow_runs_docs_without_label_triggers_and_separates_event_concurrency(self):
         triggers = WORKFLOW.split("jobs:\n", 1)[0]
         self.assertNotIn("paths:", triggers)
         self.assertEqual(1, triggers.count("- cron:"))
-        self.assertIn("types: [opened, synchronize, reopened, labeled]", triggers)
-        self.assertIn("github.event.action == 'labeled' && github.event.label.name != 'ci:full' && github.run_id || github.ref", triggers)
-        self.assertIn("if: github.event.action != 'labeled' || github.event.label.name == 'ci:full'", JOBS["routing"])
+        self.assertIn("types: [opened, synchronize, reopened]", triggers)
+        self.assertNotIn("labeled", triggers)
+        self.assertIn("group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}", triggers)
+        self.assertIn("cancel-in-progress: true", triggers)
+        usage = "add ci:full, then re-run the dotnet-build workflow or push"
+        self.assertIn(usage, triggers)
+        self.assertIn(usage, CI["__doc__"])
         self.assertIn("fetch-depth: 0", JOBS["routing"])
+        self.assertIn("pull-requests: read", JOBS["routing"])
+        self.assertIn("GH_TOKEN: ${{ github.token }}", JOBS["routing"])
         self.assertIn("needs: routing", JOBS["preflight"])
-        for job in ("preflight", "dotnet-build", "specs", "generated-react"):
+        for job in ("routing", "preflight", "dotnet-build", "specs", "generated-react"):
             self.assertNotRegex(JOBS[job], r"^    if:", job)
         for lane in ALL - {"live-custom-packages", "live-blueprints"}:
             self.assertIn(f"if: needs.routing.outputs.{lane} == 'true'", JOBS[lane])
@@ -123,7 +155,8 @@ class RoutingTests(unittest.TestCase):
                            ("blueprints", "live-blueprints"), ("templates", "live-blueprints")):
             self.assertIn(f"id: {step}\n        if: needs.routing.outputs.{lane} == 'true'", live)
             self.assertIn(f"${{{{ steps.{step}.outcome }}}}", live)
-        self.assertIn("if: always() && needs.routing.result != 'skipped'", JOBS["routed-checks"])
+        for job in ("build", "routed-checks"):
+            self.assertIn("    if: always()\n", JOBS[job])
         self.assertIn("NEEDS_JSON: ${{ toJson(needs) }}", JOBS["routed-checks"])
         for job in ("routing", "reducer-mongo", "generated-name-matrix", "live-custom-packages",
                     "generated-react", "generated-react-blueprint-templates"):
@@ -138,6 +171,7 @@ class RoutingTests(unittest.TestCase):
             CI["dry_run_table"]()
         self.assertEqual(11, len(output.getvalue().splitlines()))
         self.assertIn("ci:full | yes | yes | yes | yes | yes", output.getvalue())
+        self.assertIn("Source/Rendering.Cratis only | yes | no | no | yes | yes", output.getvalue())
 
 
 class RequiredChecksTests(unittest.TestCase):

@@ -152,12 +152,7 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
             };
         }
 
-        var snapshot = await _runtime.ReadModels(_model.Id);
-        if (_runtime is ISemanticRuntimeStatus { FaultReason: { } fault })
-        {
-            throw UnsupportedWorld(fault);
-        }
-
+        var snapshot = await Snapshot();
         IReadOnlyList<object> instances = [.. snapshot.Select(Convert)];
         if (_byId)
         {
@@ -173,6 +168,22 @@ internal sealed class SemanticRuntimeQueryPerformer : IQueryPerformer
         }
 
         return instances;
+    }
+
+    async Task<ImmutableArray<SemanticReadModelInstance>> Snapshot()
+    {
+        if (SemanticPlanAdmission.Check(_runtime.Plan, _model.Id) is { } refusal)
+        {
+            throw UnsupportedResponse(refusal.Capability.ToString(), refusal.Details);
+        }
+
+        var snapshot = await _runtime.ReadModels(_model.Id);
+        if (_runtime is ISemanticRuntimeStatus { FaultReason: { } fault })
+        {
+            throw UnsupportedWorld(fault);
+        }
+
+        return snapshot;
     }
 
     SemanticValue Key(QueryContext context)

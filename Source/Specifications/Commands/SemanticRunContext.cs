@@ -101,27 +101,49 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken) =>
         Append(fact, destination, AuthoredOccurrence, cancellationToken);
 
-    internal async Task Append(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred, CancellationToken cancellationToken)
+    internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        return Append(Prepare(fact, destination, occurred), cancellationToken);
+    }
+
+    internal SemanticPreparedFact Prepare(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred)
+    {
         var instance = runtimeTypes.Materialize(fact);
         var source = StorageKey(destination);
         var route = SemanticRunRoutes.Format(plan, fact.Route);
-        var result = await eventLog.Append(
-            new EventSourceId(source),
+
+        return new(
+            fact,
+            destination,
             instance,
-            eventStreamType: route is null ? EventStreamType.All : new EventStreamType(route.StreamKind),
-            eventStreamId: route?.StreamId is null ? EventStreamId.Default : new EventStreamId(route.StreamId),
-            eventSourceType: route is null ? EventSourceType.Default : new EventSourceType(route.SourceKind),
-            occurred: occurred ?? Occurred);
+            new EventSourceId(source),
+            route is null ? EventStreamType.All : new EventStreamType(route.StreamKind),
+            route?.StreamId is null ? EventStreamId.Default : new EventStreamId(route.StreamId),
+            route is null ? EventSourceType.Default : new EventSourceType(route.SourceKind),
+            occurred);
+    }
+
+    internal async Task Append(SemanticPreparedFact prepared, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var fact = prepared.Fact;
+        var result = await eventLog.Append(
+            prepared.Source,
+            prepared.Instance,
+            eventStreamType: prepared.StreamType,
+            eventStreamId: prepared.StreamId,
+            eventSourceType: prepared.SourceType,
+            occurred: prepared.Occurred ?? Occurred);
         if (!result.IsSuccess)
         {
             throw new SemanticAppendFailed($"The in-memory append for '{fact.EventContract}' failed: {string.Join(", ", result.Errors)}");
         }
 
         _facts.Add(fact);
-        _destinations.Add(destination);
-        _occurrences.Add(occurred);
+        _destinations.Add(prepared.Destination);
+        _occurrences.Add(prepared.Occurred);
     }
 
     internal bool TryResolveRoute(out StreamIdFormatFailure failure)

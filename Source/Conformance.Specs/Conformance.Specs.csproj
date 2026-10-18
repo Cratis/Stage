@@ -8,6 +8,7 @@
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <ProjectReference Include="../Rendering.Cratis/Rendering.Cratis.csproj" />
         <ProjectReference Include="../Specifications/Specifications.csproj" />
+        <Compile Include="../Specifications/for_SemanticSpecificationExecutor/given/refused_read_keys.cs" Link="for_CanonicalCorpusConformance/given/refused_read_keys.cs" />
         <!-- The Host's admission is internal; the Host grants this assembly InternalsVisibleTo so the matrix runs the shipped code, not a copy. -->
         <ProjectReference Include="../Host/Host.csproj" />
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />

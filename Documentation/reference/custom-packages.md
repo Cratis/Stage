@@ -85,7 +85,7 @@ package imports must be bundled into its module. A Stage handed no set renders t
 The Stage ships `core`, `scene.web`, `Cratis.Components`, `PrimeReact` and `Cratis.Blueprint.Default`; their declarations are generated
 from the real package manifests by `Source/Frontend/src/shippedPackages.spec.ts` (which fails when the checked-in
 `Rendering.Cratis/Shipped/ShippedPackages.json` is stale), so the catalog a `ui profile` is resolved against is the one the frontend renders with.
-A domain blueprint - `@cratis/scene.blueprint.crm`, `.ticketing`, `.approvals`, `.inventory`, `.hr`, `.project-tracker`, `.administration` - therefore
+A domain blueprint - `@cratis/scene.blueprint.crm`, `.ticketing`, `.approvals`, `.inventory`, `.hr`, `.project-tracker`, `.administration`, `.orders`, `.catalog`, `.vendors`, `.invoicing`, `.customer-portal`, `.contracts`, `.work-orders`, `.bookings` - therefore
 only needs approving itself: its dependency on `Cratis.Blueprint.Default` is already satisfied.
 
 The approved set accepts a blueprint manifest as published. Its `blueprint` and `sampleData` members are design-time only and are dropped from the

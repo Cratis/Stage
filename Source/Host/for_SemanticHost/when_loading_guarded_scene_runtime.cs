@@ -5,6 +5,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Semantics;
 using Microsoft.AspNetCore.Routing;
 using Xunit;
 
@@ -40,7 +41,8 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
         var issues = new List<StageUnsupportedIssue>();
         var scene = await LoadScene(engine, issues);
         await using var app = WebApplication.CreateBuilder().Build();
-        SemanticHost.MapSceneEndpoints(app, scene!, _path);
+        var model = await SemanticModelLoader.LoadFromPathAsync(_path);
+        SemanticHost.MapSceneEndpoints(app, scene!, _path, model.Model);
         var pipeline = new ApplicationBuilder(app.Services);
         pipeline.UseRouting();
         pipeline.UseEndpoints(endpoints =>
@@ -61,6 +63,9 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
         routesResponse.Status.ShouldEqual(StatusCodes.Status200OK);
         routesResponse.Body.ShouldContain("commands");
         routesResponse.Body.ShouldContain("queries");
+        using var routesDocument = System.Text.Json.JsonDocument.Parse(routesResponse.Body);
+        routesDocument.RootElement.GetProperty("commandSchemas").GetProperty("RegisterProject").GetString()!
+            .ShouldEqual(CommandFormSchemas.For(model.Model.Application, SemanticModelWalker.Slices(model.Model).SelectMany(slice => slice.Slice.Commands).Single(command => command.Name == "RegisterProject").Properties));
         localesResponse.Status.ShouldEqual(StatusCodes.Status200OK);
     }
 

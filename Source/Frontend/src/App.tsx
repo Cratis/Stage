@@ -44,7 +44,7 @@ import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettin
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
 import { bindDataSources } from './stageDataSources';
 import { navigateToScreen, screenArguments } from './stageNavigation';
-import { executeStageCommand } from './stageCommands';
+import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
 import './app.css';
@@ -331,7 +331,7 @@ function StageScope({ scene, routeState, strings, navigation, themes, shellSetti
             {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
             <ColorSchemeMirror />
             <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
-                <StageInteractions activity={activity} routes={routeState.routes} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
+                <StageInteractions activity={activity} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
                     {children}
                 </StageInteractions>
             </StageDataProvider>
@@ -341,7 +341,6 @@ function StageScope({ scene, routeState, strings, navigation, themes, shellSetti
 
 interface StageInteractionsProps {
     activity: string;
-    routes: ReturnType<typeof useStageRouteState>['routes'];
     routesReady: boolean;
     scene: StageSceneApplication;
     setActivity: (activity: string) => void;
@@ -349,28 +348,29 @@ interface StageInteractionsProps {
     children: ReactNode;
 }
 
-function StageInteractions({ activity, routes, routesReady, scene, setActivity, strings, children }: StageInteractionsProps) {
+function StageInteractions({ activity, routesReady, scene, setActivity, strings, children }: StageInteractionsProps) {
     const data = useStageData();
     const navigation = useSceneNavigation();
-    const invoker = useMemo(() => createStageSliceInvoker(routes, routesReady, data.refreshAfterCommand), [routes, routesReady, data.refreshAfterCommand]);
+    const executeCommand = useStageCommandExecutor();
+    const invoker = useMemo(() => createStageSliceInvoker(executeCommand, routesReady, data.refreshAfterCommand), [executeCommand, routesReady, data.refreshAfterCommand]);
     const fieldsFor = useMemo(() => sliceFieldsFrom(scene.commandSchemas), [scene.commandSchemas]);
 
     // Everything a document's interactions can do, pointed at the running application. The engine decides
     // what runs; this only says where a command goes and what a notification looks like.
     const dispatcher = createBrowserDispatcher({
         executeCommand: async (command, args): Promise<CommandOutcome> => {
-            const route = routes?.commands[command];
-            if (!route && !routesReady) {
+            const commandType = registeredCommand(command);
+            if (!commandType && !routesReady) {
                 setActivity(`The modeled command “${command}” is waiting for Stage routes.`);
                 return { isSuccess: false, validationErrors: [] };
             }
 
-            if (!route) {
+            if (!commandType) {
                 setActivity(`The modeled command “${command}” is not registered by this Stage.`);
                 return { isSuccess: false, validationErrors: [] };
             }
 
-            const outcome = await executeStageCommand(command, route, args);
+            const outcome = await executeCommand(command, args);
             if (outcome.messages.length > 0) setActivity(outcome.messages.join(' '));
             if (outcome.isSuccess) data.refreshAfterCommand();
             return { isSuccess: outcome.isSuccess, validationErrors: outcome.validationErrors, response: outcome.response };

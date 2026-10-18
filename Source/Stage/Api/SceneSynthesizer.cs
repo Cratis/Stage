@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Scene;
@@ -76,14 +77,17 @@ public static class SceneSynthesizer
     {
         var slices = SemanticModelWalker.Slices(model).ToArray();
         var readModels = slices.SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
+        var diagnostics = new ConversionDiagnostics();
         var commands = slices
             .SelectMany(located => located.Slice.Commands)
             .GroupBy(command => command.Name, StringComparer.Ordinal)
-            .ToDictionary(
-                group => group.Key,
-                group => CommandFormRuntimeMetadata.FromSchema(group.Key, CommandFormSchemas.For(model.Application, group.First().Properties)),
-                StringComparer.Ordinal);
-        var enriched = CommandFormRuntimeMetadata.Apply(scene, commands);
+            .Select(group => (Name: group.Key, Schema: CommandFormSchemas.For(model.Application, group.First().Properties, diagnostics, group.Key, SourceLocation.Start)))
+            .Where(entry => entry.Schema is not null)
+            .ToDictionary(entry => entry.Name, entry => CommandFormRuntimeMetadata.FromSchema(entry.Name, entry.Schema!), StringComparer.Ordinal);
+        var enriched = CommandFormRuntimeMetadata.Apply(scene, commands) with
+        {
+            ConversionDiagnostics = [.. scene.ConversionDiagnostics, .. diagnostics.All]
+        };
 
         return Synthesize(enriched, slices.Select(located =>
         {
@@ -98,7 +102,7 @@ public static class SceneSynthesizer
                 readModel?.Name,
                 readModel is null ? null : SemanticSchemas.Schema(readModel.Properties, model.Application),
                 command?.Name,
-                command is null ? null : commands[command.Name]));
+                command is null ? null : commands.GetValueOrDefault(command.Name)));
         }));
     }
 

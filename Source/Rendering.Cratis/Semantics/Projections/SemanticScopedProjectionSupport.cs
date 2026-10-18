@@ -70,6 +70,8 @@ internal static class SemanticScopedProjectionSupport
     {
         (SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }, SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }) => true,
         (SemanticProjectionValueKey { Value: SemanticProjectionEventProperty a }, SemanticProjectionValueKey { Value: SemanticProjectionEventProperty b }) => a.Path.SequenceEqual(b.Path),
+        (SemanticProjectionPartsKey a, SemanticProjectionPartsKey b) => a.Parts.Length == b.Parts.Length && a.Parts.All(part => b.Parts.Any(other =>
+            other.Property == part.Property && part.Value is SemanticProjectionEventProperty left && other.Value is SemanticProjectionEventProperty right && left.Path.SequenceEqual(right.Path))),
         _ => false
     };
 
@@ -285,6 +287,8 @@ internal static class SemanticScopedProjectionSupport
 
         bool IsRoot => !child && !isNested;
 
+        bool IsCompositeRoot => IsRoot && properties.Count(property => property.IsIdentifier) > 1;
+
         static bool SharesTargetPrefix(SemanticProjectionMapping mapping, SemanticProjectionMapping literal)
         {
             var length = Math.Min(mapping.Target.Length, literal.Target.Length);
@@ -326,7 +330,7 @@ internal static class SemanticScopedProjectionSupport
                 return identity;
             }
 
-            return isNested ? null : properties.Single(_ => _.IsIdentifier).Id;
+            return isNested || IsCompositeRoot ? null : properties.Single(_ => _.IsIdentifier).Id;
         }
 
         string? ChronicleLimitRejection()
@@ -502,14 +506,17 @@ internal static class SemanticScopedProjectionSupport
             }
 
             var everyLiterals = EveryLiterals();
-            return scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals), properties, context, _protectedIdentity))
+
+            // A composite root key establishes every key part itself, so the parts are not left for the mappings.
+            var required = IsCompositeRoot ? [.. properties.Where(property => !property.IsIdentifier)] : properties;
+            return scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals), required, context, _protectedIdentity))
                 ? null
                 : "At least one from block must establish the required read-model properties.";
         }
 
         bool FromSupported(SemanticProjectionFrom from) =>
             context.Events.TryGetValue(from.EventContract, out var @event) &&
-            (KeySupported(from.Key, @event, context) || (IsRoot && ConstantKeySupported(from.Key))) &&
+            (KeySupported(from.Key, @event, context) || (IsRoot && ConstantKeySupported(from.Key)) || PartsKeySupported(from.Key, @event)) &&
             !ParentKeyUnsupported(from.ParentKey, @event) &&
             MappingsSupported(
                 from.Mappings,
@@ -543,8 +550,12 @@ internal static class SemanticScopedProjectionSupport
 
         bool RemovalSupported(SemanticProjectionRemoval removal) =>
             context.Events.TryGetValue(removal.EventContract, out var @event) &&
-            KeySupported(removal.Key, @event, context) &&
+            (KeySupported(removal.Key, @event, context) || PartsKeySupported(removal.Key, @event)) &&
             !ParentKeyUnsupported(removal.ParentKey, @event);
+
+        bool PartsKeySupported(SemanticProjectionKey key, SemanticEventContract @event) =>
+            IsCompositeRoot && key is SemanticProjectionPartsKey parts &&
+            parts.Parts.All(part => part.Value is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context));
 
         bool JoinRemovalSupported(SemanticProjectionJoinRemoval joinRemoval) =>
             context.Events.TryGetValue(joinRemoval.EventContract, out var @event) &&

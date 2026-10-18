@@ -140,9 +140,14 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticQueryKeyPart.Name", "STAGE-ESM-047")]
     [InlineData("SemanticQueryKeyPart.Type", "STAGE-ESM-047")]
     [InlineData("SemanticQueryKeyPart.KeyProperty", "STAGE-ESM-047")]
-    [InlineData("SemanticProjectionPartsKey.Parts", "STAGE-ESM-048")]
-    [InlineData("SemanticProjectionKeyKind.Parts", "STAGE-ESM-048")]
-    public void should_keep_composite_read_model_keys_refused(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+    public void should_keep_key_parts_lookups_refused(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+
+    [Theory]
+    [InlineData("SemanticProjectionPartsKey.Parts")]
+    [InlineData("SemanticProjectionKeyKind.Parts")]
+    [InlineData("SemanticProjectionKeyPart.Property")]
+    [InlineData("SemanticProjectionKeyPart.Value")]
+    public void should_render_composite_read_model_keys(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     static bool IsDiagnosticCode(string code) =>
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||

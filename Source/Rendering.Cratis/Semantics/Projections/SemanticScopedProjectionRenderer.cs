@@ -32,7 +32,9 @@ internal static class SemanticScopedProjectionRenderer
             .Line("/// <param name=\"builder\">The projection builder.</param>")
             .OpenBlock($"public void Define(global::Cratis.Chronicle.Projections.IProjectionBuilderFor<{modelName}> builder)")
             .Line("builder.NoAutoMap();");
-        RenderScope(builder, scope, context, readModel.Properties, "builder", readModel.Properties.Single(property => property.IsIdentifier));
+        var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
+        CompositeKey? composite = identifiers.Length > 1 ? new(SemanticCompositeKeyAdmission.KeyTypeName(readModel), identifiers) : null;
+        RenderScope(builder, scope, context, readModel.Properties, "builder", identifiers.Length == 1 ? identifiers[0] : null, composite);
         builder.EndBlock().EndBlock();
         var source = builder.ToString();
 
@@ -49,7 +51,8 @@ internal static class SemanticScopedProjectionRenderer
         SemanticApplicationContext context,
         IReadOnlyList<SemanticProperty> properties,
         string receiver,
-        SemanticProperty? rootIdentifier = null)
+        SemanticProperty? rootIdentifier = null,
+        CompositeKey? composite = null)
     {
         foreach (var from in scope.From)
         {
@@ -57,10 +60,20 @@ internal static class SemanticScopedProjectionRenderer
             var eventName = new SemanticTypeSystem(context).EventType(@event);
             code.OpenBlock($"{receiver}.From<{eventName}>(from =>")
                 .Line("// Explicit mappings preserve the bound projection; no event-to-model AutoMap is inferred.");
-            RenderKey(code, from.Key, @event, context, "from", "UsingKey");
+            RenderKey(code, from.Key, @event, context, "from", "UsingKey", composite, properties);
             if (from.ParentKey is not null)
             {
                 RenderKey(code, from.ParentKey, @event, context, "from", "UsingParentKey");
+            }
+
+            // The key record carries the identity Chronicle stores; the declared key properties keep their own values for queries.
+            if (composite is not null && from.Key is SemanticProjectionPartsKey parts)
+            {
+                foreach (var part in parts.Parts.Where(part => part.Value is SemanticProjectionEventProperty))
+                {
+                    var target = Identifiers.ToPascalCase(properties.Single(property => property.Id == part.Property).Name);
+                    code.Line($"from.Set(model => model.{target}).To(evt => evt.{Path(((SemanticProjectionEventProperty)part.Value).Path, @event.Properties, context)});");
+                }
             }
 
             // Chronicle stores the root key separately from the record's identifier property.
@@ -120,7 +133,7 @@ internal static class SemanticScopedProjectionRenderer
         {
             var @event = context.Events[removal.EventContract];
             code.OpenBlock($"{receiver}.RemovedWith<{new SemanticTypeSystem(context).EventType(@event)}>(removed =>");
-            RenderKey(code, removal.Key, @event, context, "removed", "UsingKey");
+            RenderKey(code, removal.Key, @event, context, "removed", "UsingKey", composite, properties);
             if (removal.ParentKey is not null)
             {
                 RenderKey(code, removal.ParentKey, @event, context, "removed", "UsingParentKey");
@@ -169,9 +182,29 @@ internal static class SemanticScopedProjectionRenderer
         return mappings.Where(mapping => !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals);
     }
 
-    static void RenderKey(CSharpCodeBuilder code, SemanticProjectionKey key, SemanticEventContract @event, SemanticApplicationContext context, string receiver, string method)
+    static void RenderKey(
+        CSharpCodeBuilder code,
+        SemanticProjectionKey key,
+        SemanticEventContract @event,
+        SemanticApplicationContext context,
+        string receiver,
+        string method,
+        CompositeKey? composite = null,
+        IReadOnlyList<SemanticProperty>? properties = null)
     {
-        if (key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty property })
+        if (key is SemanticProjectionPartsKey partsKey && composite is not null && properties is not null)
+        {
+            code.OpenBlock($"{receiver}.UsingCompositeKey<{composite.TypeName}>(key =>");
+            foreach (var part in partsKey.Parts)
+            {
+                var target = Identifiers.ToPascalCase(properties.Single(property => property.Id == part.Property).Name);
+                var source = (SemanticProjectionEventProperty)part.Value;
+                code.Line($"key.Set(part => part.{target}).To(evt => evt.{Path(source.Path, @event.Properties, context)});");
+            }
+
+            code.EndBlock().Line(");");
+        }
+        else if (key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty property })
         {
             code.Line($"{receiver}.{method}(evt => evt.{Path(property.Path, @event.Properties, context)});");
         }
@@ -210,6 +243,8 @@ internal static class SemanticScopedProjectionRenderer
             code.Line($"{receiver}.{expression};");
         }
     }
+
+    sealed record CompositeKey(string TypeName, IReadOnlyList<SemanticProperty> Parts);
 
     static string Literal(SemanticProjectionLiteral literal, System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
     {

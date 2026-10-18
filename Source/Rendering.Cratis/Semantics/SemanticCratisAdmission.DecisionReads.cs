@@ -29,8 +29,8 @@ internal static partial class SemanticCratisAdmission
             var path = (SemanticReadPathExpression)mapping.Source;
             var viewProperty = scope.Property(path.Read, path.PropertyId);
             var eventProperty = context.Events.TryGetValue(produced.EventContract, out var @event) ? @event.Properties.FirstOrDefault(property => property.Id == mapping.TargetProperty) : null;
-            if (viewProperty is null || eventProperty is null || viewProperty.Type.IsOptional || viewProperty.Type.IsCollection ||
-                viewProperty.Type.Kind == SemanticTypeReferenceKind.CompositeType || viewProperty.Type != eventProperty.Type)
+            if (viewProperty is null || eventProperty is null || viewProperty.Type.IsOptional ||
+                viewProperty.Type != eventProperty.Type)
             {
                 var label = viewProperty is null ? $"read path '{path.Read}'" : $"read path '{path.Read}.{viewProperty.Name}'";
                 diagnostics.Add(DecisionRead(command, $"maps {label} to an event property with a different, optional, collection or composite type; the reference yields null for a missing value and Arc has no faithful shape for it. Map a required value of the same type."));

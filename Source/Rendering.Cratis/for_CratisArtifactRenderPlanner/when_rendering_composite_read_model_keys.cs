@@ -12,12 +12,11 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public class when_refusing_composite_read_model_keys : Specification
+public class when_rendering_composite_read_model_keys : Specification
 {
     ExecutableSemanticModel _model = null!;
     SemanticSlice _slice = null!;
     ArtifactRenderPlan _application = null!;
-    ArtifactRenderPlan _scoped = null!;
     Exception? _error;
 
     void Establish()
@@ -29,7 +28,6 @@ public class when_refusing_composite_read_model_keys : Specification
     void Because() => _error = Catch.Exception(() =>
     {
         _application = Plan(new(ArtifactRenderScopeKind.Application, _model.Application.Id));
-        _scoped = Plan(new(ArtifactRenderScopeKind.Slice, _slice.Id));
     });
 
     [Fact] void should_not_throw() => _error.ShouldBeNull();

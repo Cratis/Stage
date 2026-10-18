@@ -195,7 +195,8 @@ internal static class SemanticScopedProjectionRenderer
         if (key is SemanticProjectionPartsKey partsKey && composite is not null && properties is not null)
         {
             code.OpenBlock($"{receiver}.UsingCompositeKey<{composite.TypeName}>(key =>");
-            foreach (var part in partsKey.Parts)
+            var ordered = SemanticStateViewArtifactRenderer.OrderedProperties(properties.Where(property => property.IsIdentifier)).Select(property => property.Id).ToList();
+            foreach (var part in partsKey.Parts.OrderBy(part => ordered.IndexOf(part.Property)))
             {
                 var target = Identifiers.ToPascalCase(properties.Single(property => property.Id == part.Property).Name);
                 var source = (SemanticProjectionEventProperty)part.Value;

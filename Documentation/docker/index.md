@@ -190,8 +190,8 @@ At v27 the semantic engine runs read models with several `key` parts: instances 
 and a single-instance query by parts takes one parameter per part, validated against its concept like a single key.
 Such a read model has no conventional `Get<ReadModel>ById` query, and the read-model browser shows each key as an
 object keyed by part name. The renderer emits such a read model with a synthetic `Id` key record holding the parts and a
-`UsingCompositeKey` projection, and refuses shapes it cannot express (joins, children, optional or non-primitive parts,
-incomplete `parts` keys) with `STAGE-ESM-048`. It refuses a single-instance query by parts with `STAGE-ESM-047` until
+`UsingCompositeKey` projection, and refuses shapes it cannot express (reducers and flat projections, joins, children, `every`,
+optional, date-time or non-primitive parts, incomplete `parts` keys) with `STAGE-ESM-048`. It refuses a single-instance query by parts with `STAGE-ESM-047` until
 Chronicle can look up an instance by a composite key (Chronicle#4265); the legacy engine refuses the read model with
 `STAGE-ESM-048`.
 At v26 the semantic engine executes Date/DateTime ordering and instant equality in command requirements,

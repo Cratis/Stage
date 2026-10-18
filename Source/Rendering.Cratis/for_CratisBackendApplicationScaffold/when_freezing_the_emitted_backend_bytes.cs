@@ -14,15 +14,15 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    const string FrozenDigest = "6628a7d9d72821e5824c4c151f2504ca74956eb8f125d820455a1e958cff5bb9";
+    const string FrozenDigest = "f24b61fe9eb735a1f41a992d172595451d0cc1ce586bf28c01f1acc5f43fb1cc";
 
     string _digest = null!;
 
     void Because() => _digest = Digest(_first);
 
-    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("a2e43aa7bfafd95dee94bf65631f2e09c28924b6bf38e244e535d907aaf53b4b");
+    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("a3481f9ada5a10518b1deed2d98fdc497ac8ce6c6003c81103ace7f5788e82b3");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
-    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("8be112259fe445493964fed0fe105fd88f36111c8bc25ed99a940ba63ec13515");
+    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("19651554c03b46359ae6f44fbd5784e9bc90313ebb23ba28d6a4e9b152c2c890");
 
     static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false)
     {

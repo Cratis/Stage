@@ -148,6 +148,9 @@ internal static partial class SemanticCratisAdmission
                 diagnostics.Add(CommandCapability(command, $"{label} cannot be rendered: {reason}"));
             }
 
+            // A protected command's requirements are guards in Handle, which runs after Arc's graph validation: request concepts fail first, then the reads, then the requirements.
+            if (!command.Reads.IsEmpty) continue;
+
             foreach (var property in command.Properties.Where(property => !property.IsGenerated && HasValidatedConcept(context, property.Type, [])))
             {
                 diagnostics.Add(CommandCapability(command, $"{label} is combined with validated concept property '{property.Name}'; Arc graph validation and command guards cannot preserve the reference evaluator's failure order. Model equivalent rules at one validation level, or keep this combination unsupported (Cratis/Stage#409)."));

@@ -66,10 +66,13 @@ internal static class SemanticJsonValues
 
         return [.. properties.Select(property => new SemanticPropertyValue(
             property.Id,
-            CommandPayloadValues.Lookup(payload, property.Name) is { } value ? Bind(value, property.Type, model) : SemanticValue.Null))];
+            CommandPayloadValues.Lookup(payload, property.Name) is { } value ? Bind(value, property.Type, model, property.Name) : SemanticValue.Null))];
     }
 
-    internal static SemanticValue Bind(JsonElement value, SemanticTypeReference type, ExecutableSemanticModel model)
+    internal static SemanticValue Bind(JsonElement value, SemanticTypeReference type, ExecutableSemanticModel model) =>
+        Bind(value, type, model, string.Empty);
+
+    static SemanticValue Bind(JsonElement value, SemanticTypeReference type, ExecutableSemanticModel model, string path)
     {
         if (value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
         {
@@ -79,7 +82,7 @@ internal static class SemanticJsonValues
         if (type.IsCollection)
         {
             return value.ValueKind == JsonValueKind.Array
-                ? SemanticValue.Array([.. value.EnumerateArray().Select(item => Bind(item, type with { IsCollection = false }, model))])
+                ? SemanticValue.Array([.. value.EnumerateArray().Select(item => Bind(item, type with { IsCollection = false }, model, path))])
                 : BindUntyped(value);
         }
 
@@ -93,11 +96,25 @@ internal static class SemanticJsonValues
                 throw new UnsupportedSemanticValue($"Unknown composite property '{unknown}'.");
             }
 
-            return SemanticValue.Composite(Bind(properties, members, model));
+            var ambiguous = members.Keys.GroupBy(key => key, StringComparer.OrdinalIgnoreCase).FirstOrDefault(group => group.Count() > 1);
+            if (ambiguous is not null)
+            {
+                throw new UnsupportedSemanticValue($"Ambiguous composite property '{MemberPath(path, ambiguous.Key)}'.");
+            }
+
+            // Unlike top-level command properties, omitted composite members stay absent. The reference
+            // validates only supplied members and reports nested concept failures in their supplied order.
+            return SemanticValue.Composite([.. members.Select(member =>
+            {
+                var property = properties.Single(property => string.Equals(property.Name, member.Key, StringComparison.OrdinalIgnoreCase));
+                return new SemanticPropertyValue(property.Id, Bind(member.Value, property.Type, model, MemberPath(path, property.Name)));
+            })]);
         }
 
         return BindUntyped(value);
     }
+
+    static string MemberPath(string path, string member) => path.Length == 0 ? member : $"{path}.{member}";
 
     static SemanticValue BindUntyped(JsonElement value) => value.ValueKind switch
     {

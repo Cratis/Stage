@@ -85,7 +85,13 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
             ProbeOutcome = Outcome("should_apply_required_optional_and_keyed_filters");
             OptionalPropertyProbeOutcome = Outcome("should_exclude_null_properties_from_required_filters");
 
-            string Outcome(string name) => (string)results.Single(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).Attribute("outcome")!;
+            string Outcome(string name)
+            {
+                var selected = results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).ToArray();
+                selected.ShouldNotBeEmpty();
+
+                return selected.All(result => (string)result.Attribute("outcome")! == "Passed") ? "Passed" : "Failed";
+            }
 
             string ReadModelPropertyName(SemanticId propertyId)
             {

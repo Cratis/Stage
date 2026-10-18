@@ -11,7 +11,25 @@ namespace Cratis.Stage.Semantics;
 
 internal static class SemanticRunProjectionAdmission
 {
-    internal static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents)
+    internal static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents) =>
+        RequiredLookupRefusal(plan, specification) ?? CheckProjections(plan, specification, reachableEvents);
+
+    internal static SemanticUnsupportedCapability? CheckFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact)
+    {
+        // Reuse the same concrete source/key checks as fixture admission before a reaction fact is appended.
+        var fixture = new SemanticSpecification(fact.EventContract, "Reaction production", [fact], [], null, [], [], [], []);
+
+        return Check(plan, fixture, [fact.EventContract]);
+    }
+
+    // An empty-world assertion must not turn an unadmitted required lookup into a pass.
+    static SemanticUnsupportedCapability? RequiredLookupRefusal(SemanticExecutionPlan plan, SemanticSpecification specification) =>
+        specification.ThenQueries.Select(assertion => plan.Queries.GetValueOrDefault(assertion.Query))
+            .Where(query => query is { Cardinality: SemanticQueryCardinality.One })
+            .Select(query => SemanticPlanAdmission.Check(plan, query!.Id))
+            .FirstOrDefault(refusal => refusal is not null);
+
+    static SemanticUnsupportedCapability? CheckProjections(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents)
     {
         var emptyQuery = specification.When is null && specification.WhenAppended is null && specification.GivenEvents.IsEmpty &&
             specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
@@ -75,14 +93,6 @@ internal static class SemanticRunProjectionAdmission
             }
         }
         return null;
-    }
-
-    internal static SemanticUnsupportedCapability? CheckFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact)
-    {
-        // Reuse the same concrete source/key checks as fixture admission before a reaction fact is appended.
-        var fixture = new SemanticSpecification(fact.EventContract, "Reaction production", [fact], [], null, [], [], [], []);
-
-        return Check(plan, fixture, [fact.EventContract]);
     }
 
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)

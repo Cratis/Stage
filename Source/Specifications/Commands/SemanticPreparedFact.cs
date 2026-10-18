@@ -15,4 +15,5 @@ internal sealed record SemanticPreparedFact(
     EventSourceId Source,
     EventStreamType StreamType,
     EventStreamId StreamId,
-    EventSourceType SourceType);
+    EventSourceType SourceType,
+    DateTimeOffset? Occurred);

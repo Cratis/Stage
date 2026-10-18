@@ -24,7 +24,8 @@ public class a_collecting_render_request : a_register_project_render_request
 
     protected ArtifactRenderRequest WithGuard(ArtifactRenderRequest request)
     {
-        var input = CratisArtifactRenderInput.CreateText("scene.json",
+        var input = CratisArtifactRenderInput.CreateText(
+            "scene.json",
             CratisRendering.TargetVersion,
             """{"uiProfiles":[],"themes":[],"layouts":[],"screenTemplates":[],"dialogTemplates":[],"screens":[{"name":"Projects","slotContent":{"content":[{"componentName":"core:action","properties":{"otherwise":[]}}]}}]}""");
         var profile = request.Profile;

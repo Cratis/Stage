@@ -36,17 +36,30 @@ evaluations. The executor never substitutes wall time or its injectable clock fo
 This time-only fixture supplies no audit identity, including under `runs as system`: reaction mappings of
 `$eventSourceId` (or `$eventContext.eventSourceId`) and `$context.causedBy.*` retain `STAGE-ESM-013`.
 The spelling `$context.eventSourceId` is rejected by the compiler.
-Clock, application, startup and shutdown triggers, opaque bodies, `when clock` and trigger/capture specifications
-remain refused with `STAGE-ESM-024`. Generated backend occurrence mappings remain supported, but
+The executor also runs `when trigger` specifications for application, startup and shutdown triggers, and
+`when clock` specifications that advance a canonical `given clock` to a later instant. A fired trigger takes its
+values from the fixture and its occurrence from `given clock`; each reaction declaring a matching trigger fires
+in reaction order and its effects settle like an event reaction. Advancing the clock fires every interval and
+schedule occurrence due in the window after `given clock` up to and including `when clock`: intervals are
+multiples of their period counted from the Unix epoch, schedules are UTC times of day with an optional day of the
+week or month. Occurrences fire in instant order, then reaction order, then trigger declaration order, and each
+supplies its own instant as `$context.occurred` to its productions, cascades and invocations. More than 10,000
+occurrences in one advance returns `Unsupported`. Opaque trigger bodies and capture specifications remain refused
+with `STAGE-ESM-024`, and the live semantic Host and rendered applications still refuse clock, application,
+startup and shutdown triggers. Generated backend occurrence mappings remain supported, but
 context-dependent generated reaction specifications retain `STAGE-ESM-011`, and clocks on generated
 append/redelivery specifications retain `STAGE-ESM-024`; renderer clock fixtures remain command-only.
 The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.md#opt-in-to-semantic-execution),
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.206.0, admits exact ESM v1–v27
-version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v28 and later) with `STAGE-ESM-016`.
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.206.0, admits exact ESM v1–v28
+version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v29 and later) with `STAGE-ESM-016`.
 A v22 model with `reaction batches atomic` executes each direct-production batch all-or-none; see [Atomic reaction batches](#atomic-reaction-batches).
+At v28 the semantic executor runs Uuid `==` and `!=` in command requirements and `produces when` guards, including protected
+read paths, with the reference evaluator's results: Uuids compare ordinally in canonical lowercase hyphenated spelling, and a
+non-canonical Uuid input is rejected before the requirement runs. The legacy structural runner refuses Uuid comparisons with
+`STAGE-ESM-049`.
 At v27 a specification that projects into a read model with several `key` parts records `Unsupported(Projection)`,
 naming ESM v27 composite read-model keys: the per-run scenario seeds and looks up instances by one event-source key.
 The semantic Host runs such read models; the legacy structural runner refuses them with `STAGE-ESM-048`.
@@ -62,8 +75,12 @@ render date comparisons, and the legacy engines refuse them with `STAGE-ESM-046`
 covers the canonical corpus in all source forms.
 The semantic executor runs protected command reads, including reaction-invoked commands. After authorization and
 property/concept rules, it projects the prior facts through Chronicle's in-memory read-model scenario and requires
-each declared view at its key. Event-source-keyed removal and recreation are preserved. Absence rejects validation
-before all requirements and generation, with `<View> '<key>' does not exist.` Read-backed requirements and
+each declared view at its key. Event-source-keyed removal and recreation are preserved. Empty, whitespace-only,
+exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject before projection lookup, even if an
+instance is stored at that key. These refused keys and absent views reject validation before all requirements and
+generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
+to protected reads; command identifiers keep their existing behavior. The Host still delegates to the pinned
+Screenplay 4.206.0 evaluator, which predates this refused-key check. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.

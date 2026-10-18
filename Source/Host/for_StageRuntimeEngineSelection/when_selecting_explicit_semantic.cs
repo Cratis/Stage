@@ -12,5 +12,5 @@ public class when_selecting_explicit_semantic : Specification
 
     void Because() => _selected = StageRuntimeEngineSelection.Read(["--engine=semantic"]);
 
-    [Fact] void should_select_the_opt_in_engine() => _selected.ShouldEqual(StageRuntimeEngine.Semantic);
+    [Fact] void should_select_the_semantic_engine() => _selected.ShouldEqual(StageRuntimeEngine.Semantic);
 }

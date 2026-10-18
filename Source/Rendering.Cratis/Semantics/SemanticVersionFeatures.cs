@@ -128,6 +128,11 @@ internal static class SemanticVersionFeatures
     internal const string CompositeReadModelKeys = "STAGE-ESM-048";
 
     /// <summary>
+    /// The code for Uuid comparisons, which the legacy syntax engine cannot keep the meaning of.
+    /// </summary>
+    internal const string UuidComparisons = "STAGE-ESM-049";
+
+    /// <summary>
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
@@ -138,12 +143,7 @@ internal static class SemanticVersionFeatures
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
     public static bool Supports(ExecutableSemanticModel model) =>
-        EsmSchemaV22Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
-        (model.LanguageVersion == LanguageVersion.V23 && model.SemanticVersion == SemanticVersion.V23) ||
-        (model.LanguageVersion == LanguageVersion.V24 && model.SemanticVersion == SemanticVersion.V24) ||
-        (model.LanguageVersion == LanguageVersion.V25 && model.SemanticVersion == SemanticVersion.V25) ||
-        (model.LanguageVersion == LanguageVersion.V26 && model.SemanticVersion == SemanticVersion.V26) ||
-        (model.LanguageVersion == LanguageVersion.V27 && model.SemanticVersion == SemanticVersion.V27);
+        EsmSchemaV28Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -159,13 +159,21 @@ internal static class SemanticVersionFeatures
     /// <param name="application">The semantic application.</param>
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InApplication(SemanticApplication application) =>
-        (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
-            Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
+        TriggersInApplication(application)
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(DescribedHandlersInCommand))
         .Concat(RoutesInApplication(application))
         .Concat(application.Concepts.SelectMany(concept => UnknownValidationRules(concept.Validations, concept.Id, "concept", concept.Name)))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnknownValidationRules(command.Validations, command.Id, "command", command.Name)))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
+
+    /// <summary>
+    /// Finds application triggers that targets must explicitly admit.
+    /// </summary>
+    /// <param name="application">The application.</param>
+    /// <returns>The application trigger refusals in declaration order.</returns>
+    public static IEnumerable<SemanticVersionFeature> TriggersInApplication(SemanticApplication application) =>
+        (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
+            Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."));
 
     /// <summary>
     /// Finds atomic reaction batch shapes the renderer cannot preserve. One returned collection is one append batch.
@@ -329,15 +337,20 @@ internal static class SemanticVersionFeatures
                     yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
                 }
 
-                if (trigger.Kind != SemanticReactionTriggerKind.Event)
-                {
-                    yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' uses trigger kind '{trigger.Kind}', which Stage does not support yet.");
-                }
+                foreach (var feature in NonEventTrigger(reaction, trigger)) yield return feature;
             }
         }
 
         foreach (var feature in EventReactionsInSlice(slice)) yield return feature;
     }
+
+    /// <summary>
+    /// Finds non-event triggers that targets must explicitly admit, without admitting opaque bodies.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The non-event trigger refusals in declaration order.</returns>
+    public static IEnumerable<SemanticVersionFeature> NonEventTriggersInSlice(SemanticSlice slice) =>
+        (slice.Reactions.IsDefault ? [] : slice.Reactions).SelectMany(reaction => reaction.Triggers.SelectMany(trigger => NonEventTrigger(reaction, trigger)));
 
     /// <summary>
     /// Finds reaction observer filters that targets must explicitly admit.
@@ -580,6 +593,14 @@ internal static class SemanticVersionFeatures
         SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation or
         SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
         SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
+
+    static IEnumerable<SemanticVersionFeature> NonEventTrigger(SemanticReaction reaction, SemanticReactionTrigger trigger)
+    {
+        if (trigger.Kind != SemanticReactionTriggerKind.Event)
+        {
+            yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' uses trigger kind '{trigger.Kind}', which Stage does not support yet.");
+        }
+    }
 
     static IEnumerable<SemanticVersionFeature> MixedEffectsInReaction(SemanticReaction reaction)
     {

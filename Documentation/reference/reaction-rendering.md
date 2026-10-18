@@ -9,10 +9,11 @@ Stage renders event-triggered reactions in Automation slices as Chronicle reacto
 | --- | --- |
 | Semantic Stage Host | Settles productions, invocations and cascades with the command; appends all facts in one tail-guarded batch or refuses the entire command |
 | Rendered Chronicle reactors | Independent, eventually consistent observers; a failed partition can retry after the initiating command has committed |
-| In-memory specification executor | Settles event reactions after commands and direct appends with its own deterministic loop; stops at the first rejection or unsupported capability |
+| In-memory specification executor | Settles event reactions after commands and direct appends, fires application, startup and shutdown triggers (`when trigger`) and due clock occurrences (`when clock`) with its own deterministic loop; stops at the first rejection or unsupported capability |
 
 The Host applies `where`, `runs as` and `from` through Screenplay's reference settlement. Clock,
-application, startup and shutdown triggers and opaque bodies remain unsupported. Host execution does not
+application, startup and shutdown triggers and opaque bodies remain unsupported in the Host; only the
+specification executor runs non-event triggers. Host execution does not
 relax renderer admission: the diagnostics below describe generated reactors, not the live semantic Host
 or the specification executor. The executor also applies `where`, `runs as`, `from` and mixed effects;
 invocations use declared system roles or no caller, never the specification's `given caller`. System

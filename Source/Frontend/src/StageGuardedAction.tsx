@@ -6,7 +6,7 @@ import type { ExternalComponent } from '@cratis/scene.model';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import { Button } from 'primereact/button';
 import { useStageData, useStageQuery } from './stageData';
-import { executeStageCommand } from './stageCommands';
+import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { canEvaluate, firstMatch, subjectPath, subjectValue, unevaluableGuardCode, type SubjectReference } from './stageGuards';
 import { navigateToScreen } from './stageNavigation';
 
@@ -79,6 +79,7 @@ function argumentsFor(branch: GuardedBranch, item: Record<string, unknown>): Rec
 export function StageGuardedAction({ element, interactions }: StageGuardedActionProps) {
     const data = useStageData();
     const subject = useGuardSubject(element);
+    const executeCommand = useStageCommandExecutor();
     const [messages, setMessages] = useState<string[]>([]);
     const [running, setRunning] = useState(false);
     const label = text(element, 'label');
@@ -106,12 +107,12 @@ export function StageGuardedAction({ element, interactions }: StageGuardedAction
     if (!branch?.command) return null;
 
     const command = branch.command;
-    const route = data.routes?.commands[command];
+    const commandType = registeredCommand(command);
     const item = subject.item;
     const run = async () => {
-        if (!route) return;
+        if (!commandType) return;
         setRunning(true);
-        const outcome = await executeStageCommand(command, route, argumentsFor(branch, item));
+        const outcome = await executeCommand(command, argumentsFor(branch, item));
         setRunning(false);
         setMessages(outcome.messages);
         if (!outcome.isSuccess) return;
@@ -127,8 +128,8 @@ export function StageGuardedAction({ element, interactions }: StageGuardedAction
             <Button
                 {...interactions}
                 type='button'
-                disabled={!route || running}
-                title={route ? undefined : 'This command is not exposed as an API yet'}
+                disabled={!commandType || running}
+                title={commandType ? undefined : 'This command is not exposed as an API yet'}
                 onClick={() => void run()}>
                 {label}
             </Button>

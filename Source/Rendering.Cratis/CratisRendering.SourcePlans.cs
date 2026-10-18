@@ -72,7 +72,7 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError(mismatch)]);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace))
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError("The caller's profile project and root namespace must match the plan options.")]);
         }
@@ -106,7 +106,7 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError(mismatch)], loaded.Model.Revision);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace))
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError("The caller's profile project and root namespace must match the plan options.")], loaded.Model.Revision);
         }
@@ -120,7 +120,7 @@ public static partial class CratisRendering
         var diagnostics = sourceDiagnostics.AddRange(plan.Diagnostics.Select(diagnostic => new CratisPlanDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Message, diagnostic.Artifact, null)));
         if (!sourceDiagnostics.IsEmpty)
         {
-            plan = ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. sourceDiagnostics.Select(diagnostic => new ArtifactRenderDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}", diagnostic.Artifact))]);
+            plan = ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. sourceDiagnostics.Select(diagnostic => new ArtifactRenderDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}", diagnostic.Artifact))], plan.ImplementationGaps, plan.Refusals);
         }
 
         return CratisPlanResult.Create(plan.ApplicationName, plan.Artifacts, diagnostics, plan.SemanticRevision, plan);
@@ -161,6 +161,24 @@ public static partial class CratisRendering
                     return (null, ProfileError("The caller's profile must omit domain placement; use the Domain option."));
                 }
                 profile = supplied;
+            }
+
+            if (!Enum.IsDefined(options.Refusals))
+            {
+                return (null, ProfileError("The refusal mode is unknown."));
+            }
+            if (options.Refusals != ArtifactRefusalMode.Refuse)
+            {
+                if (profile.Inputs.Any(input => input.Name == RefusalModeInput.Name))
+                {
+                    return (null, ProfileError("The caller's profile must omit refusal mode when the Refusals option is set."));
+                }
+                profile = ArtifactRenderProfile.Create(
+                    profile.Target,
+                    profile.TargetVersion,
+                    profile.Renderer,
+                    profile.RendererVersion,
+                    [.. profile.Inputs, RefusalModeInput.Create(options.Refusals)]);
             }
 
             return (DomainPlacementInput.WithDomain(profile, domain), null);

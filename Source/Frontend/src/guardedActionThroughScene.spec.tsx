@@ -10,6 +10,7 @@ import { stageApplicationRegistry } from './App';
 import { StageDataProvider, useStageData } from './stageData';
 import { bindDataSources } from './stageDataSources';
 import { element } from './testElements';
+import { registerTestCommand, commandResult } from './testing/commands';
 
 const workItemId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
 const routes = { commands: { CloseWorkItem: '/api/close-work-item' }, queries: { GetWorkItem: '/api/get-work-item' } };
@@ -43,6 +44,7 @@ function ThroughScene({ tree }: { tree: SceneElement }) {
 }
 
 function renderThroughScene(tree: SceneElement) {
+    registerTestCommand('CloseWorkItem', routes.commands.CloseWorkItem, { workItemId: { type: 'string' } });
     globalThis.location.hash = `#/WorkItemDetails?workItemId=${workItemId}`;
     return render(
         <PrimeReactProvider>
@@ -55,7 +57,7 @@ function renderThroughScene(tree: SceneElement) {
 
 function respond(status: string) {
     const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-        if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => ({ isSuccess: true, validationResults: [] }) });
+        if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
         if (String(input).startsWith('/api/get-work-item') || String(input).startsWith('api/get-work-item')) return Promise.resolve({ ok: true, json: async () => ({ data: { workItemId, status } }) });
         return Promise.resolve({ ok: false, json: async () => ({}) });
     });
@@ -76,7 +78,7 @@ describe('a guarded action rendered through Scene', () => {
 
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [route, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
-        expect(String(route)).toBe('/api/close-work-item');
+        expect(String(route)).toBe('http://localhost:3000/api/close-work-item');
         expect(init?.body).toBe(JSON.stringify({ workItemId }));
     });
 
@@ -109,7 +111,7 @@ describe('a guarded action over an enumeration rendered through Scene', () => {
 
     function respondWithOrdinal(status: number) {
         const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-            if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => ({ isSuccess: true, validationResults: [] }) });
+            if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
             if (String(input).includes('get-work-item')) return Promise.resolve({ ok: true, json: async () => ({ data: { workItemId, status } }) });
             return Promise.resolve({ ok: false, json: async () => ({}) });
         });

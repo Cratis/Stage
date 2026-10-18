@@ -47,13 +47,18 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         ? Identifiers.EscapeKeyword(Identifiers.ToCamelCase(property.Name))
         : Identifiers.ToPascalCase(property.Name);
 
+    // Command declarations and validation analysis must agree on raw-bound DateTime concept inputs.
+    internal static string InputType(SemanticProperty property, IReadOnlySet<SemanticId> raw, SemanticTypeSystem types) => raw.Contains(property.Id)
+        ? types.Primitive(SemanticPrimitiveType.DateTime) + (property.Type.IsOptional ? "?" : string.Empty)
+        : types.Type(property.Type);
+
     internal void RenderDeclaration(CSharpCodeBuilder builder)
     {
         var destination = DestinationProperty;
         var providesSource = destination is { IsGenerated: false };
         var marked = SemanticDateComparisonAdmission.Marked(context.Application, command);
         var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
-        var parameters = string.Join(", ", Inputs.Select(property => $"{(marked.Contains(property.Id) ? ExplicitOffset : string.Empty)}{_compliance.InputAttribute(property.Type)}{InputType(property, raw)} {Identifiers.ToPascalCase(property.Name)}"));
+        var parameters = string.Join(", ", Inputs.Select(property => $"{(marked.Contains(property.Id) ? ExplicitOffset : string.Empty)}{_compliance.InputAttribute(property.Type)}{InputType(property, raw, _types)} {Identifiers.ToPascalCase(property.Name)}"));
         var name = Identifiers.ToPascalCase(command.Name);
         builder.Attribute(SemanticAuthorizationAttributes.For(command, context))
             .OpenBlock($"public record {name}({parameters}){(providesSource ? " : global::Cratis.Chronicle.Events.ICanProvideEventSourceId" : string.Empty)}");
@@ -89,11 +94,6 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
             .Line($"public record {name}Response({string.Join(", ", fields)});")
             .BlankLine();
     }
-
-    // A compared DateTime property typed through a concept binds as the concept's DateTimeOffset, which Arc's marker supports.
-    string InputType(SemanticProperty property, IReadOnlySet<SemanticId> raw) => raw.Contains(property.Id)
-        ? _types.Primitive(SemanticPrimitiveType.DateTime) + (property.Type.IsOptional ? "?" : string.Empty)
-        : _types.Type(property.Type);
 
     void RenderCheckedHandle(CSharpCodeBuilder builder, ResultExpression result, Action? renderEvents = null)
     {

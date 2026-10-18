@@ -421,8 +421,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticReducer", rendered, "From");
         Add(entries, "SemanticObserverFilter", rendered, "Source Stream");
 
-        // Production route overrides render and run per production; the unkeyed override under a keyed command route
-        // stays refused by STAGE-ESM-036, because Arc would append it to the command's stream id.
+        // Production route overrides render and run per production. STAGE-ESM-036 still refuses two shapes that are not
+        // proven equivalent yet: an unkeyed override under a keyed command route, and a literal "Default" override stream id.
         Add(entries, "SemanticProducedEvent", rendered, "Route");
 
         // ESM v25 protected command reads render as Arc read protection; the shapes the target cannot preserve

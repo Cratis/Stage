@@ -78,7 +78,7 @@ internal static class SemanticVersionFeatures
     internal const string ObserverFilters = "STAGE-ESM-035";
 
     /// <summary>
-    /// The code for ESM v10 per-production route overrides that would inherit the command's stream id.
+    /// The code for ESM v10 per-production route overrides that Stage does not admit yet.
     /// </summary>
     internal const string ProductionRoutes = "STAGE-ESM-036";
 
@@ -509,27 +509,28 @@ internal static class SemanticVersionFeatures
     }
 
     /// <summary>
-    /// Finds per-production route overrides that would silently inherit the command's stream id.
+    /// Finds per-production route overrides whose rendered routing Stage has not proven equivalent to the reference.
     /// </summary>
     /// <param name="command">The command.</param>
     /// <returns>The refused command, if any.</returns>
     /// <remarks>
-    /// Arc resolves a returned event's stream id from the wrapper only when it differs from the
-    /// EventStreamId.Default sentinel, and otherwise falls back to the command's own stream id
-    /// (CommandTransactionAppender.ResolveRouting). An override on an unkeyed stream has no stream id to set, so
-    /// under a keyed command route the generated command would append it to the command's stream while the reference
-    /// evaluator appends it to no stream id. Stage refuses that shape instead of rendering or running it.
+    /// Arc 22.112.1 (CommandTransactionAppender.ResolveRouting) takes a wrapper's EventStreamId when it differs from the
+    /// EventStreamId.Default sentinel, and otherwise falls back to commandContext.GetEventStreamId(). Stage puts the command
+    /// route on EventSourceAttribute and emits neither [EventStreamId] nor ICanProvideEventStreamId, so that fallback is
+    /// null and the append uses EventStreamId.Default. Two shapes are refused because Stage has no generated-code
+    /// conformance proof for them: an override on an unkeyed stream under a keyed command route, and a literal override
+    /// stream id of "Default", which Arc cannot tell from an unset wrapper stream id. Both fail closed until proven.
     /// </remarks>
     public static IEnumerable<SemanticVersionFeature> ProductionRoutesInCommand(SemanticCommand command)
     {
         if (command.Route is { } commandRoute && IsKeyed(commandRoute) &&
             command.Produces.Any(produced => produced.Route is { } route && !IsKeyed(route)))
         {
-            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with an unkeyed stream under a keyed command route, so Arc would append it to the command's stream id.");
+            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with an unkeyed stream under a keyed command route, which Stage does not admit yet because its rendered routing is not proven equivalent to the reference execution.");
         }
         else if (command.Produces.Any(produced => produced.Route is { StreamId: SemanticValueExpression { Value: SemanticTextValue { Value: ArcDefaultStreamId } } }))
         {
-            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with the literal stream id '{ArcDefaultStreamId}', which Arc treats as EventStreamId.Default and replaces with the command's stream id.");
+            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with the literal stream id '{ArcDefaultStreamId}', which is Arc's EventStreamId.Default sentinel, so Arc cannot tell it from an unset stream id and Stage does not admit it yet.");
         }
     }
 

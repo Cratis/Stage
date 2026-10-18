@@ -78,7 +78,7 @@ internal static class SemanticVersionFeatures
     internal const string ObserverFilters = "STAGE-ESM-035";
 
     /// <summary>
-    /// The code for ESM v10 per-production route overrides.
+    /// The code for ESM v10 per-production route overrides that would inherit the command's stream id.
     /// </summary>
     internal const string ProductionRoutes = "STAGE-ESM-036";
 
@@ -495,15 +495,23 @@ internal static class SemanticVersionFeatures
     }
 
     /// <summary>
-    /// Finds per-production route overrides that no Stage execution path supports yet.
+    /// Finds per-production route overrides that would silently inherit the command's stream id.
     /// </summary>
     /// <param name="command">The command.</param>
     /// <returns>The refused command, if any.</returns>
+    /// <remarks>
+    /// Arc resolves a returned event's stream id from the wrapper only when it differs from the
+    /// EventStreamId.Default sentinel, and otherwise falls back to the command's own stream id
+    /// (CommandTransactionAppender.ResolveRouting). An override on an unkeyed stream has no stream id to set, so
+    /// under a keyed command route the generated command would append it to the command's stream while the reference
+    /// evaluator appends it to no stream id. Stage refuses that shape instead of rendering or running it.
+    /// </remarks>
     public static IEnumerable<SemanticVersionFeature> ProductionRoutesInCommand(SemanticCommand command)
     {
-        if (command.Produces.Any(produced => produced.Route is not null))
+        if (command.Route is { } commandRoute && IsKeyed(commandRoute) &&
+            command.Produces.Any(produced => produced.Route is { } route && !IsKeyed(route)))
         {
-            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' declares an ESM v10 production route override, which Stage does not support yet.");
+            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with an unkeyed stream under a keyed command route, so Arc would append it to the command's stream id.");
         }
     }
 
@@ -697,6 +705,8 @@ internal static class SemanticVersionFeatures
             ? new(PublicEvents, StageExecutionCapability.ExternalEffect, @event.Id, "event", $"Event '{@event.Name}' is an ESM v9 public contract, which Stage cannot publish yet.")
             : null;
     }
+
+    static bool IsKeyed(SemanticCommandRoute route) => route.StreamId is not null || !route.StreamIdParts.IsDefaultOrEmpty;
 
     static IEnumerable<SemanticSlice> Slices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(Slices));
 }

@@ -57,15 +57,12 @@ public class when_auditing_the_executable_model : Specification
     public void should_classify_v9_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
 
     [Theory]
-    [InlineData("SemanticProducedEvent.Route", "STAGE-ESM-036")]
-    public void should_classify_v10_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
-
-    [Theory]
     [InlineData("SemanticSpecification.WhenAppended")]
     [InlineData("SemanticSpecificationAppend.EventContract")]
     [InlineData("SemanticSpecificationAppend.EventSource")]
     [InlineData("SemanticSpecificationAppend.Values")]
     [InlineData("SemanticSpecificationAppend.Route")]
+    [InlineData("SemanticProducedEvent.Route")]
     [InlineData("SemanticReaction.From")]
     [InlineData("SemanticReaction.RunsAs")]
     [InlineData("SemanticReactionIdentity.Kind")]

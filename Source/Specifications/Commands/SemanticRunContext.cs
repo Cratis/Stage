@@ -29,7 +29,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     readonly List<SemanticSpecificationEvent> _facts = parent?._facts ?? [];
     readonly List<SemanticValue> _destinations = parent?._destinations ?? [];
     readonly List<DateTimeOffset?> _occurrences = parent?._occurrences ?? [];
-    SemanticFixtureRoute? _commandRoute;
+    readonly Dictionary<SemanticCommandRoute, SemanticFixtureRoute> _routes = new(ReferenceEqualityComparer.Instance);
 
     internal SemanticRunReads Reads { get; } = new(runtimeTypes);
     internal Type CommandType => commandType;
@@ -147,16 +147,25 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         _occurrences.Add(prepared.Occurred);
     }
 
+    // Screenplay 4.206.0 SemanticCommandExecution.ResolveRoutes: every production override and the command route resolve
+    // eagerly, in that order, before the first append, and a production without an override keeps the command route.
     internal bool TryResolveRoute(out StreamIdFormatFailure failure)
     {
         var inputs = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
-        _commandRoute = command.Route is not { } route ? null : new(route.Source, route.Stream)
+        _routes.Clear();
+        failure = StreamIdFormatFailure.None;
+        foreach (var route in command.Produces.Select(produced => produced.Route).Append(command.Route).OfType<SemanticCommandRoute>())
         {
-            StreamId = route.StreamId is null ? null : Evaluate(route.StreamId, inputs),
-            StreamIdParts = [.. route.StreamIdParts.Select(part => new SemanticFixtureRoutePart(part.Part, Evaluate(part.Value, inputs)))]
-        };
+            var fixture = new SemanticFixtureRoute(route.Source, route.Stream)
+            {
+                StreamId = route.StreamId is null ? null : Evaluate(route.StreamId, inputs),
+                StreamIdParts = [.. route.StreamIdParts.Select(part => new SemanticFixtureRoutePart(part.Part, Evaluate(part.Value, inputs)))]
+            };
+            if (!SemanticRunRoutes.TryFormat(plan.Model.Application, fixture, out _, out failure)) return false;
+            _routes[route] = fixture;
+        }
 
-        return SemanticRunRoutes.TryFormat(plan.Model.Application, _commandRoute, out _, out failure);
+        return true;
     }
 
     internal bool Holds(SemanticProducedEvent produced) => produced.When is null || SemanticRuleEvaluation.Condition(produced.When, Inputs(), Reads.Values, SemanticDateComparisons.Participants(Plan.Model.Application, Command));
@@ -173,7 +182,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }
             ? SemanticValue.Text(Occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture))
             : Evaluate(mapping.Source, inputs, Reads.Values))).ToImmutableArray();
-        return (new(produced.EventContract, values) { EventSource = identity, Route = _commandRoute }, destination);
+        return (new(produced.EventContract, values) { EventSource = identity, Route = (produced.Route ?? command.Route) is { } route ? _routes[route] : null }, destination);
     }
 
     static string CanonicalArray(SemanticArrayValue array, SemanticTypeReference type, SemanticApplicationContext context) =>

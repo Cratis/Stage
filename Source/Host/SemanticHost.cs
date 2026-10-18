@@ -84,11 +84,7 @@ internal static class SemanticHost
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         MapStatus(app, () => RegistrationStatus(world, issues, app.Services, modelName, modelPath), notes);
         SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
-        SemanticReadModelBrowser.Map(app, new SemanticReadModelBrowser.BrowserContext(
-            app.Services.GetRequiredService<ISemanticRuntime>(),
-            () => world is not null,
-            context => issues.Count > 0 ? RefusedResponse(context, issues) : null,
-            admission));
+        SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();

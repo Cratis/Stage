@@ -6,11 +6,13 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "workspaces": ["Runtime"],
   "scripts": {
-    "build": "tsc -b && vite build",
-    "test": "vitest run"
+    "build": "npm run build --workspace @cratis/stage.runtime && tsc -b && vite build",
+    "test": "npm run build --workspace @cratis/stage.runtime && npm test --workspace @cratis/stage.runtime && vitest run"
   },
   "dependencies": {
+    "@cratis/stage.runtime": "*",
     "@cratis/arc": "22.112.1",
     "@cratis/arc.react": "22.112.1",
     "@cratis/components": "4.29.0",

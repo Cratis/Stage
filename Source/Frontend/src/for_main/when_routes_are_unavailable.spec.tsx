@@ -3,11 +3,11 @@
 
 import { waitFor } from '@testing-library/react';
 import { afterEach, chai, describe, it, vi } from 'vitest';
-import { httpStageSource } from '../stageSource';
+import { httpStageSource } from '../httpStageSource';
 
 const render = vi.hoisted(() => vi.fn());
 vi.mock('react-dom/client', () => ({ createRoot: () => ({ render }) }));
-vi.mock('../App', () => ({ App: () => null }));
+vi.mock('@cratis/stage.runtime', async importOriginal => ({ ...await importOriginal<typeof import('@cratis/stage.runtime')>(), App: () => null }));
 vi.mock('../sharedModules', () => ({ registerSharedModules: vi.fn() }));
 vi.mock('../stagePackages', () => ({
     loadStagePackages: async () => ({ components: {}, catalog: [], screenTemplates: [], dialogTemplates: [] }),

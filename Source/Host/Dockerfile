@@ -12,10 +12,11 @@
 FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend
 WORKDIR /frontend
 COPY Source/Frontend/package.json Source/Frontend/package-lock.json ./
+COPY Source/Frontend/Runtime/package.json ./Runtime/package.json
 RUN npm ci
 COPY Source/Frontend/ ./
 # The frontend specs are type-checked by `npm run build`, and sceneEnumerationNaming.spec.ts imports the checked-in
-# enumeration map from Source/Conformance.Specs (two directories above src/). Mirror that location in this stage.
+# enumeration map from Source/Conformance.Specs (three directories above Runtime/src/). Mirror that location in this stage.
 COPY Source/Conformance.Specs/for_SceneEnumerationNaming/scene-model-enumerations.json /Conformance.Specs/for_SceneEnumerationNaming/scene-model-enumerations.json
 COPY Source/Conformance.Specs/for_UiProfileRootVector/uiprofile-root.scene.json Source/Conformance.Specs/for_UiProfileRootVector/uiprofile-root.shells.json /Conformance.Specs/for_UiProfileRootVector/
 

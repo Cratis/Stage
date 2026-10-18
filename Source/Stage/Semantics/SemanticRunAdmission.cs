@@ -249,9 +249,11 @@ public static class SemanticRunAdmission
     static SemanticUnsupportedCapability? LaterVersionConstruct(SemanticExecutionPlan plan, SemanticSlice[] slices, SemanticSpecification specification)
     {
         var command = specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var found) ? found : null;
-        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application).Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
+        var feature = SemanticVersionFeatures.InApplication(plan.Model.Application)
+            .Except(SemanticVersionFeatures.TriggersInApplication(plan.Model.Application))
+            .Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
             .Except(slices.SelectMany(slice => slice.Commands).SelectMany(SemanticVersionFeatures.DescribedHandlersInCommand))
-            .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
+            .Concat(slices.SelectMany(slice => RunSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
             .Concat(RunSpecificationFeatures(specification))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command)
                 .Except(SemanticVersionFeatures.RoutesInCommand(command))
@@ -260,6 +262,9 @@ public static class SemanticRunAdmission
         return feature is null ? SemanticRunReactionAdmission.CheckCommands(plan, specification) : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
 
+    static IEnumerable<SemanticVersionFeature> RunSliceFeatures(SemanticSlice slice) =>
+        LiveSliceFeatures(slice).Except(SemanticVersionFeatures.NonEventTriggersInSlice(slice));
+
     // Rendering keeps its own absence and append/redelivery clock refusals. The independent executor can
     // compare keyed instances and resolve a validated authored occurrence without a generated reactor scenario.
     static IEnumerable<SemanticVersionFeature> RunSpecificationFeatures(SemanticSpecification specification) =>
@@ -267,7 +272,8 @@ public static class SemanticRunAdmission
             .Except(SemanticVersionFeatures.RoutesInSpecification(specification))
             .Except(SemanticVersionFeatures.RedeliveryInSpecification(specification))
             .Where(feature => feature.Code != SemanticVersionFeatures.Absence &&
-                !(feature.Code == SemanticVersionFeatures.Automation && SemanticSpecificationClock.TryGetOccurrence(specification, out _)));
+                !(feature.Code == SemanticVersionFeatures.Automation && (SemanticSpecificationClock.TryGetOccurrence(specification, out _) ||
+                    SemanticSpecificationClock.TryGetAutomaticAction(specification, out _, out _))));
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
         feature.Slices.Concat(feature.Features.SelectMany(AllSlices));

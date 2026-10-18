@@ -126,9 +126,9 @@ public class when_comparing_reaction_specifications : Specification
             ReadModels = form == "filters" ? [] : slice.ReadModels,
             Projections = form == "filters" ? [] : slice.Projections,
             Queries = form == "filters" ? [] : slice.Queries,
-            Reactions = [.. slice.Reactions.Where(reaction => reaction.Triggers.All(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.RequirementId is null))],
+            Reactions = [.. slice.Reactions.Where(reaction => reaction.Triggers.All(trigger => trigger.RequirementId is null))],
             Specifications = [.. slice.Specifications
-                .Where(specification => form == "reactions" ? specification.WhenTrigger is null && specification.WhenClock is null && specification.WhenCapture is null : specification.Name.EndsWith("Reaction", StringComparison.Ordinal))
+                .Where(specification => form == "reactions" ? specification.WhenCapture is null && specification.GivenCaptures.IsDefaultOrEmpty && specification.Name != "UnsupportedStartup" : specification.Name.EndsWith("Reaction", StringComparison.Ordinal))
                 .Select(specification => form == "filters" ? specification with
                 {
                     // The refreshed corpus also asserts reducer-built Followups. This subset compares event effects only.
@@ -142,7 +142,7 @@ public class when_comparing_reaction_specifications : Specification
 
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
         {
-            Triggers = [],
+            Triggers = form == "reactions" ? model.Application.Triggers : [],
             Modules = [module with { Features = [feature with { Slices = [.. slices] }] }]
         });
     }

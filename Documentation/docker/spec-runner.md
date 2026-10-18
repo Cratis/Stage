@@ -55,7 +55,7 @@ unsupported capability. Rendered Chronicle reactors run eventually and retry fai
 Structural refusals exit `1` without writing results;
 semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.206.0, admits exact ESM v1–v28
 version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v29 and later) with `STAGE-ESM-016`.
-A v22 model with `reaction batches atomic` is admitted and records `Unsupported` with `STAGE-ESM-043` until atomic batches execute.
+A v22 model with `reaction batches atomic` executes each direct-production batch all-or-none; see [Atomic reaction batches](#atomic-reaction-batches).
 At v28 the semantic executor runs Uuid `==` and `!=` in command requirements and `produces when` guards, including protected
 read paths, with the reference evaluator's results: Uuids compare ordinally in canonical lowercase hyphenated spelling, and a
 non-canonical Uuid input is rejected before the requirement runs. The legacy structural runner refuses Uuid comparisons with
@@ -75,8 +75,12 @@ render date comparisons, and the legacy engines refuse them with `STAGE-ESM-046`
 covers the canonical corpus in all source forms.
 The semantic executor runs protected command reads, including reaction-invoked commands. After authorization and
 property/concept rules, it projects the prior facts through Chronicle's in-memory read-model scenario and requires
-each declared view at its key. Event-source-keyed removal and recreation are preserved. Absence rejects validation
-before all requirements and generation, with `<View> '<key>' does not exist.` Read-backed requirements and
+each declared view at its key. Event-source-keyed removal and recreation are preserved. Empty, whitespace-only,
+exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject before projection lookup, even if an
+instance is stored at that key. These refused keys and absent views reject validation before all requirements and
+generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
+to protected reads; command identifiers keep their existing behavior. The Host still delegates to the pinned
+Screenplay 4.206.0 evaluator, which predates this refused-key check. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
@@ -156,6 +160,22 @@ Reaction-triggering commands are split into a command half and a reaction half o
 invoke-only reaction (rejections only when the triggering command cannot reject on its own); other
 reaction-triggering commands, invoked-command empty-effect cases and no-observer appends also require
 a settlement/log-delta harness and are refused. See the [renderer support matrix](../guides/build-renderer-target.md#admit-target-semantics-before-emission).
+
+## Atomic reaction batches
+
+With `reaction batches atomic` (ESM v22+), the semantic executor validates every direct production of
+one trigger occurrence before appending any of them. A selected refusal branch's productions form their
+own atomic unit. A mapping failure, constraint violation, projection refusal or insufficient remaining
+fact budget appends none of that unit; earlier successful units remain. Invoked commands are separate
+units, not part of the trigger's direct-production batch. Constraint refusals preserve the authored message
+and constraint name.
+
+Property-value claims reserved within a batch remain reserved even if their owner changes value later
+in that batch. Repeating a value for the same owner is allowed; an event-occurrence release can reopen
+its owner's cycle. Models without the declaration keep legacy per-fact reaction execution, including
+successful prefixes before a later production fails. The [live semantic Host](index.md#opt-in-to-semantic-execution)
+retains its stricter whole-command rollback boundary. The renderer still refuses atomic-batch models with
+`STAGE-ESM-043`.
 
 ## Invocation refusal branches
 

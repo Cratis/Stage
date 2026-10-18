@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
+using Cratis.Screenplay.Diagnostics;
 using SceneCommon = Cratis.Scene.Model.Common;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneExposure = Cratis.Scene.Model.Exposure;
@@ -23,6 +24,8 @@ namespace Cratis.Stage.Contracts.Scene;
 public static class CompositionConverter
 {
     const string NoScope = "none";
+    static readonly string[] _collectionOperations = ["add", "remove", "reorder", "edit-fields"];
+    static readonly string[] _templateScopes = [NoScope, "application", "module", "feature", "subfeature", "slice"];
 
     /// <summary>
     /// Converts an <c language="csharp">exposure for</c> declaration.
@@ -31,6 +34,21 @@ public static class CompositionConverter
     /// <returns>The Scene exposure declaration.</returns>
     public static SceneExposure.ExposureDeclaration Exposure(ScreenplaySyntax.ExposureSyntax exposure) =>
         new(exposure.Owner, [.. exposure.Properties.Select(ExposedProperty)]);
+
+    /// <summary>
+    /// Converts an exposure while collecting unsupported collection operations.
+    /// </summary>
+    /// <param name="exposure">The exposure to convert.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <returns>The exposure with supported operations.</returns>
+    public static SceneExposure.ExposureDeclaration Exposure(ScreenplaySyntax.ExposureSyntax exposure, ConversionDiagnostics? diagnostics)
+    {
+        if (diagnostics is null) return Exposure(exposure);
+        return new(exposure.Owner, [.. exposure.Properties.Select(property => ExposedProperty(property with
+        {
+            Operations = property.IsCollection ? [.. property.Operations.Where(operation => AdmitOperation(operation, property, exposure.Owner, diagnostics))] : property.Operations
+        }))]);
+    }
 
     /// <summary>
     /// Converts an <c language="csharp">instance</c> declaration into one contribution per stored value or collection.
@@ -68,6 +86,21 @@ public static class CompositionConverter
     }
 
     /// <summary>
+    /// Converts metadata while collecting unsupported template scopes.
+    /// </summary>
+    /// <param name="templateType">The template type.</param>
+    /// <param name="category">The template category.</param>
+    /// <param name="restrictsScopes">Whether scopes are restricted.</param>
+    /// <param name="scopes">The declared scopes.</param>
+    /// <param name="sliceKinds">The declared slice kinds.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <param name="path">The owning template path.</param>
+    /// <param name="location">The declaration location.</param>
+    /// <returns>The metadata with supported scopes.</returns>
+    public static SceneScreens.TemplateMetadata Metadata(string? templateType, string? category, bool restrictsScopes, IEnumerable<string> scopes, IEnumerable<string>? sliceKinds, ConversionDiagnostics? diagnostics, string path, SourceLocation location) =>
+        Metadata(templateType, category, restrictsScopes, diagnostics is null || !restrictsScopes ? scopes : scopes.Where(scope => AdmitScope(scope, diagnostics, path, location)), sliceKinds);
+
+    /// <summary>
     /// Converts the content a template provides for its own slots.
     /// </summary>
     /// <param name="owner">The template name, used to derive unique element ids.</param>
@@ -77,14 +110,28 @@ public static class CompositionConverter
     public static IReadOnlyDictionary<string, IReadOnlyList<SceneElements.SceneElement>>? Content(
         string owner,
         IEnumerable<ScreenplaySyntax.TemplateSlotContentSyntax> content,
-        BehaviorScope? behaviors = null)
+        BehaviorScope? behaviors = null) => Content(owner, content, behaviors, null);
+
+    /// <summary>
+    /// Converts template slot content while collecting unsupported directives.
+    /// </summary>
+    /// <param name="owner">The owning template path.</param>
+    /// <param name="content">The slot content.</param>
+    /// <param name="behaviors">The behavior scope.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <returns>The supported slot content, or null if none is declared.</returns>
+    public static IReadOnlyDictionary<string, IReadOnlyList<SceneElements.SceneElement>>? Content(
+        string owner,
+        IEnumerable<ScreenplaySyntax.TemplateSlotContentSyntax> content,
+        BehaviorScope? behaviors,
+        ConversionDiagnostics? diagnostics)
     {
         var slots = content.ToList();
         return slots.Count == 0
             ? null
             : slots.ToDictionary(
                 slot => slot.Slot,
-                slot => ScreenDirectiveConverter.Convert(slot.Directives, $"{owner}.content.{slot.Slot}", behaviors),
+                slot => ScreenDirectiveConverter.Convert(slot.Directives, $"{owner}.content.{slot.Slot}", behaviors, null, diagnostics),
                 StringComparer.Ordinal);
     }
 
@@ -100,6 +147,22 @@ public static class CompositionConverter
             Route: navigate.Route,
             Kind: navigate.Outlet is null ? null : SceneCommon.DestinationKind.Outlet,
             RouteParameterBindings: RouteParameters(navigate));
+
+    static bool AdmitOperation(string operation, ScreenplaySyntax.ExposedPropertySyntax property, string path, ConversionDiagnostics diagnostics)
+    {
+        if (_collectionOperations.Contains(operation, StringComparer.Ordinal)) return true;
+        var construct = $"collection operation '{operation}'";
+        diagnostics.Report(new("STAGE-SCENE-COMPOSITION-001", DiagnosticSeverity.Error, construct, path, property.Location, $"Unsupported {construct} was omitted from '{path}'."));
+        return false;
+    }
+
+    static bool AdmitScope(string scope, ConversionDiagnostics diagnostics, string path, SourceLocation location)
+    {
+        if (_templateScopes.Contains(scope, StringComparer.Ordinal)) return true;
+        var construct = $"template scope '{scope}'";
+        diagnostics.Report(new("STAGE-SCENE-COMPOSITION-002", DiagnosticSeverity.Error, construct, path, location, $"Unsupported {construct} was omitted from '{path}'."));
+        return false;
+    }
 
     static Dictionary<string, SceneCommon.BindingExpression> RouteParameters(ScreenplaySyntax.ScreenNavigateSyntax navigate)
     {

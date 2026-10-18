@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using SceneCommon = Cratis.Scene.Model.Common;
 using SceneModel = Cratis.Scene.Model.Interactions;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
@@ -37,7 +38,18 @@ public static class BehaviorConverter
     /// <param name="enumerationOf">Gives the members of an enumeration-typed guard field.</param>
     /// <returns>The converted <see cref="SceneModel.Behavior"/>.</returns>
     public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf) =>
-        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf))], behavior.Order);
+        Convert(behavior, enumerationOf, null, behavior.Name ?? string.Empty);
+
+    /// <summary>
+    /// Converts a behavior while collecting omitted interaction constructs.
+    /// </summary>
+    /// <param name="behavior">The behavior to convert.</param>
+    /// <param name="enumerationOf">The enumeration members for guard fields.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <param name="path">The owning attachment path.</param>
+    /// <returns>The behavior with supported bindings and actions.</returns>
+    public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path) =>
+        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf, diagnostics, path))], behavior.Order);
 
     /// <summary>
     /// Converts a sequence of <see cref="ScreenplaySyntax.BehaviorSyntax"/> into Scene behaviors.
@@ -62,18 +74,43 @@ public static class BehaviorConverter
             _ => throw new UnknownInteractionTrigger(trigger.GetType().Name),
         };
 
+    /// <summary>
+    /// Converts a trigger, reporting unsupported triggers, kinds and interval units.
+    /// </summary>
+    /// <param name="trigger">The authored trigger.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <param name="path">The owning interaction path.</param>
+    /// <returns>The trigger, or null when unsupported.</returns>
+    public static SceneModel.InteractionTrigger? ConvertTrigger(ScreenplaySyntax.InteractionTriggerSyntax trigger, ConversionDiagnostics? diagnostics, string path)
+    {
+        if (diagnostics is null) return ConvertTrigger(trigger);
+        var construct = trigger switch
+        {
+            ScreenplaySyntax.BuiltInInteractionTriggerSyntax builtIn when builtIn.Kind is not (ScreenplaySyntax.InteractionTriggerKind.Click or ScreenplaySyntax.InteractionTriggerKind.DoubleClick or ScreenplaySyntax.InteractionTriggerKind.Select or ScreenplaySyntax.InteractionTriggerKind.Submit or ScreenplaySyntax.InteractionTriggerKind.Change or ScreenplaySyntax.InteractionTriggerKind.Load or ScreenplaySyntax.InteractionTriggerKind.Unload or ScreenplaySyntax.InteractionTriggerKind.Enter or ScreenplaySyntax.InteractionTriggerKind.Leave) => $"interaction trigger kind {builtIn.Kind}",
+            ScreenplaySyntax.IntervalInteractionTriggerSyntax interval when interval.Unit is not (ScreenplaySyntax.IntervalUnit.Seconds or ScreenplaySyntax.IntervalUnit.Minutes or ScreenplaySyntax.IntervalUnit.Hours or ScreenplaySyntax.IntervalUnit.Days) => $"interval unit {interval.Unit}",
+            ScreenplaySyntax.BuiltInInteractionTriggerSyntax or ScreenplaySyntax.EventInteractionTriggerSyntax or
+                ScreenplaySyntax.IntervalInteractionTriggerSyntax or ScreenplaySyntax.ApplicationTriggerInteractionTriggerSyntax => null,
+            _ => $"interaction trigger {trigger.GetType().Name}"
+        };
+        if (construct is null) return ConvertTrigger(trigger);
+        var code = trigger is ScreenplaySyntax.IntervalInteractionTriggerSyntax ? "STAGE-SCENE-BEHAVIOR-002" : "STAGE-SCENE-BEHAVIOR-001";
+        diagnostics.Report(new(code, DiagnosticSeverity.Error, construct, path, trigger.Location, $"Unsupported {construct} was omitted from '{path}'."));
+        return null;
+    }
+
     // An unguarded binding is one Scene binding. A guarded one - `when ... otherwise` - becomes one binding per branch
     // with the same trigger, in authored order, each conditioned on being the branch that holds for the subject (see
     // SceneGuards), so the Scene interaction engine runs exactly one of them.
-    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf)
+    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path)
     {
-        var trigger = ConvertTrigger(binding.Trigger);
+        var trigger = ConvertTrigger(binding.Trigger, diagnostics, path);
+        if (trigger is null) yield break;
         var alternatives = binding.Alternatives.ToArray();
         if (alternatives.Length == 0 && binding.Otherwise is null)
         {
             yield return new(
                 trigger,
-                [.. binding.Actions.Select(InteractionActionConverter.Convert)],
+                [.. binding.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()],
                 binding.Condition is null ? null : new SceneCommon.BindingExpression(binding.Condition));
             yield break;
         }
@@ -83,7 +120,7 @@ public static class BehaviorConverter
         {
             yield return new(
                 trigger,
-                [.. alternatives[index].Actions.Select(InteractionActionConverter.Convert)],
+                [.. alternatives[index].Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()],
                 Guard(new Dictionary<string, object?> { ["kind"] = "firstMatch", ["index"] = index, ["alternatives"] = conditions }));
         }
 
@@ -91,7 +128,7 @@ public static class BehaviorConverter
         {
             yield return new(
                 trigger,
-                [.. binding.Otherwise.Actions.Select(InteractionActionConverter.Convert)],
+                [.. binding.Otherwise.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()],
                 Guard(new Dictionary<string, object?> { ["kind"] = "otherwise", ["alternatives"] = conditions }));
         }
     }

@@ -162,7 +162,7 @@ Both engines also refuse public-event publication (`STAGE-ESM-032`), foreign eve
 captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`, naming the direction),
 and reducer observer filters (`STAGE-ESM-035`). The legacy engine also refuses reaction execution identity
 (`STAGE-ESM-034`) and reaction observer filters (`STAGE-ESM-035`). Semantic rendering supports reaction filters; neither that support nor the renderer's narrowed `034` refusal for claim-reading or opaque gates changes these legacy-engine refusals.
-Per-production route overrides fail `STAGE-ESM-036` on the semantic engine; the legacy engine refuses their stream syntax with `STAGE-ESM-030`.
+The semantic engine runs per-production route overrides; it refuses an override on an unkeyed stream under a keyed command route with `STAGE-ESM-036`, because Arc would append that production to the command's stream id. The legacy engine refuses the stream syntax with `STAGE-ESM-030`.
 The semantic engine runs event-triggered reactions, including `where`, `runs as`, `from`, productions,
 invocations and cascades. It settles them with the initiating command and appends all facts in one
 tail-guarded batch. A rejected, denied or unsupported settlement refuses the whole command and appends

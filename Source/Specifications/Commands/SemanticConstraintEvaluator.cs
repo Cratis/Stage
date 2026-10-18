@@ -40,7 +40,7 @@ internal static class SemanticConstraintEvaluator
         ? $"Constraint '{constraint.Name}' is violated: another event source already holds the constrained value."
         : $"Constraint '{constraint.Name}' is violated: the event source already has the constrained event.");
 
-    static bool ViolatesValue(SemanticConstraint constraint, Fact candidate, IReadOnlyList<Fact> history)
+    internal static bool ViolatesValue(SemanticConstraint constraint, Fact candidate, IReadOnlyList<Fact> history)
     {
         var value = Constrained(constraint, candidate);
         if (value.Length == 0)
@@ -64,15 +64,17 @@ internal static class SemanticConstraintEvaluator
             }
         }
 
-        return claims.Exists(claim => !SemanticExpectationComparer.AreEqual(claim.Owner, candidate.Destination) &&
-            claim.Values.Length == value.Length && claim.Values.Zip(value).All(pair => (pair.First, pair.Second, constraint.IgnoreCasing) switch
-            {
-                (SemanticTextValue a, SemanticTextValue b, true) => string.Equals(a.Value.ToLowerInvariant(), b.Value.ToLowerInvariant(), StringComparison.Ordinal),
-                _ => SemanticExpectationComparer.AreEqual(pair.First, pair.Second)
-            }));
+        return claims.Exists(claim => !SemanticExpectationComparer.AreEqual(claim.Owner, candidate.Destination) && SameValue(claim.Values, value, constraint.IgnoreCasing));
     }
 
-    static bool ViolatesOccurrence(SemanticConstraint constraint, Fact candidate, IReadOnlyList<Fact> history)
+    internal static bool SameValue(SemanticValue[] claimed, SemanticValue[] value, bool ignoreCasing) =>
+        claimed.Length == value.Length && claimed.Zip(value).All(pair => (pair.First, pair.Second, ignoreCasing) switch
+        {
+            (SemanticTextValue a, SemanticTextValue b, true) => string.Equals(a.Value.ToLowerInvariant(), b.Value.ToLowerInvariant(), StringComparison.Ordinal),
+            _ => SemanticExpectationComparer.AreEqual(pair.First, pair.Second)
+        });
+
+    internal static bool ViolatesOccurrence(SemanticConstraint constraint, Fact candidate, IReadOnlyList<Fact> history)
     {
         var open = false;
         foreach (var fact in history.Where(fact => SemanticExpectationComparer.AreEqual(fact.Destination is SemanticNullValue ? candidate.Destination : fact.Destination, candidate.Destination)))
@@ -84,11 +86,11 @@ internal static class SemanticConstraintEvaluator
         return open;
     }
 
-    static SemanticValue[] Constrained(SemanticConstraint constraint, Fact fact) =>
+    internal static SemanticValue[] Constrained(SemanticConstraint constraint, Fact fact) =>
         [.. Target(constraint, fact.Contract)!.Properties.Select(property => fact.Values.FirstOrDefault(value => value.TargetProperty == property)?.Value)
             .Where(value => value is not null and not SemanticNullValue).Select(value => value!)];
 
-    static SemanticConstraintTarget? Target(SemanticConstraint constraint, SemanticId contract) => constraint.Targets.FirstOrDefault(target => target.EventContract == contract);
+    internal static SemanticConstraintTarget? Target(SemanticConstraint constraint, SemanticId contract) => constraint.Targets.FirstOrDefault(target => target.EventContract == contract);
 
     internal sealed record Fact(SemanticId Contract, SemanticValue Destination, IReadOnlyList<SemanticPropertyValue> Values);
 }

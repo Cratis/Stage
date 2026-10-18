@@ -138,6 +138,11 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRunti
             return new(_world, SemanticExecutionCapability.Command, $"{feature.Code}: {feature.Message}");
         }
 
+        if (command is not null && SemanticRunAdmission.CommandValidationRefusal(Plan, command) is { } validationRefusal)
+        {
+            return new(_world, SemanticExecutionCapability.Command, validationRefusal);
+        }
+
         var artifact = command?.Id ?? query?.Id;
         var refusal = artifact is { } id ? SemanticPlanAdmission.Check(Plan, id) : null;
         refusal ??= command is null ? null : SemanticImplementationReach.ForCommand(Plan, command);

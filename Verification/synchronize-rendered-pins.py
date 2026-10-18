@@ -52,7 +52,8 @@ def cratis_pins(manifest):
     pins = {}
     for section in ("dependencies", "devDependencies"):
         for name, version in manifest.get(section, {}).items():
-            if name.startswith("@cratis/"):
+            # The Stage runtime is a local npm workspace linked with "*", not a published pin.
+            if name.startswith("@cratis/") and name != "@cratis/stage.runtime":
                 if name in pins:
                     raise ValueError(f"Duplicate npm pin: {name}")
                 pins[name] = stable(version)
@@ -197,6 +198,10 @@ class RenderedPinSynchronization(unittest.TestCase):
     def setUp(self):
         self.manifest = json.loads((ROOT / MANIFEST).read_text())
         self.arc = arc_version((ROOT / "Directory.Packages.props").read_bytes())
+        # The live manifest can disagree with the NuGet Arc right after a NuGet bump; pin the fixture to self.arc.
+        for name in self.manifest["dependencies"]:
+            if name == "@cratis/arc" or name.startswith("@cratis/arc."):
+                self.manifest["dependencies"][name] = self.arc
 
     def test_detects_planted_arc_drift(self):
         self.manifest["dependencies"]["@cratis/arc"] = "0.0.1"

@@ -13,12 +13,13 @@ internal static partial class SemanticReactionSpecificationRenderer
     {
         var located = context.DeclaringSlice(specification.Id);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
-        var types = new SemanticTypeSystem(context);
+        var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Arc.Commands").Using("Cratis.Arc.Chronicle.Testing.Commands")
             .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line("readonly global::Cratis.Arc.Testing.Commands.CommandScenario<object> _scenario = new();")
+            .Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Chronicle.EventSequences.AppendedEventWithResult[] _facts = [];")
             .Line("bool _settled;")
             .BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Because()");
@@ -63,7 +64,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         RenderRefusalOutcome(builder, specification, context, types);
         builder.BlankLine().ExpressionMember("public void Dispose()", "_scenario.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), builder.ToString());
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
     }
 
     static void RenderRefusalOutcome(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types)

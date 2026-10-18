@@ -53,9 +53,13 @@ internal static partial class SemanticReactionSpecificationRenderer
         var fields = scope.Command.Properties.Where(property => !property.IsGenerated).Select(property =>
             (property, scope.Specification.When!.Values.Single(value => value.TargetProperty == property.Id).Value)).ToArray();
         RenderExpectedCollections(builder, fields, values);
-        var predicates = fields.Select(field => ValuePredicate(field.property, field.Value, values));
-        builder.Line($"[global::Xunit.FactAttribute] void should_invoke_the_expected_command() => (_reactor.Produced.Count == 1 && _reactor.Produced.Single() is {scope.CommandName} command{string.Concat(predicates.Select(predicate => $" && {predicate}"))}).ShouldBeTrue();")
-            .BlankLine();
+        builder.Line("[global::Xunit.FactAttribute] void should_invoke_exactly_one_command() => _reactor.Produced.Count.ShouldEqual(1);")
+            .Line($"[global::Xunit.FactAttribute] void should_invoke_the_expected_command() => (_reactor.Produced.Single() is {scope.CommandName}).ShouldBeTrue();");
+        foreach (var (property, value) in fields)
+        {
+            builder.Line($"[global::Xunit.FactAttribute] void should_invoke_with_{Identifiers.ToSnakeCase(property.Name)}() => (_reactor.Produced.Single() is {scope.CommandName} command && {ValuePredicate(property, value, values)}).ShouldBeTrue();");
+        }
+        builder.BlankLine();
     }
 
     internal static void RenderDispose(CSharpCodeBuilder builder) => builder.OpenBlock("public void Dispose()")
@@ -86,7 +90,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             builder.Line("// The model has no append source; this reaction never uses the trigger destination.");
         }
         builder.Line("// Given facts establish history; reactions only observe the append.")
-            .Line($"await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(append.Route, context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+            .Line($"await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(append.Route, context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
     }
 
     static void RenderRedelivery(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types)
@@ -98,7 +102,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             var arguments = contract.Properties.Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
             var identity = given.EventSource!;
             var source = types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type);
-            builder.Line($"var occurrence{index} = await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(given.Route, context)}.History(new {types.EventType(contract)}({string.Join(", ", arguments)}));");
+            builder.Line($"var occurrence{index} = await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.History(new {types.EventType(contract)}({string.Join(", ", arguments)}));");
         }
         builder.Line($"await _reactor.Redeliver(occurrence{specification.WhenRedelivered!.Given});");
     }
@@ -107,19 +111,19 @@ internal static partial class SemanticReactionSpecificationRenderer
     {
         var located = context.DeclaringSlice(specification.Id);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
-        var types = new SemanticTypeSystem(context);
+        var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Specifications").Using("Xunit");
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
         RenderHeader(builder, prelude, context);
-        builder.BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Because()");
+        builder.Line(SemanticSpecificationValuesRenderer.Declarations).BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Because()");
         RenderAppend(builder, prelude, context, types);
         builder.EndBlock().BlankLine();
         RenderProductionExpectations(builder, specification, prelude, context, types);
         builder.BlankLine().ExpressionMember("public void Dispose()", "_reactor.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), builder.ToString());
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
     }
 
     static string ValuePredicate(SemanticProperty property, SemanticValue value, ValueScope scope)

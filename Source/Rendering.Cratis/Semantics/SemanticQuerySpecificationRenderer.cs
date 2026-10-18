@@ -36,7 +36,7 @@ internal static class SemanticQuerySpecificationRenderer
         var command = specification.When is null ? null : context.Commands[specification.When.Command];
         var replay = command is null ? [] : SemanticProjectionSpecificationEvents.Replay(context.Application, specification, projection, command);
         var located = context.DeclaringSlice(specification.Id);
-        var types = new SemanticTypeSystem(context);
+        var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
         if (specification.ThenQueries.Length > 1)
         {
@@ -58,7 +58,6 @@ internal static class SemanticQuerySpecificationRenderer
                 .Using("NSubstitute");
         }
 
-        var collectionPredicate = CollectionPredicate(expected, readModel, types, query);
         var key = query.Argument is null ? string.Empty : types.Value(expected.Key, query.Argument.Type);
         var collectionCall = CollectionArguments(query, expected, types);
         foreach (var (produced, _) in replay)
@@ -82,14 +81,14 @@ internal static class SemanticQuerySpecificationRenderer
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
         RenderScenario(builder, query, readModelName);
-        builder.BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Establish()");
+        builder.Line(SemanticSpecificationValuesRenderer.Declarations).BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Establish()");
         foreach (var given in specification.GivenEvents)
         {
             var givenEvent = context.Events[given.EventContract];
             var givenArguments = givenEvent.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var givenSource = given.EventSource!;
-            builder.Line(SeedEvent(query, types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type), $"new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)})", given.Route, context));
+            builder.Line(SeedEvent(query, types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type), $"new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)})", given.Route, context, types));
         }
 
         foreach (var (produced, expectedEvent) in replay)
@@ -98,40 +97,33 @@ internal static class SemanticQuerySpecificationRenderer
             var source = SemanticDestinations.ForSpecification(specification, command!, produced);
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line(SeedEvent(query, types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type), $"new {types.EventType(@event)}({string.Join(", ", arguments)})", SemanticSpecificationRouteRendering.ForCommand(specification, context), context));
+            builder.Line(SeedEvent(query, types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type), $"new {types.EventType(@event)}({string.Join(", ", arguments)})", SemanticSpecificationRouteRendering.ForCommand(specification, context), context, types));
         }
 
         if (query.Cardinality == SemanticQueryCardinality.Many)
         {
-            RenderCollectionExpectation(builder, query, new(readModelName, collectionCall, collectionPredicate));
+            RenderCollectionExpectation(builder, query, expected, readModel, types, collectionCall);
         }
         else
         {
-            var result = expected.Results.Single();
-            var predicates = result.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal).Select(value =>
-            {
-                var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);
-                return $"_result.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value.Value, property.Type)}";
-            });
-            var predicate = $"_result is not null{string.Concat(predicates.Select(_ => $" && {_}"))}";
             builder.Line($"_readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key})!);")
                 .EndBlock()
                 .BlankLine()
                 .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_readModels, {key});")
                 .BlankLine()
-                .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({predicate}).ShouldBeTrue();")
-                .Line("public void Dispose() => _scenario.Dispose();")
-                .EndBlock();
+                .Line("[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => (_result is not null).ShouldBeTrue();");
+            RenderProperties(builder, expected.Results.Single().Values, readModel, types);
+            builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         }
 
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
         // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
         // parse needs the namespace, and emitting it regardless leaves an unused using in every file.
-        var content = builder.ToString();
+        var content = types.SpecificationContent(builder.ToString());
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = builder.Using("System.Globalization").ToString();
+            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
         }
 
         return new(path, content);
@@ -157,7 +149,7 @@ internal static class SemanticQuerySpecificationRenderer
         var given = specification.GivenReadModels.Single();
         var result = expected.Results.Single();
         var located = context.DeclaringSlice(specification.Id);
-        var types = new SemanticTypeSystem(context);
+        var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
         var builder = new CSharpCodeBuilder()
@@ -170,12 +162,6 @@ internal static class SemanticQuerySpecificationRenderer
         var key = types.Value(given.Key, argument.Type);
         var values = readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal)
             .Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
-        var predicates = result.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal).Select(value =>
-        {
-            var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);
-            return $"_result.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value.Value, property.Type)}";
-        });
-        var predicate = $"_result is not null{string.Concat(predicates.Select(_ => $" && {_}"))}";
         if (SemanticTypeSystem.ValueNeedsCommon(given.Key, argument.Type) ||
             given.Values.Any(value => SemanticTypeSystem.ValueNeedsCommon(value.Value, readModel.Properties.Single(_ => _.Id == value.TargetProperty).Type)) ||
             result.Values.Any(value => SemanticTypeSystem.ValueNeedsCommon(value.Value, readModel.Properties.Single(_ => _.Id == value.TargetProperty).Type)))
@@ -186,20 +172,21 @@ internal static class SemanticQuerySpecificationRenderer
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
+            .Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line($"{readModelName}? _result;")
             .BlankLine()
             .Line($"void Establish() => _scenario.Given.ForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key}).ReadModel(new {readModelName}({string.Join(", ", values)}));")
             .BlankLine()
             .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{Identifiers.ToPascalCase(query.Name)}(_scenario.ReadModels, {key});")
             .BlankLine()
-            .Line($"[global::Xunit.FactAttribute] void should_return_the_seeded_read_model() => ({predicate}).ShouldBeTrue();")
-            .Line("public void Dispose() => _scenario.Dispose();")
-            .EndBlock();
+            .Line("[global::Xunit.FactAttribute] void should_return_the_seeded_read_model() => (_result is not null).ShouldBeTrue();");
+        RenderProperties(builder, result.Values, readModel, types);
+        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
-        var content = builder.ToString();
+        var content = types.SpecificationContent(builder.ToString());
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = builder.Using("System.Globalization").ToString();
+            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
         }
 
         return new(path, content);
@@ -220,28 +207,41 @@ internal static class SemanticQuerySpecificationRenderer
                 : $"{readModelName}? _result;");
     }
 
-    static void RenderCollectionExpectation(CSharpCodeBuilder builder, SemanticKeyedQuery query, CollectionExpectation expected)
+    static void RenderCollectionExpectation(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticSpecificationQueryResult expected, SemanticReadModel readModel, SemanticTypeSystem types, string arguments)
     {
+        var readModelName = types.SliceType(readModel.Id, readModel.Name);
         if (!IsLiveList(query))
         {
-            builder.Line($"_readModels.GetInstances<{expected.ReadModelName}>().Returns(_scenario.Instances.Values);");
+            builder.Line($"_readModels.GetInstances<{readModelName}>().Returns(_scenario.Instances.Values);");
         }
-        builder.EndBlock()
-            .BlankLine()
-            .Line($"async global::System.Threading.Tasks.Task Because() => _results = await {CollectionExecution(query, expected.ReadModelName, expected.Arguments)};")
-            .BlankLine()
-            .Line($"[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => ({expected.Predicate}).ShouldBeTrue();")
-            .Line("public void Dispose() => _scenario.Dispose();")
-            .EndBlock();
+        builder.EndBlock().BlankLine()
+            .Line($"async global::System.Threading.Tasks.Task Because() => _results = await {CollectionExecution(query, readModelName, arguments)};")
+            .BlankLine();
+        if (!query.Filters.IsDefaultOrEmpty)
+        {
+            builder.Line($"[global::Xunit.FactAttribute] void should_return_the_expected_count() => global::System.Linq.Enumerable.Count(_results).ShouldEqual({expected.Results.Length});");
+        }
+        var key = readModel.Properties.Single(property => property.IsIdentifier);
+        foreach (var (result, index) in expected.Results.Select((result, index) => (result, index)))
+        {
+            var selection = $"global::System.Linq.Enumerable.Single(_results, result => result.{Identifiers.ToPascalCase(key.Name)} == {types.Value(result.Key, key.Type)})";
+            builder.Line($"[global::Xunit.FactAttribute] void should_return_result_{index + 1}() => ({selection} is not null).ShouldBeTrue();");
+            foreach (var value in result.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
+            {
+                var property = readModel.Properties.Single(property => property.Id == value.TargetProperty);
+                builder.Line($"[global::Xunit.FactAttribute] void should_return_result_{index + 1}_with_{Identifiers.ToSnakeCase(property.Name)}() => {selection}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
+            }
+        }
+        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
     }
 
     static bool IsLiveList(SemanticKeyedQuery query) =>
         query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live };
 
-    static string SeedEvent(SemanticKeyedQuery query, string source, string @event, SemanticFixtureRoute? route, SemanticApplicationContext context) =>
+    static string SeedEvent(SemanticKeyedQuery query, string source, string @event, SemanticFixtureRoute? route, SemanticApplicationContext context, SemanticTypeSystem types) =>
         IsLiveList(query)
-            ? $"(await _scenario.EventLog.Append({source}, {@event}{(route is null ? string.Empty : $", {SemanticSpecificationRouteRendering.Arguments(route, context)}")})).IsSuccess.ShouldBeTrue();"
-            : $"await _scenario.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(route, context)}.Events({@event});";
+            ? $"(await _scenario.EventLog.Append({source}, {@event}{(route is null ? string.Empty : $", {SemanticSpecificationRouteRendering.Arguments(route, context, types)}")})).IsSuccess.ShouldBeTrue();"
+            : $"await _scenario.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(route, context, types)}.Events({@event});";
 
     static string CollectionExecution(SemanticKeyedQuery query, string readModelName, string arguments)
     {
@@ -262,22 +262,12 @@ internal static class SemanticQuerySpecificationRenderer
         return $"{Identifiers.EscapeKeyword(Identifiers.ToCamelCase(filter.Name))}: {types.Value(value, filter.Type)}";
     }
 
-    static IEnumerable<string> CountAssertion(SemanticKeyedQuery query, SemanticSpecificationQueryResult expected) =>
-        query.Filters.IsDefaultOrEmpty ? [] : [$"global::System.Linq.Enumerable.Count(_results) == {expected.Results.Length}"];
-
-    static string CollectionPredicate(SemanticSpecificationQueryResult expected, SemanticReadModel readModel, SemanticTypeSystem types, SemanticKeyedQuery query)
+    static void RenderProperties(CSharpCodeBuilder builder, IEnumerable<SemanticPropertyValue> values, SemanticReadModel readModel, SemanticTypeSystem types)
     {
-        var resultPredicates = expected.Results.Select(result =>
+        foreach (var value in values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
         {
-            var predicates = result.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal).Select(value =>
-            {
-                var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);
-                return $"result.{Identifiers.ToPascalCase(property.Name)} == {types.Value(value.Value, property.Type)}";
-            });
-            return $"global::System.Linq.Enumerable.Any(_results, result => {string.Join(" && ", predicates)})";
-        });
-        return string.Join(" && ", CountAssertion(query, expected).Concat(resultPredicates));
+            var property = readModel.Properties.Single(property => property.Id == value.TargetProperty);
+            builder.Line($"[global::Xunit.FactAttribute] void should_have_{Identifiers.ToSnakeCase(property.Name)}() => _result!.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
+        }
     }
-
-    sealed record CollectionExpectation(string ReadModelName, string Arguments, string Predicate);
 }

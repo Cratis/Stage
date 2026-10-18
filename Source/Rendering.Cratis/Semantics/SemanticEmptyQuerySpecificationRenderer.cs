@@ -16,7 +16,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
     {
         var query = context.Queries[expected.Query];
         var readModel = context.ReadModels[query.ReadModel];
-        var types = new SemanticTypeSystem(context);
+        var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var modelName = types.SliceType(readModel.Id, readModel.Name);
         var located = context.DeclaringSlice(specification.Id);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
@@ -25,6 +25,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{modelName}> _scenario = new();")
+            .Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Arc.Queries.QueryResult _result = null!;");
         if (specification.GivenCaller is not null)
         {
@@ -81,7 +82,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         }
         builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), builder.ToString());
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
     }
 
     static string Argument(string name, string value) => $"[{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(name))}] = {value}";

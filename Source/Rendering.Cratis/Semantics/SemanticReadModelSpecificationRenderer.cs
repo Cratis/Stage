@@ -34,7 +34,7 @@ internal static class SemanticReadModelSpecificationRenderer
         var replay = command is null ? [] : ReplayOf(context.Application, specification, expected, projection, reducer, command);
         var givenEvents = reducer is null ? specification.GivenEvents : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
-        var types = new SemanticTypeSystem(context);
+        var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
         if (specification.ThenReadModels.Length > 1)
         {
@@ -47,6 +47,7 @@ internal static class SemanticReadModelSpecificationRenderer
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
+            .Line(SemanticSpecificationValuesRenderer.Declarations)
             .BlankLine()
             .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
         foreach (var given in givenEvents)
@@ -64,7 +65,7 @@ internal static class SemanticReadModelSpecificationRenderer
             needsCommon |= SemanticTypeSystem.ValueNeedsCommon(givenSource.Value, givenSource.Type) ||
                 givenEvent.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
         }
 
         foreach (var (produced, expectedEvent) in replay)
@@ -82,7 +83,7 @@ internal static class SemanticReadModelSpecificationRenderer
                     expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
         builder.EndBlock()
@@ -129,10 +130,10 @@ internal static class SemanticReadModelSpecificationRenderer
 
         // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
         // parse needs the namespace, and emitting it regardless leaves an unused using in every file.
-        var content = builder.ToString();
+        var content = types.SpecificationContent(builder.ToString());
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = builder.Using("System.Globalization").ToString();
+            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
         }
 
         return new(path, content);

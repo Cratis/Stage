@@ -17,6 +17,8 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
 {
     readonly bool _usesLongWholeNumbers = context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8);
 
+    internal SemanticSpecificationValuesRenderer? SpecificationValues { get; init; }
+
     /// <summary>
     /// Determines whether a rendered declaration names a shared concept or composite type.
     /// </summary>
@@ -152,31 +154,13 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
     /// <returns>The C# value expression.</returns>
     public string Value(SemanticValue value, SemanticTypeReference type)
     {
-        if (value is SemanticNullValue)
-        {
-            return "null";
-        }
-
         if (type.IsCollection && value is SemanticArrayValue array)
         {
-            var elementType = type with { IsCollection = false };
-            return $"[{string.Join(", ", array.Values.Select(_ => Value(_, elementType)))}]";
+            return $"[{string.Join(", ", array.Values.Select(element => Value(element, type with { IsCollection = false })))}]";
         }
 
-        if (type.Kind == SemanticTypeReferenceKind.Concept)
-        {
-            var concept = context.Concepts[type.Target];
-            return concept.Values.IsEmpty
-                ? $"new {CommonType(concept.Name)}({PrimitiveValue(value, concept.Primitive)})"
-                : EnumMember(CommonType(concept.Name), concept, value);
-        }
-
-        if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
-        {
-            return CompositeValue(composite, context.Types[type.Target]);
-        }
-
-        return PrimitiveValue(value, type.Primitive);
+        var expression = InlineValue(value, type);
+        return SpecificationValues?.Value(value, type, expression, this) ?? expression;
     }
 
     /// <summary>
@@ -220,6 +204,8 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
     public string SliceType(SemanticId id, string name) =>
         Named(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path), Identifiers.ToPascalCase(name));
 
+    internal string SpecificationContent(string content) => SpecificationValues?.Render(content) ?? content;
+
     // An enum concept renders as a C# enum, so its literal is a member rather than a wrapped primitive.
     static string EnumMember(string type, SemanticConcept concept, SemanticValue value) =>
         value is SemanticTextValue text && concept.Values.Contains(text.Value, StringComparer.Ordinal)
@@ -227,6 +213,35 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
             : throw UnsupportedSemanticRendering.For($"{nameof(SemanticValueKind)}/enum {concept.Name}", value is SemanticTextValue unknown ? unknown.Value : value.Kind.ToString());
 
     static string Literal(string value) => CSharpCodeBuilder.StringLiteral(value);
+
+    string InlineValue(SemanticValue value, SemanticTypeReference type)
+    {
+        if (value is SemanticNullValue)
+        {
+            return "null";
+        }
+
+        if (type.IsCollection && value is SemanticArrayValue array)
+        {
+            var elementType = type with { IsCollection = false };
+            return $"[{string.Join(", ", array.Values.Select(_ => InlineValue(_, elementType)))}]";
+        }
+
+        if (type.Kind == SemanticTypeReferenceKind.Concept)
+        {
+            var concept = context.Concepts[type.Target];
+            return concept.Values.IsEmpty
+                ? $"new {CommonType(concept.Name)}({PrimitiveValue(value, concept.Primitive)})"
+                : EnumMember(CommonType(concept.Name), concept, value);
+        }
+
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType && value is SemanticCompositeValue composite)
+        {
+            return CompositeValue(composite, context.Types[type.Target]);
+        }
+
+        return PrimitiveValue(value, type.Primitive);
+    }
 
     string Named(string @namespace, string name, ReferenceContext referenceContext = ReferenceContext.Type, int arity = 0)
     {
@@ -237,7 +252,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
     string CompositeValue(SemanticCompositeValue composite, SemanticCompositeType type)
     {
         var values = type.Properties.Select(property =>
-            Value(composite.Properties.SingleOrDefault(member => member.TargetProperty == property.Id)?.Value ?? SemanticValue.Null, property.Type));
+            InlineValue(composite.Properties.SingleOrDefault(member => member.TargetProperty == property.Id)?.Value ?? SemanticValue.Null, property.Type));
         return $"new {CommonType(type.Name)}({string.Join(", ", values)})";
     }
 

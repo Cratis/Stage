@@ -55,8 +55,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:83346dc61bef1f663faecb1a9e3a82d5e2e48e9badc67b545b87513a4919e837", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:b6a229f20738786e4154fa451202279221e3c259d225de123775af24e980949b", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:fcacc27dd0adffa7b11120bfaf244609f6fde5ac325f9a5f5f75ed5241aa182f", "issue": 343 },
-        { "code": "STAGE-ESM-037", "artifact": "sem1:27558afdcf416a5d5f37d50d4f550f45a81d0ab49f6bbf35e231622ef1a9275e", "issue": 342 },
-        { "code": "STAGE-ESM-043", "artifact": "sem1:e803357aa7e9b13158f3ee35dd4de46a171432d5fce27ea7c2ec97c13b9cbe2d", "issue": 422 } ] }
+        { "code": "STAGE-ESM-037", "artifact": "sem1:27558afdcf416a5d5f37d50d4f550f45a81d0ab49f6bbf35e231622ef1a9275e", "issue": 342 } ] }
     },
     "CompositeReadModelKeysCorpus.V27": {
       "loader": { "outcome": "supported" },
@@ -2090,8 +2089,7 @@
         { "code": "STAGE-ESM-033", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002580", "issue": 213 },
         { "code": "STAGE-ESM-036", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000238c", "issue": 262 },
         { "code": "STAGE-ESM-036", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002396", "issue": 262 },
-        { "code": "STAGE-ESM-036", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000023a0", "issue": 262 },
-        { "code": "STAGE-ESM-043", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000001", "issue": 422 } ] }
+        { "code": "STAGE-ESM-036", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000023a0", "issue": 262 } ] }
     },
     "EsmGoldenVectors.V23": {
       "loader": { "outcome": "refused", "refusals": [
@@ -2241,7 +2239,6 @@
         { "code": "STAGE-ESM-036", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000238c", "issue": 262 },
         { "code": "STAGE-ESM-036", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002396", "issue": 262 },
         { "code": "STAGE-ESM-036", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000023a0", "issue": 262 },
-        { "code": "STAGE-ESM-043", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000001", "issue": 422 },
         { "code": "STAGE-IMPL-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000001e07b", "issue": 316 } ] }
     },
     "EsmGoldenVectors.V24": {
@@ -2392,7 +2389,6 @@
         { "code": "STAGE-ESM-036", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000238c", "issue": 262 },
         { "code": "STAGE-ESM-036", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002396", "issue": 262 },
         { "code": "STAGE-ESM-036", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000023a0", "issue": 262 },
-        { "code": "STAGE-ESM-043", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000001", "issue": 422 },
         { "code": "STAGE-IMPL-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000001e07b", "issue": 316 } ] }
     },
     "EsmGoldenVectors.V25": {

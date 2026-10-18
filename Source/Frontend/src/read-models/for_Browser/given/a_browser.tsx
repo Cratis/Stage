@@ -8,7 +8,7 @@ import { Browser } from '../../Browser';
 import { endpoints } from '../../endpoints';
 import type { Summary } from '../../Summary';
 import type { Detail } from '../../Detail';
-import { stageTheme } from '../../../stageTheme';
+import { stageTheme } from '@cratis/stage.runtime';
 
 export const model: Summary = {
     id: 'sm:model', name: 'ProjectSummary', module: 'Projects', feature: 'Registration', slice: 'ProjectLookup',

@@ -1,0 +1,260 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+import { act, fireEvent, render, screen, waitFor } from './testing/render';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { InteractionActionKind, InteractionTriggerKind } from '@cratis/scene.model';
+import { PrimeReactProvider } from '@primereact/core/config';
+import { stageTheme } from './stageTheme';
+import { App } from './App';
+import { registerTestCommand, commandResult } from './testing/commands';
+
+const sceneWithAnInteraction = {
+    layouts: [],
+    screenTemplates: [],
+    screens: [
+        {
+            name: 'InvoiceList',
+            layout: 'AppShell',
+            screenTemplate: null,
+            forms: [],
+            contributions: [],
+            behaviors: [],
+            slotContent: {
+                content: [
+                    {
+                        id: 'cancel',
+                        name: 'cancel',
+                        componentName: 'core:button',
+                        properties: { label: 'Cancel invoice' },
+                        slots: {},
+                        behaviors: [
+                            {
+                                name: 'CancelTheInvoice',
+                                bindings: [
+                                    {
+                                        trigger: { kind: InteractionTriggerKind.Click },
+                                        actions: [{ kind: InteractionActionKind.ExecuteCommand, command: 'CancelInvoice' }],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    ],
+};
+
+const routes = { commands: { CancelInvoice: '/api/invoicing/invoices/cancel-invoice/cancel-invoice' }, queries: {} };
+
+function respond(url: string) {
+    if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(sceneWithAnInteraction) } as Response);
+    if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve(routes) } as Response);
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(commandResult()) } as Response);
+}
+
+const navigationScene = {
+    layouts: [],
+    screenTemplates: [],
+    dialogTemplates: [
+        {
+            name: 'EditInvoiceDialog',
+            displayName: 'Edit invoice dialog',
+            slots: [],
+            content: {
+                content: [{ id: 'dialog-title', name: 'dialog-title', componentName: 'core:title', properties: { text: 'Edit invoice content' }, slots: {} }],
+            },
+        },
+    ],
+    screens: [
+        {
+            name: 'InvoiceList',
+            layout: 'AppShell',
+            screenTemplate: null,
+            forms: [],
+            contributions: [],
+            behaviors: [],
+            slotContent: {
+                content: [
+                    {
+                        id: 'details',
+                        name: 'details',
+                        componentName: 'core:button',
+                        properties: { label: 'Open details' },
+                        slots: {},
+                        behaviors: [{
+                            name: 'OpenDetails',
+                            bindings: [{
+                                trigger: { kind: InteractionTriggerKind.Click },
+                                actions: [{ kind: InteractionActionKind.Navigate, screen: 'InvoiceDetails' }],
+                            }],
+                        }],
+                    },
+                    {
+                        id: 'edit',
+                        name: 'edit',
+                        componentName: 'core:button',
+                        properties: { label: 'Edit invoice' },
+                        slots: {},
+                        behaviors: [{
+                            name: 'EditInvoice',
+                            bindings: [{
+                                trigger: { kind: InteractionTriggerKind.Click },
+                                actions: [{ kind: InteractionActionKind.OpenDialog, dialogTemplate: 'EditInvoiceDialog' }],
+                            }],
+                        }],
+                    },
+                ],
+            },
+        },
+        {
+            name: 'InvoiceDetails',
+            layout: 'AppShell',
+            screenTemplate: null,
+            forms: [],
+            contributions: [],
+            behaviors: [],
+            slotContent: {
+                content: [{ id: 'title', name: 'title', componentName: 'core:title', properties: { text: 'Details screen' }, slots: {} }],
+            },
+        },
+    ],
+};
+
+describe('when a modeled interaction is clicked', () => {
+    afterEach(() => {
+        globalThis.history.replaceState(null, '', '#');
+        vi.unstubAllGlobals();
+    });
+
+    // The end of the whole chain: a `.play` document said `on click / execute CancelInvoice`, and clicking the
+    // rendered button posts to the route this Stage registered for that command. Everything else is plumbing.
+    it('should post the modeled command to the route the Stage registered', async () => {
+        registerTestCommand('CancelInvoice', routes.commands.CancelInvoice);
+        const fetched = vi.fn((input: RequestInfo | URL) => respond(String(input)));
+        vi.stubGlobal('fetch', fetched);
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        await screen.findByRole('button', { name: 'Cancel invoice' });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel invoice' }));
+
+        await waitFor(() => expect(fetched).toHaveBeenCalledWith(
+            new URL('http://localhost:3000/api/invoicing/invoices/cancel-invoice/cancel-invoice'),
+            expect.objectContaining({ method: 'POST' })));
+    });
+
+    // A command the Stage never registered must say so. Guessing a URL would turn a modelling mistake into a
+    // 404 at the worst possible moment, long after the cause.
+    it('should report a command this Stage does not serve', async () => {
+        const fetched = vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            return respond(url);
+        });
+        vi.stubGlobal('fetch', fetched);
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        await screen.findByRole('button', { name: 'Cancel invoice' });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel invoice' }));
+
+        await screen.findByText(/not registered by this Stage/);
+    });
+
+    it('should navigate to the authored screen and render its outlet content', async () => {
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(navigationScene) } as Response);
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        const details = await screen.findByRole('button', { name: 'Open details' });
+        await act(async () => { fireEvent.click(details); });
+
+        expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
+    });
+
+    it('should honor a deep link to a modeled screen', async () => {
+        globalThis.history.replaceState(null, '', '#/InvoiceDetails');
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(navigationScene) } as Response);
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+
+        expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
+    });
+
+    it('should apply a navigation hash that changes while the scene is loading', async () => {
+        globalThis.history.replaceState(null, '', '#/InvoiceList');
+        let loadScene: ((response: Response) => void) | undefined;
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return new Promise<Response>(resolve => { loadScene = resolve; });
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        globalThis.history.replaceState(null, '', '#/InvoiceDetails');
+        globalThis.dispatchEvent(new HashChangeEvent('hashchange'));
+        loadScene?.({ ok: true, json: () => Promise.resolve(navigationScene) } as Response);
+
+        expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
+    });
+
+    it('should render a native command form after routes finish loading', async () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        let loadRoutes: ((response: Response) => void) | undefined;
+        const formScene = {
+            layouts: [],
+            screenTemplates: [],
+            screens: [{
+                name: 'Orders',
+                layout: 'AppShell',
+                screenTemplate: null,
+                forms: [{ name: 'Register order', forCommand: 'RegisterOrder', fields: [{ name: 'orderNumber', label: 'Order #' }] }],
+                contributions: [],
+                behaviors: [],
+                slotContent: { content: [] },
+            }],
+        };
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(formScene) } as Response);
+            if (url === 'stage/routes') return new Promise<Response>(resolve => { loadRoutes = resolve; });
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(commandResult()) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        expect(await screen.findByText(/waiting for Stage routes/)).toBeDefined();
+        registerTestCommand('RegisterOrder', '/api/orders/register', { orderNumber: { type: 'string' } });
+        loadRoutes?.({ ok: true, json: () => Promise.resolve({ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }) } as Response);
+
+        expect(await screen.findByLabelText('Order #')).toBeDefined();
+        expect(consoleError.mock.calls.map(call => String(call[0])).join('\n')).not.toContain('Rendered more hooks');
+        consoleError.mockRestore();
+    });
+
+    it('should open an authored dialog and render its content', async () => {
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === 'stage/scene') return Promise.resolve({ ok: true, json: () => Promise.resolve(navigationScene) } as Response);
+            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            return Promise.resolve({ ok: false, json: () => Promise.resolve({}) } as Response);
+        }));
+
+        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
+        fireEvent.click(await screen.findByRole('button', { name: 'Edit invoice' }));
+
+        expect(await screen.findByRole('dialog', { name: 'Edit invoice dialog' })).toBeDefined();
+        expect(await screen.findByRole('heading', { name: 'Edit invoice content' })).toBeDefined();
+    });
+});

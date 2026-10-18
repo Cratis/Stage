@@ -406,7 +406,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             projected.ToDictionary(row => $"{row.ReadModel}:{SemanticRunContext.Canonical(row.Key)}", row => JsonSerializer.Serialize(row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value)))),
             specification.ThenQueries.Select((query, index) => (query, index)).ToDictionary(
                 entry => $"{entry.index}:{entry.query.Query}:{SemanticRunContext.Canonical(entry.query.Key)}",
-                entry => JsonSerializer.Serialize(projected.Where(row => row.ReadModel == plan.Queries[entry.query.Query].ReadModel && SemanticExpectationComparer.AreEqual(row.Key, entry.query.Key)).Select(row => row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))),
+                entry => JsonSerializer.Serialize(SemanticRunQueries.Select(plan, entry.query, projected).Select(row => row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))),
             null);
         return Settled(slice, specification, failures, trace);
     }

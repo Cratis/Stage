@@ -110,6 +110,16 @@ Each `RenderPlan` carries:
 | `Findings` | Everything this target could not fully resolve. |
 | `IsComplete` | Whether `Findings` is empty. |
 
+The separate Cratis `ArtifactRenderPlan` carries generated files and diagnostics rather than
+Scene resolution findings. Its `Outcome` is `Complete`, `Partial`, or `Refused`. With explicit
+render-around opt-in, `Refusals` lists each omitted specification's semantic identity, kind,
+and diagnostic codes in ordinal identity order. Original errors remain, so a partial plan's
+`Success` is false. No planned file realizes a refused identity through its `Sources`.
+The output digest includes `refusals-v1` only for nonempty refusals; empty refusals preserve
+existing digests. `CratisPlanResult` exposes the same outcome and refusals.
+See [Render around refused specifications](stage-rendering.md#render-around-refused-specifications)
+for the exact opt-in and refusal boundary.
+
 ## Specification case tables
 
 The Cratis artifact render plan emits one specification class per named case in a Screenplay

@@ -15,7 +15,7 @@ public class when_refusing_an_unaudited_version : a_command_only_plan
     async Task Because()
     {
         // Simulate dependency versions Stage has not audited.
-        foreach (var version in new uint[] { 28, 29 })
+        foreach (var version in new uint[] { 29, 30 })
         {
             typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new LanguageVersion(version, 0));
             typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new SemanticVersion(version, 0));

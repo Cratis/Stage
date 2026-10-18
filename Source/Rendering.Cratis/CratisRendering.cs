@@ -27,6 +27,11 @@ public sealed record CratisRenderingOptions(string ProjectName, string RootNames
     /// Gets the requested gap policy. Refuse is the default. This option has no effect until the target supports gap rendering.
     /// </summary>
     public ImplementationGapMode ImplementationGaps { get; init; } = ImplementationGapMode.Refuse;
+
+    /// <summary>
+    /// Gets the refusal mode admitted from the hashed profile input.
+    /// </summary>
+    public ArtifactRefusalMode Refusals { get; init; } = ArtifactRefusalMode.Refuse;
 }
 
 /// <summary>

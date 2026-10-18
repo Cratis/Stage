@@ -304,12 +304,15 @@ V27 admits read models with several `key` parts. The semantic Host runs them end
 and removals, list queries with equality filters, single-instance queries by parts and the read-model browser, which
 shows each instance key as an object keyed by part name. The specification executor refuses a projection into such a
 read model as `Unsupported(Projection)`, naming ESM v27 composite read-model keys, because its per-run scenario seeds
-and looks up instances by one event-source key. The Cratis renderer refuses before planning any artifact and never
-throws: `STAGE-ESM-048` names each read model with two or more key parts and each projection keyed by `parts`, and
-`STAGE-ESM-047` names each single-instance query by parts, because Chronicle cannot look up one read-model instance
-by a composite key until Chronicle#4265. List queries over such read models need no lookup, so they are not refused
-separately. The legacy engines refuse a read model with several `key` marks with `STAGE-ESM-048`. Rendering composite
-read-model keys follows in a later release.
+and looks up instances by one event-source key. The Cratis renderer renders such a read model with a synthetic `Id`
+key record (`<ReadModel>Key`) holding the parts, alongside the declared properties, and a scoped projection that sets the
+parts through Chronicle's `UsingCompositeKey`, for `from` blocks and `remove with` alike. List and filtered queries
+work as for any collection. Shapes the renderer cannot express are refused with `STAGE-ESM-048`, naming the reason:
+joins, children, nested objects, `every`, optional, collection or non-primitive key parts, a property named `Id`,
+`from` or removal keys that are not a complete `parts` key, and protected live queries. `STAGE-ESM-047` names each
+single-instance query by parts, because Chronicle cannot look up one read-model instance by a composite key until
+Chronicle#4265. Generated specifications that project into such a read model are not yet admitted
+(`STAGE-ESM-011`). The legacy engines refuse a read model with several `key` marks with `STAGE-ESM-048`.
 
 For example, authored `9007199254740991`, `-9007199254740991` and `1234567890123456` render as
 `9007199254740991L`, `-9007199254740991L` and `1234567890123456L`; the fraction

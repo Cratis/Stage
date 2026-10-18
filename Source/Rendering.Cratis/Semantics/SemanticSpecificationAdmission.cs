@@ -92,6 +92,7 @@ internal static partial class SemanticSpecificationAdmission
                     specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
                         HasExpectedProjectionEvent(context, specification, expected) &&
                         !ReducerUsesUnstableContext(context, expected.ReadModel)) &&
+                    specification.ThenAbsentReadModels.All(expected => CanAssertAbsence(context, specification, expected)) &&
                     specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
                         !context.Reducers.Any(reducer => reducer.ReadModel == context.Queries[expected.Query].ReadModel) &&
                         expected.Results.All(result => HasExpectedProjectionEvent(context, specification, result))) &&
@@ -165,7 +166,7 @@ internal static partial class SemanticSpecificationAdmission
     static bool AssertsUncontrolledOccurrence(SemanticApplication application, SemanticSpecification specification, SemanticCommand command) =>
         !SemanticSpecificationClock.TryGet(specification, out _) && SemanticProductionSelection.Taken(application, command, specification).Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
-        (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
+        (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
 
     static bool ReducerUsesUnstableContext(SemanticApplicationContext context, SemanticId readModel)
     {
@@ -219,9 +220,9 @@ internal static partial class SemanticSpecificationAdmission
             return "A command maps $context.occurred from its current clock; fixed event or projected values in a specification cannot assert this occurrence without a supplied time.";
         }
 
-        if (!specification.ThenAbsentReadModels.IsEmpty)
+        if (specification.ThenAbsentReadModels.Any(expected => !CanAssertAbsence(context, specification, expected)))
         {
-            return "A read model asserted absent needs a scenario that proves no document exists for the key; the generated ReadModelScenario exposes only the materialized record.";
+            return AbsenceRejection;
         }
 
         if (specification.ThenEventsInAnyOrder &&

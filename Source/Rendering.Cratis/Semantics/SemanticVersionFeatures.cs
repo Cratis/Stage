@@ -468,9 +468,9 @@ internal static class SemanticVersionFeatures
 
         foreach (var feature in RedeliveryInSpecification(specification)) yield return feature;
 
-        if (!specification.ThenAbsentReadModels.IsDefaultOrEmpty)
+        if (specification.ThenAbsentReadModels.Any(expected => expected.Key is not (SemanticTextValue or SemanticNumberValue or SemanticBooleanValue)))
         {
-            yield return new(Absence, StageExecutionCapability.Projection, specification.Id, "specification", $"Specification '{specification.Name}' asserts a read model is absent (ESM v5); the generated ReadModelScenario exposes only a materialized record, so Stage does not support absence yet.");
+            yield return new(Absence, StageExecutionCapability.Projection, specification.Id, "specification", $"Specification '{specification.Name}' asserts read-model absence with a non-scalar key; the generated ReadModelScenario indexes instances by scalar event-source identities.");
         }
     }
 

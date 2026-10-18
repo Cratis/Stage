@@ -257,10 +257,10 @@ internal static class SemanticSurfaceLedger
         // also fails STAGE-ESM-011 before rendering: Arc supplies an empty guest principal.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");
 
-        // ESM v5 keyed read-model absence fails STAGE-ESM-027: the generated ReadModelScenario exposes only a materialized record.
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-027"), "ThenAbsentReadModels");
-
-        Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-027"), "Key ReadModel");
+        // Keyed projection absence checks ReadModelScenario.Instances. Non-scalar keys retain STAGE-ESM-027;
+        // fixtures or replay outside the admitted projection scenario retain specification-level STAGE-ESM-011.
+        Add(entries, "SemanticSpecification", rendered, "ThenAbsentReadModels");
+        Add(entries, "SemanticSpecificationAbsentReadModel", rendered, "Key ReadModel");
         Add(entries, "SemanticSpecification", rendered, "WhenAppended ThenNoEvents");
 
         // Redelivery admits one named trigger with portable history; cascades and refusal branches fail STAGE-ESM-011.

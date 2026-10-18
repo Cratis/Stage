@@ -24,7 +24,8 @@ internal static class SemanticImplementationReach
         events.UnionWith(rejectedEvents);
         if (specification.When is { } when) commands.Add(when.Command);
         var queries = specification.ThenQueries.Select(assertion => assertion.Query).ToHashSet();
-        var readModels = specification.ThenReadModels.Select(assertion => assertion.ReadModel)
+        var readModels = specification.GivenReadModels.Select(state => state.ReadModel)
+            .Concat(specification.ThenReadModels.Select(assertion => assertion.ReadModel))
             .Concat(specification.ThenAbsentReadModels.Select(assertion => assertion.ReadModel))
             .Concat(plan.Queries.Values.Where(query => queries.Contains(query.Id)).Select(query => query.ReadModel)).ToHashSet();
 

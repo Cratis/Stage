@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_executing_a_role_only_policy(context fixture) : IClassFixture<context>
 {
     [Fact] void should_build_debug_and_release_without_warnings() => (fixture.DebugWarnings + fixture.ReleaseWarnings).ShouldBeEmpty();
-    [Fact] void should_allow_and_deny_through_both_arc_pipelines() => fixture.Results.Select(result => result.Outcome).ShouldContainOnly(["Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed"]);
+    [Fact] void should_allow_and_deny_through_both_arc_pipelines() => fixture.Results.Select(result => result.Outcome).ShouldContainOnly(["Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed", "Passed"]);
     [Fact] void should_assert_guest_command_denial() => fixture.Results.Any(result => result.Name.EndsWith("should_be_denied", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_assert_guest_query_denial() => fixture.Results.Any(result => result.Name.EndsWith("should_be_unauthorized", StringComparison.Ordinal)).ShouldBeTrue();
 

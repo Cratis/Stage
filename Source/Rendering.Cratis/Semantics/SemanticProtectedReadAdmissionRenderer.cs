@@ -22,7 +22,7 @@ internal static class SemanticProtectedReadAdmissionRenderer
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
     /// <param name="commands">The selected commands.</param>
-    /// <returns>The generated Debug-only specification.</returns>
+    /// <returns>The generated specification.</returns>
     internal static RenderedFile Render(SemanticApplicationContext context, IEnumerable<SemanticCommand> commands)
     {
         var types = new SemanticTypeSystem(context);
@@ -34,6 +34,6 @@ internal static class SemanticProtectedReadAdmissionRenderer
             .Line($"[global::Xunit.FactAttribute] void should_admit_the_decision_reads() => global::Cratis.Arc.Chronicle.Testing.Commands.DecisionReadAdmissions.ShouldAdmitDecisionReadsOf({string.Join(", ", protectedTypes)});")
             .EndBlock();
 
-        return new(Path, $"#if DEBUG\n{builder}\n#endif\n");
+        return new(Path, builder.ToString());
     }
 }

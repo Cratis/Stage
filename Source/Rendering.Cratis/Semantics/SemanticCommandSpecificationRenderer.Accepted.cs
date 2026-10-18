@@ -125,24 +125,39 @@ internal static partial class SemanticCommandSpecificationRenderer
             builder.Using(context.CommonNamespace);
         }
 
-        var predicate = @event.Properties.IsEmpty ? "true" : string.Join(" && ", @event.Properties.Select(property =>
+        var predicates = @event.Properties.Select(property =>
         {
             var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
-            return generated.EventPredicate(produced, property, EventPropertyPredicate(property, value, types, index));
-        }));
+            return (Name: Identifiers.ToSnakeCase(property.Name), Predicate: generated.EventPredicate(produced, property, EventPropertyPredicate(property, value, types, index)));
+        }).ToArray();
         var sourceValue = generated.DestinationExpression(produced);
         var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
         if (IsPlainSingleEvent(scope, expected))
         {
-            builder.Line($"[global::Xunit.FactAttribute] async global::System.Threading.Tasks.Task {name}() => await _scenario.ShouldHaveAppendedEvent<{types.SliceType(scope.Command.Id, scope.Command.Name)}, {types.EventType(@event)}>({sourceValue}, @event => {predicate});");
+            var assertion = $"_scenario.ShouldHaveAppendedEvent<{types.SliceType(scope.Command.Id, scope.Command.Name)}, {types.EventType(@event)}>";
+            builder.Line($"[global::Xunit.FactAttribute] async global::System.Threading.Tasks.Task {name}() => await {assertion}({sourceValue}, @event => true);");
+            foreach (var property in predicates)
+            {
+                builder.Line($"[global::Xunit.FactAttribute] async global::System.Threading.Tasks.Task {name}_with_{property.Name}() => await {assertion}({sourceValue}, @event => {property.Predicate});");
+            }
             return;
         }
 
         var appended = scope.SeedInLog
             ? $"_scenario.AppendedEvents.Where(entry => entry.Result.IsSuccess).ToArray()[_givenEventCount + {index}]"
             : $"_scenario.AppendedEvents[{index}]";
-        var route = SemanticSpecificationRouteRendering.Predicate(expected, context, appended);
-        builder.Line($"[global::Xunit.FactAttribute] void {name}_at_position_{index + 1}() => ({appended}.Event.Context.EventSourceId == {sourceValue} && {appended}.Event.Content is {types.EventType(@event)} @event && {predicate}{route}).ShouldBeTrue();");
+        name += $"_at_position_{index + 1}";
+        builder.Line($"[global::Xunit.FactAttribute] void {name}() => ({appended}.Event.Content is {types.EventType(@event)}).ShouldBeTrue();")
+            .Line($"[global::Xunit.FactAttribute] void {name}_from_source() => {appended}.Event.Context.EventSourceId.ShouldEqual((global::Cratis.Chronicle.Events.EventSourceId){sourceValue});");
+        var route = SemanticSpecificationRouteRendering.Predicate(expected, context, appended, types);
+        if (route.Length > 0)
+        {
+            builder.Line($"[global::Xunit.FactAttribute] void {name}_on_stream() => (true{route}).ShouldBeTrue();");
+        }
+        foreach (var property in predicates)
+        {
+            builder.Line($"[global::Xunit.FactAttribute] void {name}_with_{property.Name}() => ({appended}.Event.Content is {types.EventType(@event)} @event && {property.Predicate}).ShouldBeTrue();");
+        }
     }
 
     static bool IsPlainSingleEvent(SpecificationScope scope, SemanticSpecificationEvent expected) =>
@@ -253,7 +268,7 @@ internal static partial class SemanticCommandSpecificationRenderer
             scope.Builder.Using(context.CommonNamespace);
         }
 
-        var route = SemanticSpecificationRouteRendering.Predicate(expected, context, "entry");
+        var route = SemanticSpecificationRouteRendering.Predicate(expected, context, "entry", types);
         scope.Builder.Line($"{index} => entry.Event.Content is {types.EventType(@event)} @event{source}{string.Concat(predicates.Select(predicate => $" && {predicate}"))}{route},");
     }
 }

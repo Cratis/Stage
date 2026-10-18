@@ -95,8 +95,24 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
             .SelectMany(invoked => Messages(context, invoked))
             .ToHashSet(StringComparer.Ordinal);
 
-        return specification.ThenErrors.All(error => own.Contains(error.Message!) && !triggered.Contains(error.Message!));
+        var absences = ReadAbsences(context, command);
+        var triggeredAbsences = SemanticSpecificationAdmission.EventReactionTriggers(context)
+            .Where(trigger => command.Produces.Any(produced => produced.EventContract == trigger.Source))
+            .SelectMany(trigger => trigger.Invokes)
+            .SelectMany(invocation => ReadAbsences(context, context.Commands[invocation.Command]))
+            .ToHashSet();
+
+        return specification.ThenErrors.All(error =>
+            (own.Contains(error.Message!) && !triggered.Contains(error.Message!)) ||
+            absences.Any(read => IsAbsence(error.Message!, read) && !triggeredAbsences.Contains(read)));
     }
+
+    // A protected read that finds nothing refuses the command before it appends: "<ReadModel> '<key>' does not exist."
+    static IEnumerable<string> ReadAbsences(SemanticApplicationContext context, SemanticCommand command) =>
+        command.Reads.IsDefaultOrEmpty ? [] : command.Reads.Select(read => context.ReadModels[read.ReadModel].Name);
+
+    static bool IsAbsence(string message, string readModel) =>
+        message.StartsWith(readModel + " '", StringComparison.Ordinal) && message.EndsWith("' does not exist.", StringComparison.Ordinal);
 
     static HashSet<string> Messages(SemanticApplicationContext context, SemanticCommand command)
     {

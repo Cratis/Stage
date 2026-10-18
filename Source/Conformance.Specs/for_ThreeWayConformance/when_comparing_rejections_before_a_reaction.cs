@@ -18,7 +18,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// <param name="output">The test output.</param>
 public class when_comparing_rejections_before_a_reaction(when_comparing_rejections_before_a_reaction.context fixture, ITestOutputHelper output) : IClassFixture<when_comparing_rejections_before_a_reaction.context>
 {
-    const int SpecificationCount = 2;
+    const int SpecificationCount = 3;
 
     [Fact] void should_compare_every_specification() => fixture.Outcomes.Length.ShouldEqual(SpecificationCount);
     [Fact] void should_match_all_three_executions() => ThreeWayOutcomes.Report(fixture, output);
@@ -28,6 +28,7 @@ public class when_comparing_rejections_before_a_reaction(when_comparing_rejectio
     public class context : a_three_way_application
     {
         const string Source = """
+            command reads protected
             policy IsGardener
               require role "Gardener"
             module Plants
@@ -62,6 +63,30 @@ public class when_comparing_rejections_before_a_reaction(when_comparing_rejectio
                       id = "plant"
                       name = "Fern"
                     then denied
+                slice StateChange Pruning
+                  event PlantPruned
+                    id String
+                  command PrunePlant
+                    id String identifier
+                    reads PlantRecord by id
+                    produces PlantPruned
+                      for id
+                      id = id
+                  specification PruningAnUnknownPlant
+                    when PrunePlant
+                      id = "unknown"
+                    then error "PlantRecord 'unknown' does not exist."
+                slice StateView Records
+                  readmodel PlantRecord
+                    id String key
+                    name String
+                  projection BuildRecord => PlantRecord
+                    from PlantPlaced
+                      id = $eventSourceId
+                      name = name
+                    remove with PlantWatered
+                  query RecordById => PlantRecord optional
+                    by id String
                 slice StateChange Watering
                   event PlantWatered
                   command WaterPlant
@@ -71,6 +96,12 @@ public class when_comparing_rejections_before_a_reaction(when_comparing_rejectio
                 slice Automation WaterAfterPlacing
                   reaction WaterPlaced
                     when PlantPlaced
+                      id
+                      invokes WaterPlant
+                        id = id
+                slice Automation WaterAfterPruning
+                  reaction PrunePlaced
+                    when PlantPruned
                       id
                       invokes WaterPlant
                         id = id

@@ -46,6 +46,74 @@ public static class ArrangementConverter
     public static SceneLayouts.Arrangement? Convert(ScreenplaySyntax.ArrangementSyntax? arrangement, ConversionDiagnostics diagnostics, string structure) =>
         new Conversion(diagnostics, structure).Convert(arrangement);
 
+    /// <summary>
+    /// Converts a Scene arrangement back into the Screenplay syntax it is written as, so a layout or template a Scene document declares can be exported as typed Screenplay.
+    /// </summary>
+    /// <param name="arrangement">The Scene arrangement, or null when none is declared.</param>
+    /// <returns>The Screenplay arrangement, or null when there is none to write.</returns>
+    /// <remarks>
+    /// The inverse of <see cref="Convert(ScreenplaySyntax.ArrangementSyntax?)"/>: converting the result again gives the arrangement it was made from. A slot a freeform
+    /// variant does not place is left out of the variant, as a hidden place is converted to nothing.
+    /// </remarks>
+    public static ScreenplaySyntax.ArrangementSyntax? ToSyntax(SceneLayouts.Arrangement? arrangement) => arrangement switch
+    {
+        SceneLayouts.FlowArrangement flow => new ScreenplaySyntax.ArrangementSyntax(
+            ScreenplaySyntax.ArrangementMode.Flow,
+            SourceLocation.Start,
+            ToSyntax(flow.Root),
+            [.. flow.Overrides.Select(over => new ScreenplaySyntax.ArrangementOverrideSyntax(
+                over.Width?.ToString().ToLowerInvariant(),
+                over.Height?.ToString().ToLowerInvariant(),
+                ToSyntax(over.Root),
+                SourceLocation.Start))],
+            null),
+        SceneLayouts.FreeformSlotArrangement freeform => new ScreenplaySyntax.ArrangementSyntax(
+            ScreenplaySyntax.ArrangementMode.Freeform,
+            SourceLocation.Start,
+            null,
+            null,
+            [.. freeform.Variants.Select(variant => new ScreenplaySyntax.VariantSyntax(
+                variant.SizeClass.Width.ToString().ToLowerInvariant(),
+                variant.SizeClass.Height.ToString().ToLowerInvariant(),
+                [.. variant.Placements.Select(place => new ScreenplaySyntax.PlaceSyntax(
+                    place.SlotName,
+                    SourceLocation.Start,
+                    Hidden: false,
+                    X: (int)Math.Round(place.X),
+                    Y: (int)Math.Round(place.Y),
+                    SizeWidth: SizeText(place.Width),
+                    SizeHeight: SizeText(place.Height)))],
+                SourceLocation.Start))]),
+        _ => null
+    };
+
+    static string? SizeText(double size) => size == 0 ? "fill" : size.ToString(CultureInfo.InvariantCulture);
+
+    static ScreenplaySyntax.ArrangementNodeSyntax ToSyntax(SceneLayouts.FlowNode node) => node switch
+    {
+        SceneLayouts.FlowSlotLeaf leaf => new ScreenplaySyntax.ArrangementSlotSyntax(leaf.SlotName, SourceLocation.Start, Width: null, Height: null, Grow: leaf.Grow is not null, Span: leaf.Span)
+        {
+            GrowFactor = leaf.Grow is > 1 ? leaf.Grow : null
+        },
+        SceneLayouts.FlowContainer container => new ScreenplaySyntax.ArrangementContainerSyntax(
+            container.Kind switch
+            {
+                SceneLayouts.FlowContainerKind.Row => ScreenplaySyntax.ArrangementContainerKind.Row,
+                SceneLayouts.FlowContainerKind.Grid => ScreenplaySyntax.ArrangementContainerKind.Grid,
+                _ => ScreenplaySyntax.ArrangementContainerKind.Column
+            },
+            [.. container.Children.Select(ToSyntax)],
+            SourceLocation.Start,
+            Gap: container.Gap == 0 ? null : (int?)Math.Round((double)container.Gap))
+        {
+            Grow = container.Grow,
+            Span = container.Span,
+            Columns = (container as SceneLayouts.FlowGrid)?.Columns,
+            Rows = (container as SceneLayouts.FlowGrid)?.Rows
+        },
+        _ => throw new UnknownArrangementNode(node.GetType().Name)
+    };
+
     sealed class Conversion(ConversionDiagnostics? diagnostics, string structure)
     {
         public SceneLayouts.Arrangement? Convert(ScreenplaySyntax.ArrangementSyntax? arrangement) => arrangement switch

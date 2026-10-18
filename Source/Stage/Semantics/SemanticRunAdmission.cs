@@ -293,7 +293,7 @@ public static class SemanticRunAdmission
         var context = new SemanticApplicationContext(plan);
         foreach (var property in eventContract.Properties)
         {
-            if (SemanticValueShapeAdmission.Refusal(context, property.Type) is { } refusal) return refusal;
+            if (SemanticValueShapeAdmission.PayloadRefusal(context, property.Type) is { } refusal) return refusal;
             if (SemanticValueShapeAdmission.Closure(context, property.Type).Any(member => member.Type.IsCollection)) return collectionRefusal;
         }
         return null;

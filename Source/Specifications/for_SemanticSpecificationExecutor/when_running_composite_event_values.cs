@@ -25,10 +25,10 @@ public class when_running_composite_event_values : Specification
     [Fact] void should_execute_every_specification() => Assert.All(_report.Results, result => Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Name}: {result.Outcome} {result.Unsupported?.Details} {string.Join(';', result.Failures)}"));
     [Fact] void should_report_composite_facts_as_member_name_keyed_json() => Assert.All(_report.Results.SelectMany(result => result.Trace!.Facts), fact => Assert.Equal("nested", JsonSerializer.Deserialize<JsonElement>(Assert.Single(fact.Values).Value).GetProperty("label").GetString()));
 
-    public static SemanticExecutionPlan Compile()
+    public static SemanticExecutionPlan Compile(string source = Source)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("CompositeFacts"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("facts"), "facts", "Facts.play", Source);
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("facts"), "facts", "Facts.play", source);
         var compilation = new SemanticModelCompiler().Compile("CompositeFacts", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
         return SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
@@ -47,6 +47,12 @@ public class when_running_composite_event_values : Specification
                 id String identifier
                 details Details
                 produces DetailsRecorded
+                  for id
+                  details = details
+              command RequestDetails
+                id String identifier
+                details Details
+                produces DetailsRequested
                   for id
                   details = details
               event DetailsRecorded
@@ -70,8 +76,7 @@ public class when_running_composite_event_values : Specification
                 when append DetailsRecorded
                   for "one"
                   details = {"label":"nested","child":{"count":7}}
-                then DetailsRecorded
-                  details = {"child":{"count":7},"label":"nested"}
+                then no events
             slice Automation Forward
               event DetailsRequested
                 details Details

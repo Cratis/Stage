@@ -33,7 +33,7 @@ internal static class SemanticRunReactionAdmission
         SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> initial, bool includeRejected = false)
     {
         var reachable = initial.ToHashSet();
-        var commands = RedeliveryTriggers(plan, specification).SelectMany(trigger => trigger.Invokes)
+        var commands = ActionTriggers(plan, specification).SelectMany(trigger => trigger.Invokes)
             .Select(invocation => invocation.Command).Where(plan.Commands.ContainsKey).ToHashSet();
         var pending = new Queue<SemanticId>(ActionEvents(plan, specification, includeRejected));
         var visited = new HashSet<SemanticId>();
@@ -57,14 +57,29 @@ internal static class SemanticRunReactionAdmission
 
     static IEnumerable<SemanticId> ActionEvents(SemanticExecutionPlan plan, SemanticSpecification specification, bool includeRejected)
     {
-        if (specification.WhenRedelivered is not null)
+        if (specification.WhenRedelivered is not null || specification.WhenTrigger is not null || specification.WhenClock is not null)
         {
-            return RedeliveryTriggers(plan, specification).SelectMany(trigger => Effects(plan, trigger));
+            return ActionTriggers(plan, specification).SelectMany(trigger => Effects(plan, trigger));
         }
         if (specification.WhenAppended is { } appended) return [appended.EventContract];
 
         return specification.When is { } when && (includeRejected || (specification.ThenErrors.IsEmpty && !specification.ThenDenied)) && plan.Commands.TryGetValue(when.Command, out var command)
             ? command.Produces.Select(produced => produced.EventContract) : [];
+    }
+
+    static IEnumerable<SemanticReactionTrigger> ActionTriggers(SemanticExecutionPlan plan, SemanticSpecification specification)
+    {
+        if (specification.WhenTrigger is { } fired)
+        {
+            return plan.Reactions.SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind == fired.Kind && trigger.Source == fired.Trigger);
+        }
+        if (specification.WhenClock is not null)
+        {
+            // Admission is conservative: guards and clock windows must not hide unsupported effects.
+            return plan.Reactions.SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind is SemanticReactionTriggerKind.Interval or SemanticReactionTriggerKind.Schedule);
+        }
+
+        return RedeliveryTriggers(plan, specification);
     }
 
     static IEnumerable<SemanticReactionTrigger> RedeliveryTriggers(SemanticExecutionPlan plan, SemanticSpecification specification)

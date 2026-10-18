@@ -159,9 +159,7 @@ internal static class SemanticVersionFeatures
     /// <param name="application">The semantic application.</param>
     /// <returns>The refused constructs.</returns>
     public static IEnumerable<SemanticVersionFeature> InApplication(SemanticApplication application) =>
-        (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
-            Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."))
-        .Concat(ReactionBatchesInApplication(application))
+        TriggersInApplication(application)
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(DescribedHandlersInCommand))
         .Concat(RoutesInApplication(application))
         .Concat(application.Concepts.SelectMany(concept => UnknownValidationRules(concept.Validations, concept.Id, "concept", concept.Name)))
@@ -169,7 +167,16 @@ internal static class SemanticVersionFeatures
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
 
     /// <summary>
-    /// Finds an application-wide reaction production boundary no Stage engine preserves yet.
+    /// Finds application triggers that targets must explicitly admit.
+    /// </summary>
+    /// <param name="application">The application.</param>
+    /// <returns>The application trigger refusals in declaration order.</returns>
+    public static IEnumerable<SemanticVersionFeature> TriggersInApplication(SemanticApplication application) =>
+        (application.Triggers.IsDefault ? [] : application.Triggers).Select(trigger => new SemanticVersionFeature(
+            Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."));
+
+    /// <summary>
+    /// Finds an application-wide reaction production boundary the renderer does not preserve yet. The executor and Host enforce it, so it is not an application-level refusal.
     /// </summary>
     /// <param name="application">The semantic application.</param>
     /// <returns>The refused reaction production mode.</returns>
@@ -318,15 +325,20 @@ internal static class SemanticVersionFeatures
                     yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
                 }
 
-                if (trigger.Kind != SemanticReactionTriggerKind.Event)
-                {
-                    yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' uses trigger kind '{trigger.Kind}', which Stage does not support yet.");
-                }
+                foreach (var feature in NonEventTrigger(reaction, trigger)) yield return feature;
             }
         }
 
         foreach (var feature in EventReactionsInSlice(slice)) yield return feature;
     }
+
+    /// <summary>
+    /// Finds non-event triggers that targets must explicitly admit, without admitting opaque bodies.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The non-event trigger refusals in declaration order.</returns>
+    public static IEnumerable<SemanticVersionFeature> NonEventTriggersInSlice(SemanticSlice slice) =>
+        (slice.Reactions.IsDefault ? [] : slice.Reactions).SelectMany(reaction => reaction.Triggers.SelectMany(trigger => NonEventTrigger(reaction, trigger)));
 
     /// <summary>
     /// Finds reaction observer filters that targets must explicitly admit.
@@ -569,6 +581,14 @@ internal static class SemanticVersionFeatures
         SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation or
         SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
         SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
+
+    static IEnumerable<SemanticVersionFeature> NonEventTrigger(SemanticReaction reaction, SemanticReactionTrigger trigger)
+    {
+        if (trigger.Kind != SemanticReactionTriggerKind.Event)
+        {
+            yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' uses trigger kind '{trigger.Kind}', which Stage does not support yet.");
+        }
+    }
 
     static IEnumerable<SemanticVersionFeature> MixedEffectsInReaction(SemanticReaction reaction)
     {

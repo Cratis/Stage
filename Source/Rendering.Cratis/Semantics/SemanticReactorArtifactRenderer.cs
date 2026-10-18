@@ -17,7 +17,7 @@ internal static class SemanticReactorArtifactRenderer
         var types = new SemanticTypeSystem(context);
         var name = Identifiers.ToPascalCase(reaction.Name);
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
-        context.Docs(reaction.Id).Render(builder)
+        context.Docs(reaction.Id).Render(builder, $"Reacts through {name}.")
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(reaction.Id.ToString())})")
             .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute");
         RenderIdentityAttribute(builder, reaction);
@@ -27,6 +27,10 @@ internal static class SemanticReactorArtifactRenderer
         {
             var source = context.Events[group.Key];
             builder.BlankLine()
+                .Summary($"Reacts to {Identifiers.ToWords(source.Name)}.")
+                .Parameter("event", "The triggering event.")
+                .Parameter("context", "The triggering event context.")
+                .Returns("The modeled reaction effects.")
                 .OpenBlock($"public global::System.Collections.Generic.IEnumerable<object> {Identifiers.ToPascalCase(source.Name)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context)")
                 .Line("var effects = new global::System.Collections.Generic.List<object>();");
             foreach (var trigger in group)

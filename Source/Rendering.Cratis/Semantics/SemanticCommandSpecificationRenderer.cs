@@ -31,11 +31,9 @@ internal static partial class SemanticCommandSpecificationRenderer
         var ownNamespace = $"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}";
         var builder = new CSharpCodeBuilder()
             .Namespace(ownNamespace)
-            .Using("Cratis.Arc.Commands")
-            .Using("Cratis.Arc.Testing.Commands")
-            .Using("Cratis.Specifications")
-            .Using("Xunit");
-        AddInputUsings(builder, specification, command, context, located, generated);
+            .Using("Cratis.Specifications");
+        if (!specification.ThenDenied) builder.Using("Cratis.Arc.Testing.Commands");
+        if (specification.GivenCaller is not null && reaction is null) builder.Using("System.Security.Claims");
 
         var commandName = types.SliceType(command.Id, command.Name);
         var arguments = generated.Arguments();
@@ -49,7 +47,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         builder.BlankLine();
         if (reaction is null)
         {
-            builder.ExpressionMember("public void Dispose()", "_scenario.Dispose()");
+            builder.Line("/// <inheritdoc/>").ExpressionMember("public void Dispose()", "_scenario.Dispose()");
         }
         else
         {
@@ -68,42 +66,6 @@ internal static partial class SemanticCommandSpecificationRenderer
         }
 
         return new(path, content);
-    }
-
-    static void AddInputUsings(
-        CSharpCodeBuilder builder,
-        SemanticSpecification specification,
-        SemanticCommand command,
-        SemanticApplicationContext context,
-        LocatedSemanticSlice located,
-        SemanticGeneratedCommandSpecification generated)
-    {
-        if (command.Properties.Any(generated.NeedsCommon))
-        {
-            builder.Using(context.CommonNamespace);
-        }
-
-        if (specification.GivenCaller is not null)
-        {
-            builder.Using("Cratis.Arc.Authorization")
-                .Using("Cratis.Arc.Http")
-                .Using("System.Security.Claims");
-        }
-
-        if (!specification.GivenEvents.IsEmpty)
-        {
-            builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-                .Using("Cratis.Chronicle.Events");
-        }
-
-        foreach (var expected in specification.GivenEvents.Concat(specification.ThenEvents))
-        {
-            var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(expected.EventContract).Path);
-            if (!string.Equals(eventNamespace, SliceNaming.Namespace(context.RootNamespace, located.Path), StringComparison.Ordinal))
-            {
-                builder.Using(eventNamespace);
-            }
-        }
     }
 
     static bool SeedsEventLog(SemanticSpecification specification, SemanticCommand command, SemanticApplicationContext context)
@@ -126,7 +88,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         // analysis as errors, and an undisposed owned resource is a build failure there that they cannot fix
         // by editing the file.
         var builder = scope.Builder;
-        scope.Context.Docs(scope.Specification.Id).Render(builder)
+        scope.Context.Docs(scope.Specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(scope.Specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{scope.CommandName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
@@ -191,12 +153,6 @@ internal static partial class SemanticCommandSpecificationRenderer
         var types = scope.Types;
         var @event = context.Events[given.EventContract];
         var source = given.EventSource!;
-        if (SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
-            PropertyValuesNeedCommon(@event.Properties, given.Values))
-        {
-            builder.Using(context.CommonNamespace);
-        }
-
         var eventArguments = @event.Properties.Select(property =>
             types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
         var eventSource = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
@@ -229,11 +185,11 @@ internal static partial class SemanticCommandSpecificationRenderer
             return;
         }
 
-        var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
-            .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+        var claims = caller.Roles.Select(role => $"new Claim(ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+            .Concat(caller.Claims.Select(claim => $"new Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
         var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
         builder.OpenBlock("async global::System.Threading.Tasks.Task Because()")
-            .Line($"var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
+            .Line($"var principal = new ClaimsPrincipal(new ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
             .Line("var principalOverride = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
             .Line("using var scope = principalOverride.BeginScope(principal);")
             .Line($"_result = await _scenario.Execute(new {commandName}({string.Join(", ", scope.Arguments)}));")
@@ -259,8 +215,7 @@ internal static partial class SemanticCommandSpecificationRenderer
 
     static void RenderDenied(SpecificationScope scope)
     {
-        scope.Builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-            .Line("[global::Xunit.FactAttribute] void should_be_denied() => _result.IsAuthorized.ShouldBeFalse();")
+        scope.Builder.Line("[global::Xunit.FactAttribute] void should_be_denied() => _result.IsAuthorized.ShouldBeFalse();")
             .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);");
     }
 
@@ -274,8 +229,7 @@ internal static partial class SemanticCommandSpecificationRenderer
             builder.Line(ExpectedErrorAssertion(scope, message));
         }
 
-        builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-            .Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);");
+        builder.Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);");
         RenderConstraintViolation(builder, scope.Specification, scope.Context);
     }
 
@@ -295,13 +249,10 @@ internal static partial class SemanticCommandSpecificationRenderer
     {
         if (SemanticSpecificationAdmission.ConstraintName(context, specification) is { } constraintName)
         {
-            builder.Line($"[global::Xunit.FactAttribute] void should_report_the_constraint_violation() => _result.ShouldHaveConstraintViolationFor({CSharpCodeBuilder.StringLiteral(constraintName)});");
+            builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
+                .Line($"[global::Xunit.FactAttribute] void should_report_the_constraint_violation() => _result.ShouldHaveConstraintViolationFor({CSharpCodeBuilder.StringLiteral(constraintName)});");
         }
     }
-
-    static bool PropertyValuesNeedCommon(IEnumerable<SemanticProperty> properties, IEnumerable<SemanticPropertyValue> values) =>
-        properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
-            values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
 
     static string ExpectedCollectionName(SemanticProperty property, int index) => $"_expected_event_{index}_{Identifiers.ToSnakeCase(property.Name)}";
 

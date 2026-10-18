@@ -15,8 +15,9 @@ internal static partial class SemanticReactionSpecificationRenderer
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
-            .Using("Cratis.Arc.Commands").Using("Cratis.Arc.Chronicle.Testing.Commands")
-            .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit")
+            .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute");
+        if (!specification.ThenErrors.IsEmpty) builder.Using("Cratis.Arc.Testing.Commands");
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line("readonly global::Cratis.Arc.Testing.Commands.CommandScenario<object> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
@@ -62,7 +63,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             .Line("persisted.Count.ShouldEqual(initial + _facts.Length);")
             .EndBlock().BlankLine();
         RenderRefusalOutcome(builder, specification, context, types);
-        builder.BlankLine().ExpressionMember("public void Dispose()", "_scenario.Dispose()").EndBlock();
+        builder.BlankLine().Line("/// <inheritdoc/>").ExpressionMember("public void Dispose()", "_scenario.Dispose()").EndBlock();
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
     }

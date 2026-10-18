@@ -67,6 +67,20 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
 
     internal void RenderHandle(CSharpCodeBuilder builder, Func<SemanticProducedEvent, string> wrappedEvent, Action renderEventOnly)
     {
+        builder.Summary($"Handles the {Identifiers.ToPascalCase(command.Name)} command.");
+        foreach (var read in command.Reads)
+        {
+            builder.Parameter(Reads.Scope.Local(read.Name), $"The {read.Name} decision read.");
+        }
+        foreach (var property in command.Properties.Where(property => property.IsGenerated))
+        {
+            builder.Parameter(PropertyValue(property), $"The generated {Identifiers.ToWords(property.Name)}.");
+        }
+        if (HasOccurrence)
+        {
+            builder.Parameter(locals.Name("operation"), "The command receipt context.");
+        }
+        builder.Returns("The modeled command outcome.");
         if (command.Produces.Any(produced => produced.When is not null))
         {
             RenderConditionalHandle(builder, wrappedEvent);
@@ -85,9 +99,12 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         if (command.Response is not SemanticRecordCommandResponse response) return;
         var name = Identifiers.ToPascalCase(command.Name);
         var fields = response.Fields.Select(field => $"{_types.Type(field.Type)} {Identifiers.ToPascalCase(field.Name)}");
-        builder.Summary($"The response from {name}.")
-            .Line($"public record {name}Response({string.Join(", ", fields)});")
-            .BlankLine();
+        builder.Summary($"The response from {name}.");
+        foreach (var field in response.Fields)
+        {
+            builder.Parameter(Identifiers.ToPascalCase(field.Name), $"The {Identifiers.ToWords(field.Name)}.");
+        }
+        builder.Line($"public record {name}Response({string.Join(", ", fields)});").BlankLine();
     }
 
     // A compared DateTime property typed through a concept binds as the concept's DateTimeOffset, which Arc's marker supports.

@@ -33,7 +33,7 @@ public class when_rendering_an_unpinned_v15_event : Specification
         // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
         /// <summary>
-        /// The event that occurs when unrelated.
+        /// Represents that unrelated happened.
         /// </summary>
         [global::Cratis.Chronicle.Events.EventTypeAttribute]
         public record Unrelated();

@@ -46,39 +46,15 @@ internal static class SemanticQuerySpecificationRenderer
         var queryNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path);
         var builder = new CSharpCodeBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
-            .Using("Cratis.Chronicle.Events")
-            .Using("Cratis.Specifications")
-            .Using("Xunit")
-            .Using(context.CommonNamespace)
-            .Using(queryNamespace);
+            .Using("Cratis.Specifications");
         if (!IsLiveList(query))
         {
-            builder.Using("Cratis.Chronicle.ReadModels")
-                .Using("Cratis.Chronicle.Testing.ReadModels")
-                .Using("NSubstitute");
+            builder.Using("NSubstitute");
         }
 
         var key = query.Argument is null ? string.Empty : types.Value(expected.Key, query.Argument.Type);
         var collectionCall = CollectionArguments(query, expected, types);
-        foreach (var (produced, _) in replay)
-        {
-            var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(produced.EventContract).Path);
-            if (!string.Equals(eventNamespace, queryNamespace, StringComparison.Ordinal))
-            {
-                builder.Using(eventNamespace);
-            }
-        }
-
-        foreach (var given in specification.GivenEvents)
-        {
-            var givenNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(given.EventContract).Path);
-            if (!string.Equals(givenNamespace, queryNamespace, StringComparison.Ordinal))
-            {
-                builder.Using(givenNamespace);
-            }
-        }
-
-        context.Docs(specification.Id).Render(builder)
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
         RenderScenario(builder, query, readModelName);
         builder.Line(SemanticSpecificationValuesRenderer.Declarations).BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Establish()");
@@ -113,7 +89,7 @@ internal static class SemanticQuerySpecificationRenderer
                 .BlankLine()
                 .Line("[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => (_result is not null).ShouldBeTrue();");
             RenderProperties(builder, expected.Results.Single().Values, readModel, types);
-            builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
+            builder.Line("/// <inheritdoc/>").Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         }
 
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
@@ -154,22 +130,11 @@ internal static class SemanticQuerySpecificationRenderer
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
         var builder = new CSharpCodeBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
-            .Using("Cratis.Chronicle.Events")
-            .Using("Cratis.Chronicle.Testing.ReadModels")
-            .Using("Cratis.Specifications")
-            .Using("Xunit")
-            .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path));
+            .Using("Cratis.Specifications");
         var key = types.Value(given.Key, argument.Type);
         var values = readModel.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal)
             .Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
-        if (SemanticTypeSystem.ValueNeedsCommon(given.Key, argument.Type) ||
-            given.Values.Any(value => SemanticTypeSystem.ValueNeedsCommon(value.Value, readModel.Properties.Single(_ => _.Id == value.TargetProperty).Type)) ||
-            result.Values.Any(value => SemanticTypeSystem.ValueNeedsCommon(value.Value, readModel.Properties.Single(_ => _.Id == value.TargetProperty).Type)))
-        {
-            builder.Using(context.CommonNamespace);
-        }
-
-        context.Docs(specification.Id).Render(builder)
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
@@ -181,7 +146,7 @@ internal static class SemanticQuerySpecificationRenderer
             .BlankLine()
             .Line("[global::Xunit.FactAttribute] void should_return_the_seeded_read_model() => (_result is not null).ShouldBeTrue();");
         RenderProperties(builder, result.Values, readModel, types);
-        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
+        builder.Line("/// <inheritdoc/>").Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
         var content = types.SpecificationContent(builder.ToString());
         if (SpecificationValues.NeedsGlobalization(content))
@@ -232,7 +197,7 @@ internal static class SemanticQuerySpecificationRenderer
                 builder.Line($"[global::Xunit.FactAttribute] void should_return_result_{index + 1}_with_{Identifiers.ToSnakeCase(property.Name)}() => {selection}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
             }
         }
-        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
+        builder.Line("/// <inheritdoc/>").Line("public void Dispose() => _scenario.Dispose();").EndBlock();
     }
 
     static bool IsLiveList(SemanticKeyedQuery query) =>

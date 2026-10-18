@@ -44,7 +44,9 @@ internal static class SemanticValidationRendering
         var value = concept ? "_.Value" : $"_.{Identifiers.ToPascalCase(property)}";
         conceptRendering ??= new();
         var ruleFor = conceptRendering.RuleFor;
-        var predicate = conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder);
+        var validation = rule.Kind == SemanticValidationRuleKind.NotEmpty && primitive == SemanticPrimitiveType.Text && !collection
+            ? "NotEmpty()"
+            : $"Must(value => {conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder)})";
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
         var severity = rule.Severity switch
         {
@@ -56,11 +58,11 @@ internal static class SemanticValidationRendering
         var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity({Name(typeBuilder, "Cratis.Arc.Validation", "ValidationResultSeverity")}.{severity})";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
-            builder.Line($"{ruleFor}(_ => {value}).Must(value => {predicate}).WithMessage(_ => {Name(typeBuilder, rootNamespace!, "GeneratedStrings")}.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
+            builder.Line($"{ruleFor}(_ => {value}).{validation}.WithMessage(_ => {Name(typeBuilder, rootNamespace!, "GeneratedStrings")}.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
         else
         {
-            builder.Line($"{ruleFor}(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
+            builder.Line($"{ruleFor}(_ => {value}).{validation}.WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
     }
 

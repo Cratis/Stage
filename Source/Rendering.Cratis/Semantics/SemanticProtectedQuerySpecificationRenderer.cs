@@ -30,28 +30,15 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         var builder = new CSharpCodeBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{name}")
             .Using("System.Security.Claims")
-            .Using("Cratis.Arc.Authorization")
             .Using("Cratis.Arc.Chronicle.Testing.Queries")
-            .Using("Cratis.Arc.Http")
-            .Using("Cratis.Arc.Queries")
-            .Using("Cratis.Arc.Testing.Queries")
-            .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Specifications")
-            .Using("Microsoft.Extensions.DependencyInjection")
-            .Using("Xunit")
-            .Using(context.CommonNamespace)
-            .Using(queryNamespace);
+            .Using("Microsoft.Extensions.DependencyInjection");
 
         var replay = Replay(specification, readModel, context);
-        UseEventNamespaces(builder, [.. replay.Select(_ => _.Produced.EventContract), .. specification.GivenEvents.Select(given => given.EventContract)], queryNamespace, context);
 
         var routedReplay = specification.GivenEvents.Any(given => given.Route is not null) ||
             SemanticSpecificationRouteRendering.ForCommand(specification, context) is not null;
-        if (routedReplay)
-        {
-            builder.Using("Cratis.Chronicle.Testing.ReadModels");
-        }
-        context.Docs(specification.Id).Render(builder)
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {name} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{readModelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
@@ -68,12 +55,12 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         Write(builder, Seeds(specification, expected, routedReplay, context, types));
 
         var caller = specification.GivenCaller!;
-        var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
-            .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+        var claims = caller.Roles.Select(role => $"new Claim(ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+            .Concat(caller.Claims.Select(claim => $"new Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
         var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
         builder.EndBlock().BlankLine()
             .OpenBlock("async global::System.Threading.Tasks.Task Because()")
-            .Line($"var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
+            .Line($"var principal = new ClaimsPrincipal(new ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
             .Line("using var scope = _principalAccessor.BeginScope(principal);")
             .Line($"_result = await _scenario.Perform(nameof({readModelName}.{Identifiers.ToPascalCase(query.Name)}), new global::Cratis.Arc.Queries.QueryArguments {{ {Arguments(expected, context, types)} }});")
             .EndBlock().BlankLine();
@@ -88,15 +75,6 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         }
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), content);
-    }
-
-    static void UseEventNamespaces(CSharpCodeBuilder builder, IEnumerable<SemanticId> events, string queryNamespace, SemanticApplicationContext context)
-    {
-        foreach (var eventNamespace in events.Select(@event => SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event).Path))
-            .Where(eventNamespace => !string.Equals(eventNamespace, queryNamespace, StringComparison.Ordinal)))
-        {
-            builder.Using(eventNamespace);
-        }
     }
 
     static string Key(SemanticSpecificationQueryResult expected, SemanticApplicationContext context, SemanticTypeSystem types)
@@ -221,6 +199,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
 
     static void RenderDispose(CSharpCodeBuilder builder, bool routedReplay)
     {
+        builder.Line("/// <inheritdoc/>");
         if (routedReplay)
         {
             builder.OpenBlock("public void Dispose()").Line("_readModelScenario.Dispose();").Line("_scenario.Dispose();").EndBlock();

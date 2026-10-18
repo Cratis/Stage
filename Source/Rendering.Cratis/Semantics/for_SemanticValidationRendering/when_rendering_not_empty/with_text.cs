@@ -22,6 +22,6 @@ public class with_text : Specification
 
     void Because() => SemanticValidationRendering.Render(_builder, _rule, "name", SemanticPrimitiveType.Text, collection: false, concept: false);
 
-    [Fact] void should_render_unicode_whitespace_rejection() => _builder.ToString().ShouldContain("!global::System.String.IsNullOrWhiteSpace(value)");
+    [Fact] void should_render_the_builtin_required_text_rule() => _builder.ToString().ShouldContain("RuleFor(_ => _.Name).NotEmpty().WithMessage(\"A required value is empty.\");");
     [Fact] void should_not_render_exact_empty_only_rejection() => _builder.ToString().ShouldNotContain("IsNullOrEmpty");
 }

@@ -88,7 +88,8 @@ internal static class SemanticStateViewArtifactRenderer
             var transition = projection?.Scope is null && projection is not null ? projection.Transitions.Single() : null;
             var @event = transition is null ? null : context.Events[transition.EventContract];
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
-            context.Docs(readModel.Id).Render(builder);
+            context.Docs(readModel.Id).Render(builder, $"Represents {Identifiers.ToWords(readModel.Name)}.")
+                .Parameters(OrderedProperties(readModel.Properties));
             if (@event is not null)
             {
                 builder.Attribute($"global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute<{types.EventType(@event)}>");
@@ -166,8 +167,17 @@ internal static class SemanticStateViewArtifactRenderer
     {
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
         var methodName = Identifiers.ToPascalCase(query.Name);
-        var documentation = context.Docs(query.Id).Render(builder.BlankLine())
-            .Attribute(SemanticAuthorizationAttributes.For(query, context));
+        var documentation = context.Docs(query.Id).Render(builder.BlankLine(), $"Queries {Identifiers.ToWords(readModel.Name)} through {methodName}.")
+            .Parameter("readModels", "The read-model store.");
+        if (query.Argument is { } argumentDocumentation)
+        {
+            documentation.Parameter(QueryArgument.For(argumentDocumentation, types).Name, $"The {Identifiers.ToWords(argumentDocumentation.Name)} to query.");
+        }
+        foreach (var filter in query.Filters)
+        {
+            documentation.Parameter(Identifiers.EscapeKeyword(Identifiers.ToCamelCase(filter.Name)), $"The {Identifiers.ToWords(filter.Name)} filter.");
+        }
+        documentation.Returns("The matching read-model result.").Attribute(SemanticAuthorizationAttributes.For(query, context));
         if (query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live } || !query.Filters.IsDefaultOrEmpty)
         {
             RenderCollectionQuery(documentation, query, readModel, types);

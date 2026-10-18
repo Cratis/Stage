@@ -19,6 +19,11 @@ public class when_preserving_state_change_bytes : given.an_automation
 
         namespace Reactions.Work.Processing.Start;
 
+        /// <summary>
+        /// Represents the StartWork command.
+        /// </summary>
+        /// <param name="Id">The id.</param>
+        /// <param name="Amount">The amount.</param>
         [global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
         [global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
         public record StartWork(string Id, decimal Amount) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId
@@ -26,12 +31,18 @@ public class when_preserving_state_change_bytes : given.an_automation
             /// <inheritdoc/>
             public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId() => Id;
 
+            /// <summary>
+            /// Handles the StartWork command.
+            /// </summary>
+            /// <returns>The modeled command outcome.</returns>
             public global::Reactions.Work.Processing.Start.Started Handle() => new(Id, Amount);
         }
 
         /// <summary>
-        /// The event that occurs when started.
+        /// Represents that started happened.
         /// </summary>
+        /// <param name="Id">The id.</param>
+        /// <param name="Amount">The amount.</param>
         [global::Cratis.Chronicle.Events.EventTypeAttribute]
         public record Started(string Id, decimal Amount);
 

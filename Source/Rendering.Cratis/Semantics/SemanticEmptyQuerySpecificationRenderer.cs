@@ -21,8 +21,9 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         var located = context.DeclaringSlice(specification.Id);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
         var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
-            .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit");
-        context.Docs(specification.Id).Render(builder)
+            .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute");
+        if (specification.GivenCaller is not null) builder.Using("System.Security.Claims");
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{modelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
@@ -30,7 +31,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         if (specification.GivenCaller is not null)
         {
             builder.Line("readonly global::Cratis.Arc.Authorization.CurrentPrincipalAccessor _principalAccessor = new(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
-                .Line("global::System.Security.Claims.ClaimsPrincipal _principal = null!;");
+                .Line("ClaimsPrincipal _principal = null!;");
         }
         builder.BlankLine().OpenBlock("void Establish()");
 
@@ -41,9 +42,9 @@ internal static class SemanticEmptyQuerySpecificationRenderer
             .Line("_scenario.Services.AddSingleton<global::Cratis.Chronicle.ReadModels.IReadModels>(readModels);");
         if (specification.GivenCaller is { } caller)
         {
-            var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
-                .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
-            builder.Line($"_principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {(caller.Authenticated ? "\"Screenplay\"" : "null")}));")
+            var claims = caller.Roles.Select(role => $"new Claim(ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+                .Concat(caller.Claims.Select(claim => $"new Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+            builder.Line($"_principal = new ClaimsPrincipal(new ClaimsIdentity([{string.Join(", ", claims)}], {(caller.Authenticated ? "\"Screenplay\"" : "null")}));")
                 .Line("_scenario.Services.AddSingleton<global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor>(_principalAccessor);");
         }
         if (query.Authorization is not null)
@@ -80,7 +81,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
                     ? "[global::Xunit.FactAttribute] void should_return_no_rows() => (_result.Data is global::System.Collections.Generic.IEnumerable<object> rows && !global::System.Linq.Enumerable.Any(rows)).ShouldBeTrue();"
                     : "[global::Xunit.FactAttribute] void should_return_no_data() => _result.Data.ShouldBeNull();");
         }
-        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
+        builder.Line("/// <inheritdoc/>").Line("public void Dispose() => _scenario.Dispose();").EndBlock();
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
     }

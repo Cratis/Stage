@@ -41,10 +41,9 @@ internal static class SemanticReadModelSpecificationRenderer
             behavior += $"_into_{Identifiers.ToSnakeCase(readModel.Name)}";
         }
         var builder = Builder(behavior, located, readModel, context);
-        var needsCommon = false;
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
 
-        context.Docs(specification.Id).Render(builder)
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
@@ -53,34 +52,16 @@ internal static class SemanticReadModelSpecificationRenderer
         foreach (var given in givenEvents)
         {
             var givenEvent = context.Events[given.EventContract];
-            var givenNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(given.EventContract).Path);
-            if (!string.Equals(givenNamespace, SliceNaming.Namespace(context.RootNamespace, located.Path), StringComparison.Ordinal))
-            {
-                builder.Using(givenNamespace);
-            }
-
             var givenArguments = givenEvent.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var givenSource = given.EventSource!;
-            needsCommon |= SemanticTypeSystem.ValueNeedsCommon(givenSource.Value, givenSource.Type) ||
-                givenEvent.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
-                    given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
         }
 
         foreach (var (produced, expectedEvent) in replay)
         {
             var @event = context.Events[produced.EventContract];
-            var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path);
-            if (!string.Equals(eventNamespace, SliceNaming.Namespace(context.RootNamespace, located.Path), StringComparison.Ordinal))
-            {
-                builder.Using(eventNamespace);
-            }
-
             var source = SemanticDestinations.ForSpecification(specification, command!, produced);
-            needsCommon |= SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
-                @event.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
-                    expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
@@ -89,7 +70,6 @@ internal static class SemanticReadModelSpecificationRenderer
         builder.EndBlock()
             .BlankLine();
         var keyProperty = readModel.Properties.Single(_ => _.IsIdentifier);
-        needsCommon |= SemanticTypeSystem.ValueNeedsCommon(expected.Key, keyProperty.Type);
         var instance = $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
         if (expected.Values.IsEmpty)
         {
@@ -102,8 +82,6 @@ internal static class SemanticReadModelSpecificationRenderer
             if (property.Type.IsCollection && value.Value is SemanticArrayValue array)
             {
                 var elementType = property.Type with { IsCollection = false, IsOptional = false };
-                needsCommon |= SemanticTypeSystem.DeclarationNeedsCommon(elementType) ||
-                    SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
                 var elements = string.Join(", ", array.Values.Select(element => types.Value(element, elementType)));
                 var name = Identifiers.ToSnakeCase(property.Name);
                 var optionalAccess = reducer is null ? "!" : "!.Value";
@@ -114,18 +92,13 @@ internal static class SemanticReadModelSpecificationRenderer
             }
             else
             {
-                needsCommon |= SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
                 builder.Line(
                     $"[global::Xunit.FactAttribute] void should_project_{Identifiers.ToSnakeCase(property.Name)}() => " +
                     $"{instance}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
             }
         }
 
-        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
-        if (needsCommon)
-        {
-            builder.Using(context.CommonNamespace);
-        }
+        builder.Line("/// <inheritdoc/>").Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
         // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
@@ -147,10 +120,7 @@ internal static class SemanticReadModelSpecificationRenderer
     {
         return new CSharpCodeBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
-            .Using("Cratis.Chronicle.Testing.ReadModels")
-            .Using("Cratis.Specifications")
-            .Using("Xunit")
-            .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(readModel.Id).Path));
+            .Using("Cratis.Specifications");
     }
 
     static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> ReplayOf(

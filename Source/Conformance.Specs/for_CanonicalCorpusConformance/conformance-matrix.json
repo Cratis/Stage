@@ -3162,11 +3162,8 @@
     },
     "QueryFiltersCorpus.V14": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-010", "artifact": "sem1:088e09b0ad9b420e4a3d53f041b94d747f061ed79c681690f1552b9c8c23a4ad", "issue": 546 } ] },
-      "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-010", "kind": "specification", "artifact": "sem1:524399a8872f6ac6a6a88dfb06ce916edd3d4ec10985591f4e52735b06572fb5", "issue": 546 },
-        { "code": "STAGE-ESM-010", "kind": "specification", "artifact": "sem1:9d08fb10fc24cc9b76c8ac3ca89e770298690e0cdfc679e7356052acd897bc10", "issue": 546 } ] },
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-007", "artifact": "sem1:a3d455c0a686b71dbca21a02d1e7119276077204fc934b9b415c5cbc3f200c88", "issue": 58 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:524399a8872f6ac6a6a88dfb06ce916edd3d4ec10985591f4e52735b06572fb5", "issue": 58 },

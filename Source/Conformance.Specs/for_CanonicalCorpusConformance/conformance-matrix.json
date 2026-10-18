@@ -3088,8 +3088,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "n/a:no-specifications" },
       "host": { "outcome": "supported" },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-044", "artifact": "sem1:eab730946d651cf66bc9483b91282d2add731f64af5a38619af01edc76b95dc5", "issue": 503 } ] }
+      "renderer": { "outcome": "supported" }
     },
     "ProtectedCommandReadsCorpus.V25": {
       "loader": { "outcome": "supported" },

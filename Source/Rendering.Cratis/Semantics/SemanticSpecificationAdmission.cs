@@ -105,6 +105,12 @@ internal static partial class SemanticSpecificationAdmission
         {
             if (CommandTriggersReaction(context, specification))
             {
+                if (SemanticReactionCascade.IsRejectedByTrigger(context, specification))
+                {
+                    yield return specification;
+                    continue;
+                }
+
                 if (SemanticReactionCascade.TryLower(context, specification, out var cascade))
                 {
                     ValidateCascade(context, cascade, diagnostics);

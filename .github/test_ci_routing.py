@@ -87,7 +87,9 @@ class RoutingTests(unittest.TestCase):
         root = Path(__file__).resolve().parent.parent
         for pattern in CI["NAME_MATRIX"] + CI["TEMPLATE_RENDERERS"] + CI["BLUEPRINT_SOURCES"]:
             with self.subTest(pattern=pattern):
-                self.assertTrue(any(path.is_file() for path in root.glob(pattern)), pattern)
+                # Before Python 3.13 a trailing "**" matches only directories, so look one level into them.
+                files = pattern + "/*" if pattern.endswith("**") else pattern
+                self.assertTrue(any(path.is_file() for path in root.glob(files)), pattern)
         reducer = "Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_rendering_a_pure_reducer.cs"
         self.assertIn("generated-name-matrix", self.select(reducer))
 

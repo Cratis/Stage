@@ -14,6 +14,15 @@ internal static class SemanticRunProjectionAdmission
 {
     internal static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents)
     {
+        // An empty-world assertion must not turn an unadmitted required lookup into a pass.
+        foreach (var assertion in specification.ThenQueries)
+        {
+            if (plan.Queries.TryGetValue(assertion.Query, out var query) && query.Cardinality == SemanticQueryCardinality.One &&
+                SemanticPlanAdmission.Check(plan, query.Id) is { } refusal)
+            {
+                return refusal;
+            }
+        }
         var emptyQuery = specification.When is null && specification.WhenAppended is null && specification.GivenEvents.IsEmpty &&
             specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
         if (!emptyQuery && FilteredQueryRejection(specification) is { } filtered) return filtered;

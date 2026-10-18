@@ -138,7 +138,9 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRunti
             return new(_world, SemanticExecutionCapability.Command, $"{feature.Code}: {feature.Message}");
         }
 
-        var refusal = command is null ? null : SemanticImplementationReach.ForCommand(Plan, command);
+        var artifact = command?.Id ?? query?.Id;
+        var refusal = artifact is { } id ? SemanticPlanAdmission.Check(Plan, id) : null;
+        refusal ??= command is null ? null : SemanticImplementationReach.ForCommand(Plan, command);
         if (refusal is null && query is not null) refusal = SemanticImplementationReach.ForQuery(Plan, query);
         if (refusal is null) return null;
         var capability = Enum.TryParse<SemanticExecutionCapability>(refusal.Capability.ToString(), out var parsed) ? parsed : SemanticExecutionCapability.Unknown;

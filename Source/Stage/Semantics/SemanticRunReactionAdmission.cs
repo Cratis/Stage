@@ -24,6 +24,8 @@ internal static class SemanticRunReactionAdmission
         // Expected rejections must not hide an unsupported invocation behind a passing error assertion.
         var (_, commands, blocker) = Reachable(plan, specification, [], includeRejected: true);
         if (blocker is not null) return blocker;
+        var planRefusal = commands.Select(id => SemanticPlanAdmission.Check(plan, id)).FirstOrDefault(refusal => refusal is not null);
+        if (planRefusal is not null) return planRefusal;
         var feature = commands.SelectMany(id => SemanticVersionFeatures.UnsupportedReadRequirements(plan.Commands[id])).FirstOrDefault();
 
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");

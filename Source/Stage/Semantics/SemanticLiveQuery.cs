@@ -37,6 +37,20 @@ internal sealed class SemanticLiveQuery<T>(ISemanticWorldChanges changes, Func<T
     bool _ended;
     Exception? _failure;
 
+    /// <summary>
+    /// Gets the answer last emitted. Arc reads it to answer a plain request, which does not wait for the stream.
+    /// </summary>
+    public T Value
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _current;
+            }
+        }
+    }
+
     /// <inheritdoc/>
     public IDisposable Subscribe(IObserver<T> observer)
     {

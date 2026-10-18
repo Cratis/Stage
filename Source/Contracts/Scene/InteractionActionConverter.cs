@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using SceneCommon = Cratis.Scene.Model.Common;
 using SceneModel = Cratis.Scene.Model.Interactions;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
@@ -39,6 +40,41 @@ public static class InteractionActionConverter
             OnSuccess = [.. action.OnSuccess.Select(Convert)],
             OnFailure = [.. action.OnFailure.Select(Convert)],
             OnResult = [.. action.OnResult.Select(Convert)]
+        };
+    }
+
+    /// <summary>
+    /// Converts an action while omitting unsupported actions and continuations.
+    /// </summary>
+    /// <param name="action">The authored action.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <param name="path">The owning interaction path.</param>
+    /// <returns>The converted action, or null if it cannot be translated.</returns>
+    public static SceneModel.InteractionAction? Convert(ScreenplaySyntax.InteractionActionSyntax action, ConversionDiagnostics? diagnostics, string path)
+    {
+        if (diagnostics is null) return Convert(action);
+        var code = action switch
+        {
+            ScreenplaySyntax.NotifyActionSyntax notify when notify.Level is not (ScreenplaySyntax.NotificationLevel.Info or ScreenplaySyntax.NotificationLevel.Warning or ScreenplaySyntax.NotificationLevel.Error) => "STAGE-SCENE-ACTION-002",
+            ScreenplaySyntax.ExecuteCommandActionSyntax or ScreenplaySyntax.NavigateActionSyntax or ScreenplaySyntax.NavigateBackActionSyntax or
+                ScreenplaySyntax.OpenDialogActionSyntax or ScreenplaySyntax.CloseDialogActionSyntax or ScreenplaySyntax.RefreshQueryActionSyntax or
+                ScreenplaySyntax.SetStateActionSyntax or ScreenplaySyntax.NotifyActionSyntax or ScreenplaySyntax.ConfirmActionSyntax or
+                ScreenplaySyntax.RaiseTriggerActionSyntax => null,
+            _ => "STAGE-SCENE-ACTION-001"
+        };
+        if (code is not null)
+        {
+            var construct = action is ScreenplaySyntax.NotifyActionSyntax notification ? $"notification level {notification.Level}" : $"interaction action {action.GetType().Name}";
+            diagnostics.Report(new(code, DiagnosticSeverity.Error, construct, path, action.Location, $"Unsupported {construct} was omitted from '{path}'."));
+            return null;
+        }
+
+        return ConvertCore(action) with
+        {
+            Arguments = [.. action.Arguments.Select(ConvertArgument)],
+            OnSuccess = [.. action.OnSuccess.Select(next => Convert(next, diagnostics, path)).OfType<SceneModel.InteractionAction>()],
+            OnFailure = [.. action.OnFailure.Select(next => Convert(next, diagnostics, path)).OfType<SceneModel.InteractionAction>()],
+            OnResult = [.. action.OnResult.Select(next => Convert(next, diagnostics, path)).OfType<SceneModel.InteractionAction>()]
         };
     }
 

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -44,7 +45,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var plan = PlanCore(request);
         var warnings = ReleaseBaselineWarnings.For(request);
 
-        return warnings.IsEmpty ? plan : ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. warnings]);
+        return warnings.IsEmpty ? plan : ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. warnings], plan.ImplementationGaps, plan.Refusals);
     }
 
     static ArtifactRenderPlan PlanCore(ArtifactRenderRequest request)
@@ -132,10 +133,12 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
         var sceneJson = AdmittedScene(request, partitions, diagnostics);
-        if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
+        var refusals = options.Refusals == ArtifactRefusalMode.RenderAround ? SemanticRefusalScope.Classify(context, diagnostics) : [];
+        if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error) && refusals.IsEmpty)
         {
             return CreatePlan(request, [], diagnostics);
         }
+        context.RefusedSpecifications = [.. refusals.Select(refusal => refusal.Artifact)];
 
         if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)))
         {
@@ -234,7 +237,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
-        return CreatePlan(request, artifacts, diagnostics);
+        return CreatePlan(request, artifacts, diagnostics, refusals);
     }
 
     static void AddScaffold(
@@ -282,8 +285,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     static ArtifactRenderPlan CreatePlan(
         ArtifactRenderRequest request,
         IEnumerable<PlannedArtifact> artifacts,
-        List<ArtifactRenderDiagnostic> diagnostics)
+        List<ArtifactRenderDiagnostic> diagnostics,
+        ImmutableArray<ArtifactRenderRefusal> refusals = default)
     {
+        if (refusals.IsDefault) refusals = [];
+
         // Successful diagnostics (and their digests) are unchanged. The contract owns sorting.
         if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {
@@ -312,7 +318,21 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
         }
 
-        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics]);
+        if (!refusals.IsEmpty)
+        {
+            if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error &&
+                !refusals.Any(refusal => refusal.Artifact == diagnostic.Artifact && refusal.Codes.Contains(diagnostic.Code))))
+            {
+                return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
+            }
+            diagnostics.Add(new(
+                "STAGE-PLAN-007",
+                ArtifactRenderDiagnosticSeverity.Information,
+                $"Rendered around {refusals.Length} refused specifications",
+                request.Model.Application.Id));
+        }
+
+        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], [], refusals);
     }
 
     static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content, file.Sources);

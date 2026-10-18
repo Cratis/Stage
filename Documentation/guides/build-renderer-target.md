@@ -116,7 +116,18 @@ static ArtifactRenderDiagnostic Unsupported(
         artifact);
 ```
 
-An `Error` makes `ArtifactRenderPlan.Success` false. `Information` and `Warning` do not. Invalid contract construction, such as a malformed scope, a traversing artifact path, or colliding output paths, throws `InvalidArtifactRenderContract`; those are programmer or integration errors rather than unsupported target semantics.
+An `Error` makes `ArtifactRenderPlan.Success` false. `Information` and `Warning` do not.
+`Outcome` distinguishes `Complete`, `Partial`, and `Refused`. A Cratis partial plan retains
+its errors and lists every omitted specification in `Refusals`; only an explicitly
+partial-aware publisher may accept it. `Success` alone never authorizes partial output.
+See [Render around refused specifications](../reference/stage-rendering.md#render-around-refused-specifications)
+for `CratisPlanOptions.Refusals`, the hashed profile input, and the supported codes.
+
+| Diagnostic | Severity | Meaning |
+| --- | --- | --- |
+| `STAGE-PLAN-007` | Information | Rendered around N refused specifications; `Outcome` is Partial and `Success` remains false. |
+
+Invalid contract construction, such as a malformed scope, a traversing artifact path, or colliding output paths, throws `InvalidArtifactRenderContract`; those are programmer or integration errors rather than unsupported target semantics.
 
 ## Define and admit an exact target profile
 
@@ -353,7 +364,7 @@ These reasons do not widen or narrow admission. Requirements have no authored na
 
 Renderer-gap follow-up work is tracked in [Stage #409](https://github.com/Cratis/Stage/issues/409). Optional event properties are a Cratis contract violation, not an admission candidate.
 
-The Cratis renderer applies the same rule when emission reaches a semantic kind or value combination it has no rendering for, such as an unhandled slice kind, type-reference kind, or primitive, or a semantic value whose kind does not match its primitive type. Planning stops with a `STAGE-ESM-012` error attached to the application identity. The plan is unsuccessful and contains no artifacts, including scaffold files. The renderer does not fall back to `object` or `default!`, and it does not drop the slice. Admission also raises `STAGE-ESM-012` for concept, event, command, composite-type, and read-model members whose generated PascalCase names collide with another property, the enclosing record name, record-synthesized or inherited members, or generated command/query methods. Record members named `Clone` are forbidden by C#; `Finalize` is allowed as a positional property. Enum values may share their enclosing enum's name, but two values that normalize to the same name are rejected. Query method overloads such as `ToString(IReadModels, …)` are allowed unless they collide with a property, the record name, or a non-overloadable member. That diagnostic is attached to the offending record; a projection referencing an event in any child or nested scope receives it on the projection, even when the event belongs to another slice. These admissions also stop the plan without artifacts. The admission checks prevent uncompilable output; an emission-time `STAGE-ESM-012` reports a renderer gap. Neither adds executable semantic model capability, and Cratis admission remains narrower than the executable semantic model.
+The Cratis renderer applies the same rule when emission reaches a semantic kind or value combination it has no rendering for, such as an unhandled slice kind, type-reference kind, or primitive, or a semantic value whose kind does not match its primitive type. Planning stops with a `STAGE-ESM-012` error attached to the application identity. The plan is unsuccessful and contains no artifacts, including scaffold files. The renderer does not fall back to `object` or `default!`, and it does not drop the slice. Admission also raises `STAGE-ESM-012` for concept, event, command, composite-type, and read-model members whose generated PascalCase names collide with another property, the enclosing record name, record-synthesized or inherited members, or generated command/query methods. Record members named `Clone` are forbidden by C#; `Finalize` is allowed as a positional property. Enum values may share their enclosing enum's name, but two values that normalize to the same name are rejected. Query method overloads such as `ToString(IReadModels, …)` are allowed unless they collide with a property, the record name, or a non-overloadable member. That diagnostic is attached to the offending record; a projection referencing an event in any child or nested scope receives it on the projection, even when the event belongs to another slice. These admissions also stop the plan without artifacts. The admission checks prevent uncompilable output; an emission-time `STAGE-ESM-012` reports a renderer gap. Neither adds executable semantic model capability, and Cratis admission remains narrower than the executable semantic model. Render-around opt-in does not bypass these fatal errors; it can omit only specifications refused solely with `STAGE-ESM-011` or `STAGE-ESM-024`.
 
 A model that uses an ESM v2 construct arrives as language and semantic version `2.0`. Admit it construct by construct rather than treating it as v1. The Cratis renderer handles the v2 constructs this way:
 

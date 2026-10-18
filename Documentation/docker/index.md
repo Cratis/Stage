@@ -226,7 +226,8 @@ ESM v13 admits concept compliance without changing command decisions or world re
 ESM v14 equality query filters execute through the reference evaluator in the Host, including
 optional omission and required-filter rejection. The independent specification executor
 refuses filtered query assertions with `STAGE-ESM-010` rather than ignoring the filters;
-seeded read-model specifications retain the `GivenReadModel` gap.
+this also applies to assertions over seeded read models. The executor supports complete scalar per-key seeds,
+replacing projected Given history for that key before folding subsequent facts; see [Spec runner](spec-runner.md).
 The semantic Stage Host encrypts personal-data and secret concept values at rest through Chronicle,
 like rendered applications, and releases them on read. Personal-data erasure uses Chronicle's
 key deletion keyed by the event source; explicit subject lineage remains

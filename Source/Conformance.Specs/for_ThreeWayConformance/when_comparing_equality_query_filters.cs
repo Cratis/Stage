@@ -18,7 +18,7 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
 {
     [Fact] void should_pass_the_correct_reference_expectation() => fixture.ReferencePassed.ShouldBeTrue();
     [Fact] void should_fail_the_wrong_reference_expectation() => fixture.WrongReferencePassed.ShouldBeFalse();
-    [Fact] void should_report_the_stage_seeded_state_gap() => fixture.StageResults.All(result => result.Outcome == SemanticSpecificationOutcome.Unsupported && result.Unsupported!.Capability == StageExecutionCapability.GivenReadModel).ShouldBeTrue();
+    [Fact] void should_preserve_the_stage_filter_refusal() => fixture.StageResults.All(result => result.Outcome == SemanticSpecificationOutcome.Unsupported && result.Unsupported!.Capability == StageExecutionCapability.Query).ShouldBeTrue();
     [Fact] void should_build_the_generated_application_without_warnings() => fixture.Warnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_the_generated_filtered_query_specification() => fixture.CorrectOutcome.ShouldEqual("Passed");
     [Fact] void should_fail_the_generated_wrong_row_specification() => fixture.WrongOutcome.ShouldEqual("Failed");

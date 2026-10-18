@@ -163,6 +163,10 @@ public static class SemanticRunAdmission
                 return Block(StageExecutionCapability.Command, producedContract.Id, "Event property names collide in generated C#.");
             }
         }
+        if (CommandValidationRefusal(plan, command) is { } validationRefusal)
+        {
+            return Block(StageExecutionCapability.Command, command.Id, validationRefusal);
+        }
         var valueContext = new SemanticApplicationContext(plan);
         var valueRefusal = command.Properties.Select(property => SemanticValueShapeAdmission.Refusal(valueContext, property.Type)).FirstOrDefault(refusal => refusal is not null);
         if (valueRefusal is not null)
@@ -230,8 +234,38 @@ public static class SemanticRunAdmission
     {
         var features = CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, plan.Model.Application.Concepts).Select(Feature));
         var refusal = SemanticImplementationReach.ForCommand(plan, command);
+        if (CommandValidationRefusal(plan, command) is { } validationRefusal)
+        {
+            features = features.Append(new(command.Id.ToString(), "command", nameof(StageExecutionCapability.Command), validationRefusal));
+        }
 
         return refusal is null ? features : features.Append(new(command.Id.ToString(), "command", refusal.Capability.ToString(), refusal.Details));
+    }
+
+    internal static string? CommandValidationRefusal(SemanticExecutionPlan plan, SemanticCommand command)
+    {
+        foreach (var rule in command.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual))
+        {
+            var property = command.Properties.FirstOrDefault(property => property.Id == rule.Property);
+            var description = $"Command '{command.Name}' validation '{rule.Kind}' on property '{property?.Name ?? rule.Property.ToString()}'";
+            if (rule.Operand is not SemanticNumberValue)
+            {
+                return $"{description} requires a numeric operand.";
+            }
+            var type = property?.Type;
+            var primitive = type?.Kind switch
+            {
+                SemanticTypeReferenceKind.Concept => plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Id == type.Target)?.Primitive,
+                SemanticTypeReferenceKind.Primitive => type.Primitive,
+                _ => null
+            };
+            if (type?.IsCollection != true || primitive is not (SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber))
+            {
+                return $"{description} requires a collection of numeric primitives or concepts.";
+            }
+        }
+
+        return null;
     }
 
     // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
@@ -285,7 +319,8 @@ public static class SemanticRunAdmission
         SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or
         SemanticValidationRuleKind.LessThanOrEqual or SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or
         SemanticValidationRuleKind.Checksum or SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
-        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or
+        SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual;
 
     static bool Scalar(SemanticTypeReference type)
     {

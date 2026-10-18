@@ -149,13 +149,11 @@
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
-        { "code": "capability:Command[a-command-validation-rule-is]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 523 },
         { "code": "capability:Command[only-scalar-command-and-event]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 441 },
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000046", "issue": 58 },
         { "code": "capability:Occurrence[only-scalar-appended-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
         { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "capability:Command[a-command-validation-rule-is]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058e", "issue": 523 },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": 441 },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000061", "issue": 441 },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000062", "issue": 441 },
@@ -1629,13 +1627,11 @@
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedProjectionBlock", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000017c", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "UnsupportedQuery", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 } ] },
       "executor": { "outcome": "refused", "refusals": [
-        { "code": "capability:Command[a-command-validation-rule-is]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 523 },
         { "code": "capability:Command[only-scalar-command-and-event]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 441 },
         { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000046", "issue": 58 },
         { "code": "capability:Occurrence[only-scalar-appended-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
         { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "capability:Command[a-command-validation-rule-is]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058e", "issue": 523 },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": 441 },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000061", "issue": 441 },
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000062", "issue": 441 },

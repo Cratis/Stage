@@ -24,7 +24,7 @@ internal static class SemanticRunReactionExpressions
         SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } when occurred is { } instant => SemanticValue.Text(instant.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)),
         SemanticRefusalExpression member when refusal is not null => refusal.ValueOf(member.Member),
         SemanticValueExpression literal => literal.Value,
-        SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } property when values.TryGetValue(property.Target, out var value) => value,
+        SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event or SemanticExpressionRootKind.Trigger, Source: SemanticExpressionSourceKind.Property } property when values.TryGetValue(property.Target, out var value) => value,
         _ => throw new InvalidSemanticContract("An execution expression is unresolved in its declared root scope.")
     };
 

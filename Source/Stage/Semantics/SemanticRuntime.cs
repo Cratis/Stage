@@ -7,6 +7,7 @@ using System.Text.Json;
 using Cratis.DependencyInjection;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Runtime;
 
@@ -143,12 +144,20 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRunti
             return new(_world, SemanticExecutionCapability.Command, validationRefusal);
         }
 
-        var refusal = command is null ? null : SemanticImplementationReach.ForCommand(Plan, command);
-        if (refusal is null && query is not null) refusal = SemanticImplementationReach.ForQuery(Plan, query);
+        var refusal = ArtifactRefusal(command, query);
         if (refusal is null) return null;
         var capability = Enum.TryParse<SemanticExecutionCapability>(refusal.Capability.ToString(), out var parsed) ? parsed : SemanticExecutionCapability.Unknown;
 
         return new(_world, capability, refusal.Details);
+    }
+
+    SemanticUnsupportedCapability? ArtifactRefusal(SemanticCommand? command, SemanticKeyedQuery? query)
+    {
+        var artifact = command?.Id ?? query?.Id;
+        var refusal = artifact is { } id ? SemanticPlanAdmission.Check(Plan, id) : null;
+        refusal ??= command is null ? null : SemanticImplementationReach.ForCommand(Plan, command);
+
+        return refusal ?? (query is null ? null : SemanticImplementationReach.ForQuery(Plan, query));
     }
 
     void InitializeWorld()

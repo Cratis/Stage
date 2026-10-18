@@ -112,7 +112,8 @@ internal static class SemanticScopedProjectionSupport
         bool keyIsEventSource)
     {
         var target = Target(mapping.Target, targets, context);
-        if (target?.Type.IsCollection != false || HasOptionalIntermediate(mapping.Target, targets, context))
+        if (target is null || HasOptionalIntermediate(mapping.Target, targets, context) ||
+            (target.Type.IsCollection && !WholeCollectionSupported(mapping, target, targets, @event, context)))
         {
             return false;
         }
@@ -137,6 +138,12 @@ internal static class SemanticScopedProjectionSupport
             _ => false
         };
     }
+
+    // A collection property is set whole from an event property of exactly the same type; elements are never addressed.
+    static bool WholeCollectionSupported(SemanticProjectionMapping mapping, SemanticProperty target, IReadOnlyList<SemanticProperty> targets, SemanticEventContract @event, SemanticApplicationContext context) =>
+        mapping.Operation == SemanticProjectionOperation.Set && !target.Type.IsOptional && mapping.Target.Length == 1 &&
+        mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } property &&
+        @event.Properties.SingleOrDefault(candidate => candidate.Id == property.Path[0]) is { } source && source.Type == target.Type;
 
     // Chronicle's source identity becomes text in the runner. Only an unconstrained target of the
     // exact identifier type can be reconstructed without bypassing Screenplay's value validation.
@@ -227,7 +234,8 @@ internal static class SemanticScopedProjectionSupport
         SemanticId? identity) =>
         properties.All(property => property.Id == identity || property.Type.IsCollection ||
             (property.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(property.Type.Target, out var composite)
-                ? (property.Type.IsOptional && !paths.Any(path => path.Length > prefix.Length &&
+                ? paths.Any(path => path.SequenceEqual([.. prefix, property.Id])) ||
+                  (property.Type.IsOptional && !paths.Any(path => path.Length > prefix.Length &&
                     path.Take(prefix.Length + 1).SequenceEqual([.. prefix, property.Id]))) ||
                   (Required(composite.Properties, context, [.. prefix, property.Id], paths, null) &&
                    paths.Any(path => path.Length > prefix.Length && path.Take(prefix.Length + 1).SequenceEqual([.. prefix, property.Id])))

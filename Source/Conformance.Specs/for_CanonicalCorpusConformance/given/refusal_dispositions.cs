@@ -8,6 +8,24 @@ public static class refusal_dispositions
 {
     public static readonly refusal_fingerprint InvalidGeneration = new("STAGE-ESM-019", null, "sem1:25bdf5d2a8f97601c41d6bc30d4da1d2fd4123e1ebf894d79f96b9103b85caf4");
 
+    // Each entry allows only the exact vector/surface/fingerprint combinations listed here.
+    static readonly (string[] Vectors, conformance_surface Surface, refusal_fingerprint[] Fingerprints)[] _allowedByDesign =
+    [
+        (["GenerationFixturesCorpus.V21"], conformance_surface.Renderer, [InvalidGeneration]),
+        ([
+            "EsmGoldenVectors.V8", "EsmGoldenVectors.V9", "EsmGoldenVectors.V10",
+            "EsmGoldenVectors.V11", "EsmGoldenVectors.V12", "EsmGoldenVectors.V13",
+            "EsmGoldenVectors.V14", "EsmGoldenVectors.V15", "EsmGoldenVectors.V16",
+            "EsmGoldenVectors.V17", "EsmGoldenVectors.V18", "EsmGoldenVectors.V19",
+            "EsmGoldenVectors.V20", "EsmGoldenVectors.V21", "EsmGoldenVectors.V22",
+            "EsmGoldenVectors.V23", "EsmGoldenVectors.V24"
+        ], conformance_surface.Renderer,
+        [
+            new("STAGE-ESM-030", null, "sem1:000000000000000000000000000000000000000000000000000000000000232c"),
+            new("STAGE-ESM-030", null, "sem1:0000000000000000000000000000000000000000000000000000000000002333")
+        ])
+    ];
+
     public static IReadOnlyList<string> Problems(string vector, conformance_surface surface, expected_conformance_cell expected, conformance_observation actual)
     {
         var problems = new List<string>();
@@ -67,7 +85,7 @@ public static class refusal_dispositions
                 Add($"conflicting-disposition({fingerprint})");
             }
 
-            if (record.ByDesign is not null && (string.IsNullOrWhiteSpace(record.ByDesign) || vector != "GenerationFixturesCorpus.V21" || surface != conformance_surface.Renderer || fingerprint != InvalidGeneration))
+            if (record.ByDesign is not null && (string.IsNullOrWhiteSpace(record.ByDesign) || !IsAllowedByDesign(vector, surface, fingerprint)))
             {
                 Add($"unauthorized-by-design({fingerprint})");
             }
@@ -80,5 +98,8 @@ public static class refusal_dispositions
 
         return problems;
     }
+
+    static bool IsAllowedByDesign(string vector, conformance_surface surface, refusal_fingerprint fingerprint) =>
+        _allowedByDesign.Any(entry => entry.Surface == surface && entry.Vectors.Contains(vector, StringComparer.Ordinal) && entry.Fingerprints.Contains(fingerprint));
 }
 #endif

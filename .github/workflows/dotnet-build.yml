@@ -1,7 +1,8 @@
 name: .NET Build
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Keep scheduled/manual runs independent; newer pushes still cancel older PR runs.
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -10,9 +11,17 @@ env:
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
   pull_request:
+    # Labels do not trigger skipped required checks. For full coverage:
+    # add ci:full, then push or use "Re-run all jobs" on the dotnet-build workflow
+    # ("Re-run failed jobs" does not rerun routing, so it ignores the label)
+    types: [opened, synchronize, reopened]
     branches:
       - "**"
+    # Changes outside these paths (documentation, other workflows) do not start this workflow,
+    # as before routing existed; inside them, the routing job selects the optional lanes.
     paths:
       - "Source/**"
       - "Samples/**"
@@ -21,12 +30,43 @@ on:
       - "*.targets"
       - "*.slnx"
       - "global.json"
+      - "**/[Nn]u[Gg]et.[Cc]onfig"
+      - "**/packages.lock.json"
       - ".github/workflows/dotnet-build.yml"
       - ".github/spec-shards.py"
+      - ".github/spec-shard-timings.json"
       - ".github/test_spec_shards.py"
+      - ".github/ci-routing.py"
+      - ".github/test_ci_routing.py"
+      - ".github/workflows/warm-nuget-cache.yml"
 
 jobs:
+  routing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      reducer-mongo: ${{ steps.routes.outputs.reducer-mongo }}
+      live-custom-packages: ${{ steps.routes.outputs.live-custom-packages }}
+      live-blueprints: ${{ steps.routes.outputs.live-blueprints }}
+      generated-name-matrix: ${{ steps.routes.outputs.generated-name-matrix }}
+      generated-react-blueprint-templates: ${{ steps.routes.outputs.generated-react-blueprint-templates }}
+    steps:
+      - name: Checkout merge-base history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select lanes from the PR merge-base diff or full-run event
+        id: routes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/ci-routing.py route
+
   preflight:
+    needs: routing
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -37,7 +77,7 @@ jobs:
         run: python3 Verification/verify-runtime-compatibility.py --self-test
 
   dotnet-build:
-    needs: preflight
+    needs: [preflight, routing]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -56,7 +96,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
           restore-keys: |
             nuget-${{ runner.os }}-
 
@@ -81,7 +121,7 @@ jobs:
           npm run build --prefix Source/Frontend
 
       - name: Verify spec shard routing and guards
-        run: python3 -B -m unittest discover -s .github -p test_spec_shards.py
+        run: python3 -B -m unittest discover -s .github -p 'test_*.py'
 
       # Inline specs and their test SDK exist only in Debug. Build once, then hand off the binaries
       # (including Host's isolated specrunner) to parallel --no-build spec jobs. Release still compiles
@@ -91,9 +131,15 @@ jobs:
 
       - name: Require every solution test project to be sharded
         id: spec-coverage
-        # The dedicated blueprint-template lane below runs in every workflow run.
-        # If it becomes conditional, pass this flag only when that lane is enabled.
-        run: python3 .github/spec-shards.py guard --blueprint-templates-lane
+        # When the browser lane is omitted, the rendering shard owns its build fixture.
+        env:
+          BLUEPRINT_TEMPLATES_LANE: ${{ needs.routing.outputs.generated-react-blueprint-templates }}
+        run: |
+          args=()
+          if [ "$BLUEPRINT_TEMPLATES_LANE" = true ]; then
+            args+=(--blueprint-templates-lane)
+          fi
+          python3 .github/spec-shards.py guard "${args[@]}"
 
       # Artifacts are an intra-run handoff, unlike immutable commit-keyed caches, whose failed saves
       # can poison a rerun. Tar preserves executable permissions and the original project layout.
@@ -146,7 +192,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
           restore-keys: |
             nuget-${{ runner.os }}-
 
@@ -189,25 +235,28 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Preserve the original build check as an aggregate: it must fail if preflight, compilation/packaging
-  # or any spec shard fails or is skipped. The independent live/generated probe checks stay separate.
+  # Preserve the original build check as an aggregate: it must fail if preflight, compilation/packaging,
+  # any spec shard or the standalone generated-application spec (moved out of the shards) fails or is
+  # skipped. The independent live/generated probe checks stay separate.
   build:
-    needs: [preflight, dotnet-build, specs]
+    needs: [preflight, dotnet-build, specs, routing, standalone-generated-application]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Require preflight, build and every spec shard to succeed
+      - name: Require preflight, build, every spec shard and the standalone application spec to succeed
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           BUILD_RESULT: ${{ needs.dotnet-build.result }}
           SPECS_RESULT: ${{ needs.specs.result }}
-        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success
+          STANDALONE_RESULT: ${{ needs.standalone-generated-application.result }}
+        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success && test "$STANDALONE_RESULT" = success
 
   # Live persistence is a separate gate: the ordinary Debug suite skips live execution of these probes
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
   reducer-mongo:
-    needs: preflight
+    needs: [preflight, routing]
+    if: needs.routing.outputs.reducer-mongo == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -313,7 +362,8 @@ jobs:
   # names whose generated C# does not compile or serialize. It takes about as long as the rest of the
   # suite, so it runs next to the build job instead of inside it.
   generated-name-matrix:
-    needs: preflight
+    needs: [preflight, routing]
+    if: needs.routing.outputs.generated-name-matrix == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -346,13 +396,79 @@ jobs:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
         run: dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Debug --filter "FullyQualifiedName~when_compiling_generated_name_matrix"
 
+  # Renders an application, then builds and tests it in Debug and Release and serves it against the pinned
+  # Chronicle image. That one class took longer than every other spec in its Rendering shard together, so it
+  # runs next to the build job instead of setting the shard time. spec-shards.py excludes it from every shard.
+  standalone-generated-application:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Same toolchain the Rendering shards gave this spec before it moved here.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore NuGet packages (only the build job saves this cache)
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Build, test and serve the standalone generated application
+        run: >-
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
+          --filter "FullyQualifiedName~when_verifying_a_standalone_generated_application"
+          --logger "trx;LogFileName=standalone-generated-application.trx" --results-directory ./TestResults/standalone-generated-application
+
+      # A zero exit from dotnet test can mean that nothing ran, or that assertions were skipped.
+      - name: Require every standalone application assertion to execute and pass
+        run: |
+          python3 .github/spec-shards.py require-executed TestResults/standalone-generated-application/standalone-generated-application.trx
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          root = ET.parse("TestResults/standalone-generated-application/standalone-generated-application.trx").getroot()
+          results = root.findall("t:Results/t:UnitTestResult", ns)
+          if len(results) != 14 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 14 passing standalone application assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
+          print(f"{len(results)} standalone application assertions passed")
+          PY
+
+      - name: Upload spec results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-generated-application-results
+          path: TestResults/standalone-generated-application
+          if-no-files-found: error
+          retention-days: 7
+
   # Builds the Stage image the way publish.yml does and starts it against a model whose ui profile names a custom package,
   # handing it the approved package set and the package's browser build as `cratis run --package-set` does. A browser asserts
   # the live Stage loaded the package at runtime and rendered its component, and refused to render when the package is missing.
   live-custom-packages:
-    needs: preflight
+    needs: [preflight, routing]
+    if: needs.routing.outputs.live-custom-packages == 'true' || needs.routing.outputs.live-blueprints == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      custom-result: ${{ steps.custom.outcome }}
+      navigation-result: ${{ steps.navigation.outcome }}
+      blueprints-result: ${{ steps.blueprints.outcome }}
+      templates-result: ${{ steps.templates.outcome }}
 
     steps:
       - name: Checkout code
@@ -393,15 +509,23 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Run the live custom package scenarios
+        id: custom
+        if: needs.routing.outputs.live-custom-packages == 'true'
         run: Verification/live-custom-packages/run.sh cratis/stage:ci "$PWD/TestResults/live-custom-packages"
 
       - name: Run the live navigation scenarios
+        id: navigation
+        if: needs.routing.outputs.live-custom-packages == 'true'
         run: Verification/live-navigation/run.sh cratis/stage:ci "$PWD/TestResults/live-navigation"
 
       - name: Run the live domain blueprint scenarios
+        id: blueprints
+        if: needs.routing.outputs.live-blueprints == 'true'
         run: Verification/live-blueprints/run.sh cratis/stage:ci "$PWD/TestResults/live-blueprints"
 
       - name: Run the live blueprint template scenarios
+        id: templates
+        if: needs.routing.outputs.live-blueprints == 'true'
         run: Verification/blueprint-templates/live.sh cratis/stage:ci "$PWD/TestResults/live-blueprint-templates"
 
       - name: Upload results
@@ -496,7 +620,8 @@ jobs:
   # Renders the default blueprint's MasterDetail, Dashboard and ProfileSettings templates (Verification/blueprint-templates) into a generated React
   # application, builds it the way its author would and runs the template vector - slots filled, no overflow, layout, accessibility - against it.
   generated-react-blueprint-templates:
-    needs: preflight
+    needs: [preflight, routing]
+    if: needs.routing.outputs.generated-react-blueprint-templates == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -567,3 +692,36 @@ jobs:
           path: TestResults/generated-blueprint-templates
           if-no-files-found: error
           retention-days: 7
+
+  # Require this check alongside build: a selected lane/step may not silently skip.
+  routed-checks:
+    needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Require every selected lane and the React smoke to succeed
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+        run: python3 .github/ci-routing.py check
+
+  nightly-red:
+    needs: [build, routed-checks]
+    if: always() && github.event_name == 'schedule' && (needs.build.result != 'success' || needs.routed-checks.result != 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Open or update the red-nightly issue with the last-green merge range
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/ci-routing.py report-nightly

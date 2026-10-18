@@ -67,7 +67,7 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
     [Fact] void should_render_specs_that_compile() => _errors.ShouldBeEmpty();
     [Fact] void should_name_the_file_for_the_behavior() =>
         _appended.RelativePath.EndsWith("when_registering_an_invoice.cs", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_ship_only_in_debug() => _appended.Content.StartsWith("#if DEBUG", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_not_wrap_in_a_debug_conditional() => _appended.Content.Contains("#if DEBUG", StringComparison.Ordinal).ShouldBeFalse();
     [Fact] void should_exercise_the_command_through_a_scenario() =>
         _appended.Content.ShouldContain("readonly CommandScenario<RegisterInvoice> _scenario = new();");
     [Fact] void should_state_the_uuid_the_document_wrote_as_text() =>

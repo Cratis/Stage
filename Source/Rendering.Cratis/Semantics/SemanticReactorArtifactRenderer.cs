@@ -23,6 +23,9 @@ internal static class SemanticReactorArtifactRenderer
         RenderIdentityAttribute(builder, reaction);
         if (reaction.From is { } filter) SemanticObserverFilterRendering.Attribute(builder, filter, context);
         builder.OpenBlock($"public class {name} : global::Cratis.Chronicle.Reactors.IReactor");
+
+        // For atomic models, admission permits at most one production trigger per source event:
+        // this returned collection is exactly that trigger occurrence's append batch. Legacy output stays unchanged.
         foreach (var group in reaction.Triggers.GroupBy(trigger => trigger.Source))
         {
             var source = context.Events[group.Key];

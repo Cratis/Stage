@@ -1,0 +1,54 @@
+name: Warm NuGet cache
+
+# PR caches belong to refs/pull/<n>/merge and cannot be restored by other PRs.
+# Seed the same key on main without repeating the build or spec matrix.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.csproj"
+      - "**/*.props"
+      - "**/*.targets"
+      - "**/packages.lock.json"
+      - "**/[Nn]u[Gg]et.[Cc]onfig"
+      - "*.slnx"
+      - "global.json"
+      - ".github/workflows/warm-nuget-cache.yml"
+  # GitHub evicts caches unused for seven days; a weekly run keeps main's cache alive between dependency changes.
+  schedule:
+    - cron: "37 4 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  restore:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache NuGet packages
+        id: nuget
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore solution packages
+        if: steps.nuget.outputs.cache-hit != 'true'
+        run: dotnet restore --verbosity minimal

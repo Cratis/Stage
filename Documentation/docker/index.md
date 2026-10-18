@@ -166,14 +166,19 @@ Per-production route overrides fail `STAGE-ESM-036` on the semantic engine; the 
 The semantic engine runs event-triggered reactions, including `where`, `runs as`, `from`, productions,
 invocations and cascades. It settles them with the initiating command and appends all facts in one
 tail-guarded batch. A rejected, denied or unsupported settlement refuses the whole command and appends
-nothing. This differs from rendered Chronicle reactors, which run eventually and retry failed partitions.
+nothing, retaining the previously committed world. With `reaction batches atomic`, each trigger occurrence's
+direct productions and each selected refusal branch are atomic units during evaluation; invoked commands
+remain separate units. The live Host still rolls back the **whole initiating command and its cascade** if
+any unit fails, rather than keeping earlier successful units as the reference evaluator does. Models without
+the declaration retain legacy per-fact reaction evaluation and the same Host rollback boundary.
+This differs from rendered Chronicle reactors, which run eventually and retry failed partitions.
 Clock, application, startup and shutdown triggers and opaque reaction bodies still fail `STAGE-ESM-024`
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
 The semantic engine uses Screenplay 4.206.0 and admits exact ESM v1–v28 version pairs; unaudited
 language/semantic versions (v29 and later, mixed or noncanonical pairs) refuse the whole model with `STAGE-ESM-016` before registration or execution.
-A v22 model that uses `reaction batches atomic` is admitted and refused with `STAGE-ESM-043` until atomic batches execute.
+A v22 model that uses `reaction batches atomic` executes atomic production units while retaining the Host's whole-command rollback boundary.
 At v28 the semantic engine runs Uuid `==` and `!=` in command `require` conditions and `produces when` guards, including
 through concepts and protected read paths such as `require Grant.memberId == requestedBy`. Uuids compare ordinally in their
 canonical lowercase hyphenated spelling, and the Host rejects a non-canonical Uuid input (uppercase, braced or unhyphenated)

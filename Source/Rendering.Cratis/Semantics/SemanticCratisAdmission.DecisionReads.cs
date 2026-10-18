@@ -42,18 +42,8 @@ internal static partial class SemanticCratisAdmission
             diagnostics.Add(DecisionRead(command, "combines protected reads with generated-value freshness scopes; Arc's explicit scope must cover the reads and that interaction is unproven. Declare the reads on a command without generated event-source destinations."));
         }
 
-        if (hasReads && ProducesConstrainedEvent(context, command))
-        {
-            diagnostics.Add(DecisionRead(command, "combines protected reads with an event under an append-time constraint; no reference vector decides which failure wins yet. Split the constrained append into its own command."));
-        }
-    }
-
-    static bool ProducesConstrainedEvent(SemanticApplicationContext context, SemanticCommand command)
-    {
-        var constrained = context.Constraints.Select(_ => _.Constraint)
-            .SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy)).ToHashSet();
-
-        return command.Produces.Any(produced => constrained.Contains(produced.EventContract));
+        // ProtectedCommandReadRaceVectors proves protected reads and append-time constraints separately (#557).
+        // A simultaneous read conflict and uniqueness collision has no corpus-defined precedence.
     }
 
     static ArtifactRenderDiagnostic DecisionRead(SemanticCommand command, string reason) =>

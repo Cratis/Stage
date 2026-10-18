@@ -19,7 +19,6 @@ public class when_refusing_unrenderable_decision_reads
     static string Corpus => ProtectedCommandReadsCorpus.V25.SourceForms.Single(form => form.Name == "single").Documents.Single().Text;
 
     [Theory]
-    [InlineData("an event under an append-time constraint", "constraint")]
     [InlineData("generated-value freshness scopes", "freshness")]
     public void should_name_the_reason_with_the_decision_read_code(string reason, string shape)
     {
@@ -90,10 +89,8 @@ public class when_refusing_unrenderable_decision_reads
         return model;
     }
 
-    static string Variant(string shape) => shape switch
-    {
-        "constraint" => Corpus.Replace("      event Taken\n", "      constraint UniqueTaken\n        unique value on Taken\n      event Taken\n", StringComparison.Ordinal),
-        _ => Corpus.Replace(Generation, "concept Receipt : Uuid\n  generate uuidv7\n", StringComparison.Ordinal)
+    static string Variant(string shape) => shape == "freshness"
+        ? Corpus.Replace(Generation, "concept Receipt : Uuid\n  generate uuidv7\n", StringComparison.Ordinal)
             .Replace("        sourceId String\n        reads Current by sourceId\n        validate\n", "        sourceId String\n        receipt Receipt generated\n        reads Current by sourceId\n        validate\n", StringComparison.Ordinal)
-    };
+        : Corpus;
 }

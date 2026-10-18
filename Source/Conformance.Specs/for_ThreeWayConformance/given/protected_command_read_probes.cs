@@ -4,8 +4,8 @@
 #if DEBUG
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 
-// The reference evaluator has no race vector (Cratis/Screenplay#833), so these probes run in the rendered
-// application and prove the guard Arc provides: what a decision commits, and what a concurrent writer does to it.
+// These V25 probes exercise Arc's invocation-scoped guard, not replay of a prepared reference decision.
+// ProtectedCommandReadRaceVectors invocation coverage and exclusions are recorded by #557's race-vector specs.
 internal static class protected_command_read_probes
 {
     internal const string Accepted = """

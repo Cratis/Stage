@@ -224,9 +224,11 @@ the Double safe range; `numbers exact` and arbitrary-precision arithmetic are no
 ESM v12 preserves explicit enum member numbers when rebuilding stored integer values; decisions still compare member names.
 ESM v13 admits concept compliance without changing command decisions or world reconstruction.
 ESM v14 equality query filters execute through the reference evaluator in the Host, including
-optional omission and required-filter rejection. The independent specification executor
-refuses filtered query assertions with `STAGE-ESM-010` rather than ignoring the filters;
-this also applies to assertions over seeded read models. The executor supports complete scalar per-key seeds,
+optional omission and required-filter rejection. The independent specification executor and Host
+specification admission support equality-filtered assertions over projected and seeded read models.
+Supplied scalar primitive, concept and enum filters combine with `by` using AND; omitted optional
+filters do not narrow. Collection expectations compare rows by read model and key, not order.
+Unrepresentable projection shapes still receive typed refusals. The executor supports complete scalar per-key seeds,
 replacing projected Given history for that key before folding subsequent facts; see [Spec runner](spec-runner.md).
 The semantic Stage Host encrypts personal-data and secret concept values at rest through Chronicle,
 like rendered applications, and releases them on read. Personal-data erasure uses Chronicle's

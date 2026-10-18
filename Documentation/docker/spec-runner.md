@@ -100,9 +100,12 @@ The executor validates query keys and supplied filter values against concept rul
 nested members and collection elements, after authorization. This applies in every admitted ESM
 version. ESM v18 adds query-only error expectations, which require a Validation-category rejection;
 the trace records `rejectionCategory` for rejected queries. Empty-fixture queries also execute valid
-unmatched keys and omitted optional filters. Populated equality-filtered query assertions retain
-`STAGE-ESM-010`, including assertions over seeded read-model state.
-The Host executes query filters and validation through the reference evaluator.
+unmatched keys and omitted optional filters. Equality-filtered query assertions execute over projected
+and seeded read-model state. Supplied scalar primitive, concept and enum filters combine with `by`
+using AND; omitted optional filters do not narrow. Collection results compare by read-model identity
+and key without regard to order, including row counts. Projection shapes the per-run scenario cannot
+preserve remain `Unsupported` with a typed reason.
+The Host admits these specification runs and executes live query filters and validation through the reference evaluator.
 At v13 it executes concept-compliance specifications with unchanged outcomes; a passing specification
 is not evidence of encryption or redaction. The semantic Stage Host encrypts personal-data and secret
 concept values at rest through Chronicle, like rendered applications, and releases them on read.

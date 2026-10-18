@@ -90,7 +90,7 @@ internal static partial class SemanticCratisAdmission
         {
             if (value is SemanticArrayValue array)
             {
-                foreach (var element in array.Values) Check(element, type with { IsCollection = false }, artifact);
+                foreach (var element in array.Values) Check(element, type with { IsCollection = false, IsOptional = false }, artifact);
             }
             else if (value is SemanticCompositeValue composite && type.Kind == SemanticTypeReferenceKind.CompositeType)
             {

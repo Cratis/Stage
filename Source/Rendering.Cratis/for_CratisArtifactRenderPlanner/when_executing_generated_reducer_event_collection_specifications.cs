@@ -93,9 +93,12 @@ public class when_executing_generated_reducer_event_collection_specifications : 
     void AddMismatchedSpecification(string path, string order)
     {
         var original = ReadGeneratedFile(path);
-        var changed = original.Replace($"when_good_{order}", $"when_wrong_{order}", StringComparison.Ordinal)
-            .Replace(" = [20m, 40m];", " = [20m, 41m];", StringComparison.Ordinal);
-        Assert.Contains(" = [20m, 41m];", changed, StringComparison.Ordinal);
+        var declaration = $"static readonly decimal[] _expected_event_{(order == "ordered" ? 0 : 1)}_amounts = ";
+        var start = original.IndexOf(declaration, StringComparison.Ordinal);
+        Assert.True(start >= 0, original);
+        var end = original.IndexOf(';', start);
+        var changed = (original[..(start + declaration.Length)] + "[20m, 41m]" + original[end..])
+            .Replace($"when_good_{order}", $"when_wrong_{order}", StringComparison.Ordinal);
         AddGeneratedSpecification($"Wrong{order}.cs", changed);
     }
 
@@ -113,7 +116,7 @@ public class when_executing_generated_reducer_event_collection_specifications : 
             BuildWarnings(build).ShouldEqual(string.Empty);
             var passing = await Run("reducer-event-collection-passing.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", "FullyQualifiedName~when_good_", "--nologo");
             Assert.Contains("Passed!", passing, StringComparison.Ordinal);
-            Assert.Contains("Passed:     7", passing, StringComparison.Ordinal);
+            Assert.Contains("Passed:    12", passing, StringComparison.Ordinal);
             foreach (var name in new[] { "wrong_ordered", "wrong_unordered" })
             {
                 var failing = await Run($"reducer-event-collection-{name}.log", true, "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", $"FullyQualifiedName~when_{name}", "--nologo");

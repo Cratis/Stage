@@ -67,12 +67,12 @@ public sealed partial class CratisBackendApplicationScaffold
         ## Run specifications
 
         ```bash
-        dotnet test {{request.ProjectName}}.Specs -c Debug
+        dotnet test {{request.ProjectName}}.Specs
         ```
 
         The separate specs project links the generated slice-local `when_*.cs` files.
-        Their `#if DEBUG` wrappers keep them out of Release builds; the web project
-        excludes specifications in every configuration.
+        Specifications run in any configuration, including Release. The web project
+        excludes `when_*.cs` specifications in every configuration.
 
         ## Customize
 

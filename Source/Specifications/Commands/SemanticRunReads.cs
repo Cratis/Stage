@@ -31,6 +31,14 @@ internal sealed class SemanticRunReads(SemanticRuntimeTypes types)
         return rules.Concat(SemanticRuleEvaluation.RequirementFailures(command, context.Specification, _values, SemanticDateComparisons.Participants(application, command)));
     }
 
+    static bool IsRefused(SemanticValue key) => key switch
+    {
+        SemanticTextValue text => string.IsNullOrWhiteSpace(text.Value) || text.Value == "*" ||
+            text.Value.Contains('#', StringComparison.Ordinal) || char.IsWhiteSpace(text.Value[0]) || char.IsWhiteSpace(text.Value[^1]),
+        SemanticCompositeValue composite => composite.Properties.Any(property => IsRefused(property.Value)),
+        _ => false
+    };
+
     SemanticValidationFailure? Resolve(SemanticRunContext context)
     {
         _values.Clear();
@@ -39,7 +47,9 @@ internal sealed class SemanticRunReads(SemanticRuntimeTypes types)
         foreach (var read in context.Command.Reads)
         {
             var key = inputs[read.Key];
-            var instance = SemanticRunProjections.ForReadModel(context.Plan, read.ReadModel, context, types, defaults)
+
+            // Decision 0091: a refused key is missing even if prior facts project an instance at that key.
+            var instance = IsRefused(key) ? null : SemanticRunProjections.ForReadModel(context.Plan, read.ReadModel, context, types, defaults)
                 .FirstOrDefault(instance => SemanticExpectationComparer.AreEqual(instance.Key, key));
             if (instance is null)
             {

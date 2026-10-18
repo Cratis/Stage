@@ -142,7 +142,6 @@ public static class SemanticRunAdmission
         }
         foreach (var given in specification.GivenEvents)
         {
-            if (given.EventSource is null) return Block(StageExecutionCapability.IdentityAllocation, given.EventContract, "Given events require an explicit event source.");
             if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
             if (!GeneratedPascalCase.EventMembersAreUnique(givenContract.Name, givenContract.Properties.Select(property => property.Name))) return Block(StageExecutionCapability.Command, givenContract.Id, "Event property names collide in generated C#.");
             if (givenContract.Properties.Any(property => !Scalar(property.Type))) return Block(StageExecutionCapability.Command, given.EventContract, "Only scalar Given event values are admitted.");

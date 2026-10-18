@@ -61,15 +61,17 @@
     "CompositeReadModelKeysCorpus.V27": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "refused", "refusals": [
-        { "code": "capability:Projection[a-read-model-property-name]", "artifact": "sem1:c803e04c1ab2a1ffe9c1c254ed666bf9a2cbb8190ae0eea382def58b713ba7ad", "issue": 502 } ] },
+        { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "artifact": "sem1:c803e04c1ab2a1ffe9c1c254ed666bf9a2cbb8190ae0eea382def58b713ba7ad", "issue": 58 },
+        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "artifact": "sem1:9353b58507ec7cdf2cc372210d0c8324ec7508ce53067fc45891d22a886f1ab6", "issue": 511 },
+        { "code": "capability:Projection[read-model-paymenttotals-has-several]", "artifact": "sem1:e872452ddf7f34e9b0d9a7768f9f44440d99cfee32b05e92c5223beaf5f15e57", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "capability:Projection[a-read-model-property-name]", "kind": "specification", "artifact": "sem1:58d85c37cd592048bde2916955aef4dbdb59f35ab9778e2ef26d539581ae4d39", "issue": 502 },
-        { "code": "capability:Projection[a-read-model-property-name]", "kind": "specification", "artifact": "sem1:6493a85a719da36461bd80988cb1bb54ec4d2e023a965d46ac246eafbdee6927", "issue": 502 },
-        { "code": "capability:Projection[a-read-model-property-name]", "kind": "specification", "artifact": "sem1:8a7b8750c96596ae18478b5b455f0a47cd5129cbc714f3bb15331c3e6ab017e9", "issue": 502 },
-        { "code": "capability:Projection[a-read-model-property-name]", "kind": "specification", "artifact": "sem1:9b79e5a7517213406adbaff34f26a71a0ca837a53c3b7954ceb503d863793f2d", "issue": 502 },
-        { "code": "capability:Projection[a-read-model-property-name]", "kind": "specification", "artifact": "sem1:af3a6a565ea366d6ac2d4da3cd9c02290138c4747225f1418ef7fce20edf6630", "issue": 502 },
-        { "code": "capability:Projection[a-read-model-property-name]", "kind": "specification", "artifact": "sem1:bd21b2798c4878ad8d2a9aef595978c99631ea4e77aee2ea9acdca9edd60b7c7", "issue": 502 },
-        { "code": "capability:Projection[a-read-model-property-name]", "kind": "specification", "artifact": "sem1:ee4476e9d11426212a7614bc393e19728fad4148f22492f50291f86b7d22c1d6", "issue": 502 } ] },
+        { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:58d85c37cd592048bde2916955aef4dbdb59f35ab9778e2ef26d539581ae4d39", "issue": 58 },
+        { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:6493a85a719da36461bd80988cb1bb54ec4d2e023a965d46ac246eafbdee6927", "issue": 58 },
+        { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:8a7b8750c96596ae18478b5b455f0a47cd5129cbc714f3bb15331c3e6ab017e9", "issue": 58 },
+        { "code": "capability:GivenReadModel[given-read-model-state-cannot]", "kind": "specification", "artifact": "sem1:ee4476e9d11426212a7614bc393e19728fad4148f22492f50291f86b7d22c1d6", "issue": 58 },
+        { "code": "capability:IdentityAllocation[given-events-require-an-explicit]", "kind": "specification", "artifact": "sem1:af3a6a565ea366d6ac2d4da3cd9c02290138c4747225f1418ef7fce20edf6630", "issue": 511 },
+        { "code": "capability:Projection[read-model-paymenttotals-has-several]", "kind": "specification", "artifact": "sem1:9b79e5a7517213406adbaff34f26a71a0ca837a53c3b7954ceb503d863793f2d", "issue": 512 },
+        { "code": "capability:Projection[read-model-paymenttotals-has-several]", "kind": "specification", "artifact": "sem1:bd21b2798c4878ad8d2a9aef595978c99631ea4e77aee2ea9acdca9edd60b7c7", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-008", "artifact": "sem1:e872452ddf7f34e9b0d9a7768f9f44440d99cfee32b05e92c5223beaf5f15e57", "issue": 512 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:2cc1d417a855db3c71e90f2261d9d401ef2bcc2cb66315f418ce1db2fde9b4f1", "issue": 501 },
@@ -3004,24 +3006,8 @@
     },
     "EventRoutesCorpus.V8": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "refused", "refusals": [
-        { "code": "capability:Command[command-property-names-collide-in]", "artifact": "sem1:f4a02f8f95cac739204b8ebe9bfa8decd64917d9121f665701296c4f2afeb3ff", "issue": 502 } ] },
-      "host": { "outcome": "refused", "refusals": [
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:017f91cf6993fc718ba85fe831569fadfb75df8286b6eced9f4c3991d3f73efa", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:0e4bbdd4c3e94216755fbcb3f0ccb43b31abf2141015ec8d6d58a87a538d9f37", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:164016c40160d79665c1748150cbe9e2df2c356a3d1d501c6c693716adec4be4", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:16b7ed63cce9b1121a1558bded8619c2b77f03b7749e83fd1048952e45f69144", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:1864e07f2b0dee0a0f90036e2c5d9ae63dc999c48c9be56a297346d5a7ebcebf", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:60f5d9c206cd0a6bc1ad79fdaaf21f445514bc9edee9712b3932a986c4248e3e", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:798ac3d4c1f2426e8ab9180cd969a177a9a4f0148d6431a9ebb8dcc68043af90", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:79ee61250ee8a1b871ecf91c048c225a4198cab32147e41962e9b633701f80ab", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:94170d74fd94a5749ffbe02768e8193358ce813d3b0041392ac1d5be2735d628", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:b1d724cbfe149948de8a133af6ad1c9ff3927b67dc37ebdba8ce1b6433d863ad", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:b6152562e86bc3868be44291a8aa04fc4dd504f25fe5f55b9517927d3c64f5e3", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:db4bb392961702f7f6d5ee820717c68f2a9d3e4b937457cf413d8c6c503acac0", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:e10ec4952e198c7385b83ee8cce249430addca2fee28407e7cab03935c011f6d", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:e626d9e33992b760d846923af5f561908ed7d57eb4683210c79abe37ddbf9c93", "issue": 502 },
-        { "code": "capability:Command[command-property-names-collide-in]", "kind": "specification", "artifact": "sem1:fb10f430d8317e675d73bb1fb863fc725e8c65c1411101c8345433419f2dbd99", "issue": 502 } ] },
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-012", "artifact": "sem1:f4a02f8f95cac739204b8ebe9bfa8decd64917d9121f665701296c4f2afeb3ff", "issue": 502 } ] }
     },

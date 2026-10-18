@@ -20,30 +20,35 @@
     "./styles.css": "./dist/src/app.css"
   },
   "scripts": {
-    "build": "tsc -b tsconfig.json tsconfig.specs.json && node --input-type=module -e \"import { copyFileSync } from 'node:fs'; copyFileSync('src/app.css', 'dist/src/app.css');\"",
+    "build": "vite build --config vite.library.config.ts && tsc -b --force tsconfig.json tsconfig.specs.json",
     "test": "vitest run"
   },
   "peerDependencies": {
     "@cratis/arc": "22.112.1",
     "@cratis/arc.react": "22.112.1",
     "@cratis/components": "4.29.0",
-    "@cratis/fundamentals": "7.25.1",
     "@cratis/scene.blueprint.default": "4.68.2",
     "@cratis/scene.components": "4.68.2",
     "@cratis/scene.engine": "4.68.2",
     "@cratis/scene.model": "4.68.2",
     "@cratis/scene.primereact": "4.68.2",
     "@cratis/scene.react": "4.68.2",
-    "@primereact/core": "11.2.0",
-    "@primereact/headless": "11.2.0",
     "@primereact/ui": "11.2.0",
     "@primeuix/themes": "3.0.1",
-    "primeicons": "8.0.2",
     "primereact": "11.2.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "reflect-metadata": "0.2.2",
-    "tsyringe": "4.10.0",
     "vite": "8.3.2"
+  },
+  "devDependencies": {
+    "@primereact/core": "11.2.0",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "26.6.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "jsdom": "30.1.2",
+    "react-dom": "19.3.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
   }
 }

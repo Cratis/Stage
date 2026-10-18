@@ -29,7 +29,7 @@ public static partial class SemanticModelLoader
             return new(null, [.. diagnostics, .. plan.Issues.Select(issue => new SemanticModelLoadDiagnostic("STAGE-PLAN-004", $"{issue.Artifact}: {issue.Details}"))]);
         }
 
-        diagnostics = [.. diagnostics, .. plan.UnselectedIssues.Select(issue => new SemanticModelLoadDiagnostic("STAGE-PLAN-004", $"{issue.Artifact}: {issue.Details}") { Severity = DiagnosticSeverity.Warning })];
+        diagnostics = [.. diagnostics, .. LocalPlanDiagnostics(plan)];
         var loaded = new LoadedSemanticModel(model, plan.Plan!)
         {
             SpecificationOrigins = compiled.Value!.SpecificationOrigins,
@@ -43,4 +43,7 @@ public static partial class SemanticModelLoader
 
         return new(loaded, diagnostics);
     }
+
+    static IEnumerable<SemanticModelLoadDiagnostic> LocalPlanDiagnostics(SemanticExecutionPlanCompilation compilation) =>
+        compilation.UnselectedIssues.Select(issue => new SemanticModelLoadDiagnostic("STAGE-PLAN-004", $"{issue.Artifact}: {issue.Details}") { Severity = DiagnosticSeverity.Warning });
 }

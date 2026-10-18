@@ -23,12 +23,7 @@ internal static class SemanticRunReactionAdmission
     {
         // Expected rejections must not hide an unsupported invocation behind a passing error assertion.
         var (_, commands, blocker) = Reachable(plan, specification, [], includeRejected: true);
-        if (blocker is not null) return blocker;
-        var planRefusal = commands.Select(id => SemanticPlanAdmission.Check(plan, id)).FirstOrDefault(refusal => refusal is not null);
-        if (planRefusal is not null) return planRefusal;
-        var feature = commands.SelectMany(id => SemanticVersionFeatures.UnsupportedReadRequirements(plan.Commands[id])).FirstOrDefault();
-
-        return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
+        return blocker ?? CommandRefusal(plan, commands);
     }
 
     internal static (HashSet<SemanticId> Events, HashSet<SemanticId> Commands, SemanticUnsupportedCapability? Blocker) Reachable(
@@ -55,6 +50,20 @@ internal static class SemanticRunReactionAdmission
         }
 
         return (reachable, commands, null);
+    }
+
+    static SemanticUnsupportedCapability? CommandRefusal(SemanticExecutionPlan plan, IEnumerable<SemanticId> commands)
+    {
+        var planRefusal = commands.Select(id => SemanticPlanAdmission.Check(plan, id)).FirstOrDefault(refusal => refusal is not null);
+
+        return planRefusal ?? ReadRequirementRefusal(plan, commands);
+    }
+
+    static SemanticUnsupportedCapability? ReadRequirementRefusal(SemanticExecutionPlan plan, IEnumerable<SemanticId> commands)
+    {
+        var feature = commands.SelectMany(id => SemanticVersionFeatures.UnsupportedReadRequirements(plan.Commands[id])).FirstOrDefault();
+
+        return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
 
     static IEnumerable<SemanticId> ActionEvents(SemanticExecutionPlan plan, SemanticSpecification specification, bool includeRejected)

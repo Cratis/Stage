@@ -42,7 +42,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
 
         if (type.IsCollection && value is SemanticArrayValue array)
         {
-            return array.Values.Any(element => ValueNeedsCommon(element, type with { IsCollection = false }));
+            return array.Values.Any(element => ValueNeedsCommon(element, type with { IsCollection = false, IsOptional = false }));
         }
 
         return type.Kind == SemanticTypeReferenceKind.Concept ||
@@ -156,7 +156,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
     {
         if (type.IsCollection && value is SemanticArrayValue array)
         {
-            return $"[{string.Join(", ", array.Values.Select(element => Value(element, type with { IsCollection = false })))}]";
+            return $"[{string.Join(", ", array.Values.Select(element => Value(element, type with { IsCollection = false, IsOptional = false })))}]";
         }
 
         var expression = InlineValue(value, type);
@@ -223,7 +223,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
 
         if (type.IsCollection && value is SemanticArrayValue array)
         {
-            var elementType = type with { IsCollection = false };
+            var elementType = type with { IsCollection = false, IsOptional = false };
             return $"[{string.Join(", ", array.Values.Select(_ => InlineValue(_, elementType)))}]";
         }
 

@@ -16,6 +16,12 @@ public class when_executing_optional_running_totals : a_generated_application
 {
     internal const string Source = """
         concept Sku : String
+        concept Quantity : Int
+          validate
+            > 0 message "At least one"
+        concept StockQuantity : Int
+          validate
+            >= 0 message "Not negative"
         module Warehouse
           feature Overview
             slice StateChange Stock
@@ -28,29 +34,29 @@ public class when_executing_optional_running_totals : a_generated_application
                 sku Sku
               command ReceiveStock
                 sku Sku identifier
-                quantity Int
+                quantity Quantity
                 produces StockReceived
                   for sku
                   sku = sku
                   quantity = quantity
               event StockReceived
                 sku Sku
-                quantity Int
+                quantity Quantity
               command DispatchStock
                 sku Sku identifier
-                quantity Int
+                quantity Quantity
                 produces StockDispatched
                   for sku
                   sku = sku
                   quantity = quantity
               event StockDispatched
                 sku Sku
-                quantity Int
+                quantity Quantity
             slice StateView Figures
               readmodel StockFigures
                 summaryId String key
                 skuCount Int optional
-                unitsOnHand Int optional
+                unitsOnHand StockQuantity optional
                 parcelsOpen Int optional
               query CurrentStockFigures => observable StockFigures[]
               projection StockFiguresProjection => StockFigures

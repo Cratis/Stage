@@ -13,5 +13,6 @@ public class and_one_of_several_declarations_is_missing : an_application_with_po
 
     void Because() => _attribute = RenderAll(Authorize("Administrator"), null);
 
-    [Fact] void should_follow_the_declaration_that_asks_for_nothing() => _attribute.ShouldEqual("AllowAnonymous");
+    [Fact] void should_require_authentication_for_the_declaration_that_asks_for_nothing() => _attribute.ShouldEqual("Authorize");
+    [Fact] void should_report_the_inferred_default() => _diagnostics.Count.ShouldEqual(1);
 }

@@ -18,7 +18,8 @@ namespace Cratis.Stage.Rendering.Cratis.Authorization;
 /// A type-level attribute remains necessary only when <see cref="QueryRenderer"/> synthesizes its fixed all/by-id
 /// pair because no declared query returns the read model. If the slice declares queries for other read models,
 /// the document grants no access to this invented pair, so it requires authentication and reports that inference.
-/// If the slice declares no query at all, the historical explicit <c language="csharp">AllowAnonymous</c> semantics remain.
+/// If the slice declares no query at all, the pair equally requires an authenticated caller — Stage's rendered default
+/// when the model has no <c language="csharp">authorize</c> clause — and the inference is reported.
 /// </para>
 /// </remarks>
 public static class ReadModelAuthorization
@@ -48,6 +49,9 @@ public static class ReadModelAuthorization
             return "Authorize";
         }
 
-        return "AllowAnonymous";
+        diagnostics.Add(
+            $"Read model '{readModel}' requires an authenticated caller for its synthesized query pair because the model has no authorize clause; " +
+            "Stage renders an authenticated caller as the default, unlike Screenplay's reference semantics where a missing clause allows everyone.");
+        return "Authorize";
     }
 }

@@ -14,7 +14,10 @@ namespace Cratis.Stage.Rendering.Cratis.Authorization;
 /// <para>
 /// A role policy, or an explicit disjunction made entirely from role policies, has the same any-of semantics as
 /// Arc's <c language="csharp">[Roles]</c> attribute and is preserved exactly. Authentication alone renders as <c language="csharp">[Authorize]</c>.
-/// No <c language="csharp">authorize</c> declaration renders as <c language="csharp">[AllowAnonymous]</c>.
+/// No <c language="csharp">authorize</c> declaration also renders as <c language="csharp">[Authorize]</c>: Stage's rendered default is
+/// an authenticated caller, which deliberately differs from Screenplay's reference semantics (a missing clause allows
+/// everyone). The inference is reported as an informational diagnostic per artifact. Explicit anonymous access has no
+/// Screenplay construct yet; <c language="csharp">[AllowAnonymous]</c> stays renderable for when it does.
 /// </para>
 /// <para>
 /// Conjunctions and requirements involving claims, authored code, missing policies, or unknown policy syntax do
@@ -63,12 +66,18 @@ public static class AuthorizationRenderer
     public static string Render(
         IEnumerable<AuthorizeSyntax?> authorizations, ApplicationSet applicationSet, string subject, ICollection<string> diagnostics)
     {
-        var outcome = Resolve(authorizations, applicationSet);
+        var declared = authorizations.ToArray();
+        var outcome = Resolve(declared, applicationSet);
         if (outcome is UnsupportedAuthorization unsupported)
         {
             var exception = new AuthorizationCannotBeRendered(subject, unsupported.Reason);
             diagnostics.Add(exception.Message);
             throw exception;
+        }
+
+        if (declared.Length == 0 || declared.Any(authorize => authorize is null))
+        {
+            diagnostics.Add(AuthenticatedByDefault(subject));
         }
 
         return outcome switch
@@ -81,16 +90,19 @@ public static class AuthorizationRenderer
         };
     }
 
-    static AuthorizationRendering Resolve(IEnumerable<AuthorizeSyntax?> authorizations, ApplicationSet applicationSet)
+    static string AuthenticatedByDefault(string subject) =>
+        $"{subject} requires an authenticated caller because the model has no authorize clause; " +
+        "Stage renders an authenticated caller as the default, unlike Screenplay's reference semantics where a missing clause allows everyone.";
+
+    static AuthorizationRendering Resolve(AuthorizeSyntax?[] declared, ApplicationSet applicationSet)
     {
-        var declared = authorizations.ToArray();
         if (declared.Length == 0)
         {
-            return AnonymousAccess.Instance;
+            return AuthenticatedOnly.Instance;
         }
 
         return Alternative(declared.Select(authorize =>
-            authorize is null ? AnonymousAccess.Instance : Resolve(authorize.Requirement, applicationSet)));
+            authorize is null ? AuthenticatedOnly.Instance : Resolve(authorize.Requirement, applicationSet)));
     }
 
     static AuthorizationRendering Resolve(PolicyRequirementSyntax requirement, ApplicationSet applicationSet) =>

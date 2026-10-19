@@ -20,7 +20,7 @@ public class when_preserving_state_change_bytes : given.an_automation
         namespace Reactions.Work.Processing.Start;
 
         [global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-        [global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
+        [global::Cratis.Arc.Authorization.AuthorizeAttribute]
         public record StartWork(string Id, decimal Amount) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId
         {
             /// <inheritdoc/>

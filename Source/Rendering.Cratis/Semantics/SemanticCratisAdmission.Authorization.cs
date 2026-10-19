@@ -42,10 +42,14 @@ internal static partial class SemanticCratisAdmission
     static bool CarriesCredentialsWithoutAuthentication(SemanticSpecification specification) =>
         specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty);
 
+    static ArtifactRenderDiagnostic AuthenticatedByDefault(string kind, string name, SemanticId artifact) =>
+        new("STAGE-ESM-051", ArtifactRenderDiagnosticSeverity.Information, SemanticAuthorizationAttributes.AuthenticatedByDefault(kind, name), artifact);
+
     static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {
         if (command.Authorization is null)
         {
+            diagnostics.Add(AuthenticatedByDefault("Command", command.Name, command.Id));
             return true;
         }
 
@@ -67,6 +71,11 @@ internal static partial class SemanticCratisAdmission
     {
         var subject = query.Argument is null ? null : new SemanticProperty(query.Argument.Id, query.Argument.Name, query.Argument.Type, false);
         var site = new AuthorizationSite(query.Id, query.Name, subject, subject is null ? [] : [subject]);
+        if (query.Authorization is null)
+        {
+            diagnostics.Add(AuthenticatedByDefault("Query", query.Name, query.Id));
+        }
+
         if (!ValidateAuthorization(context, query.Authorization, site, diagnostics))
         {
             return false;

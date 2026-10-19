@@ -17,6 +17,6 @@ public class and_the_slice_declares_no_queries : an_application_with_policies
 
     void Because() => _attribute = Render("InvoiceSummary");
 
-    [Fact] void should_state_the_absence_as_anonymous() => _attribute.ShouldEqual("AllowAnonymous");
-    [Fact] void should_report_nothing() => _diagnostics.ShouldBeEmpty();
+    [Fact] void should_require_authentication() => _attribute.ShouldEqual("Authorize");
+    [Fact] void should_report_the_inferred_default() => _diagnostics.Single().ShouldContain("requires an authenticated caller");
 }

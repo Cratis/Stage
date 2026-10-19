@@ -161,8 +161,8 @@ internal static class SemanticScopedProjectionSupport
     }
 
     // The lambda Chronicle reads is built by the C# compiler, which wraps each conversion in an expression node: Chronicle unwraps one.
-    // Same type (apart from the optional marker): none. A concept into the number it holds, or a number into a concept: one. A concept
-    // into an optional number, or into another concept (no conversion exists between concepts): two, or none.
+    // Same type (apart from the optional marker): none. A concept into the number it holds, a number into a concept, or a concept into
+    // another concept of the same number: one. A concept into an optional number: two.
     static bool SameTotalType(SemanticTypeReference source, SemanticTypeReference target, SemanticApplicationContext context)
     {
         if (source.IsCollection || target.IsCollection)
@@ -181,19 +181,23 @@ internal static class SemanticScopedProjectionSupport
             return false;
         }
 
+        // Between two concepts the generated target concept declares the implicit conversion (SemanticProjectionConversions).
         return (source.Kind == SemanticTypeReferenceKind.Concept && target.Kind == SemanticTypeReferenceKind.Primitive && !target.IsOptional) ||
-            (source.Kind == SemanticTypeReferenceKind.Primitive && target.Kind == SemanticTypeReferenceKind.Concept);
+            (source.Kind == SemanticTypeReferenceKind.Primitive && target.Kind == SemanticTypeReferenceKind.Concept) ||
+            (source.Kind == SemanticTypeReferenceKind.Concept && target.Kind == SemanticTypeReferenceKind.Concept &&
+                context.Concepts[source.Target].Values.IsEmpty && context.Concepts[target.Target].Values.IsEmpty);
     }
 
     // 'add total by 0' (or subtract) only makes the running total exist: the reference seeds a missing total with 0 and adds nothing, and a
     // required whole or decimal number of the Chronicle read model is 0 until the first real operation, so the renderer emits nothing for it.
+    // A concept is a reference type there: it stays null until set, so a concept total does not start at 0 and is refused.
     // Chronicle's Add and Subtract builders take an event property only, so no other constant can be rendered.
     internal static bool IsZeroTotalStart(SemanticProjectionMapping mapping, SemanticProperty? target, SemanticApplicationContext context) =>
         mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract &&
         mapping.Source is SemanticProjectionLiteral { Value: SemanticNumberValue { Value: 0m } } &&
         target is { Type: { IsOptional: false, IsCollection: false } type } &&
-        type.Kind is SemanticTypeReferenceKind.Concept or SemanticTypeReferenceKind.Primitive &&
-        UnderlyingPrimitive(type, context) is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;
+        type.Kind == SemanticTypeReferenceKind.Primitive &&
+        type.Primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;
 
     // A projection keyed by an event property still reads the event's source identity ($eventSourceId): Chronicle converts the identity text
     // into the target's type, which is only sound when every command that produces the event addresses it with a value of exactly that type

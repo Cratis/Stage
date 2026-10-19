@@ -9,8 +9,8 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
-/// A total adds an event value that is a concept (Quantity) into a plain number (a single
-/// conversion, which Chronicle unwraps), with the zero starts beside it.
+/// A total adds an event value that is a concept (Quantity) into a plain number and into another concept of
+/// the same number (one conversion, which Chronicle unwraps; the target concept declares it), each event touching one of the totals.
 /// </summary>
 public class when_executing_running_totals_of_concept_values : a_generated_application
 {
@@ -19,6 +19,9 @@ public class when_executing_running_totals_of_concept_values : a_generated_appli
         concept Quantity : Int
           validate
             > 0 message "At least one"
+        concept StockQuantity : Int
+          validate
+            >= 0 message "Not negative"
         module Buying
           feature Demand
             slice StateChange RecordDemand
@@ -47,14 +50,11 @@ public class when_executing_running_totals_of_concept_values : a_generated_appli
               readmodel DemandRow
                 sku Sku key
                 demanded Int
-                delivered Int
+                delivered StockQuantity
               query AllOpenDemand => observable DemandRow[]
               projection DemandRowProjection => DemandRow
                 from DemandRecorded key sku
                   add demanded by quantity
-                  add delivered by 0
-                from GoodsReceived key sku
-                  add demanded by 0
                   add delivered by quantity
               specification DemandAccumulatesPerSku
                 given DemandRecorded
@@ -68,29 +68,7 @@ public class when_executing_running_totals_of_concept_values : a_generated_appli
                 then readmodel DemandRow
                   sku = "ACM-1000"
                   demanded = 5
-                  delivered = 0
-              specification GoodsBeforeAnyDemand
-                given GoodsReceived
-                  for "ACM-2000"
-                  sku = "ACM-2000"
-                  quantity = 4
-                then readmodel DemandRow
-                  sku = "ACM-2000"
-                  demanded = 0
-                  delivered = 4
-              specification DemandThenGoods
-                given DemandRecorded
-                  for "ACM-3000"
-                  sku = "ACM-3000"
-                  quantity = 6
-                given GoodsReceived
-                  for "ACM-3000"
-                  sku = "ACM-3000"
-                  quantity = 2
-                then readmodel DemandRow
-                  sku = "ACM-3000"
-                  demanded = 6
-                  delivered = 2
+                  delivered = 5
         """;
 
     protected override ArtifactRenderPlan CreatePlan() => when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(Source).GetAwaiter().GetResult());

@@ -32,20 +32,19 @@ public class when_planning_literal_running_total_operands
                 sku String key
                 demanded Int
                 delivered DELIVEREDTYPE
-                cost Money
               query AllOpenDemand => observable DemandRow[]
               projection DemandRowProjection => DemandRow
                 from DemandRecorded key sku
                   add demanded by quantity
                   OPERATION
-                  add cost by 0
         """;
 
     public static TheoryData<string, string, string, bool> Cases => new()
     {
         { "zero add on a required whole number", "add delivered by 0", "Int", true },
         { "zero subtract on a required whole number", "subtract delivered by 0", "Int", true },
-        { "zero add on a required decimal concept", "add delivered by 0", "Money", true },
+        { "zero add on a required decimal", "add delivered by 0", "Decimal", true },
+        { "zero add on a required concept (a reference type, null until set)", "add delivered by 0", "Money", false },
         { "constant add", "add delivered by 5", "Int", false },
         { "zero add on a total that may be absent", "add delivered by 0", "Int optional", false },
     };
@@ -106,7 +105,6 @@ public class when_planning_literal_running_total_operands
             Assert.True(plan.Success, $"{name}: {diagnostics}");
             var projection = plan.Artifacts.Select(artifact => System.Text.Encoding.UTF8.GetString([.. artifact.Bytes])).Single(text => text.Contains("Add(model => model.Demanded)", StringComparison.Ordinal));
             Assert.DoesNotContain("model.Delivered", projection, StringComparison.Ordinal);
-            Assert.DoesNotContain("model.Cost", projection, StringComparison.Ordinal);
         }
         else
         {

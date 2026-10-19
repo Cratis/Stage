@@ -30,8 +30,8 @@ internal sealed class SemanticApplicationContext
         RootNamespace = options.RootNamespace;
         Domain = DomainPlacementInput.From(request.Profile);
         Strings = StringsCatalogInput.From(request.Profile);
-        ReducerConventionInput.TryRead(request.Profile, Application.Name, out var selfReducing);
-        SelfReducing = selfReducing;
+        ReducerConventionInput.TryRead(request.Profile, Application.Name, out var reducerConvention);
+        ReducerConvention = reducerConvention;
         var metadata = request.Profile.Inputs.SingleOrDefault(input => input.Name == AuthoringMetadataInput.Name);
         Documentation = metadata is not null && AuthoringMetadataInput.TryRead(metadata, request.Model, out var catalog) ? catalog : null;
         Concepts = Application.Concepts.ToDictionary(_ => _.Id);
@@ -147,7 +147,7 @@ internal sealed class SemanticApplicationContext
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];
 
-    internal bool SelfReducing { get; }
+    internal ReducerConvention ReducerConvention { get; }
 
     internal IReadOnlyList<string> Domain { get; }
     internal string CommonFolder => string.Join('/', Domain.Append("Common"));
@@ -205,7 +205,7 @@ internal sealed class SemanticApplicationContext
 
     internal SemanticReducerBindingEnvironment ReducerBindings(LocatedSemanticSlice located, SemanticReducer? reducer = null)
     {
-        var classic = SelfReducing ? null : reducer;
+        var classic = reducer is null || SelfReduces(reducer.ReadModel) ? null : reducer;
         var key = (located.Slice, classic?.ReadModel);
         if (!_reducerBindings.TryGetValue(key, out var environment))
         {
@@ -215,6 +215,13 @@ internal sealed class SemanticApplicationContext
 
         return environment;
     }
+
+    internal bool SelfReduces(SemanticId readModel) => ReducerConvention.SelfReduces(readModel);
+
+    internal string? PinnedObserverId(SemanticId readModel) => ReducerConvention.PinnedObserverId(readModel);
+
+    internal IEnumerable<SemanticReducer> SelfReducers(LocatedSemanticSlice located) =>
+        located.Slice.Reducers.Where(reducer => SelfReduces(reducer.ReadModel));
 
     static IReadOnlyList<SemanticFeature> FindFeaturePath(SemanticFeature feature, SemanticId slice)
     {

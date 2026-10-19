@@ -33,5 +33,12 @@ public abstract record CratisPublicationCheck
     /// <param name="Changes">The event identity changes in ordinal path and type order.</param>
     /// <param name="Diagnostics">The errors explaining why publication is refused.</param>
     public sealed record ChangesEventTypeIds(ImmutableArray<CratisEventTypeIdChange> Changes, ImmutableArray<ArtifactRenderDiagnostic> Diagnostics) : CratisPublicationCheck;
+
+    /// <summary>
+    /// A required removal does not match the destination, or a migrated read model's previous classic reducer would remain beside it.
+    /// </summary>
+    /// <param name="Removals">The unsafe removals in ordinal path order; a leftover classic reducer appears with its destination hash.</param>
+    /// <param name="Diagnostics">The errors explaining why publication is refused.</param>
+    public sealed record UnsafeRemovals(ImmutableArray<ArtifactRemoval> Removals, ImmutableArray<ArtifactRenderDiagnostic> Diagnostics) : CratisPublicationCheck;
 #pragma warning restore CA1034
 }

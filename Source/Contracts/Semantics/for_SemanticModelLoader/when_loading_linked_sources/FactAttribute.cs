@@ -2,15 +2,17 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
-using Xunit;
+namespace Cratis.Stage.Contracts.Semantics.for_SemanticModelLoader.when_loading_linked_sources;
 
-namespace Cratis.Stage.Contracts.Semantics.for_SemanticModelLoader.given;
-
-public sealed class SourceLinkFactAttribute : FactAttribute
+/// <summary>
+/// A fact that is skipped when the process may not create symbolic links. It is named like the xUnit attribute so
+/// that the specification analyzers recognize the methods it marks as facts.
+/// </summary>
+public sealed class FactAttribute : Xunit.FactAttribute
 {
     static readonly Lazy<string?> _skipReason = new(ProbePermission);
 
-    public SourceLinkFactAttribute() => Skip = _skipReason.Value;
+    public FactAttribute() => Skip = _skipReason.Value;
 
     static string? ProbePermission()
     {

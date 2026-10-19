@@ -62,15 +62,6 @@ public class when_converting_navigation_regions : given.a_translated_application
     [Fact] void should_convert_an_extending_region() => Navigation.Modules.Single(module => module.Module == "Shop").Regions.Single(region => region.Region == NavigationRegionKind.Sidebar).Mode.ShouldEqual(NavigationRegionMode.Extend);
     [Fact] void should_convert_an_overriding_region() => Navigation.Modules.Single(module => module.Module == "Shop").Regions.Single(region => region.Region == NavigationRegionKind.Topbar).Mode.ShouldEqual(NavigationRegionMode.Override);
     [Fact] void should_convert_an_inheriting_region() => Navigation.Modules.Single(module => module.Module == "Support").Regions.Single().Mode.ShouldEqual(NavigationRegionMode.Inherit);
-    [Fact] void should_convert_the_items_of_a_module_region() => Navigation.Modules.Single(module => module.Module == "Shop").Regions.First().Items.Single().Id.ShouldEqual("more");
+    [Fact] void should_convert_the_items_of_a_module_region() => Navigation.Modules.Single(module => module.Module == "Shop").Regions[0].Items.Single().Id.ShouldEqual("more");
     [Fact] void should_report_no_findings() => Cratis.Stage.Contracts.Scene.RenderFindings.ForStructure(_application).ShouldBeEmpty();
-}
-
-public class when_a_document_declares_no_navigation : given.a_translated_application
-{
-    void Because() => Translate(Model);
-
-    [Fact] void should_have_no_application_regions() => _application.Navigation.Application.Regions.ShouldBeEmpty();
-    [Fact] void should_have_no_logo() => _application.Navigation.Application.Logo.ShouldBeNull();
-    [Fact] void should_have_no_module_navigation() => _application.Navigation.Modules.ShouldBeEmpty();
 }

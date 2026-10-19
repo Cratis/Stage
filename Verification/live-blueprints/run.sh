@@ -2,8 +2,8 @@
 # Copyright (c) Cratis. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for full license information.
 #
-# Runs the Stage image against each of the seven published domain blueprints (CRM, Ticketing, Approvals, Inventory, HR, Project
-# tracker, Administration): the sample application built from the blueprint's templates (Cratis/Screenplay Samples) with the approved
+# Runs the Stage image against each of the fifteen published domain blueprints (CRM, Ticketing, Approvals, Inventory, HR, Project
+# tracker, Administration, Orders, Catalog, Vendors, Invoicing, Customer portal, Contracts, Work orders, Bookings): the sample application built from the blueprint's templates (Cratis/Screenplay Samples) with the approved
 # package set made from the package's published manifest - blueprint and sampleData members as written - and the package's browser
 # build, as `cratis run --package-set` hands them over. A browser asserts the Stage rendered every screen the blueprint's templates
 # build and served none of the blueprint's sample data (Cratis/Stage#457).

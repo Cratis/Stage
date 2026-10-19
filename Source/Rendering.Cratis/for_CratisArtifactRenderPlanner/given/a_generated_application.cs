@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
@@ -98,6 +99,8 @@ public class a_generated_application : a_register_project_render_request
     // A parity vector with an intentionally wrong expectation must still yield a complete TRX result.
     protected async Task<string> Run(string logName, bool allowFailedTests, params string[] arguments)
     {
+        // Bounded so a local run does not start every generated application's build at once.
+        using var slot = await GeneratedApplicationBuilds.Enter();
         arguments = SpecificationsArguments(arguments);
         var startInfo = new ProcessStartInfo("dotnet")
         {

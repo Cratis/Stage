@@ -69,11 +69,74 @@ jobs:
           version: ${{ github.event.inputs.version }}
           release-notes: ${{ github.event.inputs.release-notes }}
 
+  publish-npm-package:
+    if: needs.release.outputs.publish == 'true' && needs.release.outputs.version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [release]
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: Source/Frontend
+    env:
+      RELEASE_VERSION: ${{ needs.release.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Require a non-placeholder release version
+        run: test -n "$RELEASE_VERSION" && test "$RELEASE_VERSION" != '0.0.0'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: Source/Frontend/package-lock.json
+
+      - name: Remove token placeholders so npm uses OIDC
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const path = process.env.NPM_CONFIG_USERCONFIG;
+          writeFileSync(path, readFileSync(path, 'utf8').split('\n').filter(line => !line.includes('_authToken')).join('\n'));
+          JS
+          echo 'NODE_AUTH_TOKEN=' >> "$GITHUB_ENV"
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@11
+
+      - name: Install workspaces
+        run: npm ci
+
+      - name: Build runtime package
+        run: npm run build --workspace @cratis/stage.runtime
+
+      - name: Set the Stage release version
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --workspace @cratis/stage.runtime
+
+      - name: Publish runtime package with provenance unless already published
+        run: |
+          lookup_error="$RUNNER_TEMP/stage-runtime-npm-view.log"
+          if existing_version=$(npm view "@cratis/stage.runtime@$RELEASE_VERSION" version 2>"$lookup_error"); then
+            test "$existing_version" = "$RELEASE_VERSION"
+            echo "@cratis/stage.runtime@$RELEASE_VERSION is already published; skipping npm publish."
+          elif grep -qE '^npm (ERR!|error) code E404$' "$lookup_error"; then
+            npm publish --access public --provenance --workspace @cratis/stage.runtime
+          else
+            cat "$lookup_error" >&2
+            exit 1
+          fi
+
   publish-dotnet-packages:
     if: needs.release.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    needs: [release]
+    needs: [release, publish-npm-package]
     permissions:
       # Required for NuGet trusted publishing using OIDC tokens
       id-token: write
@@ -237,13 +300,23 @@ jobs:
     # Only for the reasons that mean something went wrong. Publishing nothing is correct and routine for the
     # others - a commit pushed straight to main, a Dependabot merge, a re-run of a run that already released -
     # and failing on those would make this job noise that everyone learns to ignore.
-    if: always() && needs.release.result == 'success' && contains(fromJSON('["no-label", "error"]'), needs.release.outputs.reason)
+    if: always() && needs.release.result == 'success' && (needs.release.outputs.publish == 'true' || contains(fromJSON('["no-label", "error"]'), needs.release.outputs.reason))
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    needs: [release]
+    needs: [release, publish-npm-package, publish-dotnet-packages, publish-docker-images]
 
     steps:
       - name: Report that nothing was published
+        if: needs.release.outputs.publish != 'true'
+        env:
+          RELEASE_REASON: ${{ needs.release.outputs.reason }}
         run: |
-          echo "::error::Nothing was published and no release was cut (reason: ${{ needs.release.outputs.reason }}). For 'no-label', add exactly one of major, minor or patch to the merged pull request and re-run this workflow - see verify-semver-label, which is meant to catch this before the merge."
+          echo "::error::Nothing was published and no release was cut (reason: $RELEASE_REASON). For 'no-label', add exactly one of major, minor or patch to the merged pull request and re-run this workflow - see verify-semver-label, which is meant to catch this before the merge."
           exit 1
+
+      - name: Require every publication to succeed
+        env:
+          NPM_RESULT: ${{ needs.publish-npm-package.result }}
+          DOTNET_RESULT: ${{ needs.publish-dotnet-packages.result }}
+          DOCKER_RESULT: ${{ needs.publish-docker-images.result }}
+        run: test "$NPM_RESULT" = success && test "$DOTNET_RESULT" = success && test "$DOCKER_RESULT" = success

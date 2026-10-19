@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Cratis.Scene.Model.SizeClasses;
+using Cratis.Screenplay.Diagnostics;
 using SceneModel = Cratis.Scene.Model.Profiles;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
@@ -53,6 +54,39 @@ public static class UiProfileConverter
                 Root: ConvertRoot(uiProfile.Root),
                 Appearance: ConvertAppearance(uiProfile.Appearance),
                 Defaults: ConvertDefaults(uiProfile.NewScreenTemplate)));
+    }
+
+    /// <summary>
+    /// Converts a profile, reporting unsupported size, appearance and numeric shell options.
+    /// </summary>
+    /// <param name="uiProfile">The profile to convert.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <returns>The platform profiles, or none if the profile cannot be translated faithfully.</returns>
+    public static IEnumerable<SceneModel.UiProfile> Convert(ScreenplaySyntax.UiProfileSyntax uiProfile, ConversionDiagnostics? diagnostics)
+    {
+        if (diagnostics is null) return Convert(uiProfile);
+        var omissions = new List<(string Code, string Construct, SourceLocation Location)>();
+        if (uiProfile.DefaultSizeClass is { } size && (!Enum.TryParse<TargetSizeClass>(size, true, out var parsedSize) || !Enum.IsDefined(parsedSize)))
+        {
+            omissions.Add(("STAGE-SCENE-PROFILE-001", $"target size class '{size}'", uiProfile.Location));
+        }
+        if (uiProfile.Appearance?.ColorScheme is { } scheme && (!Enum.TryParse<SceneModel.ColorScheme>(scheme, true, out var parsedScheme) || !Enum.IsDefined(parsedScheme)))
+        {
+            omissions.Add(("STAGE-SCENE-PROFILE-002", $"color scheme '{scheme}'", uiProfile.Appearance.Location));
+        }
+        foreach (var option in uiProfile.Root?.Options ?? [])
+        {
+            if (option.Kind == ScreenplaySyntax.ShellOptionValueKind.Number && (!double.TryParse(option.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number)))
+            {
+                omissions.Add(("STAGE-SCENE-PROFILE-003", $"numeric shell option '{option.Name}'", option.Location));
+            }
+        }
+        foreach (var omission in omissions)
+        {
+            diagnostics.Report(new(omission.Code, DiagnosticSeverity.Error, omission.Construct, uiProfile.Name, omission.Location, $"Profile '{uiProfile.Name}' was omitted because of unsupported {omission.Construct}."));
+        }
+
+        return omissions.Count == 0 ? Convert(uiProfile) : [];
     }
 
     static SceneModel.RootTemplate? ConvertRoot(ScreenplaySyntax.RootTemplateSyntax? root)

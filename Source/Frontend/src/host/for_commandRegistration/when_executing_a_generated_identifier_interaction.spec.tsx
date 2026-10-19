@@ -6,10 +6,10 @@ import { afterEach, chai, describe, it, vi } from 'vitest';
 import { Command } from '@cratis/arc/commands';
 import { BindingSourceKind, InteractionActionKind, InteractionTriggerKind } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core/config';
-import { App, type StageSceneApplication } from '../../App';
-import { StageSourceProvider, staticStageSource } from '../../stageSource';
-import { element } from '../../testElements';
-import { commandResult } from '../../testing/commands';
+import { App, type StageSceneApplication } from '@cratis/stage.runtime';
+import { StageSourceProvider, staticStageSource } from '@cratis/stage.runtime';
+import { element } from '../../../Runtime/src/testElements';
+import { commandResult } from '../../../Runtime/src/testing/commands';
 import { registerStageCommands } from '../commandRegistration';
 
 chai.should();

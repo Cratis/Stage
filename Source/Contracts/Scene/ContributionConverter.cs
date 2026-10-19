@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using SceneCommon = Cratis.Scene.Model.Common;
 using SceneContributionPoints = Cratis.Scene.Model.ContributionPoints;
 using SceneElements = Cratis.Scene.Model.Elements;
@@ -107,9 +108,25 @@ public static class ContributionConverter
             hierarchy.Count > 0 ? new Dictionary<string, object?> { [SceneElementProperties.Hierarchy] = hierarchy.ToArray() } : null,
             slots: new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal)
             {
-                [ContentSlot] = ScreenDirectiveConverter.Convert(contribution.Directives, id, behaviors)
+                [ContentSlot] = ScreenDirectiveConverter.Convert(contribution.Directives, id, behaviors, null, behaviors?.Diagnostics)
             });
         return new SceneContributionPoints.Contribution(contribution.ContributionPoint, content, contribution.Order);
+    }
+
+    /// <summary>
+    /// Converts a navigation contribution while collecting unsupported destinations.
+    /// </summary>
+    /// <param name="contribution">The authored contribution.</param>
+    /// <param name="id">The contribution path.</param>
+    /// <param name="hierarchy">The declaring hierarchy.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <returns>The supported contribution content.</returns>
+    public static SceneContributionPoints.Contribution Convert(ScreenplaySyntax.ContributionSyntax contribution, string id, IReadOnlyList<string> hierarchy, ConversionDiagnostics? diagnostics)
+    {
+        if (diagnostics is null || contribution.Destination is not { } destination || destination.Kind is ScreenplaySyntax.ContributionDestinationKind.Outlet or ScreenplaySyntax.ContributionDestinationKind.Dialog or ScreenplaySyntax.ContributionDestinationKind.External) return Convert(contribution, id, hierarchy);
+        var construct = $"contribution destination {destination.Kind}";
+        diagnostics.Report(new("STAGE-SCENE-CONTRIBUTION-001", DiagnosticSeverity.Error, construct, id, destination.Location, $"Unsupported {construct} was omitted from '{id}'."));
+        return Convert(contribution with { Destination = null }, id, hierarchy);
     }
 
     static SceneCommon.DestinationReference? DestinationOf(ScreenplaySyntax.ContributionSyntax contribution)

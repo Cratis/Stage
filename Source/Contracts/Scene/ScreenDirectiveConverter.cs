@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using SceneCommon = Cratis.Scene.Model.Common;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneInteractions = Cratis.Scene.Model.Interactions;
@@ -54,10 +55,27 @@ public static class ScreenDirectiveConverter
         IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives,
         string path,
         BehaviorScope? behaviors,
-        ICollection<SceneInteractions.Behavior>? attached = null)
+        ICollection<SceneInteractions.Behavior>? attached = null) =>
+        Convert(directives, path, behaviors, attached, behaviors?.Diagnostics);
+
+    /// <summary>
+    /// Converts directives while omitting unsupported nodes and retaining their supported siblings.
+    /// </summary>
+    /// <param name="directives">The sibling directives.</param>
+    /// <param name="path">The owning content path.</param>
+    /// <param name="behaviors">The behavior scope.</param>
+    /// <param name="attached">The attached behaviors to collect.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <returns>The supported elements in declaration order.</returns>
+    public static IReadOnlyList<SceneElements.SceneElement> Convert(
+        IEnumerable<ScreenplaySyntax.ScreenDirectiveSyntax> directives,
+        string path,
+        BehaviorScope? behaviors,
+        ICollection<SceneInteractions.Behavior>? attached,
+        ConversionDiagnostics? diagnostics)
     {
         var all = directives.ToList();
-        var scope = behaviors ?? BehaviorScope.None;
+        var scope = (behaviors ?? BehaviorScope.None) with { Diagnostics = diagnostics };
 
         // The nearest data declaration is what a guard's `item` is, here and in everything nested below.
         if (all.OfType<ScreenplaySyntax.ScreenDataSyntax>().FirstOrDefault() is { } subject)
@@ -83,11 +101,12 @@ public static class ScreenDirectiveConverter
         [
             .. all
                 .Where(directive => directive is not ScreenplaySyntax.ScreenBehaviorSyntax and not ScreenplaySyntax.ScreenUsesBehaviorSyntax)
-                .Select((directive, index) => Convert(directive, $"{path}.{index}-{Kind(directive)}", scope))
+                .Select((directive, index) => Convert(directive, $"{path}.{index}-{Kind(directive, scope.Diagnostics)}", scope))
+                .OfType<SceneElements.SceneElement>()
         ];
     }
 
-    static SceneElements.ExternalComponent Convert(ScreenplaySyntax.ScreenDirectiveSyntax directive, string id, BehaviorScope scope) =>
+    static SceneElements.ExternalComponent? Convert(ScreenplaySyntax.ScreenDirectiveSyntax directive, string id, BehaviorScope scope) =>
         directive switch
         {
             ScreenplaySyntax.ScreenDataSyntax data => SceneElementFactory.Component(id, "core:data", new Dictionary<string, object?>
@@ -123,8 +142,16 @@ public static class ScreenDirectiveConverter
                 ["language"] = code.Code.Language,
                 ["code"] = code.Code.Code,
             }),
-            _ => throw new UnknownScreenDirective(directive.GetType().Name),
+            _ => Unsupported(directive, id, scope.Diagnostics),
         };
+
+    static SceneElements.ExternalComponent? Unsupported(ScreenplaySyntax.ScreenDirectiveSyntax directive, string path, ConversionDiagnostics? diagnostics)
+    {
+        if (diagnostics is null) throw new UnknownScreenDirective(directive.GetType().Name);
+        var construct = $"screen directive {directive.GetType().Name}";
+        diagnostics.Report(new("STAGE-SCENE-DIRECTIVE-001", DiagnosticSeverity.Error, construct, path, directive.Location, $"Unsupported {construct} was omitted from '{path}'."));
+        return null;
+    }
 
     static SceneElements.ExternalComponent ConvertToolbar(ScreenplaySyntax.ScreenToolbarSyntax toolbar, string id, BehaviorScope scope)
     {
@@ -291,7 +318,7 @@ public static class ScreenDirectiveConverter
             new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["fields"] = fields });
     }
 
-    static string Kind(ScreenplaySyntax.ScreenDirectiveSyntax directive) =>
+    static string Kind(ScreenplaySyntax.ScreenDirectiveSyntax directive, ConversionDiagnostics? diagnostics) =>
         directive switch
         {
             ScreenplaySyntax.ScreenDataSyntax => "data",
@@ -305,6 +332,6 @@ public static class ScreenDirectiveConverter
             ScreenplaySyntax.ScreenToolbarSyntax => "toolbar",
             ScreenplaySyntax.ScreenComponentSyntax => "component",
             ScreenplaySyntax.ScreenCodeSyntax => "code",
-            _ => throw new UnknownScreenDirective(directive.GetType().Name),
+            _ => diagnostics is null ? throw new UnknownScreenDirective(directive.GetType().Name) : "unsupported",
         };
 }

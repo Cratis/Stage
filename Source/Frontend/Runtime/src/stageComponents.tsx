@@ -3,13 +3,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
-import { CoreToolbarItem, coreComponents } from '@cratis/scene.react';
+import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm, StageDialogContext } from './StageCommandForm';
+import { humanize, schemaPropertiesOf } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
@@ -244,6 +245,42 @@ function StageCommandDialog({ element, label }: { element: ExternalComponent; la
 }
 
 /**
+ * The task dialog of a toolbar slice button. Scene's own dialog asks for a text, a number, a switch or a date for each property of
+ * the command; a command that takes an enumeration, a record or a collection is asked through the command's own form instead - a choice, a
+ * group of fields, a list - and the identity the session acts as (the shopper's basket) is not asked for at all.
+ */
+export function StageSliceDialog(props: Partial<RegisteredProps>) {
+    const element = props.element ?? syntheticElement('slice-dialog', {});
+    const navigation = useOptionalSceneNavigation();
+    const { routes } = useStageData();
+    const opened = sliceDialogParameters(navigation?.currentDialogParameters);
+    const command = text(element, 'command') || opened?.command || text(element, 'slice') || '';
+    const title = text(element, 'title') || opened?.title || command;
+    const schema = routes?.commandSchemas?.[command];
+    const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
+    const close = useCallback(() => navigation?.closeDialog(), [navigation]);
+
+    if (!schema || !properties.some(property => property.options || property.members || property.item)) return props.element ? <CoreSliceDialog element={props.element} slots={props.slots ?? {}} /> : <SliceDialogView />;
+
+    const asked = properties.filter(property => !(property.identifier && property.required));
+    const form = syntheticElement(`slice-dialog-${command}`, {
+        command,
+        label: title,
+        schema,
+        fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })),
+        generationMode: 'manual',
+    });
+
+    return (
+        <section className='scene-slice-dialog' data-scene-slice-dialog={text(element, 'slice') || opened?.slice} data-scene-command={command}>
+            <header className='scene-slice-dialog-header'><h2 className='scene-slice-dialog-title'>{title}</h2></header>
+            <StageDialogContext.Provider value={close}><StageCommandForm element={form} /></StageDialogContext.Provider>
+            <footer className='scene-slice-dialog-footer'><button type='button' className='scene-slice-dialog-cancel' onClick={close}>Cancel</button></footer>
+        </section>
+    );
+}
+
+/**
  * A toolbar item. An item that opens a destination is Scene's own - the Scene navigation host executes it - and so is one that names
  * a slice: it opens the slice's task dialog, which submits through the Stage's slice invoker to the route the Stage registered for
  * its command. An item that executes a command by name is the Stage's command action, so it opens the command's form and posts it
@@ -272,6 +309,7 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     'core:table': StageTable,
     'core:action': StageAction,
     'core:toolbarItem': StageToolbarItem,
+    'core:sliceDialog': StageSliceDialog as ComponentType<RegisteredProps>,
     [stageCommandFormComponent]: StageCommandForm,
 };
 

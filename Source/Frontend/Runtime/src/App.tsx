@@ -35,7 +35,7 @@ import {
 import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRouteState } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
-import { stageCommandFormComponent, stageComponents } from './stageComponents';
+import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
@@ -270,6 +270,7 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
             layoutConfigStorage={browserStorage()}
             scope={(navigation, children) => <StageScope scene={scene} routeState={routeState} strings={strings} navigation={navigation} themes={themes} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>}
             renderScreen={(element, configuration) => <StageScreen element={element} configuration={configuration} registry={registry} />}
+            renderDialog={() => <StageSliceDialog />}
             renderDialogTemplate={(template, content, navigation) => <StageDialog template={template} content={content} registry={registry} strings={strings} close={() => navigation.closeDialog()} />}
         />
     );

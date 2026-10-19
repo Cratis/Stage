@@ -614,7 +614,10 @@ internal static class SemanticScopedProjectionSupport
                 !MatchesKey(mapping, from.Key, protectedId)));
 
         // A root with only removals keeps the instances the read model already holds; nothing establishes them here.
-        bool HasBlocks() => scope.From.Length != 0 || (IsRoot && scope.Removals.Length != 0);
+        // Joins, every blocks and child scopes without a from are not admitted: their rendered behavior is unverified.
+        bool HasBlocks() => scope.From.Length != 0 || (IsRoot && scope.Removals.Length != 0 && IsRemovalOnly());
+
+        bool IsRemovalOnly() => scope.Joins.Length == 0 && scope.Every is null && !HasChildScopes();
 
         bool HasDistinctContracts() =>
             scope.From.Select(_ => _.EventContract).Distinct().Count() == scope.From.Length &&

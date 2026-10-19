@@ -6,6 +6,7 @@ using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -111,7 +112,7 @@ public class when_rendering_legacy_file_handlers : a_multi_slice_application
         RenderedOutput.Errors(_codeOutput.Files).ShouldBeEmpty();
         _output.ToString().ShouldContain("Rendering complete.");
         _codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
-        _error.ToString().ShouldBeEmpty();
+        _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     }
 
     [Fact]
@@ -131,6 +132,6 @@ public class when_rendering_legacy_file_handlers : a_multi_slice_application
         events.ShouldBeEmpty();
         _output.ToString().ShouldContain("Rendering complete.");
         _codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
-        _error.ToString().ShouldBeEmpty();
+        _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     }
 }

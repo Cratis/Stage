@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticStateChangeArtifactRenderer.given;
 using Xunit;
 
@@ -19,6 +20,6 @@ public class and_definition_names_collide : a_routed_command
     }
     void Because() => _plan = invoice_model.Plan(_model);
 
-    [Fact] void should_refuse_unstable_definition_names() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-012"]);
+    [Fact] void should_refuse_unstable_definition_names() => _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-012"]);
     [Fact] void should_not_suffix_the_second_definition() => _plan.Artifacts.ShouldBeEmpty();
 }

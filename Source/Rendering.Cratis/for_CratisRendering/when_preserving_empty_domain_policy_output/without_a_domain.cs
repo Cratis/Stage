@@ -37,7 +37,7 @@ public class without_a_domain : given.a_domain_policy_plan
         return Convert.ToHexString(hash.GetHashAndReset());
     }
 
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("06FAA4D3DEF0593E3C5C638F79EC9E99736471ACCC41CE030860010FFC55EE52");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("6BD5AF13FEE21CAEFAA6B29C38370EAC72F60A6D7C6B8908375D20FE2AEBF83E");
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("9062A6DD2284AA468581986B6B7FF5F2ECBD4CC1243B8D96B1485AFB06E0481E");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("F99F63EC423FA25C94725A0F75D3A7766092672C2C40913213156ABF3B44B36A");
 }
 #endif

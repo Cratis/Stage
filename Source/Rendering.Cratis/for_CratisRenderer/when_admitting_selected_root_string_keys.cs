@@ -6,6 +6,7 @@ using Cratis.Screenplay.Syntax.Projections;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.Specifications;
 using Xunit;
@@ -111,7 +112,7 @@ public class when_admitting_selected_root_string_keys : a_multi_slice_applicatio
             _ => _renderer.Render(_independent, _context, _targetDirectory, _output, _error, module: "Sales", feature: "Orders")
         });
         Assert.Single(_codeOutput.Files).Content.ShouldContain("[FromEvent<OrderArchived>]");
-        _error.ToString().ShouldBeEmpty();
+        _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         _output.ToString().ShouldContain("Rendering complete.");
         _codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
     }

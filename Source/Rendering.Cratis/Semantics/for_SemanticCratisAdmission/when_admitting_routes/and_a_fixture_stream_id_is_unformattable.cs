@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_SpecificationRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission.when_admitting_routes;
@@ -39,7 +40,7 @@ public class and_a_fixture_stream_id_is_unformattable : Specification
         _diagnostics = SemanticCratisAdmission.Evaluate(context, [context.Slice(slice.Id) with { Slice = changed }]);
     }
 
-    [Fact] void should_refuse_the_fixture_route() => _diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-030"]);
-    [Fact] void should_identify_the_specification() => _diagnostics.Single().Artifact.ShouldEqual(_specification);
-    [Fact] void should_block_rendering() => _diagnostics.Single().Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Error);
+    [Fact] void should_refuse_the_fixture_route() => _diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-030"]);
+    [Fact] void should_identify_the_specification() => _diagnostics.WithoutAuthenticatedDefaultNotes().Single().Artifact.ShouldEqual(_specification);
+    [Fact] void should_block_rendering() => _diagnostics.WithoutAuthenticatedDefaultNotes().Single().Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Error);
 }

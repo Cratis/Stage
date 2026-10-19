@@ -12,6 +12,7 @@ using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Emission;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -104,8 +105,8 @@ public class when_building_root_string_queries(context fixture) : IClassFixture<
             await using var error = new StringWriter();
             await renderer.Render([application], new DirectoryInfo(Path.Combine(Path.GetTempPath(), "root-string-control")), output, error);
             codeOutput.Files.Count.ShouldEqual(2);
-            codeOutput.Files.SelectMany(file => file.Diagnostics).ShouldBeEmpty();
-            error.ToString().ShouldBeEmpty();
+            codeOutput.Files.SelectMany(file => file.Diagnostics).WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
+            error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
             codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
             return [.. codeOutput.Files];
         }

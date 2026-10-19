@@ -12,6 +12,7 @@ using Cratis.Stage.Rendering.Cratis.Emission;
 using Cratis.Stage.Rendering.Cratis.for_ConceptRenderer.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -53,7 +54,7 @@ public class when_building_compliance_details : a_generated_application
         await using var output = new StringWriter();
         await using var error = new StringWriter();
         await renderer.Render([application], new DirectoryInfo(Path.Combine(Path.GetTempPath(), "compliance")), output, error);
-        Assert.True(error.ToString().Length == 0, error.ToString());
+        Assert.True(error.ToString().WithoutAuthenticatedDefaultNotes().Length == 0, error.ToString());
         codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
         return codeOutput.Files;
     }

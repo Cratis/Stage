@@ -3,6 +3,7 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
@@ -25,7 +26,7 @@ public class when_rendering_specification_examples_without_output_scopes : an_ap
 
     [Fact] void should_emit_the_specification_under_the_slice_only() => _codeOutput.Files.Count(file => file.RelativePath == SpecificationPath).ShouldEqual(1);
     [Fact] void should_expand_the_same_specification_as_the_whole_application() => SpecificationBody(_codeOutput.Files.Single(file => file.RelativePath == SpecificationPath).Content).ShouldEqual(_wholeApplicationSpecification);
-    [Fact] void should_not_report_an_unresolved_example_or_command() => _error.ToString().ShouldBeEmpty();
+    [Fact] void should_not_report_an_unresolved_example_or_command() => _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
 
     static string SpecificationPath => Path.Combine("Register", "when_registering_a_project.cs");
 

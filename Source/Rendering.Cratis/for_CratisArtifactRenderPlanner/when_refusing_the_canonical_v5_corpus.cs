@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
@@ -30,7 +31,7 @@ public class when_refusing_the_canonical_v5_corpus : Specification
     void Because() => _plan = new CratisArtifactRenderPlanner().Plan(_request);
 
     [Fact] void should_load_v5() => _request.Model.SemanticVersion.ShouldEqual(SemanticVersion.V5);
-    [Fact] void should_refuse_only_unsupported_fixtures_and_projection_shapes() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011", "STAGE-ESM-017"]);
+    [Fact] void should_refuse_only_unsupported_fixtures_and_projection_shapes() => _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011", "STAGE-ESM-017"]);
     [Fact] void should_also_refuse_the_removal_only_projection() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Artifact == _request.Model.Application.Modules.Single().Features.Single().Slices.Single().Projections.Single().Id);
     [Fact] void should_not_refuse_scalar_absence_itself() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-027");
     [Fact] void should_also_collect_specification_admission() => _plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-011").Select(diagnostic => diagnostic.Artifact).ShouldContainOnly([.. AbsenceSpecifications()]);
@@ -39,7 +40,7 @@ public class when_refusing_the_canonical_v5_corpus : Specification
     [Fact] void should_refuse_through_semantic_admission_as_well()
     {
         var context = new SemanticApplicationContext(_request, new("Absence", "Absence"));
-        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011", "STAGE-ESM-017"]);
+        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011", "STAGE-ESM-017"]);
     }
 
     IEnumerable<SemanticId> AbsenceSpecifications() => _request.Model.Application.Modules.SelectMany(module => module.Features)

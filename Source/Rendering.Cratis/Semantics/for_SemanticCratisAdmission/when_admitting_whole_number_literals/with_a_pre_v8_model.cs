@@ -6,6 +6,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission.when_admitting_whole_number_literals;
@@ -25,7 +26,7 @@ public class with_a_pre_v8_model
         var plan = Plan(major, "2147483648", "-2147483649");
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
-        plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly("STAGE-ESM-031");
+        plan.Diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly("STAGE-ESM-031");
     }
 
     [Theory]

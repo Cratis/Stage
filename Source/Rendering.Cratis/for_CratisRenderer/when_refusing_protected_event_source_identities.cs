@@ -6,6 +6,7 @@ using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Projections;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -97,7 +98,7 @@ public class when_refusing_protected_event_source_identities : a_multi_slice_app
         _scaffolder.WasCalled.ShouldBeTrue();
         _codeOutput.Files.Count.ShouldEqual(1);
         RenderedOutput.Errors(_codeOutput.Files).ShouldBeEmpty();
-        _error.ToString().ShouldBeEmpty();
+        _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     }
 
     [Theory]

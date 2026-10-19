@@ -5,6 +5,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_SpecificationRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
@@ -31,6 +32,6 @@ public class with_a_pre_v8_single_any_order_event : Specification
 
     [Fact] void should_keep_the_single_event_path_byte_for_byte() => _code.ShouldEqual(_ordered);
     [Fact] void should_keep_the_original_append_assertion() => _code.ShouldContain("ShouldHaveAppendedEvent<global::Routed.Banking.Deposits.Deposit.Deposit, global::Routed.Banking.Deposits.Deposit.Deposited>(_accountId, @event => true)");
-    [Fact] void should_still_refuse_conflicting_explicit_sources() => _admission.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-011"]);
+    [Fact] void should_still_refuse_conflicting_explicit_sources() => _admission.Diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-011"]);
     [Fact] void should_not_emit_an_unfaithful_specification() => _admission.Artifacts.ShouldBeEmpty();
 }

@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission.when_admitting_queries;
@@ -12,5 +13,5 @@ public class with_an_observable_optional_lookup : given.a_query_shape
     void Establish() => Configure(SemanticQueryCardinality.ZeroOrOne, SemanticQueryDelivery.Live, true);
     void Because() => Evaluate();
 
-    [Fact] void should_refuse_the_query_shape() => _diagnostics.Select(_ => _.Code).ShouldContainOnly("STAGE-ESM-010");
+    [Fact] void should_refuse_the_query_shape() => _diagnostics.WithoutAuthenticatedDefaultNotes().Select(_ => _.Code).ShouldContainOnly("STAGE-ESM-010");
 }

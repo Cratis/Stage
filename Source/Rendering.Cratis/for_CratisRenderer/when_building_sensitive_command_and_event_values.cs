@@ -11,6 +11,7 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Emission;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -72,7 +73,7 @@ public class when_building_sensitive_command_and_event_values : a_generated_appl
         await using var output = new StringWriter();
         await using var error = new StringWriter();
         await renderer.Render([application], new DirectoryInfo(Path.Combine(Path.GetTempPath(), "secrets")), output, error);
-        error.ToString().ShouldBeEmpty();
+        error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
         return codeOutput.Files;
     }

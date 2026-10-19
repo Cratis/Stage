@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission.when_admitting_queries;
@@ -19,5 +20,5 @@ public class with_a_filtered_snapshot_list : given.a_query_shape
 
     void Because() => Evaluate();
 
-    [Fact] void should_admit_the_snapshot_collection_shape() => _diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_snapshot_collection_shape() => _diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
 }

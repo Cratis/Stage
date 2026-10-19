@@ -9,6 +9,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.given;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,9 +59,10 @@ public class with_identical_operations : given.a_domain_policy_plan
         var registrations = services.Select(service => service.ImplementationInstance).OfType<AuthorizationPolicyRegistration>().ToArray();
         registrations.Length.ShouldEqual(6);
         registrations.Select(registration => registration.Name).Distinct(StringComparer.Ordinal).Count().ShouldEqual(6);
+        // Artifacts without an authorize clause carry a plain [Authorize]; only policy-bound attributes pair with a registration.
         var attributes = assembly.GetTypes().SelectMany(type => type.GetCustomAttributes<AuthorizeAttribute>()
             .Select(attribute => (Target: type, attribute.Policy))
-            .Concat(type.GetMethods().SelectMany(method => method.GetCustomAttributes<AuthorizeAttribute>().Select(attribute => (Target: type, attribute.Policy))))).ToArray();
+            .Concat(type.GetMethods().SelectMany(method => method.GetCustomAttributes<AuthorizeAttribute>().Select(attribute => (Target: type, attribute.Policy))))).Where(attribute => !string.IsNullOrEmpty(attribute.Policy)).ToArray();
         attributes.Length.ShouldEqual(6);
         attributes.All(attribute => registrations.Any(registration => registration.Name == attribute.Policy && registration.PolicyType.Namespace == attribute.Target.Namespace!.Split(".Billing", StringSplitOptions.None)[0].Split(".Orders", StringSplitOptions.None)[0] + ".GeneratedPolicies")).ShouldBeTrue();
     }

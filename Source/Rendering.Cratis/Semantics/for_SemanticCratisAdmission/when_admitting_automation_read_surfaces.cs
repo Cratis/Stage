@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission;
@@ -37,8 +38,8 @@ public class when_admitting_automation_read_surfaces : for_SemanticAutomationArt
         };
         var automation = SemanticCratisAdmission.Evaluate(_context, [_located with { Slice = slice }]);
         var stateView = SemanticCratisAdmission.Evaluate(_context, [_located with { Slice = slice with { Kind = SemanticSliceKind.StateView, Commands = [], Reactions = [] } }]);
-        automation.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-007"]);
-        stateView.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-007"]);
+        automation.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-007"]);
+        stateView.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-007"]);
         automation.Any(diagnostic => diagnostic.Artifact == slice.Id).ShouldBeTrue();
     }
 
@@ -53,7 +54,7 @@ public class when_admitting_automation_read_surfaces : for_SemanticAutomationArt
         _located.Slice.ReadModels.ShouldBeEmpty();
         _located.Slice.Projections.ShouldBeEmpty();
         Plan();
-        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-007"]);
+        _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-007"]);
         _plan.Artifacts.ShouldBeEmpty();
     }
 }

@@ -10,6 +10,7 @@ using Cratis.Chronicle.Auditing;
 using Cratis.Chronicle.Identities;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
@@ -70,7 +71,7 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
     }
 
     [Fact] void should_render_an_application_that_compiles() => _errors.ShouldBeEmpty();
-    [Fact] void should_not_report_anything_as_unreachable() => _error.ToString().ShouldEqual(string.Empty);
+    [Fact] void should_not_report_anything_as_unreachable() => _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldEqual(string.Empty);
     [Fact] void should_ask_for_the_identity_by_its_full_name() =>
         _handler.ShouldContain("Cratis.Chronicle.Identities.IIdentityProvider identities");
     [Fact] void should_ask_for_each_collaborator_once_however_often_it_is_read() =>

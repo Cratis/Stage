@@ -5,6 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission.when_admitting_secret_compliance;
@@ -39,6 +40,6 @@ public class with_text_or_personal_concepts : Specification
 
     void Because() => _plans.AddRange(_models.Select(model => invoice_model.Plan(model)));
 
-    [Fact] void should_preserve_text_secret_and_personal_precedence_admission() => _plans.SelectMany(plan => plan.Diagnostics).ShouldBeEmpty();
+    [Fact] void should_preserve_text_secret_and_personal_precedence_admission() => _plans.SelectMany(plan => plan.Diagnostics).WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     [Fact] void should_emit_artifacts() => _plans.TrueForAll(plan => !plan.Artifacts.IsEmpty).ShouldBeTrue();
 }

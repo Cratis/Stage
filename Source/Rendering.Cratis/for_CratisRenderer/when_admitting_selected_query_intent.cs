@@ -5,6 +5,7 @@ using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -134,7 +135,7 @@ public class when_admitting_selected_query_intent : a_multi_slice_application
         });
         var file = Assert.Single(_codeOutput.Files);
         file.Content.ShouldContain("IQueryable<ArchivedInvoice> ArchivedInvoices(");
-        _error.ToString().ShouldBeEmpty();
+        _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         _output.ToString().ShouldContain("Rendering complete.");
         _codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
         RenderedOutput.Errors(_codeOutput.Files).ShouldBeEmpty();

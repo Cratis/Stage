@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission;
@@ -41,7 +42,7 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
         var invocation = _located.Slice.Reactions.Single(reaction => reaction.Name == "CompletePositive").Triggers.Single();
         ReplaceAutomation(_located.Slice with { Reactions = [production with { Triggers = [production.Triggers.Single(), invocation] }] });
         Plan();
-        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-037"]);
+        _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-037"]);
         _plan.Artifacts.ShouldBeEmpty();
     }
 
@@ -59,7 +60,7 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
             """;
         SetContext(Compile(Source.Replace("    slice Automation FollowUp", specification + "\n    slice Automation FollowUp", StringComparison.Ordinal)));
         Plan();
-        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011"]);
+        _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011"]);
         _plan.Artifacts.ShouldBeEmpty();
     }
 

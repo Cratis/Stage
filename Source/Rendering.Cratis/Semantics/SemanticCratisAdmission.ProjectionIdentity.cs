@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -10,6 +11,22 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticCratisAdmission
 {
+    // Whether the flat rendering takes this projection: one transition, keyed by the event source, mapping every property from the event.
+    internal static bool FlatProjectionRenders(SemanticApplicationContext context, SemanticProjection projection, SemanticReadModel readModel)
+    {
+        if (projection.Transitions.Length != 1)
+        {
+            return false;
+        }
+
+        var transition = projection.Transitions[0];
+        return context.Events.TryGetValue(transition.EventContract, out var @event) &&
+            transition.AffectedInstance.Cardinality == AffectedInstanceCardinality.One &&
+            IsProperty(transition.AffectedInstance.Key, SemanticExpressionRootKind.Event, @event.Properties.Select(_ => _.Id)) &&
+            SemanticFlatProjectionSupport.MappingsMatch(transition.Mappings, readModel.Properties, @event.Properties, SemanticExpressionRootKind.Event) &&
+            UsesEventSourceIdentity(context, transition, @event, readModel);
+    }
+
     static bool UsesEventSourceIdentity(
         SemanticApplicationContext context,
         SemanticProjectionTransition transition,

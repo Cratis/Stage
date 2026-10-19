@@ -190,9 +190,9 @@ public static class SemanticRunAdmission
         SemanticRunProjectionAdmission.CheckFact(plan, fact);
 
     // Live commands cannot consume pinned generation fixtures. Other bodies refuse only their reachable commands.
-    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command)
+    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName = null)
     {
-        var features = CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, plan.Model.Application.Concepts).Select(Feature));
+        var features = CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, plan.Model.Application.Concepts, ruleName).Select(Feature));
         var refusal = SemanticImplementationReach.ForCommand(plan, command);
         if (CommandValidationRefusal(plan, command) is { } validationRefusal)
         {

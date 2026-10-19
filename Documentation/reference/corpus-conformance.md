@@ -41,7 +41,7 @@ A `refused` cell has one record per fingerprint in `refusals`. Each record conta
 | `kind` | Loader plan-issue kind or Host admission-entry kind; omitted for executor and renderer |
 | `artifact` | Full artifact identity, never a shortened hash, kind, name, prefix, or wildcard |
 | `issue` | Positive integer identifying the Stage issue that tracks this exact refusal |
-| `byDesign` | Non-blank reason for an explicitly allowed invalid fixture, instead of `issue` |
+| `byDesign` | Non-blank reason for an explicitly allowed by-design refusal, instead of `issue` |
 
 The executor collapses repeated refusals across specifications only when they share the same code and full construct identity. The Host keeps every artifact and kind, including separate specification artifacts. Renderer fingerprints retain the full semantic ID from each diagnostic.
 
@@ -53,7 +53,16 @@ The loader rejects legacy cell-level `issue`, `issueRefusals`, and `byDesign` fi
 
 ### Refusals that are correct by design
 
-`byDesign` is allowed only for the renderer's `STAGE-ESM-019` on `GenerationFixturesCorpus.V21`'s intentionally invalid `TenantOrderId` fixture, artifact `sem1:25bdf5d2a8f97601c41d6bc30d4da1d2fd4123e1ebf894d79f96b9103b85caf4`. It requires a non-blank reason. Another artifact, vector, or surface reports `unauthorized-by-design`, even if the code is identical. A Stage limitation is not an invalid fixture; it needs an issue.
+`byDesign` requires a non-blank reason and an exact match in the allow-list:
+
+| Vectors | Surface | Code | Full artifact identities |
+| --- | --- | --- | --- |
+| `GenerationFixturesCorpus.V21` | `renderer` | `STAGE-ESM-019` | `sem1:25bdf5d2a8f97601c41d6bc30d4da1d2fd4123e1ebf894d79f96b9103b85caf4` |
+| `EsmGoldenVectors.V8`–`EsmGoldenVectors.V24` (inclusive) | `renderer` | `STAGE-ESM-030` | `sem1:000000000000000000000000000000000000000000000000000000000000232c`, `sem1:0000000000000000000000000000000000000000000000000000000000002333` |
+
+The first entry is the intentionally invalid `TenantOrderId` generation fixture. The second entry covers exactly 34 refusals: the two listed artifacts on each of the 17 frozen golden vectors. Chronicle reserves their stored names (`All`/`Default`); [Screenplay#893](https://github.com/Cratis/Screenplay/issues/893) added authoring error `PLAY0802` to forbid those names in current models. By the decision on [Stage#536](https://github.com/Cratis/Stage/issues/536), Stage keeps refusing these frozen fixtures rather than mapping their stored names.
+
+Another artifact, vector, surface, code, or kind reports `unauthorized-by-design`, even if another part of the fingerprint is identical. Both entries require an omitted (null) kind. A new refusal on an otherwise allowed golden vector is not automatically exempt. A Stage limitation outside this allow-list still needs an issue.
 
 When an exempt artifact no longer appears, its record becomes stale and must be removed.
 

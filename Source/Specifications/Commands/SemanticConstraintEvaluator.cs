@@ -7,7 +7,7 @@ using Cratis.Stage.Specifications.Comparison;
 
 namespace Cratis.Stage.Specifications.Commands;
 
-// Mirrors Screenplay v4.24.0 SemanticConstraintEnforcement: candidate order, sorted constraint names,
+// Mirrors Screenplay v4.206.0 SemanticConstraintEnforcement: candidate order, sorted constraint names,
 // replacement per owner, releasing events and invariant casing all matter for atomic batches.
 internal static class SemanticConstraintEvaluator
 {

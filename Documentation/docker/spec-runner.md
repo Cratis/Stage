@@ -104,9 +104,12 @@ The executor validates query keys and supplied filter values against concept rul
 nested members and collection elements, after authorization. This applies in every admitted ESM
 version. ESM v18 adds query-only error expectations, which require a Validation-category rejection;
 the trace records `rejectionCategory` for rejected queries. Empty-fixture queries also execute valid
-unmatched keys and omitted optional filters. Populated equality-filtered query assertions retain
-`STAGE-ESM-010`, and seeded read-model specifications retain the `GivenReadModel` gap.
-The Host executes query filters and validation through the reference evaluator.
+unmatched keys and omitted optional filters. Equality-filtered query assertions execute over projected
+and seeded read-model state. Supplied scalar primitive, concept and enum filters combine with `by`
+using AND; omitted optional filters do not narrow. Collection results compare by read-model identity
+and key without regard to order, including row counts. Projection shapes the per-run scenario cannot
+preserve remain `Unsupported` with a typed reason.
+The Host admits these specification runs and executes live query filters and validation through the reference evaluator.
 At v13 it executes concept-compliance specifications with unchanged outcomes; a passing specification
 is not evidence of encryption or redaction. The semantic Stage Host encrypts personal-data and secret
 concept values at rest through Chronicle, like rendered applications, and releases them on read.
@@ -174,8 +177,8 @@ Property-value claims reserved within a batch remain reserved even if their owne
 in that batch. Repeating a value for the same owner is allowed; an event-occurrence release can reopen
 its owner's cycle. Models without the declaration keep legacy per-fact reaction execution, including
 successful prefixes before a later production fails. The [live semantic Host](index.md#opt-in-to-semantic-execution)
-retains its stricter whole-command rollback boundary. The renderer still refuses atomic-batch models with
-`STAGE-ESM-043`.
+retains its stricter whole-command rollback boundary. For what the Cratis renderer emits, and the atomic shapes it
+still refuses with `STAGE-ESM-043`, see [Atomic batch rendering](../reference/reaction-rendering.md#atomic-batch-rendering).
 
 ## Invocation refusal branches
 
@@ -371,7 +374,15 @@ semantic trace includes keyed read-model and query results; a mismatched result 
 The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
 and do not affect this run; implicit identity allocation remains unsupported.
 
-Given read models still return `Unsupported(GivenReadModel)`. Per-run projections reject optional or composite
+Given read models seed isolated state per read-model type and key. A seed replaces that key's projected Given
+history; subsequent command, append and reaction facts fold on top through Chronicle 19.83's per-key scenario
+seeding. Other keys retain their projected history, and invoked commands read the same seeded world. Seed-only
+models can be asserted and queried without a projection. Projected seeds must contain every scalar property
+and an identifier equal to their key; partial or null projected seeds remain `Unsupported(GivenReadModel)`
+because concrete scenario records cannot preserve missing-property presence. The renderer's broader
+`STAGE-ESM-011` given-state refusal is unchanged.
+
+Per-run projections reject optional or composite
 read-model properties, DateTime read-model values (whose round-trip text may change), and non-identifier
 properties whose generated name matches `Id` case-insensitively (including authored `id_`, `_id`, `id-`, `ID`, `iD`, and `i_d`, which collide with
 Chronicle's document key); a child `id` remains allowed. Events and commands whose property names collide after PascalCase generation with another property, their record type, synthesized or inherited members, or generated command methods block every run, even when the event is not produced by the specification. The block is `Unsupported(Projection)` if a projection references that event; otherwise it is `Unsupported(Command)`. Concept and composite-type member or generated type-name collisions also block every run as `Unsupported(Command)`, even without a projection. Per-run projections also reject joins, child or nested projections, removals, every/all mappings, literal mappings, and unsupported key shapes before execution. Projections over events whose property names Chronicle interprets as expressions (`$`, `.`, `[`, `]`, a leading quote, booleans, numbers, or derived functions such as `Week` or `Week()`), projections referencing even unreached events (including in child or nested scopes) with colliding generated members, and read-model properties whose names can be interpreted as paths or collide with another generated property, the record's type, or generated query methods return `Unsupported(Projection)`. Query method overloads that compile remain allowed; duplicate generated signatures and arguments named `readModels` do not.

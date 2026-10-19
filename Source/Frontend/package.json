@@ -6,21 +6,23 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "workspaces": ["Runtime"],
   "scripts": {
-    "build": "tsc -b && vite build",
-    "test": "vitest run"
+    "build": "npm run build --workspace @cratis/stage.runtime && tsc -b && vite build",
+    "test": "npm run build --workspace @cratis/stage.runtime && npm test --workspace @cratis/stage.runtime && vitest run"
   },
   "dependencies": {
+    "@cratis/stage.runtime": "*",
     "@cratis/arc": "22.112.1",
     "@cratis/arc.react": "22.112.1",
     "@cratis/components": "4.29.0",
     "@cratis/fundamentals": "7.25.1",
-    "@cratis/scene.blueprint.default": "4.68.2",
-    "@cratis/scene.components": "4.68.2",
-    "@cratis/scene.engine": "4.68.2",
-    "@cratis/scene.model": "4.68.2",
-    "@cratis/scene.primereact": "4.68.2",
-    "@cratis/scene.react": "4.68.2",
+    "@cratis/scene.blueprint.default": "4.70.1",
+    "@cratis/scene.components": "4.70.1",
+    "@cratis/scene.engine": "4.70.1",
+    "@cratis/scene.model": "4.70.1",
+    "@cratis/scene.primereact": "4.70.1",
+    "@cratis/scene.react": "4.70.1",
     "@primereact/core": "11.2.0",
     "@primereact/headless": "11.2.0",
     "@primereact/ui": "11.2.0",

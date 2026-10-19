@@ -61,7 +61,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_disable_ancestor_global_analyzer_configuration_discovery() => XDocument.Parse(Content("Directory.Build.props")).Descendants("DiscoverGlobalAnalyzerConfigFiles").Single().Value.ShouldEqual("false");
     [Fact] void should_include_the_application_editor_configuration_explicitly() => XDocument.Parse(Content("Directory.Build.props")).Descendants("EditorConfigFiles").Single().Attribute("Include")!.Value.ShouldEqual("$(MSBuildThisFileDirectory).editorconfig");
     [Fact] void should_allow_bdd_specification_names() => Content(".editorconfig").ShouldContain("[{**/*.Specs/**/*.cs,**/when_*.cs,**/for_*/**/*.cs,**/given/**/*.cs}]\n# Cratis specifications use BDD names, including should_ facts.\ndotnet_diagnostic.IDE1006.severity = none\ndotnet_diagnostic.CA1707.severity = none");
-    [Fact] void should_describe_running_the_specs_project() => Content("README.md").ShouldContain("dotnet test MyApp.Specs -c Debug");
+    [Fact] void should_describe_running_the_specs_project() => Content("README.md").ShouldContain("dotnet test MyApp.Specs\n");
+    [Fact] void should_describe_running_specs_in_any_configuration() => Content("README.md").ShouldContain("Specifications run in any configuration, including Release.");
     [Fact] void should_describe_the_actual_frontend_dev_script() => Content("README.md").ShouldContain("yarn dev");
     [Fact] void should_document_scaffold_ownership() => Content("README.md").ShouldContain("Scaffold files belong to you after first run");
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");

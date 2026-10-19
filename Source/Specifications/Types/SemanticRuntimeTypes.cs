@@ -2,15 +2,17 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using System.Text.Json;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Specifications.Types;
 
 /// <summary>
-/// Emits CLR event and read-model types for the scalar contracts admitted by the in-memory runner.
+/// Emits CLR event and read-model types for the contracts admitted by the in-memory runner.
 /// </summary>
 /// <param name="plan">The semantic contract plan.</param>
 internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
@@ -63,7 +65,10 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         foreach (var value in fact.Values)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
-            type.GetProperty(property.Name)!.SetValue(instance, ConvertValue(value.Value, Resolve(property.Type)));
+            var converted = property.Type.Kind == SemanticTypeReferenceKind.CompositeType
+                ? JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value, property.Type, new SemanticApplicationContext(plan)))
+                : ConvertValue(value.Value, Resolve(property.Type));
+            type.GetProperty(property.Name)!.SetValue(instance, converted);
         }
 
         return instance;

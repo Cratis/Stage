@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance;
 
-// The conformance matrix: every vector of the pinned canonical corpus, through the strict model loader and then the spec executor, the
+// The conformance matrix: every vector of the pinned canonical corpus, through partial model loading and then the spec executor, the
 // semantic Host admission and the Cratis render planner. See Documentation for how to update conformance-matrix.json when a cell changes on purpose.
 //
 // The whole matrix runs once in the class fixture, not once per fact: it is 4 surfaces over every vector (planner and admission level, no

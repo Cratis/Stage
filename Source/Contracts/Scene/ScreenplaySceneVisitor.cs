@@ -40,11 +40,10 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     public SceneApplication Visit(ScreenplaySyntax.ApplicationSyntax syntax) => Convert(syntax, null);
 
     /// <summary>
-    /// Converts an application while retaining diagnostics for omitted arrangement constructs.
-    /// Other unsupported Scene constructs remain subject to their existing admission checks.
+    /// Converts an application while retaining diagnostics for omitted Scene constructs.
     /// </summary>
     /// <param name="syntax">The application to convert.</param>
-    /// <returns>The translated Scene with arrangement conversion diagnostics.</returns>
+    /// <returns>The translated Scene with conversion diagnostics.</returns>
     public SceneApplication Convert(ScreenplaySyntax.ApplicationSyntax syntax) => Convert(syntax, new ConversionDiagnostics());
 
     static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics? diagnostics)
@@ -70,7 +69,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         // What a module contributes belongs to every screen beneath it, recorded against the module alone.
         IReadOnlyList<string> path = [module.Name];
         IReadOnlyList<SceneContributionPoints.Contribution> contributed = [.. (module.Contributions ?? [])
-            .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{module.Name}.contribution[{index}]", path))];
+            .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{module.Name}.contribution[{index}]", path, scope.Diagnostics))];
         foreach (var feature in module.Features)
         {
             ConvertFeatureScreens(feature, path, layoutName, forms, screens, scope, inherited, contributed);
@@ -91,7 +90,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         var path = string.Join('.', hierarchy);
         var contributions = moduleContributions
             .Concat((feature.Contributions ?? [])
-                .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{path}.contribution[{index}]", hierarchy)))
+                .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{path}.contribution[{index}]", hierarchy, scope.Diagnostics)))
             .ToList();
 
         // Outermost first: a module's behaviors precede a feature's, which precede the screen's own. That is the
@@ -101,7 +100,8 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         screens.AddRange(feature.Slices
             .SelectMany(slice => slice.Screens)
-            .Select(screen => ScreenConverter.Convert(screen, layoutName, forms, contributions, scope, inheritedHere, hierarchy)));
+            .Select(screen => ScreenConverter.Convert(screen, layoutName, forms, contributions, scope, inheritedHere, hierarchy, scope.Diagnostics))
+            .OfType<SceneScreens.Screen>());
 
         foreach (var subFeature in feature.Features)
         {
@@ -111,10 +111,10 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
     SceneApplication Convert(ScreenplaySyntax.ApplicationSyntax syntax, ConversionDiagnostics? diagnostics)
     {
-        new UiSyntaxAdmission().VisitApplication(syntax);
-        var uiProfiles = syntax.UiProfiles?.SelectMany(UiProfileConverter.Convert).ToList() ?? [];
+        new UiSyntaxAdmission(diagnostics).VisitApplication(syntax);
+        var uiProfiles = syntax.UiProfiles?.SelectMany(profile => UiProfileConverter.Convert(profile, diagnostics)).ToList() ?? [];
         var themes = syntax.Themes?.Select(ThemeConverter.Convert).ToList() ?? [];
-        var scope = BehaviorScope.For(syntax, _findings);
+        var scope = BehaviorScope.For(syntax, _findings) with { Diagnostics = diagnostics };
         var layouts = ConvertLayouts(syntax, scope, diagnostics);
 
         var screenTemplates = new List<SceneScreens.ScreenTemplate>();
@@ -141,7 +141,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, screens)
         {
-            Exposures = [.. (syntax.Exposures ?? []).Select(CompositionConverter.Exposure)],
+            Exposures = [.. (syntax.Exposures ?? []).Select(exposure => CompositionConverter.Exposure(exposure, diagnostics))],
             InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],
             Navigation = NavigationConverter.Convert(syntax),
             Structure = scope.Structure ?? StructureConverter.Convert(syntax),

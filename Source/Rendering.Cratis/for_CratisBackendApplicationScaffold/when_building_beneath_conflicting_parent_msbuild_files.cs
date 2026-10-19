@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Xunit;
 
@@ -124,6 +125,8 @@ public class when_building_beneath_conflicting_parent_msbuild_files : Specificat
 
     async Task<ProcessResult> Run(params string[] arguments)
     {
+        // Bounded so a local run does not start every generated application's build at once.
+        using var slot = await GeneratedApplicationBuilds.Enter();
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = _application.FullName,

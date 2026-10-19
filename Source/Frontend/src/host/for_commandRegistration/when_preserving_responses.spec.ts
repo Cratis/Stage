@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { afterEach, chai, describe, it, vi } from 'vitest';
-import { executeRegisteredCommand } from '../../commandExecutor';
-import { commandResult } from '../../testing/commands';
+import { executeRegisteredCommand } from '@cratis/stage.runtime';
+import { commandResult } from '../../../Runtime/src/testing/commands';
 import { registerStageCommands } from '../commandRegistration';
 
 chai.should();

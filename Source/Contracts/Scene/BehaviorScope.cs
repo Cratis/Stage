@@ -16,6 +16,11 @@ public sealed record BehaviorScope(
     ICollection<RenderFinding> Findings)
 {
     /// <summary>
+    /// Gets the collector for omitted interaction constructs, or null for legacy throwing behavior.
+    /// </summary>
+    public ConversionDiagnostics? Diagnostics { get; init; }
+
+    /// <summary>
     /// Gets the members of every enumeration-typed read model field, by read model and then field.
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>>? Enumerations { get; init; }
@@ -77,7 +82,7 @@ public sealed record BehaviorScope(
         IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
         IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
         string subject) =>
-        BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf);
+        BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf, Diagnostics);
 
     static Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>> EnumerationsIn(ScreenplaySyntax.ApplicationSyntax syntax)
     {

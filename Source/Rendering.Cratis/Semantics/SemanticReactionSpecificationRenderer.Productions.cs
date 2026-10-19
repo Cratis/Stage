@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -24,7 +25,10 @@ internal static partial class SemanticReactionSpecificationRenderer
             var identity = produced.Destination is { } destination
                 ? new SemanticEventSourceIdentity(produced.DestinationType!, SemanticReactionSpecification.Evaluate(destination, prelude.Append)) : prelude.Append.EventSource!;
             var source = types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type);
-            builder.Line($"[global::Xunit.FactAttribute] void should_preserve_destination_{index + 1}() => (_reactor.ProducedEvents[{index}].EventSourceId == {source} && _reactor.ProducedEvents[{index}].EventSourceType == global::Cratis.Chronicle.Events.EventSourceType.Default && _reactor.ProducedEvents[{index}].EventStreamType == global::Cratis.Chronicle.Events.EventStreamType.All && _reactor.ProducedEvents[{index}].EventStreamId == global::Cratis.Chronicle.Events.EventStreamId.Default).ShouldBeTrue();");
+            builder.Line($"[global::Xunit.FactAttribute] void should_preserve_destination_{index + 1}() => _reactor.ProducedEvents[{index}].EventSourceId.ShouldEqual((global::Cratis.Chronicle.Events.EventSourceId){source});")
+                .Line($"[global::Xunit.FactAttribute] void should_preserve_source_type_{index + 1}() => _reactor.ProducedEvents[{index}].EventSourceType.ShouldEqual(global::Cratis.Chronicle.Events.EventSourceType.Default);")
+                .Line($"[global::Xunit.FactAttribute] void should_preserve_stream_type_{index + 1}() => _reactor.ProducedEvents[{index}].EventStreamType.ShouldEqual(global::Cratis.Chronicle.Events.EventStreamType.All);")
+                .Line($"[global::Xunit.FactAttribute] void should_preserve_stream_id_{index + 1}() => _reactor.ProducedEvents[{index}].EventStreamId.ShouldEqual((global::Cratis.Chronicle.Events.EventStreamId)global::Cratis.Chronicle.Events.EventStreamId.Default);");
         }
         if (specification.ThenEventsInAnyOrder)
         {
@@ -33,7 +37,18 @@ internal static partial class SemanticReactionSpecificationRenderer
         }
         foreach (var (expected, index) in specification.ThenEvents.Select((expected, index) => (expected, index)))
         {
-            builder.Line($"[global::Xunit.FactAttribute] void should_produce_event_at_position_{index + 1}() => ({ProductionPredicate(expected, context, ProductionValues(types, context, index), $"_reactor.ProducedEvents[{index}]")}).ShouldBeTrue();");
+            var entry = $"_reactor.ProducedEvents[{index}]";
+            var contract = context.Events[expected.EventContract];
+            builder.Line($"[global::Xunit.FactAttribute] void should_produce_event_at_position_{index + 1}() => ({entry}.Event is {types.EventType(contract)}).ShouldBeTrue();");
+            if (expected.EventSource is { } identity)
+            {
+                builder.Line($"[global::Xunit.FactAttribute] void should_produce_event_{index + 1}_from_source() => {entry}.EventSourceId.ShouldEqual((global::Cratis.Chronicle.Events.EventSourceId){types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)});");
+            }
+            foreach (var property in contract.Properties)
+            {
+                var value = expected.Values.Single(value => value.TargetProperty == property.Id).Value;
+                builder.Line($"[global::Xunit.FactAttribute] void should_produce_event_{index + 1}_with_{Identifiers.ToSnakeCase(property.Name)}() => ({entry}.Event is {types.EventType(contract)} @event && {ValuePredicate(property, value, ProductionValues(types, context, index))}).ShouldBeTrue();");
+            }
         }
     }
 

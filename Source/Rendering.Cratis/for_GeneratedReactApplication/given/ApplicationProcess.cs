@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using Cratis.Stage.Rendering.Cratis.given;
 
 namespace Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication.given;
 
@@ -20,6 +21,8 @@ public static class ApplicationProcess
     /// <returns>The exit code and the combined output. A tool that could not start or timed out has exit code -1.</returns>
     public static async Task<ProcessResult> Run(string directory, TimeSpan timeout, string fileName, params string[] arguments)
     {
+        // Bounded so a local run does not start every generated application's build at once.
+        using var slot = await GeneratedApplicationBuilds.Enter();
         var startInfo = new ProcessStartInfo(fileName)
         {
             WorkingDirectory = directory,

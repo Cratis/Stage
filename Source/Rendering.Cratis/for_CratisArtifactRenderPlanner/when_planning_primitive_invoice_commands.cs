@@ -16,7 +16,7 @@ public class when_planning_primitive_invoice_commands : Specification
     readonly ICollection<(ArtifactRenderPlan First, ArtifactRenderPlan Second)> _plans = [];
     readonly List<string> _errors = [];
     readonly List<string> _warnings = [];
-    readonly ICollection<(string Command, string Type, string Destination, string Specification, string ExpectedSource)> _sources = [];
+    readonly ICollection<(string Command, string Type, string Destination, string Specification, string ExpectedSource, string DeclaredValue)> _sources = [];
 
     void Because()
     {
@@ -46,7 +46,8 @@ public class when_planning_primitive_invoice_commands : Specification
                 item.CSharpType,
                 direct ? "StreamReference" : "new global::Cratis.Chronicle.Events.EventSourceId((StreamReference).ToString())",
                 files.Single(_ => _.RelativePath.EndsWith("/when_issuing_first_invoice.cs", StringComparison.Ordinal)).Content,
-                direct ? item.ValueExpression : $"new global::Cratis.Chronicle.Events.EventSourceId(({item.ValueExpression}).ToString())"));
+                direct ? "_streamReference" : "new global::Cratis.Chronicle.Events.EventSourceId((_streamReference).ToString())",
+                $"static readonly {item.CSharpType} _streamReference = {item.ValueExpression};"));
         }
     }
 
@@ -56,7 +57,9 @@ public class when_planning_primitive_invoice_commands : Specification
     [Fact] void should_keep_primitive_command_properties() => _sources.All(_ => _.Command.Contains($"public record IssueInvoice(string Description, {_.Type} StreamReference) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_resolve_the_semantic_destination() => _sources.All(_ => _.Command.Contains($"public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId() => {_.Destination};", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_append_only_through_the_returned_event() => _sources.All(_ => _.Command.Contains("public global::Invoices.Billing.Invoicing.Issue.InvoiceIssued Handle() => new(Description);", StringComparison.Ordinal) && !_.Command.Contains("IEventLog", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_assert_the_actual_event_source_and_payload() => _sources.All(_ => _.Specification.Contains($"ShouldHaveAppendedEvent<global::Invoices.Billing.Invoicing.Issue.IssueInvoice, global::Invoices.Billing.Invoicing.Issue.InvoiceIssued>({_.ExpectedSource}, @event => @event.Description == \"First payload\")", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_assert_the_actual_event_source_and_payload() => _sources.All(_ => _.Specification.Contains($"ShouldHaveAppendedEvent<global::Invoices.Billing.Invoicing.Issue.IssueInvoice, global::Invoices.Billing.Invoicing.Issue.InvoiceIssued>({_.ExpectedSource}, @event => @event.Description == _description)", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_declare_the_typed_event_source_value() => _sources.All(_ => _.Specification.Contains(_.DeclaredValue, StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_declare_the_expected_payload_value() => _sources.All(_ => _.Specification.Contains("static readonly string _description = \"First payload\";", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_not_import_a_nonexistent_common_namespace() => _sources.All(_ => !_.Command.Contains("using Invoices.Common;", StringComparison.Ordinal) && !_.Specification.Contains("using Invoices.Common;", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_not_create_concepts_for_primitives() => _plans.All(_ => !_.First.Artifacts.Any(artifact => artifact.RelativePath.StartsWith("Common/", StringComparison.Ordinal))).ShouldBeTrue();
     [Fact] void should_compile_generated_debug_specifications() => string.Join(Environment.NewLine, _errors).ShouldEqual(string.Empty);

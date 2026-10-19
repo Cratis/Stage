@@ -26,10 +26,10 @@ internal static class SemanticRunProjections
         SemanticRuntimeTypes types,
         Defaults defaults)
     {
-        // No facts can populate any projection in the empty world, including a query-only model.
-        if (context.Facts.Count == 0) return [];
+        if (context.Facts.Count == 0 && context.WorldFixture.GivenReadModels.IsEmpty) return [];
 
-        var requested = specification.ThenReadModels.Select(state => state.ReadModel)
+        var requested = context.WorldFixture.GivenReadModels.Select(state => state.ReadModel)
+            .Concat(specification.ThenReadModels.Select(state => state.ReadModel))
             .Concat(specification.ThenAbsentReadModels.Select(state => state.ReadModel))
             .Concat(specification.ThenQueries.Select(query => plan.Queries[query.Query].ReadModel))
             .Concat(plan.Projections.Values.Where(projection => context.Facts.Any(fact => Observes(projection, fact.EventContract)))
@@ -44,9 +44,13 @@ internal static class SemanticRunProjections
 
     internal static IReadOnlyList<Projected> ForReadModel(SemanticExecutionPlan plan, SemanticId id, SemanticRunContext context, SemanticRuntimeTypes types, Defaults defaults)
     {
-        if (context.Facts.Count == 0) return [];
+        if (context.Facts.Count == 0 && context.WorldFixture.GivenReadModels.IsEmpty) return [];
         var model = plan.ReadModels[id];
-        var projection = plan.Projections.Values.Single(value => value.ReadModel == id);
+        var projection = plan.Projections.Values.SingleOrDefault(value => value.ReadModel == id);
+        if (projection is null)
+        {
+            return [.. Seeds(context, id).Select(seed => new Projected(id, seed.Key, seed.Values))];
+        }
         var method = typeof(SemanticRunProjections).GetMethod(nameof(Define), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(types.ForReadModel(model));
 
@@ -62,7 +66,7 @@ internal static class SemanticRunProjections
         Defaults defaults)
         where TReadModel : class
     {
-        var scenario = new ReadModelScenario<TReadModel>(null, defaults).WithProjection(builder =>
+        using var scenario = new ReadModelScenario<TReadModel>(null, defaults).WithProjection(builder =>
         {
             builder.NoAutoMap();
             if (projection.Scope is { } scope)
@@ -96,6 +100,16 @@ internal static class SemanticRunProjections
                 }
             }
         });
+        foreach (var seed in Seeds(context, model.Id))
+        {
+            var instance = Activator.CreateInstance<TReadModel>();
+            foreach (var value in seed.Values)
+            {
+                var property = typeof(TReadModel).GetProperty(model.Properties.Single(property => property.Id == value.TargetProperty).Name)!;
+                property.SetValue(instance, SemanticRuntimeTypes.ConvertValue(value.Value, property.PropertyType));
+            }
+            scenario.CollectReadModelFor(new EventSourceId(((SemanticTextValue)seed.Key).Value), instance);
+        }
         CollectEvents(scenario, projection, context, types);
         var output = new List<Projected>();
         foreach (var (source, instance) in scenario.Instances)
@@ -120,6 +134,14 @@ internal static class SemanticRunProjections
             var fact = context.Facts[index];
             if (!Observes(projection, fact.EventContract)) continue;
             var destination = context.Destinations[index];
+
+            // Admitted projections are independent event-source-keyed folds. A fixture replaces that
+            // key's projected history; only action and reaction facts may subsequently change it.
+            if (index < context.WorldFixture.GivenEvents.Length && Seeds(context, projection.ReadModel)
+                .Any(seed => SemanticExpectationComparer.AreEqual(seed.Key, destination)))
+            {
+                continue;
+            }
             var key = destination switch
             {
                 SemanticTextValue text => text.Value,
@@ -130,6 +152,10 @@ internal static class SemanticRunProjections
             scenario.CollectEventsFor(new EventSourceId(key), [types.Materialize(fact)]);
         }
     }
+
+    static IEnumerable<SemanticSpecificationReadModel> Seeds(SemanticRunContext context, SemanticId model) =>
+        context.WorldFixture.GivenReadModels.Where(seed => seed.ReadModel == model)
+            .GroupBy(seed => SemanticRunContext.Canonical(seed.Key), StringComparer.Ordinal).Select(group => group.Last());
 
     static bool Observes(SemanticProjection projection, SemanticId eventContract) =>
         projection.Scope?.Every is { SubscribesToAllEvents: true } ||

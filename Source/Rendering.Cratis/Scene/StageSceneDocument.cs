@@ -2,6 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json.Nodes;
+using Cratis.Screenplay.Diagnostics;
+using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using SceneElements = Cratis.Scene.Model.Elements;
@@ -42,24 +45,36 @@ internal static class StageSceneDocument
     /// <param name="sceneJson">The composed <c language="json">scene.json</c> text.</param>
     /// <param name="context">The indexed semantic application the commands come from.</param>
     /// <returns>The canonical runtime document.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">A command schema cannot be converted faithfully.</exception>
     public static string Render(string sceneJson, SemanticApplicationContext context)
     {
-        var commands = context.Commands.Values
+        var diagnostics = new ConversionDiagnostics();
+        var schemas = context.Commands.Values
             .GroupBy(command => command.Name, StringComparer.Ordinal)
-            .ToDictionary(
-                group => group.Key,
-                group =>
-                {
-                    var properties = group.First().Properties;
+            .Select(group =>
+            {
+                var properties = group.First().Properties;
 
-                    // Contracts serves semantic Host names. Only this generated application's transport uses CLR escapes.
-                    var names = properties.ToDictionary(property => property.Name, context.MemberNames.WireProperty, StringComparer.Ordinal);
-                    var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }));
-                    var fields = CanonicalSceneJson.ToNode(CommandFormSchemas.Fields(CommandFormSchemas.For(context.Application, properties)))!.AsArray();
-                    GeneratedSceneMemberNames.Fields(fields, names);
-                    return new Command(schema, fields, names);
-                },
-                StringComparer.Ordinal);
+                // Contracts serves semantic Host names. Only this generated application's transport uses CLR escapes.
+                var names = properties.ToDictionary(property => property.Name, context.MemberNames.WireProperty, StringComparer.Ordinal);
+                var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }), diagnostics, group.Key, SourceLocation.Start);
+                var fieldSchema = CommandFormSchemas.For(context.Application, properties, new ConversionDiagnostics(), group.Key, SourceLocation.Start);
+                return (Name: group.Key, Schema: schema, FieldSchema: fieldSchema, Names: names);
+            })
+            .ToArray();
+        if (diagnostics.HasErrors)
+        {
+            throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, diagnostics.All.Select(error => $"{error.Code}: {error.Message}")));
+        }
+        var commands = schemas.ToDictionary(
+            entry => entry.Name,
+            entry =>
+            {
+                var fields = CanonicalSceneJson.ToNode(CommandFormSchemas.Fields(entry.FieldSchema!))!.AsArray();
+                GeneratedSceneMemberNames.Fields(fields, entry.Names);
+                return new Command(entry.Schema!, fields, entry.Names);
+            },
+            StringComparer.Ordinal);
 
         var document = JsonNode.Parse(sceneJson)!.AsObject();
         StripSampleData(document);

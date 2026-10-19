@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -29,11 +30,23 @@ internal static partial class SemanticCratisAdmission
             var path = (SemanticReadPathExpression)mapping.Source;
             var viewProperty = scope.Property(path.Read, path.PropertyId);
             var eventProperty = context.Events.TryGetValue(produced.EventContract, out var @event) ? @event.Properties.FirstOrDefault(property => property.Id == mapping.TargetProperty) : null;
-            if (viewProperty is null || eventProperty is null || viewProperty.Type.IsOptional || viewProperty.Type.IsCollection ||
-                viewProperty.Type.Kind == SemanticTypeReferenceKind.CompositeType || viewProperty.Type != eventProperty.Type)
+            if (viewProperty is null || eventProperty is null || viewProperty.Type.IsOptional ||
+                viewProperty.Type != eventProperty.Type)
             {
                 var label = viewProperty is null ? $"read path '{path.Read}'" : $"read path '{path.Read}.{viewProperty.Name}'";
                 diagnostics.Add(DecisionRead(command, $"maps {label} to an event property with a different, optional, collection or composite type; the reference yields null for a missing value and Arc has no faithful shape for it. Map a required value of the same type."));
+            }
+        }
+
+        if (hasReads)
+        {
+            foreach (var read in command.Reads)
+            {
+                var key = context.ReadModels.TryGetValue(read.ReadModel, out var readModel) ? readModel.Properties.FirstOrDefault(property => property.IsIdentifier) : null;
+                if (key is not null && Identifiers.ToPascalCase(key.Name) != "Id")
+                {
+                    diagnostics.Add(DecisionRead(command, $"reads '{read.Name}' whose key property is '{key.Name}'; Chronicle's decision-read guard admits only a read model whose key property is named 'id' (a string or Guid, concepts included), so the command could never succeed. Rename the key property, and the query's key argument with it, to 'id'."));
+                }
             }
         }
 
@@ -41,19 +54,6 @@ internal static partial class SemanticCratisAdmission
         {
             diagnostics.Add(DecisionRead(command, "combines protected reads with generated-value freshness scopes; Arc's explicit scope must cover the reads and that interaction is unproven. Declare the reads on a command without generated event-source destinations."));
         }
-
-        if (hasReads && ProducesConstrainedEvent(context, command))
-        {
-            diagnostics.Add(DecisionRead(command, "combines protected reads with an event under an append-time constraint; no reference vector decides which failure wins yet. Split the constrained append into its own command."));
-        }
-    }
-
-    static bool ProducesConstrainedEvent(SemanticApplicationContext context, SemanticCommand command)
-    {
-        var constrained = context.Constraints.Select(_ => _.Constraint)
-            .SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy)).ToHashSet();
-
-        return command.Produces.Any(produced => constrained.Contains(produced.EventContract));
     }
 
     static ArtifactRenderDiagnostic DecisionRead(SemanticCommand command, string reason) =>

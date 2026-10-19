@@ -27,7 +27,7 @@ public class when_emitting_the_stage_frontend_runtime : a_screen_composition_ren
         "react", "react-dom", "reflect-metadata", "tsyringe", "@types/node", "@types/react", "@types/react-dom", "@vitejs/plugin-react"
     ];
 
-    static readonly string[] _liveOnly = ["main.tsx", "sharedModules.ts", "stagePackages.ts", "testSetup.ts", "testElements.ts"];
+    static readonly string[] _liveOnly = ["index.ts", "testSetup.ts", "testElements.ts"];
 
     ArtifactRenderPlan _plan = null!;
     string _frontend = null!;
@@ -44,20 +44,20 @@ public class when_emitting_the_stage_frontend_runtime : a_screen_composition_ren
 
     [Fact] void should_emit_every_live_runtime_module() => RuntimeArtifacts().Select(_ => _.Name).ShouldContainOnly(LiveRuntimeModules());
     [Fact] void should_emit_each_module_byte_for_byte() => RuntimeArtifacts().Where(_ => _.Text != Live(_.Name)).Select(_ => _.Name).ShouldBeEmpty();
-    [Fact] void should_emit_the_styled_primereact_plugin_byte_for_byte() => Text(_plan, ".frontend/styledPrimeReact.ts").ShouldEqual(File.ReadAllText(Path.Combine(_frontend, "styledPrimeReact.ts")).Replace("\r\n", "\n", StringComparison.Ordinal));
+    [Fact] void should_emit_the_styled_primereact_plugin_byte_for_byte() => Text(_plan, ".frontend/styledPrimeReact.ts").ShouldEqual(File.ReadAllText(Path.Combine(_frontend, "Runtime", "styledPrimeReact.ts")).Replace("\r\n", "\n", StringComparison.Ordinal));
     [Fact] void should_pin_every_shared_package_to_the_live_version() => _sharedPackages.Where(name => Version(_generatedPackages, name) != Version(_livePackages, name)).Select(name => $"{name}: {Version(_generatedPackages, name)} != {Version(_livePackages, name)}").ShouldBeEmpty();
 
     (string Name, string Text)[] RuntimeArtifacts() => [.. _plan.Artifacts
         .Where(_ => _.RelativePath.StartsWith(".frontend/stage/", StringComparison.Ordinal))
         .Select(_ => (_.RelativePath[".frontend/stage/".Length..], System.Text.Encoding.UTF8.GetString(_.Bytes.AsSpan())))];
 
-    string[] LiveRuntimeModules() => [.. Directory.GetFiles(Path.Combine(_frontend, "src"))
+    string[] LiveRuntimeModules() => [.. Directory.GetFiles(Path.Combine(_frontend, "Runtime", "src"))
         .Select(Path.GetFileName)
         .OfType<string>()
         .Where(name => (name.EndsWith(".ts", StringComparison.Ordinal) || name.EndsWith(".tsx", StringComparison.Ordinal) || name.EndsWith(".css", StringComparison.Ordinal)) &&
             !name.Contains(".spec.", StringComparison.Ordinal) && !_liveOnly.Contains(name, StringComparer.Ordinal))];
 
-    string Live(string name) => File.ReadAllText(Path.Combine(_frontend, "src", name)).Replace("\r\n", "\n", StringComparison.Ordinal);
+    string Live(string name) => File.ReadAllText(Path.Combine(_frontend, "Runtime", name == "stageSource.ts" ? "embedding" : "src", name)).Replace("\r\n", "\n", StringComparison.Ordinal);
 
     static JsonElement Dependencies(string packageJson)
     {

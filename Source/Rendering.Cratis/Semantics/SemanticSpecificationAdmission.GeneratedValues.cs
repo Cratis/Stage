@@ -127,7 +127,7 @@ internal static partial class SemanticSpecificationAdmission
             .Where(property => !action.GeneratedValues.Any(value => value.TargetProperty == property.Id));
 
     static bool HasProjectedOrUnorderedExpectations(SemanticSpecification specification) =>
-        specification.ThenEventsInAnyOrder || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty;
+        specification.ThenEventsInAnyOrder || !specification.ThenReadModels.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty || !specification.ThenQueries.IsEmpty;
 
     static bool HasDestinationValue(SemanticProperty property, SemanticValue? value, SemanticEventSourceIdentity? source, IEnumerable<SemanticSpecificationEvent> expected)
     {

@@ -41,6 +41,10 @@ const createdWorkItem = {
     title: 'Browser-created work item',
     notes: 'Notes typed across both columns'
 };
+const pushedWorkItem = {
+    id: '55555555-5555-5555-5555-555555555555',
+    title: 'Pushed from another client'
+};
 const nativeComment = {
     id: '44444444-4444-4444-4444-444444444444',
     text: 'Added through native browser form'
@@ -417,6 +421,19 @@ async function assertGuardedActions(page, result, network) {
     await expectText(page, result, 'browser.guarded.doubleClick.closed.notifies', notice);
     if (!page.url().includes(workItemA.id)) record(result, 'browser.guarded.doubleClick.closed.staysOnList', 'passed', page.url());
     else block(result, 'browser.guarded.doubleClick.closed.staysOnList', `double-click on closed A navigated to ${page.url()}`);
+}
+
+// A command from a client other than this page must appear in the open list without a reload: the list is observable.
+async function assertListUpdatesFromAnotherClient(page, result) {
+    await page.goto(`${baseUrl}/#/WorkItemList`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    await expectText(page, result, 'browser.live.list.loaded', workItemA.title);
+    if (await page.getByText(pushedWorkItem.title, { exact: false }).count() > 0) {
+        block(result, 'browser.live.list.beforeCommand', 'the pushed work item was listed before it was created');
+        return;
+    }
+
+    await postJson(routes.createWorkItem, { workItemId: pushedWorkItem.id, title: pushedWorkItem.title, notes: 'Created by another client' });
+    await expectText(page, result, 'browser.live.list.updatesWithoutRefresh', pushedWorkItem.title);
 }
 
 async function assertTwoItemSelectionLifecycle(page, result, network) {
@@ -836,6 +853,7 @@ async function runBrowserFlow(result) {
         await assertNavigationAndTheme(page, result);
         await assertAuthoredToolbarAndHierarchy(page, result);
         await assertGuardedActions(page, result, network);
+        await assertListUpdatesFromAnotherClient(page, result);
         await assertResponsiveShell(browser, result, baseUrl);
 
         const stageRequests = network.requests.filter(request => new URL(request.url).pathname.startsWith('/stage/'));

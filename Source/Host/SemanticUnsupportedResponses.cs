@@ -11,8 +11,9 @@ internal static class SemanticUnsupportedResponses
 {
     internal static async Task Rewrite(HttpContext context, Func<Task> next)
     {
-        if (!context.Request.Path.StartsWithSegments("/api"))
+        if (!context.Request.Path.StartsWithSegments("/api") || IsStreaming(context.Request))
         {
+            // A stream is written for as long as the client stays connected: buffering it would hold every frame back.
             await next();
             return;
         }
@@ -46,6 +47,10 @@ internal static class SemanticUnsupportedResponses
             context.Response.Body = original;
         }
     }
+
+    static bool IsStreaming(HttpRequest request) =>
+        request.Headers.Accept.Any(value => value?.Contains("text/event-stream", StringComparison.OrdinalIgnoreCase) == true) ||
+        request.Headers.Upgrade.Any(value => value?.Contains("websocket", StringComparison.OrdinalIgnoreCase) == true);
 }
 
 internal sealed class UnsupportedSemanticResponse() : Exception("The Arc response for an unsupported semantic operation is not JSON.");

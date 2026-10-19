@@ -24,7 +24,8 @@ internal static class SemanticSpecificationArtifactRenderer
         var sources = new[] { specification.Id, context.DeclaringSlice(specification.Id).Slice.Id };
         if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
         {
-            return [.. specification.ThenReadModels.Select(expected => SemanticReadModelSpecificationRenderer.Render(facts, expected, context) with { Sources = [.. sources] })];
+            return [.. specification.ThenReadModels.Select(expected => SemanticReadModelSpecificationRenderer.Render(facts, expected, context) with { Sources = [.. sources] }),
+                .. specification.ThenAbsentReadModels.Select((expected, index) => SemanticReadModelSpecificationRenderer.RenderAbsent(facts, expected, context, index) with { Sources = [.. sources] })];
         }
         if (SemanticReactionCascade.TryLower(context, specification, out var cascade) && SemanticSpecificationAdmission.CommandTriggersReaction(context, specification))
         {
@@ -58,6 +59,8 @@ internal static class SemanticSpecificationArtifactRenderer
 
         files.AddRange(specification.ThenReadModels.Select(_ =>
             SemanticReadModelSpecificationRenderer.Render(specification, _, context)));
+        files.AddRange(specification.ThenAbsentReadModels.Select((expected, index) =>
+            SemanticReadModelSpecificationRenderer.RenderAbsent(specification, expected, context, index)));
         files.AddRange(specification.ThenQueries.Select(_ =>
             SemanticQuerySpecificationRenderer.Render(specification, _, context)));
         return [.. files.Select(file => file with { Sources = [.. sources] })];

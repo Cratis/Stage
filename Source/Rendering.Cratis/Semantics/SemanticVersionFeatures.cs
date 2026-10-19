@@ -581,9 +581,16 @@ internal static class SemanticVersionFeatures
 
     internal static IEnumerable<SemanticVersionFeature> UnsupportedGenerated(SemanticCommand command, IEnumerable<SemanticConcept>? concepts)
     {
-        foreach (var property in command.Properties.Where(property => property.IsGenerated).Where(property => UnsupportedGeneratedType(property.Type, concepts)))
+        foreach (var property in command.Properties.Where(property => property.IsGenerated))
         {
-            yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}'; Stage renders only non-optional, non-collection concepts with admitted generation strategies.");
+            if (UnsupportedGeneratedShape(property.Type) is { } shape)
+            {
+                yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}' as {shape}; Screenplay requires a generated property to be a required, non-collection generatable concept (PLAY0483).");
+            }
+            else if (concepts?.Any(concept => concept.Id == property.Type.Target && SemanticGenerationShapes.Supported(concept)) == false)
+            {
+                yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}'; Stage does not support the generation strategy or primitive of its concept.");
+            }
         }
     }
 
@@ -663,11 +670,24 @@ internal static class SemanticVersionFeatures
         _ => "userName"
     };
 
-    static bool UnsupportedGeneratedType(SemanticTypeReference type, IEnumerable<SemanticConcept>? concepts)
+    static string? UnsupportedGeneratedShape(SemanticTypeReference type)
     {
-        if (type is not { Kind: SemanticTypeReferenceKind.Concept, IsOptional: false, IsCollection: false }) return true;
+        var noun = type.Kind switch
+        {
+            SemanticTypeReferenceKind.Concept => "concept",
+            SemanticTypeReferenceKind.Primitive => "primitive",
+            SemanticTypeReferenceKind.CompositeType => "composite type",
+            _ => "unknown type"
+        };
 
-        return concepts?.Any(concept => concept.Id == type.Target && SemanticGenerationShapes.Supported(concept)) == false;
+        return (type.Kind, type.IsOptional, type.IsCollection) switch
+        {
+            (SemanticTypeReferenceKind.Concept, false, false) => null,
+            (_, true, true) => $"an optional collection of {noun}s",
+            (_, true, false) => $"an optional {noun}",
+            (_, false, true) => $"a collection of {noun}s",
+            _ => noun == "unknown type" ? "an unknown type" : $"a {noun}"
+        };
     }
 
     static IEnumerable<string> UnsupportedCommandResults(SemanticCommand command) =>

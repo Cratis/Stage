@@ -18,6 +18,7 @@ public class when_rendering_a_policy_denial : Specification
         var source = "policy Clerks\n  require authenticated\n" + invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource)
             .Replace("command IssueInvoice\n", "command IssueInvoice\n        authorize Clerks\n", StringComparison.Ordinal)
             .Replace("      when IssueInvoice\n", "      given caller\n        when IssueInvoice\n", StringComparison.Ordinal);
+
         // Retain one denial so the renderer has no acceptance expectations to emit.
         var model = invoice_model.Compile(source);
         var module = model.Application.Modules.Single();

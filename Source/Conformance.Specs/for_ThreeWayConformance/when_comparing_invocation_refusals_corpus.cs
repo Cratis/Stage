@@ -59,7 +59,9 @@ public class when_comparing_invocation_refusals_corpus : Specification
         var compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compiled.Success, string.Join(';', compiled.Diagnostics));
         compiled.Value!.Model.Revision.ShouldEqual(corpus.SemanticRevision);
-        Assert.Equal(corpus.EsmBytes.ToArray(), SemanticModelSerializer.Serialize(compiled.Value.Model).ToArray());
+        byte[] expected = [.. corpus.EsmBytes];
+        byte[] actual = [.. SemanticModelSerializer.Serialize(compiled.Value.Model)];
+        Assert.Equal(expected, actual);
     }
 }
 #endif

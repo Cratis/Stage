@@ -27,7 +27,7 @@ public class when_naming_scene_enumerations : Specification
         var mismatches = new List<string>();
         foreach (var type in model.GetTypes().Where(candidate => candidate.IsEnum && candidate.IsPublic && _declared.ContainsKey(candidate.Name)))
         {
-            var first = Enum.GetValues(type).GetValue(0)!;
+            var first = Enum.GetValues(type).GetValue(0);
             var written = JsonSerializer.Serialize(first, type, _options).Trim('"');
             var expected = _declared[type.Name];
             if (!string.Equals(written, expected, StringComparison.Ordinal))

@@ -82,7 +82,7 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
 
         static string[] Outcomes(IEnumerable<XElement> results, string name) =>
             [.. results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal))
-                .GroupBy(result => ((string)result.Attribute("testName")!)[..((string)result.Attribute("testName")!).LastIndexOf('.')])
+                .GroupBy(result => ((string)result.Attribute("testName")!)[.. ((string)result.Attribute("testName")!).LastIndexOf('.')])
                 .Select(group => group.All(result => (string)result.Attribute("outcome")! == "Passed") ? "Passed" : "Failed")];
 
         static ExecutableSemanticModel Model()

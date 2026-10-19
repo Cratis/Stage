@@ -11,8 +11,8 @@ public class with_a_dangling_directory_link : a_source_tree
 {
     void Establish() => Directory.CreateSymbolicLink(Path.Combine(_root, "linked"), Path.Combine(_outside, "absent"));
     async Task Because() => _result = await SemanticModelLoader.LoadAsync(_root, [], null, "Shop");
-    [SourceLinkFact] void should_report_the_link_even_without_an_existing_target() => _result.Diagnostics.Single().Code.ShouldEqual("STAGE-PLAN-001");
-    [SourceLinkFact] void should_name_the_root_relative_entry() => _result.Diagnostics.Single().Source.ShouldEqual("linked");
-    [SourceLinkFact] void should_not_compile_partial_sources() => _result.Loaded.ShouldBeNull();
+    [Fact] void should_report_the_link_even_without_an_existing_target() => _result.Diagnostics.Single().Code.ShouldEqual("STAGE-PLAN-001");
+    [Fact] void should_name_the_root_relative_entry() => _result.Diagnostics.Single().Source.ShouldEqual("linked");
+    [Fact] void should_not_compile_partial_sources() => _result.Loaded.ShouldBeNull();
 }
 #endif

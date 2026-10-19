@@ -27,7 +27,7 @@ public class when_redelivering_a_nonzero_given : a_recovery_plan
     Task Because() => Execute();
 
     [Fact] void should_match_the_reference() => AssertParity();
-    [Fact] void should_only_run_the_named_reaction_and_its_downstream_cascade() => _stage.Trace!.Facts.Select(fact => fact.EventContract).ShouldContainOnly(_specification.ThenEvents.Select(fact => fact.EventContract.ToString()).ToArray());
+    [Fact] void should_only_run_the_named_reaction_and_its_downstream_cascade() => _stage.Trace!.Facts.Select(fact => fact.EventContract).ShouldContainOnly([.. _specification.ThenEvents.Select(fact => fact.EventContract.ToString())]);
     [Fact] void should_exclude_both_seeded_inputs_from_the_new_effects() => _stage.Trace!.Facts.Count.ShouldEqual(2);
     [Fact] void should_preserve_each_input_exactly_once_in_reference_history() => _reference.Execution.World.Facts.Count(fact => fact.EventContract == _specification.GivenEvents[1].EventContract).ShouldEqual(2);
     [Fact] void should_preserve_the_nonzero_given_destination_in_the_cascade() => _stage.Trace!.Facts.All(fact => fact.EventSource == "\"payment-a\"").ShouldBeTrue();

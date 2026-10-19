@@ -58,11 +58,16 @@ public class with_query_filters : Specification
         _query = plan.Queries.Values.Single();
         foreach (var (id, name) in new[] { ("one", "Shared"), ("two", "Shared"), ("three", "Other") })
         {
-            var outcome = await _runtime.Execute(plan.Commands.Values.Single(), new Dictionary<string, JsonElement>
-            {
-                ["projectId"] = JsonSerializer.SerializeToElement(id),
-                ["name"] = JsonSerializer.SerializeToElement(name)
-            }, new ClaimsPrincipal(), new(DateTimeOffset.UtcNow, "subject", "name", "user"), false);
+            var outcome = await _runtime.Execute(
+                plan.Commands.Values.Single(),
+                new Dictionary<string, JsonElement>
+                {
+                    ["projectId"] = JsonSerializer.SerializeToElement(id),
+                    ["name"] = JsonSerializer.SerializeToElement(name)
+                },
+                new ClaimsPrincipal(),
+                new(DateTimeOffset.UtcNow, "subject", "name", "user"),
+                false);
             outcome.ShouldBeOfExactType<SemanticAccepted>();
         }
     }

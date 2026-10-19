@@ -184,6 +184,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore NuGet packages
+        id: nuget
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
         with:
           mode: restore
@@ -212,6 +213,12 @@ jobs:
 
       # The helper invokes dotnet test --no-build with the guarded filter for each project, then
       # requires a non-empty TRX with executed tests. A zero dotnet exit cannot hide an empty shard.
+      # Specs run --no-build against the downloaded output, but some (the template scaffolder) load packages
+      # from the local NuGet cache at run time. Without an exact cache hit, restore so they are present.
+      - name: Restore packages without an exact cache hit
+        if: steps.nuget.outputs.cache-hit != 'true'
+        run: dotnet restore --verbosity minimal
+
       - name: Run specs (${{ matrix.name }})
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source

@@ -59,7 +59,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
             .Select(filter => Argument(filter.Name, types.Value(expected.Filters.Single(value => value.Filter == filter.Id).Value, filter.Type)));
         builder.EndBlock().BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Because()");
         if (specification.GivenCaller is not null) builder.Line("using var scope = _principalAccessor.BeginScope(_principal);");
-        builder.Line($"_result = await _scenario.Perform(nameof({modelName}.{Identifiers.ToPascalCase(query.Name)}), new global::Cratis.Arc.Queries.QueryArguments {{ {string.Join(", ", key.Concat(filters))} }});")
+        builder.Line($"_result = await _scenario.Perform(nameof({modelName}.{context.MemberNames.Query(query)}), new global::Cratis.Arc.Queries.QueryArguments {{ {string.Join(", ", key.Concat(filters))} }});")
             .EndBlock().BlankLine().Line("[global::Xunit.FactAttribute] void should_be_authorized() => _result.IsAuthorized.ShouldBeTrue();")
             .Line("[global::Xunit.FactAttribute] void should_not_have_exceptions() => _result.HasExceptions.ShouldBeFalse();");
         if (specification.ThenErrors is [var error])

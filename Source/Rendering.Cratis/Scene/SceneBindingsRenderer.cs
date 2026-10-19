@@ -56,7 +56,7 @@ internal static class SceneBindingsRenderer
             .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ThenBy(_ => _.Id.ToString(), StringComparer.Ordinal)
             .Select((query, index) => (query.Name, Identity: query.Id.ToString(),
-                Export: Identifiers.ToPascalCase(query.Name), Module: Module(context, query.Id), Alias: $"__sceneQuery{index}"))
+                Export: context.MemberNames.Query(query), Module: Module(context, query.Id), Alias: $"__sceneQuery{index}"))
             .ToArray();
 
         var builder = new StringBuilder()

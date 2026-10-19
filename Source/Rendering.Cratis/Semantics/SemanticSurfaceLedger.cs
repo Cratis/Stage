@@ -264,10 +264,10 @@ internal static class SemanticSurfaceLedger
         // also fails STAGE-ESM-011 before rendering: Arc supplies an empty guest principal.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");
 
-        // ESM v5 keyed read-model absence fails STAGE-ESM-027: the generated ReadModelScenario exposes only a materialized record.
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-027"), "ThenAbsentReadModels");
-
-        Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-027"), "Key ReadModel");
+        // Keyed projection absence checks ReadModelScenario.Instances. Non-scalar keys retain STAGE-ESM-027;
+        // fixtures or replay outside the admitted projection scenario retain specification-level STAGE-ESM-011.
+        Add(entries, "SemanticSpecification", rendered, "ThenAbsentReadModels");
+        Add(entries, "SemanticSpecificationAbsentReadModel", rendered, "Key ReadModel");
         Add(entries, "SemanticSpecification", rendered, "WhenAppended ThenNoEvents");
 
         // Redelivery admits one named trigger with portable history; cascades and refusal branches fail STAGE-ESM-011.
@@ -429,7 +429,10 @@ internal static class SemanticSurfaceLedger
         // Host and executor: neither executes reducer bodies.
         Add(entries, "SemanticReducer", rendered, "From");
         Add(entries, "SemanticObserverFilter", rendered, "Source Stream");
-        Add(entries, "SemanticProducedEvent", rejected(SemanticVersionFeatures.ProductionRoutes), "Route");
+
+        // Production route overrides render and run per production. STAGE-ESM-036 still refuses two shapes that are not
+        // proven equivalent yet: an unkeyed override under a keyed command route, and a literal "Default" override stream id.
+        Add(entries, "SemanticProducedEvent", rendered, "Route");
 
         // ESM v25 protected command reads render as Arc read protection; the shapes the target cannot preserve
         // are refused case by case in SemanticCratisAdmission with STAGE-ESM-044, each naming its reason.

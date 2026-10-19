@@ -288,9 +288,10 @@ internal static partial class SemanticCratisAdmission
         }
 
         // Companion scenarios replay actual command routes, even if a then-event leaves its route unspecified.
-        if ((!specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
-            SemanticSpecificationRouteRendering.ForCommand(specification, context) is { } commandRoute &&
-            !SemanticSpecificationRouteRendering.CanFormat(commandRoute, context))
+        if ((!specification.ThenReadModels.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
+            SemanticSpecificationRouteRendering.ForProductions(specification, context)
+                .Concat(SemanticSpecificationRouteRendering.ForCommand(specification, context) is { } commandRoute ? [commandRoute] : [])
+                .Any(route => !SemanticSpecificationRouteRendering.CanFormat(route, context)))
         {
             diagnostics.Add(Error("STAGE-ESM-030", $"Specification '{specification.Name}' has a command replay route whose stream identity cannot be formatted portably.", specification.Id));
         }

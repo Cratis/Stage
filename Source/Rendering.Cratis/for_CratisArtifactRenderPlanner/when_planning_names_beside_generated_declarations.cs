@@ -147,12 +147,14 @@ public class when_planning_names_beside_generated_declarations
     [Theory]
     [InlineData("query Total => Total?\n        by id Uuid")]
     [InlineData("query Amount => Total?\n        by id Uuid")]
-    public async Task should_reject_a_reducer_backed_query_named_like_a_member(string query)
+    public async Task should_admit_and_compile_a_reducer_backed_query_named_like_a_member(string query)
     {
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(ReducerSource()
             .Replace("query ById => Total?\n        by id Uuid", query, StringComparison.Ordinal)));
 
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("Total", StringComparison.Ordinal));
+        Assert.True(plan.Success, string.Join("; ", plan.Diagnostics));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-050" && diagnostic.Message.Contains("Total", StringComparison.Ordinal));
+        Assert.Empty(RenderedOutput.Errors(CSharp(plan)));
     }
 
     [Fact]

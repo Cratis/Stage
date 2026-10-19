@@ -859,6 +859,10 @@ public class when_compiling_generated_name_matrix
         return ExecutableSemanticModel.Create(Original.LanguageVersion, Original.SemanticVersion, application);
     }
 
+    [Fact]
+    public Task escaped_command_properties_serialize_with_the_escaped_wire_name() =>
+        Verify(Mutate("command", "registerProject", typeName: false), "serialization/command-escaped");
+
     static Task Verify(ExecutableSemanticModel model, string row) => Verify(Prepare(model, row));
 
     static MatrixRow Prepare(ExecutableSemanticModel model, string row, string rootNamespace = "Projects")
@@ -901,6 +905,7 @@ public class when_compiling_generated_name_matrix
     {
         var (row, model, plan, options, request, files) = entry;
         var errors = compiledErrors ?? RenderedOutput.Errors(files);
+        var escapedSerialization = row == "serialization/command-escaped";
         var serializationFailure = serializedFailure ?? false;
         if (serializedFailure is null && errors.Count == 0 && row.StartsWith("serialization/", StringComparison.Ordinal))
         {
@@ -914,7 +919,12 @@ public class when_compiling_generated_name_matrix
                     type.GetConstructors()[0].GetParameters().All(parameter => parameter.ParameterType == typeof(string))))
                 {
                     var instance = Activator.CreateInstance(type, [.. type.GetConstructors()[0].GetParameters().Select(_ => (object)"value")]);
-                    _ = JsonSerializer.Serialize(instance, SerializationOptions);
+                    var json = JsonSerializer.Serialize(instance, SerializationOptions);
+                    if (escapedSerialization && type.Name == "RegisterProject")
+                    {
+                        Assert.Equal("value", JsonDocument.Parse(json).RootElement.GetProperty("registerProject_").GetString());
+                        Assert.Equal(instance, JsonSerializer.Deserialize(json, type, SerializationOptions));
+                    }
                 }
             }
             catch (InvalidOperationException)
@@ -925,10 +935,15 @@ public class when_compiling_generated_name_matrix
         if (row.StartsWith("serialization/", StringComparison.Ordinal))
         {
             Assert.Empty(errors);
-            Assert.True(serializationFailure, $"{row}: the generated record must be exercised by the serializer");
+            Assert.Equal(!escapedSerialization, serializationFailure);
         }
+        var admittedEscape = escapedSerialization || (row.StartsWith("member/command/", StringComparison.Ordinal) &&
+            new[] { "registerProject", "handle", "getEventSourceId", "equalityContract", "toString", "equals", "getHashCode", "deconstruct", "printMembers", "getType", "memberwiseClone", "referenceEquals", "clone" }.Contains(row["member/command/".Length..], StringComparer.Ordinal)) ||
+            new[] { "queryname/projectSummary", "queryname/equalityContract", "queryname/clone", "queryname/name" }.Contains(row, StringComparer.Ordinal);
+        if (admittedEscape) Assert.Empty(errors);
         var rejected = errors.Count > 0 || serializationFailure;
         var rendered = CratisRendering.Plan(model, plan, request.Scope, options);
+        if (admittedEscape) Assert.True(rendered.Success, $"{row}: {string.Join("; ", rendered.Diagnostics)}");
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(
             plan, new([plan.Specifications.Values.Single().Id]), new())).Results);
         Assert.True(rejected == !rendered.Success, $"{row}: admission={rendered.Success}; compiler={string.Join("; ", errors)}; serialization={serializationFailure}");

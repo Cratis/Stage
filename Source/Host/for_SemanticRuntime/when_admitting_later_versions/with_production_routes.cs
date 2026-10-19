@@ -17,6 +17,6 @@ public class with_production_routes : Specification
     void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EventRoutesCorpus.ProductionRoutesV10.EsmBytes.AsSpan())).Plan!;
     void Because() => _admission = new(_plan);
 
-    [Fact] void should_refuse_every_command_with_an_override() => _admission.Blocking.Where(entry => entry.Details!.StartsWith("STAGE-ESM-036:", StringComparison.Ordinal)).Select(entry => entry.Artifact).ShouldContainOnly(_plan.Commands.Keys.Select(id => id.ToString()));
+    [Fact] void should_admit_the_overrides() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-036:", StringComparison.Ordinal)).ShouldBeFalse();
     [Fact] void should_admit_the_version_pair() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
 }

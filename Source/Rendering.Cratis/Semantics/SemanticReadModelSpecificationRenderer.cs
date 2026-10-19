@@ -24,6 +24,27 @@ internal static class SemanticReadModelSpecificationRenderer
         SemanticSpecification specification,
         SemanticSpecificationReadModel expected,
         SemanticApplicationContext context)
+        => Render(specification, expected, context, null);
+
+    /// <summary>
+    /// Renders the absence of one keyed read-model instance.
+    /// </summary>
+    /// <param name="specification">The semantic specification.</param>
+    /// <param name="expected">The expected absent instance.</param>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="index">The expectation's position, to keep multiple absent keys distinct.</param>
+    /// <returns>The generated specification source.</returns>
+    public static RenderedFile RenderAbsent(
+        SemanticSpecification specification,
+        SemanticSpecificationAbsentReadModel expected,
+        SemanticApplicationContext context,
+        int index) => Render(specification, new(expected.ReadModel, expected.Key, []), context, index);
+
+    static RenderedFile Render(
+        SemanticSpecification specification,
+        SemanticSpecificationReadModel expected,
+        SemanticApplicationContext context,
+        int? absentIndex)
     {
         var readModel = context.ReadModels[expected.ReadModel];
         var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
@@ -31,7 +52,12 @@ internal static class SemanticReadModelSpecificationRenderer
         var command = specification.When is null ? null : context.Commands[specification.When.Command];
 
         // Without a command there is nothing to replay: the facts are all given, and only a projection builds the model from them.
-        var replay = command is null ? [] : ReplayOf(context.Application, specification, expected, projection, reducer, command);
+        IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> replay = [];
+        if (command is not null)
+        {
+            replay = absentIndex is not null ? ReplayForAbsence(context, specification, command)
+                : ReplayOf(context.Application, specification, expected, projection, reducer, command);
+        }
         var givenEvents = reducer is null ? specification.GivenEvents : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
@@ -39,6 +65,10 @@ internal static class SemanticReadModelSpecificationRenderer
         if (specification.ThenReadModels.Length > 1)
         {
             behavior += $"_into_{Identifiers.ToSnakeCase(readModel.Name)}";
+        }
+        if (absentIndex is { } index)
+        {
+            behavior += $"_without_{Identifiers.ToSnakeCase(readModel.Name)}_{index + 1}";
         }
         var builder = Builder(behavior, located, readModel, context);
         var needsCommon = false;
@@ -49,7 +79,7 @@ internal static class SemanticReadModelSpecificationRenderer
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
             .BlankLine()
-            .OpenBlock("async global::System.Threading.Tasks.Task Establish()");
+            .OpenBlock(givenEvents.Count == 0 && replay.Count == 0 ? "void Establish()" : "async global::System.Threading.Tasks.Task Establish()");
         foreach (var given in givenEvents)
         {
             var givenEvent = context.Events[given.EventContract];
@@ -83,7 +113,7 @@ internal static class SemanticReadModelSpecificationRenderer
                     expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context, produced), context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
         builder.EndBlock()
@@ -91,7 +121,12 @@ internal static class SemanticReadModelSpecificationRenderer
         var keyProperty = readModel.Properties.Single(_ => _.IsIdentifier);
         needsCommon |= SemanticTypeSystem.ValueNeedsCommon(expected.Key, keyProperty.Type);
         var instance = $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
-        if (expected.Values.IsEmpty)
+        if (absentIndex is not null)
+        {
+            var key = types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type);
+            builder.Line($"[global::Xunit.FactAttribute] void should_not_project_the_absent_instance() => _scenario.Instances.ContainsKey({key}).ShouldBeFalse();");
+        }
+        else if (expected.Values.IsEmpty)
         {
             builder.Line($"[global::Xunit.FactAttribute] void should_project_the_expected_instance() => {instance}.ShouldNotBeNull();");
         }
@@ -152,6 +187,16 @@ internal static class SemanticReadModelSpecificationRenderer
             .Using("Xunit")
             .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(readModel.Id).Path));
     }
+
+    static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> ReplayForAbsence(
+        SemanticApplicationContext context,
+        SemanticSpecification specification,
+        SemanticCommand command) =>
+        specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty ? [] :
+            [.. SemanticProductionSelection.Taken(context.Application, command, specification).Select((produced, index) => (produced,
+                specification.ThenEventsInAnyOrder
+                    ? specification.ThenEvents.Single(expected => expected.EventContract == produced.EventContract)
+                    : specification.ThenEvents[index]))];
 
     static IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> ReplayOf(
         SemanticApplication application,

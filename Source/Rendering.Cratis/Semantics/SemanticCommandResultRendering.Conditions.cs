@@ -22,7 +22,7 @@ internal sealed partial class SemanticCommandResultRendering
     {
         foreach (var (produced, index) in command.Produces.Select((produced, index) => (produced, index)))
         {
-            var condition = produced.When is null ? "true" : SemanticConditionRendering.Render(produced.When, new(command.Properties, string.Empty, context, PropertyValue, SemanticDateComparisonAdmission.Raw(context.Application, command)));
+            var condition = produced.When is null ? "true" : SemanticConditionRendering.Render(produced.When, new(command.Properties, string.Empty, context, Value, SemanticDateComparisonAdmission.Raw(context.Application, command)));
             builder.Line($"var {locals.Name($"stageProduces{index}")} = {condition};");
         }
         builder.Line($"var {locals.Name("stageEvents")} = new global::System.Collections.Generic.List<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>();");

@@ -25,7 +25,7 @@ internal static partial class SemanticSpecificationAdmission
         specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true;
 
     static bool HasRenderableQueryExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>
-        specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) &&
+        !DependsOnOpaquePolicy(context, specification) &&
         ProtectedCollectionRejectionReason(context, specification) is null && QueryArgumentsHaveCompleteValues(context, specification);
 
     static bool QueryArgumentsHaveCompleteValues(SemanticApplicationContext context, SemanticSpecification specification) =>
@@ -51,9 +51,10 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static bool CanRenderQueryOnly(SemanticApplicationContext context, SemanticSpecification specification) =>
-        CanEmptyQueryOnly(specification, context) || CanDenyQueryOnly(specification, context) ||
-        (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
-        (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0]));
+        specification.ThenAbsentReadModels.IsEmpty &&
+        (CanEmptyQueryOnly(specification, context) || CanDenyQueryOnly(specification, context) ||
+            (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
+            (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])));
 
     static bool HasProtectedQueryWithRenderableKey(SemanticSpecificationQueryResult expected, SemanticApplicationContext context) =>
         context.Queries.TryGetValue(expected.Query, out var query) && query.Authorization is not null &&
@@ -83,7 +84,7 @@ internal static partial class SemanticSpecificationAdmission
                 return "A protected snapshot collection success needs a collection-aware query scenario GetInstances store; Arc 22.87 forwards GetInstances to the inner store rather than its seeded events and pinned rows.";
             }
             var routedReplay = specification.GivenEvents.Any(given => given.Route is not null) ||
-                SemanticSpecificationRouteRendering.ForCommand(specification, context) is not null;
+                SemanticSpecificationRouteRendering.RoutesCommand(specification, context);
             if (routedReplay && !HasReadablePinnedKey(context, query.ReadModel))
             {
                 return "A protected live collection with routed replay pins rows that need a readable Key, Subject or Id; Arc 22.87 cannot observe unkeyed pinned read models.";

@@ -39,9 +39,9 @@ internal static class SemanticValidationRendering
         SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith) ||
         !text.Value.Any(_ => _ is '{' or '}')));
 
-    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, ConceptRendering? conceptRendering = null, CSharpCodeBuilder? typeBuilder = null)
+    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, ConceptRendering? conceptRendering = null, CSharpCodeBuilder? typeBuilder = null, string? generatedMember = null)
     {
-        var value = concept ? "_.Value" : $"_.{Identifiers.ToPascalCase(property)}";
+        var value = concept ? "_.Value" : $"_.{generatedMember ?? Identifiers.ToPascalCase(property)}";
         conceptRendering ??= new();
         var ruleFor = conceptRendering.RuleFor;
         var predicate = conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder);

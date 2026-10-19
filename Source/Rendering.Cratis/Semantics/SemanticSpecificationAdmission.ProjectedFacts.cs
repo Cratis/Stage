@@ -11,13 +11,14 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static partial class SemanticSpecificationAdmission
 {
     internal static bool CanRenderProjectedFacts(SemanticApplicationContext context, SemanticSpecification specification) =>
-        !specification.GivenEvents.IsEmpty && HasRenderableGivenEvents(context, specification) &&
+        (!specification.GivenEvents.IsEmpty || specification.ThenReadModels.IsEmpty) && HasRenderableGivenEvents(context, specification) &&
         GivenKeysMatchProjectedProperties(context, specification) && !GivenEventsViolateConstraints(context, specification) &&
-        specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) && IsProjectedFromFacts(context, specification, expected));
+        specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) && IsProjectedFromFacts(context, specification, expected)) &&
+        specification.ThenAbsentReadModels.All(expected => CanAssertAbsence(context, specification, expected));
 
     static string ProjectedFactsRejection(SemanticApplicationContext context, SemanticSpecification specification)
     {
-        if (specification.GivenEvents.IsEmpty)
+        if (specification.GivenEvents.IsEmpty && !specification.ThenReadModels.IsEmpty)
         {
             return "A read model asserted without an action needs the events that project it.";
         }
@@ -25,6 +26,11 @@ internal static partial class SemanticSpecificationAdmission
         if (!HasRenderableGivenEvents(context, specification))
         {
             return "The events cannot be represented faithfully: each needs an explicit, losslessly representable event source and complete values.";
+        }
+
+        if (specification.ThenAbsentReadModels.Any(expected => !CanAssertAbsence(context, specification, expected)))
+        {
+            return AbsenceRejection;
         }
 
         if (specification.ThenReadModels.Any(expected => !IsProjectedFromFacts(context, specification, expected)))

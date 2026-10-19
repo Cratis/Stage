@@ -46,7 +46,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         UseEventNamespaces(builder, [.. replay.Select(_ => _.Produced.EventContract), .. specification.GivenEvents.Select(given => given.EventContract)], queryNamespace, context);
 
         var routedReplay = specification.GivenEvents.Any(given => given.Route is not null) ||
-            SemanticSpecificationRouteRendering.ForCommand(specification, context) is not null;
+            SemanticSpecificationRouteRendering.RoutesCommand(specification, context);
         if (routedReplay)
         {
             builder.Using("Cratis.Chronicle.Testing.ReadModels");
@@ -75,7 +75,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             .OpenBlock("async global::System.Threading.Tasks.Task Because()")
             .Line($"var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
             .Line("using var scope = _principalAccessor.BeginScope(principal);")
-            .Line($"_result = await _scenario.Perform(nameof({readModelName}.{Identifiers.ToPascalCase(query.Name)}), new global::Cratis.Arc.Queries.QueryArguments {{ {Arguments(expected, context, types)} }});")
+            .Line($"_result = await _scenario.Perform(nameof({readModelName}.{context.MemberNames.Query(query)}), new global::Cratis.Arc.Queries.QueryArguments {{ {Arguments(expected, context, types)} }});")
             .EndBlock().BlankLine();
 
         Write(builder, Assertions(specification, expected, readModelName, context, types));
@@ -137,11 +137,11 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         if (specification.When is { } action)
         {
             var command = context.Commands[action.Command];
-            var route = SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context, types);
             foreach (var (produced, eventExpectation) in replay)
             {
                 var @event = context.Events[produced.EventContract];
                 var source = SemanticDestinations.ForSpecification(specification, command, produced);
+                var route = SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context, produced), context, types);
                 var arguments = @event.Properties.Select(property =>
                     types.Value(eventExpectation.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
                 yield return $"{seed}.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){route}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));";
@@ -178,12 +178,12 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         var readModel = context.ReadModels[context.Queries[expected.Query].ReadModel];
         if (context.Queries[expected.Query].Cardinality == SemanticQueryCardinality.Many)
         {
-            return CollectionAssertions(expected, readModel, readModelName, types);
+            return CollectionAssertions(expected, readModel, readModelName, context, types);
         }
         var comparisons = expected.Results.Single().Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal).Select(value =>
         {
             var property = readModel.Properties.Single(candidate => candidate.Id == value.TargetProperty);
-            return $"[global::Xunit.FactAttribute] void should_have_{Identifiers.ToSnakeCase(property.Name)}() => (({readModelName})_result.Data!).{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});";
+            return $"[global::Xunit.FactAttribute] void should_have_{Identifiers.ToSnakeCase(property.Name)}() => (({readModelName})_result.Data!).{context.MemberNames.Property(property)}.ShouldEqual({types.Value(value.Value, property.Type)});";
         });
         return
         [
@@ -193,7 +193,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         ];
     }
 
-    static IEnumerable<string> CollectionAssertions(SemanticSpecificationQueryResult expected, SemanticReadModel readModel, string readModelName, SemanticTypeSystem types)
+    static IEnumerable<string> CollectionAssertions(SemanticSpecificationQueryResult expected, SemanticReadModel readModel, string readModelName, SemanticApplicationContext context, SemanticTypeSystem types)
     {
         yield return "[global::Xunit.FactAttribute] void should_be_authorized() => _result.IsAuthorized.ShouldBeTrue();";
         var models = $"global::System.Linq.Enumerable.Cast<{readModelName}>((global::System.Collections.Generic.IEnumerable<object>)_result.Data!)";
@@ -201,12 +201,12 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         var key = readModel.Properties.Single(property => property.IsIdentifier);
         foreach (var (result, index) in expected.Results.Select((result, index) => (result, index)))
         {
-            var selection = $"global::System.Linq.Enumerable.Single({models}, model => model.{Identifiers.ToPascalCase(key.Name)} == {types.Value(result.Key, key.Type)})";
+            var selection = $"global::System.Linq.Enumerable.Single({models}, model => model.{context.MemberNames.Property(key)} == {types.Value(result.Key, key.Type)})";
             yield return $"[global::Xunit.FactAttribute] void should_return_result_{index + 1}() => ({selection} is not null).ShouldBeTrue();";
             foreach (var value in result.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
             {
                 var property = readModel.Properties.Single(property => property.Id == value.TargetProperty);
-                yield return $"[global::Xunit.FactAttribute] void should_return_result_{index + 1}_with_{Identifiers.ToSnakeCase(property.Name)}() => {selection}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});";
+                yield return $"[global::Xunit.FactAttribute] void should_return_result_{index + 1}_with_{Identifiers.ToSnakeCase(property.Name)}() => {selection}.{context.MemberNames.Property(property)}.ShouldEqual({types.Value(value.Value, property.Type)});";
             }
         }
     }

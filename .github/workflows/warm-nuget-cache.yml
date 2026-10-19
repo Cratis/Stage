@@ -42,12 +42,7 @@ jobs:
 
       - name: Cache NuGet packages
         id: nuget
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
 
       - name: Restore solution packages
         if: steps.nuget.outputs.cache-hit != 'true'

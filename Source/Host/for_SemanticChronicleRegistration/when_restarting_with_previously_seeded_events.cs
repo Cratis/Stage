@@ -10,6 +10,7 @@ using Cratis.Chronicle.Schemas;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticChronicleRegistration.given;
+using Cratis.Stage.Semantics;
 using NSubstitute;
 using Xunit;
 

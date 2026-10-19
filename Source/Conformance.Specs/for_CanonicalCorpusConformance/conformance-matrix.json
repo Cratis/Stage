@@ -135,7 +135,7 @@
         { "code": "capability:Command[only-scalar-command-and-event]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 441 },
         { "code": "capability:Command[only-scalar-given-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
         { "code": "capability:Occurrence[only-scalar-appended-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-PLAN-004", "kind": "query", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 551 },
         { "code": "STAGE-PLAN-004", "kind": "query", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005b", "issue": 551 },
@@ -151,8 +151,8 @@
         { "code": "capability:Command[only-scalar-given-event-values]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": 441 },
         { "code": "capability:IdentityAllocation[a-produced-fact-requires-an]", "kind": "command", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 511 },
         { "code": "capability:Occurrence[only-scalar-appended-event-values]", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": 441 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
@@ -1606,7 +1606,7 @@
         { "code": "capability:Command[only-scalar-command-and-event]", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 441 },
         { "code": "capability:Command[only-scalar-given-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
         { "code": "capability:Occurrence[only-scalar-appended-event-values]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 441 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-PLAN-004", "kind": "query", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 551 },
         { "code": "STAGE-PLAN-004", "kind": "query", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005b", "issue": 551 },
@@ -1621,8 +1621,8 @@
         { "code": "capability:Command[only-scalar-command-and-event]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000062", "issue": 441 },
         { "code": "capability:Command[only-scalar-given-event-values]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": 441 },
         { "code": "capability:Occurrence[only-scalar-appended-event-values]", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fc", "issue": 441 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
@@ -2421,7 +2421,7 @@
         { "code": "STAGE-IMPL-003", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 513 },
         { "code": "STAGE-IMPL-003", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000bb8", "issue": 513 },
         { "code": "STAGE-PLAN-004", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-IMPL-003", "kind": "command", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
         { "code": "STAGE-IMPL-003", "kind": "command", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 513 },
@@ -2439,8 +2439,8 @@
         { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000015e", "issue": 551 },
         { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fd", "issue": 501 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
@@ -2474,7 +2474,7 @@
         { "code": "STAGE-IMPL-003", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 513 },
         { "code": "STAGE-IMPL-003", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000bb8", "issue": 513 },
         { "code": "STAGE-PLAN-004", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-IMPL-003", "kind": "command", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
         { "code": "STAGE-IMPL-003", "kind": "command", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 513 },
@@ -2489,8 +2489,8 @@
         { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fd", "issue": 501 },
         { "code": "capability:EventContract[only-the-initial-event-revision]", "kind": "event", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
@@ -2525,7 +2525,7 @@
         { "code": "STAGE-IMPL-003", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 513 },
         { "code": "STAGE-IMPL-003", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000bb8", "issue": 513 },
         { "code": "STAGE-PLAN-004", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 512 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-IMPL-003", "kind": "command", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
         { "code": "STAGE-IMPL-003", "kind": "command", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000082d", "issue": 513 },
@@ -2540,8 +2540,8 @@
         { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000816", "issue": 501 },
         { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000021fd", "issue": 501 },
         { "code": "capability:EventContract[only-the-initial-event-revision]", "kind": "event", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
-        { "code": "capability:Projection[per-run-projections-currently-require]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058f", "issue": 512 },
+        { "code": "capability:Projection[per-run-projections-need-scalar]", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000817", "issue": 512 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },

@@ -138,7 +138,7 @@ internal sealed class SemanticGeneratedCommandSpecification(SemanticSpecificatio
 
     void RenderResponseFields(CSharpCodeBuilder builder, SemanticRecordSpecificationResponse record, SemanticRecordCommandResponse contract)
     {
-        var responseType = types.SliceType(command.Id, command.Name + "Response");
+        var responseType = types.SliceDeclaration(command.Id, context.ResponseType(command));
         foreach (var field in record.Fields)
         {
             var declared = contract.Fields.Single(candidate => candidate.Name == field.Name);

@@ -353,6 +353,13 @@ their names. Hand-written implementation bodies must use the emitted command mem
 A query colliding with its read-model type, `EqualityContract`, `Clone`, or a read-model
 property also receives `_`. Its proxy export follows the emitted method name; an Arc
 `[Path]` preserves the original HTTP route using the scaffold's route settings.
+
+A multi-field command response renders as record `<Command>Response`. When a response
+field, a sibling declaration, or a namespace already uses that name, the record and its
+proxy type are emitted as `<Command>Response_`; the response fields keep their names on
+the wire. For example, command `Move` beside command `MoveResponse` returns
+`MoveResponse_`.
+
 `STAGE-ESM-050` reports each escape as information and does not block rendering.
 Non-colliding members retain their existing output.
 

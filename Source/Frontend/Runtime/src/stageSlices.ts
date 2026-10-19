@@ -8,15 +8,15 @@ import type { StageCommandOutcome } from './StageCommandOutcome';
 
 /**
  * The fields of a command, for the task dialog a toolbar slice button opens. They are what the command's schema declares -
- * the same reading the native command form uses - so the dialog asks for exactly what the command takes. A property the form
- * cannot present (a collection, an object) is left out rather than shown as a field that cannot be filled.
+ * the same reading the native command form uses - so the dialog asks for exactly what the command takes. A property the dialog
+ * cannot present (a collection, a record) is left out rather than shown as a field that cannot be filled.
  *
  * @param schemas The JSON schema of every modeled command, by command name.
  * @returns The fields of a command; none for a command the application does not describe.
  */
 export function sliceFieldsFrom(schemas: Record<string, string> | undefined): (command: string) => SliceCommandField[] {
     return command => schemaPropertiesOf(schemas?.[command] ?? '')
-        .filter(property => property.unsupportedReason === undefined)
+        .filter(property => property.unsupportedReason === undefined && !property.members && !property.item)
         .map(property => ({
             name: property.name,
             type: property.type === 'text' || property.type === undefined ? 'string' : property.type,

@@ -35,8 +35,9 @@ import {
 import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRouteState } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
-import { stageCommandFormComponent, stageComponents } from './stageComponents';
+import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
+import { StageQueryBindings } from './stageQueryBindings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
 import { applicationChrome, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
@@ -269,6 +270,7 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
             layoutConfigStorage={browserStorage()}
             scope={(navigation, children) => <StageScope scene={scene} routeState={routeState} strings={strings} navigation={navigation} themes={themes} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>}
             renderScreen={(element, configuration) => <StageScreen element={element} configuration={configuration} registry={registry} />}
+            renderDialog={() => <StageSliceDialog />}
             renderDialogTemplate={(template, content, navigation) => <StageDialog template={template} content={content} registry={registry} strings={strings} close={() => navigation.closeDialog()} />}
         />
     );
@@ -424,7 +426,12 @@ function StageInteractions({ activity, routesReady, scene, setActivity, strings,
 /** The composed screen, drawn against the Stage's own data: the rows, selections and routes its bindings resolve through. */
 function StageScreen({ element, configuration, registry }: { element: SceneElement; configuration: EffectiveConfiguration | undefined; registry: ComponentRegistry }) {
     const data = useStageData();
-    return <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} configuration={configuration} />;
+    return (
+        <>
+            <StageQueryBindings element={element} />
+            <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={data.publishComponentOutputs} configuration={configuration} />
+        </>
+    );
 }
 
 interface StageDialogProps {
@@ -453,7 +460,7 @@ function StageDialog({ template, content, registry, strings, close }: StageDialo
         <div className='stage-dialog-backdrop'>
             <section role='dialog' aria-modal='true' aria-label={template.displayName ?? template.name} className='stage-dialog'>
                 <button type='button' onClick={close}>Close</button>
-                <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} />
+                <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={data.publishComponentOutputs} />
             </section>
         </div>
     );

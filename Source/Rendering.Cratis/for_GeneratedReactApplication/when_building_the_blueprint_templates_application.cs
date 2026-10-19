@@ -112,6 +112,11 @@ public class when_building_the_blueprint_templates_application(when_building_the
         async Task Because()
         {
             DebugBuild = await ApplicationProcess.Run(_application, _stepTimeout, "dotnet", "build", "Workspaces.slnx", "-c", "Debug", "--nologo");
+            if (DebugBuild.ExitCode == 0)
+            {
+                await StageRuntimePackage.Install(_application);
+            }
+
             Install = DebugBuild.ExitCode == 0
                 ? await ApplicationProcess.Run(_application, _stepTimeout, "npm", "install", "--no-audit", "--no-fund")
                 : new(-1, "The frontend was not installed because the Debug build, which generates the proxies it imports, failed.");

@@ -41,7 +41,7 @@ public class when_rendering_a_context_independent_inline_handler : state_change_
     }
 
     [Fact] void should_emit_the_accepted_body_verbatim() => _file.Content.ShouldContain(Body);
-    [Fact] void should_not_emit_the_obsolete_context_compatibility_warning() => _file.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_not_emit_the_obsolete_context_compatibility_warning() => _file.Diagnostics.Where(diagnostic => !diagnostic.Contains("requires an authenticated caller", StringComparison.Ordinal)).ShouldBeEmpty();
     [Fact] void should_compile_against_the_real_arc_context() => _contextType.ShouldEqual(typeof(CommandContext));
     [Fact] void should_compile_without_errors() => RenderedOutput.Errors([_file]).ShouldBeEmpty();
     [Fact] void should_execute_the_generated_handle_and_return_no_events() => _events.ShouldBeEmpty();

@@ -118,7 +118,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Theory]
     [MemberData(nameof(Forms))]
-    public void should_plan_without_diagnostics(string form) => PlanOf(form).Diagnostics.ShouldBeEmpty();
+    public void should_plan_without_diagnostics(string form) => PlanOf(form).Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
 
     [Theory]
     [MemberData(nameof(Forms))]

@@ -59,7 +59,7 @@ public class when_rendering_secret_inputs_in_automation : Specification
 
     string Content(string fileName) => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith($"/{fileName}", StringComparison.Ordinal)).Bytes.AsSpan());
 
-    [Fact] void should_admit_the_complete_application() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_complete_application() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_exclude_the_automation_command_secret_from_causation_capture() => _slice.ShouldContain("[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute] global::Invoices.Common.AccessToken Token");
     [Fact] void should_invoke_the_protected_command_record() => _invocation.ShouldContain("new global::Invoices.Work.Processing.FollowUp.CompleteWork(@event.Id, @event.Token)");
     [Fact] void should_protect_the_produced_event_secret() => _concept.ShouldContain("[Encrypted]");

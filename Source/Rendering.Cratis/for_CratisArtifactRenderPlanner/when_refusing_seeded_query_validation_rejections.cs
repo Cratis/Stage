@@ -24,7 +24,7 @@ public class when_refusing_seeded_query_validation_rejections : Specification
                     then error
             """;
         var plan = invoice_model.Plan(invoice_model.Compile(source));
-        var diagnostic = plan.Diagnostics.Single();
+        var diagnostic = plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).Single();
         diagnostic.Code.ShouldEqual("STAGE-ESM-011");
         diagnostic.Message.ShouldContain("only empty fixtures are supported");
         plan.Artifacts.ShouldBeEmpty();

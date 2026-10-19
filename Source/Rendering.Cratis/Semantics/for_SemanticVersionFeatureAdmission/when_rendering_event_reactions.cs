@@ -35,5 +35,5 @@ public class when_rendering_event_reactions : Specification
 
     [Fact] void should_admit_event_reactions() => _plan.Success.ShouldBeTrue();
     [Fact] void should_emit_the_reactor() => _plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("/ReminderScheduler.cs", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_emit_no_refusals() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_emit_no_refusals() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
 }

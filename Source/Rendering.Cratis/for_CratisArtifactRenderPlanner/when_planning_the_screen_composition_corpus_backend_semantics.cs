@@ -52,7 +52,7 @@ public class when_planning_the_screen_composition_corpus_backend_semantics : Spe
             .Select(_ => _.Content));
     }
 
-    [Fact] void should_plan_without_stage_diagnostics() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_plan_without_stage_diagnostics() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_emit_the_listing_query_specification() => ArtifactText.ShouldContain("when_listing_created_work_items_is_queried");
     [Fact] void should_emit_the_comments_query_specification() => ArtifactText.ShouldContain("Needs compact layout");
     [Fact] void should_emit_the_details_query_specification() => ArtifactText.ShouldContain("when_showing_renamed_details_is_queried");

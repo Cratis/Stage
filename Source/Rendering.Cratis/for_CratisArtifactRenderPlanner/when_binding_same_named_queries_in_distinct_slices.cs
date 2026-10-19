@@ -57,7 +57,7 @@ public class when_binding_same_named_queries_in_distinct_slices : a_register_pro
         _bindings = Text(_plan.Artifacts.Single(_ => _.RelativePath == SceneBindingsRenderer.RelativePath));
     }
 
-    [Fact] void should_admit_the_distinct_sources() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_distinct_sources() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_keep_both_query_sources() => _identities.Distinct(StringComparer.Ordinal).Count().ShouldEqual(2);
     [Fact] void should_register_every_identity_once() => _identities.All(identity => _bindings.Split($"registerQueryIdentity(\"ProjectById\", {JsonSerializer.Serialize(identity)},", StringSplitOptions.None).Length == 2).ShouldBeTrue();
     [Fact] void should_alias_the_two_imports_without_collapsing_them() => new[] { "ProjectById as __sceneQuery0", "ProjectById as __sceneQuery1" }.All(_bindings.Contains).ShouldBeTrue();

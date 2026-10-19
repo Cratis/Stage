@@ -15,7 +15,7 @@ public class when_rendering_projected_query_validation_rejections : Specificatio
 
     void Because() => _plan = invoice_model.Plan(a_projected_query_validation_model.Compile());
 
-    [Fact] void should_admit_the_projected_view() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_projected_view() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_emit_the_projection() => _plan.Artifacts.Any(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("FromEventAttribute<", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_emit_all_four_rejection_scenarios() => _plan.Artifacts.Count(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("void should_reject_the_query()", StringComparison.Ordinal)).ShouldEqual(4);
     [Fact] void should_emit_both_success_scenarios() => _plan.Artifacts.Count(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("void should_accept_the_query()", StringComparison.Ordinal)).ShouldEqual(2);

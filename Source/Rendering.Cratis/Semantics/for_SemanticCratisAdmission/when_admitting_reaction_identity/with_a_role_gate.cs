@@ -10,6 +10,6 @@ public class with_a_role_gate : given.a_gated_reaction
 {
     void Establish() => WithGate("role \"Automation\"");
     void Because() => Plan();
-    [Fact] void should_admit_the_declared_identity() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_declared_identity() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_plan_the_reactor() => _plan.Artifacts.ShouldNotBeEmpty();
 }

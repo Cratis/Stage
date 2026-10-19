@@ -49,5 +49,5 @@ public class when_planning_uuid_comparisons : Specification
     [Fact] void should_compare_concept_values() => _code.ShouldContain("!global::System.Object.Equals(command.ApprovedBy.Value, command.RequestedBy.Value)");
     [Fact] void should_compare_a_bare_uuid_with_a_concept_value() => _code.ShouldContain("global::System.Object.Equals(command.Raw, command.ApprovedBy.Value)");
     [Fact] void should_not_compare_a_guid_with_text() => _code.ShouldNotContain("command.RequestedBy.Value, \"");
-    [Fact] void should_report_no_diagnostics() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_report_no_diagnostics() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
 }

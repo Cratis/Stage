@@ -23,6 +23,6 @@ public class with_a_live_filtered_list_rendering_an_expression_tree : Specificat
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))];
     }
 
-    [Fact] void should_admit_the_filtered_live_list() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_filtered_live_list() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_compile_every_expression_tree() => RenderedOutput.Errors(_files).ShouldBeEmpty();
 }

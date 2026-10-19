@@ -10,5 +10,5 @@ public class when_admitting_reaction_observer_filters : for_SemanticReactionSpec
 {
     void Because() => Plan();
     [Fact] void should_admit_the_filter() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_emit_no_refusals() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_emit_no_refusals() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
 }

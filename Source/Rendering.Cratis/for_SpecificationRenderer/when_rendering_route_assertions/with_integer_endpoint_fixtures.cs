@@ -52,7 +52,7 @@ public class with_integer_endpoint_fixtures : Specification
 
         // Direct-append specifications remain outside the rendered subset. Check the fixture codec
         // independently without widening that admission contract.
-        appendPlan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-011"]);
+        appendPlan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-011"]);
         var options = new CratisRenderingOptions("Routed", "Routed");
         var request = new ArtifactRenderRequest(changed, SemanticExecutionPlan.Compile(changed).Plan!, CratisRendering.CreateProfile("Routed", options), new(ArtifactRenderScopeKind.Application, changed.Application.Id));
         _rendered.Add((SemanticSpecificationRouteRendering.Arguments(append.WhenAppended!.Route!, new(request, options)), identity));

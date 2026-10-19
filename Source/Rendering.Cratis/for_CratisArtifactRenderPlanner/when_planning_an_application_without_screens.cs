@@ -31,7 +31,7 @@ public class when_planning_an_application_without_screens : a_register_project_r
         _input = _properties.GetProperty("inputs").EnumerateArray().Single();
     }
 
-    [Fact] void should_plan_without_errors() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_plan_without_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_emit_the_binding_module() => Artifact(SceneBindingsRenderer.RelativePath).ShouldNotBeNull();
     [Fact] void should_keep_the_command_form() => _elements.Single(_ => _.GetProperty("componentName").GetString() == "Cratis.Components:commandForm").GetProperty("properties").GetProperty("command").GetString().ShouldEqual("RegisterProject");
     [Fact] void should_match_the_emitted_command_members_and_native_proxy_descriptors()

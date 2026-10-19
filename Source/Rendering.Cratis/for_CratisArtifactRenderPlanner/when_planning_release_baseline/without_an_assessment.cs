@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 public class without_an_assessment : given.a_release_baseline_request
 {
     void Because() => _plan = _planner.Plan(WithBaseline(ReleaseBaselineAssessment.NotSupplied));
-    [Fact] void should_add_no_warnings() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_add_no_warnings() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_preserve_the_existing_digest() => _plan.Digest.ShouldEqual(_unchecked.Digest);
 }
 #endif

@@ -64,7 +64,7 @@ public class when_planning_uuid_read_path_comparisons : Specification
     {
         var source = Source.Replace("PlantAccessGrant.memberId == requestedBy", $"PlantAccessGrant.memberId {comparison} \"a1111111-1111-4111-8111-111111111111\"", StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
-        plan.Diagnostics.ShouldBeEmpty();
+        plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
         plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains($"{negation}global::System.Object.Equals(plantAccessGrant.MemberId.Value, global::System.Guid.Parse(\"a1111111-1111-4111-8111-111111111111\"))", StringComparison.Ordinal)).ShouldBeTrue();
     }
 

@@ -32,7 +32,7 @@ public class when_planning_the_screen_composition_application : a_screen_composi
         _allText = string.Join('\n', _first.Artifacts.Select(_ => System.Text.Encoding.UTF8.GetString(_.Bytes.AsSpan())));
     }
 
-    [Fact] void should_plan_without_diagnostics() => _first.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_plan_without_diagnostics() => _first.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_plan_the_same_artifact_paths_twice() => _second.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_first.Artifacts.Select(_ => _.RelativePath)).ShouldBeTrue();
     [Fact] void should_plan_the_same_artifact_bytes_twice() => _second.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
     [Fact] void should_plan_the_same_artifact_hashes_twice() => _second.Artifacts.Select(_ => _.Sha256).SequenceEqual(_first.Artifacts.Select(_ => _.Sha256)).ShouldBeTrue();

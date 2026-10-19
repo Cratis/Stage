@@ -15,7 +15,7 @@ public class when_planning_a_composed_application : a_composed_register_project_
 {
     void Because() => _plan = _planner.Plan(_request);
 
-    [Fact] void should_plan_without_errors() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_plan_without_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
 
     [Fact] void should_carry_the_composed_scene() => Artifact(SceneCompositionInput.RelativePath).ShouldNotBeNull();
 

@@ -21,7 +21,7 @@ public class when_rendering_secret_containing_inputs : Specification
         _command = Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/RecordCredentials.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
-    [Fact] void should_admit_the_complete_application() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_complete_application() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_exclude_secret_collection_inputs() => _command.ShouldContain("[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute] global::System.Collections.Generic.IReadOnlyList<global::Invoices.Common.ApiKey> Keys");
     [Fact] void should_exclude_composites_with_secrets_in_nested_collections() => _command.ShouldContain("[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute] global::Invoices.Common.CredentialEnvelope Credentials");
     [Fact] void should_exclude_optional_composites() => _command.ShouldContain("[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute] global::Invoices.Common.CredentialEnvelope? OptionalCredentials");

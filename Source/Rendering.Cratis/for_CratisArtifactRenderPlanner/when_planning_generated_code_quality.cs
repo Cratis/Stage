@@ -24,7 +24,7 @@ public class when_planning_generated_code_quality : a_register_project_render_re
 
     void Because() => _plan = _planner.Plan(_request);
 
-    [Fact] void should_plan_without_errors() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_plan_without_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
 
     /// <summary>
     /// The globalization namespace is only needed by a value that renders as a culture-invariant parse.

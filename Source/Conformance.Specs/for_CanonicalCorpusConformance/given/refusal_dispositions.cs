@@ -23,7 +23,11 @@ public static class refusal_dispositions
         [
             new("STAGE-ESM-030", null, "sem1:000000000000000000000000000000000000000000000000000000000000232c"),
             new("STAGE-ESM-030", null, "sem1:0000000000000000000000000000000000000000000000000000000000002333")
-        ])
+        ]),
+
+        // ESM v29 add/subtract by a product of two event values: Chronicle's projection engine adds one event property.
+        (["AcmeAdmissionsCorpus.V29"], conformance_surface.Renderer, [new("STAGE-ESM-050", null, "sem1:2c6acbe63e132429856d07853d22e9aa71650556534dfdbfba76ba5122bde067")]),
+        (["EsmGoldenVectors.V29"], conformance_surface.Renderer, [new("STAGE-ESM-050", null, "sem1:569083a6f62ce80edfc569cac4c7b0cfa3985680155539e45d7e1cfc180f5016")])
     ];
 
     public static IReadOnlyList<string> Problems(string vector, conformance_surface surface, expected_conformance_cell expected, conformance_observation actual)

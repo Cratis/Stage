@@ -76,7 +76,7 @@ internal static partial class SemanticCratisAdmission
             !context.Events.TryGetValue(produced.EventContract, out var @event) || produced.Condition is not null ||
             !HasRenderableProductionCondition(produced, command, context) ||
             @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() != @event.Tags.Length + produced.Tags.Length ||
-            !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, command.Properties.Where(_ => _.IsIdentifier).Select(_ => _.Id)) ||
+            !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, EventSourceProperties(command)) ||
             @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
             produced.Mappings.Length != @event.Properties.Length ||
             !@event.Properties.All(property => produced.Mappings.Any(mapping => mapping.TargetProperty == property.Id &&
@@ -88,6 +88,12 @@ internal static partial class SemanticCratisAdmission
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }
     }
+
+    // ESM v30 lets a production address any required, non-collection scalar command property as its event source, not only the identifier.
+    static IEnumerable<SemanticId> EventSourceProperties(SemanticCommand command) =>
+        command.Properties.Where(property => property.IsIdentifier ||
+            (!property.Type.IsOptional && !property.Type.IsCollection && property.Type.Kind is SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept))
+            .Select(property => property.Id);
 
     static bool HasRenderableProductionCondition(SemanticProducedEvent produced, SemanticCommand command, SemanticApplicationContext context) =>
         produced.When is null || SemanticConditionRendering.CanRender(produced.When, command.Properties, context, numericOrderingOnly: true, dates: true);

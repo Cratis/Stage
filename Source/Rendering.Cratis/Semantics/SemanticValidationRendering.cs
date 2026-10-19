@@ -22,7 +22,7 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.Length or SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual or
             SemanticValidationRuleKind.Matches or SemanticValidationRuleKind.Checksum or
             SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
-            SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
+            SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or SemanticValidationRuleKind.DecimalPlaces;
 
     internal static bool SafeMessage(string? message) => message is null ||
         (!message.StartsWith("$strings.", StringComparison.Ordinal) && !message.Any(_ => char.IsControl(_) || char.IsSurrogate(_) || (_ is '{' or '}')));
@@ -116,6 +116,7 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.NotContains => $"{absentPasses}!{scalar}.Contains({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
             SemanticValidationRuleKind.StartsWith => $"{absentPasses}{scalar}.StartsWith({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
             SemanticValidationRuleKind.EndsWith => $"{absentPasses}{scalar}.EndsWith({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
+            SemanticValidationRuleKind.DecimalPlaces => $"{absentPasses}{Name(builder, "System", "Math")}.Round({scalar}, {number.TrimEnd('m')}, {Name(builder, "System", "MidpointRounding")}.ToZero) == {scalar}",
             SemanticValidationRuleKind.Checksum => $"{absentPasses}global::Cratis.Concepts.GenerateValue.HasValidChecksum({scalar}, global::Cratis.Concepts.Checksum.{SemanticChecksumRendering.Algorithm(operand)})",
             SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual => $"{absentPasses}value.All(element => {element} {comparison} {number})",
             _ => $"{absentPasses}{measured} {comparison} {number}"
@@ -170,6 +171,7 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
             SemanticValidationRuleKind.Contains => $"A value must contain {operand}.",
             SemanticValidationRuleKind.NotContains => $"A value must not contain {operand}.",
+            SemanticValidationRuleKind.DecimalPlaces => $"A value must have at most {operand} decimal places.",
             SemanticValidationRuleKind.StartsWith => $"A value must start with {operand}.",
             SemanticValidationRuleKind.EndsWith => $"A value must end with {operand}.",
             SemanticValidationRuleKind.Checksum => $"A value must end in the exact {operand} check digits.",

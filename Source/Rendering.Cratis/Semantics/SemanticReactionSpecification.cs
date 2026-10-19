@@ -35,9 +35,14 @@ internal sealed record SemanticReactionSpecification(SemanticReaction Reaction, 
             invocation.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == property.Id) is { } mapping
                 ? Evaluate(mapping.Source, Input(specification)) : SemanticValue.Null));
 
+        // The single invocation takes the first value pinned for each of its generated properties (ESM v30, 'given generated').
+        // A second pin is for a second invocation, which this single-hop scenario never makes.
+        var generated = specification.GivenGenerated.IsDefault ? []
+            : specification.GivenGenerated.Where(pinned => pinned.Command == command.Id).GroupBy(pinned => pinned.Property).Select(group => new SemanticPropertyValue(group.Key, group.First().Value)).ToArray();
+
         // A reaction never forwards the fixture caller. The generated scenario establishes identity
         // from the reactor attribute, not from this lowered command fixture.
-        return specification with { When = new(command.Id, [.. values]), WhenAppended = null, WhenRedelivered = null, GivenCaller = null };
+        return specification with { When = new(command.Id, [.. values]) { GeneratedValues = [.. generated] }, WhenAppended = null, WhenRedelivered = null, GivenCaller = null };
     }
 
     internal IEnumerable<SemanticProducedEvent> InvokedProductions(SemanticSpecification specification, SemanticApplicationContext context)

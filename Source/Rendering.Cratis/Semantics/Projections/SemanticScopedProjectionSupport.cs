@@ -128,6 +128,7 @@ internal static class SemanticScopedProjectionSupport
                 (mapping.Source is SemanticProjectionEventSourceIdentity && fromBlock && !keyIsEventSource && EventSourceIsProducedAs(@event, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)),
+
             // A product is carried by the event (SemanticProjectionProducts); one that cannot be is refused with its own code and reason
             // (STAGE-ESM-050) before any projection is rendered, and the specification runner refuses every product (SemanticRunProjectionAdmission).
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract when mapping.Factor is not null => true,

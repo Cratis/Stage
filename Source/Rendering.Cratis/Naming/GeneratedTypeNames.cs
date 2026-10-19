@@ -89,7 +89,7 @@ internal static class GeneratedTypeNames
     /// <param name="eventSources">The event sources to render, or every event source of the application.</param>
     /// <param name="eventSourcesNamespace">The namespace, relative to the root, of event sources.</param>
     /// <param name="policiesNamespace">The namespace, relative to the root, of generated policies.</param>
-    /// <param name="selfReducing">Whether reducer members are emitted on models rather than as separate types.</param>
+    /// <param name="selfReduces">Decides, per read model, whether reducer members are emitted on the model rather than as a separate type.</param>
     /// <returns>The generated declarations.</returns>
     internal static IEnumerable<GeneratedTypeDeclaration> Declarations(
         SemanticApplication application,
@@ -101,7 +101,7 @@ internal static class GeneratedTypeNames
         IEnumerable<SemanticEventSource>? eventSources = null,
         string eventSourcesNamespace = "EventSources",
         string policiesNamespace = "GeneratedPolicies",
-        bool selfReducing = false)
+        Func<SemanticId, bool>? selfReduces = null)
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         foreach (var source in eventSources ?? application.EventSources)
@@ -129,7 +129,7 @@ internal static class GeneratedTypeNames
             {
                 foreach (var name in Names(ns, reaction.Name, reaction.Id, "Reaction")) yield return name;
             }
-            foreach (var reducer in slice.Reducers.Where(_ => !selfReducing))
+            foreach (var reducer in slice.Reducers.Where(reducer => selfReduces?.Invoke(reducer.ReadModel) != true))
             {
                 foreach (var name in Names(ns, reducer.Name, reducer.ReadModel, "Reducer")) yield return name;
             }

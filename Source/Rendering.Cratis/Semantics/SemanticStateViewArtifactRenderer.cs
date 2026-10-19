@@ -46,7 +46,7 @@ internal static class SemanticStateViewArtifactRenderer
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels");
-        if (context.SelfReducing && !located.Slice.Reducers.IsEmpty)
+        if (context.SelfReducers(located).Any())
         {
             builder.Using($"{context.RootNamespace}.TypedContexts");
         }
@@ -109,9 +109,15 @@ internal static class SemanticStateViewArtifactRenderer
             }
 
             var reducer = located.Slice.Reducers.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
-            if (context.SelfReducing && reducer?.From is { } filter)
+            var self = reducer is not null && context.SelfReduces(reducer.ReadModel);
+            if (self && reducer!.From is { } filter)
             {
                 SemanticObserverFilterRendering.Attribute(builder, filter, context);
+            }
+            if (self && context.PinnedObserverId(readModel.Id) is { } observerId)
+            {
+                // A migrated model keeps the previous classic reducer's observer, so Chronicle never starts a new one.
+                builder.Attribute($"global::Cratis.Chronicle.Reducers.ReducerAttribute({CSharpCodeBuilder.StringLiteral(observerId)})");
             }
             builder.Attribute("global::Cratis.Arc.Queries.ModelBound.ReadModelAttribute")
                 .OpenBlock(transition is null ? ModelDeclaration(readModel, types, queries, reducer is not null) :
@@ -121,10 +127,10 @@ internal static class SemanticStateViewArtifactRenderer
                 RenderQuery(builder, query, readModel, types, context);
             }
 
-            if (context.SelfReducing && reducer is not null)
+            if (self)
             {
                 builder.BlankLine();
-                SemanticReducerArtifactRenderer.RenderTransitions(builder, reducer, context);
+                SemanticReducerArtifactRenderer.RenderTransitions(builder, reducer!, context);
             }
             builder.EndBlock();
             if (SemanticVersionFeatures.HasCompositeKey(readModel))
@@ -147,7 +153,7 @@ internal static class SemanticStateViewArtifactRenderer
         query.Filters.Any(filter => SemanticTypeSystem.DeclarationNeedsCommon(filter.Type));
 
     internal static IEnumerable<SemanticId> SelfReducerSources(LocatedSemanticSlice located, SemanticApplicationContext context) =>
-        context.SelfReducing ? located.Slice.Reducers.SelectMany(reducer => reducer.Transitions.Select(transition => transition.EventContract)).Distinct() : [];
+        context.SelfReducers(located).SelectMany(reducer => reducer.Transitions.Select(transition => transition.EventContract)).Distinct();
 
     internal static string ModelDeclaration(SemanticReadModel model, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
         $"public record {Identifiers.ToPascalCase(model.Name)}({ScopedParameters(model, types, queries, reducerInput)})";

@@ -157,6 +157,10 @@ loads a `.play` file or folder and exposes the runtime surfaces Stage currently 
 complete executable implementation of the Screenplay language and should not be treated as a generated
 production application.
 
+A model's `seed` blocks (see the Screenplay seeding documentation) are appended once when the sandbox starts with an empty event log, so a played
+application begins with the reference data and demo records it declares - a shop with its products, for example. The seeded events flow through the
+projections like any other event; a sandbox that already holds events is left alone.
+
 Runtime projection definitions follow Chronicle's `ProjectionDefinitionSyntaxVisitor`. `nested` becomes a scalar
 nested definition, including `nested` inside `nested`; `all` subscribes the projection to all events; `every` inside a
 child merges into that child's existing mappings and keeps their auto-map setting unless it sets its own; and other

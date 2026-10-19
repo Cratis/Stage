@@ -4,6 +4,7 @@
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Xunit;
 

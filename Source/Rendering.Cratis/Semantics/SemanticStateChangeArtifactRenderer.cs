@@ -58,6 +58,19 @@ internal static class SemanticStateChangeArtifactRenderer
         }
     }
 
+    internal static void RenderEvent(CSharpCodeBuilder builder, SemanticEventContract @event, SemanticTypeSystem types, SemanticApplicationContext context)
+    {
+        var name = Identifiers.ToPascalCase(@event.Name);
+        var parameters = string.Join(", ", @event.Properties.Select(property =>
+            $"{types.Type(property.Type, ReducerCollection(@event, property, context))} {Identifiers.ToPascalCase(property.Name)}"));
+        context.Docs(@event.Id).Render(builder, $"The event that occurs when {Identifiers.ToWords(@event.Name)}.")
+            .Attribute(@event.StoredName is { } stored
+                ? $"global::Cratis.Chronicle.Events.EventTypeAttribute({CSharpCodeBuilder.StringLiteral(stored)})"
+                : "global::Cratis.Chronicle.Events.EventTypeAttribute")
+            .Line($"public record {name}({parameters});")
+            .BlankLine();
+    }
+
     internal static void RenderMembers(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
     {
         var types = new SemanticTypeSystem(context);
@@ -250,19 +263,6 @@ internal static class SemanticStateChangeArtifactRenderer
     {
         var snapshot = $"global::System.Collections.Immutable.ImmutableArray.ToImmutableArray({expression})";
         return optional ? $"{expression} is null ? null : {snapshot}" : snapshot;
-    }
-
-    static void RenderEvent(CSharpCodeBuilder builder, SemanticEventContract @event, SemanticTypeSystem types, SemanticApplicationContext context)
-    {
-        var name = Identifiers.ToPascalCase(@event.Name);
-        var parameters = string.Join(", ", @event.Properties.Select(property =>
-            $"{types.Type(property.Type, ReducerCollection(@event, property, context))} {Identifiers.ToPascalCase(property.Name)}"));
-        context.Docs(@event.Id).Render(builder, $"The event that occurs when {Identifiers.ToWords(@event.Name)}.")
-            .Attribute(@event.StoredName is { } stored
-                ? $"global::Cratis.Chronicle.Events.EventTypeAttribute({CSharpCodeBuilder.StringLiteral(stored)})"
-                : "global::Cratis.Chronicle.Events.EventTypeAttribute")
-            .Line($"public record {name}({parameters});")
-            .BlankLine();
     }
 
     static void RenderValidator(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context)

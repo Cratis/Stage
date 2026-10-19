@@ -140,7 +140,9 @@ internal static class SemanticStateViewArtifactRenderer
 
             if (projection?.Scope is { } scope)
             {
-                builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
+                builder.BlankLine().Raw(SemanticProductReducerAdmission.Admits(projection, context)
+                    ? SemanticProductReducerRenderer.Render(projection, readModel, scope, context)
+                    : SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
             }
         }
     }

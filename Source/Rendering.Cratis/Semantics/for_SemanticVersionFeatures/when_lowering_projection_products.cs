@@ -11,8 +11,9 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticVersionFeatures;
 
-// ESM v29 'add total by unitPrice * quantity': Chronicle adds one event property, so the renderer refuses it instead of rendering a sum of one factor.
-public class when_refusing_projection_products : Specification
+// ESM v29 'add total by unitPrice * quantity': Chronicle adds one event property, so the renderer lowers the flat projection to a reducer
+// instead of refusing it; the corpus keeps its other, unrelated refusals.
+public class when_lowering_projection_products : Specification
 {
     ExecutableSemanticModel _model = null!;
     ArtifactRenderPlan _plan = null!;
@@ -27,8 +28,5 @@ public class when_refusing_projection_products : Specification
     }
 
     [Fact] void should_find_the_one_projection_that_multiplies() => _features.Length.ShouldEqual(1);
-    [Fact] void should_refuse_it_with_its_own_code() => _features.Single().Code.ShouldEqual("STAGE-ESM-050");
-    [Fact] void should_name_the_projection() => _features.Single().Message.ShouldContain("BasketProjection");
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_refusal_in_the_plan() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-050");
+    [Fact] void should_not_refuse_it() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-050");
 }

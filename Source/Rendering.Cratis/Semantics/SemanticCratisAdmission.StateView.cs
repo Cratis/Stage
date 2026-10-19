@@ -91,7 +91,8 @@ internal static partial class SemanticCratisAdmission
                     continue;
                 }
 
-                var rejection = SemanticScopedProjectionSupport.Rejection(scope, context, readModel.Properties);
+                // A product lowered to a reducer is not a Chronicle projection, so the projection engine's limits do not apply to it.
+                var rejection = SemanticProductReducerAdmission.Admits(projection, context) ? null : SemanticScopedProjectionSupport.Rejection(scope, context, readModel.Properties);
                 if (rejection is not null || !projection.Transitions.IsEmpty)
                 {
                     diagnostics.Add(Error("STAGE-ESM-017", $"Projection '{projection.Name}' cannot render: {rejection ?? "A scope cannot also have flat transitions."}", projection.Id));

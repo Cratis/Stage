@@ -241,7 +241,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionLiteral", rendered, "Value");
         Add(entries, "SemanticProjectionMapping", rendered, "Operation Source Target");
 
-        // ESM v29: add/subtract by a product of two event values. Chronicle's projection engine adds one event property, so the renderer refuses it.
+        // ESM v29: add/subtract by a product of two event values. Chronicle's projection engine adds one event property, so the renderer
+        // lowers an admitted flat projection to a reducer (SemanticProductReducerAdmission) and refuses every other product.
         Add(entries, "SemanticProjectionMapping", rejected(SemanticVersionFeatures.ProjectionProducts), "Factor");
         Add(entries, "SemanticProjectionNested", rendered, "Property Scope");
         Add(entries, "SemanticProjectionOperation", rendered, "Set Add Subtract Increment Decrement Clear");

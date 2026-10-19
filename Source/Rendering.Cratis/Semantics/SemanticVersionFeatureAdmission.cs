@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -30,7 +31,8 @@ internal static class SemanticVersionFeatureAdmission
                 .Except(SemanticVersionFeatures.ReactionIdentitiesInSlice(slice)).Except(SemanticVersionFeatures.ReactionFiltersInSlice(slice))
                 .Concat(SemanticVersionFeatures.EventReferences(slice, context.Events))
                 .Concat(SemanticVersionFeatures.CompositeKeysInSlice(slice))
-                .Concat(SemanticVersionFeatures.ProjectionProductsInSlice(slice))
+                .Concat(SemanticVersionFeatures.ProjectionProductsInSlice(slice).Where(feature =>
+                    !slice.Projections.Any(projection => projection.Id == feature.Artifact && SemanticProductReducerAdmission.Admits(projection, context))))
                 .Concat(SemanticVersionFeatures.ReactionBatchesInSlice(context.Application, slice))
                 .Concat(slice.Commands.SelectMany(command => SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command))
                     .Concat(SemanticVersionFeatures.UnsupportedGenerated(command, context.Application.Concepts))))

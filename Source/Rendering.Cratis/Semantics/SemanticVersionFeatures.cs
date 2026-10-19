@@ -133,7 +133,7 @@ internal static class SemanticVersionFeatures
     internal const string UuidComparisons = "STAGE-ESM-049";
 
     /// <summary>
-    /// The code for projection add or subtract by a product (ESM v29), which Chronicle's projection engine cannot compute.
+    /// The code for projection add or subtract by a product (ESM v29) outside the subset the renderer lowers to a reducer.
     /// </summary>
     internal const string ProjectionProducts = "STAGE-ESM-050";
 
@@ -263,7 +263,7 @@ internal static class SemanticVersionFeatures
                 StageExecutionCapability.Projection,
                 projection.Id,
                 "projection",
-                $"Projection '{projection.Name}' adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, so the Cratis renderer does not render it. Precompute the product on the event, or run the specification with the Host."));
+                $"Projection '{projection.Name}' adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, and the Cratis renderer lowers a product to a reducer only for root 'from' and 'remove with' blocks keyed by the event source, with scalar targets and required numeric operands, where each 'from' block sets every required property. Precompute the product on the event, or run the specification with the Host."));
 
     /// <summary>
     /// Finds the structural automation and public-event constructs of one slice.

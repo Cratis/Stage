@@ -133,6 +133,11 @@ internal static class SemanticVersionFeatures
     internal const string UuidComparisons = "STAGE-ESM-049";
 
     /// <summary>
+    /// The code for projection add or subtract by a product (ESM v29), which Chronicle's projection engine cannot compute.
+    /// </summary>
+    internal const string ProjectionProducts = "STAGE-ESM-050";
+
+    /// <summary>
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
@@ -145,7 +150,7 @@ internal static class SemanticVersionFeatures
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
     public static bool Supports(ExecutableSemanticModel model) =>
-        EsmSchemaV28Support.Supports(model.LanguageVersion, model.SemanticVersion);
+        EsmSchemaV30Support.Supports(model.LanguageVersion, model.SemanticVersion);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -244,6 +249,21 @@ internal static class SemanticVersionFeatures
     /// <param name="readModel">The read model.</param>
     /// <returns>Whether the read model has two or more key parts.</returns>
     public static bool HasCompositeKey(SemanticReadModel readModel) => readModel.Properties.Count(property => property.IsIdentifier) > 1;
+
+    /// <summary>
+    /// Finds the ESM v29 projection products of one slice. Chronicle's Add and Subtract take one event property, so the
+    /// renderer refuses a product with a precise code instead of rendering a sum of one factor; the Host and the reference run it.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>One refusal per projection that multiplies, in model order.</returns>
+    public static IEnumerable<SemanticVersionFeature> ProjectionProductsInSlice(SemanticSlice slice) =>
+        slice.Projections.Where(projection => projection.Scope is { } scope && ScopeMappings(scope).Any(mapping => mapping.Factor is not null))
+            .Select(projection => new SemanticVersionFeature(
+                ProjectionProducts,
+                StageExecutionCapability.Projection,
+                projection.Id,
+                "projection",
+                $"Projection '{projection.Name}' adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, so the Cratis renderer does not render it. Precompute the product on the event, or run the specification with the Host."));
 
     /// <summary>
     /// Finds the structural automation and public-event constructs of one slice.
@@ -545,14 +565,16 @@ internal static class SemanticVersionFeatures
         slice.Reducers.Where(reducer => reducer.From is not null).Select(reducer => new SemanticVersionFeature(
             ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet."));
 
-    internal static IEnumerable<SemanticVersionFeature> ImplementationGenerationInCommand(SemanticCommand command, IEnumerable<SemanticConcept> concepts)
+    internal static IEnumerable<SemanticVersionFeature> ImplementationGenerationInCommand(SemanticCommand command, IEnumerable<SemanticConcept> concepts, Func<string, string?>? ruleName = null)
     {
         foreach (var property in command.Properties.Where(property => property.IsGenerated))
         {
             var concept = concepts.FirstOrDefault(concept => concept.Id == property.Type.Target && concept.Generation?.Kind == "implementation");
             if (concept is not null)
             {
-                yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}' with 'generate rule' on concept '{concept.Name}'; Stage's interpreter never runs implementation bodies — render the application.");
+                var requirementId = concept.Generation!.RequirementId!;
+                var rule = ruleName?.Invoke(requirementId) is { Length: > 0 } name ? $"'generate rule {name}'" : $"'generate rule' (requirement '{requirementId}')";
+                yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}' with {rule} on concept '{concept.Name}'; the rule has an implementation body, which Stage's interpreter never runs or replaces with a generated value — render the application.");
             }
         }
     }
@@ -586,7 +608,7 @@ internal static class SemanticVersionFeatures
         SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual or
         SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation or
         SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
-        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith;
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or SemanticValidationRuleKind.DecimalPlaces;
 
     static IEnumerable<SemanticVersionFeature> NonEventTrigger(SemanticReaction reaction, SemanticReactionTrigger trigger)
     {
@@ -726,4 +748,11 @@ internal static class SemanticVersionFeatures
     static bool IsKeyed(SemanticCommandRoute route) => route.StreamId is not null || !route.StreamIdParts.IsDefaultOrEmpty;
 
     static IEnumerable<SemanticSlice> Slices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(Slices));
+
+    static IEnumerable<SemanticProjectionMapping> ScopeMappings(SemanticProjectionScope scope) =>
+        scope.From.SelectMany(from => from.Mappings)
+            .Concat(scope.Joins.SelectMany(join => join.Mappings))
+            .Concat(scope.Every?.Mappings ?? [])
+            .Concat(scope.Children.SelectMany(child => ScopeMappings(child.Scope)))
+            .Concat(scope.Nested.SelectMany(nested => ScopeMappings(nested.Scope)));
 }

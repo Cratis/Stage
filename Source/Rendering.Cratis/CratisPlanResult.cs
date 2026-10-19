@@ -56,6 +56,11 @@ public sealed record CratisPlanResult(
     /// </summary>
     public ImmutableArray<ArtifactImplementationGap> ImplementationGaps => Plan?.ImplementationGaps ?? [];
 
+    /// <summary>
+    /// Gets the destination files the publisher must remove atomically with the plan's writes, or an empty list when no plan is available.
+    /// </summary>
+    public ImmutableArray<ArtifactRemoval> RequiredRemovals => Plan?.RequiredRemovals ?? [];
+
     internal static CratisPlanResult Create(string applicationName, ImmutableArray<PlannedArtifact> artifacts, ImmutableArray<CratisPlanDiagnostic> diagnostics, SemanticRevision? revision = null, ArtifactRenderPlan? plan = null)
     {
         var orderedArtifacts = artifacts.OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal).ToImmutableArray();

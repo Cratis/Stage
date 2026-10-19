@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -31,8 +32,8 @@ internal sealed class SemanticApplicationContext
         RootNamespace = options.RootNamespace;
         Domain = DomainPlacementInput.From(request.Profile);
         Strings = StringsCatalogInput.From(request.Profile);
-        ReducerConventionInput.TryRead(request.Profile, Application.Name, out var selfReducing);
-        SelfReducing = selfReducing;
+        ReducerConventionInput.TryRead(request.Profile, Application.Name, out var reducerConvention);
+        ReducerConvention = reducerConvention;
         var metadata = request.Profile.Inputs.SingleOrDefault(input => input.Name == AuthoringMetadataInput.Name);
         Documentation = metadata is not null && AuthoringMetadataInput.TryRead(metadata, request.Model, out var catalog) ? catalog : null;
         Concepts = Application.Concepts.ToDictionary(_ => _.Id);
@@ -113,7 +114,7 @@ internal sealed class SemanticApplicationContext
     /// <summary>
     /// Gets projections by semantic identity.
     /// </summary>
-    public IReadOnlyDictionary<SemanticId, SemanticProjection> Projections { get; }
+    public IReadOnlyDictionary<SemanticId, SemanticProjection> Projections { get; private set; }
 
     /// <summary>Gets reducer definitions across all slices.</summary>
     public IReadOnlyList<SemanticReducer> Reducers { get; }
@@ -149,7 +150,7 @@ internal sealed class SemanticApplicationContext
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];
 
-    internal bool SelfReducing { get; }
+    internal ReducerConvention ReducerConvention { get; }
 
     internal IReadOnlyList<string> Domain { get; }
     internal string CommonFolder => string.Join('/', Domain.Append("Common"));
@@ -207,7 +208,7 @@ internal sealed class SemanticApplicationContext
 
     internal SemanticReducerBindingEnvironment ReducerBindings(LocatedSemanticSlice located, SemanticReducer? reducer = null)
     {
-        var classic = SelfReducing ? null : reducer;
+        var classic = reducer is null || SelfReduces(reducer.ReadModel) ? null : reducer;
         var key = (located.Slice, classic?.ReadModel);
         if (!_reducerBindings.TryGetValue(key, out var environment))
         {
@@ -226,6 +227,47 @@ internal sealed class SemanticApplicationContext
     /// <param name="command">The command returning a named response.</param>
     /// <returns>The unqualified C# type name.</returns>
     internal string ResponseType(SemanticCommand command) => _responseTypes.Value[command.Id];
+
+    internal bool SelfReduces(SemanticId readModel) => ReducerConvention.SelfReduces(readModel);
+
+    internal string? PinnedObserverId(SemanticId readModel) => ReducerConvention.PinnedObserverId(readModel);
+
+    internal IEnumerable<SemanticReducer> SelfReducers(LocatedSemanticSlice located) =>
+        located.Slice.Reducers.Where(reducer => SelfReduces(reducer.ReadModel));
+
+    // A flat projection the flat rendering cannot take is expressed as the scope that says the same, so one admission and one renderer decide.
+    internal void ScopeFlatProjections()
+    {
+        foreach (var (id, located) in _slices.ToArray())
+        {
+            if (located.Slice.Projections.IsDefaultOrEmpty || !located.Slice.Projections.Any(NeedsScope))
+            {
+                continue;
+            }
+
+            _slices[id] = located with
+            {
+                Slice = located.Slice with
+                {
+                    Projections = [.. located.Slice.Projections.Select(projection => NeedsScope(projection) && RenderableScope(projection) is { } scope
+                        ? projection with { Transitions = [], Scope = scope }
+                        : projection)]
+                }
+            };
+        }
+
+        Projections = _slices.Values.SelectMany(_ => _.Slice.Projections).ToDictionary(_ => _.Id);
+
+        // Only a projection whose scope the scoped admission takes is converted: any other keeps its flat refusal.
+        SemanticProjectionScope? RenderableScope(SemanticProjection projection) =>
+            SemanticFlatProjectionScopes.ToScope(projection) is { } scope &&
+            SemanticScopedProjectionSupport.Rejection(scope, this, ReadModels[projection.ReadModel].Properties) is null ? scope : null;
+
+        bool NeedsScope(SemanticProjection projection) =>
+            projection.Scope is null && !projection.Transitions.IsEmpty && projection.Target == SemanticProjectionTargetKind.ReadModel &&
+            ReadModels.TryGetValue(projection.ReadModel, out var readModel) && readModel.Properties.Count(property => property.IsIdentifier) == 1 &&
+            !SemanticCratisAdmission.FlatProjectionRenders(this, projection, readModel);
+    }
 
     static IReadOnlyList<SemanticFeature> FindFeaturePath(SemanticFeature feature, SemanticId slice)
     {

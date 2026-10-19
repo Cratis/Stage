@@ -190,9 +190,9 @@ public static class SemanticRunAdmission
         SemanticRunProjectionAdmission.CheckFact(plan, fact);
 
     // Live commands cannot consume pinned generation fixtures. Other bodies refuse only their reachable commands.
-    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command)
+    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName = null)
     {
-        var features = CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, plan.Model.Application.Concepts).Select(Feature));
+        var features = CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, plan.Model.Application.Concepts, ruleName).Select(Feature));
         var refusal = SemanticImplementationReach.ForCommand(plan, command);
         if (CommandValidationRefusal(plan, command) is { } validationRefusal)
         {
@@ -289,7 +289,7 @@ public static class SemanticRunAdmission
         SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or
         SemanticValidationRuleKind.LessThanOrEqual or SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or
         SemanticValidationRuleKind.Checksum or SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
-        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or SemanticValidationRuleKind.DecimalPlaces or
         SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual;
 
     static string? EventValueRefusal(SemanticExecutionPlan plan, SemanticEventContract eventContract, string collectionRefusal)

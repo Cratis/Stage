@@ -18,7 +18,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 {
     [Theory]
     [InlineData("every-including-children")]
-    [InlineData("child-join")]
     [InlineData("nested-join")]
     [InlineData("root-join-removal")]
     [InlineData("nested-only-from")]
@@ -32,7 +31,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
     [InlineData("every-arithmetic-collision")]
     [InlineData("every-whole-number")]
     [InlineData("every-enumerated-concept")]
-    [InlineData("event-source-with-property-key")]
     [InlineData("join-event-source")]
     [InlineData("expression-event-property")]
     [InlineData("derived-event-property")]
@@ -147,13 +145,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 }
             },
             "every-enumerated-concept" => scope,
-            "event-source-with-property-key" => scope with
-            {
-                From = [.. scope.From.Select((transition, index) => index == 0 ? transition with
-            {
-                Mappings = [.. transition.Mappings, new SemanticProjectionMapping([lastSeenTarget], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
-            } : transition)]
-            },
             "join-event-source" => scope with
             {
                 Joins = [.. scope.Joins.Select(join => join with
@@ -211,13 +202,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             {
                 From = [nested.Scope.From[0] with { Key = SemanticProjectionKey.EventSourceIdentity }]
             } })]
-            },
-            "child-join" => scope with
-            {
-                Children = [.. scope.Children.Select(children => children with
-                {
-                    Scope = children.Scope with { Joins = [new(scope.Joins[0].EventContract, children.IdentifiedBy, [])] }
-                })]
             },
             _ => throw new UnknownScopeVariant(variant)
         };
@@ -333,7 +317,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         }
 
         if (variant == "composite-key" || variant == "every-whole-number" || variant == "every-enumerated-concept" ||
-            variant == "event-source-with-property-key" || variant == "join-event-source" || variant == "expression-event-property" ||
+            variant == "join-event-source" || variant == "expression-event-property" ||
             Variant(variant, "derived-event-property", "derived-lower-event-property", "normalized-event-property", "flat-expression-event-property", "flat-derived-event-property", "flat-normalized-event-property") ||
             variant == "expression-read-model-property" || variant == "root-id-collision" || variant == "flat-expression-read-model-property" ||
             Variant(variant, "all-literal", "all-mixed", "all-empty"))

@@ -25,12 +25,13 @@ internal static class SemanticStateViewArtifactRenderer
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         Configure(builder, located, context);
         RenderMembers(builder, located, context);
+        RenderDeclaredEvents(builder, located, context);
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
         return new(path, builder.ToString())
         {
             Sources = [located.Slice.Id, .. located.Slice.ReadModels.Select(_ => _.Id),
                 .. located.Slice.Projections.Select(_ => _.Id), .. located.Slice.Queries.Select(_ => _.Id),
-                .. SelfReducerSources(located, context)]
+                .. located.Slice.Events.Select(_ => _.Id), .. SelfReducerSources(located, context)]
         };
     }
 
@@ -45,7 +46,7 @@ internal static class SemanticStateViewArtifactRenderer
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels");
-        if (context.SelfReducing && !located.Slice.Reducers.IsEmpty)
+        if (context.SelfReducers(located).Any())
         {
             builder.Using($"{context.RootNamespace}.TypedContexts");
         }
@@ -73,6 +74,18 @@ internal static class SemanticStateViewArtifactRenderer
         }
     }
 
+    // An event a state-view slice declares (the projection removes or reads it, another slice's command may produce it) is generated
+    // with the slice: nothing else renders it. An automation slice renders its own events.
+    internal static void RenderDeclaredEvents(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
+    {
+        var types = new SemanticTypeSystem(context);
+        foreach (var declaredEvent in located.Slice.Events)
+        {
+            builder.BlankLine();
+            SemanticStateChangeArtifactRenderer.RenderEvent(builder, declaredEvent, types, context);
+        }
+    }
+
     internal static void RenderMembers(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
     {
         var types = new SemanticTypeSystem(context);
@@ -96,9 +109,15 @@ internal static class SemanticStateViewArtifactRenderer
             }
 
             var reducer = located.Slice.Reducers.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
-            if (context.SelfReducing && reducer?.From is { } filter)
+            var self = reducer is not null && context.SelfReduces(reducer.ReadModel);
+            if (self && reducer!.From is { } filter)
             {
                 SemanticObserverFilterRendering.Attribute(builder, filter, context);
+            }
+            if (self && context.PinnedObserverId(readModel.Id) is { } observerId)
+            {
+                // A migrated model keeps the previous classic reducer's observer, so Chronicle never starts a new one.
+                builder.Attribute($"global::Cratis.Chronicle.Reducers.ReducerAttribute({CSharpCodeBuilder.StringLiteral(observerId)})");
             }
             builder.Attribute("global::Cratis.Arc.Queries.ModelBound.ReadModelAttribute")
                 .OpenBlock(transition is null ? ModelDeclaration(readModel, types, queries, reducer is not null) :
@@ -108,10 +127,10 @@ internal static class SemanticStateViewArtifactRenderer
                 RenderQuery(builder, query, readModel, types, context);
             }
 
-            if (context.SelfReducing && reducer is not null)
+            if (self)
             {
                 builder.BlankLine();
-                SemanticReducerArtifactRenderer.RenderTransitions(builder, reducer, context);
+                SemanticReducerArtifactRenderer.RenderTransitions(builder, reducer!, context);
             }
             builder.EndBlock();
             if (SemanticVersionFeatures.HasCompositeKey(readModel))
@@ -134,7 +153,7 @@ internal static class SemanticStateViewArtifactRenderer
         query.Filters.Any(filter => SemanticTypeSystem.DeclarationNeedsCommon(filter.Type));
 
     internal static IEnumerable<SemanticId> SelfReducerSources(LocatedSemanticSlice located, SemanticApplicationContext context) =>
-        context.SelfReducing ? located.Slice.Reducers.SelectMany(reducer => reducer.Transitions.Select(transition => transition.EventContract)).Distinct() : [];
+        context.SelfReducers(located).SelectMany(reducer => reducer.Transitions.Select(transition => transition.EventContract)).Distinct();
 
     internal static string ModelDeclaration(SemanticReadModel model, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
         $"public record {Identifiers.ToPascalCase(model.Name)}({ScopedParameters(model, types, queries, reducerInput)})";

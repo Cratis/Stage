@@ -108,7 +108,16 @@ internal static class SemanticCommonArtifactRenderer
             builder.Line($"public static implicit operator {primitive}({name} value) => value.Value;");
         }
 
-        builder.Line($"public static implicit operator {name}({primitive} value) => new(value);").EndBlock();
+        builder.Line($"public static implicit operator {name}({primitive} value) => new(value);");
+        if (!isIdentifier)
+        {
+            foreach (var source in SemanticProjectionConversions.Into(concept, context))
+            {
+                builder.Line($"public static implicit operator {name}({types.CommonType(source.Name)} value) => new(value.Value);");
+            }
+        }
+
+        builder.EndBlock();
         RenderValidator(builder, concept, name, context);
     }
 

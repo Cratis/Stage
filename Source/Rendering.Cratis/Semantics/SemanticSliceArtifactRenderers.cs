@@ -54,7 +54,7 @@ internal static class SemanticSliceArtifactRenderers
             {
                 yield return file;
             }
-            foreach (var reducer in located.Slice.Reducers.Where(_ => !context.SelfReducing))
+            foreach (var reducer in located.Slice.Reducers.Where(reducer => !context.SelfReduces(reducer.ReadModel)))
             {
                 yield return SemanticReducerArtifactRenderer.Render(located, reducer, context);
             }
@@ -76,7 +76,7 @@ internal static class SemanticSliceArtifactRenderers
                 yield return file;
             }
 
-            foreach (var reducer in located.Slice.Reducers.Where(_ => !context.SelfReducing))
+            foreach (var reducer in located.Slice.Reducers.Where(reducer => !context.SelfReduces(reducer.ReadModel)))
             {
                 yield return SemanticReducerArtifactRenderer.Render(located, reducer, context);
             }

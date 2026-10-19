@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using SceneContributionPoints = Cratis.Scene.Model.ContributionPoints;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneForms = Cratis.Scene.Model.Forms;
@@ -115,9 +116,39 @@ public static class ScreenConverter
         IReadOnlyList<SceneContributionPoints.Contribution> contributions,
         BehaviorScope? behaviors,
         IReadOnlyList<SceneInteractions.Behavior> inherited,
-        IReadOnlyList<string> path)
+        IReadOnlyList<string> path) => Convert(screen, layoutName, availableForms, contributions, behaviors, inherited, path, null)!;
+
+    /// <summary>
+    /// Converts a screen while collecting unsupported content and nested constructs.
+    /// </summary>
+    /// <param name="screen">The screen to convert.</param>
+    /// <param name="layoutName">The resolved layout name.</param>
+    /// <param name="availableForms">The module's available forms.</param>
+    /// <param name="contributions">The inherited contributions.</param>
+    /// <param name="behaviors">The behavior scope.</param>
+    /// <param name="inherited">The inherited behaviors.</param>
+    /// <param name="path">The declaring hierarchy.</param>
+    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
+    /// <returns>The converted screen, or null if its top-level composition is unsupported.</returns>
+    public static SceneScreens.Screen? Convert(
+        ScreenplaySyntax.ScreenSyntax screen,
+        string layoutName,
+        IReadOnlyList<ScreenplaySyntax.FormSyntax> availableForms,
+        IReadOnlyList<SceneContributionPoints.Contribution> contributions,
+        BehaviorScope? behaviors,
+        IReadOnlyList<SceneInteractions.Behavior> inherited,
+        IReadOnlyList<string> path,
+        ConversionDiagnostics? diagnostics)
     {
-        var scope = behaviors ?? BehaviorScope.None;
+        var references = screen.Directives.OfType<ScreenplaySyntax.ScreenTemplateReferenceSyntax>().Count();
+        if (diagnostics is not null && screen.File is null && (references > 1 || (references == 1 && screen.Directives.Count() > 1)))
+        {
+            var owner = string.Join('.', path.Append(screen.Name));
+            diagnostics.Report(new("STAGE-SCENE-SCREEN-001", DiagnosticSeverity.Error, "mixed screen template content", owner, screen.Location, $"Unsupported template composition was omitted from '{owner}'."));
+            return null;
+        }
+
+        var scope = (behaviors ?? BehaviorScope.None) with { Diagnostics = diagnostics };
         var attached = new List<SceneInteractions.Behavior>();
         var (screenTemplate, slotContent) = ConvertContent(screen, scope, attached);
         var forms = ResolveForms(screen, availableForms, scope);
@@ -179,7 +210,7 @@ public static class ScreenConverter
         [
             .. availableForms
                 .Where(form => commands.Contains(form.For))
-                .Select(form => FormConverter.Convert(form) with
+                .Select(form => FormConverter.Convert(form, scope.Diagnostics, $"{screen.Name}.form.{form.Name}") with
                 {
                     Behaviors = scope.Resolve(form.Behaviors, form.UsedBehaviors, form.Name)
                 })

@@ -2,6 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json.Nodes;
+using Cratis.Screenplay.Diagnostics;
+using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using SceneElements = Cratis.Scene.Model.Elements;
@@ -42,18 +45,22 @@ internal static class StageSceneDocument
     /// <param name="sceneJson">The composed <c language="json">scene.json</c> text.</param>
     /// <param name="context">The indexed semantic application the commands come from.</param>
     /// <returns>The canonical runtime document.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">A command schema cannot be converted faithfully.</exception>
     public static string Render(string sceneJson, SemanticApplicationContext context)
     {
-        var commands = context.Commands.Values
+        var diagnostics = new ConversionDiagnostics();
+        var schemas = context.Commands.Values
             .GroupBy(command => command.Name, StringComparer.Ordinal)
-            .ToDictionary(
-                group => group.Key,
-                group =>
-                {
-                    var schema = CommandFormSchemas.For(context.Application, group.First().Properties);
-                    return new Command(schema, CanonicalSceneJson.ToNode(CommandFormSchemas.Fields(schema))!.AsArray());
-                },
-                StringComparer.Ordinal);
+            .Select(group => (Name: group.Key, Schema: CommandFormSchemas.For(context.Application, group.First().Properties, diagnostics, group.Key, SourceLocation.Start)))
+            .ToArray();
+        if (diagnostics.HasErrors)
+        {
+            throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, diagnostics.All.Select(error => $"{error.Code}: {error.Message}")));
+        }
+        var commands = schemas.ToDictionary(
+            entry => entry.Name,
+            entry => new Command(entry.Schema!, CanonicalSceneJson.ToNode(CommandFormSchemas.Fields(entry.Schema!))!.AsArray()),
+            StringComparer.Ordinal);
 
         var document = JsonNode.Parse(sceneJson)!.AsObject();
         StripSampleData(document);

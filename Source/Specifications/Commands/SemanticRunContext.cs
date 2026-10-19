@@ -61,7 +61,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
 
     internal static string Canonical(SemanticValue value, SemanticTypeReference type, SemanticApplicationContext context)
     {
-        if (SemanticValueShapeAdmission.Refusal(context, type) is not null) throw new UnsupportedSemanticMapping();
+        if (SemanticValueShapeAdmission.PayloadRefusal(context, type) is not null) throw new UnsupportedSemanticMapping();
         if (value is SemanticNullValue) return "null";
         if (type.IsCollection && value is SemanticArrayValue array)
         {
@@ -97,7 +97,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         };
     }
 
-    internal Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken) => Append(fact, fact.EventSource?.Value ?? throw new UnsupportedSemanticMapping(), cancellationToken);
+    internal Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken) => Append(fact, fact.EventSource?.Value ?? SemanticValue.Null, cancellationToken);
 
     internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken) =>
         Append(fact, destination, AuthoredOccurrence, cancellationToken);

@@ -176,7 +176,7 @@ Clock, application, startup and shutdown triggers and opaque reaction bodies sti
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.206.0 and admits exact ESM v1–v28 version pairs; unaudited
+The semantic engine uses Screenplay 4.209.0 and admits exact ESM v1–v28 version pairs; unaudited
 language/semantic versions (v29 and later, mixed or noncanonical pairs) refuse the whole model with `STAGE-ESM-016` before registration or execution.
 A v22 model that uses `reaction batches atomic` executes atomic production units while retaining the Host's whole-command rollback boundary.
 At v28 the semantic engine runs Uuid `==` and `!=` in command `require` conditions and `produces when` guards, including
@@ -189,9 +189,11 @@ At v27 the semantic engine runs read models with several `key` parts: instances 
 `parts` projection keys create and remove only the instance whose parts all match, list queries filter on any part,
 and a single-instance query by parts takes one parameter per part, validated against its concept like a single key.
 Such a read model has no conventional `Get<ReadModel>ById` query, and the read-model browser shows each key as an
-object keyed by part name. The renderer refuses these read models with `STAGE-ESM-048` and queries by parts with
-`STAGE-ESM-047` until Chronicle can look up an instance by a composite key (Chronicle#4265); the legacy engine refuses
-them with `STAGE-ESM-048`.
+object keyed by part name. The renderer emits such a read model with a synthetic `Id` key record holding the parts and a
+`UsingCompositeKey` projection, and refuses shapes it cannot express (reducers and flat projections, joins, children, `every`,
+optional, date-time or non-primitive parts, incomplete `parts` keys) with `STAGE-ESM-048`. It refuses a single-instance query by parts with `STAGE-ESM-047` until
+Chronicle can look up an instance by a composite key (Chronicle#4265); the legacy engine refuses the read model with
+`STAGE-ESM-048`.
 At v26 the semantic engine executes Date/DateTime ordering and instant equality in command requirements,
 conditional productions and validation rules, including concept-backed properties. Participating DateTime inputs
 must carry an explicit offset or `Z`; validation rejects missing offsets after authorization and before other

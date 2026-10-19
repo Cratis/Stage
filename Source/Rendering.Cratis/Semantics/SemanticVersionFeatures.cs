@@ -98,7 +98,7 @@ internal static class SemanticVersionFeatures
     internal const string UnsupportedValidation = "STAGE-ESM-042";
 
     /// <summary>
-    /// The code for atomic reaction batches, whose production boundary no Stage engine preserves yet.
+    /// The code for atomic reaction batch shapes whose production boundary the Cratis renderer cannot preserve.
     /// </summary>
     internal const string AtomicReactionBatches = "STAGE-ESM-043";
 
@@ -123,7 +123,7 @@ internal static class SemanticVersionFeatures
     internal const string KeyPartsLookup = "STAGE-ESM-047";
 
     /// <summary>
-    /// The code for read models with several key parts and their parts projection keys, which the renderer does not render yet.
+    /// The code for read models with several key parts, or parts projection keys, in a shape the renderer cannot preserve.
     /// </summary>
     internal const string CompositeReadModelKeys = "STAGE-ESM-048";
 
@@ -176,15 +176,27 @@ internal static class SemanticVersionFeatures
             Automation, StageExecutionCapability.Reaction, trigger.Id, "trigger", $"Application trigger '{trigger.Name}' is an ESM v6 automation construct, which Stage does not support yet."));
 
     /// <summary>
-    /// Finds an application-wide reaction production boundary the renderer does not preserve yet. The executor and Host enforce it, so it is not an application-level refusal.
+    /// Finds atomic reaction batch shapes the renderer cannot preserve. One returned collection is one append batch.
     /// </summary>
     /// <param name="application">The semantic application.</param>
-    /// <returns>The refused reaction production mode.</returns>
-    public static IEnumerable<SemanticVersionFeature> ReactionBatchesInApplication(SemanticApplication application)
+    /// <param name="slice">The selected slice.</param>
+    /// <returns>The refused reaction batch shapes.</returns>
+    public static IEnumerable<SemanticVersionFeature> ReactionBatchesInSlice(SemanticApplication application, SemanticSlice slice)
     {
-        if (application.ReactionProductionMode is { } mode)
+        if (application.ReactionProductionMode is not SemanticReactionProductionMode.Atomic) yield break;
+
+        foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
         {
-            yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, application.Id, "application", $"Application '{application.Name}' declares reaction batches {mode.ToString().ToLowerInvariant()} (ESM v22); Stage does not preserve that production boundary yet (Cratis/Stage#422).");
+            foreach (var group in reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event).GroupBy(trigger => trigger.Source)
+                .Where(group => group.Count(trigger => !trigger.Produces.IsDefaultOrEmpty) > 1))
+            {
+                yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Atomic reaction '{reaction.Name}' has multiple same-event production triggers for '{group.Key}'; they would share one append batch instead of retaining separate trigger batches.");
+            }
+            if (reaction.Triggers.SelectMany(trigger => trigger.Produces)
+                .Any(produced => produced.Route is not null))
+            {
+                yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Atomic reaction '{reaction.Name}' has routed direct productions; routed batches and stream closing are not covered by Screenplay's atomic batch contract yet (Cratis/Screenplay#770).");
+            }
         }
     }
 
@@ -211,24 +223,13 @@ internal static class SemanticVersionFeatures
             Routes, StageExecutionCapability.IdentityAllocation, source.Id, "eventsource", "Named event sources and streams are not yet supported by the Cratis ESM planner."));
 
     /// <summary>
-    /// Finds the ESM v27 composite read-model keys of one slice the renderer refuses; the Host runs them.
+    /// Finds the ESM v27 single-instance lookups by key parts of one slice, which the renderer refuses.
+    /// Composite-keyed read models and their parts projections are admitted by the state-view admission, which refuses the shapes it cannot render with <see cref="CompositeReadModelKeys"/>.
     /// </summary>
     /// <param name="slice">The slice.</param>
-    /// <param name="readModels">The application's indexed read models, which a projection may target across slices.</param>
-    /// <returns>One refusal per composite-keyed read model, parts-keyed projection and query by key parts, in model order.</returns>
-    public static IEnumerable<SemanticVersionFeature> CompositeKeysInSlice(SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticReadModel> readModels)
+    /// <returns>One refusal per query by key parts, in model order.</returns>
+    public static IEnumerable<SemanticVersionFeature> CompositeKeysInSlice(SemanticSlice slice)
     {
-        foreach (var readModel in slice.ReadModels.Where(HasCompositeKey))
-        {
-            yield return new(CompositeReadModelKeys, StageExecutionCapability.Projection, readModel.Id, "read model", $"Read model '{readModel.Name}' has several key parts (ESM v27); the Cratis renderer does not render composite read-model keys yet.");
-        }
-
-        foreach (var projection in slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.ReadModel &&
-            readModels.TryGetValue(projection.ReadModel, out var target) && HasCompositeKey(target)))
-        {
-            yield return new(CompositeReadModelKeys, StageExecutionCapability.Projection, projection.Id, "projection", $"Projection '{projection.Name}' keys its read model by parts (ESM v27); the Cratis renderer does not render parts projection keys yet.");
-        }
-
         foreach (var query in slice.Queries.Where(query => !query.KeyParts.IsDefaultOrEmpty))
         {
             yield return new(KeyPartsLookup, StageExecutionCapability.Query, query.Id, "query", $"Query '{query.Name}' looks up one instance by key parts (ESM v27); Chronicle cannot look up a read model by a composite key until Chronicle#4265.");

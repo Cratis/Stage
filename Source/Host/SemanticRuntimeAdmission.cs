@@ -46,46 +46,20 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var command in plan.Commands.Values)
         {
-            if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command).FirstOrDefault() is { } feature)
-            {
-                var entry = Refused(feature);
-                entries.Add(entry);
-
-                // An implementation body refuses only this command, not the live model.
-                if (!feature.Details.StartsWith($"{SemanticImplementationReach.Code}:", StringComparison.Ordinal)) blocking.Add(entry);
-                continue;
-            }
-
-            if (command.Handler is { } handler)
-            {
-                entries.Add(new(
-                    command.Id.ToString(),
-                    "command",
-                    "unsupported",
-                    nameof(SemanticExecutionCapability.ImplementationBody),
-                    $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target."));
-                continue;
-            }
-
-            var problem = command.Produces.Any(produced => produced.Destination is null && command.Destination?.Value is null)
-                ? "A produced fact requires an allocated destination."
-                : null;
-            entries.Add(new(
-                command.Id.ToString(),
-                "command",
-                problem is null ? "supported" : "unsupported",
-                problem is null ? null : nameof(SemanticExecutionCapability.IdentityAllocation),
-                problem));
+            var (entry, blocksModel) = CommandEntry(plan, command);
+            entries.Add(entry);
+            if (blocksModel) blocking.Add(entry);
         }
 
         foreach (var readModel in plan.ReadModels.Values)
         {
-            entries.Add(new(readModel.Id.ToString(), "readModel", "supported", null, null));
+            var refusal = SemanticPlanAdmission.Check(plan, readModel.Id);
+            entries.Add(new(readModel.Id.ToString(), "readModel", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
         }
 
         foreach (var query in plan.Queries.Values)
         {
-            var refusal = SemanticImplementationReach.ForQuery(plan, query);
+            var refusal = SemanticPlanAdmission.Check(plan, query.Id) ?? SemanticImplementationReach.ForQuery(plan, query);
             entries.Add(new(query.Id.ToString(), "query", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
         }
 
@@ -105,6 +79,44 @@ internal sealed class SemanticRuntimeAdmission
     internal IReadOnlyList<SemanticAdmissionEntry> Entries { get; }
 
     internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
+
+    static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command)
+    {
+        if (SemanticPlanAdmission.Check(plan, command.Id) is { } planRefusal)
+        {
+            return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), planRefusal.Details), false);
+        }
+        if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command).FirstOrDefault() is { } feature)
+        {
+            // An implementation body refuses only this command, not the live model.
+            return (Refused(feature), !feature.Details.StartsWith($"{SemanticImplementationReach.Code}:", StringComparison.Ordinal));
+        }
+        if (command.Handler is { } handler)
+        {
+            return (new(
+                command.Id.ToString(),
+                "command",
+                "unsupported",
+                nameof(SemanticExecutionCapability.ImplementationBody),
+                $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target."), false);
+        }
+
+        return (CommandDestinationEntry(command), false);
+    }
+
+    static SemanticAdmissionEntry CommandDestinationEntry(SemanticCommand command)
+    {
+        var problem = command.Produces.Any(produced => produced.Destination is null && command.Destination?.Value is null)
+            ? "A produced fact requires an allocated destination."
+            : null;
+
+        return new(
+            command.Id.ToString(),
+            "command",
+            problem is null ? "supported" : "unsupported",
+            problem is null ? null : nameof(SemanticExecutionCapability.IdentityAllocation),
+            problem);
+    }
 
     static SemanticAdmissionEntry Refused(SemanticAdmissionFeature feature) =>
         new(feature.Artifact, feature.Kind, "unsupported", feature.Capability, feature.Details);

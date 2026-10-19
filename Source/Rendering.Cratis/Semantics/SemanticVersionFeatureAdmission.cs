@@ -29,14 +29,14 @@ internal static class SemanticVersionFeatureAdmission
                 .Except(SemanticVersionFeatures.AutomationSlices(slice)).Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
                 .Except(SemanticVersionFeatures.ReactionIdentitiesInSlice(slice)).Except(SemanticVersionFeatures.ReactionFiltersInSlice(slice))
                 .Concat(SemanticVersionFeatures.EventReferences(slice, context.Events))
-                .Concat(SemanticVersionFeatures.CompositeKeysInSlice(slice, context.ReadModels))
+                .Concat(SemanticVersionFeatures.CompositeKeysInSlice(slice))
+                .Concat(SemanticVersionFeatures.ReactionBatchesInSlice(context.Application, slice))
                 .Concat(slice.Commands.SelectMany(command => SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command))
                     .Concat(SemanticVersionFeatures.UnsupportedGenerated(command, context.Application.Concepts))))
                 .Concat(slice.Specifications.SelectMany(specification => SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)))));
 
-        // Application-wide modes govern every slice, and a scoped render also emits sibling constraints that govern its produced events.
-        features = features.Concat(SemanticVersionFeatures.ReactionBatchesInApplication(context.Application))
-            .Concat(SemanticVersionFeatures.EventReferences(
+        // A scoped render also emits sibling constraints that govern its produced events.
+        features = features.Concat(SemanticVersionFeatures.EventReferences(
             SemanticCratisAdmission.SelectedConstraints(context, slices).Select(selected => selected.Constraint), context.Events)).Distinct();
 
         // Application triggers belong to no slice; only an application render would otherwise drop them.

@@ -15,8 +15,8 @@ namespace Cratis.Stage.Rendering.Cratis.Specifications;
 /// </summary>
 /// <remarks>
 /// <para>
-/// One file per specification, in the folder layout the repository conventions use, wrapped in <c language="csharp">#if DEBUG</c>
-/// so spec code ships only in Debug. A Screenplay specification carries a single name rather than a
+/// One file per specification, in the folder layout the repository conventions use, compiled by the separate specs project
+/// in every configuration. A Screenplay specification carries a single name rather than a
 /// behavior/outcome pair, so it renders as a single <c language="csharp">when_</c> file rather than being split into a hierarchy
 /// the document never stated.
 /// </para>
@@ -277,5 +277,5 @@ public static class SpecificationRenderer
     /// <returns>The rendered behavior name.</returns>
     static string Behavior(string name) => $"when_{Identifiers.ToSnakeCase(name)}";
 
-    static string Conditional(string content) => $"#if DEBUG{Environment.NewLine}{content}{Environment.NewLine}#endif{Environment.NewLine}";
+    static string Conditional(string content) => content;
 }

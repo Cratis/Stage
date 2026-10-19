@@ -66,6 +66,84 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
         return true;
     }
 
+    /// <summary>
+    /// Gets whether a rejection the specification expects can only come from the triggering command itself, so no event is appended and no reaction is set off.
+    /// </summary>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="specification">The specification.</param>
+    /// <returns>Whether the caller is denied by the triggering command's authorization, or every expected error is a literal message the triggering command declares and no command a reaction invokes declares.</returns>
+    internal static bool IsRejectedByTrigger(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (specification.When is not { } action || !specification.ThenEvents.IsEmpty || !context.Commands.TryGetValue(action.Command, out var command))
+        {
+            return false;
+        }
+
+        // The caller is denied before the command runs, so no event is appended and no reaction is set off.
+        if (specification.ThenDenied) return command.Authorization is not null;
+
+        if (specification.ThenErrors.IsEmpty || specification.ThenErrors.Any(error => error.Code is not null || error.Message is null))
+        {
+            return false;
+        }
+
+        var own = Messages(context, command);
+        var triggered = SemanticSpecificationAdmission.EventReactionTriggers(context)
+            .Where(trigger => command.Produces.Any(produced => produced.EventContract == trigger.Source))
+            .SelectMany(trigger => trigger.Invokes)
+            .Select(invocation => context.Commands[invocation.Command])
+            .SelectMany(invoked => Messages(context, invoked))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var absences = ReadAbsences(context, command);
+        var triggeredAbsences = SemanticSpecificationAdmission.EventReactionTriggers(context)
+            .Where(trigger => command.Produces.Any(produced => produced.EventContract == trigger.Source))
+            .SelectMany(trigger => trigger.Invokes)
+            .SelectMany(invocation => ReadAbsences(context, context.Commands[invocation.Command]))
+            .ToHashSet();
+
+        return specification.ThenErrors.All(error =>
+            (own.Contains(error.Message!) && !triggered.Contains(error.Message!)) ||
+            absences.Any(read => IsAbsence(error.Message!, read) && !triggeredAbsences.Contains(read)));
+    }
+
+    // A protected read that finds nothing refuses the command before it appends: "<ReadModel> '<key>' does not exist."
+    static IEnumerable<string> ReadAbsences(SemanticApplicationContext context, SemanticCommand command) =>
+        command.Reads.IsDefaultOrEmpty ? [] : command.Reads.Select(read => context.ReadModels[read.ReadModel].Name);
+
+    static bool IsAbsence(string message, string readModel) =>
+        message.StartsWith(readModel + " '", StringComparison.Ordinal) && message.EndsWith("' does not exist.", StringComparison.Ordinal);
+
+    static HashSet<string> Messages(SemanticApplicationContext context, SemanticCommand command)
+    {
+        var messages = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var message in command.Validations.Select(rule => rule.Message).Concat(command.Requirements.Select(requirement => requirement.Message)))
+        {
+            if (message is not null) messages.Add(message);
+        }
+
+        foreach (var property in command.Properties) CollectConceptMessages(context, property.Type, [], messages);
+
+        return messages;
+    }
+
+    static void CollectConceptMessages(SemanticApplicationContext context, SemanticTypeReference type, HashSet<SemanticId> visited, HashSet<string> messages)
+    {
+        switch (type.Kind)
+        {
+            case SemanticTypeReferenceKind.Concept:
+                foreach (var rule in context.Concepts[type.Target].Validations.IsDefaultOrEmpty ? [] : context.Concepts[type.Target].Validations)
+                {
+                    if (rule.Message is not null) messages.Add(rule.Message);
+                }
+
+                break;
+            case SemanticTypeReferenceKind.CompositeType when visited.Add(type.Target):
+                foreach (var property in context.Types[type.Target].Properties) CollectConceptMessages(context, property.Type, visited, messages);
+                break;
+        }
+    }
+
     static bool CanReject(SemanticApplicationContext context, SemanticCommand command) =>
         !command.Validations.IsDefaultOrEmpty || !command.Requirements.IsDefaultOrEmpty || !command.Reads.IsDefaultOrEmpty ||
         command.Route is not null || command.Authorization is not null || command.Properties.Any(property => property.IsGenerated) ||

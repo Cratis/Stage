@@ -311,7 +311,7 @@ jobs:
         env:
           RELEASE_REASON: ${{ needs.release.outputs.reason }}
         run: |
-          echo "::error::Nothing was published and no release was cut (reason: $RELEASE_REASON). For 'no-label', add exactly one of major, minor or patch to the merged pull request and re-run this workflow - see verify-semver-label, which is meant to catch this before the merge."
+          echo "::error::Nothing was published and no release was cut (reason: $RELEASE_REASON). For 'no-label', add exactly one of major, minor or patch to the merged pull request and re-run this workflow - see the pull request policy check (verify-pull-request-policy), which is meant to catch this before the merge."
           exit 1
 
       - name: Require every publication to succeed

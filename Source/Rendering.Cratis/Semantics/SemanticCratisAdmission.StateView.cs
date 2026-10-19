@@ -31,7 +31,8 @@ internal static partial class SemanticCratisAdmission
         foreach (var readModel in slice.ReadModels)
         {
             var projection = slice.Projections.SingleOrDefault(_ => _.ReadModel == readModel.Id);
-            if (readModel.Properties.Any(_ => !TypeExists(context, _.Type)) || readModel.Properties.Count(_ => _.IsIdentifier) != 1)
+            var composite = SemanticVersionFeatures.HasCompositeKey(readModel);
+            if (readModel.Properties.Any(_ => !TypeExists(context, _.Type)) || (!composite && readModel.Properties.Count(_ => _.IsIdentifier) != 1))
             {
                 diagnostics.Add(projection is null
                     ? Error("STAGE-ESM-008", $"Read model '{readModel.Name}' needs resolvable properties and one identifier.", readModel.Id)
@@ -53,6 +54,12 @@ internal static partial class SemanticCratisAdmission
             if (!ReadModelQueryNamesAreUnique(context, slice, readModel))
             {
                 diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' has property or query names that collide in generated C#.", readModel.Id));
+                continue;
+            }
+
+            if (composite && SemanticCompositeKeyAdmission.Rejection(context, readModel, projection, slice) is { } compositeRejection)
+            {
+                diagnostics.Add(Error(SemanticVersionFeatures.CompositeReadModelKeys, $"Read model '{readModel.Name}' cannot render its composite key: {compositeRejection}", projection?.Id ?? readModel.Id));
                 continue;
             }
 

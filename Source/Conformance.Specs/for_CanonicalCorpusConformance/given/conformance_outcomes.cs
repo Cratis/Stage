@@ -31,7 +31,7 @@ public static partial class conformance_outcomes
                 return Loader(vector);
             }
 
-            // The model loader refuses a plan with issues, but the surfaces still run on the partial plan, as the golden-vector specs admit it.
+            // Match the loader's partial-plan policy: each surface admits or refuses its own artifacts.
             if (SemanticExecutionPlan.Compile(vector.Model, []).Plan is not { } plan)
             {
                 return conformance_observation.WithoutRefusals(NotLoaded);
@@ -55,7 +55,7 @@ public static partial class conformance_outcomes
 
     static conformance_observation Loader(conformance_vector vector)
     {
-        var compiled = SemanticExecutionPlan.Compile(vector.Model);
+        var compiled = SemanticExecutionPlan.Compile(vector.Model, []);
         var issues = compiled.Issues.ToArray();
         if (compiled.Plan is not null && issues.Length == 0)
         {

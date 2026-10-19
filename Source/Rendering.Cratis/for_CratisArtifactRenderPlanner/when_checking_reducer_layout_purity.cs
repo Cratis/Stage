@@ -65,7 +65,7 @@ public class when_checking_reducer_layout_purity
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source), self: self);
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code is "STAGE-ESM-019" or "STAGE-ESM-022");
+        Assert.Contains(plan.Diagnostics, diagnostic => string.Equals(diagnostic.Code, "STAGE-ESM-019", StringComparison.Ordinal) || string.Equals(diagnostic.Code, "STAGE-ESM-022", StringComparison.Ordinal));
     }
 }
 #endif

@@ -28,7 +28,7 @@ public class when_rendering_generation_strategies : Specification
         plan.Success.ShouldBeTrue();
         var source = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath == $"Common/{name}.cs").Bytes.AsSpan());
         source.ShouldContain(factory);
-        var usesContext = name is "Id" or "SortableId" or "UserId" or "BareTypeId";
+        var usesContext = string.Equals(name, "Id", StringComparison.Ordinal) || string.Equals(name, "SortableId", StringComparison.Ordinal) || string.Equals(name, "UserId", StringComparison.Ordinal) || string.Equals(name, "BareTypeId", StringComparison.Ordinal);
         source.ShouldContain($"{(usesContext ? "IGeneratableInContext" : "IGeneratable")}<{name}>");
         source.ShouldContain($"New({(usesContext ? "GenerationContext context" : string.Empty)})");
         if (usesContext) source.ShouldNotContain("New()");

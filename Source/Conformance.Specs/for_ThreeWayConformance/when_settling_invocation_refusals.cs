@@ -28,7 +28,9 @@ public class when_settling_invocation_refusals : a_reaction_plan
                       item = "wrong branch"
                 invokes Complete
                   item = "one"
-            """, "then no events", new() { Authorization = "validate\n  item not empty message \"required\"" });
+            """,
+            "then no events",
+            new() { Authorization = "validate\n  item not empty message \"required\"" });
         await Execute();
         AssertMatchesReference();
     }
@@ -47,11 +49,13 @@ public class when_settling_invocation_refusals : a_reaction_plan
                   on refused by {selector}
                     produces Followed
                       item = $refusal.constraint
-            """, $"then Followed\n  for \"one\"\n  item = \"{first}\"", new()
-        {
-            Action = "given Completed\n  for \"one\"\nwhen append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1",
-            Declarations = "constraint Beta\n  unique event Completed\n  message \"second\"\nconstraint Alpha\n  unique event Completed\n  message \" first \""
-        });
+            """,
+            $"then Followed\n  for \"one\"\n  item = \"{first}\"",
+            new()
+            {
+                Action = "given Completed\n  for \"one\"\nwhen append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1",
+                Declarations = "constraint Beta\n  unique event Completed\n  message \"second\"\nconstraint Alpha\n  unique event Completed\n  message \" first \""
+            });
         await Execute();
         AssertMatchesReference();
         var accepted = (SemanticAccepted)_reference.Execution;
@@ -66,11 +70,13 @@ public class when_settling_invocation_refusals : a_reaction_plan
                   on refused by {selector}
                     produces Followed
                       item = $refusal.message
-            """, "then Followed\n  item = \" first \\nsecond\"", new()
-        {
-            Action = "given Completed\n  for \"one\"\nwhen append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1",
-            Declarations = "constraint Beta\n  unique event Completed\n  message \"second\"\nconstraint Alpha\n  unique event Completed\n  message \" first \""
-        });
+            """,
+            "then Followed\n  item = \" first \\nsecond\"",
+            new()
+            {
+                Action = "given Completed\n  for \"one\"\nwhen append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1",
+                Declarations = "constraint Beta\n  unique event Completed\n  message \"second\"\nconstraint Alpha\n  unique event Completed\n  message \" first \""
+            });
         await Execute();
         AssertMatchesReference();
         accepted = (SemanticAccepted)_reference.Execution;
@@ -84,7 +90,9 @@ public class when_settling_invocation_refusals : a_reaction_plan
     public async Task should_catch_authorization_only_with_the_explicit_selector(string selector, string expected)
     {
         var branch = selector == "any" ? "on refused" : $"on refused by {selector}";
-        Compile($"reaction Worker\n  when Started\n    invokes Complete\n      item = item\n      {branch}\n        acknowledge", expected,
+        Compile(
+            $"reaction Worker\n  when Started\n    invokes Complete\n      item = item\n      {branch}\n        acknowledge",
+            expected,
             new() { Policy = "policy Access\n  require role \"Automation\"", Authorization = "authorize Access" });
         await Execute();
         AssertMatchesReference();
@@ -93,7 +101,9 @@ public class when_settling_invocation_refusals : a_reaction_plan
     [Fact]
     public async Task should_use_declared_system_roles_and_continue_after_a_successful_command()
     {
-        Compile("reaction Worker\n  runs as system role \"Automation\"\n  when Started\n    invokes Complete\n      item = item\n      on refused by authorization\n        acknowledge", "then Completed\n  for \"one\"",
+        Compile(
+            "reaction Worker\n  runs as system role \"Automation\"\n  when Started\n    invokes Complete\n      item = item\n      on refused by authorization\n        acknowledge",
+            "then Completed\n  for \"one\"",
             new() { Policy = "policy Access\n  require role \"Automation\"", Authorization = "authorize Access" });
         await Execute();
         AssertMatchesReference();
@@ -112,12 +122,14 @@ public class when_settling_invocation_refusals : a_reaction_plan
                       item = "again"
                   on refused
                     acknowledge
-            """, "then error \"only once\"", new()
-        {
-            Authorization = "validate\n  item not empty message \"required\"",
-            Action = "given Followed\n  for \"one\"\n  item = \"before\"\nwhen append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1",
-            Declarations = "constraint OnlyOnce\n  unique event Followed\n  message \"only once\""
-        });
+            """,
+            "then error \"only once\"",
+            new()
+            {
+                Authorization = "validate\n  item not empty message \"required\"",
+                Action = "given Followed\n  for \"one\"\n  item = \"before\"\nwhen append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1",
+                Declarations = "constraint OnlyOnce\n  unique event Followed\n  message \"only once\""
+            });
         await Execute();
         AssertMatchesReference();
     }

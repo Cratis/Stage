@@ -20,7 +20,7 @@ public class with_a_sourceless_given_event : Specification
             "        given ProjectRegistered\n          name = \"Earlier\"\n        when RegisterProject",
             StringComparison.Ordinal));
         var given = plan.Specifications.Values.Single().GivenEvents;
-        _sourceless = given.Count() == 1 && given.Single().EventSource is null;
+        _sourceless = given.Length == 1 && given[0].EventSource is null;
         _admission = new(plan);
     }
 

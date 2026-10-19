@@ -11,7 +11,7 @@ internal static class optional_validated_concept_cases
 {
     internal static ExecutableSemanticModel Compile()
     {
-        var concepts = """
+        const string concepts = """
             concept Count : Int
               validate
                 > 5 severity error message "Count minimum"

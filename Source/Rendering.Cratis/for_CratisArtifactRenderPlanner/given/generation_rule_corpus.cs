@@ -19,20 +19,24 @@ internal static class generation_rule_corpus
         var form = corpus.SourceForms.Single(form => form.Name == formName);
         var catalog = SemanticIdentityCatalogSerializer.Deserialize(form.IdentityCatalogBytes.AsSpan());
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(
-            catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath,
+            catalog.ResolveDocument(document.StableKey),
+            document.StableKey,
+            document.DisplayPath,
             document.Text.Replace("return value;", body, StringComparison.Ordinal))).ToArray();
         var compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
         var model = compiled.Value!.Model;
         Assert.Equal(corpus.SemanticRevision, model.Revision);
-        Assert.Equal(corpus.EsmBytes.ToArray(), SemanticModelSerializer.Serialize(model));
+        Assert.Equal([.. corpus.EsmBytes], SemanticModelSerializer.Serialize(model));
 
         if (ruleOnly)
         {
             // Other corpus specifications deliberately contain invalid generation fixtures. Recompile a
             // selection after checking the frozen full model, so the compiler owns the typed sidecar.
             documents = [.. form.Documents.Select(document => SemanticSourceDocument.Create(
-                catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath,
+                catalog.ResolveDocument(document.StableKey),
+                document.StableKey,
+                document.DisplayPath,
                 SelectSpecification(document.Text).Replace("return value;", body, StringComparison.Ordinal)))];
             compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
             Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));

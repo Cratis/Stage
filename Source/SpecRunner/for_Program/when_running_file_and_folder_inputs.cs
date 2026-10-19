@@ -161,6 +161,7 @@ public class when_running_file_and_folder_inputs : Specification
     Task RejectModel(string name, string input, params string[] diagnostics)
     {
         var path = Path.Combine(_directory, input);
+
         // Admission refusals carry the authored location; the syntax compiler does not attach the input path.
         var expected = diagnostics.Contains("STAGE-ESM-030:", StringComparer.Ordinal) ? diagnostics : [path, .. diagnostics];
         return Reject(name, output => ["--model", path, "--output", output], 1, expected);

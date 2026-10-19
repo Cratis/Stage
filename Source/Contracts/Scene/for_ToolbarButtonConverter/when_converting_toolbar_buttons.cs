@@ -33,6 +33,6 @@ public class when_converting_toolbar_buttons : given.a_translated_application
     [Fact] void should_keep_a_localized_title_as_written() => Button("ret").Title.ShouldEqual("$strings.orders.return");
     [Fact] void should_carry_no_slice_for_a_button_without_one() => Button("idle").Slice.ShouldBeNull();
     [Fact] void should_leave_the_legacy_item_a_command_item() => Item("legacy").Properties["kind"].ShouldEqual("Action");
-    [Fact] void should_resolve_the_button_to_the_slice_command() => ToolbarButtons.Resolve(new Cratis.Scene.Engine.Structure.ApplicationStructureIndex(_application.Structure), Button("place"))!.Command.ShouldEqual("PlaceOrder");
+    [Fact] void should_resolve_the_button_to_the_slice_command() => ToolbarButtons.Resolve(new Cratis.Scene.Engine.Structure.ApplicationStructureIndex(_application.Structure), Button("place")).Command.ShouldEqual("PlaceOrder");
     [Fact] void should_report_only_the_missing_slice_warning() => RenderFindings.ForStructure(_application).Select(finding => finding.Message).Single().ShouldContain("ToolbarButtonSliceEmpty");
 }

@@ -22,6 +22,7 @@ public class when_admitting_v17 : Specification
     public void should_admit_only_the_exact_audited_pair(int languageMajor, int languageMinor, int semanticMajor, int semanticMinor, bool supported)
     {
         var model = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(17).Bytes.AsSpan());
+
         // Simulate a future reader without broadening Stage's exact-pair allowlist.
         typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new LanguageVersion((uint)languageMajor, (uint)languageMinor));
         typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new SemanticVersion((uint)semanticMajor, (uint)semanticMinor));
@@ -36,7 +37,7 @@ public class when_admitting_v17 : Specification
             var vector = EsmGoldenVectors.Get(version);
             var model = SemanticModelSerializer.Deserialize(vector.Bytes.AsSpan());
             SemanticVersionFeatures.Supports(model).ShouldBeTrue();
-            Assert.Equal(vector.Bytes.ToArray(), SemanticModelSerializer.Serialize(model));
+            Assert.Equal([.. vector.Bytes], SemanticModelSerializer.Serialize(model));
         }
     }
 }

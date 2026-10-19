@@ -42,6 +42,7 @@ public class when_comparing_atomic_reaction_batch_corpora : Specification
             var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
             int? worldFacts = null;
             var executor = new SemanticSpecificationExecutor();
+
             // A friend assembly exposes duplicate linked admission types from the renderer and executor.
             typeof(SemanticSpecificationExecutor).GetProperty("ObserveWorldFacts", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .SetValue(executor, (Action<SemanticId, int>)((_, count) => worldFacts = count));
@@ -50,6 +51,7 @@ public class when_comparing_atomic_reaction_batch_corpora : Specification
             reference.Passed.ShouldEqual(expectation.Passed);
             reference.Execution.World.Facts.Length.ShouldEqual(expectation.WorldFactCount!.Value);
             reference.Execution.Kind.ShouldEqual(expectation.Outcome);
+
             // Require actual Stage execution, not an unsupported/NotRendered result.
             Assert.True(result.Outcome == (expectation.Passed ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed), $"{formName}/{specification.Name}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
             result.ExecutionKind.ShouldEqual(expectation.Outcome.ToString());

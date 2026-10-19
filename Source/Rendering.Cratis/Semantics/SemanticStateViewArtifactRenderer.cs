@@ -25,6 +25,7 @@ internal static class SemanticStateViewArtifactRenderer
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         Configure(builder, located, context);
         RenderMembers(builder, located, context);
+        RenderDeclaredEvents(builder, located, context);
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
         return new(path, builder.ToString())
         {
@@ -70,6 +71,18 @@ internal static class SemanticStateViewArtifactRenderer
         if (located.Slice.Queries.Length > 0 || located.Slice.Projections.Any(_ => _.Scope is not null))
         {
             builder.Using("Cratis.Chronicle.Keys");
+        }
+    }
+
+    // An event a state-view slice declares (the projection removes or reads it, another slice's command may produce it) is generated
+    // with the slice: nothing else renders it. An automation slice renders its own events.
+    internal static void RenderDeclaredEvents(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
+    {
+        var types = new SemanticTypeSystem(context);
+        foreach (var declaredEvent in located.Slice.Events)
+        {
+            builder.BlankLine();
+            SemanticStateChangeArtifactRenderer.RenderEvent(builder, declaredEvent, types, context);
         }
     }
 
@@ -123,18 +136,6 @@ internal static class SemanticStateViewArtifactRenderer
             {
                 builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
             }
-        }
-
-        // An event a state-view slice declares (the projection removes or reads it, another slice's command may produce it) is generated
-        // here: nothing else renders it.
-        foreach (var declaredEvent in located.Slice.Events)
-        {
-            if (!firstModel || located.Slice.Events[0] != declaredEvent)
-            {
-                builder.BlankLine();
-            }
-
-            SemanticStateChangeArtifactRenderer.RenderEvent(builder, declaredEvent, types, context);
         }
     }
 

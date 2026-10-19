@@ -104,7 +104,30 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
 
         return specification.ThenErrors.All(error =>
             (own.Contains(error.Message!) && !triggered.Contains(error.Message!)) ||
-            absences.Any(read => IsAbsence(error.Message!, read) && !triggeredAbsences.Contains(read)));
+            absences.Any(read => IsAbsence(error.Message!, read) && !triggeredAbsences.Contains(read)) ||
+            ViolatesOwnConcept(context, command, specification, error.Message!));
+    }
+
+    // A message a reaction's command also carries is still the triggering command's own when the specification's
+    // literal input breaks a concept rule of that very command: binding fails before any event, so no reaction runs.
+    static bool ViolatesOwnConcept(SemanticApplicationContext context, SemanticCommand command, SemanticSpecification specification, string message)
+    {
+        foreach (var input in specification.When!.Values)
+        {
+            var property = command.Properties.FirstOrDefault(candidate => candidate.Id == input.TargetProperty);
+            if (property is null || property.Type.Kind != SemanticTypeReferenceKind.Concept || !context.Concepts.TryGetValue(property.Type.Target, out var concept)) continue;
+
+            try
+            {
+                if (SemanticValidationRules.Check(concept, input.Value).Any(check => check.Status == SemanticRuleStatus.Failed && check.Message == message)) return true;
+            }
+            catch (InvalidSemanticContract)
+            {
+                // A value the rule cannot judge is not a proven rejection.
+            }
+        }
+
+        return false;
     }
 
     // A protected read that finds nothing refuses the command before it appends: "<ReadModel> '<key>' does not exist."

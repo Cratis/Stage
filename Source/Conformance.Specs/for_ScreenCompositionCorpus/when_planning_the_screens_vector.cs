@@ -77,8 +77,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs d6a95f25c93d76ddee8c6b645dd40a42168cd797b7cd63168e7782c9d7613ac9 2508
         Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 336c9b53311c6bddde7371b4e2e3018e70aa2b60acf87e614aa9867362d4afd8 1082
         Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 7f1c87b85363001ca03696cb584e04167797de3ced67236dbe012665606b6e2a 2278
-        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs 17c6b0173d5bb17eb3c5c084ec802f8df5206def555e1e584f629f8b473a58e1 1121
-        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 26bfd540530c97927bb1868d66ea0cf5d1d5787eeaec8e754a9277d4cb9574ae 2432
+        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs dcee13484087c939041d761f8a1853d88f9a4100d86b9452cd4eb5d6a65fe4f2 1135
+        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 3f4cbf67bf3fa0eaaaa023ac1e60a81ee2b9e4e9502f96ce943de5e10c1c4f3a 2451
         Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 2bbf45806cd32a070025b607f825f01fa2c60d3ffb70c66baf3313e5602f100b 1033
         Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 979ae38ea8a44bc9553a2100737b17b9ddc3c9e045448c2b30799710b4ead99e 2330
         Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 65ca5ed242aea42e3c4a06697e4695e414534b1f1e7ae8c6fe544720efb8fa2f 2179
@@ -90,9 +90,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
         package.json cc4c8a22b882b883948386d9741dcdb2ad134bf95fa127c1a0674a857e6729b2 1431
-        scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
+        scene.json 036c725d120d35592e7077d6d3bb2953413ba9c3bddb645d103e0dd962e0c97c 3971
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
-        src/stage-scene.json 61125b4580a21576f69fae0dc03e94ef9abea2302101e8fab9b937c7827ca57c 3918
+        src/stage-scene.json 036c725d120d35592e7077d6d3bb2953413ba9c3bddb645d103e0dd962e0c97c 3971
         src/stage.ts d26df8127bbb827c594535e28c533e21be7cdf6794c34103da829f628069cb2a 1803
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;

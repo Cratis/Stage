@@ -41,6 +41,20 @@ class SpecShardsTests(unittest.TestCase):
         self.assertEqual(expected, shards[-1]["filter"])
         self.assertTrue(all(shard["filter"].startswith(SHARDS["EXCLUSIONS"]) for shard in shards))
 
+    def test_specifications_and_conformance_are_separate_shards_that_each_run_their_project_once(self):
+        shards = SHARDS["matrix"]()["include"]
+        by_name = {shard["name"]: shard for shard in shards}
+        self.assertEqual(len(shards), len(by_name), "shard names must be unique")
+        self.assertNotIn("specifications-conformance", by_name)
+        self.assertEqual(["Source/Specifications/Specifications.csproj"], by_name["specifications"]["projects"])
+        self.assertEqual(["Source/Conformance.Specs/Conformance.Specs.csproj"], by_name["conformance"]["projects"])
+        # Whole-project shards carry no positive prefix, so nothing in them can be skipped by a filter.
+        for name in ("specifications", "conformance"):
+            self.assertEqual(SHARDS["EXCLUSIONS"], by_name[name]["filter"])
+        projects = Counter(project for shard in shards for project in shard["projects"])
+        self.assertEqual(1, projects["Source/Specifications/Specifications.csproj"])
+        self.assertEqual(1, projects["Source/Conformance.Specs/Conformance.Specs.csproj"])
+
     def test_blueprint_templates_run_exactly_once_with_or_without_the_dedicated_lane(self):
         workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
         lane = workflow.split("  generated-react-blueprint-templates:\n", 1)[1]

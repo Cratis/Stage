@@ -92,13 +92,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+      - name: Restore NuGet packages
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -188,13 +183,11 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        id: nuget
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
         with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', '**/[Nn]u[Gg]et.[Cc]onfig', '*.slnx', 'global.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+          mode: restore
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -220,6 +213,12 @@ jobs:
 
       # The helper invokes dotnet test --no-build with the guarded filter for each project, then
       # requires a non-empty TRX with executed tests. A zero dotnet exit cannot hide an empty shard.
+      # Specs run --no-build against the downloaded output, but some (the template scaffolder) load packages
+      # from the local NuGet cache at run time. Without an exact cache hit, restore so they are present.
+      - name: Restore packages without an exact cache hit
+        if: steps.nuget.outputs.cache-hit != 'true'
+        run: dotnet restore --verbosity minimal
+
       - name: Run specs (${{ matrix.name }})
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
@@ -269,13 +268,10 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Restore NuGet packages (only the build job saves this cache)
-        uses: actions/cache/restore@v6
+      - name: Restore NuGet packages
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
         with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+          mode: restore
 
       - name: Start pinned Chronicle with bundled MongoDB
         run: |
@@ -383,13 +379,10 @@ jobs:
           git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 6b32f743afcbeaa0fdeab5b0fa72ab1f40f96e9e
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
-      - name: Restore NuGet packages (only the build job saves this cache)
-        uses: actions/cache/restore@v6
+      - name: Restore NuGet packages
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
         with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+          mode: restore
 
       - name: Run generated-name matrix
         env:
@@ -419,13 +412,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Restore NuGet packages (only the build job saves this cache)
-        uses: actions/cache/restore@v6
+      - name: Restore NuGet packages
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
         with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+          mode: restore
 
       - name: Build, test and serve the standalone generated application
         run: >-
@@ -486,13 +476,10 @@ jobs:
           cache: npm
           cache-dependency-path: Verification/generated-react-browser/package-lock.json
 
-      - name: Restore NuGet packages (only the build job saves this cache)
-        uses: actions/cache/restore@v6
+      - name: Restore NuGet packages
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
         with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+          mode: restore
 
       - name: Publish Host
         run: >-
@@ -565,13 +552,10 @@ jobs:
           cache: npm
           cache-dependency-path: Verification/generated-react-browser/package-lock.json
 
-      - name: Restore NuGet packages (only the build job saves this cache)
-        uses: actions/cache/restore@v6
+      - name: Restore NuGet packages
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
         with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+          mode: restore
 
       - name: Render and build the generated application
         env:
@@ -641,13 +625,10 @@ jobs:
           cache: npm
           cache-dependency-path: Verification/generated-react-browser/package-lock.json
 
-      - name: Restore NuGet packages (only the build job saves this cache)
-        uses: actions/cache/restore@v6
+      - name: Restore NuGet packages
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
         with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/*.props', '**/*.targets', '**/*.csproj', 'global.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+          mode: restore
 
       - name: Render and build the generated application
         env:

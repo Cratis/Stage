@@ -124,10 +124,58 @@ version, and hash distinguish resolved profiles; an unused convention does not a
 a scoped plan's output digest. A persisted configuration artifact does affect the
 scaffold or application plan digest.
 
-There are no per-model overrides or migration support yet. Do not select `self` for
-an existing classic application: preserving observer identity and removing the old
-reducer together requires a migration-capable publisher. Existing CLI and Studio
-callers that do not pass the input continue to render classic models.
+Do not switch an existing classic application to `self` wholesale: every classic
+reducer would get a new observer identity and its old file would remain. Migrate
+existing read models one at a time instead (below). Existing CLI and Studio callers
+that do not pass the input continue to render classic models.
+
+### Migrating a classic read model
+
+Migration moves a read model built by one classic `IReducerFor<T>` reducer to a
+self-reducing read model that keeps the old reducer's observer identity, so Chronicle
+continues the same observer state without a replay. The host reads the existing reducer
+file, derives evidence from its exact bytes, and adds the evidence to the profile:
+
+```csharp
+var evidence = ReducerMigrationEvidence.FromExistingFile(
+    totalReadModelId, "Orders/Ordering/Totals/Fold.cs", existingFoldContent);
+var profile = CratisRendering.WithReducerMigration(
+    resolvedProfile, "Shop", [evidence], canRemoveFiles: true);
+```
+
+The evidence records the file path, the SHA-256 of its LF-normalized bytes, the observer
+identity (the literal `[Reducer("…")]` identifier, or the reducer's full type name, with
+`+` separating nested types), and the `IReducerFor<T>` read model type. An application-scope
+plan then:
+
+- renders the read model as self-reducing with `[Reducer("<previous observer id>")]`;
+- omits the classic reducer file and lists it in `ArtifactRenderPlan.RequiredRemovals` with
+  its expected hash and model;
+- writes version `2` of `.cratis/stage/rendering.json`, which pins the read model:
+
+```json
+{"version":2,"application":"Shop","reducerConvention":"classic","readModels":[{"id":"sem1:…","convention":"self","observerId":"Shop.Orders.Ordering.Totals.Fold","previousPath":"Orders/Ordering/Totals/Fold.cs"}]}
+```
+
+Later renders read the version `2` file with `ReducerConventionInput.Read` and need no
+evidence: they render identical bytes and plan no removals. Version `1` files keep their
+exact bytes. Version `2` entries must be sorted ordinally by `id`, unique, use convention
+`self`, and carry a nonblank observer id and a portable `.cs` path. Other read models,
+including others in the same slice, stay classic.
+
+Migration is one way. Removing an entry from the persisted configuration does not
+restore the classic reducer.
+
+| Code | Refusal |
+| --- | --- |
+| `STAGE-REDUCER-001` | A persisted override or evidence names something that is not a read model built by exactly one reducer. |
+| `STAGE-REDUCER-002` | The evidence does not match the model: the path is not where the classic reducer renders, or the observer identity or read model type differs. |
+| `STAGE-REDUCER-003` | The host did not declare that it can remove files. |
+| `STAGE-REDUCER-004` | The plan is not an application-scope plan. Migration persists configuration, so it requires one. |
+| `STAGE-REDUCER-005` | Publication check: a required removal no longer matches its expected hash, or a migrated read model's previous reducer file would remain without a removal. |
+
+A refused plan has no artifacts and no removals. Self-mode member collisions still
+refuse with `STAGE-ESM-019`; Stage never falls back to the classic reducer.
 
 ## Sources and identity
 

@@ -130,7 +130,9 @@ Existing purity and typed-context refusals still apply.
 For the Chronicle runtime contract, see
 [self-reducing read models](/chronicle/reducers/self-reducing-read-models/) and
 [choosing a read-model style](/chronicle/projections/choosing-a-read-model-style/).
-Migration of existing applications is not available yet.
+Existing applications migrate one read model at a time: the self-reducing model keeps
+the classic reducer's observer identity and the plan requires removing the old file.
+See [migrating a classic read model](plan-from-sources.md#migrating-a-classic-read-model).
 
 ## Generated C# query arguments
 

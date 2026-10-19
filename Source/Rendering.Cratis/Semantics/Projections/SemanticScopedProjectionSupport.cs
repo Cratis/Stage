@@ -99,9 +99,10 @@ internal static class SemanticScopedProjectionSupport
         SemanticEventContract @event,
         SemanticApplicationContext context,
         SemanticId? identity,
-        bool keyIsEventSource) =>
+        bool keyIsEventSource,
+        bool fromBlock = false) =>
         mappings.Select(_ => string.Join('.', _.Target)).Distinct().Count() == mappings.Count() &&
-        mappings.All(mapping => MappingSupported(mapping, targets, @event, context, identity, keyIsEventSource));
+        mappings.All(mapping => MappingSupported(mapping, targets, @event, context, identity, keyIsEventSource, fromBlock));
 
     static bool MappingSupported(
         SemanticProjectionMapping mapping,
@@ -109,7 +110,8 @@ internal static class SemanticScopedProjectionSupport
         SemanticEventContract @event,
         SemanticApplicationContext context,
         SemanticId? identity,
-        bool keyIsEventSource)
+        bool keyIsEventSource,
+        bool fromBlock = false)
     {
         var target = Target(mapping.Target, targets, context);
         if (target is null || HasOptionalIntermediate(mapping.Target, targets, context) ||
@@ -123,6 +125,7 @@ internal static class SemanticScopedProjectionSupport
             SemanticProjectionOperation.Clear => target.Type.IsOptional && mapping.Source is null,
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
             SemanticProjectionOperation.Set => (mapping.Source is SemanticProjectionEventSourceIdentity && keyIsEventSource && EventSourceMappingSupported(mapping, targets, context, identity)) ||
+                (mapping.Source is SemanticProjectionEventSourceIdentity && fromBlock && !keyIsEventSource && EventSourceIsProducedAs(@event, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)),
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract =>
@@ -141,6 +144,20 @@ internal static class SemanticScopedProjectionSupport
         target is { Type: { IsOptional: false, IsCollection: false } type } &&
         type.Kind is SemanticTypeReferenceKind.Concept or SemanticTypeReferenceKind.Primitive &&
         UnderlyingPrimitive(type, context) is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;
+
+    // A projection keyed by an event property still reads the event's source identity ($eventSourceId): Chronicle converts the identity text
+    // into the target's type, which is only sound when every command that produces the event addresses it with a value of exactly that type
+    // (Translate captures that append the event are refused before rendering, and nothing else can produce a rendered event).
+    static bool EventSourceIsProducedAs(SemanticEventContract @event, SemanticTypeReference target, SemanticApplicationContext context)
+    {
+        var destinations = context.Commands.Values
+            .SelectMany(command => command.Produces.Where(produced => produced.EventContract == @event.Id).Select(produced => (command, produced)))
+            .Select(production => SemanticDestinations.Of(production.command, production.produced) is SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property, Root: SemanticExpressionRootKind.Command } resolved
+                ? production.command.Properties.SingleOrDefault(property => property.Id == resolved.Target)?.Type
+                : null)
+            .ToArray();
+        return destinations.Length > 0 && destinations.All(type => type is { IsCollection: false } && type with { IsOptional = false } == target with { IsOptional = false });
+    }
 
     // A collection property is set whole from an event property of exactly the same type; elements are never addressed.
     static bool WholeCollectionSupported(SemanticProjectionMapping mapping, SemanticProperty target, IReadOnlyList<SemanticProperty> targets, SemanticEventContract @event, SemanticApplicationContext context) =>
@@ -556,7 +573,8 @@ internal static class SemanticScopedProjectionSupport
                 @event,
                 context,
                 _protectedIdentity,
-                from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity });
+                from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity },
+                fromBlock: true);
 
         bool ParentKeyUnsupported(SemanticProjectionKey? parentKey, SemanticEventContract @event) =>
             child ? parentKey is not null && !KeySupported(parentKey, @event, context) : parentKey is not null;

@@ -131,9 +131,9 @@ public static class SpecificationRenderer
         builder.BlankLine().Documentation(specification.Description).OpenBlock($"public class {name} : Specification, IDisposable")
             .Line($"readonly CommandScenario<{commandType}> _scenario = new();")
             .Line("CommandResult _result = null!;")
-            .BlankLine()
-            .Line($"async Task Because() => _result = await _scenario.Execute(new {commandType}({Arguments(specification.When!, command, specification, applicationSet, diagnostics)}));")
             .BlankLine();
+        RenderBecause(builder, command, commandType, Arguments(specification.When!, command, specification, applicationSet, diagnostics));
+        builder.BlankLine();
 
         if (specification.ThenErrors.Any())
         {
@@ -278,4 +278,23 @@ public static class SpecificationRenderer
     static string Behavior(string name) => $"when_{Identifiers.ToSnakeCase(name)}";
 
     static string Conditional(string content) => content;
+
+    static void RenderBecause(CSharpCodeBuilder builder, CommandSyntax command, string commandType, string arguments)
+    {
+        var execute = $"_result = await _scenario.Execute(new {commandType}({arguments}));";
+        if (command.Authorize is not null)
+        {
+            builder.Line($"async Task Because() => {execute}");
+            return;
+        }
+
+        // A command without an authorize clause renders [Authorize], so the specification runs as the default authenticated caller.
+        builder.OpenBlock("async Task Because()")
+            .Line(global::Cratis.Stage.Rendering.Cratis.Semantics.SemanticDefaultCaller.Comment)
+            .Line("var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], \"Screenplay\"));")
+            .Line("var principalOverride = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
+            .Line("using var scope = principalOverride.BeginScope(principal);")
+            .Line(execute)
+            .EndBlock();
+    }
 }

@@ -222,17 +222,24 @@ internal static partial class SemanticCommandSpecificationRenderer
             SemanticReactionSpecificationRenderer.RenderBecause(scope);
             return;
         }
-        if (scope.Specification.GivenCaller is not { } caller)
+        var caller = scope.Specification.GivenCaller;
+        if (caller is null && scope.Command.Authorization is not null)
         {
             builder.Line($"async global::System.Threading.Tasks.Task Because() => _result = await _scenario.Execute(new {commandName}({string.Join(", ", scope.Arguments)}));")
                 .BlankLine();
             return;
         }
 
-        var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+        // A command without modeled authorization renders [Authorize], so a specification without a caller runs as the default authenticated caller.
+        IEnumerable<string> claims = caller is null ? [] : caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
             .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
-        var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
-        builder.OpenBlock("async global::System.Threading.Tasks.Task Because()")
+        var authentication = caller is null || caller.Authenticated ? "\"Screenplay\"" : "null";
+        builder.OpenBlock("async global::System.Threading.Tasks.Task Because()");
+        if (caller is null)
+        {
+            builder.Line(SemanticDefaultCaller.Comment);
+        }
+        builder
             .Line($"var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")
             .Line("var principalOverride = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
             .Line("using var scope = principalOverride.BeginScope(principal);")

@@ -70,6 +70,10 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
     [Fact] void should_not_wrap_in_a_debug_conditional() => _appended.Content.Contains("#if DEBUG", StringComparison.Ordinal).ShouldBeFalse();
     [Fact] void should_exercise_the_command_through_a_scenario() =>
         _appended.Content.ShouldContain("readonly CommandScenario<RegisterInvoice> _scenario = new();");
+    [Fact] void should_run_a_caller_less_specification_as_the_authenticated_default_caller() =>
+        _appended.Content.ShouldContain(global::Cratis.Stage.Rendering.Cratis.Semantics.SemanticDefaultCaller.Comment);
+    [Fact] void should_supply_the_default_caller_as_an_authenticated_principal() =>
+        _appended.Content.ShouldContain("new global::System.Security.Claims.ClaimsIdentity([], \"Screenplay\")");
     [Fact] void should_state_the_uuid_the_document_wrote_as_text() =>
         _appended.Content.ShouldContain("Guid.Parse(\"9c858901-8a57-4791-81fe-4c455b099bc9\")");
 

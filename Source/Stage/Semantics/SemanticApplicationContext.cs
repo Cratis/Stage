@@ -6,10 +6,12 @@ using Cratis.Screenplay.Semantics.Execution;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
-// Supplies the three indexes consumed by the shared scoped-projection admission source.
+// Supplies the indexes consumed by the shared scoped-projection admission source.
 internal sealed class SemanticApplicationContext(SemanticExecutionPlan plan)
 {
     public IReadOnlyDictionary<SemanticId, SemanticEventContract> Events => plan.Events;
     public IReadOnlyDictionary<SemanticId, SemanticCompositeType> Types { get; } = plan.Model.Application.Types.ToDictionary(type => type.Id);
     public IReadOnlyDictionary<SemanticId, SemanticConcept> Concepts { get; } = plan.Model.Application.Concepts.ToDictionary(concept => concept.Id);
+    public SemanticApplication Application => plan.Model.Application;
+    public IReadOnlyDictionary<SemanticId, SemanticCommand> Commands { get; } = SemanticVersionFeatures.Slices(plan.Model.Application).SelectMany(slice => slice.Commands).ToDictionary(command => command.Id);
 }

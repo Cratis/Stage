@@ -50,7 +50,8 @@ internal static class SemanticExpectationComparer
 
         if (rejection is not null)
         {
-            failures.Add("Expected Accepted, got Rejected.");
+            // The reference reports the rejection's details after the outcome (Screenplay 4.2xx): keep the same sentence.
+            failures.Add($"Expected Accepted, got Rejected.{(string.IsNullOrEmpty(rejection) ? string.Empty : $" {rejection}")}");
             return failures;
         }
 

@@ -99,9 +99,10 @@ internal static class SemanticScopedProjectionSupport
         SemanticEventContract @event,
         SemanticApplicationContext context,
         SemanticId? identity,
-        bool keyIsEventSource) =>
+        bool keyIsEventSource,
+        bool fromBlock = false) =>
         mappings.Select(_ => string.Join('.', _.Target)).Distinct().Count() == mappings.Count() &&
-        mappings.All(mapping => MappingSupported(mapping, targets, @event, context, identity, keyIsEventSource));
+        mappings.All(mapping => MappingSupported(mapping, targets, @event, context, identity, keyIsEventSource, fromBlock));
 
     static bool MappingSupported(
         SemanticProjectionMapping mapping,
@@ -109,19 +110,12 @@ internal static class SemanticScopedProjectionSupport
         SemanticEventContract @event,
         SemanticApplicationContext context,
         SemanticId? identity,
-        bool keyIsEventSource)
+        bool keyIsEventSource,
+        bool fromBlock = false)
     {
         var target = Target(mapping.Target, targets, context);
         if (target is null || HasOptionalIntermediate(mapping.Target, targets, context) ||
             (target.Type.IsCollection && !WholeCollectionSupported(mapping, target, targets, @event, context)))
-        {
-            return false;
-        }
-
-        // A running whole-number total that may be absent has no zero to start from: only a required count or sum accumulates from nothing.
-        if (mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract or
-            SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement &&
-            target.Type.IsOptional && UnderlyingPrimitive(target.Type, context) == SemanticPrimitiveType.WholeNumber)
         {
             return false;
         }
@@ -131,12 +125,98 @@ internal static class SemanticScopedProjectionSupport
             SemanticProjectionOperation.Clear => target.Type.IsOptional && mapping.Source is null,
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
             SemanticProjectionOperation.Set => (mapping.Source is SemanticProjectionEventSourceIdentity && keyIsEventSource && EventSourceMappingSupported(mapping, targets, context, identity)) ||
+                (mapping.Source is SemanticProjectionEventSourceIdentity && fromBlock && !keyIsEventSource && EventSourceIsProducedAs(@event, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)),
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract =>
-                mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context),
+                (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)) ||
+                IsZeroTotalStart(mapping, target, context),
             _ => false
         };
+    }
+
+    static bool IsArithmetic(SemanticProjectionMapping mapping) =>
+        mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract or
+            SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement;
+
+    static bool CanSetNull(SemanticProjectionMapping mapping) =>
+        mapping.Operation == SemanticProjectionOperation.Clear ||
+        (mapping.Operation == SemanticProjectionOperation.Set && mapping.Source is not SemanticProjectionLiteral { Value: not SemanticNullValue });
+
+    static SemanticProperty? EventProperty(System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    {
+        SemanticProperty? found = null;
+        foreach (var id in path)
+        {
+            found = properties.SingleOrDefault(_ => _.Id == id);
+            if (found is null)
+            {
+                return null;
+            }
+
+            properties = ChildProperties(found, context);
+        }
+
+        return found;
+    }
+
+    // The lambda Chronicle reads is built by the C# compiler, which wraps each conversion in an expression node: Chronicle unwraps one.
+    // Same type (apart from the optional marker): none. A concept into the number it holds, a number into a concept, or a concept into
+    // another concept of the same number: one. A concept into an optional number: two.
+    static bool SameTotalType(SemanticTypeReference source, SemanticTypeReference target, SemanticApplicationContext context)
+    {
+        if (source.IsCollection || target.IsCollection)
+        {
+            return false;
+        }
+
+        if (source.Kind == target.Kind && source.Target == target.Target && source.Primitive == target.Primitive)
+        {
+            return true;
+        }
+
+        var sourcePrimitive = UnderlyingPrimitive(source, context);
+        if (sourcePrimitive != UnderlyingPrimitive(target, context))
+        {
+            return false;
+        }
+
+        // Between two concepts the generated target concept declares the implicit conversion (SemanticProjectionConversions).
+        return (source.Kind == SemanticTypeReferenceKind.Concept && target.Kind == SemanticTypeReferenceKind.Primitive && !target.IsOptional) ||
+            (source.Kind == SemanticTypeReferenceKind.Primitive && target.Kind == SemanticTypeReferenceKind.Concept) ||
+            (source.Kind == SemanticTypeReferenceKind.Concept && target.Kind == SemanticTypeReferenceKind.Concept &&
+                context.Concepts[source.Target].Values.IsEmpty && context.Concepts[target.Target].Values.IsEmpty);
+    }
+
+    // 'add total by 0' (or subtract) only makes the running total exist: the reference seeds a missing total with 0 and adds nothing, and a
+    // required whole or decimal number of the Chronicle read model is 0 until the first real operation, so the renderer emits nothing for it.
+    // A concept is a reference type there: it stays null until set, so a concept total does not start at 0 and is refused.
+    // Chronicle's Add and Subtract builders take an event property only, so no other constant can be rendered.
+    internal static bool IsZeroTotalStart(SemanticProjectionMapping mapping, SemanticProperty? target, SemanticApplicationContext context) =>
+        mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract &&
+        mapping.Source is SemanticProjectionLiteral { Value: SemanticNumberValue { Value: 0m } } &&
+        target is { Type: { IsOptional: false, IsCollection: false } type } &&
+        type.Kind == SemanticTypeReferenceKind.Primitive &&
+        type.Primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;
+
+    // A projection keyed by an event property still reads the event's source identity ($eventSourceId): Chronicle converts the identity text
+    // into the target's type, which is only sound when every command that produces the event addresses it with a value of exactly that type
+    // (Translate captures that append the event are refused before rendering, and nothing else can produce a rendered event).
+    static bool EventSourceIsProducedAs(SemanticEventContract @event, SemanticTypeReference target, SemanticApplicationContext context)
+    {
+        var destinations = context.Commands.Values
+            .SelectMany(command => command.Produces.Where(produced => produced.EventContract == @event.Id).Select(produced => (command, produced)))
+            .Select(production => SemanticDestinations.Of(production.command, production.produced) is SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property, Root: SemanticExpressionRootKind.Command } resolved
+                ? production.command.Properties.SingleOrDefault(property => property.Id == resolved.Target)?.Type
+                : null)
+            .ToArray();
+        var reactions = SemanticReactionProductions.In(context.Application)
+            .Where(production => production.Produced.EventContract == @event.Id)
+            .Select(production => production.Produced.DestinationType)
+            .ToArray();
+        return destinations.Length + reactions.Length > 0 &&
+            reactions.All(type => type is { IsCollection: false } && type with { IsOptional = false } == target with { IsOptional = false }) &&
+            destinations.All(type => type is { IsCollection: false } && type with { IsOptional = false } == target with { IsOptional = false });
     }
 
     // A collection property is set whole from an event property of exactly the same type; elements are never addressed.
@@ -241,7 +321,7 @@ internal static class SemanticScopedProjectionSupport
                    paths.Any(path => path.Length > prefix.Length && path.Take(prefix.Length + 1).SequenceEqual([.. prefix, property.Id])))
                 : property.Type.IsOptional || paths.Any(path => path.SequenceEqual([.. prefix, property.Id]))));
 
-    static SemanticProperty? Target(System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    internal static SemanticProperty? Target(System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
     {
         SemanticProperty? target = null;
         foreach (var id in path)
@@ -326,7 +406,7 @@ internal static class SemanticScopedProjectionSupport
         string? LimitRejection() => ChronicleLimitRejection() ?? EveryLimitRejection() ?? JoinRemovalRejection();
 
         string? MappingRejection() =>
-            EventNameRejection() ?? EveryRejection() ?? CompositeKeyRejection() ?? ProtectedIdentityRejection() ?? RoleRejection();
+            EventNameRejection() ?? EveryRejection() ?? OptionalTotalRejection() ?? TotalTypeRejection() ?? CompositeKeyRejection() ?? ProtectedIdentityRejection() ?? RoleRejection();
 
         string? BlockRejection() =>
             FromRejection() ?? JoinRejection() ?? RemovalRejection() ?? NestedRejection() ?? ChildrenRejection();
@@ -429,6 +509,46 @@ internal static class SemanticScopedProjectionSupport
         SemanticProjectionMapping[] EveryLiterals() =>
             scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
 
+        // A running total that may be absent starts from nothing (Chronicle seeds a never-set property with 0), but Chronicle's Add, Subtract,
+        // Increment and Decrement throw on a property that was explicitly set to null, which is what clear and a possibly absent event value do;
+        // the reference then starts from 0 again. Such a total cannot render.
+        string? OptionalTotalRejection()
+        {
+            var mappings = scope.From.SelectMany(from => from.Mappings).Concat(scope.Joins.SelectMany(join => join.Mappings)).ToArray();
+            var totals = mappings.Where(mapping => IsArithmetic(mapping) && Target(mapping.Target, properties, context) is { Type.IsOptional: true })
+                .Select(mapping => string.Join('/', mapping.Target)).ToHashSet(StringComparer.Ordinal);
+            return mappings.Any(mapping => totals.Contains(string.Join('/', mapping.Target)) && CanSetNull(mapping))
+                ? "A running total that may be absent cannot also be cleared or set from an event value that may be absent: Chronicle cannot add to a property it has set to null."
+                : null;
+        }
+
+        // Chronicle reads the added event value from a direct member access and never executes the lambda, so a conversion in it fails when
+        // the projection is built: the event property must have the type the total holds (a concept is not a number, another concept is not
+        // the same concept), apart from the optional marker a total may carry.
+        string? TotalTypeRejection()
+        {
+            foreach (var from in scope.From)
+            {
+                if (!context.Events.TryGetValue(from.EventContract, out var @event))
+                {
+                    continue;
+                }
+
+                foreach (var mapping in from.Mappings.Where(mapping => mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract &&
+                    mapping.Source is SemanticProjectionEventProperty))
+                {
+                    var source = EventProperty(((SemanticProjectionEventProperty)mapping.Source!).Path, @event.Properties, context);
+                    var target = Target(mapping.Target, properties, context);
+                    if (source is not null && target is not null && !SameTotalType(source.Type, target.Type, context))
+                    {
+                        return $"A running total '{target.Name}' adds the event value '{source.Name}', which has another type: Chronicle adds an event property only where it has the type the total holds, so give both the same type.";
+                    }
+                }
+            }
+
+            return null;
+        }
+
         string? EveryRejection()
         {
             if (scope.Every is { Mappings.Length: > 0 } every && EveryMappingsUnsupported(every))
@@ -501,8 +621,8 @@ internal static class SemanticScopedProjectionSupport
                 return conflict;
             }
 
-            return child && (scope.Children.Length > 0 || scope.Joins.Length > 0)
-                ? "Recursive children and child joins need an exact Chronicle lowering before they can render."
+            return child && scope.Children.Length > 0
+                ? "Recursive children need an exact Chronicle lowering before they can render."
                 : null;
         }
 
@@ -517,7 +637,8 @@ internal static class SemanticScopedProjectionSupport
 
             // A composite root key establishes every key part itself, so the parts are not left for the mappings.
             var required = IsCompositeRoot ? [.. properties.Where(property => !property.IsIdentifier)] : properties;
-            return scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals), required, context, _protectedIdentity))
+            var joined = child ? scope.Joins.SelectMany(join => join.Mappings) : [];
+            return scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals).Concat(joined), required, context, _protectedIdentity))
                 ? null
                 : "At least one from block must establish the required read-model properties.";
         }
@@ -532,7 +653,8 @@ internal static class SemanticScopedProjectionSupport
                 @event,
                 context,
                 _protectedIdentity,
-                from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity });
+                from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity },
+                fromBlock: true);
 
         bool ParentKeyUnsupported(SemanticProjectionKey? parentKey, SemanticEventContract @event) =>
             child ? parentKey is not null && !KeySupported(parentKey, @event, context) : parentKey is not null;
@@ -542,7 +664,7 @@ internal static class SemanticScopedProjectionSupport
 
         bool JoinSupported(SemanticProjectionJoin join) =>
             context.Events.TryGetValue(join.EventContract, out var @event) && join.Key is null &&
-            properties.Any(_ => _.Id == join.On) && MappingsSupported(join.Mappings, properties, @event, context, _protectedIdentity, false);
+            properties.Any(_ => _.Id == join.On) && (!child || join.On == identity) && MappingsSupported(join.Mappings, properties, @event, context, _protectedIdentity, false);
 
         string? RemovalRejection()
         {

@@ -18,7 +18,8 @@ internal static class SemanticWorldRebuilder
     internal static SemanticWorld Create(
         SemanticExecutionPlan plan,
         IEnumerable<AppendedEventResponse> events,
-        ulong tail)
+        ulong tail,
+        bool exact = true)
     {
         var history = events.OrderBy(@event => @event.Context.SequenceNumber).ToArray();
         if (history.Length == 0 || history[0].Context.SequenceNumber != 0 ||
@@ -28,7 +29,7 @@ internal static class SemanticWorldRebuilder
             throw new SemanticWorldRebuildRefused($"The event log cannot be read completely through tail {tail}.");
         }
 
-        var facts = history.Select(@event => Fact(plan, @event)).ToImmutableArray();
+        var facts = history.Select(@event => Fact(plan, @event, exact)).ToImmutableArray();
         SemanticRebuildConstraints.Check(plan, facts);
         try
         {
@@ -48,7 +49,17 @@ internal static class SemanticWorldRebuilder
         _ => throw new SemanticWorldRebuildRefused("The semantic world reconstruction returned an unknown outcome.")
     };
 
-    internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored)
+    /// <summary>
+    /// Reads a stored event as a semantic fact.
+    /// </summary>
+    /// <param name="plan">The execution plan.</param>
+    /// <param name="stored">The stored event.</param>
+    /// <param name="exact">
+    /// Whether the event must be the exact storage form of a modeled production - what a restart verifies. Events the host has just appended
+    /// itself, from memory, are not read back through storage, so they need not round-trip it (a decimal or a date time) nor name a producer.
+    /// </param>
+    /// <returns>The fact.</returns>
+    internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored, bool exact = true)
     {
         var context = stored.Context;
         if (context.EventType.Generation != 1 || stored.Revisions.Any() ||
@@ -65,9 +76,12 @@ internal static class SemanticWorldRebuilder
 
         var contract = contracts[0];
         var route = Route(plan, context);
-        foreach (var property in contract.Properties)
+        if (exact)
         {
-            EnsureExactStorageType(property.Name, property.Type, plan.Model.Application);
+            foreach (var property in contract.Properties)
+            {
+                EnsureExactStorageType(property.Name, property.Type, plan.Model.Application);
+            }
         }
 
         var producers = Productions(plan, contract.Id).ToArray();
@@ -92,12 +106,12 @@ internal static class SemanticWorldRebuilder
 
         using var content = JsonDocument.Parse(stored.Content);
         var values = Values(content.RootElement, contract.Properties, plan.Model.Application);
-        if (!producers.Any(producer => RouteMatches(plan, producer.Route, route)))
+        if (exact && !producers.Any(producer => RouteMatches(plan, producer.Route, route)))
         {
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has a route inconsistent with every modeled production of '{contract.Name}'.");
         }
 
-        if (!producers.Any(producer => RouteMatches(plan, producer.Route, route) && ProductionMatches(producer.Produced, contract, values, context, occurred)))
+        if (exact && !producers.Any(producer => RouteMatches(plan, producer.Route, route) && ProductionMatches(producer.Produced, contract, values, context, occurred)))
         {
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has tags or occurrence values inconsistent with every modeled production of '{contract.Name}'.");
         }

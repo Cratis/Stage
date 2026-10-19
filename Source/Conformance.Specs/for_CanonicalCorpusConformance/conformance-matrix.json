@@ -31,8 +31,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "supported" },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-006", "artifact": "sem1:0765d7e021e89040eb54bd97f0221c14c04b0523d89fea9677c93867c9b17ff0", "issue": 511 } ] }
+      "renderer": { "outcome": "supported" }
     },
     "AtomicReactionBatchesCorpus.Legacy": {
       "loader": { "outcome": "supported" },
@@ -2444,8 +2443,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "supported" },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-006", "artifact": "sem1:85cd9a8f68d6bd0de0a1654f0b5640ec088ad18d6d7bc447a9d5f7dd8fc39d6b", "issue": 511 } ] }
+      "renderer": { "outcome": "supported" }
     },
     "EsmGoldenVectors.V4": {
       "loader": { "outcome": "supported" },

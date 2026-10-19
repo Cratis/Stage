@@ -69,7 +69,7 @@ export interface StageDataState {
     /**
      * The identities the session acts as, by the name a screen parameter gives them (`basketId`). They are not the screen's parameters: only
      * what reads the session on purpose does - a form populating the identity it does not show, the key a `data` declaration is read by
-     * when the address does not carry it (`by <name>`, or `screen.keys.<name>` in a binding).
+     * when the address does not carry it (`screen.keys.<name>` in a binding), and the query bindings the session narrows.
      */
     session: Record<string, string>;
     queries: Record<string, QueryState>;

@@ -32,8 +32,8 @@ describe('when a form does not show the identifier its command is about', () => 
         expect(second).toBe(first);
     });
 
-    it('should leave the identifier to the screen when it carries it as a parameter', () => {
-        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), { basketId: 'b1' })).toEqual({});
+    it('should take the identifier the screen carries as a parameter', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), { basketId: 'b1' })).toEqual({ basketId: 'b1' });
     });
 
     it('should leave an identifier the form shows to the person filling it', () => {

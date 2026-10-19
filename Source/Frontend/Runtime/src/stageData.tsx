@@ -10,6 +10,9 @@ import { createBindingResolver, resolveArgumentSource, validateBindingExpression
 import type { StageRoutes } from './stageRoutes';
 import { guardPath } from './stageGuards';
 
+/** Where a session keeps the identity it acts as, one per identifier concept. */
+export const sessionIdentifierPrefix = 'stage.session.';
+
 const DATA_CHANGED = 'cratis.stage.data-changed';
 
 interface QueryState {
@@ -130,8 +133,9 @@ export interface StageDataProviderProps {
 
 const noParameters: Record<string, string> = {};
 
-export function StageDataProvider({ routes, routesReady = true, parameters = noParameters, locale, locales, screen, children }: StageDataProviderProps) {
+export function StageDataProvider({ routes, routesReady = true, parameters: addressParameters = noParameters, locale, locales, screen, children }: StageDataProviderProps) {
     const [queries, setQueries] = useState<Record<string, QueryState>>({});
+    const [sessionVersion, setSessionVersion] = useState(0);
     const [selections, setSelections] = useState<Record<string, Record<string, unknown> | undefined>>({});
     const [activeSelection, setActiveSelection] = useState<string>();
     const [localState, setLocalState] = useState<Record<string, unknown>>({});
@@ -149,6 +153,9 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
             return { ...current, [scope]: state };
         });
     }, []);
+
+    // What the address does not carry, the session does: the shopper's own basket is the one a command created, so a screen about "the basket" needs no id in its address.
+    const parameters = useMemo(() => ({ ...sessionParameters(), ...addressParameters }), [addressParameters, sessionVersion]);
 
     const selectRow = useCallback((scope: string, row: Record<string, unknown> | undefined) => {
         setSelections(current => ({ ...current, [scope]: row }));
@@ -180,6 +187,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
     // the screen show what the command did; a stale response is still discarded by the query's own sequencing.
     const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
     const refreshAfterCommand = useCallback(() => {
+        setSessionVersion(current => current + 1);
         refreshQuery();
         for (const delay of commandSettleDelays) settleTimers.current.push(setTimeout(() => refreshQuery(), delay));
     }, [refreshQuery]);
@@ -502,6 +510,25 @@ function resolveQueryResult(queries: Record<string, QueryState>, query: string |
     if (parts.length === 0) return rows;
     if (rows.length === 1) return valueAt(rows[0], parts);
     return rows.map(row => valueAt(row, parts));
+}
+
+/** The identities the session holds (see `sessionIdentifier`), by the name a screen parameter gives them: `stage.session.BasketId` is `basketId`. */
+function sessionParameters(): Record<string, string> {
+    const found: Record<string, string> = {};
+    try {
+        const storage = globalThis.localStorage;
+        for (let index = 0; storage && index < storage.length; index++) {
+            const key = storage.key(index) ?? '';
+            if (!key.startsWith(sessionIdentifierPrefix)) continue;
+            const concept = key.slice(sessionIdentifierPrefix.length);
+            const value = storage.getItem(key);
+            if (concept && value) found[concept.charAt(0).toLowerCase() + concept.slice(1)] = value;
+        }
+    } catch {
+        // storage is refused: the session holds no identities, and the address carries what a screen needs
+    }
+
+    return found;
 }
 
 function routeWithArguments(route: string, queryArguments: Record<string, unknown>): string {

@@ -8,7 +8,8 @@ import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { registeredCommand, commandOutcome } from './commandExecutor';
 import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField } from '@cratis/components/CommandForm';
-import { useStageData } from './stageData';
+import { navigateToScreen } from './stageNavigation';
+import { sessionIdentifierPrefix, useStageData } from './stageData';
 
 export interface SchemaProperty {
     name: string;
@@ -81,6 +82,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 onSuccess={() => {
                     setMessages([]);
                     data.refreshAfterCommand();
+
+                    // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
+                    const destination = text(element, 'navigateToScreen');
+                    if (destination) navigateToScreen(destination, {});
                 }}>
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
@@ -198,7 +203,7 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
  * The identity a session acts as - the shopper's basket - for the identifier properties a form does not show.
  *
  * A command like AddToBasket is about the shopper's own basket, which the shopper never types: the form lists the product and the quantity.
- * A required uuid property that the form does not list and the screen has no parameter for is that kind of identity, so it is one value per
+ * A required uuid property that the form does not list is that kind of identity - the screen's own parameter when it carries one, otherwise one value per
  * identifier concept for as long as this browser keeps the session - the same basket for every add, change and checkout, a different one for
  * another browser - and a command is never submitted for an identity nobody chose.
  */
@@ -206,15 +211,15 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     const shown = new Set(fields.map(field => field.sourceProperty ?? field.name));
     const values: StageCommandContent = {};
     for (const property of schema) {
-        if (!property.identifier || !property.required || shown.has(property.name) || parameters[property.name]) continue;
-        values[property.name] = sessionIdentifier(property.identifier);
+        if (!property.identifier || !property.required || shown.has(property.name)) continue;
+        values[property.name] = parameters[property.name] || sessionIdentifier(property.identifier);
     }
 
     return values;
 }
 
 function sessionIdentifier(concept: string): string {
-    const key = `stage.session.${concept}`;
+    const key = `${sessionIdentifierPrefix}${concept}`;
     try {
         const existing = globalThis.localStorage?.getItem(key);
         if (existing) return existing;

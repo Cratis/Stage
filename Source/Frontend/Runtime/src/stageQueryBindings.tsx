@@ -94,8 +94,11 @@ function BoundData({ source }: { source: StageDataSource }) {
 
 /** Reads one query and publishes its rows, so every binding to it - wherever on the page - resolves against them. */
 function BoundQuery({ name }: { name: string }) {
-    const { routes, routesReady } = useStageData();
-    useStageQuery({ scope: `binding:${name}`, name, route: routes?.queries[name], ready: routesReady, list: true });
+    const { routes, routesReady, parameters } = useStageData();
+
+    // What the session and the address carry narrows the query - the shopper's own basket - when the query filters by it; a query that does not ignores it.
+    const queryArguments = useMemo(() => ({ ...parameters }), [parameters]);
+    useStageQuery({ scope: `binding:${name}`, name, route: routes?.queries[name], arguments: queryArguments, ready: routesReady, list: true });
     return null;
 }
 

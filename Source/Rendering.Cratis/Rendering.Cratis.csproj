@@ -83,19 +83,6 @@
         </AssemblyAttribute>
     </ItemGroup>
     <ItemGroup>
-        <!-- One frontend runtime serves the live Stage and every generated React application: the Stage frontend's
-             runtime modules are emitted into a generated application verbatim, so both render a Scene the same way.
-             Specifications, test helpers and the live entry point stay behind; the generated application has its own. The live-only
-             approved package loader and shared React registration (stagePackages.ts, sharedModules.ts) stay behind with it: a
-             generated application builds its approved packages in. -->
-        <EmbeddedResource Include="../Frontend/Runtime/src/*.ts;../Frontend/Runtime/src/*.tsx;../Frontend/Runtime/src/*.css"
-                          Exclude="../Frontend/Runtime/src/*.spec.ts;../Frontend/Runtime/src/*.spec.tsx;../Frontend/Runtime/src/testSetup.ts;../Frontend/Runtime/src/testElements.ts;../Frontend/Runtime/src/index.ts;../Frontend/Runtime/src/stageSource.ts"
-                          LogicalName="StageFrontend/stage/%(Filename)%(Extension)" />
-        <!-- Preserve the pre-package source's HTTP fallback byte-for-byte until generated apps switch to the package. -->
-        <EmbeddedResource Include="../Frontend/Runtime/embedding/stageSource.ts" LogicalName="StageFrontend/stage/stageSource.ts" />
-        <EmbeddedResource Include="../Frontend/Runtime/styledPrimeReact.ts" LogicalName="StageFrontend/styledPrimeReact.ts" />
-    </ItemGroup>
-    <ItemGroup>
         <!-- What the Stage frontend's core, PrimeReact and default blueprint declare, generated from their manifests by
              Frontend/src/shippedPackages.spec.ts, which fails when it is stale: the catalog a ui profile is resolved against
              must be the one the frontend renders with. -->
@@ -142,6 +129,7 @@
             <_ScaffoldPackage Include="NSubstitute" Constant="NSubstitute" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'NSubstitute')->Metadata('Version'))" />
             <_ScaffoldPackage Include="xunit" Constant="Xunit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit')->Metadata('Version'))" />
             <_ScaffoldPackage Include="xunit.runner.visualstudio" Constant="XunitRunner" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit.runner.visualstudio')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="@cratis/stage.runtime" Constant="StageRuntime" PinVersion="$(Version)" />
             <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
         </ItemGroup>
         <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"

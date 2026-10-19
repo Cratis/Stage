@@ -51,7 +51,16 @@ internal static class StageSceneDocument
         var diagnostics = new ConversionDiagnostics();
         var schemas = context.Commands.Values
             .GroupBy(command => command.Name, StringComparer.Ordinal)
-            .Select(group => (Name: group.Key, Schema: CommandFormSchemas.For(context.Application, group.First().Properties, diagnostics, group.Key, SourceLocation.Start)))
+            .Select(group =>
+            {
+                var properties = group.First().Properties;
+
+                // Contracts serves semantic Host names. Only this generated application's transport uses CLR escapes.
+                var names = properties.ToDictionary(property => property.Name, context.MemberNames.WireProperty, StringComparer.Ordinal);
+                var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }), new ConversionDiagnostics(), group.Key, SourceLocation.Start);
+                var fieldSchema = CommandFormSchemas.For(context.Application, properties, diagnostics, group.Key, SourceLocation.Start);
+                return (Name: group.Key, Schema: schema, FieldSchema: fieldSchema, Names: names);
+            })
             .ToArray();
         if (diagnostics.HasErrors)
         {
@@ -59,7 +68,12 @@ internal static class StageSceneDocument
         }
         var commands = schemas.ToDictionary(
             entry => entry.Name,
-            entry => new Command(entry.Schema!, CanonicalSceneJson.ToNode(CommandFormSchemas.Fields(entry.Schema!))!.AsArray()),
+            entry =>
+            {
+                var fields = CanonicalSceneJson.ToNode(CommandFormSchemas.Fields(entry.FieldSchema!))!.AsArray();
+                GeneratedSceneMemberNames.Fields(fields, entry.Names);
+                return new Command(entry.Schema!, fields, entry.Names);
+            },
             StringComparer.Ordinal);
 
         var document = JsonNode.Parse(sceneJson)!.AsObject();
@@ -83,6 +97,7 @@ internal static class StageSceneDocument
             }
         }
 
+        GeneratedSceneMemberNames.Arguments(document, commands.ToDictionary(pair => pair.Key, pair => pair.Value.Names, StringComparer.Ordinal));
         return CanonicalSceneJson.Write(document);
     }
 
@@ -134,9 +149,17 @@ internal static class StageSceneDocument
     static JsonObject Enrich(JsonObject form, IReadOnlyDictionary<string, Command> commands)
     {
         var enriched = form.DeepClone().AsObject();
-        if (Count(enriched["fields"]) == 0 && Text(enriched, "forCommand") is { } name && commands.TryGetValue(name, out var command))
+        if (Text(enriched, "forCommand") is { } name && commands.TryGetValue(name, out var command))
         {
-            enriched["fields"] = command.Fields.DeepClone();
+            if (Count(enriched["fields"]) == 0)
+            {
+                enriched["fields"] = command.Fields.DeepClone();
+            }
+            else
+            {
+                GeneratedSceneMemberNames.Fields(enriched["fields"], command.Names);
+            }
+            GeneratedSceneMemberNames.Fields(enriched["layout"], command.Names);
         }
 
         return enriched;
@@ -233,5 +256,5 @@ internal static class StageSceneDocument
     static string? Text(JsonObject node, string name) =>
         node[name] is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 
-    sealed record Command(string Schema, JsonArray Fields);
+    sealed record Command(string Schema, JsonArray Fields, IReadOnlyDictionary<string, string> Names);
 }

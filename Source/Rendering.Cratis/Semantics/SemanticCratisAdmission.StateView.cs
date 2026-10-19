@@ -53,7 +53,7 @@ internal static partial class SemanticCratisAdmission
 
             if (!ReadModelQueryNamesAreUnique(context, slice, readModel))
             {
-                diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' has property or query names that collide in generated C#.", readModel.Id));
+                diagnostics.Add(Error("STAGE-ESM-012", $"Read model '{readModel.Name}' cannot render in generated C#: {ReadModelNameCollision(context, slice, readModel)}.", readModel.Id));
                 continue;
             }
 
@@ -61,6 +61,15 @@ internal static partial class SemanticCratisAdmission
             {
                 diagnostics.Add(Error(SemanticVersionFeatures.CompositeReadModelKeys, $"Read model '{readModel.Name}' cannot render its composite key: {compositeRejection}", projection?.Id ?? readModel.Id));
                 continue;
+            }
+
+            foreach (var query in slice.Queries.Where(query => query.ReadModel == readModel.Id && context.MemberNames.Query(query) != Identifiers.ToPascalCase(query.Name)))
+            {
+                diagnostics.Add(new(
+                    "STAGE-ESM-050",
+                    ArtifactRenderDiagnosticSeverity.Information,
+                    $"Read model '{readModel.Name}' query '{query.Name}' is emitted as '{context.MemberNames.Query(query)}'; its HTTP route is unchanged.",
+                    query.Id));
             }
 
             if (projection is null)
@@ -134,6 +143,26 @@ internal static partial class SemanticCratisAdmission
             GeneratedPascalCase.QueriesAreUnique(queries.Where(query => query.Argument is null || TypeExists(context, query.Argument.Type))
                 .Select(query => (query.Name, QueryParameterTypes(query, types), query.Argument?.Name ?? string.Empty))) &&
             queries.All(query => GeneratedPascalCase.QueryParametersAreUnique(QueryParameterNames(query)));
+    }
+
+    static string ReadModelNameCollision(SemanticApplicationContext context, SemanticSlice slice, SemanticReadModel readModel)
+    {
+        var queries = slice.Queries.Where(query => query.ReadModel == readModel.Id).ToArray();
+        var types = new SemanticTypeSystem(context);
+        if (!GeneratedPascalCase.RecordTypeNameIsSafe(readModel.Name, readModel.Properties.Length > 0))
+        {
+            return $"type name '{readModel.Name}' collides with a synthesized record member";
+        }
+        var property = readModel.Properties.FirstOrDefault(property => !GeneratedPascalCase.RecordMembersAreUnique(readModel.Name, [property.Name]));
+        if (property is not null) return $"property '{readModel.Name}.{property.Name}' collides with a generated member";
+        var duplicate = queries.Where(query => query.Argument is null || TypeExists(context, query.Argument.Type))
+            .GroupBy(query => (Name: Identifiers.ToPascalCase(query.Name), Types: QueryParameterTypes(query, types)))
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate is not null) return $"queries [{string.Join(", ", duplicate.Select(query => $"'{readModel.Name}.{query.Name}({string.Join(", ", QueryParameterNames(query))})'"))}] collide";
+        var parameters = queries.FirstOrDefault(query => !GeneratedPascalCase.QueryParametersAreUnique(QueryParameterNames(query)));
+        if (parameters is not null) return $"query '{readModel.Name}.{parameters.Name}' parameters [{string.Join(", ", QueryParameterNames(parameters).Select(name => $"'{name}'"))}] collide with each other or the generated 'readModels' parameter";
+        var properties = readModel.Properties.GroupBy(property => Identifiers.ToPascalCase(property.Name), StringComparer.OrdinalIgnoreCase).Where(group => group.Count() > 1).SelectMany(group => group);
+        return $"properties [{string.Join(", ", properties.Select(property => $"'{readModel.Name}.{property.Name}'"))}] collide";
     }
 
     static IEnumerable<string> QueryParameterNames(SemanticKeyedQuery query) =>

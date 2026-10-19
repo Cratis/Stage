@@ -92,7 +92,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         foreach (var (expected, index) in specification.ThenEvents.Select((value, index) => (value, index)))
         {
             var contract = context.Events[expected.EventContract];
-            var values = ProductionValues(types, index);
+            var values = ProductionValues(types, context, index);
             var fields = contract.Properties.Select(property => (property, expected.Values.Single(value => value.TargetProperty == property.Id).Value)).ToArray();
             RenderExpectedCollections(builder, fields, values);
             var predicates = fields.Select(field => ValuePredicate(field.property, field.Value, values));

@@ -76,7 +76,6 @@
         { "code": "STAGE-ESM-011", "artifact": "sem1:8a7b8750c96596ae18478b5b455f0a47cd5129cbc714f3bb15331c3e6ab017e9", "issue": 14 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:af3a6a565ea366d6ac2d4da3cd9c02290138c4747225f1418ef7fce20edf6630", "issue": 511 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:ee4476e9d11426212a7614bc393e19728fad4148f22492f50291f86b7d22c1d6", "issue": 58 },
-        { "code": "STAGE-ESM-012", "artifact": "sem1:c803e04c1ab2a1ffe9c1c254ed666bf9a2cbb8190ae0eea382def58b713ba7ad", "issue": 502 },
         { "code": "STAGE-ESM-027", "artifact": "sem1:8a7b8750c96596ae18478b5b455f0a47cd5129cbc714f3bb15331c3e6ab017e9", "issue": 481 },
         { "code": "STAGE-ESM-047", "artifact": "sem1:2cc1d417a855db3c71e90f2261d9d401ef2bcc2cb66315f418ce1db2fde9b4f1", "issue": 481 } ] }
     },
@@ -2902,8 +2901,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "supported" },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-012", "artifact": "sem1:f4a02f8f95cac739204b8ebe9bfa8decd64917d9121f665701296c4f2afeb3ff", "issue": 502 } ] }
+      "renderer": { "outcome": "supported" }
     },
     "GeneratedConceptRulesCorpus.PortableV20": {
       "loader": { "outcome": "supported" },

@@ -114,6 +114,11 @@ internal static class SemanticStateViewArtifactRenderer
                 SemanticReducerArtifactRenderer.RenderTransitions(builder, reducer, context);
             }
             builder.EndBlock();
+            if (SemanticVersionFeatures.HasCompositeKey(readModel))
+            {
+                builder.BlankLine().Raw(CompositeKeyRecord(readModel, types));
+            }
+
             if (projection?.Scope is { } scope)
             {
                 builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
@@ -134,8 +139,19 @@ internal static class SemanticStateViewArtifactRenderer
     internal static string ModelDeclaration(SemanticReadModel model, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
         $"public record {Identifiers.ToPascalCase(model.Name)}({ScopedParameters(model, types, queries, reducerInput)})";
 
+    // Chronicle identifies an instance with one object-valued key, so a composite-keyed model carries the key record
+    // as its [Key] property next to the declared properties, which keep their own values.
+    internal static string CompositeKeyRecord(SemanticReadModel readModel, SemanticTypeSystem types) =>
+        $"/// <summary>\n/// Identifies one {Identifiers.ToPascalCase(readModel.Name)} by its key parts.\n/// </summary>\n" +
+        string.Join('\n', OrderedProperties(readModel.Properties.Where(property => property.IsIdentifier)).Select(property =>
+            $"/// <param name=\"{Identifiers.ToPascalCase(property.Name)}\">The {Identifiers.ToPascalCase(property.Name)} key part.</param>")) +
+        $"\npublic record {SemanticCompositeKeyAdmission.KeyTypeName(readModel)}({string.Join(", ", OrderedProperties(readModel.Properties.Where(property => property.IsIdentifier)).Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"))});";
+
     internal static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
-        string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
+        SemanticVersionFeatures.HasCompositeKey(readModel)
+            ? string.Join(", ", OrderedProperties(readModel.Properties).Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}")
+                .Prepend($"[global::Cratis.Chronicle.Keys.KeyAttribute] {SemanticCompositeKeyAdmission.KeyTypeName(readModel)} {SemanticCompositeKeyAdmission.KeyPropertyName}"))
+            : string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
             $"{((property.IsIdentifier || queries.Any(_ => _.Cardinality == SemanticQueryCardinality.ZeroOrOne && _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[global::Cratis.Chronicle.Keys.KeyAttribute] " : string.Empty)}{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
 
     internal static string Parameters(

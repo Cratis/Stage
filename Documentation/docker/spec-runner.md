@@ -62,7 +62,7 @@ non-canonical Uuid input is rejected before the requirement runs. The legacy str
 `STAGE-ESM-049`.
 At v27 a specification that projects into a read model with several `key` parts records `Unsupported(Projection)`,
 naming ESM v27 composite read-model keys: the per-run scenario seeds and looks up instances by one event-source key.
-The semantic Host runs such read models; the legacy structural runner refuses them with `STAGE-ESM-048`.
+The semantic Host runs such read models, and the Cratis renderer emits generated specifications only for command and event scenarios that do not project into them (a specification that projects into one is refused with `STAGE-ESM-011`); the legacy structural runner refuses them with `STAGE-ESM-048`.
 At v26 the semantic executor runs chronological Date/DateTime command requirements, conditional productions
 and validation rules (including concepts). DateTime equality compares UTC ticks; Date compares calendar days.
 Participating DateTime inputs without an explicit offset or `Z` reject after authorization, before other input

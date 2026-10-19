@@ -94,8 +94,16 @@ at `Source/Frontend/Runtime` as `@cratis/stage.runtime`; its React, Arc, Scene a
 peers pinned to the host's versions so contexts and registries are shared. `npm test --prefix Source/Frontend`
 runs both host and runtime specifications, and `npm run build --prefix Source/Frontend` builds the package
 before the host, keeping the host output at `Source/Frontend/dist` for the Stage image.
-The runtime package is published at the Stage release version before NuGet publication. Generated applications
-still receive the embedded runtime sources in this release; their output and dependency shape are unchanged.
+The runtime package is published at the Stage release version before NuGet publication. A generated application
+depends on `@cratis/stage.runtime` pinned to the exact Stage release that rendered it; `main.tsx` imports `App` and
+the Stage source from the package and `vite.config.ts` imports the plugin from `@cratis/stage.runtime/vite`. The
+render no longer emits `.frontend/stage/*` or `.frontend/styledPrimeReact.ts`. Arc, Scene, Components, PrimeReact and
+React stay application dependencies, pinned to the versions the runtime declares as peers.
+
+To migrate an application rendered before this change, render it again. The CLI removes the managed
+`.frontend/stage/*` copies that are unchanged from what Stage emitted. A copy you edited is refused, and the render
+stops until you delete or restore each edited copy; `--force` does not cover it. Build the application against an unreleased Stage by installing a packed
+runtime in your own working copy; the render itself never writes a local path.
 
 The emitted frontend takes exact Cratis package pins from Stage's `Source/Frontend/package.json`, including
 Scene, Components, Fundamentals and Arc React's form custom-validation gate. The generated backend takes its

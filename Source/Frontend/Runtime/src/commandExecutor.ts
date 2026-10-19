@@ -24,6 +24,22 @@ function isCommand(candidate: unknown): candidate is new () => Command {
     return typeof candidate === 'function' && candidate.prototype instanceof Command;
 }
 
+/**
+ * The path the page is served under, without a trailing slash: empty at the root of a host, `/api/play/{id}` when a
+ * reverse proxy (Studio's Play) hangs the Stage off a prefix. Registered command routes start with `/`, so without this
+ * they would be posted to the root of the proxy's host instead of to the Stage.
+ */
+export function hostedBasePath(): string {
+    const document = globalThis.document;
+    const address = document?.baseURI ?? globalThis.location?.href;
+    if (!address) return '';
+    try {
+        return new URL('.', address).pathname.replace(/\/+$/, '');
+    } catch {
+        return '';
+    }
+}
+
 /** Executes the registered proxy with the same host configuration as Arc's useCommand. */
 export async function executeRegisteredCommand(name: string, values: Record<string, unknown>, arc: ArcConfiguration): Promise<StageCommandOutcome> {
     const commandType = registeredCommand(name);
@@ -31,7 +47,7 @@ export async function executeRegisteredCommand(name: string, values: Record<stri
 
     const command = new commandType();
     command.setMicroservice(arc.microservice);
-    command.setApiBasePath(arc.apiBasePath ?? '');
+    command.setApiBasePath(arc.apiBasePath ?? hostedBasePath());
     command.setOrigin(arc.origin ?? '');
     command.setHttpHeadersCallback(arc.httpHeadersCallback ?? (() => ({})));
     for (const descriptor of command.propertyDescriptors) {

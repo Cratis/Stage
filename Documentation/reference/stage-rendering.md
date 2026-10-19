@@ -26,8 +26,8 @@ rather than placeholders. A name no package declares renders a placeholder that 
 
 A simple `action … execute <Command>` translates to `core:action`. A guarded action with ordered
 `when … execute` alternatives and an `otherwise` also translates to `core:action`, carrying its alternatives,
-their guards and the fallback. The Stage frontend runtime, which a live Stage and a generated React application
-both render with, evaluates the guard against the item the screen's nearest `data` declaration reads:
+their guards and the fallback. The Stage frontend runtime (the `@cratis/stage.runtime` package), which a live Stage
+and a generated React application both render with, evaluates the guard against the item the screen's nearest `data` declaration reads:
 
 - The first alternative whose guard holds is the command the action executes, with its `with` values read from
   the item. A missing or null field does not match.
@@ -305,7 +305,7 @@ proves that the reference, the executor and the rendered application agree, and 
 ESM v29 (Screenplay decision 0098) adds three constructs the semantic engines handle as follows:
 
 - `decimals <= N` on a Decimal concept or command property is checked by the executor and the Host with the reference rule (exact decimal arithmetic, trailing zeros ignored) and rendered as a generated validator, so a third decimal on a `Money` value is refused where it enters.
-- `add`/`subtract <property> by <a> * <b>` in a projection is run by the executor and the Host. The renderer refuses it with `STAGE-ESM-050`, naming the projection, because Chronicle's projection engine adds one event property; precompute the product on the event to render it. Converting such a projection for Chronicle (`ProjectionConverter`) reports `STAGE-PROJECTION-004` at the mapping instead of converting the sum of one factor.
+- `add`/`subtract <property> by <a> * <b>` in a projection is run by the executor and the Host (Play) with exact decimal arithmetic, then converted to the type of the total like any operand. The renderer lowers it, because Chronicle's projection engine adds one event property: the event record carries the product as a computed, serialized member (`public decimal UnitPriceTimesQuantity { get; init; } = (decimal)UnitPrice.Value * (decimal)Quantity.Value;`, whole numbers multiply `checked`) and the projection adds or subtracts that member. It is admitted in a `from` block when both factors are required whole or decimal properties of the event and the total holds the same kind of number (a decimal total for a decimal product, a whole total when both factors are whole); anything else (a `join` or `every` block, an optional factor, a literal factor, a total of another number type, a member name the event already has) is refused with `STAGE-ESM-050`, naming the projection and the reason. Events must be appended through the generated event types for the member to be present. Converting such a projection for Chronicle (`ProjectionConverter`) still reports `STAGE-PROJECTION-004` at the mapping instead of converting the sum of one factor, and the specification runner's per-run Chronicle projection does not run it.
 - A concept mapped to another concept over the same primitive needs no special handling: both are the same primitive at run time and in generated code.
 
 An application toolbar button declared in a layout's `navigation topbar` region is a source construct with no executable-model content. Scene's navigation regions carry items only, so the converter reports `STAGE-SCENE-NAV-001` and the button is not rendered until Scene carries it (Cratis/Scene#215).

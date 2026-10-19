@@ -36,6 +36,7 @@
         <!-- Share the executor's value-shape rule and renderer predicates without referencing the Testing executor. -->
         <Compile Include="../Specifications/Commands/SemanticValueShapeAdmission.cs" Link="Semantics/Admission/SemanticValueShapeAdmission.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Semantics/Admission/SemanticScopedProjectionSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticProjectionProducts.cs" Link="Semantics/Admission/SemanticProjectionProducts.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Semantics/Admission/SemanticFlatProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedPascalCase.cs" Link="Semantics/Admission/GeneratedPascalCase.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeNames.cs" Link="Semantics/Admission/GeneratedTypeNames.cs" />

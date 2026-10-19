@@ -3,12 +3,28 @@
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
 
-// Historical frozen plans used an unconditional Stage import. Reverse only that change before comparing their
+// Historical frozen plans used an unconditional Stage import and copied the runtime. Reverse only the entry point imports before comparing their
 // original digests, so backend and Scene bytes are still checked against the unchanged historical expectations.
 internal static class PreviousFrontendEntryPoint
 {
     public static string Restore(string path, string text) => path == ".frontend/main.tsx"
         ? text.Replace(
+            """
+            import {
+                App,
+                StageSourceProvider,
+                staticStageSource,
+                stageTheme,
+                type StageStaticContent,
+            } from '@cratis/stage.runtime';
+            """,
+            "import { App } from './stage/App';\nimport { StageSourceProvider, staticStageSource, type StageStaticContent } from './stage/stageSource';\nimport { stageTheme } from './stage/stageTheme';",
+            StringComparison.Ordinal)
+            .Replace(
+                "and `@cratis/stage.runtime` is the same\n// runtime a live Stage renders that Scene with. Editing this file to add a screen would put it outside the",
+                "and `./stage` is the same runtime a\n// live Stage renders that Scene with. Editing this file to add a screen would put it outside the",
+                StringComparison.Ordinal)
+            .Replace(
             "StageSourceProvider, staticStageSource, type StageStaticContent",
             "StageSourceProvider, staticStageSource",
             StringComparison.Ordinal)

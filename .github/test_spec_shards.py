@@ -23,37 +23,77 @@ SHARDS = runpy.run_path(str(Path(__file__).with_name("spec-shards.py")))
 
 class SpecShardsTests(unittest.TestCase):
     def test_every_known_prefix_and_new_namespace_has_exactly_one_shard(self):
-        partitions = SHARDS["rendering_partitions"]()
-        positive = partitions[:-1]
-        names = [prefix + "should_pass" for prefix in SHARDS["source_groups"]()]
-        names.append(SHARDS["NAMESPACE"] + ".for_A_New_Renderer.when_added.should_pass")
-        for name in names:
-            matches = [any(prefix.lower() in name.lower() for prefix in partition)
-                       for partition in positive]
-            self.assertEqual(1, sum(matches + [not any(matches)]), name)
+        for sharding in SHARDS["SHARDED"]:
+            with self.subTest(project=sharding.name):
+                positive = SHARDS["partitions"](sharding)[:-1]
+                names = [prefix + "should_pass" for prefix in SHARDS["source_groups"](sharding)]
+                namespace = sharding.split[0].rsplit(".", 1)[0]
+                names.append(namespace + ".for_A_New_Renderer.when_added.should_pass")
+                # A new class in a namespace split per class has no prefix of its own yet.
+                names.extend(split + ".when_a_new_class_is_added.should_pass" for split in sharding.split)
+                for name in names:
+                    matches = [any(prefix.lower() in name.lower() for prefix in partition)
+                               for partition in positive]
+                    self.assertEqual(1, sum(matches + [not any(matches)]), name)
+
+    def test_conformance_splits_every_heavy_class_and_keeps_namespaces_together(self):
+        groups = SHARDS["source_groups"](SHARDS["CONFORMANCE_SHARDING"])
+        prefixes = [prefix + "." for prefix in (SHARDS["PLANNER"], SHARDS["THREE_WAY"])]
+        for split in prefixes:
+            with self.subTest(split=split):
+                classes = [prefix for prefix in groups if prefix.startswith(split)]
+                self.assertGreater(len(classes), 30)
+                self.assertTrue(all(prefix.count(".") == split.count(".") + 1 for prefix in classes), classes)
+        # A file declaring several test classes contributes every one of them.
+        self.assertIn(SHARDS["PLANNER"] + ".when_comparing_v2_corpus_specifications.", groups)
+        self.assertIn("Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.", groups)
+        self.assertFalse([prefix for prefix in groups if prefix.startswith(
+            "Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.") and prefix.count(".") > 5])
+
+    def test_test_classes_are_top_level_declarations_holding_a_test(self):
+        text = ("namespace N.for_X;\npublic class when_a(when_a.context fixture)\n{\n    [Fact] void should_a() {}\n"
+                "    public class context {}\n}\npublic sealed class Helper : FactAttribute {}\n"
+                "public class when_b : Specification\n{\n    [Theory] void should_b(int value) {}\n}\n")
+        self.assertEqual(["when_a", "when_b"], SHARDS["test_classes"](text))
 
     def test_final_filter_negates_every_positive_prefix(self):
-        partitions = SHARDS["rendering_partitions"]()
-        shards = SHARDS["matrix"]()["include"]
-        expected = SHARDS["EXCLUSIONS"] + "&" + "&".join(
-            "FullyQualifiedName!~" + prefix
-            for partition in partitions[:-1] for prefix in partition)
-        self.assertEqual(expected, shards[-1]["filter"])
-        self.assertTrue(all(shard["filter"].startswith(SHARDS["EXCLUSIONS"]) for shard in shards))
+        shards = {shard["name"]: shard for shard in SHARDS["matrix"]()["include"]}
+        for sharding in SHARDS["SHARDED"]:
+            with self.subTest(project=sharding.name):
+                partitions = SHARDS["partitions"](sharding)
+                expected = SHARDS["EXCLUSIONS"] + "&" + "&".join(
+                    "FullyQualifiedName!~" + prefix
+                    for partition in partitions[:-1] for prefix in partition)
+                self.assertEqual(expected, shards[sharding.name + "-remainder"]["filter"])
+        self.assertTrue(all(shard["filter"].startswith(SHARDS["EXCLUSIONS"]) for shard in shards.values()))
 
-    def test_specifications_and_conformance_are_separate_shards_that_each_run_their_project_once(self):
+    def test_specifications_is_one_shard_and_conformance_three_disjoint_shards(self):
         shards = SHARDS["matrix"]()["include"]
         by_name = {shard["name"]: shard for shard in shards}
         self.assertEqual(len(shards), len(by_name), "shard names must be unique")
-        self.assertNotIn("specifications-conformance", by_name)
+        self.assertNotIn("conformance", by_name)
         self.assertEqual(["Source/Specifications/Specifications.csproj"], by_name["specifications"]["projects"])
-        self.assertEqual(["Source/Conformance.Specs/Conformance.Specs.csproj"], by_name["conformance"]["projects"])
         # Whole-project shards carry no positive prefix, so nothing in them can be skipped by a filter.
-        for name in ("specifications", "conformance"):
-            self.assertEqual(SHARDS["EXCLUSIONS"], by_name[name]["filter"])
+        self.assertEqual(SHARDS["EXCLUSIONS"], by_name["specifications"]["filter"])
+        conformance = [shard["name"] for shard in shards if SHARDS["CONFORMANCE"] in shard["projects"]]
+        self.assertEqual(["conformance-1", "conformance-2", "conformance-remainder"], conformance)
+        self.assertTrue(all(by_name[name]["projects"] == [SHARDS["CONFORMANCE"]] for name in conformance))
         projects = Counter(project for shard in shards for project in shard["projects"])
         self.assertEqual(1, projects["Source/Specifications/Specifications.csproj"])
-        self.assertEqual(1, projects["Source/Conformance.Specs/Conformance.Specs.csproj"])
+        self.assertEqual(3, projects[SHARDS["CONFORMANCE"]])
+
+    def test_rendering_shards_do_not_depend_on_conformance_sharding(self):
+        # The Rendering entries were byte-identical before and after Conformance was sharded.
+        rendering_only = (SHARDS["RENDERING_SHARDING"],)
+        for lane in (False, True):
+            with self.subTest(blueprint_templates_lane=lane):
+                with patch.dict(SHARDS["matrix"].__globals__, {"SHARDED": rendering_only}):
+                    alone = SHARDS["matrix"](blueprint_templates_lane=lane)["include"]
+                both = SHARDS["matrix"](blueprint_templates_lane=lane)["include"]
+                rendering = [shard for shard in both if SHARDS["RENDERING"] in shard["projects"]]
+                self.assertEqual([shard for shard in alone if SHARDS["RENDERING"] in shard["projects"]], rendering)
+                self.assertEqual(["rendering-1", "rendering-2", "rendering-3", "rendering-remainder"],
+                                 [shard["name"] for shard in rendering])
 
     def test_blueprint_templates_run_exactly_once_with_or_without_the_dedicated_lane(self):
         workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
@@ -175,10 +215,12 @@ class SpecShardsTests(unittest.TestCase):
             self.write_trx(root / "1" / "conformance" / "specs.trx",
                            [(planner[:-1], "should_x", 0, 59, "Passed")], assembly="Cratis.Stage.Conformance.Specs.dll")
 
+            # Conformance runs planner namespaces too; only the Rendering assembly weighs Rendering.
             self.assertEqual(Counter({planner: 35, scaffold: 7}), SHARDS["run_timings"](root / "1", groups))
+            (root / "1" / "conformance" / "specs.trx").unlink()  # An incomplete Conformance run is refused.
             timings = root / "timings.json"
             with patch.dict(SHARDS["refresh_timings"].__globals__,
-                            {"TIMINGS": timings, "source_groups": lambda: groups}):
+                            {"TIMINGS": timings, "source_groups": lambda sharding: groups}):
                 SHARDS["refresh_timings"](root)
             measured = json.loads(timings.read_text())
         self.assertEqual(["1", "2"], measured["runs"])
@@ -199,9 +241,57 @@ class SpecShardsTests(unittest.TestCase):
                 with self.subTest(run=run), self.assertRaises(SystemExit):
                     SHARDS["run_timings"](root / run, {name + ".": 1})
 
+    def test_timings_attribute_idle_fixture_time_to_the_conformance_class_that_ends_it(self):
+        conformance = SHARDS["CONFORMANCE_SHARDING"]
+        first = SHARDS["THREE_WAY"] + ".when_first."
+        second = SHARDS["PLANNER"] + ".when_second."
+        third = "Cratis.Stage.Conformance.Specs.for_Small."
+        groups = {first: 1, second: 1, third: 1}
+        work = SHARDS["ROOT"] / ".ai-work"
+        work.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="spec-shard-timing-tests-", dir=work) as directory, \
+                contextlib.redirect_stdout(io.StringIO()):
+            root = Path(directory)
+            for run, offset in (("1", 0), ("2", 10)):
+                for shard in range(conformance.shards):
+                    # first runs 0-10; second's fixture idles 10-30, it runs 30-40 while third (20-35) overlaps.
+                    results = [(first[:-1], "should_a", 0, 10, "Passed"),
+                               (second[:-1], "should_b", 30 + offset, 40 + offset, "Passed"),
+                               (third + "when_small", "should_c", 20, 35, "Passed")] if shard == 0 else \
+                              [(third + "when_other", "should_d", 5, 6, "Passed")]
+                    self.write_trx(root / run / f"conformance-{shard}" / "specs.trx", results,
+                                   assembly=conformance.assembly)
+            path = root / "1" / "conformance-0" / "specs.trx"
+            # Sorted by start: first 10 s span; third starts at 20 after 10 s idle (15 + 10); second overlaps it.
+            self.assertEqual({first[:-1]: 10.0, third + "when_small": 25.0, second[:-1]: 10.0},
+                             SHARDS["wall_attributed"](ET.parse(path).getroot()))
+            # Every TRX has its own timeline: the 1 s class in another shard adds its span, not a cross-file gap.
+            self.assertEqual(Counter({first: 10.0, second: 10.0, third: 26.0 + 1.0}),
+                             SHARDS["run_timings"](root / "1", groups, conformance))
+            timings = root / "timings.json"
+            timings.write_text(json.dumps({"measurement": "kept", "runs": ["r"], "prefix_seconds": {"Kept.": 1.0}}))
+            with patch.dict(SHARDS["refresh_timings"].__globals__,
+                            {"TIMINGS": timings, "source_groups": lambda sharding: groups}):
+                SHARDS["refresh_timings"](root)
+            data = json.loads(timings.read_text())
+        # Rendering keeps its top-level section untouched when no Rendering TRX was provided.
+        self.assertEqual({"Kept.": 1.0}, data["prefix_seconds"])
+        self.assertEqual(["1", "2"], data["conformance"]["runs"])
+        # Run 2 starts second at 40, after 5 idle seconds: (10 + 15) / 2.
+        self.assertEqual({first: 10.0, second: 12.5, third: 27.0}, data["conformance"]["prefix_seconds"])
+        with tempfile.TemporaryDirectory(prefix="spec-shard-timing-tests-", dir=work) as directory, \
+                contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit):
+            # A pre-split, single-TRX Conformance run cannot masquerade as a complete sharded run.
+            self.write_trx(Path(directory) / "conformance" / "specs.trx", [(first[:-1], "should_a", 0, 1, "Passed")],
+                           assembly=conformance.assembly)
+            SHARDS["run_timings"](Path(directory), groups, conformance)
+
     def test_measured_timings_cover_no_dedicated_fixture(self):
-        measured = json.loads(SHARDS["TIMINGS"].read_text())["prefix_seconds"]
-        self.assertFalse([prefix for prefix in measured if SHARDS["dedicated"](prefix)])
+        data = json.loads(SHARDS["TIMINGS"].read_text())
+        for sharding in SHARDS["SHARDED"]:
+            measured = SHARDS["timings_section"](data, sharding)["prefix_seconds"]
+            self.assertTrue(measured, sharding.name)
+            self.assertFalse([prefix for prefix in measured if SHARDS["dedicated"](prefix)], sharding.name)
 
     def test_nested_namespaces_are_owned_by_one_prefix(self):
         root = "Cratis.Stage.Rendering.Cratis.for_Planner."
@@ -233,6 +323,15 @@ class SpecShardsTests(unittest.TestCase):
             for call in run.call_args_list:
                 self.assertIn("-property:Configuration=Debug", call.args[0])
                 self.assertTrue(call.kwargs["check"])
+
+    def test_solution_guard_requires_exactly_three_conformance_shards(self):
+        original = SHARDS["matrix"]()
+        conformance = [shard for shard in original["include"] if SHARDS["CONFORMANCE"] in shard["projects"]]
+        others = [shard for shard in original["include"] if SHARDS["CONFORMANCE"] not in shard["projects"]]
+        for shards in (conformance[:2], conformance + conformance[:1]):
+            with self.subTest(count=len(shards)), patch("subprocess.run") as run, self.assertRaises(SystemExit):
+                run.return_value.stdout = "true\n"
+                SHARDS["guard_solution"]({"include": others + shards})
 
     def test_solution_guard_rejects_unsharded_or_duplicate_projects(self):
         original = SHARDS["matrix"]()

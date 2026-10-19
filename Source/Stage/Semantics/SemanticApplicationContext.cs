@@ -12,6 +12,8 @@ internal sealed class SemanticApplicationContext(SemanticExecutionPlan plan)
     public IReadOnlyDictionary<SemanticId, SemanticEventContract> Events => plan.Events;
     public IReadOnlyDictionary<SemanticId, SemanticCompositeType> Types { get; } = plan.Model.Application.Types.ToDictionary(type => type.Id);
     public IReadOnlyDictionary<SemanticId, SemanticConcept> Concepts { get; } = plan.Model.Application.Concepts.ToDictionary(concept => concept.Id);
+    public IReadOnlyDictionary<SemanticId, SemanticReadModel> ReadModels => plan.ReadModels;
+    public IReadOnlyDictionary<SemanticId, SemanticProjection> Projections => plan.Projections;
     public SemanticApplication Application => plan.Model.Application;
     public IReadOnlyDictionary<SemanticId, SemanticCommand> Commands { get; } = SemanticVersionFeatures.Slices(plan.Model.Application).SelectMany(slice => slice.Commands).ToDictionary(command => command.Id);
 }

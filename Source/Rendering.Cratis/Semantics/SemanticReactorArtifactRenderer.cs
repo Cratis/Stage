@@ -20,7 +20,7 @@ internal static class SemanticReactorArtifactRenderer
         context.Docs(reaction.Id).Render(builder)
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(reaction.Id.ToString())})")
             .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute");
-        RenderIdentityAttribute(builder, reaction);
+        RenderIdentityAttribute(builder, reaction, context);
         if (reaction.From is { } filter) SemanticObserverFilterRendering.Attribute(builder, filter, context);
         builder.OpenBlock($"public class {name} : global::Cratis.Chronicle.Reactors.IReactor");
 
@@ -82,9 +82,19 @@ internal static class SemanticReactorArtifactRenderer
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [reaction.Id] };
     }
 
-    static void RenderIdentityAttribute(CSharpCodeBuilder builder, SemanticReaction reaction)
+    static void RenderIdentityAttribute(CSharpCodeBuilder builder, SemanticReaction reaction, SemanticApplicationContext context)
     {
-        if (reaction.RunsAs is not { } identity) return;
+        if (reaction.RunsAs is not { } identity)
+        {
+            // An invoked command without modeled authorization renders [Authorize], which a reactor with no identity cannot satisfy.
+            if (SemanticReactionIdentity.InvokesUnauthorizedCommand(context, reaction))
+            {
+                builder.Attribute("global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute");
+            }
+
+            return;
+        }
+
         var roles = string.Join(", ", identity.Roles.Select(CSharpCodeBuilder.StringLiteral));
         builder.Attribute(identity.Roles.IsEmpty
             ? "global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute"

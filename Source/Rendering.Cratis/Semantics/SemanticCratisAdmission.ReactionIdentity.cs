@@ -10,7 +10,20 @@ internal static partial class SemanticCratisAdmission
 {
     static void ValidateReactionIdentity(SemanticApplicationContext context, SemanticReaction reaction, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (reaction.RunsAs is null) return;
+        if (reaction.RunsAs is null)
+        {
+            if (SemanticReactionIdentity.InvokesUnauthorizedCommand(context, reaction))
+            {
+                diagnostics.Add(new(
+                    "STAGE-ESM-052",
+                    ArtifactRenderDiagnosticSeverity.Information,
+                    $"Reaction '{reaction.Name}' has no runs as and invokes a command with no authorize clause, which renders [Authorize]; " +
+                    "Stage renders the reactor with [ExecuteCommandsAsSystem] (the system principal, no roles) so the command is still accepted.",
+                    reaction.Id));
+            }
+
+            return;
+        }
 
         foreach (var command in reaction.Triggers.SelectMany(trigger => trigger.Invokes)
             .Select(invocation => context.Commands[invocation.Command]).DistinctBy(command => command.Id)

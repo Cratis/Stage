@@ -128,6 +128,8 @@ internal static class SemanticScopedProjectionSupport
                 (mapping.Source is SemanticProjectionEventSourceIdentity && fromBlock && !keyIsEventSource && EventSourceIsProducedAs(@event, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)),
+            SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract when mapping.Factor is not null =>
+                fromBlock && SemanticProjectionProducts.Of(mapping, @event, targets, context) is not null,
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract =>
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)) ||
                 IsZeroTotalStart(mapping, target, context),
@@ -535,7 +537,7 @@ internal static class SemanticScopedProjectionSupport
                 }
 
                 foreach (var mapping in from.Mappings.Where(mapping => mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract &&
-                    mapping.Source is SemanticProjectionEventProperty))
+                    mapping.Factor is null && mapping.Source is SemanticProjectionEventProperty))
                 {
                     var source = EventProperty(((SemanticProjectionEventProperty)mapping.Source!).Path, @event.Properties, context);
                     var target = Target(mapping.Target, properties, context);

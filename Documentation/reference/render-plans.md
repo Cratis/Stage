@@ -197,8 +197,25 @@ inventory likewise contains no nonexistent reducer class.
 
 The default classic layout retains its existing bytes, paths, and ownership. A convention
 input alone does not change an output-only digest when it affects no selected artifact.
-This release plans no removals and does not migrate existing reducer files. See
-[Reducer rendering convention](plan-from-sources.md#reducer-rendering-convention).
+Migrating an existing classic read model plans the removal of its reducer file. See
+[Reducer rendering convention](plan-from-sources.md#reducer-rendering-convention) and
+[Required removals](#required-removals).
+
+### Required removals
+
+`ArtifactRenderPlan.RequiredRemovals` lists files the publisher must delete together with
+writing the plan's artifacts. Each `ArtifactRemoval` has a portable `RelativePath`, the
+lowercase SHA-256 the file must still have (`ExpectedSha256`), and the `Model` whose
+artifact replaces it. Removals are normalized like artifact paths and sorted ordinally.
+A plan refuses removals that collide with an artifact path or with each other ignoring
+case, removals whose model has no planned artifact, and removals on a plan with errors.
+An empty list leaves the plan digest unchanged; a nonempty list is part of the digest.
+
+A publisher must delete each removal atomically with its writes, refuse when the file's
+hash differs, and treat an already absent file as removed so recovering an interrupted
+publication stays idempotent. `CratisRendering.CheckPublication` returns
+`CratisPublicationCheck.UnsafeRemovals` (`STAGE-REDUCER-005`) for a changed file and for a
+migrated read model's previous reducer file that the plan would leave behind.
 
 ### Source ownership inventory
 

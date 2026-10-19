@@ -120,7 +120,14 @@ public static partial class CratisRendering
         var diagnostics = sourceDiagnostics.AddRange(plan.Diagnostics.Select(diagnostic => new CratisPlanDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Message, diagnostic.Artifact, null)));
         if (!sourceDiagnostics.IsEmpty)
         {
-            plan = ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. sourceDiagnostics.Select(diagnostic => new ArtifactRenderDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}", diagnostic.Artifact))], plan.ImplementationGaps, plan.Refusals);
+            var removals = sourceDiagnostics.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : plan.RequiredRemovals;
+            plan = ArtifactRenderPlan.Create(
+                request,
+                plan.Artifacts,
+                [.. plan.Diagnostics, .. sourceDiagnostics.Select(diagnostic => new ArtifactRenderDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}", diagnostic.Artifact))],
+                plan.ImplementationGaps,
+                plan.Refusals,
+                removals);
         }
 
         return CratisPlanResult.Create(plan.ApplicationName, plan.Artifacts, diagnostics, plan.SemanticRevision, plan);

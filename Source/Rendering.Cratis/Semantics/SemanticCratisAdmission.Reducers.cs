@@ -29,7 +29,7 @@ internal static partial class SemanticCratisAdmission
             }
 
             var reducerName = Identifiers.ToPascalCase(reducer.Name);
-            if (!context.SelfReducing && (slice.ReadModels.Any(_ => Identifiers.ToPascalCase(_.Name) == reducerName) ||
+            if (!context.SelfReduces(reducer.ReadModel) && (slice.ReadModels.Any(_ => Identifiers.ToPascalCase(_.Name) == reducerName) ||
                 slice.Events.Any(_ => Identifiers.ToPascalCase(_.Name) == reducerName) ||
                 slice.Projections.Any(_ => _.Scope is not null && Identifiers.ToPascalCase(_.Name) == reducerName) ||
                 SliceNaming.FileName(slice.Name) == $"{reducerName}.cs"))
@@ -48,7 +48,7 @@ internal static partial class SemanticCratisAdmission
                 continue;
             }
 
-            if (context.SelfReducing && SelfReducerCollision(model, reducer, slice) is { } collision)
+            if (context.SelfReduces(reducer.ReadModel) && SelfReducerCollision(model, reducer, slice) is { } collision)
             {
                 diagnostics.Add(Error("STAGE-ESM-019", $"Self-reducing read model '{model.Name}' collides with reserved member '{collision}'. Rename the model, property or query; classic rendering remains available for existing applications.", model.Id));
                 continue;

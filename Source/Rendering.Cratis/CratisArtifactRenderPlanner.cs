@@ -46,7 +46,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var plan = PlanCore(request);
         var warnings = ReleaseBaselineWarnings.For(request);
 
-        return warnings.IsEmpty ? plan : ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. warnings], plan.ImplementationGaps, plan.Refusals);
+        return warnings.IsEmpty ? plan : ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. warnings], plan.ImplementationGaps, plan.Refusals, plan.RequiredRemovals);
     }
 
     static ArtifactRenderPlan PlanCore(ArtifactRenderRequest request)
@@ -90,6 +90,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         var context = new SemanticApplicationContext(request, options);
+        context.ScopeFlatProjections();
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
         diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
@@ -107,8 +108,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             TypedContextDescriptors = descriptors
         };
         context = new SemanticApplicationContext(admittedRequest, options);
+        context.ScopeFlatProjections();
         slices = context.SelectedSlices();
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
+        var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
         var selectedReducers = slices.SelectMany(_ => _.Slice.Reducers)
             .SelectMany(reducer => reducer.Transitions.Select(transition => (transition.RequirementId, reducer.ReadModel)))
             .ToHashSet();
@@ -249,7 +252,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
-        return CreatePlan(request, artifacts, diagnostics, refusals);
+        return CreatePlan(request, artifacts, diagnostics, refusals, removals);
     }
 
     static void AddScaffold(
@@ -298,7 +301,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         ArtifactRenderRequest request,
         IEnumerable<PlannedArtifact> artifacts,
         List<ArtifactRenderDiagnostic> diagnostics,
-        ImmutableArray<ArtifactRenderRefusal> refusals = default)
+        ImmutableArray<ArtifactRenderRefusal> refusals = default,
+        ImmutableArray<ArtifactRemoval> removals = default)
     {
         if (refusals.IsDefault) refusals = [];
 
@@ -344,7 +348,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                 request.Model.Application.Id));
         }
 
-        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], [], refusals);
+        // A plan carrying errors never removes files; publication then refuses the leftover classic reducer.
+        var required = removals.IsDefault || diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : removals;
+        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], [], refusals, required);
     }
 
     static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content, file.Sources);

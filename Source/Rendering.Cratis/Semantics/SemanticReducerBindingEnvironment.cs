@@ -35,7 +35,7 @@ internal sealed record SemanticReducerBindingEnvironment(string[] Imports, Gener
                 SemanticStateChangeArtifactRenderer.Configure(builder, located, context);
             }
             SemanticStateViewArtifactRenderer.ConfigureImports(builder, located, context);
-            reducers = context.SelfReducing ? located.Slice.Reducers : [];
+            reducers = context.SelfReducers(located);
         }
         foreach (var transition in reducers.SelectMany(reducer => reducer.Transitions))
         {

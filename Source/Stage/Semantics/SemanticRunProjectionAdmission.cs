@@ -95,6 +95,25 @@ internal static class SemanticRunProjectionAdmission
         return null;
     }
 
+    static string? ShapeRejection(SemanticReadModel readModel)
+    {
+        var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
+        if (identifiers.Length > 1)
+        {
+            return $"Read model '{readModel.Name}' has several key parts (ESM v27 composite read-model keys); the per-run projection scenario seeds and looks up instances by one event-source key, so it cannot run composite read-model keys yet.";
+        }
+        if (identifiers.Length != 1 || identifiers[0].Type.IsOptional)
+        {
+            return "Per-run projections need one required identifier.";
+        }
+        return readModel.Properties.Any(property => property.Type.IsCollection || !IsScalar(property.Type))
+            ? "Per-run projections need scalar read model properties without collections or composite types."
+            : null;
+    }
+
+    static bool IsScalar(SemanticTypeReference type) =>
+        type.Kind is SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept;
+
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {
         if (ProjectionReferencedEventNamesAreUnique.Contracts(projection)
@@ -108,14 +127,9 @@ internal static class SemanticRunProjectionAdmission
         {
             return "An event property name collides with Chronicle expression syntax.";
         }
-        if (readModel.Properties.Count(property => property.IsIdentifier) > 1)
+        if (ShapeRejection(readModel) is { } shape)
         {
-            return $"Read model '{readModel.Name}' has several key parts (ESM v27 composite read-model keys); the per-run projection scenario seeds and looks up instances by one event-source key, so it cannot run composite read-model keys yet.";
-        }
-        if (readModel.Properties.Count(property => property.IsIdentifier) != 1 || readModel.Properties.Any(property =>
-            property.Type.IsCollection || property.Type.IsOptional || property.Type.Kind is not (SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept)))
-        {
-            return "Per-run projections currently require a scalar read model with one identifier and no optional properties.";
+            return shape;
         }
         if (readModel.Properties.Any(ChronicleReadModelPropertyNamesAreSafe.CollidesWithRootDocumentKey))
         {
@@ -152,9 +166,9 @@ internal static class SemanticRunProjectionAdmission
             {
                 return "A projection adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, so Stage does not run it.";
             }
-            if (readModel.Properties.Length == 1 && scope.From.Any(from => from.Mappings.IsEmpty))
+            if (readModel.Properties.All(property => property.IsIdentifier || property.Type.IsOptional) && scope.From.Any(from => from.Mappings.IsEmpty))
             {
-                return "A mapping-free identifier-only from block does not materialize a Chronicle read model.";
+                return "A mapping-free from block on a read model without required properties does not materialize a Chronicle read model.";
             }
             if (scope.Every is { SubscribesToAllEvents: true }
                 ? reachable.Any(eventContract => !ScopedKeysMatch(plan, specification, eventContract, identifier.Type))

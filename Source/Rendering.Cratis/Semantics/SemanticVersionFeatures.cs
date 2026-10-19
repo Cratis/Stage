@@ -133,7 +133,7 @@ internal static class SemanticVersionFeatures
     internal const string UuidComparisons = "STAGE-ESM-049";
 
     /// <summary>
-    /// The code for projection <c>add</c>/<c>subtract</c> by a product (ESM v29), which Chronicle's projection engine cannot compute.
+    /// The code for projection add or subtract by a product (ESM v29), which Chronicle's projection engine cannot compute.
     /// </summary>
     internal const string ProjectionProducts = "STAGE-ESM-050";
 
@@ -242,29 +242,26 @@ internal static class SemanticVersionFeatures
     }
 
     /// <summary>
-    /// Finds the ESM v29 projection products of one slice. Chronicle's <c>Add</c> and <c>Subtract</c> take one event property, so the
+    /// Checks whether a read model is identified by several key parts.
+    /// </summary>
+    /// <param name="readModel">The read model.</param>
+    /// <returns>Whether the read model has two or more key parts.</returns>
+    public static bool HasCompositeKey(SemanticReadModel readModel) => readModel.Properties.Count(property => property.IsIdentifier) > 1;
+
+    /// <summary>
+    /// Finds the ESM v29 projection products of one slice. Chronicle's Add and Subtract take one event property, so the
     /// renderer refuses a product with a precise code instead of rendering a sum of one factor; the Host and the reference run it.
     /// </summary>
     /// <param name="slice">The slice.</param>
     /// <returns>One refusal per projection that multiplies, in model order.</returns>
     public static IEnumerable<SemanticVersionFeature> ProjectionProductsInSlice(SemanticSlice slice) =>
         slice.Projections.Where(projection => projection.Scope is { } scope && ScopeMappings(scope).Any(mapping => mapping.Factor is not null))
-            .Select(projection => new SemanticVersionFeature(ProjectionProducts, StageExecutionCapability.Projection, projection.Id, "projection",
+            .Select(projection => new SemanticVersionFeature(
+                ProjectionProducts,
+                StageExecutionCapability.Projection,
+                projection.Id,
+                "projection",
                 $"Projection '{projection.Name}' adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, so the Cratis renderer does not render it. Precompute the product on the event, or run the specification with the Host."));
-
-    static IEnumerable<SemanticProjectionMapping> ScopeMappings(SemanticProjectionScope scope) =>
-        scope.From.SelectMany(from => from.Mappings)
-            .Concat(scope.Joins.SelectMany(join => join.Mappings))
-            .Concat(scope.Every?.Mappings ?? [])
-            .Concat(scope.Children.SelectMany(child => ScopeMappings(child.Scope)))
-            .Concat(scope.Nested.SelectMany(nested => ScopeMappings(nested.Scope)));
-
-    /// <summary>
-    /// Checks whether a read model is identified by several key parts.
-    /// </summary>
-    /// <param name="readModel">The read model.</param>
-    /// <returns>Whether the read model has two or more key parts.</returns>
-    public static bool HasCompositeKey(SemanticReadModel readModel) => readModel.Properties.Count(property => property.IsIdentifier) > 1;
 
     /// <summary>
     /// Finds the structural automation and public-event constructs of one slice.
@@ -723,4 +720,11 @@ internal static class SemanticVersionFeatures
     }
 
     static IEnumerable<SemanticSlice> Slices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(Slices));
+
+    static IEnumerable<SemanticProjectionMapping> ScopeMappings(SemanticProjectionScope scope) =>
+        scope.From.SelectMany(from => from.Mappings)
+            .Concat(scope.Joins.SelectMany(join => join.Mappings))
+            .Concat(scope.Every?.Mappings ?? [])
+            .Concat(scope.Children.SelectMany(child => ScopeMappings(child.Scope)))
+            .Concat(scope.Nested.SelectMany(nested => ScopeMappings(nested.Scope)));
 }

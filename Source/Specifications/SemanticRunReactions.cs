@@ -22,19 +22,6 @@ internal sealed class SemanticRunReactions(
     readonly Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>> _pinned = PinnedValues(context.Specification);
     int _nextFact = historyCount;
 
-    // 'given generated <Command>.<property> = <value>' (ESM v30): each invocation by a reaction takes the next value pinned for its command and property.
-    static Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>> PinnedValues(SemanticSpecification specification)
-    {
-        var pinned = new Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>>();
-        foreach (var value in specification.GivenGenerated.IsDefault ? [] : specification.GivenGenerated)
-        {
-            if (!pinned.TryGetValue((value.Command, value.Property), out var queue)) pinned[(value.Command, value.Property)] = queue = new();
-            queue.Enqueue(value.Value);
-        }
-
-        return pinned;
-    }
-
     internal static SemanticRunReactionFailure FactLimit() =>
         SemanticRunReactionFailure.Unsupported($"The scenario appends more than {MaximumFacts} facts; its reactions do not settle.");
 
@@ -98,6 +85,19 @@ internal sealed class SemanticRunReactions(
         }
 
         return await Settle(cancellationToken);
+    }
+
+    // 'given generated <Command>.<property> = <value>' (ESM v30): each invocation by a reaction takes the next value pinned for its command and property.
+    static Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>> PinnedValues(SemanticSpecification specification)
+    {
+        var pinned = new Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>>();
+        foreach (var value in specification.GivenGenerated.IsDefault ? [] : specification.GivenGenerated)
+        {
+            if (!pinned.TryGetValue((value.Command, value.Property), out var queue)) pinned[(value.Command, value.Property)] = queue = new();
+            queue.Enqueue(value.Value);
+        }
+
+        return pinned;
     }
 
     async Task<SemanticRunReactionFailure?> React(int index, CancellationToken cancellationToken)

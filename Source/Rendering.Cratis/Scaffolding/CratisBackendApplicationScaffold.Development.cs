@@ -84,10 +84,11 @@ public sealed partial class CratisBackendApplicationScaffold
         `anonymous` policy condition.
 
         To call these endpoints locally, present an identity. Arc's development identity
-        support sends the `x-ms-client-principal` headers
-        (see Arc's "Generate a local principal" guide) and requires the host to opt in to
-        forwarded identity headers with `Cratis:Arc:TrustForwardedIdentityHeaders`. Never enable that setting
-        where callers can reach the backend directly.
+        support sends the `x-ms-client-principal` headers (see
+        [Generate a Microsoft identity principal for local development](https://www.cratis.io/arc/backend/csharp/development/generating-principal/))
+        and requires the host to opt in to forwarded identity headers with
+        `Cratis:Arc:TrustForwardedIdentityHeaders`. Never enable that setting where callers can
+        reach the backend directly.
 
         ## Customize
 

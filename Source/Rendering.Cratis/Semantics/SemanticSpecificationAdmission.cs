@@ -75,6 +75,7 @@ internal static partial class SemanticSpecificationAdmission
         CommandValuesMatch(context, specification, command);
 
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
+        !GivesUnauthenticatedCallerToUnauthorizedArtifact(context, specification) &&
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
@@ -204,6 +205,11 @@ internal static partial class SemanticSpecificationAdmission
 
     static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {
+        if (GivesUnauthenticatedCallerToUnauthorizedArtifact(context, specification))
+        {
+            return "An explicitly unauthenticated caller cannot be preserved for an artifact with no authorize clause: Stage renders such an artifact as [Authorize], so it would be denied; explicit anonymous access is not yet modeled by Screenplay.";
+        }
+
         if (specification.When is null && !specification.ThenQueries.IsEmpty && !specification.ThenErrors.IsEmpty &&
             (!specification.GivenEvents.IsEmpty || !specification.GivenReadModels.IsEmpty))
         {
@@ -295,4 +301,10 @@ internal static partial class SemanticSpecificationAdmission
 
         return "The scenario cannot preserve all of its declared fixtures or expectations.";
     }
+
+    // Stage renders an artifact without an authorize clause as [Authorize]; a caller declared unauthenticated would be denied.
+    static bool GivesUnauthenticatedCallerToUnauthorizedArtifact(SemanticApplicationContext context, SemanticSpecification specification) =>
+        specification.GivenCaller is { Authenticated: false } &&
+        ((specification.When is not null && context.Commands.TryGetValue(specification.When.Command, out var command) && command.Authorization is null) ||
+            specification.ThenQueries.Any(expected => context.Queries.TryGetValue(expected.Query, out var query) && query.Authorization is null));
 }

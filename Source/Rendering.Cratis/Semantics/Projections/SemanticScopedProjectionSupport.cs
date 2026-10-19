@@ -135,6 +135,14 @@ internal static class SemanticScopedProjectionSupport
         };
     }
 
+    static bool IsArithmetic(SemanticProjectionMapping mapping) =>
+        mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract or
+            SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement;
+
+    static bool CanSetNull(SemanticProjectionMapping mapping) =>
+        mapping.Operation == SemanticProjectionOperation.Clear ||
+        (mapping.Operation == SemanticProjectionOperation.Set && mapping.Source is not SemanticProjectionLiteral { Value: not SemanticNullValue });
+
     // 'add total by 0' (or subtract) only makes the running total exist: the reference seeds a missing total with 0 and adds nothing, and a
     // required whole or decimal number of the Chronicle read model is 0 until the first real operation, so the renderer emits nothing for it.
     // Chronicle's Add and Subtract builders take an event property only, so no other constant can be rendered.
@@ -461,20 +469,12 @@ internal static class SemanticScopedProjectionSupport
         string? OptionalTotalRejection()
         {
             var mappings = scope.From.SelectMany(from => from.Mappings).Concat(scope.Joins.SelectMany(join => join.Mappings)).ToArray();
-            var totals = mappings.Where(IsArithmetic).Where(mapping => Target(mapping.Target, properties, context) is { Type.IsOptional: true })
+            var totals = mappings.Where(mapping => IsArithmetic(mapping) && Target(mapping.Target, properties, context) is { Type.IsOptional: true })
                 .Select(mapping => string.Join('/', mapping.Target)).ToHashSet(StringComparer.Ordinal);
             return mappings.Any(mapping => totals.Contains(string.Join('/', mapping.Target)) && CanSetNull(mapping))
                 ? "A running total that may be absent cannot also be cleared or set from an event value that may be absent: Chronicle cannot add to a property it has set to null."
                 : null;
         }
-
-        static bool IsArithmetic(SemanticProjectionMapping mapping) =>
-            mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract or
-                SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement;
-
-        static bool CanSetNull(SemanticProjectionMapping mapping) =>
-            mapping.Operation == SemanticProjectionOperation.Clear ||
-            (mapping.Operation == SemanticProjectionOperation.Set && mapping.Source is not SemanticProjectionLiteral { Value: not SemanticNullValue });
 
         string? EveryRejection()
         {

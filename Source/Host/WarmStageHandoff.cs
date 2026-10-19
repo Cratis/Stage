@@ -43,13 +43,7 @@ public sealed class WarmStageHandoff(string modelDirectory) : IDisposable
     public const string HandoffFileName = ".stage-handoff-id";
 
     readonly SemaphoreSlim _lock = new(1, 1);
-    readonly StageRuntimeEngine? _engine;
     bool _accepted;
-
-    internal WarmStageHandoff(string modelDirectory, StageRuntimeEngine engine) : this(modelDirectory)
-    {
-        _engine = engine;
-    }
 
     public static Guid? ReadHandoffId(string directory)
     {
@@ -59,7 +53,7 @@ public sealed class WarmStageHandoff(string modelDirectory) : IDisposable
 
     public StageStatus GetStatus() => new(_accepted ? "loading" : "warm", null, _accepted ? ReadHandoffId() : null)
     {
-        Engine = StageRuntimeEngineSelection.Name(_engine ?? StageRuntimeEngineSelection.Read([]))
+        Engine = "semantic"
     };
 
     public async Task<StageHandoffResult> Load(

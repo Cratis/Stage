@@ -97,7 +97,7 @@ app.UseCratisChronicle();
 
 if (warmMode)
 {
-    using var handoff = new WarmStageHandoff("/eventmodel", engine);
+    using var handoff = new WarmStageHandoff("/eventmodel");
 
     app.MapGet("/stage/status", handoff.GetStatus);
     app.MapPost("/stage/load", async (StageLoadRequest request, IChronicleClient chronicleClient, CancellationToken cancellationToken) =>

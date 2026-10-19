@@ -26,14 +26,14 @@ public static class StageRuntimePackage
     /// Points a rendered application at the packed runtime instead of the released version it pins.
     /// </summary>
     /// <param name="application">The rendered application directory.</param>
-    /// <returns>A task that completes when <c>package.json</c> has been rewritten.</returns>
+    /// <returns>A task that completes when <c language="shell">package.json</c> has been rewritten.</returns>
     public static async Task Install(string application)
     {
         var tarball = await _tarball.Value;
         var path = Path.Combine(application, "package.json");
-        var package = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        var package = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
         package["dependencies"]![Name] = $"file:{tarball}";
-        File.WriteAllText(path, package.ToJsonString(new() { WriteIndented = true }));
+        await File.WriteAllTextAsync(path, package.ToJsonString(new() { WriteIndented = true }));
     }
 
     /// <summary>
@@ -61,8 +61,13 @@ public static class StageRuntimePackage
         Directory.CreateDirectory(destination);
         await Step(frontend, "npm", "ci", "--no-audit", "--no-fund");
         await Step(frontend, "npm", "run", "build", "--workspace", Name);
-        var packed = await Step(frontend, "npm", "pack", "--workspace", Name, "--pack-destination", destination);
-        return Path.Combine(destination, packed.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[^1]);
+        await Step(frontend, "npm", "pack", "--workspace", Name, "--pack-destination", destination);
+
+        // The output interleaves npm notices with the file name, so the destination holds the only reliable answer.
+        var tarballs = Directory.GetFiles(destination, "*.tgz");
+        return tarballs.Length == 1
+            ? tarballs[0]
+            : throw new InvalidOperationException($"npm pack left {tarballs.Length} tarballs in {destination}; expected exactly one.");
     }
 
     static async Task<ProcessResult> Step(string directory, string fileName, params string[] arguments)

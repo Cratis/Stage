@@ -19,6 +19,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         ".frontend/main.tsx",
         ".frontend/tsconfig.json",
         ".frontend/tsconfig.node.json",
+        ".frontend/vite-env.d.ts",
         ".frontend/vite.config.ts",
         ".gitignore",
         "package.json",

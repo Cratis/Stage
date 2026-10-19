@@ -50,6 +50,7 @@ public sealed class CratisFrontendApplicationScaffold
             (".frontend/main.tsx", MainModule(!approved.IsEmpty)),
             (".frontend/tsconfig.json", FrontendTsConfig()),
             (".frontend/tsconfig.node.json", NodeTsConfig()),
+            (".frontend/vite-env.d.ts", ViteEnvironment()),
             (".frontend/vite.config.ts", ViteConfig()),
             (".gitignore", GitIgnore()),
             ("package.json", PackageJson(request)),
@@ -328,6 +329,17 @@ public sealed class CratisFrontendApplicationScaffold
         }
         """;
     }
+
+    /// <summary>
+    /// Declares Vite's client types - <c language="typescript">import.meta.glob</c>, <c language="typescript">import.meta.env</c>
+    /// and side-effect stylesheet imports - for the application's own modules.
+    /// </summary>
+    /// <returns>The declaration file content.</returns>
+    static string ViteEnvironment() =>
+        """
+        /// <reference types="vite/client" />
+
+        """;
 
     static string IndexCss() =>
         """

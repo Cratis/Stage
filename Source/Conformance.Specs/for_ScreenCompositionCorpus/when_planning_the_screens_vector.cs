@@ -25,7 +25,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "94acb9fb71a036bc31c1ac9472d94f029754e283cddfc60a3dc269a5d0927d2e";
+    const string Digest = "96ee0f3969414abc0fa0e6de7d1114f987b753052c17d0cc533d31cde8839f81";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -34,6 +34,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/main.tsx f44650b0ac67159ae951e1ee00f76268e10c0311a5d128d602591ecee727d1fc 2693
         .frontend/tsconfig.json efa4d0a8fdc813c520c240d2df0cd9211132fcde952f3d21f244c1a74ab124bf 1013
         .frontend/tsconfig.node.json 8d6d5e5ed11a91fdfa530d705f55c9676f62f12e72aa21b45502ecbadc27607b 313
+        .frontend/vite-env.d.ts 65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5 38
         .frontend/vite.config.ts 2563e2d7099206e3e6109995b94c2f532b6fee1b2b87041f74a8ac3b0b5654b1 1362
         .gitignore 74a92d28e98b0f259cc5b02bf9eac97fe103b30a10746f0315fba7fa0bfb0df9 253
         Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726
@@ -112,7 +113,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     public void should_change_only_the_runtime_pins_slice_sources_stage_import_and_runtime_copy_from_the_previous_frozen_plan(string form)
     {
         // Rebaselined for the @cratis/stage.runtime package (#499): beyond the original invariant, the previous plan's vendored
-        // .frontend/stage/* runtime and styledPrimeReact.ts are no longer emitted and the entry point, vite config and package.json import/depend on the package.
+        // .frontend/stage/* runtime and styledPrimeReact.ts are no longer emitted and the entry point, vite config and package.json import/depend on the package. The
+        // shell also declares Vite's client types in .frontend/vite-env.d.ts, which the vendored runtime used to carry.
 
         var sourceForm = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
         var planned = Plan(sourceForm.Documents, sourceForm.IdentityCatalogBytes.AsSpan(), carryScene: false);
@@ -130,7 +132,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("194e49f79cc5e326b461b413480c1065008d21a2492ade34bd71a7ff9518788e");
+            plan.Diagnostics).ShouldEqual("04795bc5198da2ad63a90f75ceda279635ecb5862724f4db2ab209c82789ef67");
     }
 
     [Theory]

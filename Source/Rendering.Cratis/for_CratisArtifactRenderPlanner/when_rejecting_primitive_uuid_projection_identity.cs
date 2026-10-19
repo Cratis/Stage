@@ -18,7 +18,8 @@ public class when_rejecting_primitive_uuid_projection_identity : Specification
         _plan = invoice_model.Plan(invoice_model.Compile(source));
     }
 
-    [Fact] void should_refuse_a_projection_without_concept_backed_event_source_identity() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-009");
+    // A key that is not the event source identity is rendered as an explicit key of the scope, so no concept-backed identity is needed.
+    [Fact] void should_render_the_projection_keyed_by_its_payload_property() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-009");
     [Fact] void should_admit_primitive_uuid_authorization() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-015");
-    [Fact] void should_emit_no_partial_application() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_plan_the_application() => _plan.Diagnostics.Select(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error ? diagnostic.Code : string.Empty).Where(code => code.Length > 0).ShouldBeEmpty();
 }

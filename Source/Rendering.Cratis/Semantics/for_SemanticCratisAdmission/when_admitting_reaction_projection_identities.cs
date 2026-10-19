@@ -48,12 +48,14 @@ public class when_admitting_reaction_projection_identities : for_SemanticAutomat
     [InlineData("")]
     [InlineData(" for otherId")]
     [InlineData(" for \"another\"")]
-    public void should_refuse_a_reaction_destination_not_proven_equal_to_the_projection_key(string destination)
+    public void should_render_a_reaction_destination_that_is_not_the_projection_key_through_an_explicit_key(string destination)
     {
+        // The projection is keyed by the payload property: its row does not depend on which event source the reaction appends to.
         SetContext(Compile(WithDestination(destination)));
         Plan();
-        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-009"]);
-        _plan.Artifacts.ShouldBeEmpty();
+        _plan.Diagnostics.ShouldBeEmpty();
+        _plan.Artifacts.ShouldNotBeEmpty();
+        RenderedOutput.Errors(Files()).ShouldBeEmpty();
     }
 
     [Theory]
@@ -79,13 +81,13 @@ public class when_admitting_reaction_projection_identities : for_SemanticAutomat
     }
 
     [Fact]
-    public void should_check_reaction_producers_outside_the_selected_projection_slice()
+    public void should_render_the_projection_slice_alone_whatever_produces_its_events()
     {
         SetContext(Compile(ProjectionSource));
         var lookup = _context.SelectedSlices().Single(slice => slice.Slice.Name == "Lookup");
         _plan = CratisRendering.Plan(_model, _context.Request.ExecutionPlan, new(ArtifactRenderScopeKind.Slice, lookup.Slice.Id), new("Reactions", "Reactions"));
-        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-009"]);
-        _plan.Artifacts.ShouldBeEmpty();
+        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-009");
+        _plan.Artifacts.ShouldNotBeEmpty();
     }
 
     static string WithDestination(string destination)

@@ -74,6 +74,21 @@ public sealed partial class CratisBackendApplicationScaffold
         Specifications run in any configuration, including Release. The web project
         excludes `when_*.cs` specifications in every configuration.
 
+        ## Access defaults
+
+        Commands and queries whose Screenplay model has no `authorize` clause are rendered with
+        `[Authorize]`: they require an authenticated caller and no particular role. Screenplay's
+        reference semantics let everyone call such an artifact; Stage deliberately renders the
+        stricter default, and reports each case as an informational `STAGE-ESM-051` diagnostic.
+        Explicit anonymous access will be expressed in the model by an upcoming Screenplay
+        `anonymous` policy condition.
+
+        To call these endpoints locally, present an identity. Arc's development identity
+        support sends the `x-ms-client-principal` headers
+        (see Arc's "Generate a local principal" guide) and requires the host to opt in to
+        forwarded identity headers with `Cratis:Arc:TrustForwardedIdentityHeaders`. Never enable that setting
+        where callers can reach the backend directly.
+
         ## Customize
 
         Put adapters, partial `Program` hooks, dependency imports, and styles in

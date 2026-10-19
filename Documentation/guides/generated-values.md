@@ -223,7 +223,7 @@ using Cratis.Chronicle.Events;
 namespace Acme.Shop.Storefront.Customers.Register;
 
 [global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-[global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
+[global::Cratis.Arc.Authorization.AuthorizeAttribute]
 public record RegisterCustomer(global::Acme.Shop.Common.CustomerName Name)
 {
     public (global::Acme.Shop.Common.CustomerId, global::Cratis.Chronicle.EventSequences.EventsWithConcurrencyScopes) Handle([global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute("customerId")] global::Acme.Shop.Common.CustomerId customerId, global::Cratis.Arc.IOperationContextAccessor operation)
@@ -494,7 +494,7 @@ public record ApiKey(string Value) : global::Cratis.Concepts.ConceptAs<string>(V
 
 ```csharp title="Storefront/Customers/Keys/Keys.cs (excerpt)"
 [global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-[global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
+[global::Cratis.Arc.Authorization.AuthorizeAttribute]
 public record RegisterApiKey(global::Acme.Shop.Common.CustomerId CustomerId, [property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute] global::Acme.Shop.Common.ApiKey ApiKey)
 ```
 

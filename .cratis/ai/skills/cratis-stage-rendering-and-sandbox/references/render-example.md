@@ -104,7 +104,7 @@ Why it is shaped this way:
   projection keyed by the event source. The identifier is never mapped: the key
   establishes it, and mapping it is `STAGE-ESM-017`.
 - The query is the admitted shape: `=> X optional` with one `by` equal to the read-model
-  identifier. It has no `authorize`, so it renders as `[AllowAnonymous]`.
+  identifier. It has no `authorize`, so it renders as `[Authorize]` (an authenticated caller).
 - The specifications that assert a query sit in the **command** slice: a `then query`
   needs the `when` command of its own slice and the `then` event as well.
 - No `handler`, no code attachments, no reactions, no evolved events.

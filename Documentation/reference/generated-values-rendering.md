@@ -46,7 +46,7 @@ public record ProjectId(global::System.Guid Value) : global::Cratis.Chronicle.Ev
 
 ```csharp title="Storefront/Projects/Register/Register.cs (excerpt)"
 [global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-[global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
+[global::Cratis.Arc.Authorization.AuthorizeAttribute]
 public record RegisterProject(string Name)
 {
     public (global::Acme.Shop.Common.ProjectId, global::Cratis.Chronicle.EventSequences.EventForEventSourceId) Handle([global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute("projectId")] global::Acme.Shop.Common.ProjectId projectId)

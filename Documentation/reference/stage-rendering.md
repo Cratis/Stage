@@ -340,6 +340,22 @@ Moving an existing model from v7 to v8 widens stored event schemas from int32 to
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
 
+## Authorization defaults
+
+A command or query whose model has no `authorize` clause renders `[Authorize]`: Arc requires an
+authenticated caller, with no role or policy requirement. This deliberately differs from
+Screenplay's reference semantics, where a missing clause allows everyone. Stage inverts the default
+so a model that forgot to say who may call it is not published to anonymous callers.
+
+- Each such command, query and synthesized read-model query pair is reported as an information
+  diagnostic, `STAGE-ESM-051`, naming the artifact. It does not block rendering.
+- Rendered specifications for these artifacts that give no caller run as a labelled authenticated
+  test caller with no roles or claims; a specification that names a caller keeps it.
+- Explicit anonymous access has no Screenplay construct yet. It will be modeled by an `anonymous`
+  policy condition; until then a model cannot render `[AllowAnonymous]`.
+- Existing applications rendered from models without `authorize` clauses stop accepting anonymous
+  callers; add the clause or authenticate callers when upgrading.
+
 ## Generated C# member names
 
 Stage appends `_` only when a command input property's generated name collides with its

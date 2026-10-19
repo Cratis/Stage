@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// Admits a specification that appends an event the event log refuses because of a constraint.
 /// </summary>
 /// <remarks>
-/// <c>when append &lt;event&gt;</c> followed by <c>then error "&lt;the constraint's message&gt;"</c> asserts that the log, not a command or a reaction, turns the append away.
+/// <c language="csharp">when append &lt;event&gt;</c> followed by <c language="csharp">then error "&lt;the constraint's message&gt;"</c> asserts that the log, not a command or a reaction, turns the append away.
 /// The generated scenario seeds the given events and appends the event through the in-process event log, which enforces the constraints the application declares,
 /// then asserts that the append failed with that constraint and that nothing else was appended.
 /// </remarks>

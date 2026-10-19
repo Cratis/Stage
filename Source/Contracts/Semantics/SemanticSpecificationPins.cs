@@ -9,7 +9,7 @@ namespace Cratis.Stage.Contracts.Semantics;
 /// Reads the generated values a specification pins for the command it runs.
 /// </summary>
 /// <remarks>
-/// <c>given generated &lt;Command&gt;.&lt;property&gt; = &lt;value&gt;</c> is declared on the specification, ahead of its action. A reaction takes the values pinned for the
+/// <c language="csharp">given generated &lt;Command&gt;.&lt;property&gt; = &lt;value&gt;</c> is declared on the specification, ahead of its action. A reaction takes the values pinned for the
 /// command it invokes; a specification whose action is the command itself takes them as the generated values of that action, exactly as if the
 /// action had stated them, so the generated property is a fixture rather than a draw (the destination of an event, the value an expectation names).
 /// </remarks>

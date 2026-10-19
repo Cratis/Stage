@@ -10,13 +10,20 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 public class when_running_removal_only_projections : Specification
 {
     const string Source = """
+        concept InvoiceId : String
         module Billing
           feature Invoices
-            slice StateView InvoiceLookup
+            slice StateChange RemoveInvoice
+              command RemoveInvoice
+                invoiceId InvoiceId identifier
+                produces InvoiceRemoved
+                  for invoiceId
+                  invoiceId = invoiceId
               event InvoiceRemoved
-                invoiceId String
+                invoiceId InvoiceId
+            slice StateView InvoiceLookup
               readmodel InvoiceView
-                invoiceId String key
+                invoiceId InvoiceId key
               projection Invoices => InvoiceView
                 remove with InvoiceRemoved
               specification RemovingOneOfTwoInvoices

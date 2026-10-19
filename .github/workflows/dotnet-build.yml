@@ -574,8 +574,8 @@ jobs:
           ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
           root = ET.parse("TestResults/generated-react/generated-react.trx").getroot()
           results = root.findall("t:Results/t:UnitTestResult", ns)
-          if len(results) != 7 or any(result.get("outcome") != "Passed" for result in results):
-              raise SystemExit(f"Expected 7 passing generated React build assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
+          if len(results) != 8 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 8 passing generated React build assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
           print(f"{len(results)} generated React build assertions passed")
           PY
 

@@ -32,31 +32,6 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx e4dc56b56e3e3855a1fdeedf2c14c131db52853c73f87b3b28d51b30a0e361b7 2723
-        .frontend/stage/App.tsx d9bbc204b1d76d8bb2576c0e435e5f5cc0606dde40a99a5eae8d03e20493e61c 24245
-        .frontend/stage/StageChrome.tsx 1c40eddd9cd9cbac5efb89902a83265f0c2bd2b82338f828f2e667486709e6c7 8172
-        .frontend/stage/StageCommandForm.tsx 7ff18df7147b3575c8bdb50fc8233c0a2122dbc0e5c0b1af62972c50a1e1d213 19571
-        .frontend/stage/StageCommandOutcome.ts 6bc76712e0956c9a3bcab9c915f991e60cbbbce1ed7397cdfb1334d6def4ffae 475
-        .frontend/stage/StageGuardedAction.tsx d1cd7555a0a29b23b848fc35dfea93c45c430a5e1d9bda5f03993a48112d8261 7008
-        .frontend/stage/StageShellSettings.tsx c2e9eae4cf842185f9b76862b51886012ead363e60b79d000d15c6a38b5b3f1d 2442
-        .frontend/stage/app.css b40e04c8475164eff7c08b96ddb498363e05f012493551a1c9296c02092098ea 3429
-        .frontend/stage/blueprint.ts db274de54a199b005b1f396494487b4ded49ef348da20a8a3f0edbf16481aa3c 7733
-        .frontend/stage/commandExecutor.ts db2ea17ffc5dc63288c5d37e4c95f36e3b5dc84e0a53d9cf55813cf2ff2b6d09 3607
-        .frontend/stage/navigationTree.ts b07b69a65ad734b534cc865355e210c938aa0832057483e4ccdfbd04545fdfc3 7290
-        .frontend/stage/stageComponents.tsx 8b4a617ed1ec108fa15553fa5af6f6d3ac71f045358419da1226f29efd52f11b 13539
-        .frontend/stage/stageData.tsx ff3bb4e09a78ff6796aeff54d896cc403216aef14bce1d32a50e313720a14eb1 22979
-        .frontend/stage/stageDataSources.ts ade1a9a757ec28de294254bcb59ee95df1e03d047036e9281915665c0d19d888 4645
-        .frontend/stage/stageGuards.ts d3caad28af719787f1007a8824898c86e6a4ac2eba863c36c4afaaae45b4cdf1 9330
-        .frontend/stage/stageNavigation.ts 46fc13d64e68d906f47a2c4fb92ade4ed61535b3ec63ca40624d4fe2c9437633 2529
-        .frontend/stage/stageNavigationModel.ts 69dd3672424cf10888c0ef8d37df2550224acafbadaf97a15bea19f7e877998c 2874
-        .frontend/stage/stageRoutes.ts 70633ea648cdff28ac304be3868d0e08110bb58e3978e56e79eda6761f82cdbc 1950
-        .frontend/stage/stageRowInteractions.ts 11d46c9b7e3dc182feb9629eb21d3d5b181b4119d3a03c4e565b814bfc2caf6f 3600
-        .frontend/stage/stageShell.ts 50351f398890c157b6f9799a6f05e541f02f7caac68d97f50522ba55cbeeddc7 7284
-        .frontend/stage/stageSlices.ts 7f98d9ced1f63719209ffbfbee3a3335258c06204982ca116c5c80956ae626bd 3477
-        .frontend/stage/stageSource.ts 0d8df29508315a5d17abe3bcf928bef4a1b05f1115395bfbe3356c3df7569817 4127
-        .frontend/stage/stageTheme.ts 41c903960761179212feba27f3e3352666c54a6364b3b0a2223589e028df4398 1097
-        .frontend/stage/useStrings.ts 7e9b26328e986b05f504ed40ae0656236d023b01ea4a1bf790220dd2f2309e17 2449
-        .frontend/stage/vite-env.d.ts e24655f2bbc165e2dcbd988edb4a9a28f50fb3d2d9d78c775c7d0ee144bcce10 498
-        .frontend/styledPrimeReact.ts 411262e641b07da4957bb52bf84deecdeef6319dbe64a1f1cba828065b402feb 3204
         .frontend/tsconfig.json efa4d0a8fdc813c520c240d2df0cd9211132fcde952f3d21f244c1a74ab124bf 1013
         .frontend/tsconfig.node.json 8d6d5e5ed11a91fdfa530d705f55c9676f62f12e72aa21b45502ecbadc27607b 313
         .frontend/vite.config.ts f4c1f53dda10136c81243564eee59796c43cbf8485479de9d24fdcb8431b79bc 1354

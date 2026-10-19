@@ -17,7 +17,6 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         ".frontend/index.css",
         ".frontend/index.html",
         ".frontend/main.tsx",
-        ".frontend/styledPrimeReact.ts",
         ".frontend/tsconfig.json",
         ".frontend/tsconfig.node.json",
         ".frontend/vite.config.ts",
@@ -26,8 +25,8 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         "tsconfig.json"
     ];
 
-    [Fact] void should_create_the_exact_shell_roster() => _first.Select(PathOf).Where(path => !IsRuntime(path)).SequenceEqual(_expectedShellPaths).ShouldBeTrue();
-    [Fact] void should_emit_the_stage_runtime_beside_the_shell() => _first.Select(PathOf).Count(IsRuntime).ShouldBeGreaterThan(10);
+    [Fact] void should_create_the_exact_shell_roster() => _first.Select(PathOf).SequenceEqual(_expectedShellPaths).ShouldBeTrue();
+    [Fact] void should_not_copy_the_stage_runtime_beside_the_shell() => _first.Select(PathOf).Count(IsRuntime).ShouldEqual(0);
     [Fact] void should_create_the_roster_in_ordinal_order() => _first.Select(PathOf).SequenceEqual(_first.Select(PathOf).Order(StringComparer.Ordinal)).ShouldBeTrue();
     [Fact] void should_version_every_input_with_the_scaffold_contract() => _first.All(input => input.Version == "2").ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_names() => _second.Select(input => input.Name).SequenceEqual(_first.Select(input => input.Name)).ShouldBeTrue();
@@ -63,14 +62,12 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     /// </summary>
     [Fact] void should_mount_the_components_provider() => Content(".frontend/main.tsx").ShouldContain("<CratisComponentsProvider>");
 
-    [Fact] void should_render_the_composed_screen_through_the_stage_runtime() => Content(".frontend/main.tsx").ShouldContain("import { App } from './stage/App';");
+    [Fact] void should_render_the_composed_screen_through_the_stage_runtime() => Content(".frontend/main.tsx").ShouldContain("} from '@cratis/stage.runtime';");
     [Fact] void should_read_the_content_the_planner_emitted() => Content(".frontend/main.tsx").ShouldContain("import.meta.glob<StageStaticContent>('../src/stage.ts', { eager: true, import: 'stage' })");
     [Fact] void should_serve_the_runtime_from_the_built_in_content() => Content(".frontend/main.tsx").ShouldContain("const source = staticStageSource(stage);");
     [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("<App components={cratisComponentsRuntimePackage.components} />");
     [Fact] void should_load_the_runtime_only_components_entry() => Content(".frontend/main.tsx").ShouldContain("import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';");
     [Fact] void should_not_load_the_design_time_components_package() => Content(".frontend/main.tsx").ShouldNotContain("import { cratisComponentsPackage }");
-    [Fact] void should_render_core_diagnostics_and_cratis_components_through_one_registry() =>
-        Content(".frontend/stage/blueprint.ts").ShouldContain("{ ...coreComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...previewComponents, ...overrides }");
     [Fact] void should_apply_the_stage_theme() => Content(".frontend/main.tsx").ShouldContain("<PrimeReactProvider license={primeUiLicense} theme={stageTheme}>");
     [Fact] void should_serve_styled_primereact_components() => Content(".frontend/vite.config.ts").ShouldContain("styledPrimeReact(),");
     [Fact] void should_load_the_metadata_reflection_polyfill_first() => Content(".frontend/main.tsx").Split('\n')[0].ShouldEqual("import 'reflect-metadata';");
@@ -87,7 +84,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_ignore_the_bundled_web_root_and_node_modules() => Content(".gitignore").ShouldContain("wwwroot/");
     [Fact] void should_not_emit_wildcard_range_or_latest_versions() => HasForbiddenValues().ShouldBeFalse();
 
-    static bool IsRuntime(string path) => path.StartsWith(".frontend/stage/", StringComparison.Ordinal);
+    static bool IsRuntime(string path) => path.StartsWith(".frontend/stage/", StringComparison.Ordinal) || path == ".frontend/styledPrimeReact.ts";
 
     JsonDocument PackageJson() => JsonDocument.Parse(Content("package.json"));
 
@@ -120,6 +117,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             $"@cratis/scene.model={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.primereact={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.react={CratisFrontendPackageSet.Current.ScenePackageVersion}",
+            $"@cratis/stage.runtime={ScaffoldPackageVersions.StageRuntime}",
             "@primereact/core=11.2.0",
             "@primereact/headless=11.2.0",
             "@primereact/hooks=11.2.0",
@@ -140,7 +138,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             "rxjs=7.8.2",
             "tsyringe=4.10.0",
             "typescript=7.0.2",
-            "vite=8.3.0"
+            "vite=8.3.2"
         }.Order(StringComparer.Ordinal));
 
     string ProxiedPaths() => string.Join(

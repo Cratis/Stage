@@ -14,6 +14,12 @@ const DATA_CHANGED = 'cratis.stage.data-changed';
 
 interface QueryState {
     name?: string;
+
+    /** The read model's name, under which the rows are published to the binding scope as well - where a summary looks them up. */
+    alias?: string;
+
+    /** The rows are always a list in the binding scope, even when there is one: a path reads `0.count`, never `count`. */
+    list?: boolean;
     route: string;
     rows: Record<string, unknown>[];
     loading: boolean;
@@ -27,6 +33,12 @@ export interface StageQueryRequest {
     route?: string;
     arguments?: Record<string, unknown>;
     ready?: boolean;
+
+    /** Publishes the rows under this name too: the read model a `data` declaration shows, so a summary finds them by it. */
+    alias?: string;
+
+    /** Whether the rows are published to bindings as a list always, so a path such as `0.lineCount` reads the same for one row as for many. */
+    list?: boolean;
 
     /**
      * Whether the result is published to the screen's bindings. A query read only to decide something - the item a
@@ -57,6 +69,12 @@ export interface StageDataState {
     clearSelection: (scope: string) => void;
     setState: (key: string, value: unknown) => void;
     setComponentOutput: (componentId: string, path: string, value: unknown) => void;
+
+    /** Takes what the components of the rendered tree publish (a list's selected row, a search box's text) so bindings and interactions elsewhere on the page read it. */
+    publishComponentOutputs: (outputs: Record<string, Record<string, unknown>>) => void;
+
+    /** The rows of every query the page has read, by scope and by query name - what a `queryResult` binding resolves against. */
+    queryResults: Record<string, unknown>;
     refreshQuery: (query?: string) => void;
     refreshAfterCommand: () => void;
     resolveBinding: (binding: BindingExpression | string | undefined) => unknown;
@@ -85,6 +103,8 @@ const emptyState: StageDataState = {
     clearSelection: () => undefined,
     setState: () => undefined,
     setComponentOutput: () => undefined,
+    publishComponentOutputs: () => undefined,
+    queryResults: {},
     refreshQuery: () => undefined,
     refreshAfterCommand: () => undefined,
     resolveBinding: () => undefined,
@@ -116,6 +136,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
     const [activeSelection, setActiveSelection] = useState<string>();
     const [localState, setLocalState] = useState<Record<string, unknown>>({});
     const [componentOutputState, setComponentOutputState] = useState<Record<string, Record<string, unknown>>>({});
+    const [publishedOutputs, setPublishedOutputs] = useState<Record<string, Record<string, unknown>>>({});
     const [refreshRequests, setRefreshRequests] = useState<{ query?: string; version: number }>({ version: 0 });
 
     const registerQueryResult = useCallback((scope: string, state: QueryState | undefined) => {
@@ -185,20 +206,26 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         if (typeof binding !== 'string' && binding.path === guardPath) return undefined;
         if (typeof binding === 'string') return resolvePath(binding, selected, selections, queries, localState, parameters, screen, locale, locales);
 
+        const scope = bindingScope(selected, queries, localState, { ...publishedOutputs, ...componentOutputState }, selections);
+
+        // `component.<id>.<output>` reads what another element of the page publishes - the row a list has selected, the text a search box holds.
+        if (!binding.kind && binding.path.startsWith('component.')) return resolveArgumentSource(binding.path, scope);
         if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, parameters, screen, locale, locales);
 
-        const scope = bindingScope(selected, queries, localState, componentOutputState, selections);
         const diagnostics = validateBindingExpression(binding, scope);
         if (diagnostics.length > 0) {
             console.warn(`Scene binding could not be resolved: ${diagnostics.map(_ => `${_.code}:${_.message}`).join('; ')}`);
         }
 
         return createBindingResolver(scope)(binding);
-    }, [componentOutputState, locale, locales, localState, parameters, queries, screen, selected, selections]);
+    }, [componentOutputState, locale, locales, localState, parameters, publishedOutputs, queries, screen, selected, selections]);
 
     const resolveArgument = useCallback(
-        (source: string | undefined): unknown => source ? resolveArgumentSource(source, bindingScope(selected, queries, localState, componentOutputState, selections)) : undefined,
-        [componentOutputState, localState, queries, selected, selections]);
+        (source: string | undefined): unknown => source ? resolveArgumentSource(source, bindingScope(selected, queries, localState, { ...publishedOutputs, ...componentOutputState }, selections)) : undefined,
+        [componentOutputState, localState, publishedOutputs, queries, selected, selections]);
+
+    const publishComponentOutputs = useCallback((outputs: Record<string, Record<string, unknown>>) => setPublishedOutputs(outputs), []);
+    const queryResults = useMemo(() => bindingScope(undefined, queries, {}, {}, {}).queryResults, [queries]);
 
     const state = useMemo<StageDataState>(() => ({
         locale,
@@ -214,6 +241,8 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         clearSelection,
         setState: (key, value) => setLocalState(current => writePath(current, key.split('.').filter(Boolean), value)),
         setComponentOutput,
+        publishComponentOutputs,
+        queryResults,
         refreshQuery,
         refreshAfterCommand,
         resolveBinding,
@@ -221,7 +250,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveArgument, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
+    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, publishComponentOutputs, queryResults, resolveArgument, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
@@ -366,13 +395,15 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
 
         publishResult(request.scope, {
             name: request.name,
+            list: request.list,
+            alias: request.alias,
             route: request.route,
             rows,
             loading,
             error,
             arguments: JSON.parse(argumentsKey) as Record<string, unknown>,
         });
-    }, [active, argumentsKey, error, loading, publishResult, request.name, request.route, request.scope, rows]);
+    }, [active, argumentsKey, error, loading, publishResult, request.alias, request.list, request.name, request.route, request.scope, rows]);
 
     return { rows, loading, error, refresh: () => { if (!liveOpen.current) setLocalRefresh(current => current + 1); } };
 }
@@ -388,10 +419,12 @@ function bindingScope(
     componentOutputState: Record<string, Record<string, unknown>>,
     selections: Record<string, Record<string, unknown> | undefined>,
 ) {
-    const queryResults = Object.fromEntries(Object.entries(queries).flatMap(([scope, state]) => [
-        [scope, queryValue(state.rows)],
-        ...(state.name ? [[state.name, queryValue(state.rows)] as const] : []),
-    ]));
+    // A query bound as a list is registered last, so a path that indexes into it wins the name over a table that reads the same query.
+    const ordered = Object.entries(queries).sort(([, left], [, right]) => Number(left.list === true) - Number(right.list === true));
+    const queryResults = Object.fromEntries(ordered.flatMap(([scope, state]) => {
+        const value = state.list ? state.rows : queryValue(state.rows);
+        return [[scope, value], ...(state.name ? [[state.name, value] as const] : []), ...(state.alias ? [[state.alias, value] as const] : [])];
+    }));
 
     return {
         dataContext: selected,
@@ -460,7 +493,8 @@ function resolveDataPath(path: string | undefined, selected: Record<string, unkn
 
 function resolveQueryResult(queries: Record<string, QueryState>, query: string | undefined, path: string | undefined): unknown {
     const matching = Object.entries(queries)
-        .filter(([scope, state]) => !query || state.name === query || scope === query)
+        // A page-level read (a basket count, a `data` declaration's summary) is published for the bindings that name it; it is not one of the rows an unnamed path searches.
+        .filter(([scope, state]) => query ? state.name === query || scope === query : !state.list)
         .map(([, state]) => state.rows);
     if (matching.length === 0) return undefined;
     const rows = matching.flat();

@@ -12,6 +12,9 @@ import { useStageData } from './stageData';
 
 export interface SchemaProperty {
     name: string;
+
+    /** The identifier concept of a uuid property (`x-concept`) - `BasketId`; what a session holds one value of. */
+    identifier?: string;
     type?: 'text' | 'number' | 'boolean' | 'date';
     required: boolean;
     unsupportedReason?: string;
@@ -36,6 +39,7 @@ interface StageCommandContent {
 interface JsonSchemaDefinition {
     type?: unknown;
     format?: unknown;
+    'x-concept'?: unknown;
 }
 
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
@@ -47,7 +51,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
-    const initialValues = useMemo(() => initialCommandValues(fields, data.parameters), [fields, data.parameters]);
+    const initialValues = useMemo(() => ({ ...sessionIdentifiers(fields, schema, data.parameters), ...initialCommandValues(fields, data.parameters) }), [fields, schema, data.parameters]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -188,6 +192,38 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
     }
 
     return values;
+}
+
+/**
+ * The identity a session acts as - the shopper's basket - for the identifier properties a form does not show.
+ *
+ * A command like AddToBasket is about the shopper's own basket, which the shopper never types: the form lists the product and the quantity.
+ * A required uuid property that the form does not list and the screen has no parameter for is that kind of identity, so it is one value per
+ * identifier concept for as long as this browser keeps the session - the same basket for every add, change and checkout, a different one for
+ * another browser - and a command is never submitted for an identity nobody chose.
+ */
+export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>): StageCommandContent {
+    const shown = new Set(fields.map(field => field.sourceProperty ?? field.name));
+    const values: StageCommandContent = {};
+    for (const property of schema) {
+        if (!property.identifier || !property.required || shown.has(property.name) || parameters[property.name]) continue;
+        values[property.name] = sessionIdentifier(property.identifier);
+    }
+
+    return values;
+}
+
+function sessionIdentifier(concept: string): string {
+    const key = `stage.session.${concept}`;
+    try {
+        const existing = globalThis.localStorage?.getItem(key);
+        if (existing) return existing;
+        const created = globalThis.crypto.randomUUID();
+        globalThis.localStorage?.setItem(key, created);
+        return created;
+    } catch {
+        return globalThis.crypto.randomUUID();
+    }
 }
 
 interface ArgumentMapping {
@@ -338,6 +374,7 @@ export function schemaPropertiesOf(schema: string): SchemaProperty[] {
             const resolved = propertyType(definition);
             return {
                 name,
+                identifier: definition?.format === 'uuid' && typeof definition['x-concept'] === 'string' ? definition['x-concept'] : undefined,
                 type: resolved.type,
                 unsupportedReason: resolved.unsupportedReason,
                 required: hasRequired ? required.has(name) : true,

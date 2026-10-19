@@ -32,7 +32,7 @@ public static class CommandFormSchemas
     /// <exception cref="UnsupportedCommandFormSchema">Thrown when a property has a type no form schema can describe.</exception>
     public static string For(SemanticApplication application, IEnumerable<SemanticProperty> properties)
     {
-        var schemas = new SchemaSynthesizer(application.Concepts.ToDictionary(
+        var concepts = application.Concepts.ToDictionary(
             concept => concept.Name,
             concept => new ConceptSyntax(
                 concept.Name,
@@ -40,7 +40,18 @@ public static class CommandFormSchemas
                 [],
                 concept.Values,
                 SourceLocation.Start),
-            StringComparer.Ordinal));
+            StringComparer.Ordinal);
+        var types = application.Types.ToDictionary(
+            type => type.Name,
+            type => new TypeSyntax(
+                type.Name,
+                type.Properties.Select(member => new PropertySyntax(
+                    member.Name,
+                    new TypeRefSyntax(TypeName(application, member.Type), member.Type.IsCollection, member.Type.IsOptional, SourceLocation.Start),
+                    SourceLocation.Start)),
+                SourceLocation.Start),
+            StringComparer.Ordinal);
+        var schemas = new SchemaSynthesizer(concepts, types);
 
         return schemas.ForProperties(properties.Select(property => new PropertySyntax(
             property.Name,

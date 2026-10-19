@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Text.Json.Nodes;
 using Cratis.Screenplay.Syntax;
 
@@ -13,7 +14,8 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// convention Stage's engine already consumes.
 /// </summary>
 /// <param name="concepts">The concepts declared in the application, keyed by name, used to resolve concept-typed properties.</param>
-public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax> concepts)
+/// <param name="types">The composite value types declared in the application, keyed by name; a property typed as one carries its members. Without it a composite is an open object.</param>
+public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax> concepts, IReadOnlyDictionary<string, TypeSyntax>? types = null)
 {
     /// <summary>
     /// The empty object schema used for a command's state schema (Screenplay has no state schema concept).
@@ -43,6 +45,8 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// </para>
     /// </remarks>
     public const string ConceptAttributesKeyword = "x-conceptAttributes";
+
+    readonly IReadOnlyDictionary<string, TypeSyntax> _types = types ?? new Dictionary<string, TypeSyntax>();
 
     /// <summary>
     /// Synthesizes a JSON Schema object for a set of typed properties (a command or event payload).
@@ -143,7 +147,9 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
         return type.IsCollection ? new JsonObject { ["type"] = "array", ["items"] = inner } : inner;
     }
 
-    JsonNode ForTypeName(string name)
+    JsonNode ForTypeName(string name) => ForTypeName(name, []);
+
+    JsonNode ForTypeName(string name, ImmutableHashSet<string> within)
     {
         var primitive = Primitive(name);
         if (primitive is not null)
@@ -158,6 +164,31 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
                 : ForTypeName(concept.Type);
 
             return Annotate(node, concept);
+        }
+
+        // A composite value type carries its members so a form can offer a field for each; one that contains itself stays open below the first level.
+        if (_types.TryGetValue(name, out var composite) && !within.Contains(name))
+        {
+            var members = new JsonObject();
+            var required = new JsonArray();
+            var inside = within.Add(name);
+            foreach (var member in composite.Properties)
+            {
+                var inner = ForTypeName(member.Type.Name, inside);
+                members[member.Name] = member.Type.IsCollection ? new JsonObject { ["type"] = "array", ["items"] = inner } : inner;
+                if (!member.Type.IsOptional)
+                {
+                    required.Add(member.Name);
+                }
+            }
+
+            var shape = new JsonObject { ["type"] = "object", ["properties"] = members };
+            if (required.Count > 0)
+            {
+                shape["required"] = required;
+            }
+
+            return shape;
         }
 
         return new JsonObject { ["type"] = "object" };

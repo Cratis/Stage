@@ -7,7 +7,8 @@ import { CoreToolbarItem, coreComponents } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
 import { Button } from 'primereact/button';
-import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
+import { PrimeMessage } from '@cratis/scene.primereact';
+import { StageActionDialog } from './StageActionDialog';
 import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm } from './StageCommandForm';
 import { registeredCommand } from './commandExecutor';
@@ -227,10 +228,7 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
 
     return (
         <div className='stage-action' data-scene-id={element.id}>
-            <PrimeDialog
-                element={syntheticElement(element.id, { visible: false, header: label, triggerLabel: label })}
-                slots={{ content: [content] }}
-            />
+            <StageActionDialog id={element.id} label={label}>{content}</StageActionDialog>
         </div>
     );
 }

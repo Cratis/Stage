@@ -231,7 +231,7 @@ internal sealed class SemanticApplicationContext
             {
                 Slice = located.Slice with
                 {
-                    Projections = [.. located.Slice.Projections.Select(projection => NeedsScope(projection) && SemanticFlatProjectionScopes.ToScope(projection) is { } scope
+                    Projections = [.. located.Slice.Projections.Select(projection => NeedsScope(projection) && RenderableScope(projection) is { } scope
                         ? projection with { Transitions = [], Scope = scope }
                         : projection)]
                 }
@@ -239,6 +239,11 @@ internal sealed class SemanticApplicationContext
         }
 
         Projections = _slices.Values.SelectMany(_ => _.Slice.Projections).ToDictionary(_ => _.Id);
+
+        // Only a projection whose scope the scoped admission takes is converted: any other keeps its flat refusal.
+        SemanticProjectionScope? RenderableScope(SemanticProjection projection) =>
+            SemanticFlatProjectionScopes.ToScope(projection) is { } scope &&
+            SemanticScopedProjectionSupport.Rejection(scope, this, ReadModels[projection.ReadModel].Properties) is null ? scope : null;
 
         bool NeedsScope(SemanticProjection projection) =>
             projection.Scope is null && !projection.Transitions.IsEmpty && projection.Target == SemanticProjectionTargetKind.ReadModel &&

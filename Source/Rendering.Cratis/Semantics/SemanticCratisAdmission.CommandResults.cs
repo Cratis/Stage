@@ -3,19 +3,13 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
-using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 internal static partial class SemanticCratisAdmission
 {
-    static ArtifactRenderDiagnostic? CommandResultError(SemanticApplicationContext context, SemanticSlice slice, SemanticCommand command)
+    static ArtifactRenderDiagnostic? CommandResultError(SemanticCommand command)
     {
-        if (ResponseNameCollides(context, slice, command))
-        {
-            return Error(SemanticVersionFeatures.CommandResults, $"Command '{command.Name}' has response names that collide in generated C#.", command.Id);
-        }
-
         if (command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: not SemanticEventContextValueKind.Occurred })))
         {
@@ -23,19 +17,6 @@ internal static partial class SemanticCratisAdmission
         }
 
         return null;
-    }
-
-    static bool ResponseNameCollides(SemanticApplicationContext context, SemanticSlice slice, SemanticCommand command)
-    {
-        if (command.Response is not SemanticRecordCommandResponse response) return false;
-        var name = Identifiers.ToPascalCase(command.Name + "Response");
-        var names = slice.Commands.Select(candidate => candidate.Name)
-            .Concat(slice.Events.Select(candidate => candidate.Name))
-            .Concat(slice.ReadModels.Select(candidate => candidate.Name));
-        var namespaceName = $"{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(command.Id).Path)}.{Identifiers.ToPascalCase(command.Name)}Response";
-
-        return !GeneratedPascalCase.RecordMembersAreUnique(command.Name + "Response", response.Fields.Select(field => field.Name)) ||
-            names.Any(candidate => Identifiers.ToPascalCase(candidate) == name) || context.NamespacePaths.Contains(namespaceName);
     }
 
     // A command with protected reads may only decide: Arc still validates the reads it declared, and nothing is committed.

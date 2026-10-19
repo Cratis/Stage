@@ -17,7 +17,10 @@ internal static partial class SemanticCratisAdmission
     {
         foreach (var concept in context.Application.Concepts)
         {
-            if (!GeneratedPascalCase.ConceptMembersAreUnique(concept.Name, concept.Values, context.IdentifierConcepts.Contains(concept.Id)))
+            if (!GeneratedPascalCase.ConceptMembersAreUnique(
+                concept.Name,
+                concept.Values,
+                context.IdentifierConcepts.Contains(concept.Id) && !SemanticCommonArtifactRenderer.IsGeneratable(concept, context)))
             {
                 diagnostics.Add(Error("STAGE-ESM-012", $"Concept '{concept.Name}' has members that collide in generated C#.", concept.Id));
             }

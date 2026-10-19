@@ -79,7 +79,8 @@ export function dataSourcesOf(element: SceneElement): StageDataSource[] {
 function BoundData({ source }: { source: StageDataSource }) {
     const { routes, routesReady, parameters } = useStageData();
     const argument = source.by ? parameters[source.by] : undefined;
-    const queryArguments = useMemo(() => source.by && argument ? { [source.by]: argument } : {}, [argument, source.by]);
+    // A declaration with no `by` reads the query as the session sees it: narrowed by the identities the session and the address carry, when the query filters by them.
+    const queryArguments = useMemo(() => source.by ? (argument ? { [source.by]: argument } : {}) : { ...parameters }, [argument, parameters, source.by]);
     useStageQuery({
         scope: `data:${source.typeName}`,
         name: source.query,

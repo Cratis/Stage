@@ -239,6 +239,13 @@ internal static class SemanticScopedProjectionRenderer
             var source = mapping.Source is SemanticProjectionEventProperty property
                 ? $"evt => evt.{Path(property.Path, @event.Properties, context)}"
                 : string.Empty;
+
+            // A product of two event values is added through the member the event carries for it (SemanticProjectionProducts).
+            if (SemanticProjectionProducts.Of(mapping, @event, targets, context) is { } product)
+            {
+                source = $"evt => evt.{product.Name}";
+            }
+
             var expression = mapping.Operation switch
             {
                 SemanticProjectionOperation.Set when mapping.Source is SemanticProjectionEventSourceIdentity => $"Set(model => model.{target}).ToEventSourceId()",

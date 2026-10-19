@@ -35,7 +35,7 @@ public class when_reading_version_two
         var input = ReducerConventionInput.Create("Projects", convention);
         Assert.Equal("2", input.Version);
         Assert.Equal(Json(Entry(First, "Projects.A.Fold", "A/Fold.cs"), Entry(Second, "Projects.B.Fold", "B/Fold.cs")) + "\n", Text(input));
-        Assert.Equal(input.Bytes, ReducerConventionInput.Read("Projects", Text(input)).Bytes);
+        Assert.Equal(Text(input), Text(ReducerConventionInput.Read("Projects", Text(input))));
         Assert.True(ReducerConventionInput.TryParse(Text(input), "Projects", out var parsed));
         Assert.Equal("A/Fold.cs", parsed.Overrides[SemanticId.Parse(First)].PreviousPath);
     }

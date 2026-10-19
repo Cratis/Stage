@@ -14,8 +14,8 @@ public class with_an_unchanged_event_type_id : given.an_event_plan
     void Because()
     {
         var plan = Events("namespace Records; [EventType] public record Renamed;");
-        _checks = new[] { "[EventType]", "[EventType(\"Renamed\")]", "[EventType(\"\")]", "[EventType(id: \"Renamed\", generation: 1)]", "[Cratis.Chronicle.Events.EventTypeAttribute(\"Renamed\")]" }
-            .Select(attribute => CratisRendering.CheckPublication(plan, _ => $"namespace Records; {attribute} public record Renamed;")).ToArray();
+        _checks = [.. new[] { "[EventType]", "[EventType(\"Renamed\")]", "[EventType(\"\")]", "[EventType(id: \"Renamed\", generation: 1)]", "[Cratis.Chronicle.Events.EventTypeAttribute(\"Renamed\")]" }
+            .Select(attribute => CratisRendering.CheckPublication(plan, _ => $"namespace Records; {attribute} public record Renamed;"))];
     }
 
     [Fact] void should_preserve_equivalent_stored_identities() => _checks.All(check => check is CratisPublicationCheck.Compatible).ShouldBeTrue();

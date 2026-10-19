@@ -33,6 +33,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
+
         // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
         "22.87.0",
         _plan.Renderer,

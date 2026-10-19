@@ -36,5 +36,4 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
-
 }

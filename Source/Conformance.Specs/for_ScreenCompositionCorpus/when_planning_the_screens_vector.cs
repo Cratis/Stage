@@ -121,6 +121,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         var plan = planned.Plan;
         ArtifactRenderPlan.ComputeDigest(
             plan.Target,
+
             // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
             "22.87.0",
             plan.Renderer,

@@ -3,8 +3,8 @@
 
 using System.Text;
 using System.Text.Json.Nodes;
-using Cratis.Scene.Model.SampleData;
 using Cratis.Scene.Model.Profiles;
+using Cratis.Scene.Model.SampleData;
 using Cratis.Scene.Model.Structure;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;

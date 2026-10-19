@@ -14,8 +14,8 @@ public class with_an_unreadable_event_type_id : given.an_event_plan
     void Because()
     {
         var plan = Events("namespace Records; [EventType(\"Original\")] public record Renamed;");
-        _checks = new[] { "namespace Records; [EventType(StoredId)] public record Renamed;", "namespace Records; [EventType($\"{StoredId}\")] public record Renamed;", "namespace Records; [EventType(\"Original\")] public record Renamed(" }
-            .Select(code => (CratisPublicationCheck.ChangesEventTypeIds)CratisRendering.CheckPublication(plan, _ => code)).ToArray();
+        _checks = [.. new[] { "namespace Records; [EventType(StoredId)] public record Renamed;", "namespace Records; [EventType($\"{StoredId}\")] public record Renamed;", "namespace Records; [EventType(\"Original\")] public record Renamed(" }
+            .Select(code => (CratisPublicationCheck.ChangesEventTypeIds)CratisRendering.CheckPublication(plan, _ => code))];
     }
 
     [Fact] void should_refuse_every_undeterminable_identity() => _checks.Length.ShouldEqual(3);

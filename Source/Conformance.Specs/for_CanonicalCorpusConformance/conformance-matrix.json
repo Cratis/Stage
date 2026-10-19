@@ -2968,7 +2968,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-028", "kind": "command", "artifact": "sem1:cb7e91a776653c53ea020a87d6d589bb82d105ed85303402d8081ebf9d62a964", "issue": 510 } ] },
+        { "code": "STAGE-ESM-028", "kind": "command", "artifact": "sem1:cb7e91a776653c53ea020a87d6d589bb82d105ed85303402d8081ebf9d62a964", "byDesign": "A generate rule has an implementation body that Stage's interpreter never runs or replaces; the Host refuses by design and the rendered application runs it (Stage#510)" } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-011", "artifact": "sem1:080f3f3bf55de8ec0f366b0d4a52c99f9e2d9ddfab3e6e4220b3c979f2a6c019", "issue": 500 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:6311666b3338946c7e2efc5ccf21d5f7b40f62bb28838140f04154110dd02bc2", "issue": 500 },
@@ -2979,7 +2979,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-028", "kind": "command", "artifact": "sem1:cb7e91a776653c53ea020a87d6d589bb82d105ed85303402d8081ebf9d62a964", "issue": 510 } ] },
+        { "code": "STAGE-ESM-028", "kind": "command", "artifact": "sem1:cb7e91a776653c53ea020a87d6d589bb82d105ed85303402d8081ebf9d62a964", "byDesign": "A generate rule has an implementation body that Stage's interpreter never runs or replaces; the Host refuses by design and the rendered application runs it (Stage#510)" } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-011", "artifact": "sem1:080f3f3bf55de8ec0f366b0d4a52c99f9e2d9ddfab3e6e4220b3c979f2a6c019", "issue": 500 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:6311666b3338946c7e2efc5ccf21d5f7b40f62bb28838140f04154110dd02bc2", "issue": 500 },

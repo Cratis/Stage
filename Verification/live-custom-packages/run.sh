@@ -27,7 +27,6 @@ trap cleanup EXIT
 start() {
     docker rm --force --volumes "$container" >/dev/null 2>&1
     docker run --detach --name "$container" --publish "127.0.0.1:$port:9090" \
-        --env Stage__Runtime__Engine=eventmodel \
         --volume "$here/model:/eventmodel:ro" \
         --volume "$here/approved/approved-packages.json:/packages/approved-packages.json:ro" \
         "$@" "$image" >/dev/null || { echo "could not run: the Stage image $image did not start"; exit 2; }

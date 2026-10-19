@@ -17,7 +17,7 @@ public class when_checking_a_comparison_against_an_enumeration : Specification
         ["enumeration"] = new[] { "open", "closed" },
     };
 
-    [Fact] void should_evaluate_a_member() => SceneGuards.CanEvaluate((object)Comparison("open")).ShouldBeTrue();
-    [Fact] void should_evaluate_a_member_in_any_casing() => SceneGuards.CanEvaluate((object)Comparison("Closed")).ShouldBeTrue();
-    [Fact] void should_refuse_a_literal_that_is_not_a_member() => SceneGuards.CanEvaluate((object)Comparison("archived")).ShouldBeFalse();
+    [Fact] void should_evaluate_a_member() => SceneGuards.CanEvaluate(Comparison("open")).ShouldBeTrue();
+    [Fact] void should_evaluate_a_member_in_any_casing() => SceneGuards.CanEvaluate(Comparison("Closed")).ShouldBeTrue();
+    [Fact] void should_refuse_a_literal_that_is_not_a_member() => SceneGuards.CanEvaluate(Comparison("archived")).ShouldBeFalse();
 }

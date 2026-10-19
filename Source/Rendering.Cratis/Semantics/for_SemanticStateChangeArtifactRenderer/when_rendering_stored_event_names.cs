@@ -21,7 +21,7 @@ public class when_rendering_stored_event_names : Specification
     {
         var model = SemanticModelSerializer.Deserialize(StoredEventNamesCorpus.V16.EsmBytes.AsSpan());
         _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("StoredEventNames", "StoredEventNames"));
-        _code = string.Join("\n", _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        _code = string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
     }
 
     [Fact] void should_admit_the_mixed_model() => _plan.Success.ShouldBeTrue();

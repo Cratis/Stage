@@ -50,6 +50,7 @@ public class with_a_negated_policy : Specification
                   event ReportCounted
                     owner Int optional
             """);
+
         // A real log: its tail advances after the accepted command, so the later refusal settles against it.
         _runtime = new a_semantic_fact_log().Runtime(_plan, SemanticWorld.Empty);
     }

@@ -15,7 +15,9 @@ public class when_appending_a_stored_event_name : for_SemanticChronicleRegistrat
     async Task Because()
     {
         var command = _plan.Commands.Values.Single();
-        var accepted = (SemanticAccepted)new SemanticEvaluator().Execute(_plan, SemanticWorld.Empty,
+        var accepted = (SemanticAccepted)new SemanticEvaluator().Execute(
+            _plan,
+            SemanticWorld.Empty,
             SemanticExecutionRequest.Create(command.Id, [new(command.Properties.Single().Id, SemanticValue.Text("record-1"))], []));
         await new SemanticFactAppender(_client, new StageEventStoreName("Compliance"), _plan).Append(accepted.Facts, new(DateTimeOffset.UtcNow, "caller", "Caller", "user"));
     }

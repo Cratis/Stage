@@ -66,6 +66,7 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
             ReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[0].Id).Passed;
             WrongReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[1].Id).Passed;
             OptionalPropertyReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[2].Id).Passed;
+
             // Seed-only models preserve optional-property presence without a concrete Chronicle projection.
             var stageApplication = application with
             {

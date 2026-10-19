@@ -88,10 +88,13 @@ public class when_rendering_refusal_branches : for_SemanticAutomationArtifactRen
         var branch = invocation.OnRefused[0];
         var first = branch.Produces.Single() with { Tags = ["first"] };
         var second = first with { Destination = SemanticExpression.FromValue(SemanticValue.Text("other")), DestinationType = _context.Events[trigger.Source].Properties.Single().Type, Tags = ["second"] };
-        var source = SemanticReactorArtifactRenderer.Render(_located, reaction with
-        {
-            Triggers = [trigger with { Invokes = [invocation with { OnRefused = [branch with { Produces = [first, second] }, invocation.OnRefused[1]] }] }]
-        }, _context).Content;
+        var source = SemanticReactorArtifactRenderer.Render(
+            _located,
+            reaction with
+            {
+                Triggers = [trigger with { Invokes = [invocation with { OnRefused = [branch with { Produces = [first, second] }, invocation.OnRefused[1]] }] }]
+            },
+            _context).Content;
         source.ShouldContain("EventForEventSourceId(context.EventSourceId, new");
         source.ShouldContain("EventForEventSourceId(\"other\", new");
         source.IndexOf("Tags = [\"first\"]", StringComparison.Ordinal).ShouldBeLessThan(source.IndexOf("Tags = [\"second\"]", StringComparison.Ordinal));

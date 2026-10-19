@@ -53,7 +53,7 @@ public class a_root_string_key_slice : Specification
         compilation.Diagnostics
             .Where(_ => _.Code != "PLAY0801" && (projectionKey.Length == 0 || _.Code != ProjectionLevelKeyWarning))
             .ShouldBeEmpty();
-        _context = new([compilation.Value!]);
+        _context = new([compilation.Value]);
         _slice = _context.Slices.Single().Slice;
     }
 

@@ -13,7 +13,7 @@ using SceneScreens = Cratis.Scene.Model.Screens;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRendering.when_resolving_domain_blueprints;
 
 /// <summary>
-/// A screen that fills a template of a domain blueprint (<c>template blueprint Cratis.Blueprint.Crm CrmLeadList</c>) renders when the approved
+/// A screen that fills a template of a domain blueprint ('template blueprint Cratis.Blueprint.Crm CrmLeadList') renders when the approved
 /// blueprint's manifest lists that template, and is refused - with the blueprint and the template named - when it does not, instead of
 /// rendering a screen that silently has no template (Cratis/Stage#457).
 /// </summary>

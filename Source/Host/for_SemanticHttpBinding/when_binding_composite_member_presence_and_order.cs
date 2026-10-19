@@ -4,8 +4,8 @@
 using System.Text.Json;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts;
-using Cratis.Stage.Host.for_StageEndpointMapper.given;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
+using Cratis.Stage.Host.for_StageEndpointMapper.given;
 using Cratis.Stage.Semantics;
 using NSubstitute;
 using Xunit;
@@ -38,7 +38,7 @@ public class when_binding_composite_member_presence_and_order : a_routed_model
     [Fact] void should_only_fail_the_explicitly_supplied_null() => Assert.Equal(["First required"], Messages(_responses[1].Body));
     [Fact] void should_report_failures_in_supplied_member_order() => Assert.Equal(["Second required", "First required"], Messages(_responses[2].Body));
 
-    static string?[] Messages(JsonElement body) => [.. body.GetProperty("validationResults").EnumerateArray().Select(failure => failure.GetProperty("message").GetString())];
+    static string[] Messages(JsonElement body) => [.. body.GetProperty("validationResults").EnumerateArray().Select(failure => failure.GetProperty("message").GetString()!)];
 
     const string Source = """
         concept First : String

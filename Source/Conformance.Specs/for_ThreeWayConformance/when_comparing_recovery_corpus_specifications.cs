@@ -26,6 +26,7 @@ public class when_comparing_recovery_corpus_specifications : Specification
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
         plan.Specifications.Values.Select(specification => specification.Name).ShouldContainOnly(["RedeliveryCascade", "FilteredRedelivery", "NothingFollowsAppend"]);
         plan.Specifications.Count.ShouldEqual(corpus.SpecificationExpectations.Length);
+
         // These unmodified members omit given sources; the reference establishes them at the null destination and so does Stage.
         string[] sourcelessGivens = ["RedeliveryCascade", "FilteredRedelivery"];
         plan.Specifications.Values.Where(specification => specification.GivenEvents.Any(given => given.EventSource is null))
@@ -67,7 +68,9 @@ public class when_comparing_recovery_corpus_specifications : Specification
         var compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compiled.Success, string.Join(';', compiled.Diagnostics));
         compiled.Value!.Model.Revision.ShouldEqual(corpus.SemanticRevision);
-        Assert.Equal(corpus.EsmBytes.ToArray(), SemanticModelSerializer.Serialize(compiled.Value.Model).ToArray());
+        byte[] expected = [.. corpus.EsmBytes];
+        byte[] actual = [.. SemanticModelSerializer.Serialize(compiled.Value.Model)];
+        Assert.Equal(expected, actual);
     }
 }
 #endif

@@ -56,6 +56,15 @@ internal static partial class SemanticCratisAdmission
                 command.Id));
         }
 
+        if (command.Response is SemanticRecordCommandResponse && context.ResponseType(command) != $"{Identifiers.ToPascalCase(command.Name)}Response")
+        {
+            diagnostics.Add(new(
+                "STAGE-ESM-050",
+                ArtifactRenderDiagnosticSeverity.Information,
+                $"Command '{command.Name}' response record is emitted as '{context.ResponseType(command)}' (including its proxy type); its fields keep their names.",
+                command.Id));
+        }
+
         if (!ValidateCommandAuthorization(context, command, diagnostics))
         {
             return;
@@ -66,7 +75,7 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
-        if (CommandResultError(context, slice, command) is { } resultError)
+        if (CommandResultError(command) is { } resultError)
         {
             diagnostics.Add(resultError);
             return;

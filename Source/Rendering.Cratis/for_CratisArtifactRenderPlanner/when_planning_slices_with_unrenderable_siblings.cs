@@ -17,7 +17,7 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
             slice StateChange Unsupported
               command RenameOtherProject
                 projectId ProjectId identifier
-                details OtherDetails
+                details OtherDetails[]
                 produces event OtherProjectRenamed
                   for projectId
                 returns details

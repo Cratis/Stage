@@ -444,9 +444,9 @@ internal static class SemanticVersionFeatures
         foreach (var feature in UnknownValidationRules(command.Validations, command.Id, "command", command.Name)) yield return feature;
         foreach (var feature in UnsupportedGenerated(command, null)) yield return feature;
 
-        if (UnsupportedCommandResults(command))
+        foreach (var reason in UnsupportedCommandResults(command))
         {
-            yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' uses generated identifiers with legacy destination allocation, rules or requirements reading generated properties, or an unsupported response source or shape; Stage cannot preserve that combination yet.");
+            yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' {reason}; Stage cannot preserve that yet.");
         }
     }
 
@@ -563,16 +563,6 @@ internal static class SemanticVersionFeatures
         {
             yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}'; Stage renders only non-optional, non-collection concepts with admitted generation strategies.");
         }
-        if (concepts is not null)
-        {
-            foreach (var concept in concepts.Where(concept => command.Properties.Any(property => property.IsGenerated && property.Type.Target == concept.Id)))
-            {
-                if (GeneratedPascalCase.From(concept.Name) == "New")
-                {
-                    yield return new(CommandResults, StageExecutionCapability.Command, command.Id, "command", $"Generated concept '{concept.Name}' collides with its New factory.");
-                }
-            }
-        }
     }
 
     internal static IEnumerable<SemanticVersionFeature> UnsupportedReadRequirements(SemanticCommand command)
@@ -658,38 +648,57 @@ internal static class SemanticVersionFeatures
         return concepts?.Any(concept => concept.Id == type.Target && SemanticGenerationShapes.Supported(concept)) == false;
     }
 
-    static bool UnsupportedCommandResults(SemanticCommand command) =>
-        UnsupportedGeneratedCombination(command) || UnsupportedResponse(command);
+    static IEnumerable<string> UnsupportedCommandResults(SemanticCommand command) =>
+        UnsupportedGeneratedCombination(command).Concat(UnsupportedResponse(command));
 
-    static bool UnsupportedGeneratedCombination(SemanticCommand command)
+    static IEnumerable<string> UnsupportedGeneratedCombination(SemanticCommand command)
     {
         var generated = command.Properties.Where(property => property.IsGenerated).ToArray();
-        if (generated.Length == 0) return false;
-        if (generated.Any(property => property.IsIdentifier) && command.Produces.Any(produced => produced.Destination is null)) return true;
-
-        return command.Requirements.Any(requirement => ReadsGenerated(requirement.Condition, generated)) ||
-            command.Validations.Any(rule => generated.Any(property => property.Id == rule.Property));
+        if (generated.Length == 0) yield break;
+        if (generated.Any(property => property.IsIdentifier) && command.Produces.Any(produced => produced.Destination is null))
+        {
+            yield return "combines a generated identifier with a destination-less production, which uses legacy destination allocation";
+        }
+        foreach (var property in generated.Where(property => command.Requirements.Any(requirement => ReadsGenerated(requirement.Condition, property))))
+        {
+            yield return $"has a requirement reading generated property '{property.Name}', which does not exist during request validation";
+        }
+        foreach (var property in generated.Where(property => command.Validations.Any(rule => rule.Property == property.Id)))
+        {
+            yield return $"has a rule on generated property '{property.Name}', which does not exist during request validation";
+        }
     }
 
-    static bool ReadsGenerated(SemanticCondition condition, IReadOnlyList<SemanticProperty> generated) => condition switch
+    static bool ReadsGenerated(SemanticCondition condition, SemanticProperty generated) => condition switch
     {
         SemanticLogicalCondition logical => ReadsGenerated(logical.Left, generated) || ReadsGenerated(logical.Right, generated),
-        SemanticComparison comparison => generated.Any(property => property.Id == comparison.Left.Property || property.Id == comparison.Right.Property),
+        SemanticComparison comparison => generated.Id == comparison.Left.Property || generated.Id == comparison.Right.Property,
         _ => false
     };
 
-    static bool UnsupportedResponse(SemanticCommand command) => command.Response switch
+    // Response member spelling is renderer-specific, but the Host and executor share this admission, so only
+    // collisions that no type-name escape can resolve are refused here: duplicate or record-reserved field names.
+    static IEnumerable<string> UnsupportedResponse(SemanticCommand command) => command.Response switch
     {
-        SemanticScalarCommandResponse scalar => UnsupportedResponseSource(command, scalar.Source, scalar.Type),
-        SemanticRecordCommandResponse record =>
-            record.Fields.Any(field => UnsupportedResponseSource(command, field.Source, field.Type)) ||
-            !GeneratedPascalCase.RecordMembersAreUnique(command.Name + "Response", record.Fields.Select(field => field.Name)),
-        _ => false
+        SemanticScalarCommandResponse scalar => UnsupportedResponseSource(command, "response", scalar.Source, scalar.Type),
+        SemanticRecordCommandResponse record => record.Fields.SelectMany(field => UnsupportedResponseSource(command, $"response field '{field.Name}'", field.Source, field.Type))
+            .Concat(GeneratedPascalCase.ResponseMembersAreUnique(record.Fields.Select(field => field.Name))
+                ? []
+                : ["declares response fields whose generated C# members collide with each other or with a record member"]),
+        _ => []
     };
 
-    static bool UnsupportedResponseSource(SemanticCommand command, SemanticId source, SemanticTypeReference type) =>
-        type.IsCollection || type.Kind == SemanticTypeReferenceKind.CompositeType ||
-        !command.Properties.Any(property => property.Id == source && property.Type == type);
+    static IEnumerable<string> UnsupportedResponseSource(SemanticCommand command, string response, SemanticId source, SemanticTypeReference type)
+    {
+        if (type.IsCollection)
+        {
+            yield return $"returns a collection as {response}";
+        }
+        else if (!command.Properties.Any(property => property.Id == source && property.Type == type))
+        {
+            yield return $"returns {response} from a source that is not a command property of the same type";
+        }
+    }
 
     static IEnumerable<SemanticId> ConstraintEvents(IEnumerable<SemanticConstraint> constraints) =>
         constraints.SelectMany(constraint => constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy));

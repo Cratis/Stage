@@ -80,8 +80,15 @@ export interface StageDataState {
     setState: (key: string, value: unknown) => void;
     setComponentOutput: (componentId: string, path: string, value: unknown) => void;
 
-    /** Takes what the components of the rendered tree publish (a list's selected row, a search box's text) so bindings and interactions elsewhere on the page read it. */
-    publishComponentOutputs: (outputs: Record<string, Record<string, unknown>>) => void;
+    /**
+     * Takes what the components of one rendered tree publish (a list's selected row, a search box's text) so bindings and interactions elsewhere
+     * on the page read it. The screen and a dialog above it are each a tree of their own, so each publishes under its own scope and replaces only
+     * what it published before; see `useComponentOutputsPublisher`.
+     */
+    publishComponentOutputs: (scope: string, outputs: Record<string, Record<string, unknown>>) => void;
+
+    /** Forgets what a rendered tree published, once it is gone - a closed dialog - leaving what every other tree published. */
+    withdrawComponentOutputs: (scope: string) => void;
 
     /** The rows of every query the page has read, by scope and by query name - what a `queryResult` binding resolves against. */
     queryResults: Record<string, unknown>;
@@ -115,6 +122,7 @@ const emptyState: StageDataState = {
     setState: () => undefined,
     setComponentOutput: () => undefined,
     publishComponentOutputs: () => undefined,
+    withdrawComponentOutputs: () => undefined,
     queryResults: {},
     refreshQuery: () => undefined,
     refreshAfterCommand: () => undefined,
@@ -148,8 +156,11 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
     const [activeSelection, setActiveSelection] = useState<string>();
     const [localState, setLocalState] = useState<Record<string, unknown>>({});
     const [componentOutputState, setComponentOutputState] = useState<Record<string, Record<string, unknown>>>({});
-    const [publishedOutputs, setPublishedOutputs] = useState<Record<string, Record<string, unknown>>>({});
+    const [outputContributions, setOutputContributions] = useState<Record<string, Record<string, Record<string, unknown>>>>({});
     const [refreshRequests, setRefreshRequests] = useState<{ query?: string; version: number }>({ version: 0 });
+
+    // What every rendered tree published, as one: the screen's selected row and a dialog's search box resolve side by side.
+    const publishedOutputs = useMemo(() => mergedOutputs(outputContributions), [outputContributions]);
 
     const registerQueryResult = useCallback((scope: string, state: QueryState | undefined) => {
         setQueries(current => {
@@ -247,7 +258,14 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         (source: string | undefined): unknown => source ? resolveArgumentSource(source, bindingScope(selected, queries, localState, { ...publishedOutputs, ...componentOutputState }, selections)) : undefined,
         [componentOutputState, localState, publishedOutputs, queries, selected, selections]);
 
-    const publishComponentOutputs = useCallback((outputs: Record<string, Record<string, unknown>>) => setPublishedOutputs(outputs), []);
+    const publishComponentOutputs = useCallback((scope: string, outputs: Record<string, Record<string, unknown>>) =>
+        setOutputContributions(current => ({ ...current, [scope]: outputs })), []);
+    const withdrawComponentOutputs = useCallback((scope: string) => setOutputContributions(current => {
+        if (!Object.prototype.hasOwnProperty.call(current, scope)) return current;
+        const remaining = { ...current };
+        delete remaining[scope];
+        return remaining;
+    }), []);
     const queryResults = useMemo(() => bindingScope(undefined, queries, {}, {}, {}).queryResults, [queries]);
 
     const state = useMemo<StageDataState>(() => ({
@@ -266,6 +284,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         setState: (key, value) => setLocalState(current => writePath(current, key.split('.').filter(Boolean), value)),
         setComponentOutput,
         publishComponentOutputs,
+        withdrawComponentOutputs,
         queryResults,
         refreshQuery,
         refreshAfterCommand,
@@ -274,7 +293,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, publishComponentOutputs, queryResults, resolveArgument, resolveBinding, routes, routesReady, parameters, session, screen, selectRow, selected, selections, setComponentOutput]);
+    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, publishComponentOutputs, withdrawComponentOutputs, queryResults, resolveArgument, resolveBinding, routes, routesReady, parameters, session, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
@@ -480,6 +499,15 @@ function writePath(current: Record<string, unknown>, path: string[], value: unkn
     if (!head) return current;
     if (tail.length === 0) return { ...current, [head]: value };
     return { ...current, [head]: writePath(isRecord(current[head]) ? current[head] : {}, tail, value) };
+}
+
+function mergedOutputs(contributions: Record<string, Record<string, Record<string, unknown>>>): Record<string, Record<string, unknown>> {
+    const merged: Record<string, Record<string, unknown>> = {};
+    for (const outputs of Object.values(contributions)) {
+        for (const [componentId, values] of Object.entries(outputs)) merged[componentId] = { ...merged[componentId], ...values };
+    }
+
+    return merged;
 }
 
 /** What a `screen.` path reads: the screen's name, and the keys its `data` declarations are read by - the address's parameter, or the session's identity of that name. */

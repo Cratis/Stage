@@ -2,13 +2,16 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, chai, describe, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core';
 import { FormGenerationMode } from '@cratis/scene.model';
 import { StageDataProvider, useStageData } from '../stageData';
 import { element } from '../testElements';
 import { commandResult, RegisteredForm } from '../testing/commands';
 
+chai.should();
+
+const text = (label: string) => screen.getByLabelText(label).textContent ?? '';
 const addToBasket = JSON.stringify({
     type: 'object',
     required: ['basketId', 'sku'],
@@ -45,9 +48,9 @@ function view(parameters: Record<string, string> = { productId: 'p1' }) {
     );
 }
 
-function submitted(fetched: ReturnType<typeof vi.fn>) {
+function submitted(fetched: ReturnType<typeof vi.fn>): Record<string, unknown> | undefined {
     const call = fetched.mock.calls.find(([url]) => String(url).includes('/api/basket/add'));
-    return call ? JSON.parse(String((call[1] as RequestInit).body)) : undefined;
+    return call ? JSON.parse(String((call[1] as RequestInit).body)) as Record<string, unknown> : undefined;
 }
 
 describe('when the session holds an identity', () => {
@@ -57,25 +60,25 @@ describe('when the session holds an identity', () => {
     it('should keep it out of the parameters of a screen whose address does not carry it', () => {
         view();
 
-        expect(JSON.parse(screen.getByLabelText('parameters').textContent ?? '')).toEqual({ productId: 'p1' });
+        JSON.parse(text('parameters')).should.deep.equal({ productId: 'p1' });
     });
 
     it('should offer it as the session scope', () => {
         view();
 
-        expect(JSON.parse(screen.getByLabelText('session').textContent ?? '')).toEqual({ basketId: 'b1' });
+        JSON.parse(text('session')).should.deep.equal({ basketId: 'b1' });
     });
 
     it('should offer it as the key a data declaration is read by when the address does not carry it', () => {
         view();
 
-        expect(screen.getByLabelText('key').textContent).toBe('b1');
+        text('key').should.equal('b1');
     });
 
     it('should let the address win as the key a data declaration is read by', () => {
         view({ basketId: 'b2' });
 
-        expect(screen.getByLabelText('key').textContent).toBe('b2');
+        text('key').should.equal('b2');
     });
 
     it('should still populate it into a form that does not show it', async () => {
@@ -86,7 +89,7 @@ describe('when the session holds an identity', () => {
         fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'ACM-1000' } });
         fireEvent.click(screen.getByRole('button', { name: 'Execute Add' }));
 
-        await waitFor(() => expect(submitted(fetched)).toBeDefined());
-        expect(submitted(fetched)).toEqual(expect.objectContaining({ basketId: 'b1', sku: 'ACM-1000' }));
+        await waitFor(() => (submitted(fetched) !== undefined).should.equal(true));
+        (submitted(fetched) ?? {}).should.include({ basketId: 'b1', sku: 'ACM-1000' });
     });
 });

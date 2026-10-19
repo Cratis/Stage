@@ -11,7 +11,7 @@ internal sealed record SemanticAdmissionEntry(string Artifact, string Kind, stri
 
 internal sealed class SemanticRuntimeAdmission
 {
-    internal SemanticRuntimeAdmission(SemanticExecutionPlan plan)
+    internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, string?>? ruleName = null)
     {
         var entries = new List<SemanticAdmissionEntry>();
         var blocking = new List<SemanticAdmissionEntry>();
@@ -46,7 +46,7 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var command in plan.Commands.Values)
         {
-            var (entry, blocksModel) = CommandEntry(plan, command);
+            var (entry, blocksModel) = CommandEntry(plan, command, ruleName);
             entries.Add(entry);
             if (blocksModel) blocking.Add(entry);
         }
@@ -80,13 +80,13 @@ internal sealed class SemanticRuntimeAdmission
 
     internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
 
-    static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command)
+    static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName)
     {
         if (SemanticPlanAdmission.Check(plan, command.Id) is { } planRefusal)
         {
             return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), planRefusal.Details), false);
         }
-        if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command).FirstOrDefault() is { } feature)
+        if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command, ruleName).FirstOrDefault() is { } feature)
         {
             // An implementation body refuses only this command, not the live model.
             return (Refused(feature), !feature.Details.StartsWith($"{SemanticImplementationReach.Code}:", StringComparison.Ordinal));

@@ -565,14 +565,16 @@ internal static class SemanticVersionFeatures
         slice.Reducers.Where(reducer => reducer.From is not null).Select(reducer => new SemanticVersionFeature(
             ObserverFilters, StageExecutionCapability.Projection, reducer.ReadModel, "reducer", $"Reducer '{reducer.Name}' declares an ESM v10 observer filter, which Stage does not support yet."));
 
-    internal static IEnumerable<SemanticVersionFeature> ImplementationGenerationInCommand(SemanticCommand command, IEnumerable<SemanticConcept> concepts)
+    internal static IEnumerable<SemanticVersionFeature> ImplementationGenerationInCommand(SemanticCommand command, IEnumerable<SemanticConcept> concepts, Func<string, string?>? ruleName = null)
     {
         foreach (var property in command.Properties.Where(property => property.IsGenerated))
         {
             var concept = concepts.FirstOrDefault(concept => concept.Id == property.Type.Target && concept.Generation?.Kind == "implementation");
             if (concept is not null)
             {
-                yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}' with 'generate rule' on concept '{concept.Name}'; Stage's interpreter never runs implementation bodies — render the application.");
+                var requirementId = concept.Generation!.RequirementId!;
+                var rule = ruleName?.Invoke(requirementId) is { Length: > 0 } name ? $"'generate rule {name}'" : $"'generate rule' (requirement '{requirementId}')";
+                yield return new(Generated, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' generates '{property.Name}' with {rule} on concept '{concept.Name}'; the rule has an implementation body, which Stage's interpreter never runs or replaces with a generated value — render the application.");
             }
         }
     }

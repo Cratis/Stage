@@ -25,7 +25,7 @@ internal static class SemanticHost
         var notes = new List<SemanticModelLoadDiagnostic>();
         var (loaded, scene) = await LoadModel(modelPath, issues, notes);
 
-        var admission = loaded is null ? null : new SemanticRuntimeAdmission(loaded.Plan);
+        var admission = loaded is null ? null : new SemanticRuntimeAdmission(loaded.Plan, id => loaded.ImplementationRequirements.FirstOrDefault(requirement => requirement.RequirementId == id)?.Member);
         if (admission is not null)
         {
             issues.AddRange(admission.Blocking.Select(entry => new StageUnsupportedIssue(entry.Capability!, entry.Artifact, entry.Details!)));

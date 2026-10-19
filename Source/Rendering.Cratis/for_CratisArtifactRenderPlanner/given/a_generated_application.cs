@@ -98,6 +98,17 @@ public class a_generated_application : a_register_project_render_request
             {
                 File.Delete(GeneratedPath(removal.RelativePath));
             }
+
+            // Later runs verify the published bytes, not the ones rendered first, and no longer expect removed files.
+            foreach (var artifact in plan.Artifacts)
+            {
+                _artifactHashes[artifact.RelativePath] = artifact.Sha256;
+            }
+
+            foreach (var removal in plan.RequiredRemovals)
+            {
+                _artifactHashes.Remove(removal.RelativePath);
+            }
         }
         catch
         {

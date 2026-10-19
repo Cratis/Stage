@@ -81,8 +81,8 @@ function BoundData({ source }: { source: StageDataSource }) {
 
     // The key a declaration is read by is the address's parameter, or - for a screen about the session's own basket - the session's identity of that name.
     const argument = source.by ? (parameters[source.by] || session[source.by]) : undefined;
-    // A declaration with no `by` reads the query as the session sees it: narrowed by the identities the session and the address carry, when the query filters by them.
-    const queryArguments = useMemo(() => source.by ? (argument ? { [source.by]: argument } : {}) : { ...session, ...parameters }, [argument, parameters, session, source.by]);
+    // A declaration with no `by` names no session identity, so only the address narrows it: a session identity reaches a query only through the `by` that names it.
+    const queryArguments = useMemo(() => source.by ? (argument ? { [source.by]: argument } : {}) : { ...parameters }, [argument, parameters, source.by]);
     useStageQuery({
         scope: `data:${source.typeName}`,
         name: source.query,
@@ -97,10 +97,10 @@ function BoundData({ source }: { source: StageDataSource }) {
 
 /** Reads one query and publishes its rows, so every binding to it - wherever on the page - resolves against them. */
 function BoundQuery({ name }: { name: string }) {
-    const { routes, routesReady, parameters, session } = useStageData();
+    const { routes, routesReady, parameters } = useStageData();
 
-    // What the session and the address carry narrows the query - the shopper's own basket - when the query filters by it; a query that does not ignores it.
-    const queryArguments = useMemo(() => ({ ...session, ...parameters }), [parameters, session]);
+    // A query result binding names no key, so only the address narrows the query when it filters by a parameter; the session is never read unasked.
+    const queryArguments = useMemo(() => ({ ...parameters }), [parameters]);
     useStageQuery({ scope: `binding:${name}`, name, route: routes?.queries[name], arguments: queryArguments, ready: routesReady, list: true });
     return null;
 }

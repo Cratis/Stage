@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -66,9 +67,26 @@ internal static class SemanticStateChangeArtifactRenderer
         context.Docs(@event.Id).Render(builder, $"The event that occurs when {Identifiers.ToWords(@event.Name)}.")
             .Attribute(@event.StoredName is { } stored
                 ? $"global::Cratis.Chronicle.Events.EventTypeAttribute({CSharpCodeBuilder.StringLiteral(stored)})"
-                : "global::Cratis.Chronicle.Events.EventTypeAttribute")
-            .Line($"public record {name}({parameters});")
-            .BlankLine();
+                : "global::Cratis.Chronicle.Events.EventTypeAttribute");
+
+        // A product a projection adds (ESM v29) is a member the event carries: Chronicle's Add takes one event property.
+        var products = SemanticProjectionProducts.For(@event, context);
+        if (products.Count == 0)
+        {
+            builder.Line($"public record {name}({parameters});");
+        }
+        else
+        {
+            builder.OpenBlock($"public record {name}({parameters})");
+            foreach (var product in products)
+            {
+                builder.Line(SemanticProjectionProductRendering.Declaration(product, types));
+            }
+
+            builder.EndBlock();
+        }
+
+        builder.BlankLine();
     }
 
     internal static void RenderMembers(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)

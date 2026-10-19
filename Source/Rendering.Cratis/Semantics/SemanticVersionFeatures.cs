@@ -251,19 +251,23 @@ internal static class SemanticVersionFeatures
     public static bool HasCompositeKey(SemanticReadModel readModel) => readModel.Properties.Count(property => property.IsIdentifier) > 1;
 
     /// <summary>
-    /// Finds the ESM v29 projection products of one slice. Chronicle's Add and Subtract take one event property, so the
-    /// renderer refuses a product with a precise code instead of rendering a sum of one factor; the Host and the reference run it.
+    /// Finds the ESM v29 projection products of one slice that the renderer cannot lower. Chronicle's Add and Subtract take one event
+    /// property, so a product of two event values is rendered as a member the event carries (<see cref="SemanticProjectionProducts"/>);
+    /// one that cannot be (a join or every block, optional or non-numeric factors, a total of another number type) is refused with a precise code.
     /// </summary>
     /// <param name="slice">The slice.</param>
-    /// <returns>One refusal per projection that multiplies, in model order.</returns>
-    public static IEnumerable<SemanticVersionFeature> ProjectionProductsInSlice(SemanticSlice slice) =>
-        slice.Projections.Where(projection => projection.Scope is { } scope && ScopeMappings(scope).Any(mapping => mapping.Factor is not null))
-            .Select(projection => new SemanticVersionFeature(
-                ProjectionProducts,
-                StageExecutionCapability.Projection,
-                projection.Id,
-                "projection",
-                $"Projection '{projection.Name}' adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, so the Cratis renderer does not render it. Precompute the product on the event, or run the specification with the Host."));
+    /// <param name="context">The semantic application.</param>
+    /// <returns>One refusal per product that does not lower, in model order.</returns>
+    public static IEnumerable<SemanticVersionFeature> ProjectionProductsInSlice(SemanticSlice slice, SemanticApplicationContext context) =>
+        slice.Projections.Where(projection => projection.Scope is not null && context.ReadModels.ContainsKey(projection.ReadModel)).SelectMany(projection =>
+            SemanticProjectionProducts.Walk(projection.Scope!, context.ReadModels[projection.ReadModel].Properties, context)
+                .Where(found => found.Rejection is not null)
+                .Select(found => new SemanticVersionFeature(
+                    ProjectionProducts,
+                    StageExecutionCapability.Projection,
+                    projection.Id,
+                    "projection",
+                    $"Projection '{projection.Name}' adds or subtracts a product of two event values (ESM v29) that the Cratis renderer cannot lower: {found.Rejection}.")));
 
     /// <summary>
     /// Finds the structural automation and public-event constructs of one slice.
@@ -768,11 +772,4 @@ internal static class SemanticVersionFeatures
     static bool IsKeyed(SemanticCommandRoute route) => route.StreamId is not null || !route.StreamIdParts.IsDefaultOrEmpty;
 
     static IEnumerable<SemanticSlice> Slices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(Slices));
-
-    static IEnumerable<SemanticProjectionMapping> ScopeMappings(SemanticProjectionScope scope) =>
-        scope.From.SelectMany(from => from.Mappings)
-            .Concat(scope.Joins.SelectMany(join => join.Mappings))
-            .Concat(scope.Every?.Mappings ?? [])
-            .Concat(scope.Children.SelectMany(child => ScopeMappings(child.Scope)))
-            .Concat(scope.Nested.SelectMany(nested => ScopeMappings(nested.Scope)));
 }

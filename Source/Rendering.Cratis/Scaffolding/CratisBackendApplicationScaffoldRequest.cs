@@ -26,13 +26,15 @@ public sealed class CratisBackendApplicationScaffoldRequest
         string projectName,
         string rootNamespace,
         CratisBackendApplicationScaffoldProfile profile,
-        ApprovedPackageSet approvedPackages)
+        ApprovedPackageSet approvedPackages,
+        bool repositoryRoot = false)
     {
         ApplicationName = applicationName;
         ProjectName = projectName;
         RootNamespace = rootNamespace;
         Profile = profile;
         ApprovedPackages = approvedPackages;
+        RepositoryRoot = repositoryRoot;
     }
 
     /// <summary>
@@ -60,6 +62,12 @@ public sealed class CratisBackendApplicationScaffoldRequest
     /// scaffold ships. Empty unless <see cref="WithApprovedPackages"/> supplied some.
     /// </summary>
     public ApprovedPackageSet ApprovedPackages { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the application root is the repository root, which adds the repository's
+    /// continuous integration files to the scaffold.
+    /// </summary>
+    public bool RepositoryRoot { get; }
 
     /// <summary>
     /// Creates a request using one name for the application, project, and root namespace.
@@ -118,8 +126,15 @@ public sealed class CratisBackendApplicationScaffoldRequest
             }
         }
 
-        return new(ApplicationName, ProjectName, RootNamespace, Profile, approvedPackages);
+        return new(ApplicationName, ProjectName, RootNamespace, Profile, approvedPackages, RepositoryRoot);
     }
+
+    /// <summary>
+    /// Creates the same request for an application whose root is the repository root.
+    /// </summary>
+    /// <returns>The request that also scaffolds the repository's continuous integration files.</returns>
+    public CratisBackendApplicationScaffoldRequest WithRepositoryRoot() =>
+        new(ApplicationName, ProjectName, RootNamespace, Profile, ApprovedPackages, true);
 
     static void ValidateName(string value, string role)
     {

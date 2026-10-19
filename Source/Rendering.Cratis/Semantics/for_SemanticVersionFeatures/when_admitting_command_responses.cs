@@ -26,26 +26,8 @@ public class when_admitting_command_responses : Specification
                 address Address
                 produces event Moved
                   for projectId
-                  address = address
+                  address Address = address
                 returns address
-        """;
-
-    const string Collection = """
-        concept ProjectId : Uuid
-        eventsource Project
-          identifier ProjectId
-        type Address
-          street String
-          city String
-        module Projects
-          feature Moving
-            slice StateChange Move
-              command Move
-                projectId ProjectId identifier
-                addresses Address[]
-                produces event Moved
-                  for projectId
-                returns addresses
         """;
 
     const string DestinationLess = """
@@ -68,8 +50,13 @@ public class when_admitting_command_responses : Specification
 
     void Because()
     {
-        _composite = SemanticVersionFeatures.InCommand(CommandIn(Composite)).Select(feature => feature.Message);
-        _collection = SemanticVersionFeatures.InCommand(CommandIn(Collection)).Select(feature => feature.Message);
+        var composite = CommandIn(Composite);
+        var address = composite.Properties.Single(property => property.Name == "address");
+
+        // Screenplay refuses collection responses (PLAY0489), so Stage's own refusal is reached only by a hand-built model.
+        var collection = composite with { Response = new SemanticScalarCommandResponse(address.Id, address.Type with { IsCollection = true }) };
+        _collection = SemanticVersionFeatures.InCommand(collection).Select(feature => feature.Message);
+        _composite = SemanticVersionFeatures.InCommand(composite).Select(feature => feature.Message);
         _destinationLess = SemanticVersionFeatures.InCommand(CommandIn(DestinationLess)).Select(feature => feature.Message);
         var plan = invoice_model.Plan(invoice_model.Compile(Composite));
         Assert.True(plan.Success, string.Join('\n', plan.Diagnostics));

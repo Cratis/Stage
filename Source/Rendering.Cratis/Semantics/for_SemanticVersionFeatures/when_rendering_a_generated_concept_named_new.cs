@@ -18,6 +18,6 @@ public class when_rendering_a_generated_concept_named_new : Specification
 
     [Fact] void should_render_the_collision() => Assert.True(_plan.Success, string.Join('\n', _plan.Diagnostics));
     [Fact] void should_keep_the_concept_name() => Concept.ShouldContain("record New(");
-    [Fact] void should_implement_the_factory_explicitly() => Concept.ShouldContain("static New global::Cratis.Concepts.IGeneratable<New>.New(");
+    [Fact] void should_implement_the_factory_explicitly() => Concept.ShouldContain("IGeneratableInContext<New>.New(");
     [Fact] void should_not_declare_a_public_factory() => Concept.ShouldNotContain("public static New New(");
 }

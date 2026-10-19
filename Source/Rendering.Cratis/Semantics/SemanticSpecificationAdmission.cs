@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -33,6 +34,15 @@ internal static partial class SemanticSpecificationAdmission
                         ArtifactRenderDiagnosticSeverity.Error,
                         $"Specification '{specification.Name}' cannot render: {ProjectedFactsRejection(context, facts)}",
                         specification.Id));
+                }
+
+                continue;
+            }
+            if (AppendRefusedConstraint(context, specification) is { } refusing)
+            {
+                if (AppendRefusalRejection(context, specification, refusing) is { } refusal)
+                {
+                    diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: {refusal}", specification.Id));
                 }
 
                 continue;
@@ -103,7 +113,7 @@ internal static partial class SemanticSpecificationAdmission
 
     static IEnumerable<SemanticSpecification> WithoutReactionCascades(SemanticApplicationContext context, SemanticSlice slice, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in WithRenderableGeneratedValues(context, slice.Specifications, diagnostics))
+        foreach (var specification in WithRenderableGeneratedValues(context, slice.Specifications.Select(specification => specification.WithPinnedActionValues()), diagnostics))
         {
             if (CommandTriggersReaction(context, specification))
             {

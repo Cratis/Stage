@@ -57,8 +57,8 @@ internal static class StageSceneDocument
 
                 // Contracts serves semantic Host names. Only this generated application's transport uses CLR escapes.
                 var names = properties.ToDictionary(property => property.Name, context.MemberNames.WireProperty, StringComparer.Ordinal);
-                var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }), diagnostics, group.Key, SourceLocation.Start);
-                var fieldSchema = CommandFormSchemas.For(context.Application, properties, new ConversionDiagnostics(), group.Key, SourceLocation.Start);
+                var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }), new ConversionDiagnostics(), group.Key, SourceLocation.Start);
+                var fieldSchema = CommandFormSchemas.For(context.Application, properties, diagnostics, group.Key, SourceLocation.Start);
                 return (Name: group.Key, Schema: schema, FieldSchema: fieldSchema, Names: names);
             })
             .ToArray();

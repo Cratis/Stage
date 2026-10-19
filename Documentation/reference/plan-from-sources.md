@@ -346,6 +346,18 @@ catalog adds `GeneratedStrings.cs` and the same request-localization wiring in
 unchanged. The scaffold's pinned dependencies satisfy Chronicle 19.30.0 and
 Arc.Chronicle 22.49.1 or later.
 
+### Repository-root option
+
+`RepositoryRoot` defaults to `false`. Set it to `true` only when the application root is the
+repository root; Stage plans without touching the file system, so the caller decides. The scaffold
+then also contains `.github/workflows/build.yml` and `.github/dependabot.yml`, and its README names
+npm instead of Yarn for the frontend. The workflow has a `backend` job (restore, Debug build,
+specifications, Release build) and a `frontend` job (generate the Arc proxies, `npm install`,
+`npm run build`). It runs on pushes to `main`, pull requests and manual dispatch. Actions are pinned
+by full commit hash, and Dependabot updates them weekly. Application-scope plans include these files;
+scoped plans do not. Pass the same value, together with the same `Profile`, to every planning call:
+a profile and options that disagree are refused with `STAGE-CRATIS-001`.
+
 Scene composition, bindings, and screen runtime artifacts require the whole model and
 come only from an application-scope render ([#275](https://github.com/Cratis/Stage/issues/275)).
 A scaffold profile carrying a Scene emits no Scene artifacts and reports the

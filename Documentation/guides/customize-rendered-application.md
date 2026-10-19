@@ -10,6 +10,10 @@ Scaffold files, including `Program.cs`, the project files, `Directory.Packages.p
 belong to you after first run. Subsequent scoped plans exclude them. An application-scope plan includes them
 again, so check your publisher's overwrite policy before applying one to an existing application.
 
+When the caller plans with `RepositoryRoot = true`, the scaffold also includes `.github/workflows/build.yml` and
+`.github/dependabot.yml`. They are scaffold files like the rest: edit them freely, and exclude the scaffold from later
+plans to keep your edits.
+
 | File                                | What it is for                                                    | Picked up when                     |
 | ----------------------------------- | ----------------------------------------------------------------- | ---------------------------------- |
 | `Customizations/Program.cs`         | Service registrations, options, and extra endpoints or middleware | The C# project compiles            |
